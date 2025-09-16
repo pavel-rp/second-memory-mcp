@@ -76,6 +76,10 @@ export function getSchemas(): NotionSchemasResource {
 			"Link chunks to topics, and schedule entries to chunks.",
 			"Update 'review_schedule' after each review using the calculator outputs.",
 			"Advanced SR: Add optional fields 'lapse_count', 'consecutive_failures', 'leech_flag' to 'Review Schedule' and 'tags' (multi-select) to 'Learning Chunks'.",
+			"Performance Analytics: Use analytics_daily and analytics_window tools to compute KPIs from session data.",
+			"Analytics Integration: Feed session_logs data to analytics tools, then persist computed results to performance_analytics database.",
+			"Analytics Usage: Call analytics_window with date ranges to get daily KPIs, totals, and optional topic/tag breakdowns.",
+			"Data Flow: session_logs → analytics tools → performance_analytics (for persistence) + real-time insights.",
 		].join("\n"),
 		breaking_changes: [
 			"1.1.0: Added optional advanced SR fields; existing data remains valid. Ensure Notion databases include these columns where needed.",

@@ -14,6 +14,11 @@ describe("registerServerTools", () => {
 		registerServerTools(stub);
 		expect(stub.tools).toContain("calculate_next_review");
 		expect(stub.tools).toContain("calculate_priority_score");
+		expect(stub.tools).toContain("calculate_next_review_advanced");
+		expect(stub.tools).toContain("rank_candidates");
+		// Analytics tools
+		expect(stub.tools).toContain("analytics_daily");
+		expect(stub.tools).toContain("analytics_window");
 		expect(stub.tools).toContain("scaffolding_prompt");
 		expect(stub.tools).toContain("learning_prompt");
 		expect(stub.tools).toContain("retrieval_prompt");
