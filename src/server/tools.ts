@@ -142,6 +142,48 @@ export function registerServerTools(server: McpServer): void {
 		}
 	);
 
+	// New: Chunk prompts
+	server.registerTool(
+		"chunk_generation_prompt",
+		{
+			title: "Generate Chunk Set",
+			description: "Produce chunk proposals (titles, order, content summary, prerequisites)",
+			inputSchema: {
+				topicTitle: z.string().describe("Topic title"),
+				topicDescription: z.string().optional(),
+				existingChunkTitles: z.array(z.string()).optional(),
+			},
+		},
+		async (args: any) => {
+			const text = promptPack.getPrompt("chunk_generation", args);
+			return { content: [{ type: "text", text }] };
+		}
+	);
+
+	server.registerTool(
+		"chunk_management_prompt",
+		{
+			title: "Manage Chunk(s)",
+			description: "Propose updates/merges/splits/retirements with rationale",
+			inputSchema: {
+				operation: z.enum(["update", "merge", "split", "retire"]).optional(),
+				managedChunk: z
+					.object({
+						title: z.string(),
+						order: z.number().int().optional(),
+						content: z.string().optional(),
+						prerequisites: z.string().optional(),
+					})
+					.optional(),
+				intent: z.string().optional(),
+			},
+		},
+		async (args: any) => {
+			const text = promptPack.getPrompt("chunk_management", args);
+			return { content: [{ type: "text", text }] };
+		}
+	);
+
 	// Resource fallback: expose Notion schemas as a tool for broad client compatibility
 	server.registerTool(
 		"notion_schemas",

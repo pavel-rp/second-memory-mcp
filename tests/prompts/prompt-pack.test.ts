@@ -21,6 +21,22 @@ describe("promptPack", () => {
 		const v = promptPack.getPrompt("review", { lastReviewed: "2025-01-01", masteryLevel: 2, previousAttempts: 1, weakAreas: "y" });
 		expect(v).toContain("LAST REVIEWED");
 	});
+
+	it("chunk generation prompt lists required fields", () => {
+		const text = promptPack.getPrompt("chunk_generation", { topicTitle: "Graphs", topicDescription: "Basics", existingChunkTitles: ["Intro"] });
+		expect(text).toContain("Produce 5–9 proposed chunks");
+		expect(text).toContain("title");
+		expect(text).toContain("order");
+		expect(text).toContain("content");
+		expect(text).toContain("prerequisites");
+	});
+
+	it("chunk management prompt mentions operation and resulting chunks", () => {
+		const text = promptPack.getPrompt("chunk_management", { operation: "merge", managedChunk: { title: "Intro" }, intent: "deduplicate" });
+		expect(text).toContain("OPERATION: merge");
+		expect(text).toContain("TARGET CHUNK: Intro");
+		expect(text).toContain("resulting chunk(s)");
+	});
 });
 
 
