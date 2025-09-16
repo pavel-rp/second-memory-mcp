@@ -1,0 +1,52 @@
+# Node dependencies
+node_modules/
+
+# Lockfiles (keep pnpm)
+package-lock.json
+yarn.lock
+
+# Build output
+/dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Tests & coverage
+/coverage/
+.nyc_output/
+.vitest/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Caches
+.cache/
+.eslintcache
+.stylelintcache
+.pnpm-store/
+
+# Editor & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*.tmp
+*.temp
+~*
+
+# Project-specific tooling
+/.cursor/
+/.spec-workflow/
