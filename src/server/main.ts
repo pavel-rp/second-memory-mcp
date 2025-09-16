@@ -143,6 +143,76 @@ async function bootstrap(): Promise<void> {
     })
   );
 
+  // New: chunk prompts
+  server.registerPrompt(
+    "chunk_generation",
+    {
+      title: "Chunk Generation",
+      description: "Propose 5–9 chunks with fields",
+      argsSchema: {
+        topicTitle: z.string().describe("Topic title"),
+        topicDescription: z.string().optional(),
+        existingChunkTitles: z.string().optional(), // comma-separated titles
+      }
+    },
+    (args: any) => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: promptPack.getPrompt("chunk_generation", {
+              topicTitle: args?.topicTitle,
+              topicDescription: args?.topicDescription,
+              existingChunkTitles: args?.existingChunkTitles
+                ? String(args.existingChunkTitles)
+                    .split(",")
+                    .map((s: string) => s.trim())
+                    .filter(Boolean)
+                : undefined,
+            })
+          }
+        }
+      ]
+    })
+  );
+
+  server.registerPrompt(
+    "chunk_management",
+    {
+      title: "Chunk Management",
+      description: "Update/Merge/Split/Retire with rationale",
+      argsSchema: {
+        operation: z.string().optional(),
+        managedChunkTitle: z.string().optional(),
+        managedChunkOrder: z.string().optional(),
+        managedChunkContent: z.string().optional(),
+        managedChunkPrerequisites: z.string().optional(),
+        intent: z.string().optional(),
+      }
+    },
+    (args: any) => ({
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: promptPack.getPrompt("chunk_management", {
+              operation: args?.operation,
+              managedChunk: {
+                title: args?.managedChunkTitle ?? "<untitled>",
+                order: args?.managedChunkOrder ? Number(args.managedChunkOrder) : undefined,
+                content: args?.managedChunkContent,
+                prerequisites: args?.managedChunkPrerequisites,
+              },
+              intent: args?.intent,
+            })
+          }
+        }
+      ]
+    })
+  );
+
   await server.connect(transport);
 }
 
