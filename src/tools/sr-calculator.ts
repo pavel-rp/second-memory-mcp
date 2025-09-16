@@ -139,7 +139,7 @@ export function calculateNextReviewAdvanced(input: AdvancedNextReviewInput): Adv
 		leech = true;
 		// stronger ease penalty for leeches using configured adjustments
 		ease = clampEaseFactor(
-			ease + Math.min(
+			ease + Math.max(
 				algorithmConfig.lapsePenalty + algorithmConfig.leechEasePenaltyAdjustment,
 				algorithmConfig.minLeechEasePenalty
 			)

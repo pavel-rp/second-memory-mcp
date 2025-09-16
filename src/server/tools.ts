@@ -45,7 +45,7 @@ export function registerServerTools(server: McpServer): void {
 			description:
 				"SM-2 style scheduler: returns next interval/repetitions/ease_factor/next_review",
 			inputSchema: {
-				quality: z.number().int().min(0).max(5),
+				quality: z.number().min(0).max(5),
 				repetitions: z.number().int().min(0),
 				ease_factor: z.number().min(1.3),
 				interval: z.number().int().min(0),
@@ -101,7 +101,7 @@ export function registerServerTools(server: McpServer): void {
 			title: "Calculate Next Review (Advanced)",
 			description: "Advanced scheduler with lapses/leech handling",
 			inputSchema: {
-				quality: z.number().int().min(0).max(5),
+				quality: z.number().min(0).max(5),
 				repetitions: z.number().int().min(0),
 				ease_factor: z.number().min(1.3),
 				interval: z.number().int().min(0),
