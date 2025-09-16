@@ -3,7 +3,9 @@ export type PromptName =
 	| "learning"
 	| "retrieval"
 	| "review"
-	| "workflow_guidance";
+	| "workflow_guidance"
+	| "chunk_generation"
+	| "chunk_management";
 
 export type DrillFormat =
 	| "multiple_choice"
@@ -29,6 +31,16 @@ export type PromptContext = {
 	lastReviewed?: string; // ISO date string
 	previousAttempts?: number;
 	weakAreas?: string;
+
+	// Chunk generation context
+	topicTitle?: string;
+	topicDescription?: string;
+	existingChunkTitles?: string[];
+
+	// Chunk management context
+	operation?: "update" | "merge" | "split" | "retire";
+	managedChunk?: { title: string; order?: number; content?: string; prerequisites?: string };
+	intent?: string;
 };
 
 /**
@@ -49,6 +61,10 @@ export class PromptPack {
 				return this.getReviewPrompt(context);
 			case "workflow_guidance":
 				return this.getWorkflowGuidancePrompt();
+			case "chunk_generation":
+				return this.getChunkGenerationPrompt(context);
+			case "chunk_management":
+				return this.getChunkManagementPrompt(context);
 		}
 	}
 
@@ -169,6 +185,56 @@ export class PromptPack {
 			"- Manage cognitive load; use concrete → abstract progression",
 			"- Keep explanations concise, supportive, and precise",
 		].join("\n");
+	}
+
+	private getChunkGenerationPrompt(context: PromptContext): string {
+		const topicTitle = context.topicTitle ?? "<topic not provided>";
+		const topicDescription = context.topicDescription ?? "<description not provided>";
+		const existing = Array.isArray(context.existingChunkTitles) ? context.existingChunkTitles : [];
+		const existingList = existing.length > 0 ? `Existing chunk titles: ${existing.join(", ")}` : "No existing chunk titles provided.";
+
+		return [
+			"You are assisting with chunk generation for a learning topic.",
+			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
+			"",
+			`TOPIC: ${topicTitle}`,
+			`DESCRIPTION: ${topicDescription}`,
+			existingList,
+			"",
+			"Produce 5–9 proposed chunks, each including:",
+			"- title",
+			"- order (1..n)",
+			"- content (2–3 sentence summary)",
+			"- prerequisites (bulleted list or concise text)",
+			"",
+			"Constraints:",
+			"- Avoid duplication with existing titles",
+			"- Manage cognitive load; keep chunks digestible",
+			"- Reference 'Learning Chunks' fields as per schemas",
+		].join("\n");
+	}
+
+	private getChunkManagementPrompt(context: PromptContext): string {
+		const op = context.operation ?? "update";
+		const chunk = context.managedChunk ?? { title: "<untitled>" };
+		const intent = context.intent ?? "<intent not provided>";
+
+		return [
+			"You are assisting with chunk maintenance (update/merge/split/retire).",
+			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
+			"",
+			`OPERATION: ${op}`,
+			`TARGET CHUNK: ${chunk.title}`,
+			chunk.order != null ? `ORDER: ${chunk.order}` : undefined,
+			chunk.content ? `CONTENT (current): ${chunk.content}` : undefined,
+			chunk.prerequisites ? `PREREQUISITES (current): ${chunk.prerequisites}` : undefined,
+			`INTENT: ${intent}`,
+			"",
+			"Output a proposed result with:",
+			"- resulting chunk(s) with title, order, content summary, prerequisites",
+			"- brief rationale for the change",
+			"- explicit mapping of any splits/merges",
+		].filter(Boolean).join("\n");
 	}
 }
 
