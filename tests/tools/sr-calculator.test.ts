@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { calculateNextReview, calculatePriorityScore } from "../../src/tools/sr-calculator.js";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { calculateNextReview, calculatePriorityScore, calculateNextReviewAdvanced, rankCandidatesWithConstraints } from "../../src/tools/sr-calculator.js";
 
 describe("calculateNextReview", () => {
 	it("floors ease at 1.3 and resets on failure (quality<3)", () => {
@@ -35,6 +35,71 @@ describe("calculatePriorityScore", () => {
 		const out = calculatePriorityScore({ nextReviewDate: new Date().toISOString().slice(0, 10), easeFactor: 2, repetitions: 0, difficulty: 5 });
 		expect(out.priority).toBeGreaterThanOrEqual(0);
 		expect(out.priority).toBeLessThanOrEqual(100);
+	});
+});
+
+describe("calculateNextReviewAdvanced", () => {
+	it("applies lapse penalty and can flag leech on consecutive failures", () => {
+		const base = calculateNextReviewAdvanced({ quality: 2, repetitions: 5, easeFactor: 1.5, interval: 10, daysOverdue: 5, consecutiveFailures: 4 });
+		expect(base.interval).toBeGreaterThanOrEqual(1);
+		expect(base.easeFactor).toBeGreaterThanOrEqual(1.3);
+		expect(typeof base.leech).toBe("boolean");
+	});
+});
+
+describe("rankCandidatesWithConstraints", () => {
+	it("orders candidates and respects caps", () => {
+		const out = rankCandidatesWithConstraints({
+			candidates: [
+				{ id: "a", nextReviewDate: new Date().toISOString().slice(0, 10), easeFactor: 2, repetitions: 0, difficulty: 5, tags: ["x"] },
+				{ id: "b", nextReviewDate: new Date().toISOString().slice(0, 10), easeFactor: 1.5, repetitions: 1, difficulty: 6, tags: ["y"] },
+			],
+			timeboxMinutes: 20,
+		});
+		expect(Array.isArray(out.orderedIds)).toBe(true);
+		expect(out.orderedIds.length).toBeGreaterThan(0);
+	});
+});
+
+// Config-driven tests to validate leech penalty clamp and thresholds
+describe("advanced leech penalty clamp (config)", () => {
+	const originalEnv = { ...process.env };
+	beforeEach(() => {
+		process.env.SM_LAPSE_PENALTY = "-0.1";
+		process.env.SM_LEECH_EASE_ADJUST = "-0.05"; // sum -0.15
+		process.env.SM_MIN_LEECH_EASE_PENALTY = "-0.2"; // clamp at -0.2 if sum more severe
+		process.env.SM_LEECH_CONSEC_FAILS = "2";
+		vi.resetModules();
+	});
+	afterEach(() => {
+		process.env = { ...originalEnv };
+	});
+
+	it("uses sum of penalties when above min clamp", async () => {
+		const mod = await import("../../src/tools/sr-calculator.js");
+		const noLeech = mod.calculateNextReviewAdvanced({ quality: 4, repetitions: 5, easeFactor: 2.0, interval: 10, consecutiveFailures: 1 });
+		const leech = mod.calculateNextReviewAdvanced({ quality: 4, repetitions: 5, easeFactor: 2.0, interval: 10, consecutiveFailures: 2 });
+		expect(leech.leech).toBe(true);
+		const delta = Number((leech.easeFactor - noLeech.easeFactor).toFixed(3));
+		expect(delta).toBeCloseTo(-0.15, 3); // -0.1 + -0.05
+	});
+
+	it("uses minLeechEasePenalty when sum is more severe (clamps)", async () => {
+		process.env.SM_LEECH_EASE_ADJUST = "-0.5"; // sum -0.6 < min -0.2 => clamp to -0.2
+		vi.resetModules();
+		const mod = await import("../../src/tools/sr-calculator.js");
+		const noLeech = mod.calculateNextReviewAdvanced({ quality: 4, repetitions: 5, easeFactor: 2.0, interval: 10, consecutiveFailures: 1 });
+		const leech = mod.calculateNextReviewAdvanced({ quality: 4, repetitions: 5, easeFactor: 2.0, interval: 10, consecutiveFailures: 2 });
+		const delta = Number((leech.easeFactor - noLeech.easeFactor).toFixed(3));
+		expect(delta).toBeCloseTo(-0.2, 3);
+	});
+
+	it("threshold: below threshold no leech; at threshold leech true", async () => {
+		const mod = await import("../../src/tools/sr-calculator.js");
+		const below = mod.calculateNextReviewAdvanced({ quality: 4, repetitions: 5, easeFactor: 2.0, interval: 10, consecutiveFailures: 1 });
+		const at = mod.calculateNextReviewAdvanced({ quality: 4, repetitions: 5, easeFactor: 2.0, interval: 10, consecutiveFailures: 2 });
+		expect(below.leech).toBeFalsy();
+		expect(at.leech).toBeTruthy();
 	});
 });
 

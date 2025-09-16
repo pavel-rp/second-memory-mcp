@@ -3,7 +3,7 @@ import type { NotionSchemasResource } from "../types/notion-schemas.js";
 
 export function getSchemas(): NotionSchemasResource {
 	return {
-		schema_version: "1.0.0",
+		schema_version: "1.1.0",
 		schemas: {
 			learning_topics: {
 				database: "Learning Topics",
@@ -24,6 +24,8 @@ export function getSchemas(): NotionSchemasResource {
 					order: { type: "number" },
 					content: { type: "rich_text" },
 					prerequisites: { type: "rich_text" },
+					// Advanced SR metadata (optional)
+					tags: { type: "multi_select", options: [] },
 					created_at: { type: "date" },
 					updated_at: { type: "date" },
 				},
@@ -38,6 +40,10 @@ export function getSchemas(): NotionSchemasResource {
 					repetitions: { type: "number" },
 					priority: { type: "number" },
 					last_quality: { type: "number", format: "0..5" },
+					// Advanced SR metadata (optional)
+					lapse_count: { type: "number" },
+					consecutive_failures: { type: "number" },
+					leech_flag: { type: "checkbox" },
 					updated_at: { type: "date" },
 				},
 			},
@@ -69,8 +75,11 @@ export function getSchemas(): NotionSchemasResource {
 			"Create databases if missing using these schemas; do not call Notion APIs from this server.",
 			"Link chunks to topics, and schedule entries to chunks.",
 			"Update 'review_schedule' after each review using the calculator outputs.",
+			"Advanced SR: Add optional fields 'lapse_count', 'consecutive_failures', 'leech_flag' to 'Review Schedule' and 'tags' (multi-select) to 'Learning Chunks'.",
 		].join("\n"),
-		breaking_changes: [],
+		breaking_changes: [
+			"1.1.0: Added optional advanced SR fields; existing data remains valid. Ensure Notion databases include these columns where needed.",
+		],
 	};
 }
 

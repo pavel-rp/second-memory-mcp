@@ -4,6 +4,10 @@ import type {
 	NextReviewOutput,
 	PriorityInput,
 	PriorityOutput,
+	AdvancedNextReviewInput,
+	AdvancedNextReviewOutput,
+	RankInput,
+	RankOutput,
 } from "../types/sr.js";
 
 function toStartOfDay(date: Date): Date {
@@ -105,6 +109,69 @@ export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
 	score = Math.max(0, Math.min(1, score)) * 100;
 
 	return { priority: Math.round(score) };
+}
+
+// Advanced next review with lapses/leech handling
+export function calculateNextReviewAdvanced(input: AdvancedNextReviewInput): AdvancedNextReviewOutput {
+	const base = calculateNextReview(input);
+	let ease = base.easeFactor;
+	let interval = base.interval;
+	let reps = base.repetitions;
+	let leech = false;
+
+	const overdue = Math.max(0, Math.floor(input.daysOverdue ?? 0));
+	const consecutiveFailures = Math.max(0, Math.floor(input.consecutiveFailures ?? 0));
+
+	if (overdue > 0) {
+		// Apply lapse penalty to ease
+		ease = clampEaseFactor(ease + algorithmConfig.lapsePenalty);
+		// Pull interval closer if heavily overdue
+		interval = Math.max(1, Math.floor(interval * (1 - Math.min(0.5, overdue / 30))));
+	}
+
+	if (consecutiveFailures >= algorithmConfig.maxConsecutiveLapses) {
+		// Harsher reset: reduce repetitions to 0 and shorten interval
+		reps = 0;
+		interval = Math.max(1, Math.floor(interval * 0.5));
+	}
+
+	if (consecutiveFailures >= algorithmConfig.leechConsecutiveFailures) {
+		leech = true;
+		// stronger ease penalty for leeches using configured adjustments
+		ease = clampEaseFactor(
+			ease + Math.max(
+				algorithmConfig.lapsePenalty + algorithmConfig.leechEasePenaltyAdjustment,
+				algorithmConfig.minLeechEasePenalty
+			)
+		);
+	}
+
+	const next = addDays(toStartOfDay(new Date()), interval);
+	return { ...base, repetitions: reps, easeFactor: ease, interval, nextReview: isoDate(next), leech };
+}
+
+// Rank with tag weights and caps
+export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
+	// Score each candidate using existing priority, then adjust by tag weights
+	const nowIso = isoDate(toStartOfDay(new Date()));
+	const scored = input.candidates.map((c) => {
+		const { priority } = calculatePriorityScore({
+			nextReviewDate: c.nextReviewDate || nowIso,
+			easeFactor: c.easeFactor,
+			repetitions: c.repetitions,
+			difficulty: c.difficulty,
+		});
+		const tags = Array.isArray(c.tags) ? c.tags : [];
+		const weight = tags.length ? Math.max(...tags.map((t) => algorithmConfig.tagWeights[t] ?? 1)) : 1;
+		return { id: c.id, score: priority * weight, tags };
+	});
+
+	scored.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+
+	// Apply daily caps (simplified: assume all are reviews)
+	const maxReviews = Math.max(0, Math.floor(algorithmConfig.dailyCaps.maxReviews));
+	const orderedIds = scored.slice(0, maxReviews > 0 ? maxReviews : scored.length).map((s) => s.id);
+	return { orderedIds };
 }
 
 
