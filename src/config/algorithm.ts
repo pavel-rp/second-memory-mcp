@@ -14,12 +14,35 @@ export type AlgorithmConfig = {
 		repetitions: number; // weight for lower repetitions
 		difficulty: number; // weight for difficulty
 	};
+	// Advanced parameters
+	lapsePenalty: number; // additional EF delta applied when overdue
+	maxConsecutiveLapses: number; // threshold for harsher reset
+	leechFailureThreshold: number; // failures across window to consider leech
+	leechConsecutiveFailures: number; // consecutive failures to consider leech
+	dailyCaps: { maxNew: number; maxReviews: number };
+	tagWeights: Record<string, number>;
 };
 
 function parseNumber(envValue: string | undefined, fallback: number): number {
 	if (envValue == null || envValue.trim() === "") return fallback;
 	const parsed = Number(envValue);
 	return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseRecord(envValue: string | undefined): Record<string, number> {
+	// Expect JSON like {"tagA":1.2,"tagB":0.8}
+	if (!envValue) return {};
+	try {
+		const obj = JSON.parse(envValue) as Record<string, unknown>;
+		const out: Record<string, number> = {};
+		for (const [k, v] of Object.entries(obj)) {
+			const n = typeof v === "number" ? v : Number(v as any);
+			if (Number.isFinite(n)) out[k] = n;
+		}
+		return out;
+	} catch {
+		return {};
+	}
 }
 
 const minimumEaseFactor = Math.max(parseNumber(process.env.SM_MIN_EASE_FACTOR, 1.3), 1.3);
@@ -37,6 +60,15 @@ export const algorithmConfig: AlgorithmConfig = {
 		repetitions: parseNumber(process.env.SM_PRIORITY_W_REPS, 0.1),
 		difficulty: parseNumber(process.env.SM_PRIORITY_W_DIFF, 0.15),
 	},
+	lapsePenalty: parseNumber(process.env.SM_LAPSE_PENALTY, -0.15),
+	maxConsecutiveLapses: parseNumber(process.env.SM_MAX_CONSEC_LAPSES, 3),
+	leechFailureThreshold: parseNumber(process.env.SM_LEECH_FAIL_THRESHOLD, 6),
+	leechConsecutiveFailures: parseNumber(process.env.SM_LEECH_CONSEC_FAILS, 3),
+	dailyCaps: {
+		maxNew: parseNumber(process.env.SM_DAILY_CAP_NEW, 20),
+		maxReviews: parseNumber(process.env.SM_DAILY_CAP_REVIEWS, 200),
+	},
+	tagWeights: parseRecord(process.env.SM_TAG_WEIGHTS),
 };
 
 export function clampEaseFactor(easeFactor: number): number {

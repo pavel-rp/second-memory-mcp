@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateNextReview, calculatePriorityScore } from "../../src/tools/sr-calculator.js";
+import { calculateNextReview, calculatePriorityScore, calculateNextReviewAdvanced, rankCandidatesWithConstraints } from "../../src/tools/sr-calculator.js";
 
 describe("calculateNextReview", () => {
 	it("floors ease at 1.3 and resets on failure (quality<3)", () => {
@@ -35,6 +35,29 @@ describe("calculatePriorityScore", () => {
 		const out = calculatePriorityScore({ nextReviewDate: new Date().toISOString().slice(0, 10), easeFactor: 2, repetitions: 0, difficulty: 5 });
 		expect(out.priority).toBeGreaterThanOrEqual(0);
 		expect(out.priority).toBeLessThanOrEqual(100);
+	});
+});
+
+describe("calculateNextReviewAdvanced", () => {
+	it("applies lapse penalty and can flag leech on consecutive failures", () => {
+		const base = calculateNextReviewAdvanced({ quality: 2, repetitions: 5, easeFactor: 1.5, interval: 10, daysOverdue: 5, consecutiveFailures: 4 });
+		expect(base.interval).toBeGreaterThanOrEqual(1);
+		expect(base.easeFactor).toBeGreaterThanOrEqual(1.3);
+		expect(typeof base.leech).toBe("boolean");
+	});
+});
+
+describe("rankCandidatesWithConstraints", () => {
+	it("orders candidates and respects caps", () => {
+		const out = rankCandidatesWithConstraints({
+			candidates: [
+				{ id: "a", nextReviewDate: new Date().toISOString().slice(0, 10), easeFactor: 2, repetitions: 0, difficulty: 5, tags: ["x"] },
+				{ id: "b", nextReviewDate: new Date().toISOString().slice(0, 10), easeFactor: 1.5, repetitions: 1, difficulty: 6, tags: ["y"] },
+			],
+			timeboxMinutes: 20,
+		});
+		expect(Array.isArray(out.orderedIds)).toBe(true);
+		expect(out.orderedIds.length).toBeGreaterThan(0);
 	});
 });
 

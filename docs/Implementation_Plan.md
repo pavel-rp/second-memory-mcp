@@ -632,7 +632,7 @@ Focus on creating scaffolding that can be gradually removed as competence develo
 ### Phase 3: Advanced Features (Weeks 5-6)
 
 - [x] Priority calculation algorithms
-- [ ] Advanced spaced repetition scheduling
+- [x] Advanced spaced repetition scheduling
 - [ ] Performance analytics and tracking
 - [ ] Session state management
 - [ ] "What to learn today" intelligent recommendations

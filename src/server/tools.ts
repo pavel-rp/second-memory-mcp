@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { calculateNextReview, calculatePriorityScore } from "../tools/sr-calculator.js";
+import { calculateNextReview, calculatePriorityScore, calculateNextReviewAdvanced, rankCandidatesWithConstraints } from "../tools/sr-calculator.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
 
@@ -14,6 +14,27 @@ type ChunkManagementToolArgs = {
 	operation?: "update" | "merge" | "split" | "retire";
 	managedChunk?: { title: string; order?: number; content?: string; prerequisites?: string };
 	intent?: string;
+};
+
+type AdvancedNextArgs = {
+	quality: number;
+	repetitions: number;
+	ease_factor: number;
+	interval: number;
+	days_overdue?: number;
+	consecutive_failures?: number;
+};
+
+type RankCandidatesArgs = {
+	candidates: Array<{
+		id: string;
+		next_review_date: string;
+		ease_factor: number;
+		repetitions: number;
+		difficulty: number;
+		tags?: string[];
+	}>;
+	timeboxMinutes?: number;
 };
 
 export function registerServerTools(server: McpServer): void {
@@ -70,6 +91,65 @@ export function registerServerTools(server: McpServer): void {
 				difficulty,
 			});
 			return { content: [{ type: "text", text: JSON.stringify({ priority }) }] };
+		}
+	);
+
+	// Advanced calculators
+	server.registerTool(
+		"calculate_next_review_advanced",
+		{
+			title: "Calculate Next Review (Advanced)",
+			description: "Advanced scheduler with lapses/leech handling",
+			inputSchema: {
+				quality: z.number().int().min(0).max(5),
+				repetitions: z.number().int().min(0),
+				ease_factor: z.number().min(1.3),
+				interval: z.number().int().min(0),
+				days_overdue: z.number().int().min(0).optional(),
+				consecutive_failures: z.number().int().min(0).optional(),
+			},
+		},
+		async ({ quality, repetitions, ease_factor, interval, days_overdue, consecutive_failures }: AdvancedNextArgs) => {
+			const out = calculateNextReviewAdvanced({
+				quality,
+				repetitions,
+				easeFactor: ease_factor,
+				interval,
+				daysOverdue: days_overdue,
+				consecutiveFailures: consecutive_failures,
+			});
+			return { content: [{ type: "text", text: JSON.stringify(out) }] };
+		}
+	);
+
+	server.registerTool(
+		"rank_candidates",
+		{
+			title: "Rank Candidates",
+			description: "Rank learning items using priority, tag weights, and daily caps",
+			inputSchema: {
+				candidates: z.array(z.object({
+					id: z.string(),
+					next_review_date: z.string(),
+					ease_factor: z.number().min(1.3),
+					repetitions: z.number().int().min(0),
+					difficulty: z.number().int().min(1).max(10),
+					tags: z.array(z.string()).optional(),
+				})),
+				timeboxMinutes: z.number().int().optional(),
+			},
+		},
+		async ({ candidates, timeboxMinutes }: RankCandidatesArgs) => {
+			const mapped = candidates.map((c) => ({
+				id: c.id,
+				nextReviewDate: c.next_review_date,
+				easeFactor: c.ease_factor,
+				repetitions: c.repetitions,
+				difficulty: c.difficulty,
+				tags: c.tags,
+			}));
+			const out = rankCandidatesWithConstraints({ candidates: mapped, timeboxMinutes });
+			return { content: [{ type: "text", text: JSON.stringify(out) }] };
 		}
 	);
 
