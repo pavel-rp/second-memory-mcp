@@ -4,6 +4,18 @@ import { calculateNextReview, calculatePriorityScore } from "../tools/sr-calcula
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
 
+type ChunkGenerationToolArgs = {
+	topicTitle: string;
+	topicDescription?: string;
+	existingChunkTitles?: string[];
+};
+
+type ChunkManagementToolArgs = {
+	operation?: "update" | "merge" | "split" | "retire";
+	managedChunk?: { title: string; order?: number; content?: string; prerequisites?: string };
+	intent?: string;
+};
+
 export function registerServerTools(server: McpServer): void {
 	server.registerTool(
 		"calculate_next_review",
@@ -18,7 +30,7 @@ export function registerServerTools(server: McpServer): void {
 				interval: z.number().int().min(0),
 			},
 		},
-		async ({ quality, repetitions, ease_factor, interval }: any) => {
+		async ({ quality, repetitions, ease_factor, interval }: { quality: number; repetitions: number; ease_factor: number; interval: number }) => {
 			const { interval: outInterval, repetitions: outReps, easeFactor, nextReview } =
 				calculateNextReview({
 					quality,
@@ -50,7 +62,7 @@ export function registerServerTools(server: McpServer): void {
 				difficulty: z.number().int().min(1).max(10),
 			},
 		},
-		async ({ next_review_date, ease_factor, repetitions, difficulty }: any) => {
+		async ({ next_review_date, ease_factor, repetitions, difficulty }: { next_review_date: string; ease_factor: number; repetitions: number; difficulty: number }) => {
 			const { priority } = calculatePriorityScore({
 				nextReviewDate: next_review_date,
 				easeFactor: ease_factor,
@@ -69,7 +81,7 @@ export function registerServerTools(server: McpServer): void {
 			description: "Produce scaffolding plan guidance text",
 			inputSchema: { problem: z.string().describe("Learning problem statement") },
 		},
-		async ({ problem }: any) => {
+		async ({ problem }: { problem: string }) => {
 			const text = promptPack.getPrompt("scaffolding", { problem });
 			return { content: [{ type: "text", text }] };
 		}
@@ -89,8 +101,8 @@ export function registerServerTools(server: McpServer): void {
 				drillFormat: z.string().optional(),
 			},
 		},
-		async (args: any) => {
-			const text = promptPack.getPrompt("learning", args);
+		async (args: Record<string, unknown>) => {
+			const text = promptPack.getPrompt("learning", args as any);
 			return { content: [{ type: "text", text }] };
 		}
 	);
@@ -106,8 +118,8 @@ export function registerServerTools(server: McpServer): void {
 				masteryLevel: z.number().int().optional(),
 			},
 		},
-		async (args: any) => {
-			const text = promptPack.getPrompt("retrieval", args);
+		async (args: Record<string, unknown>) => {
+			const text = promptPack.getPrompt("retrieval", args as any);
 			return { content: [{ type: "text", text }] };
 		}
 	);
@@ -124,8 +136,8 @@ export function registerServerTools(server: McpServer): void {
 				weakAreas: z.string().optional(),
 			},
 		},
-		async (args: any) => {
-			const text = promptPack.getPrompt("review", args);
+		async (args: Record<string, unknown>) => {
+			const text = promptPack.getPrompt("review", args as any);
 			return { content: [{ type: "text", text }] };
 		}
 	);
@@ -154,7 +166,7 @@ export function registerServerTools(server: McpServer): void {
 				existingChunkTitles: z.array(z.string()).optional(),
 			},
 		},
-		async (args: any) => {
+		async (args: ChunkGenerationToolArgs) => {
 			const text = promptPack.getPrompt("chunk_generation", args);
 			return { content: [{ type: "text", text }] };
 		}
@@ -178,7 +190,7 @@ export function registerServerTools(server: McpServer): void {
 				intent: z.string().optional(),
 			},
 		},
-		async (args: any) => {
+		async (args: ChunkManagementToolArgs) => {
 			const text = promptPack.getPrompt("chunk_management", args);
 			return { content: [{ type: "text", text }] };
 		}
