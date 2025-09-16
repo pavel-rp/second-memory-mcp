@@ -137,8 +137,13 @@ export function calculateNextReviewAdvanced(input: AdvancedNextReviewInput): Adv
 
 	if (consecutiveFailures >= algorithmConfig.leechConsecutiveFailures) {
 		leech = true;
-		// stronger ease penalty for leeches
-		ease = clampEaseFactor(ease + Math.min(algorithmConfig.lapsePenalty - 0.05, -0.25));
+		// stronger ease penalty for leeches using configured adjustments
+		ease = clampEaseFactor(
+			ease + Math.min(
+				algorithmConfig.lapsePenalty + algorithmConfig.leechEasePenaltyAdjustment,
+				algorithmConfig.minLeechEasePenalty
+			)
+		);
 	}
 
 	const next = addDays(toStartOfDay(new Date()), interval);

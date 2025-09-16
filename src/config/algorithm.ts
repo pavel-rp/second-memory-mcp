@@ -19,6 +19,8 @@ export type AlgorithmConfig = {
 	maxConsecutiveLapses: number; // threshold for harsher reset
 	leechFailureThreshold: number; // failures across window to consider leech
 	leechConsecutiveFailures: number; // consecutive failures to consider leech
+	leechEasePenaltyAdjustment: number; // extra negative delta applied when leech
+	minLeechEasePenalty: number; // lower bound for leech penalty
 	dailyCaps: { maxNew: number; maxReviews: number };
 	tagWeights: Record<string, number>;
 };
@@ -33,11 +35,19 @@ function parseRecord(envValue: string | undefined): Record<string, number> {
 	// Expect JSON like {"tagA":1.2,"tagB":0.8}
 	if (!envValue) return {};
 	try {
-		const obj = JSON.parse(envValue) as Record<string, unknown>;
+		const raw: unknown = JSON.parse(envValue);
+		if (typeof raw !== "object" || raw === null) return {};
+		const obj = raw as Record<string, unknown>;
 		const out: Record<string, number> = {};
 		for (const [k, v] of Object.entries(obj)) {
-			const n = typeof v === "number" ? v : Number(v as any);
-			if (Number.isFinite(n)) out[k] = n;
+			let n: number | undefined;
+			if (typeof v === "number") {
+				n = v;
+			} else if (typeof v === "string") {
+				const parsed = Number(v);
+				if (Number.isFinite(parsed)) n = parsed;
+			}
+			if (n !== undefined && Number.isFinite(n)) out[k] = n;
 		}
 		return out;
 	} catch {
@@ -64,6 +74,8 @@ export const algorithmConfig: AlgorithmConfig = {
 	maxConsecutiveLapses: parseNumber(process.env.SM_MAX_CONSEC_LAPSES, 3),
 	leechFailureThreshold: parseNumber(process.env.SM_LEECH_FAIL_THRESHOLD, 6),
 	leechConsecutiveFailures: parseNumber(process.env.SM_LEECH_CONSEC_FAILS, 3),
+	leechEasePenaltyAdjustment: parseNumber(process.env.SM_LEECH_EASE_ADJUST, -0.05),
+	minLeechEasePenalty: parseNumber(process.env.SM_MIN_LEECH_EASE_PENALTY, -0.25),
 	dailyCaps: {
 		maxNew: parseNumber(process.env.SM_DAILY_CAP_NEW, 20),
 		maxReviews: parseNumber(process.env.SM_DAILY_CAP_REVIEWS, 200),
