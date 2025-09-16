@@ -19,6 +19,10 @@ describe("registerServerTools", () => {
 		// Analytics tools
 		expect(stub.tools).toContain("analytics_daily");
 		expect(stub.tools).toContain("analytics_window");
+		// Session management tools
+		expect(stub.tools).toContain("session_progress");
+		expect(stub.tools).toContain("session_workflow");
+		expect(stub.tools).toContain("session_completion");
 		expect(stub.tools).toContain("scaffolding_prompt");
 		expect(stub.tools).toContain("learning_prompt");
 		expect(stub.tools).toContain("retrieval_prompt");

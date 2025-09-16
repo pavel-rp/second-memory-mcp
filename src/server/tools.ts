@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { calculateNextReview, calculatePriorityScore, calculateNextReviewAdvanced, rankCandidatesWithConstraints } from "../tools/sr-calculator.js";
 import { computeDailyKpis, computeWindowRollup } from "../tools/analytics.js";
+import { calculateSessionProgress, determineNextPhase, checkSessionCompletion, validateSessionContext } from "../tools/session-manager.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
 
@@ -212,6 +213,121 @@ export function registerServerTools(server: McpServer): void {
 					window,
 					{ includeBreakdowns }
 				);
+				return { content: [{ type: "text", text: JSON.stringify(result) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	// Session management tools
+	server.registerTool(
+		"session_progress",
+		{
+			title: "Calculate Session Progress",
+			description: "Compute session progress metrics including completion percentages and quality averages",
+			inputSchema: {
+				session_id: z.string().min(1),
+				mode: z.enum(["scaffolding", "learning", "retrieval", "review"]),
+				start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Start time must be in ISO format"),
+				current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Current time must be in ISO format").optional(),
+				chunks: z.array(z.object({
+					chunk_id: z.string().min(1),
+					title: z.string().min(1),
+					status: z.enum(["pending", "in_progress", "completed"]),
+					attempts: z.array(z.object({
+						timestamp: z.string(),
+						quality: z.number().min(0).max(5).optional(),
+						time_spent_ms: z.number().min(0),
+						completed: z.boolean(),
+					})),
+					quality_scores: z.array(z.number().min(0).max(5)),
+					time_spent_ms: z.number().min(0),
+				})),
+				context: z.record(z.any()).optional(),
+			},
+		},
+		async (sessionData: any) => {
+			try {
+				const validatedSession = validateSessionContext(sessionData);
+				const result = calculateSessionProgress(validatedSession);
+				return { content: [{ type: "text", text: JSON.stringify(result) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	server.registerTool(
+		"session_workflow",
+		{
+			title: "Determine Session Workflow Phase",
+			description: "Analyze session state and provide workflow guidance for next learning phase",
+			inputSchema: {
+				session_id: z.string().min(1),
+				mode: z.enum(["scaffolding", "learning", "retrieval", "review"]),
+				start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Start time must be in ISO format"),
+				current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Current time must be in ISO format").optional(),
+				chunks: z.array(z.object({
+					chunk_id: z.string().min(1),
+					title: z.string().min(1),
+					status: z.enum(["pending", "in_progress", "completed"]),
+					attempts: z.array(z.object({
+						timestamp: z.string(),
+						quality: z.number().min(0).max(5).optional(),
+						time_spent_ms: z.number().min(0),
+						completed: z.boolean(),
+					})),
+					quality_scores: z.array(z.number().min(0).max(5)),
+					time_spent_ms: z.number().min(0),
+				})),
+				context: z.record(z.any()).optional(),
+			},
+		},
+		async (sessionData: any) => {
+			try {
+				const validatedSession = validateSessionContext(sessionData);
+				const result = determineNextPhase(validatedSession);
+				return { content: [{ type: "text", text: JSON.stringify(result) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	server.registerTool(
+		"session_completion",
+		{
+			title: "Check Session Completion",
+			description: "Analyze session metrics to determine if session should be completed",
+			inputSchema: {
+				session_id: z.string().min(1),
+				mode: z.enum(["scaffolding", "learning", "retrieval", "review"]),
+				start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Start time must be in ISO format"),
+				current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Current time must be in ISO format").optional(),
+				chunks: z.array(z.object({
+					chunk_id: z.string().min(1),
+					title: z.string().min(1),
+					status: z.enum(["pending", "in_progress", "completed"]),
+					attempts: z.array(z.object({
+						timestamp: z.string(),
+						quality: z.number().min(0).max(5).optional(),
+						time_spent_ms: z.number().min(0),
+						completed: z.boolean(),
+					})),
+					quality_scores: z.array(z.number().min(0).max(5)),
+					time_spent_ms: z.number().min(0),
+				})),
+				context: z.record(z.any()).optional(),
+			},
+		},
+		async (sessionData: any) => {
+			try {
+				const validatedSession = validateSessionContext(sessionData);
+				const result = checkSessionCompletion(validatedSession);
 				return { content: [{ type: "text", text: JSON.stringify(result) }] };
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';

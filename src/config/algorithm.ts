@@ -23,6 +23,13 @@ export type AlgorithmConfig = {
 	minLeechEasePenalty: number; // lower bound for leech penalty
 	dailyCaps: { maxNew: number; maxReviews: number };
 	tagWeights: Record<string, number>;
+	// Session management parameters
+	sessionConfig: {
+		qualityThreshold: number; // 0-5 quality threshold for completion
+		timeThresholdMs: number; // milliseconds for time-based completion
+		completionThreshold: number; // 0-1 progress threshold for completion
+		maxTimeMs: number; // maximum session time in milliseconds
+	};
 };
 
 function parseNumber(envValue: string | undefined, fallback: number): number {
@@ -81,6 +88,12 @@ export const algorithmConfig: AlgorithmConfig = {
 		maxReviews: parseNumber(process.env.SM_DAILY_CAP_REVIEWS, 200),
 	},
 	tagWeights: parseRecord(process.env.SM_TAG_WEIGHTS),
+	sessionConfig: {
+		qualityThreshold: parseNumber(process.env.SM_SESSION_QUALITY_THRESHOLD, 4.0),
+		timeThresholdMs: parseNumber(process.env.SM_SESSION_TIME_THRESHOLD_MS, 90 * 60 * 1000), // 90 minutes
+		completionThreshold: parseNumber(process.env.SM_SESSION_COMPLETION_THRESHOLD, 0.8), // 80%
+		maxTimeMs: parseNumber(process.env.SM_SESSION_MAX_TIME_MS, 120 * 60 * 1000), // 2 hours
+	},
 };
 
 export function clampEaseFactor(easeFactor: number): number {
