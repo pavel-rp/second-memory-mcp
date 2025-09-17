@@ -144,7 +144,7 @@ describe("RecommendationEngine", () => {
       mode: "guided",
       learningItems: [],
       timeAvailable: 30,
-    } as any);
+    });
 
     expect(result.orchestrationHint).toBeDefined();
     expect(result.orchestrationHint).toContain("No learning items provided");
@@ -160,7 +160,7 @@ describe("RecommendationEngine", () => {
       mode: "guided",
       learningItems: items,
       timeAvailable: 30,
-    } as any);
+    });
 
     expect(result.orchestrationHint).toBeUndefined();
   });
@@ -171,7 +171,7 @@ describe("RecommendationEngine", () => {
       mode: "explicit",
       learningItems: [],
       timeAvailable: 30,
-    } as any);
+    });
 
     expect(result.orchestrationHint).toBeDefined();
     expect(result.recommendations).toHaveLength(0);
@@ -186,7 +186,7 @@ describe("RecommendationEngine", () => {
       mode: "guided",
       learningItems: items,
       timeAvailable: 30,
-    } as any);
+    });
 
     // Should have all required fields
     expect(result).toHaveProperty('recommendations');

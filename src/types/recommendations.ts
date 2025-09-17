@@ -91,7 +91,7 @@ export type RecommendationInput = {
 	subjectPreference?: SubjectPreference; // subject filter or "Any"
 	learningItems: LearningItem[]; // candidate items from Notion
 	userHistory?: SessionHistory; // recent learning patterns
-	sessionContext?: any; // current session state if continuing
+	sessionContext?: Record<string, unknown>; // current session state if continuing
 	constraints?: SessionConstraints; // additional filtering/limits
 };
 
