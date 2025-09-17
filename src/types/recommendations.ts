@@ -84,6 +84,17 @@ export type SessionHistory = {
 	patterns: LearningPatterns;
 };
 
+// Session context interface for better type safety
+export interface SessionContext {
+	currentSessionId?: string;
+	activeItems?: string[];
+	sessionStartTime?: number;
+	lastActivity?: number;
+	userPreferences?: Record<string, unknown>;
+	currentRecommendations?: LearningRecommendation[];
+	currentItemIndex?: number;
+}
+
 // Main recommendation input
 export type RecommendationInput = {
 	mode?: RecommendationMode; // "guided" for zero-friction, "explicit" for specified params
@@ -91,7 +102,7 @@ export type RecommendationInput = {
 	subjectPreference?: SubjectPreference; // subject filter or "Any"
 	learningItems: LearningItem[]; // candidate items from Notion
 	userHistory?: SessionHistory; // recent learning patterns
-	sessionContext?: Record<string, unknown>; // current session state if continuing
+	sessionContext?: SessionContext; // current session state if continuing
 	constraints?: SessionConstraints; // additional filtering/limits
 };
 
@@ -110,9 +121,9 @@ export type RecommendationOutput = {
 // Conversation request for guided mode
 export type ConversationRequest = {
 	intent: string; // "start_learning", "continue_session", "get_recommendations"
-	context?: any; // conversation context
+	context?: Record<string, unknown>; // conversation context
 	userInput?: string; // user's message/request
-	sessionState?: any; // current learning session state
+	sessionState?: SessionContext; // current learning session state
 };
 
 // Conversation response for guided mode
@@ -206,7 +217,7 @@ export const RecommendationInputSchema = z.object({
 	subjectPreference: SubjectPreferenceSchema.optional(),
 	learningItems: z.array(LearningItemSchema),
 	userHistory: SessionHistorySchema.optional(),
-	sessionContext: z.any().optional(),
+	sessionContext: z.record(z.unknown()).optional(),
 	constraints: SessionConstraintsSchema.optional(),
 });
 
@@ -222,9 +233,9 @@ export const RecommendationOutputSchema = z.object({
 
 export const ConversationRequestSchema = z.object({
 	intent: z.string().min(1),
-	context: z.any().optional(),
+	context: z.record(z.unknown()).optional(),
 	userInput: z.string().optional(),
-	sessionState: z.any().optional(),
+	sessionState: z.record(z.unknown()).optional(),
 });
 
 export const ConversationResponseSchema = z.object({

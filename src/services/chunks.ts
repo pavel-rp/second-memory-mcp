@@ -46,20 +46,20 @@ export type ListChunksFilter = {
 export async function listChunks(filter: ListChunksFilter = {}) {
 	const db = getSql();
 	const now = Date.now();
-	const conditions: any[] = [];
+	const conditions: ReturnType<typeof eq>[] = [];
 	if (filter.subject) conditions.push(eq(learningChunks.subject, filter.subject));
 	if (filter.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
-	const whereClause = conditions.length > 0 ? and(...(conditions as [any, ...any[]])) : undefined;
+	const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
 	let query = whereClause
 		? db.select().from(learningChunks).where(whereClause)
 		: db.select().from(learningChunks);
 
 	if (filter.limit && filter.limit > 0) {
-		(query as any) = (query as any).limit(filter.limit);
+		query = query.limit(filter.limit) as typeof query;
 	}
 
-	return (query as any).all();
+	return query.all();
 }
 
 function toIsoDate(epochMs: number): string {
@@ -94,14 +94,21 @@ export async function listChunksAsLearningItems(filter: ListChunksFilter = {}): 
 
 export async function updateChunk(id: string, changes: Partial<Omit<CreateChunkInput, "id" | "topicId" | "createdAt">>): Promise<number> {
 	const db = getSql();
-	const updatePayload: any = { ...changes };
-	if (changes.prerequisites) updatePayload.prerequisitesJson = encodeJsonArray(changes.prerequisites);
-	if (changes.tags) updatePayload.tagsJson = encodeJsonArray(changes.tags);
-	if (typeof changes.lastReviewedAt === "undefined") {
-		// leave as-is
-	} else if (changes.lastReviewedAt === null) {
-		updatePayload.lastReviewedAt = null as any;
+	const updatePayload: Record<string, unknown> = { ...changes };
+	
+	// Handle JSON fields
+	if (changes.prerequisites) {
+		updatePayload.prerequisitesJson = encodeJsonArray(changes.prerequisites);
 	}
+	if (changes.tags) {
+		updatePayload.tagsJson = encodeJsonArray(changes.tags);
+	}
+	
+	// Handle nullable lastReviewedAt field explicitly
+	if (changes.lastReviewedAt !== undefined) {
+		updatePayload.lastReviewedAt = changes.lastReviewedAt;
+	}
+	
 	const res = db.update(learningChunks).set(updatePayload).where(eq(learningChunks.id, id)).run();
 	return res.changes ?? 0;
 }

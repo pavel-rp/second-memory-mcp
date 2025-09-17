@@ -40,7 +40,9 @@ export async function logSession(entry: {
 
 export async function getPerformanceStats(date?: number) {
 	const db = getSql();
-	let q = db.select().from(performanceAnalytics);
-	if (date) q = (q as any).where(eq(performanceAnalytics.date, date));
-	return (q as any).all();
+	let query = db.select().from(performanceAnalytics);
+	if (date) {
+		query = query.where(eq(performanceAnalytics.date, date)) as typeof query;
+	}
+	return query.all();
 }

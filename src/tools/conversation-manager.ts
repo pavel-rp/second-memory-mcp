@@ -6,6 +6,7 @@ import type {
 	RecommendationInput,
 	LearningItem,
 	SessionHistory,
+	SessionContext,
 } from "../types/recommendations.js";
 
 /**
@@ -83,7 +84,8 @@ export class ConversationManager {
 		const context = request.context || {};
 
 		// Check if we have enough information to start
-		const hasLearningItems = context.learningItems && context.learningItems.length > 0;
+		const learningItems = context.learningItems as LearningItem[] | undefined;
+		const hasLearningItems = learningItems && learningItems.length > 0;
 
 		if (!hasLearningItems) {
 			return {
@@ -97,9 +99,9 @@ export class ConversationManager {
 		try {
 			const recommendationInput: RecommendationInput = {
 				mode: "guided",
-				learningItems: context.learningItems,
-				userHistory: context.userHistory,
-				sessionContext: context.sessionContext,
+				learningItems: learningItems!,
+				userHistory: context.userHistory as SessionHistory | undefined,
+				sessionContext: context.sessionContext as SessionContext | undefined,
 			};
 
 			const recommendations = this.recommendationEngine.generateRecommendations(recommendationInput);
