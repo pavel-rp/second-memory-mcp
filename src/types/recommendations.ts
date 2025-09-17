@@ -104,6 +104,7 @@ export type RecommendationOutput = {
 	rationale: string; // why these items were chosen
 	alternatives?: LearningRecommendation[]; // backup options
 	nextActions?: string[]; // suggested follow-up actions
+	orchestrationHint?: string; // guidance for multi-server workflows when data is empty
 };
 
 // Conversation request for guided mode

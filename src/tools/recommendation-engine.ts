@@ -55,6 +55,11 @@ export class RecommendationEngine {
     // Generate alternatives
     const alternatives = this.generateAlternatives(candidates, recommendations);
 
+    // Add orchestration hint if no learning items provided
+    const orchestrationHint = processedInput.learningItems.length === 0
+      ? "No learning items provided. You should first fetch learning items from the Notion MCP server, then pass them to this tool. Use the orchestrate_learning_workflow tool for step-by-step guidance."
+      : undefined;
+
     return {
       recommendations,
       sessionSummary,
@@ -63,6 +68,7 @@ export class RecommendationEngine {
       rationale,
       alternatives,
       nextActions: this.generateNextActions(recommendations, processedInput),
+      orchestrationHint,
     };
   }
 

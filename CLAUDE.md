@@ -70,9 +70,31 @@ pnpm run test:prompts
 ```
 
 **Exposed Capabilities:**
-- **Tools**: Spaced repetition calculators, priority scoring, prompt generators
+- **Tools**: Spaced repetition calculators, priority scoring, prompt generators, orchestration guidance
 - **Prompts**: Scaffolding, learning, retrieval, review, workflow guidance
 - **Resources**: Notion schema definitions
+
+## Multi-Server Orchestration
+
+**Critical Workflow for Learning Recommendations:**
+The `what_to_learn_today` tool requires a specific workflow when integrating with Notion:
+
+1. **First**: Query Notion MCP server to fetch learning items from your database
+2. **Then**: Pass those items to `what_to_learn_today` tool's `learningItems` parameter
+3. **Receive**: Personalized recommendations based on spaced repetition algorithms
+
+**Orchestration Tools:**
+- `orchestrate_learning_workflow`: Provides step-by-step guidance for multi-server workflows
+- `what_to_learn_today`: Enhanced with orchestration hints when no data is provided
+
+**Example Integration:**
+```bash
+# Step 1: Query Notion (via Notion MCP server)
+# Step 2: Call what_to_learn_today with the fetched items
+# Step 3: Receive recommendations with scheduling guidance
+```
+
+If you call `what_to_learn_today` with an empty `learningItems` array, it will return an `orchestrationHint` field guiding you through the proper workflow.
 
 ## Code Architecture Patterns
 
