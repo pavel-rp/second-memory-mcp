@@ -30,6 +30,28 @@ export type AlgorithmConfig = {
 		completionThreshold: number; // 0-1 progress threshold for completion
 		maxTimeMs: number; // maximum session time in milliseconds
 	};
+	// Recommendation-specific configuration (env-driven)
+	recommendationConfig: {
+		cognitiveLoad: {
+			defaultMax: number; // default max cognitive load for a session
+			easyThreshold: number; // threshold below which items are considered easy
+			hardThreshold: number; // threshold above which items are considered hard
+			perMinuteFactor: number; // heuristic factor to scale load with time
+		};
+		sessionComposition: {
+			maxNewDefault: number; // default max new items if not specified
+			shortSessionMinutes: number; // minutes threshold for short sessions
+			maxNewShort: number; // max new items for short sessions
+			longSessionMinutes: number; // minutes threshold for long sessions
+			maxNewLong: number; // max new items for long sessions
+			interleaveStrategy: "easy-medium-hard" | "balanced"; // strategy label
+		};
+		conversation: {
+			enableEncouragement: boolean; // toggle encouragement messages
+			enableProgressUpdates: boolean; // toggle progress updates
+			verbosity: "low" | "medium" | "high"; // guidance verbosity level
+		};
+	};
 };
 
 function parseNumber(envValue: string | undefined, fallback: number): number {
@@ -60,6 +82,14 @@ function parseRecord(envValue: string | undefined): Record<string, number> {
 	} catch {
 		return {};
 	}
+}
+
+function parseBoolean(envValue: string | undefined, fallback: boolean): boolean {
+	if (envValue == null || envValue.trim() === "") return fallback;
+	const v = envValue.trim().toLowerCase();
+	if (v === "1" || v === "true" || v === "yes" || v === "on") return true;
+	if (v === "0" || v === "false" || v === "no" || v === "off") return false;
+	return fallback;
 }
 
 const minimumEaseFactor = Math.max(parseNumber(process.env.SM_MIN_EASE_FACTOR, 1.3), 1.3);
@@ -94,6 +124,27 @@ export const algorithmConfig: AlgorithmConfig = {
 		completionThreshold: parseNumber(process.env.SM_SESSION_COMPLETION_THRESHOLD, 0.8), // 80%
 		maxTimeMs: parseNumber(process.env.SM_SESSION_MAX_TIME_MS, 120 * 60 * 1000), // 2 hours
 	},
+		recommendationConfig: {
+			cognitiveLoad: {
+				defaultMax: parseNumber(process.env.SM_REC_MAX_COG_LOAD_DEFAULT, 20),
+				easyThreshold: parseNumber(process.env.SM_REC_COG_EASY_THRESHOLD, 8),
+				hardThreshold: parseNumber(process.env.SM_REC_COG_HARD_THRESHOLD, 15),
+				perMinuteFactor: parseNumber(process.env.SM_REC_COG_PER_MIN_FACTOR, 0.5),
+			},
+			sessionComposition: {
+				maxNewDefault: parseNumber(process.env.SM_REC_MAX_NEW_DEFAULT, 3),
+				shortSessionMinutes: parseNumber(process.env.SM_REC_SHORT_SESSION_MIN, 15),
+				maxNewShort: parseNumber(process.env.SM_REC_MAX_NEW_SHORT, 1),
+				longSessionMinutes: parseNumber(process.env.SM_REC_LONG_SESSION_MIN, 45),
+				maxNewLong: parseNumber(process.env.SM_REC_MAX_NEW_LONG, 5),
+				interleaveStrategy: (process.env.SM_REC_INTERLEAVE_STRATEGY as "easy-medium-hard" | "balanced") || "easy-medium-hard",
+			},
+			conversation: {
+				enableEncouragement: parseBoolean(process.env.SM_REC_CONVO_ENCOURAGEMENT, true),
+				enableProgressUpdates: parseBoolean(process.env.SM_REC_CONVO_PROGRESS, true),
+				verbosity: (process.env.SM_REC_CONVO_VERBOSITY as "low" | "medium" | "high") || "medium",
+			},
+		},
 };
 
 export function clampEaseFactor(easeFactor: number): number {

@@ -32,6 +32,9 @@ describe("registerServerTools", () => {
 		// New chunk tools
 		expect(stub.tools).toContain("chunk_generation_prompt");
 		expect(stub.tools).toContain("chunk_management_prompt");
+		// Learning recommendation tools
+		expect(stub.tools).toContain("what_to_learn_today");
+		expect(stub.tools).toContain("guided_learning_conversation");
 	});
 });
 
