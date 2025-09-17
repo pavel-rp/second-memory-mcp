@@ -4,7 +4,9 @@
       "mcp__spec-workflow__spec-workflow-guide",
       "mcp__spec-workflow__spec-status",
       "mcp__spec-workflow__approvals",
-      "Bash(pnpm run:*)"
+      "Bash(pnpm run:*)",
+      "Bash(pnpm test:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
