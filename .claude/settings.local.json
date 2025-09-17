@@ -6,7 +6,9 @@
       "mcp__spec-workflow__approvals",
       "Bash(pnpm run:*)",
       "Bash(pnpm test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(timeout 5 pnpm run start:stdio)"
     ],
     "deny": [],
     "ask": []

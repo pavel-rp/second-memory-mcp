@@ -40,27 +40,8 @@ type RankCandidatesArgs = {
 	timeboxMinutes?: number;
 };
 
-// Shared schema shape for session tools to reduce duplication
-const sessionToolInputSchema = {
-	session_id: z.string().min(1),
-	mode: z.enum(["scaffolding", "learning", "retrieval", "review"] as const),
-	start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Start time must be in ISO format"),
-	current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Current time must be in ISO format").optional(),
-	chunks: z.array(z.object({
-		chunk_id: z.string().min(1),
-		title: z.string().min(1),
-		status: z.enum(["pending", "in_progress", "completed"] as const),
-		attempts: z.array(z.object({
-			timestamp: z.string(),
-			quality: z.number().min(0).max(5).optional(),
-			time_spent_ms: z.number().min(0),
-			completed: z.boolean(),
-		})),
-		quality_scores: z.array(z.number().min(0).max(5)),
-		time_spent_ms: z.number().min(0),
-	})),
-	context: z.record(z.any()).optional(),
-};
+// Use the existing SessionInputSchema from types to maintain consistency
+const sessionToolInputSchema = SessionInputSchema.shape;
 
 export function registerServerTools(server: McpServer): void {
 	server.registerTool(
