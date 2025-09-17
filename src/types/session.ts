@@ -66,7 +66,7 @@ export type CompletionStatus = {
 export const SessionModeSchema = z.enum(["scaffolding", "learning", "retrieval", "review"]);
 
 export const ChunkAttemptSchema = z.object({
-	timestamp: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Timestamp must be in ISO format"),
+	timestamp: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Timestamp must be in ISO format"),
 	quality: z.number().min(0).max(5).optional(),
 	time_spent_ms: z.number().min(0),
 	completed: z.boolean(),
@@ -84,8 +84,8 @@ export const SessionChunkSchema = z.object({
 export const SessionInputSchema = z.object({
 	session_id: z.string().min(1),
 	mode: SessionModeSchema,
-	start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Start time must be in ISO format"),
-	current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Current time must be in ISO format").optional(),
+	start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Start time must be in ISO format"),
+	current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Current time must be in ISO format").optional(),
 	chunks: z.array(SessionChunkSchema),
 	context: z.record(z.any()).optional(),
 });

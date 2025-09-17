@@ -66,7 +66,7 @@ export function calculateSessionProgress(sessionData: SessionInput): SessionProg
 
 	// Estimate remaining time based on current pace
 	let estimatedTimeRemainingMs: number | undefined;
-	if (chunksCompleted > 0 && totalChunks > chunksCompleted) {
+	if (chunksCompleted > 0 && totalChunks > chunksCompleted && timeElapsedMs > 0) {
 		const averageTimePerChunk = timeElapsedMs / chunksCompleted;
 		const remainingChunks = totalChunks - chunksCompleted;
 		estimatedTimeRemainingMs = Math.round(averageTimePerChunk * remainingChunks);
@@ -91,11 +91,11 @@ export function determineNextPhase(sessionData: SessionInput): WorkflowPhase {
 	const mode = sessionData.mode;
 
 	// Determine current phase based on session mode and progress
-	let currentPhase: string;
+	let currentPhase = "unknown";
 	let nextPhase: string | undefined;
-	let phaseProgress: number;
-	let guidance: string;
-	let canAdvance: boolean;
+	let phaseProgress = 0;
+	let guidance = "Session analysis in progress...";
+	let canAdvance = false;
 
 	switch (mode) {
 		case "scaffolding":
