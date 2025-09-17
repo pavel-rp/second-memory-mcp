@@ -10,6 +10,7 @@ import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, 
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
+import { listChunksAsLearningItems } from "../services/chunks.js";
 
 type ChunkGenerationToolArgs = {
 	topicTitle: string;
@@ -423,12 +424,35 @@ export function registerServerTools(server: McpServer): void {
 		}
 	);
 
+	// SQLite-backed data fetcher
+	server.registerTool(
+		"list_learning_items_sqlite",
+		{
+			title: "List Learning Items (SQLite)",
+			description: "Fetch learning items from local SQLite database via services layer.",
+			inputSchema: {
+				subject: z.string().optional(),
+				dueOnly: z.boolean().optional(),
+				limit: z.number().int().optional(),
+			},
+		},
+		async ({ subject, dueOnly, limit }: { subject?: string; dueOnly?: boolean; limit?: number }) => {
+			try {
+				const items = await listChunksAsLearningItems({ subject, dueOnly, limit });
+				return { content: [{ type: "text", text: JSON.stringify(items) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
 	// Learning recommendation tools
 	server.registerTool(
 		"what_to_learn_today",
 		{
 			title: "Get Learning Recommendations",
-			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. CRITICAL WORKFLOW: This tool requires learningItems data - you MUST first fetch learning items from the Notion MCP server before calling this tool. The tool will not fetch data itself (stateless design). STEPS: 1) Query Notion MCP server for learning items 2) Pass those items to this tool's learningItems parameter 3) Receive personalized recommendations. If learningItems array is empty, this tool will provide orchestration guidance. Supports both guided 'teach me' mode and explicit parameter mode.",
+			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. CRITICAL WORKFLOW: This tool requires learningItems data - you have two options: 1) Use list_learning_items_sqlite to fetch from local database, OR 2) Fetch from Notion MCP server. The tool will not fetch data itself (stateless design). STEPS: 1) Get learning items (via list_learning_items_sqlite or Notion) 2) Pass those items to this tool's learningItems parameter 3) Receive personalized recommendations. If learningItems array is empty, this tool will provide orchestration guidance. Supports both guided 'teach me' mode and explicit parameter mode.",
 			inputSchema: {
 				mode: RecommendationModeSchema.optional(),
 				timeAvailable: z.number().min(0).optional(),
