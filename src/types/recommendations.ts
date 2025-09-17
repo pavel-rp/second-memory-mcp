@@ -211,13 +211,23 @@ export const SessionHistorySchema = z.object({
 	patterns: LearningPatternsSchema,
 });
 
+export const SessionContextSchema = z.object({
+	currentSessionId: z.string().optional(),
+	activeItems: z.array(z.string()).optional(),
+	sessionStartTime: z.number().optional(),
+	lastActivity: z.number().optional(),
+	userPreferences: z.record(z.unknown()).optional(),
+	currentRecommendations: z.array(LearningRecommendationSchema).optional(),
+	currentItemIndex: z.number().optional(),
+});
+
 export const RecommendationInputSchema = z.object({
 	mode: RecommendationModeSchema.optional(),
 	timeAvailable: z.number().min(0).optional(),
 	subjectPreference: SubjectPreferenceSchema.optional(),
 	learningItems: z.array(LearningItemSchema),
 	userHistory: SessionHistorySchema.optional(),
-	sessionContext: z.record(z.unknown()).optional(),
+	sessionContext: SessionContextSchema.optional(),
 	constraints: SessionConstraintsSchema.optional(),
 });
 

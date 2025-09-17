@@ -96,12 +96,14 @@ export async function updateChunk(id: string, changes: Partial<Omit<CreateChunkI
 	const db = getSql();
 	const updatePayload: Record<string, unknown> = { ...changes };
 	
-	// Handle JSON fields
+	// Handle JSON fields - remove original fields to avoid conflicts
 	if (changes.prerequisites) {
 		updatePayload.prerequisitesJson = encodeJsonArray(changes.prerequisites);
+		delete updatePayload.prerequisites;
 	}
 	if (changes.tags) {
 		updatePayload.tagsJson = encodeJsonArray(changes.tags);
+		delete updatePayload.tags;
 	}
 	
 	// Handle nullable lastReviewedAt field explicitly

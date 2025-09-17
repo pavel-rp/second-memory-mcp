@@ -20,8 +20,6 @@ function tmpDbPath() {
 	return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
 }
 
-describe.skip;
-
 (hasBinding ? describe : describe.skip)("migration script", () => {
 	let dbFile: string;
 	let jsonFile: string;
