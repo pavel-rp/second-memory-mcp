@@ -9,6 +9,7 @@ import { SessionInputSchema } from "../types/session.js";
 import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, SessionHistorySchema, SessionConstraintsSchema } from "../types/recommendations.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
+import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
 
 type ChunkGenerationToolArgs = {
 	topicTitle: string;
@@ -427,7 +428,7 @@ export function registerServerTools(server: McpServer): void {
 		"what_to_learn_today",
 		{
 			title: "Get Learning Recommendations",
-			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. Supports both guided 'teach me' mode and explicit parameter mode.",
+			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. CRITICAL WORKFLOW: This tool requires learningItems data - you MUST first fetch learning items from the Notion MCP server before calling this tool. The tool will not fetch data itself (stateless design). STEPS: 1) Query Notion MCP server for learning items 2) Pass those items to this tool's learningItems parameter 3) Receive personalized recommendations. If learningItems array is empty, this tool will provide orchestration guidance. Supports both guided 'teach me' mode and explicit parameter mode.",
 			inputSchema: {
 				mode: RecommendationModeSchema.optional(),
 				timeAvailable: z.number().min(0).optional(),
@@ -466,6 +467,32 @@ export function registerServerTools(server: McpServer): void {
 			try {
 				const conversationManager = new ConversationManager();
 				const result = conversationManager.conductLearningSession(input);
+				return { content: [{ type: "text", text: JSON.stringify(result) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	// Orchestration workflow tool
+	server.registerTool(
+		"orchestrate_learning_workflow",
+		{
+			title: "Orchestrate Learning Workflow",
+			description: "Provides step-by-step guidance for multi-server learning workflows. Use this when you need instructions on how to coordinate between Notion MCP server and learning recommendation tools.",
+			inputSchema: {
+				mode: z.enum(['guided', 'explicit']).optional(),
+				context: z.object({
+					hasNotionAccess: z.boolean().optional(),
+					currentStep: z.number().optional(),
+					errorMessage: z.string().optional(),
+				}).optional(),
+			},
+		},
+		async (input: { mode?: 'guided' | 'explicit'; context?: { hasNotionAccess?: boolean; currentStep?: number; errorMessage?: string } }) => {
+			try {
+				const result = generateOrchestrationGuidance(input);
 				return { content: [{ type: "text", text: JSON.stringify(result) }] };
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';

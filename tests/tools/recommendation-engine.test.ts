@@ -137,6 +137,67 @@ describe("RecommendationEngine", () => {
       }
     }
   });
+
+  it("returns orchestrationHint when learningItems array is empty", () => {
+    const engine = new RecommendationEngine();
+    const result = engine.generateRecommendations({
+      mode: "guided",
+      learningItems: [],
+      timeAvailable: 30,
+    });
+
+    expect(result.orchestrationHint).toBeDefined();
+    expect(result.orchestrationHint).toContain("No learning items provided");
+    expect(result.orchestrationHint).toContain("fetch learning items from the Notion MCP server");
+    expect(result.orchestrationHint).toContain("orchestrate_learning_workflow tool");
+  });
+
+  it("does not return orchestrationHint when learningItems are provided", () => {
+    const engine = new RecommendationEngine();
+    const items = [makeItem({ id: "test-item", estimatedDuration: 10 })];
+
+    const result = engine.generateRecommendations({
+      mode: "guided",
+      learningItems: items,
+      timeAvailable: 30,
+    });
+
+    expect(result.orchestrationHint).toBeUndefined();
+  });
+
+  it("handles empty learningItems in explicit mode", () => {
+    const engine = new RecommendationEngine();
+    const result = engine.generateRecommendations({
+      mode: "explicit",
+      learningItems: [],
+      timeAvailable: 30,
+    });
+
+    expect(result.orchestrationHint).toBeDefined();
+    expect(result.recommendations).toHaveLength(0);
+    expect(result.sessionSummary.totalItems).toBe(0);
+  });
+
+  it("maintains backward compatibility - orchestrationHint is optional", () => {
+    const engine = new RecommendationEngine();
+    const items = [makeItem({ id: "test-item", estimatedDuration: 10 })];
+
+    const result = engine.generateRecommendations({
+      mode: "guided",
+      learningItems: items,
+      timeAvailable: 30,
+    });
+
+    // Should have all required fields
+    expect(result).toHaveProperty('recommendations');
+    expect(result).toHaveProperty('sessionSummary');
+    expect(result).toHaveProperty('estimatedDuration');
+    expect(result).toHaveProperty('rationale');
+    expect(result).toHaveProperty('nextActions');
+
+    // orchestrationHint should be undefined when not needed
+    expect(result.orchestrationHint).toBeUndefined();
+  });
 });
 
 

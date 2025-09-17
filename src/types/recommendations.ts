@@ -91,7 +91,7 @@ export type RecommendationInput = {
 	subjectPreference?: SubjectPreference; // subject filter or "Any"
 	learningItems: LearningItem[]; // candidate items from Notion
 	userHistory?: SessionHistory; // recent learning patterns
-	sessionContext?: any; // current session state if continuing
+	sessionContext?: Record<string, unknown>; // current session state if continuing
 	constraints?: SessionConstraints; // additional filtering/limits
 };
 
@@ -104,6 +104,7 @@ export type RecommendationOutput = {
 	rationale: string; // why these items were chosen
 	alternatives?: LearningRecommendation[]; // backup options
 	nextActions?: string[]; // suggested follow-up actions
+	orchestrationHint?: string; // guidance for multi-server workflows when data is empty
 };
 
 // Conversation request for guided mode
