@@ -3,7 +3,10 @@ import { z } from "zod";
 import { calculateNextReview, calculatePriorityScore, calculateNextReviewAdvanced, rankCandidatesWithConstraints } from "../tools/sr-calculator.js";
 import { computeDailyKpis, computeWindowRollup } from "../tools/analytics.js";
 import { calculateSessionProgress, determineNextPhase, checkSessionCompletion, validateSessionContext } from "../tools/session-manager.js";
+import { RecommendationEngine } from "../tools/recommendation-engine.js";
+import { ConversationManager } from "../tools/conversation-manager.js";
 import { SessionInputSchema } from "../types/session.js";
+import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, SessionHistorySchema, SessionConstraintsSchema } from "../types/recommendations.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
 
@@ -416,6 +419,58 @@ export function registerServerTools(server: McpServer): void {
 		async () => {
 			const payload = getSchemas();
 			return { content: [{ type: "text", text: JSON.stringify(payload) }] };
+		}
+	);
+
+	// Learning recommendation tools
+	server.registerTool(
+		"what_to_learn_today",
+		{
+			title: "Get Learning Recommendations",
+			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. Supports both guided 'teach me' mode and explicit parameter mode.",
+			inputSchema: {
+				mode: RecommendationModeSchema.optional(),
+				timeAvailable: z.number().min(0).optional(),
+				subjectPreference: SubjectPreferenceSchema.optional(),
+				learningItems: z.array(LearningItemSchema),
+				userHistory: SessionHistorySchema.optional(),
+				sessionContext: z.any().optional(),
+				constraints: SessionConstraintsSchema.optional(),
+			},
+		},
+		async (input: any) => {
+			try {
+				const engine = new RecommendationEngine();
+				const result = engine.generateRecommendations(input);
+				return { content: [{ type: "text", text: JSON.stringify(result) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	server.registerTool(
+		"guided_learning_conversation",
+		{
+			title: "Guided Learning Conversation",
+			description: "Conduct a conversational 'teach me' session with zero friction. Handles session guidance, clarifying questions, and learning orchestration.",
+			inputSchema: {
+				intent: z.string().min(1),
+				context: z.any().optional(),
+				userInput: z.string().optional(),
+				sessionState: z.any().optional(),
+			},
+		},
+		async (input: any) => {
+			try {
+				const conversationManager = new ConversationManager();
+				const result = conversationManager.conductLearningSession(input);
+				return { content: [{ type: "text", text: JSON.stringify(result) }] };
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
 		}
 	);
 }

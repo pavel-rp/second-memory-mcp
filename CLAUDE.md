@@ -154,6 +154,7 @@ Key environment variables for algorithm tuning:
 - Explicit types for public APIs
 - Prefer early returns and minimal nesting
 - No `any` types - use precise TypeScript types
+- DRY. Don't inline type definitions, schemas, etc. Move them to separate locations if they must be reused.
 
 **Algorithm Development:**
 - All spaced repetition parameters must be configurable

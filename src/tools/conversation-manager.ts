@@ -1,0 +1,361 @@
+import { RecommendationEngine } from "./recommendation-engine.js";
+import { determineNextPhase, checkSessionCompletion, calculateSessionProgress } from "./session-manager.js";
+import type {
+	ConversationRequest,
+	ConversationResponse,
+	RecommendationInput,
+	LearningItem,
+	SessionHistory,
+} from "../types/recommendations.js";
+
+/**
+ * Manages conversational "teach me" workflows with zero friction
+ * Handles session guidance, clarifying questions, and learning orchestration
+ */
+export class ConversationManager {
+	private recommendationEngine: RecommendationEngine;
+
+	constructor() {
+		this.recommendationEngine = new RecommendationEngine();
+	}
+
+	/**
+	 * Conduct a learning session conversation
+	 */
+	conductLearningSession(request: ConversationRequest): ConversationResponse {
+		const intent = this.parseIntent(request);
+
+		switch (intent.type) {
+			case "start_learning":
+				return this.handleStartLearning(request);
+			case "continue_session":
+				return this.handleContinueSession(request);
+			case "need_clarification":
+				return this.handleClarification(request);
+			case "session_feedback":
+				return this.handleSessionFeedback(request);
+			case "get_help":
+				return this.handleGetHelp(request);
+			default:
+				return this.handleGeneralLearning(request);
+		}
+	}
+
+	/**
+	 * Parse user intent from request
+	 */
+	private parseIntent(request: ConversationRequest): { type: string; confidence: number; details?: any } {
+		const input = request.userInput?.toLowerCase() || request.intent.toLowerCase();
+
+		// Explicit intents
+		if (request.intent === "start_learning" ||
+			input.includes("teach me") ||
+			input.includes("start learning") ||
+			input.includes("what should i learn")) {
+			return { type: "start_learning", confidence: 1.0 };
+		}
+
+		if (input.includes("continue") || input.includes("next") || input.includes("keep going")) {
+			return { type: "continue_session", confidence: 0.9 };
+		}
+
+		if (input.includes("how long") || input.includes("what subject") || input.includes("time")) {
+			return { type: "need_clarification", confidence: 0.8 };
+		}
+
+		if (input.includes("help") || input.includes("?") || input.includes("explain")) {
+			return { type: "get_help", confidence: 0.7 };
+		}
+
+		// Session feedback indicators
+		if (input.includes("done") || input.includes("finished") || input.includes("completed")) {
+			return { type: "session_feedback", confidence: 0.8 };
+		}
+
+		// Default to general learning
+		return { type: "general_learning", confidence: 0.5 };
+	}
+
+	/**
+	 * Handle initial learning request
+	 */
+	private handleStartLearning(request: ConversationRequest): ConversationResponse {
+		const context = request.context || {};
+
+		// Check if we have enough information to start
+		const hasLearningItems = context.learningItems && context.learningItems.length > 0;
+
+		if (!hasLearningItems) {
+			return {
+				message: "I'd love to help you learn! However, I don't see any learning items available. Please make sure you have content set up in your learning system first.",
+				needsInput: false,
+				suggestedInputs: ["Set up learning content", "Check my learning database"],
+			};
+		}
+
+		// Try to generate recommendations with minimal information
+		try {
+			const recommendationInput: RecommendationInput = {
+				mode: "guided",
+				learningItems: context.learningItems,
+				userHistory: context.userHistory,
+				sessionContext: context.sessionContext,
+			};
+
+			const recommendations = this.recommendationEngine.generateRecommendations(recommendationInput);
+
+			if (recommendations.recommendations.length === 0) {
+				return {
+					message: "You're all caught up! No items are due for review right now. Would you like to explore new content or adjust your learning preferences?",
+					needsInput: true,
+					suggestedInputs: ["Show me new content", "Check again in a few hours", "Change learning preferences"],
+				};
+			}
+
+			// Provide immediate guidance with minimal friction
+			const guidance = recommendations.conversationGuidance!;
+			return {
+				message: `Perfect! ${guidance.nextAction}\n\n${guidance.encouragement || ""}\n\n${guidance.progressUpdate || ""}`,
+				recommendations,
+				needsInput: false,
+				suggestedInputs: ["Let's start", "Tell me more about this session", "Adjust the plan"],
+				sessionUpdated: true,
+			};
+
+		} catch (error) {
+			return this.handleError("generating your learning plan", error);
+		}
+	}
+
+	/**
+	 * Handle session continuation
+	 */
+	private handleContinueSession(request: ConversationRequest): ConversationResponse {
+		const sessionState = request.sessionState;
+
+		if (!sessionState || !sessionState.currentRecommendations) {
+			return {
+				message: "It looks like we don't have an active session. Would you like to start a new learning session?",
+				needsInput: true,
+				suggestedInputs: ["Start new session", "Show me what's available"],
+			};
+		}
+
+		// Check session progress and provide next steps
+		const currentIndex = sessionState.currentItemIndex || 0;
+		const recommendations = sessionState.currentRecommendations;
+
+		if (currentIndex >= recommendations.length) {
+			return this.handleSessionCompletion(sessionState);
+		}
+
+		const nextItem = recommendations[currentIndex];
+		const remaining = recommendations.length - currentIndex - 1;
+
+		let message = `Great! Next up: "${nextItem.item.title}" (${nextItem.item.estimatedDuration} min).\n\nReason: ${nextItem.reason}`;
+
+		if (remaining > 0) {
+			message += `\n\nAfter this, you have ${remaining} more item${remaining > 1 ? 's' : ''} to complete your session.`;
+		} else {
+			message += "\n\nThis is your final item for this session!";
+		}
+
+		return {
+			message,
+			needsInput: false,
+			suggestedInputs: ["Start this item", "Skip to next", "Tell me about this topic"],
+			sessionUpdated: true,
+		};
+	}
+
+	/**
+	 * Handle requests for clarification
+	 */
+	private handleClarification(request: ConversationRequest): ConversationResponse {
+		const input = request.userInput?.toLowerCase() || "";
+
+		// Time-related questions
+		if (input.includes("how long") || input.includes("time")) {
+			return {
+				message: "How much time do you have available for learning right now? I can tailor a session to fit your schedule perfectly.",
+				needsInput: true,
+				suggestedInputs: ["15 minutes", "30 minutes", "1 hour", "I have plenty of time"],
+			};
+		}
+
+		// Subject-related questions
+		if (input.includes("subject") || input.includes("topic") || input.includes("what")) {
+			return {
+				message: "What would you like to focus on today? I can recommend based on your priorities or you can choose a specific subject.",
+				needsInput: true,
+				suggestedInputs: ["Show me what's most important", "Computer Science", "Math", "Software Engineering", "Language"],
+			};
+		}
+
+		// General clarification
+		return {
+			message: "I'm here to help! You can ask me about time available, subjects to focus on, or just say 'teach me' and I'll suggest the best learning plan for you right now.",
+			needsInput: true,
+			suggestedInputs: ["Just teach me", "I have 30 minutes", "Show me CS topics"],
+		};
+	}
+
+	/**
+	 * Handle session feedback and completion
+	 */
+	private handleSessionFeedback(request: ConversationRequest): ConversationResponse {
+		const sessionState = request.sessionState;
+
+		if (sessionState) {
+			return this.handleSessionCompletion(sessionState);
+		}
+
+		return {
+			message: "Thanks for the feedback! How did your learning session go?",
+			needsInput: true,
+			suggestedInputs: ["It went well", "I had some difficulties", "Start another session"],
+		};
+	}
+
+	/**
+	 * Handle help requests
+	 */
+	private handleGetHelp(request: ConversationRequest): ConversationResponse {
+		return {
+			message: `I'm your intelligent learning assistant! Here's what I can do:
+
+• **"Teach me"** - I'll create an optimal learning session based on what's due
+• **Time-aware** - Tell me how much time you have and I'll plan accordingly
+• **Subject focus** - Ask for specific subjects or let me prioritize across all topics
+• **Session guidance** - I'll guide you through each step with encouragement
+
+Just say "teach me" and I'll take care of the rest!`,
+			needsInput: true,
+			suggestedInputs: ["Teach me", "I have 20 minutes", "Show me CS topics", "What's due today?"],
+		};
+	}
+
+	/**
+	 * Handle general learning requests
+	 */
+	private handleGeneralLearning(request: ConversationRequest): ConversationResponse {
+		// Extract any time or subject hints from user input
+		const timeHints = this.extractTimeHints(request.userInput);
+		const subjectHints = this.extractSubjectHints(request.userInput);
+
+		let message = "I'd be happy to help you learn! ";
+
+		// Ask clarifying questions only if needed
+		if (!timeHints && !subjectHints && !request.context?.learningItems) {
+			message += "To give you the best recommendations, could you tell me:";
+			return {
+				message,
+				needsInput: true,
+				suggestedInputs: [
+					"I have 30 minutes",
+					"Show me what's most important",
+					"Focus on Computer Science",
+					"Just teach me anything"
+				],
+			};
+		}
+
+		// Try to proceed with available information
+		return this.handleStartLearning(request);
+	}
+
+	/**
+	 * Handle session completion
+	 */
+	private handleSessionCompletion(sessionState: any): ConversationResponse {
+		const completedItems = sessionState.currentItemIndex || 0;
+		const totalItems = sessionState.currentRecommendations?.length || 0;
+
+		let message = `Excellent work! You've completed ${completedItems} out of ${totalItems} items in this session.`;
+
+		if (completedItems === totalItems) {
+			message += "\n\n🎉 Session complete! You're making great progress with your learning goals.";
+		} else {
+			message += `\n\nYou still have ${totalItems - completedItems} items remaining if you'd like to continue.`;
+		}
+
+		message += "\n\nWhat would you like to do next?";
+
+		return {
+			message,
+			needsInput: true,
+			suggestedInputs: [
+				completedItems < totalItems ? "Continue session" : "Start new session",
+				"Take a break",
+				"Review what I learned",
+				"Check my progress"
+			],
+		};
+	}
+
+	/**
+	 * Extract time hints from user input
+	 */
+	private extractTimeHints(input?: string): number | null {
+		if (!input) return null;
+
+		const timePatterns = [
+			/(\d+)\s*minutes?/i,
+			/(\d+)\s*mins?/i,
+			/(\d+)\s*hours?/i,
+			/(\d+)\s*hrs?/i,
+		];
+
+		for (const pattern of timePatterns) {
+			const match = input.match(pattern);
+			if (match) {
+				const value = parseInt(match[1]);
+				if (input.includes("hour") || input.includes("hr")) {
+					return value * 60; // Convert to minutes
+				}
+				return value;
+			}
+		}
+
+		// Common time expressions
+		if (input.includes("quick") || input.includes("short")) return 15;
+		if (input.includes("long") || input.includes("extended")) return 60;
+
+		return null;
+	}
+
+	/**
+	 * Extract subject hints from user input
+	 */
+	private extractSubjectHints(input?: string): string | null {
+		if (!input) return null;
+
+		const subjects = ["CS", "Computer Science", "Math", "Mathematics", "SWE", "Software Engineering", "Language"];
+
+		for (const subject of subjects) {
+			if (input.toLowerCase().includes(subject.toLowerCase())) {
+				// Normalize to standard subject codes
+				if (subject.toLowerCase().includes("computer")) return "CS";
+				if (subject.toLowerCase().includes("math")) return "Math";
+				if (subject.toLowerCase().includes("software")) return "SWE";
+				if (subject.toLowerCase().includes("language")) return "Language";
+				return subject;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Handle errors gracefully
+	 */
+	private handleError(action: string, error: any): ConversationResponse {
+		console.error(`ConversationManager error while ${action}:`, error);
+
+		return {
+			message: `I encountered an issue while ${action}. Please try again, or let me know if you need help with something specific.`,
+			needsInput: true,
+			suggestedInputs: ["Try again", "Get help", "Start over"],
+		};
+	}
+}
