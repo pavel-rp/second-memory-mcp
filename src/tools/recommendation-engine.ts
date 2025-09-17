@@ -1,5 +1,6 @@
 import { algorithmConfig } from "../config/algorithm.js";
-import { calculatePriorityScore, rankCandidatesWithConstraints } from "./sr-calculator.js";
+import { calculatePriorityScore } from "./sr-calculator.js";
+import { calculateItemCognitiveLoad } from "./cognitive-load.js";
 import { calculateSessionProgress, determineNextPhase } from "./session-manager.js";
 import type {
 	RecommendationInput,
@@ -251,7 +252,7 @@ export class RecommendationEngine {
 		}
 
 		// Cognitive load check
-		const itemCognitiveLoad = this.calculateCognitiveLoad(item);
+        const itemCognitiveLoad = calculateItemCognitiveLoad(item);
 		if (constraints.maxCognitiveLoad &&
 			currentCognitiveLoad + itemCognitiveLoad > constraints.maxCognitiveLoad) {
 			return false;
@@ -289,27 +290,9 @@ export class RecommendationEngine {
 	/**
 	 * Calculate cognitive load for an item
 	 */
-	private calculateCognitiveLoad(item: LearningItem): number {
-		// Base cognitive load from difficulty and type
-		let load = item.difficulty; // 1-10 base
-
-		// New content has higher cognitive load
-		if (item.chunkType === "new") {
-			load *= 1.5;
-		}
-
-		// Low ease factor (difficult items) increases load
-		if (item.easeFactor < 2.0) {
-			load *= 1.3;
-		}
-
-		// Duration affects load (longer items are more taxing)
-		if (item.estimatedDuration > 15) {
-			load *= 1.2;
-		}
-
-		return Math.round(load * 10) / 10; // Round to 1 decimal
-	}
+    private calculateCognitiveLoad(item: LearningItem): number {
+        return calculateItemCognitiveLoad(item);
+    }
 
 	/**
 	 * Interleave recommendations for optimal learning

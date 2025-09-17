@@ -6,7 +6,7 @@ import { calculateSessionProgress, determineNextPhase, checkSessionCompletion, v
 import { RecommendationEngine } from "../tools/recommendation-engine.js";
 import { ConversationManager } from "../tools/conversation-manager.js";
 import { SessionInputSchema } from "../types/session.js";
-import { RecommendationInputSchema, SubjectPreferenceSchema, RecommendationModeSchema } from "../types/recommendations.js";
+import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, SessionHistorySchema, SessionConstraintsSchema } from "../types/recommendations.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { getSchemas } from "../resources/notion-schemas.js";
 
@@ -432,45 +432,10 @@ export function registerServerTools(server: McpServer): void {
 				mode: RecommendationModeSchema.optional(),
 				timeAvailable: z.number().min(0).optional(),
 				subjectPreference: SubjectPreferenceSchema.optional(),
-				learningItems: z.array(z.object({
-					id: z.string().min(1),
-					title: z.string().min(1),
-					subject: z.string().min(1),
-					difficulty: z.number().int().min(1).max(10),
-					nextReviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD"),
-					easeFactor: z.number().min(1.3),
-					repetitions: z.number().int().min(0),
-					lastReviewed: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD").optional(),
-					estimatedDuration: z.number().min(0),
-					chunkType: z.enum(["new", "review", "remediation"]),
-					prerequisites: z.array(z.string()).optional(),
-					tags: z.array(z.string()).optional(),
-				})),
-				userHistory: z.object({
-					recentSessions: z.array(z.object({
-						date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD"),
-						duration: z.number().min(0),
-						itemsCompleted: z.number().int().min(0),
-						averageQuality: z.number().min(0).max(5),
-						cognitiveLoad: z.number().min(0),
-					})),
-					patterns: z.object({
-						averageSessionDuration: z.number().min(0),
-						preferredDifficulty: z.number().min(1).max(10),
-						successRate: z.number().min(0).max(1),
-						fatigueThreshold: z.number().min(0),
-						subjectPreferences: z.record(z.number()),
-						optimalSessionTime: z.string().optional(),
-					}),
-				}).optional(),
+				learningItems: z.array(LearningItemSchema),
+				userHistory: SessionHistorySchema.optional(),
 				sessionContext: z.any().optional(),
-				constraints: z.object({
-					maxDuration: z.number().min(0).optional(),
-					maxCognitiveLoad: z.number().min(0).optional(),
-					maxNewItems: z.number().int().min(0).optional(),
-					subjectFilter: z.string().optional(),
-					excludeIds: z.array(z.string()).optional(),
-				}).optional(),
+				constraints: SessionConstraintsSchema.optional(),
 			},
 		},
 		async (input: any) => {
