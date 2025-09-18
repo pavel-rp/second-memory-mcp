@@ -15,7 +15,8 @@
     "lint:fix": "eslint src tests --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:cleanup": "node scripts/cleanup-test-files.js"
   },
   "engines": {
     "node": ">=20"

@@ -13,7 +13,7 @@ try {
 	hasBinding = false;
 }
 
-import { getDb } from "../../src/db/client.js";
+import { getDb, resetDatabase } from "../../src/db/client.js";
 import "../../src/db/migrate.js";
 
 function tmpDbPath() {
@@ -38,8 +38,11 @@ function tmpDbPath() {
 		fs.writeFileSync(jsonFile, JSON.stringify(sample), "utf-8");
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
 		try { fs.unlinkSync(dbFile); } catch {}
+		try { fs.unlinkSync(`${dbFile}-shm`); } catch {}
+		try { fs.unlinkSync(`${dbFile}-wal`); } catch {}
 		try { fs.unlinkSync(jsonFile); } catch {}
 	});
 
