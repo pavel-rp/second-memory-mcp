@@ -11,6 +11,9 @@
     "start:stdio": "node dist/server/main.js",
     "test:prompts": "node scripts/test-prompts.mjs",
     "test": "pnpm run build && vitest run --coverage",
+    "lint": "eslint src tests --ext .ts,.tsx --report-unused-disable-directives --max-warnings 100",
+    "lint:fix": "eslint src tests --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio"
   },
@@ -26,7 +29,10 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.14",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
     "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^8.57.0",
     "tsx": "^4.16.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
