@@ -11,6 +11,11 @@ import { promptPack } from "../prompts/prompt-pack.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
 import { listChunksAsLearningItems, createChunkWithTopic, mapChunkRowToLearningItem, processReviewResult } from "../services/chunks.js";
 
+// Constants for validation and business logic
+const MAX_TITLE_LENGTH = 200;
+const MAX_SUBJECT_LENGTH = 100;
+const LEECH_THRESHOLD = 3;
+
 type ChunkGenerationToolArgs = {
 	topicTitle: string;
 	topicDescription?: string;
@@ -517,8 +522,8 @@ export function registerServerTools(server: McpServer): void {
 			title: "Create Learning Item",
 			description: "Create a new learning item with seamless operation and zero friction. This is the highest priority write endpoint that automatically handles topic creation and sets initial SM-2 values.",
 			inputSchema: {
-				title: z.string().min(1).max(200).describe("Title of the learning item"),
-				subject: z.string().min(1).max(100).describe("Subject/category of the learning item"),
+				title: z.string().min(1).max(MAX_TITLE_LENGTH).describe("Title of the learning item"),
+				subject: z.string().min(1).max(MAX_SUBJECT_LENGTH).describe("Subject/category of the learning item"),
 				difficulty: z.number().int().min(1).max(10).describe("Difficulty level from 1-10"),
 				estimatedDuration: z.number().int().min(1).optional().default(15).describe("Estimated duration in minutes"),
 				chunkType: z.enum(["new", "review", "remediation"]).optional().default("new").describe("Type of learning chunk"),
@@ -623,17 +628,14 @@ export function registerServerTools(server: McpServer): void {
 		}) => {
 			try {
 				// Process the review result
-				const updatedChunk = await processReviewResult(input.itemId, input.quality, {
+				const result = await processReviewResult(input.itemId, input.quality, {
 					timeSpentMs: input.timeSpentMs,
 					consecutiveFailures: input.consecutiveFailures,
 					daysOverdue: input.daysOverdue
 				});
 				
 				// Convert to LearningItem format for response
-				const learningItem = mapChunkRowToLearningItem(updatedChunk);
-				
-				// Check for leech detection (consecutive failures > 3)
-				const isLeech = (input.consecutiveFailures || 0) > 3;
+				const learningItem = mapChunkRowToLearningItem(result.chunk);
 				
 				return { 
 					content: [{ 
@@ -641,8 +643,8 @@ export function registerServerTools(server: McpServer): void {
 						text: JSON.stringify({ 
 							success: true, 
 							item: learningItem,
-							isLeech,
-							message: isLeech ? "Item marked as leech due to consecutive failures" : "Review result recorded successfully"
+							isLeech: result.isLeech,
+							message: result.isLeech ? "Item marked as leech due to consecutive failures" : "Review result recorded successfully"
 						}) 
 					}] 
 				};

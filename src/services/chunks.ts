@@ -3,6 +3,7 @@ import { getSql } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
 import type { LearningItem } from "../types/recommendations.js";
 import { decodeJsonArray, encodeJsonArray } from "../db/operations.js";
+import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 
 export type CreateChunkInput = {
 	id: string;
@@ -165,7 +166,7 @@ export async function processReviewResult(
 		consecutiveFailures?: number;
 		daysOverdue?: number;
 	}
-): Promise<LearningChunkRow> {
+): Promise<{ chunk: LearningChunkRow; isLeech: boolean }> {
 	const db = getSql();
 	
 	// Get current chunk data
@@ -173,9 +174,6 @@ export async function processReviewResult(
 	if (!currentChunk) {
 		throw new Error(`Learning item not found: ${itemId}`);
 	}
-	
-	// Import SM-2 calculator
-	const { calculateNextReviewAdvanced } = await import("../tools/sr-calculator.js");
 	
 	// Calculate new SM-2 values
 	const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
@@ -218,11 +216,14 @@ export async function processReviewResult(
 		updatedAt: now
 	});
 	
-	// Return updated chunk
+	// Return updated chunk with leech information
 	const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
 	if (!updatedChunk) {
 		throw new Error(`Failed to update chunk: ${itemId}`);
 	}
 	
-	return updatedChunk;
+	return {
+		chunk: updatedChunk,
+		isLeech: sm2Result.leech || false
+	};
 }
