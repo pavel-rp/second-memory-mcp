@@ -14,7 +14,7 @@ try {
 	hasBinding = false;
 }
 
-import { getDb } from "../../src/db/client.js";
+import { getDb, resetDatabase } from "../../src/db/client.js";
 import { createTopic, getTopicById, listTopics, updateTopic, deleteTopic } from "../../src/services/topics.js";
 
 function ensureSchema() {
@@ -43,8 +43,17 @@ function tmpDbPath() {
 		ensureSchema();
 	});
 
-	afterEach(() => {
-		try { fs.unlinkSync(dbFile); } catch {}
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
+		if (fs.existsSync(dbFile)) {
+			fs.unlinkSync(dbFile);
+		}
+		if (fs.existsSync(`${dbFile}-shm`)) {
+			fs.unlinkSync(`${dbFile}-shm`);
+		}
+		if (fs.existsSync(`${dbFile}-wal`)) {
+			fs.unlinkSync(`${dbFile}-wal`);
+		}
 	});
 
 	it("creates, reads, lists, updates, and deletes a topic", async () => {

@@ -13,7 +13,7 @@ try {
 	hasBinding = false;
 }
 
-import { getDb } from "../../src/db/client.js";
+import { getDb, resetDatabase } from "../../src/db/client.js";
 import { createChunk, listChunks, listChunksAsLearningItems } from "../../src/services/chunks.js";
 
 function ensureSchema() {
@@ -52,8 +52,17 @@ function tmpDbPath() {
 		ensureSchema();
 	});
 
-	afterEach(() => {
-		try { fs.unlinkSync(dbFile); } catch {}
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
+		if (fs.existsSync(dbFile)) {
+			fs.unlinkSync(dbFile);
+		}
+		if (fs.existsSync(`${dbFile}-shm`)) {
+			fs.unlinkSync(`${dbFile}-shm`);
+		}
+		if (fs.existsSync(`${dbFile}-wal`)) {
+			fs.unlinkSync(`${dbFile}-wal`);
+		}
 	});
 
 	it("creates and lists chunks, maps to LearningItem", async () => {

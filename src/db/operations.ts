@@ -1,6 +1,4 @@
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import type { InferInsertModel } from "drizzle-orm";
-import type { AnySQLiteTable } from "drizzle-orm/sqlite-core";
 import { getDb } from "./client.js";
 
 // Drizzle DB singleton
@@ -13,9 +11,13 @@ function getDrizzle() {
 	return drizzleDb;
 }
 
+export function resetDrizzle(): void {
+	drizzleDb = undefined;
+}
+
 // Transaction helper
 export type SqlDb = ReturnType<typeof drizzle>;
-export type SqlTx = Parameters<SqlDb["transaction"]>[0] extends (tx: infer P) => any ? P : never;
+export type SqlTx = Parameters<SqlDb["transaction"]>[0] extends (tx: infer P) => unknown ? P : never;
 
 export function withTx<T>(fn: (tx: SqlTx) => T): T {
 	const db = getDrizzle();

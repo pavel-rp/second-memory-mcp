@@ -13,7 +13,7 @@ try {
 	hasBinding = false;
 }
 
-import { getDb } from "../../src/db/client.js";
+import { getDb, resetDatabase } from "../../src/db/client.js";
 import "../../src/db/migrate.js";
 
 function tmpDbPath() {
@@ -38,16 +38,19 @@ function tmpDbPath() {
 		fs.writeFileSync(jsonFile, JSON.stringify(sample), "utf-8");
 	});
 
-	afterEach(() => {
-		try { fs.unlinkSync(dbFile); } catch {}
-		try { fs.unlinkSync(jsonFile); } catch {}
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
+		try { fs.unlinkSync(dbFile); } catch { /* Ignore cleanup errors */ }
+		try { fs.unlinkSync(`${dbFile}-shm`); } catch { /* Ignore cleanup errors */ }
+		try { fs.unlinkSync(`${dbFile}-wal`); } catch { /* Ignore cleanup errors */ }
+		try { fs.unlinkSync(jsonFile); } catch { /* Ignore cleanup errors */ }
 	});
 
 	it("imports topics from JSON", async () => {
 		const { default: child_process } = await import("node:child_process");
 		await new Promise<void>((resolve, reject) => {
 			const p = child_process.fork(
-				path.resolve("./dist/db/migrate.js"),
+				path.resolve("./dist/src/db/migrate.js"),
 				[joinIfRelative(jsonFile)],
 				{ env: { ...process.env, SM_DB_PATH: dbFile } }
 			);
@@ -55,7 +58,7 @@ function tmpDbPath() {
 		});
 
 		const db = getDb();
-		const row = db.prepare("SELECT COUNT(*) as cnt FROM learning_topics").get() as any;
+		const row = db.prepare("SELECT COUNT(*) as cnt FROM learning_topics").get() as { cnt: number };
 		expect(row.cnt).toBe(1);
 	});
 });

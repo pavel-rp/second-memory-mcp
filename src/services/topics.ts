@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { getSql, withTx } from "../db/operations.js";
+import { getSql } from "../db/operations.js";
 import { learningTopics } from "../db/schema.js";
 
 export type CreateTopicInput = {

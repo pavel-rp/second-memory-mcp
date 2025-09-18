@@ -1,4 +1,5 @@
 import { and, eq, lte } from "drizzle-orm";
+import crypto from "node:crypto";
 import { getSql } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
 import type { LearningItem } from "../types/recommendations.js";

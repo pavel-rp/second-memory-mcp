@@ -28,3 +28,27 @@ export function getDb(): BetterSqlite3Database {
 	}
 	return dbInstance;
 }
+
+export async function resetDatabase(): Promise<void> {
+	if (dbInstance) {
+		dbInstance.close();
+		dbInstance = undefined;
+		initialized = false;
+	}
+	// Also reset drizzle singleton
+	const { resetDrizzle } = await import("./operations.js");
+	resetDrizzle();
+}
+
+export function clearAllTables(): void {
+	const db = getDb();
+	// Clear tables in correct order to avoid foreign key violations
+	db.exec(`
+		DELETE FROM friction_metrics;
+		DELETE FROM review_schedule;
+		DELETE FROM learning_chunks;
+		DELETE FROM learning_topics;
+		DELETE FROM session_logs;
+		DELETE FROM performance_analytics;
+	`);
+}

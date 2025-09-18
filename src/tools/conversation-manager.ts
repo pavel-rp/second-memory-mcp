@@ -1,5 +1,5 @@
 import { RecommendationEngine } from "./recommendation-engine.js";
-import { determineNextPhase, checkSessionCompletion, calculateSessionProgress } from "./session-manager.js";
+import { topicCreationService } from "../services/topic-creation.js";
 import type {
 	ConversationRequest,
 	ConversationResponse,
@@ -8,6 +8,7 @@ import type {
 	SessionHistory,
 	SessionContext,
 } from "../types/recommendations.js";
+import type { UserPreferences } from "../types/topic-creation.js";
 
 /**
  * Manages conversational "teach me" workflows with zero friction
@@ -23,10 +24,12 @@ export class ConversationManager {
 	/**
 	 * Conduct a learning session conversation
 	 */
-	conductLearningSession(request: ConversationRequest): ConversationResponse {
+	async conductLearningSession(request: ConversationRequest): Promise<ConversationResponse> {
 		const intent = this.parseIntent(request);
 
 		switch (intent.type) {
+			case "create_topic":
+				return await this.handleTopicCreation(request, intent.details!);
 			case "start_learning":
 				return this.handleStartLearning(request);
 			case "continue_session":
@@ -45,8 +48,31 @@ export class ConversationManager {
 	/**
 	 * Parse user intent from request
 	 */
-	private parseIntent(request: ConversationRequest): { type: string; confidence: number; details?: any } {
+	private parseIntent(request: ConversationRequest): { type: string; confidence: number; details?: { topicTitle: string; originalInput: string } } {
 		const input = request.userInput?.toLowerCase() || request.intent.toLowerCase();
+
+		// Topic creation intent - detect "I want to learn X" patterns
+		const topicCreationPatterns = [
+			/i want to learn (.+)/i,
+			/teach me (.+)/i,
+			/i wanna learn (.+)/i,
+			/learn (.+)/i,
+			/start learning (.+)/i
+		];
+
+		for (const pattern of topicCreationPatterns) {
+			const match = input.match(pattern);
+			if (match && match[1]) {
+				const topicTitle = match[1].trim();
+				if (topicTitle.length > 0 && topicTitle.length < 100) {
+					return { 
+						type: "create_topic", 
+						confidence: 0.9, 
+						details: { topicTitle, originalInput: input } 
+					};
+				}
+			}
+		}
 
 		// Explicit intents
 		if (request.intent === "start_learning" ||
@@ -75,6 +101,118 @@ export class ConversationManager {
 
 		// Default to general learning
 		return { type: "general_learning", confidence: 0.5 };
+	}
+
+	/**
+	 * Handle topic creation request
+	 */
+	private async handleTopicCreation(request: ConversationRequest, details: { topicTitle: string; originalInput: string }): Promise<ConversationResponse> {
+		const topicTitle = details?.topicTitle;
+		const context = request.context || {};
+
+		if (!topicTitle) {
+			return {
+				message: "I'd love to help you learn something new! What topic would you like to explore?",
+				needsInput: true,
+				suggestedInputs: ["I want to learn DFS", "Teach me React", "Learn about algorithms"],
+			};
+		}
+
+		// Extract subject from context or infer from topic
+		const subject = context.subject as string || this.inferSubject(topicTitle);
+		
+		// Extract user preferences from context
+		const userPreferences: UserPreferences = {
+			preferredDifficulty: context.preferredDifficulty as number,
+			learningStyle: context.learningStyle as "visual" | "auditory" | "kinesthetic" | "reading",
+			maxChunkDuration: context.maxChunkDuration as number,
+			includePrerequisites: context.includePrerequisites as boolean
+		};
+
+		try {
+			// Create topic with generated chunks
+			const result = await topicCreationService.createTopicWithGeneratedChunks(
+				topicTitle,
+				`Learn ${topicTitle} through structured, scaffolded lessons`,
+				subject,
+				userPreferences
+			);
+
+			if (result.success && result.topic) {
+				const topic = result.topic;
+				const chunkCount = topic.chunks.length;
+				
+				return {
+					message: `Great! I've created a learning path for "${topicTitle}" with ${chunkCount} scaffolded lessons.\n\n` +
+						`Here's what we'll cover:\n` +
+						topic.chunks.map((chunk: any, index: number) => `${index + 1}. ${chunk.title}`).join('\n') +
+						`\n\nReady to start learning? I'll guide you through each lesson step by step.`,
+					needsInput: false,
+					suggestedInputs: ["Start the first lesson", "Tell me more about this topic", "Show me the learning path"],
+					sessionUpdated: true,
+					// Store topic info in context for next steps
+					recommendations: {
+						recommendations: [],
+						sessionSummary: {
+							totalItems: chunkCount,
+							totalDuration: topic.chunks.reduce((sum: number, chunk: any) => sum + chunk.estimatedDuration, 0),
+							totalCognitiveLoad: 0,
+							newItems: chunkCount,
+							reviewItems: 0,
+							remediationItems: 0,
+							subjects: [subject]
+						},
+						estimatedDuration: topic.chunks.reduce((sum: number, chunk: any) => sum + chunk.estimatedDuration, 0),
+						rationale: `Created structured learning path for ${topicTitle} with ${chunkCount} scaffolded lessons`,
+						nextActions: ["Start first lesson", "Review learning objectives", "Adjust difficulty"]
+					}
+				};
+			} else {
+				return {
+					message: `I had trouble creating a learning path for "${topicTitle}". ${result.error?.message || "Please try again."}`,
+					needsInput: true,
+					suggestedInputs: ["Try again", "Choose a different topic", "Get help"],
+				};
+			}
+
+		} catch (error) {
+			console.error("Topic creation failed:", error);
+			return {
+				message: `I encountered an issue while creating your learning path for "${topicTitle}". Please try again or choose a different topic.`,
+				needsInput: true,
+				suggestedInputs: ["Try again", "Choose a different topic", "Get help"],
+			};
+		}
+	}
+
+	/**
+	 * Infer subject from topic title
+	 */
+	private inferSubject(topicTitle: string): string {
+		const title = topicTitle.toLowerCase();
+		
+		if (title.includes("algorithm") || title.includes("dfs") || title.includes("bfs") || 
+			title.includes("sorting") || title.includes("tree") || title.includes("graph")) {
+			return "CS";
+		}
+		
+		if (title.includes("react") || title.includes("javascript") || title.includes("typescript") ||
+			title.includes("node") || title.includes("web") || title.includes("frontend")) {
+			return "SWE";
+		}
+		
+		if (title.includes("calculus") || title.includes("algebra") || title.includes("geometry") ||
+			title.includes("statistics") || title.includes("probability")) {
+			return "Math";
+		}
+		
+		if (title.includes("spanish") || title.includes("french") || title.includes("german") ||
+			title.includes("language") || title.includes("vocabulary")) {
+			return "Language";
+		}
+		
+		// Default to CS for technical topics
+		return "CS";
 	}
 
 	/**

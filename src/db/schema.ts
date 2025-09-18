@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 
 // Tables
@@ -57,6 +57,21 @@ export const performanceAnalytics = sqliteTable("performance_analytics", {
 	createdAt: integer("created_at", { mode: "number" }).notNull(),
 });
 
+export const frictionMetrics = sqliteTable("friction_metrics", {
+	id: text("id").primaryKey().notNull(),
+	chunkId: text("chunk_id").notNull().references(() => learningChunks.id, { onDelete: "cascade" }),
+	userId: text("user_id"), // optional for anonymous tracking
+	failedAttempts: integer("failed_attempts", { mode: "number" }).notNull().default(0),
+	averageTimeSpent: integer("average_time_spent", { mode: "number" }).notNull().default(0), // milliseconds
+	errorPatternsJson: text("error_patterns_json"), // JSON string array
+	lastStruggleDate: integer("last_struggle_date", { mode: "number" }).notNull(), // epoch ms
+	frictionScore: real("friction_score").notNull().default(0), // 0-1, higher = more friction
+	consecutiveFailures: integer("consecutive_failures", { mode: "number" }).notNull().default(0),
+	totalAttempts: integer("total_attempts", { mode: "number" }).notNull().default(0),
+	createdAt: integer("created_at", { mode: "number" }).notNull(),
+	updatedAt: integer("updated_at", { mode: "number" }).notNull(),
+});
+
 // Types
 export type LearningTopicRow = InferSelectModel<typeof learningTopics>;
 export type NewLearningTopicRow = InferInsertModel<typeof learningTopics>;
@@ -72,3 +87,6 @@ export type NewSessionLogRow = InferInsertModel<typeof sessionLogs>;
 
 export type PerformanceAnalyticsRow = InferSelectModel<typeof performanceAnalytics>;
 export type NewPerformanceAnalyticsRow = InferInsertModel<typeof performanceAnalytics>;
+
+export type FrictionMetricsRow = InferSelectModel<typeof frictionMetrics>;
+export type NewFrictionMetricsRow = InferInsertModel<typeof frictionMetrics>;

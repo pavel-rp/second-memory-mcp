@@ -6,16 +6,17 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "start": "node dist/server/main.js",
-    "start:pnpm": "pnpm run build && node dist/server/main.js",
-    "start:stdio": "node dist/server/main.js",
+    "start": "node dist/src/server/main.js",
+    "start:pnpm": "pnpm run build && node dist/src/server/main.js",
+    "start:stdio": "node --inspect=9229 dist/src/server/main.js",
     "test:prompts": "node scripts/test-prompts.mjs",
     "test": "pnpm run build && vitest run --coverage",
     "lint": "eslint src tests --ext .ts,.tsx --report-unused-disable-directives --max-warnings 100",
     "lint:fix": "eslint src tests --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:cleanup": "node scripts/cleanup-test-files.js"
   },
   "engines": {
     "node": ">=20"
