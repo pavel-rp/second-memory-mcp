@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import crypto from "node:crypto";
 import { getSql, withTx } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow, type LearningTopicRow } from "../db/schema.js";
 import { encodeJsonArray } from "../db/operations.js";
@@ -63,7 +64,7 @@ export class TopicCreationService {
 						nextReviewAt: now, // Review immediately for new chunks
 						easeFactor: 2.5, // Initial ease factor
 						repetitions: 0,
-						lastReviewedAt: undefined,
+						lastReviewedAt: null,
 						estimatedDuration: chunkDef.estimatedDuration,
 						chunkType: chunkDef.chunkType,
 						prerequisitesJson: encodeJsonArray(chunkDef.prerequisites),

@@ -280,10 +280,10 @@ export class FrictionTrackingService {
 		let score = isFailure ? 0.7 : (isPartial ? 0.4 : 0.1);
 		
 		// Adjust based on time spent (longer = more friction)
-		if (update.timeSpent > 300000) { // 5 minutes
-			score += 0.2;
-		} else if (update.timeSpent > 600000) { // 10 minutes
+		if (update.timeSpent > 600000) { // 10 minutes
 			score += 0.3;
+		} else if (update.timeSpent > 300000) { // 5 minutes
+			score += 0.2;
 		}
 		
 		return Math.min(1.0, score);
