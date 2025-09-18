@@ -50,3 +50,6 @@ desktop.ini
 # Project-specific tooling
 /.cursor/
 /.spec-workflow/
+*.db
+*.db-shm
+*.db-wal
