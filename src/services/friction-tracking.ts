@@ -24,7 +24,7 @@ export class FrictionTrackingService {
 			const { chunkId, metrics } = input;
 			const now = Date.now();
 
-			await withTx(async (tx) => {
+			withTx((tx) => {
 				// Check if friction metrics already exist for this chunk
 				const existing = tx.select()
 					.from(frictionMetrics)
@@ -35,7 +35,7 @@ export class FrictionTrackingService {
 					// Update existing metrics
 					const updatedMetrics = this.calculateUpdatedMetrics(existing, metrics);
 					
-					await tx.update(frictionMetrics)
+					tx.update(frictionMetrics)
 						.set({
 							failedAttempts: updatedMetrics.failedAttempts,
 							averageTimeSpent: updatedMetrics.averageTimeSpent,
@@ -65,7 +65,7 @@ export class FrictionTrackingService {
 						updatedAt: now
 					};
 
-					await tx.insert(frictionMetrics).values(newMetrics).run();
+					tx.insert(frictionMetrics).values(newMetrics).run();
 				}
 			});
 
@@ -165,7 +165,17 @@ export class FrictionTrackingService {
 	async updateChunkPriority(chunkId: string, frictionScore: number): Promise<void> {
 		try {
 			const db = getSql();
-			
+
+			// First check if friction metrics exist for this chunk
+			const existing = db.select()
+				.from(frictionMetrics)
+				.where(eq(frictionMetrics.chunkId, chunkId))
+				.get();
+
+			if (!existing) {
+				throw new Error(`No friction metrics found for chunk: ${chunkId}`);
+			}
+
 			// Update the friction score in the metrics
 			await db.update(frictionMetrics)
 				.set({
@@ -199,7 +209,7 @@ export class FrictionTrackingService {
 
 			return {
 				chunkId: metrics.chunkId,
-				userId: metrics.userId,
+				userId: metrics.userId || undefined,
 				failedAttempts: metrics.failedAttempts,
 				averageTimeSpent: metrics.averageTimeSpent,
 				errorPatterns: metrics.errorPatternsJson ? decodeJsonArray(metrics.errorPatternsJson) : [],

@@ -37,7 +37,7 @@ export class TopicCreationService {
 			}
 
 			// Create topic and chunks in transaction
-			const result = await withTx(async (tx) => {
+			const result = withTx((tx) => {
 				// Create topic
 				const topicId = crypto.randomUUID();
 				const now = Date.now();
@@ -50,7 +50,7 @@ export class TopicCreationService {
 					updatedAt: now
 				};
 
-				await tx.insert(learningTopics).values(topic).run();
+				tx.insert(learningTopics).values(topic).run();
 
 				// Create chunks
 				const createdChunks: LearningChunkRow[] = [];
@@ -73,7 +73,7 @@ export class TopicCreationService {
 						updatedAt: now
 					};
 
-					await tx.insert(learningChunks).values(chunk).run();
+					tx.insert(learningChunks).values(chunk).run();
 					createdChunks.push(chunk);
 				}
 

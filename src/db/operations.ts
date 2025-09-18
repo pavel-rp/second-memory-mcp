@@ -13,6 +13,10 @@ function getDrizzle() {
 	return drizzleDb;
 }
 
+export function resetDrizzle(): void {
+	drizzleDb = undefined;
+}
+
 // Transaction helper
 export type SqlDb = ReturnType<typeof drizzle>;
 export type SqlTx = Parameters<SqlDb["transaction"]>[0] extends (tx: infer P) => any ? P : never;

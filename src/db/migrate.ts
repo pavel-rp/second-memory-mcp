@@ -166,7 +166,12 @@ async function main() {
 	console.log(JSON.stringify({ status: "ok", summary }, null, 2));
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Check if this script is being run directly (not imported)
+const currentFile = new URL(import.meta.url).pathname;
+const argFile = process.argv[1];
+const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.replace(/\\/g, '/'));
+
+if (isMainModule) {
 	main().catch((err) => {
 		// eslint-disable-next-line no-console
 		console.error("Migration failed:", err);

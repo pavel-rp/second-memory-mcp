@@ -47,7 +47,7 @@ function tmpDbPath() {
 		const { default: child_process } = await import("node:child_process");
 		await new Promise<void>((resolve, reject) => {
 			const p = child_process.fork(
-				path.resolve("./dist/db/migrate.js"),
+				path.resolve("./dist/src/db/migrate.js"),
 				[joinIfRelative(jsonFile)],
 				{ env: { ...process.env, SM_DB_PATH: dbFile } }
 			);

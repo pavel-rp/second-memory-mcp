@@ -13,9 +13,9 @@ try {
 	hasBinding = false;
 }
 
-import { getDb } from "../../src/db/client.js";
-import { createTopicWithChunks, createTopicWithGeneratedChunks } from "../../src/services/topic-creation.js";
-import { TopicCreationRequest, UserPreferences } from "../../src/types/topic-creation.js";
+import { getDb, resetDatabase } from "../../src/db/client.js";
+import { topicCreationService } from "../../src/services/topic-creation.js";
+import { TopicCreationInput, UserPreferences } from "../../src/types/topic-creation.js";
 
 function ensureSchema() {
 	const db = getDb();
@@ -23,7 +23,6 @@ function ensureSchema() {
 	CREATE TABLE IF NOT EXISTS learning_topics (
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
-		description TEXT,
 		subject TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
@@ -71,13 +70,15 @@ function tmpDbPath() {
 (hasBinding ? describe : describe.skip)("topic creation service", () => {
 	let dbFile: string;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		dbFile = tmpDbPath();
-		process.env.DATABASE_PATH = dbFile;
+		process.env.SM_DB_PATH = dbFile;
+		await resetDatabase(); // Reset singleton to pick up new path
 		ensureSchema();
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
 		if (fs.existsSync(dbFile)) {
 			fs.unlinkSync(dbFile);
 		}
@@ -89,9 +90,9 @@ function tmpDbPath() {
 		}
 	});
 
-	describe("createTopicWithChunks", () => {
+	describe("topicCreationService.createTopicWithChunks", () => {
 		it("should create topic with multiple chunks successfully", async () => {
-			const request: TopicCreationRequest = {
+			const request: TopicCreationInput = {
 				topicTitle: "Test Topic",
 				topicDescription: "A test topic for learning",
 				subject: "Computer Science",
@@ -121,11 +122,11 @@ function tmpDbPath() {
 				]
 			};
 
-			const result = await createTopicWithChunks(request);
+			const result = await topicCreationService.createTopicWithChunks(request);
 
 			expect(result.success).toBe(true);
 			expect(result.topic).toBeDefined();
-			expect(result.topic?.title).toBe("Test Topic");
+			expect(result.topic?.topicTitle).toBe("Test Topic");
 			expect(result.topic?.subject).toBe("Computer Science");
 			expect(result.topic?.chunks).toHaveLength(2);
 			expect(result.topic?.chunks[0].title).toBe("Introduction to Topic");
@@ -133,14 +134,14 @@ function tmpDbPath() {
 		});
 
 		it("should handle empty chunks array", async () => {
-			const request: TopicCreationRequest = {
+			const request: TopicCreationInput = {
 				topicTitle: "Empty Topic",
 				topicDescription: "A topic with no chunks",
 				subject: "Test",
 				chunks: []
 			};
 
-			const result = await createTopicWithChunks(request);
+			const result = await topicCreationService.createTopicWithChunks(request);
 
 			expect(result.success).toBe(false);
 			expect(result.error).toBeDefined();
@@ -148,7 +149,7 @@ function tmpDbPath() {
 		});
 
 		it("should validate chunk requirements", async () => {
-			const request: TopicCreationRequest = {
+			const request: TopicCreationInput = {
 				topicTitle: "Invalid Topic",
 				topicDescription: "A topic with invalid chunks",
 				subject: "Test",
@@ -167,7 +168,7 @@ function tmpDbPath() {
 				]
 			};
 
-			const result = await createTopicWithChunks(request);
+			const result = await topicCreationService.createTopicWithChunks(request);
 
 			expect(result.success).toBe(false);
 			expect(result.error).toBeDefined();
@@ -175,7 +176,7 @@ function tmpDbPath() {
 
 		it("should handle database transaction rollback on error", async () => {
 			// Create a request with invalid data that will cause a database error
-			const request: TopicCreationRequest = {
+			const request: TopicCreationInput = {
 				topicTitle: "x".repeat(1000), // Exceeds max length
 				topicDescription: "Test description",
 				subject: "Test",
@@ -194,15 +195,15 @@ function tmpDbPath() {
 				]
 			};
 
-			const result = await createTopicWithChunks(request);
+			const result = await topicCreationService.createTopicWithChunks(request);
 
 			expect(result.success).toBe(false);
 			expect(result.error).toBeDefined();
 
 			// Verify no data was persisted
 			const db = getDb();
-			const topics = db.prepare("SELECT * FROM learning_topics").all();
-			const chunks = db.prepare("SELECT * FROM learning_chunks").all();
+			const topics = db.prepare("SELECT * FROM learning_topics").all() as any[];
+			const chunks = db.prepare("SELECT * FROM learning_chunks").all() as any[];
 			
 			expect(topics).toHaveLength(0);
 			expect(chunks).toHaveLength(0);
@@ -216,7 +217,7 @@ function tmpDbPath() {
 				includePrerequisites: true
 			};
 
-			const request: TopicCreationRequest = {
+			const request: TopicCreationInput = {
 				topicTitle: "Preference Test Topic",
 				topicDescription: "Testing user preferences",
 				subject: "Test",
@@ -236,7 +237,7 @@ function tmpDbPath() {
 				userPreferences
 			};
 
-			const result = await createTopicWithChunks(request);
+			const result = await topicCreationService.createTopicWithChunks(request);
 
 			expect(result.success).toBe(true);
 			expect(result.topic).toBeDefined();
@@ -245,7 +246,7 @@ function tmpDbPath() {
 		});
 	});
 
-	describe("createTopicWithGeneratedChunks", () => {
+	describe("topicCreationService.createTopicWithGeneratedChunks", () => {
 		it("should create topic with generated chunks", async () => {
 			const userPreferences: UserPreferences = {
 				preferredDifficulty: 5,
@@ -254,7 +255,7 @@ function tmpDbPath() {
 				includePrerequisites: true
 			};
 
-			const result = await createTopicWithGeneratedChunks(
+			const result = await topicCreationService.createTopicWithGeneratedChunks(
 				"Data Structures",
 				"Learn about fundamental data structures",
 				"Computer Science",
@@ -263,13 +264,13 @@ function tmpDbPath() {
 
 			expect(result.success).toBe(true);
 			expect(result.topic).toBeDefined();
-			expect(result.topic?.title).toBe("Data Structures");
+			expect(result.topic?.topicTitle).toBe("Data Structures");
 			expect(result.topic?.subject).toBe("Computer Science");
 			expect(result.topic?.chunks.length).toBeGreaterThan(0);
 		});
 
 		it("should handle missing topic description", async () => {
-			const result = await createTopicWithGeneratedChunks(
+			const result = await topicCreationService.createTopicWithGeneratedChunks(
 				"Algorithms",
 				"", // Empty description
 				"Computer Science"
@@ -277,11 +278,11 @@ function tmpDbPath() {
 
 			expect(result.success).toBe(true);
 			expect(result.topic).toBeDefined();
-			expect(result.topic?.title).toBe("Algorithms");
+			expect(result.topic?.topicTitle).toBe("Algorithms");
 		});
 
 		it("should handle invalid topic title", async () => {
-			const result = await createTopicWithGeneratedChunks(
+			const result = await topicCreationService.createTopicWithGeneratedChunks(
 				"", // Empty title
 				"Test description",
 				"Computer Science"
@@ -292,7 +293,7 @@ function tmpDbPath() {
 		});
 
 		it("should handle invalid subject", async () => {
-			const result = await createTopicWithGeneratedChunks(
+			const result = await topicCreationService.createTopicWithGeneratedChunks(
 				"Valid Topic",
 				"Test description",
 				"" // Empty subject
@@ -303,7 +304,7 @@ function tmpDbPath() {
 		});
 
 		it("should generate chunks with proper ordering", async () => {
-			const result = await createTopicWithGeneratedChunks(
+			const result = await topicCreationService.createTopicWithGeneratedChunks(
 				"Machine Learning Basics",
 				"Introduction to ML concepts",
 				"Computer Science"
@@ -326,7 +327,7 @@ function tmpDbPath() {
 
 	describe("atomicity and consistency", () => {
 		it("should maintain referential integrity", async () => {
-			const request: TopicCreationRequest = {
+			const request: TopicCreationInput = {
 				topicTitle: "Integrity Test",
 				topicDescription: "Testing referential integrity",
 				subject: "Test",
@@ -345,14 +346,14 @@ function tmpDbPath() {
 				]
 			};
 
-			const result = await createTopicWithChunks(request);
+			const result = await topicCreationService.createTopicWithChunks(request);
 
 			expect(result.success).toBe(true);
 			
 			// Verify foreign key relationships
 			const db = getDb();
-			const chunks = db.prepare("SELECT * FROM learning_chunks").all();
-			const topics = db.prepare("SELECT * FROM learning_topics").all();
+			const chunks = db.prepare("SELECT * FROM learning_chunks").all() as any[];
+			const topics = db.prepare("SELECT * FROM learning_topics").all() as any[];
 			
 			expect(topics).toHaveLength(1);
 			expect(chunks).toHaveLength(1);
@@ -396,7 +397,7 @@ function tmpDbPath() {
 			];
 
 			const results = await Promise.all(
-				requests.map(request => createTopicWithChunks(request))
+				requests.map(request => topicCreationService.createTopicWithChunks(request))
 			);
 
 			// Both should succeed
@@ -405,8 +406,8 @@ function tmpDbPath() {
 
 			// Verify both topics were created
 			const db = getDb();
-			const topics = db.prepare("SELECT * FROM learning_topics").all();
-			const chunks = db.prepare("SELECT * FROM learning_chunks").all();
+			const topics = db.prepare("SELECT * FROM learning_topics").all() as any[];
+			const chunks = db.prepare("SELECT * FROM learning_chunks").all() as any[];
 			
 			expect(topics).toHaveLength(2);
 			expect(chunks).toHaveLength(2);

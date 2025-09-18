@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import crypto from "node:crypto";
 import { calculateNextReview, calculatePriorityScore, calculateNextReviewAdvanced, rankCandidatesWithConstraints } from "../tools/sr-calculator.js";
 import { computeDailyKpis, computeWindowRollup } from "../tools/analytics.js";
 import { calculateSessionProgress, determineNextPhase, checkSessionCompletion, validateSessionContext } from "../tools/session-manager.js";
@@ -477,7 +478,7 @@ export function registerServerTools(server: McpServer): void {
 		async (input: any) => {
 			try {
 				const conversationManager = new ConversationManager();
-				const result = conversationManager.conductLearningSession(input);
+				const result = await conversationManager.conductLearningSession(input);
 				return { content: [{ type: "text", text: JSON.stringify(result) }] };
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -816,6 +817,106 @@ export function registerServerTools(server: McpServer): void {
 							message: `System error while creating topic "${input.topicTitle}": ${errorMsg}`
 						}) 
 					}] 
+				};
+			}
+		}
+	);
+
+	// Basic Learning Item Creation Tool
+	server.registerTool(
+		"create_learning_item",
+		{
+			title: "Create Learning Item",
+			description: "Create a single learning item with automatic topic management. Simpler alternative to create_topic_with_chunks for individual items.",
+			inputSchema: {
+				title: z.string()
+					.min(1, "Title cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.describe("Title of the learning item"),
+				content: z.string()
+					.min(1, "Content cannot be empty")
+					.describe("Content or description of the learning item"),
+				subject: z.string()
+					.min(1, "Subject cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH, `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`)
+					.describe("Subject/category of the learning item"),
+				difficulty: z.number()
+					.int("Difficulty must be an integer")
+					.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
+					.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
+					.describe("Difficulty level from 1-10"),
+				estimatedDuration: z.number()
+					.int("Estimated duration must be an integer")
+					.min(1, "Estimated duration must be at least 1 minute")
+					.max(120, "Estimated duration cannot exceed 120 minutes")
+					.describe("Estimated study duration in minutes"),
+				prerequisites: z.array(z.string()).default([]).describe("Prerequisites for this item"),
+				tags: z.array(z.string()).default([]).describe("Tags for categorization"),
+				topicTitle: z.string().optional().describe("Topic title (will be created if doesn't exist)")
+			},
+		},
+		async (input: {
+			title: string;
+			content: string;
+			subject: string;
+			difficulty: number;
+			estimatedDuration: number;
+			prerequisites: string[];
+			tags: string[];
+			topicTitle?: string;
+		}) => {
+			try {
+				const { createChunkWithTopic } = await import("../services/chunks.js");
+
+				const now = Date.now();
+				const chunkId = crypto.randomUUID();
+
+				const chunk = await createChunkWithTopic({
+					id: chunkId,
+					topicId: "", // Will be set by createChunkWithTopic
+					title: input.title,
+					subject: input.subject,
+					difficulty: input.difficulty,
+					nextReviewAt: now, // Available for immediate review
+					easeFactor: 2.5, // Default SM-2 ease factor
+					repetitions: 0, // New item
+					estimatedDuration: input.estimatedDuration,
+					chunkType: "new" as const,
+					prerequisites: input.prerequisites,
+					tags: input.tags,
+					createdAt: now,
+					updatedAt: now,
+					topicTitle: input.topicTitle || `Topic: ${input.title}`
+				});
+
+				// Convert to LearningItem format for response
+				const learningItem = mapChunkRowToLearningItem(chunk);
+
+				return {
+					content: [{
+						type: "text",
+						text: JSON.stringify({
+							success: true,
+							item: learningItem,
+							message: `Successfully created learning item "${input.title}"`
+						})
+					}]
+				};
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return {
+					content: [{
+						type: "text",
+						text: JSON.stringify({
+							success: false,
+							error: {
+								type: "database",
+								message: errorMsg,
+								retryable: true
+							},
+							message: `Failed to create learning item "${input.title}": ${errorMsg}`
+						})
+					}]
 				};
 			}
 		}

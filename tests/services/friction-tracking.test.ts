@@ -13,7 +13,7 @@ try {
 	hasBinding = false;
 }
 
-import { getDb } from "../../src/db/client.js";
+import { getDb, resetDatabase } from "../../src/db/client.js";
 import { frictionTrackingService } from "../../src/services/friction-tracking.js";
 import type { FrictionTrackingInput, FrictionUpdate } from "../../src/types/topic-creation.js";
 
@@ -23,7 +23,6 @@ function ensureSchema() {
 	CREATE TABLE IF NOT EXISTS learning_topics (
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
-		description TEXT,
 		subject TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
@@ -71,12 +70,13 @@ function tmpDbPath() {
 function createTestChunk(chunkId: string, topicId: string) {
 	const db = getDb();
 	const now = Date.now();
-	
+
+	// Use INSERT OR IGNORE to avoid UNIQUE constraint errors
 	db.prepare(`
-		INSERT INTO learning_topics (id, title, description, subject, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`).run(topicId, "Test Topic", "Test Description", "Test", now, now);
-	
+		INSERT OR IGNORE INTO learning_topics (id, title, subject, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?)
+	`).run(topicId, "Test Topic", "Test", now, now);
+
 	db.prepare(`
 		INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -86,13 +86,15 @@ function createTestChunk(chunkId: string, topicId: string) {
 (hasBinding ? describe : describe.skip)("friction tracking service", () => {
 	let dbFile: string;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		dbFile = tmpDbPath();
-		process.env.DATABASE_PATH = dbFile;
+		process.env.SM_DB_PATH = dbFile;
+		await resetDatabase(); // Reset singleton to pick up new path
 		ensureSchema();
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
 		if (fs.existsSync(dbFile)) {
 			fs.unlinkSync(dbFile);
 		}
@@ -122,7 +124,7 @@ function createTestChunk(chunkId: string, topicId: string) {
 			await frictionTrackingService.recordFrictionMetrics(input);
 
 			const db = getDb();
-			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId);
+			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId) as any;
 			
 			expect(metrics).toBeDefined();
 			expect(metrics.failed_attempts).toBe(1);
@@ -158,7 +160,7 @@ function createTestChunk(chunkId: string, topicId: string) {
 			});
 
 			const db = getDb();
-			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId);
+			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId) as any;
 			
 			expect(metrics.failed_attempts).toBe(1); // Still 1 failure
 			expect(metrics.consecutive_failures).toBe(0); // Reset on success
@@ -183,7 +185,7 @@ function createTestChunk(chunkId: string, topicId: string) {
 			await frictionTrackingService.recordFrictionMetrics(input);
 
 			const db = getDb();
-			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId);
+			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId) as any;
 			
 			expect(metrics.failed_attempts).toBe(0); // Partial doesn't count as failure
 			expect(metrics.total_attempts).toBe(1);
@@ -331,7 +333,7 @@ function createTestChunk(chunkId: string, topicId: string) {
 			await frictionTrackingService.updateChunkPriority(chunkId, newFrictionScore);
 
 			const db = getDb();
-			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId);
+			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId) as any;
 			expect(metrics.friction_score).toBe(newFrictionScore);
 		});
 
@@ -430,7 +432,7 @@ function createTestChunk(chunkId: string, topicId: string) {
 			});
 
 			const db = getDb();
-			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId);
+			const metrics = db.prepare("SELECT * FROM friction_metrics WHERE chunk_id = ?").get(chunkId) as any;
 			expect(metrics.consecutive_failures).toBe(0);
 		});
 	});

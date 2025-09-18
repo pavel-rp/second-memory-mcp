@@ -56,7 +56,6 @@ export type FrictionMetrics = {
 };
 
 export type FrictionUpdate = {
-	chunkId: string;
 	attemptResult: "success" | "failure" | "partial";
 	timeSpent: number; // milliseconds
 	errorType?: string;
