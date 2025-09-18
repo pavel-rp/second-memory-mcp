@@ -43,7 +43,7 @@ export function generateOrchestrationGuidance(input: OrchestrationInput): Orches
 
   if (context.errorMessage) {
     nextAction = `Error encountered: ${context.errorMessage}. Please check your SQLite database configuration and try again.`;
-    fallbackInstructions = "If SQLite database is unavailable, verify the database file exists and is accessible."
+    fallbackInstructions = "If SQLite database is unavailable, verify the database file exists and is accessible.";
   } else if (currentStep === 1) {
     nextAction = "Start by querying the local SQLite database to fetch your existing learning items. Use the list_learning_items_sqlite tool.";
     fallbackInstructions = "If SQLite database is unavailable, verify the database file exists and is properly configured.";
