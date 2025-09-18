@@ -8,7 +8,6 @@ import { ConversationManager } from "../tools/conversation-manager.js";
 import { SessionInputSchema } from "../types/session.js";
 import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, SessionHistorySchema, SessionConstraintsSchema } from "../types/recommendations.js";
 import { promptPack } from "../prompts/prompt-pack.js";
-import { getSchemas } from "../resources/notion-schemas.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
 import { listChunksAsLearningItems } from "../services/chunks.js";
 
@@ -411,19 +410,6 @@ export function registerServerTools(server: McpServer): void {
 		}
 	);
 
-	// Resource fallback: expose Notion schemas as a tool for broad client compatibility
-	server.registerTool(
-		"notion_schemas",
-		{
-			title: "Get Notion Schemas",
-			description: "Return versioned Notion schemas and usage notes",
-		},
-		async () => {
-			const payload = getSchemas();
-			return { content: [{ type: "text", text: JSON.stringify(payload) }] };
-		}
-	);
-
 	// SQLite-backed data fetcher
 	server.registerTool(
 		"list_learning_items_sqlite",
@@ -452,7 +438,7 @@ export function registerServerTools(server: McpServer): void {
 		"what_to_learn_today",
 		{
 			title: "Get Learning Recommendations",
-			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. CRITICAL WORKFLOW: This tool requires learningItems data - you have two options: 1) Use list_learning_items_sqlite to fetch from local database, OR 2) Fetch from Notion MCP server. The tool will not fetch data itself (stateless design). STEPS: 1) Get learning items (via list_learning_items_sqlite or Notion) 2) Pass those items to this tool's learningItems parameter 3) Receive personalized recommendations. If learningItems array is empty, this tool will provide orchestration guidance. Supports both guided 'teach me' mode and explicit parameter mode.",
+			description: "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. CRITICAL WORKFLOW: This tool requires learningItems data from the SQLite database. STEPS: 1) Use list_learning_items_sqlite to fetch learning items from the local database 2) Pass those items to this tool's learningItems parameter 3) Receive personalized recommendations. The tool provides fast, local-first recommendations without external dependencies. If learningItems array is empty, this tool will provide orchestration guidance. Supports both guided 'teach me' mode and explicit parameter mode.",
 			inputSchema: {
 				mode: RecommendationModeSchema.optional(),
 				timeAvailable: z.number().min(0).optional(),
@@ -504,17 +490,16 @@ export function registerServerTools(server: McpServer): void {
 		"orchestrate_learning_workflow",
 		{
 			title: "Orchestrate Learning Workflow",
-			description: "Provides step-by-step guidance for multi-server learning workflows. Use this when you need instructions on how to coordinate between Notion MCP server and learning recommendation tools.",
+			description: "Provides step-by-step guidance for SQLite-based learning workflows. Use this when you need instructions on how to use list_learning_items_sqlite and recommendation tools together for optimal learning sessions.",
 			inputSchema: {
 				mode: z.enum(['guided', 'explicit']).optional(),
 				context: z.object({
-					hasNotionAccess: z.boolean().optional(),
 					currentStep: z.number().optional(),
 					errorMessage: z.string().optional(),
 				}).optional(),
 			},
 		},
-		async (input: { mode?: 'guided' | 'explicit'; context?: { hasNotionAccess?: boolean; currentStep?: number; errorMessage?: string } }) => {
+		async (input: { mode?: 'guided' | 'explicit'; context?: { currentStep?: number; errorMessage?: string } }) => {
 			try {
 				const result = generateOrchestrationGuidance(input);
 				return { content: [{ type: "text", text: JSON.stringify(result) }] };

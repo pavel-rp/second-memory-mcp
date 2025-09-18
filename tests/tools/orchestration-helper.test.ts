@@ -10,7 +10,7 @@ describe('OrchestrationHelper', () => {
 
       expect(result.steps).toHaveLength(3);
       expect(result.steps[0].action).toBe('fetch');
-      expect(result.steps[0].target).toBe('notion');
+      expect(result.steps[0].target).toBe('sqlite');
       expect(result.steps[1].action).toBe('process');
       expect(result.steps[1].target).toBe('recommendation');
       expect(result.steps[2].action).toBe('return');
@@ -25,7 +25,7 @@ describe('OrchestrationHelper', () => {
       const result = generateOrchestrationGuidance(input);
 
       expect(result.exampleQuery).toContain("I'd like to know what I should learn today");
-      expect(result.nextAction).toContain('Start by querying the Notion MCP server');
+      expect(result.nextAction).toContain('Start by querying the local SQLite database');
     });
 
     it('should handle explicit mode', () => {
@@ -34,19 +34,19 @@ describe('OrchestrationHelper', () => {
       };
       const result = generateOrchestrationGuidance(input);
 
-      expect(result.exampleQuery).toContain('Query Notion for learning items');
+      expect(result.exampleQuery).toContain('Query SQLite database for learning items');
     });
 
     it('should handle error context', () => {
       const input: OrchestrationInput = {
         context: {
-          errorMessage: 'Notion server unavailable'
+          errorMessage: 'SQLite database unavailable'
         }
       };
       const result = generateOrchestrationGuidance(input);
 
-      expect(result.nextAction).toContain('Error encountered: Notion server unavailable');
-      expect(result.fallbackInstructions).toContain('check the MCP configuration');
+      expect(result.nextAction).toContain('Error encountered: SQLite database unavailable');
+      expect(result.fallbackInstructions).toContain('verify the database file exists');
     });
 
     it('should handle current step context', () => {
@@ -58,7 +58,7 @@ describe('OrchestrationHelper', () => {
       const result = generateOrchestrationGuidance(input);
 
       expect(result.currentStep).toBe(2);
-      expect(result.nextAction).toContain('pass the learning items you fetched from Notion');
+      expect(result.nextAction).toContain('pass the learning items you fetched from SQLite');
     });
 
     it('should handle step 3 context', () => {
@@ -81,19 +81,9 @@ describe('OrchestrationHelper', () => {
       };
       const result = generateOrchestrationGuidance(input);
 
-      expect(result.fallbackInstructions).toContain('no Notion MCP server is available');
+      expect(result.fallbackInstructions).toContain('SQLite database is unavailable');
     });
 
-    it('should handle hasNotionAccess context', () => {
-      const input: OrchestrationInput = {
-        context: {
-          hasNotionAccess: false
-        }
-      };
-      const result = generateOrchestrationGuidance(input);
-
-      expect(result.fallbackInstructions).toBeDefined();
-    });
 
     it('should return consistent structure for all inputs', () => {
       const inputs: OrchestrationInput[] = [

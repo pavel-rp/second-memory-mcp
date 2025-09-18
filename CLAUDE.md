@@ -21,7 +21,6 @@ Second Memory Learning is an MCP (Model Context Protocol) server that implements
 - `src/tools/sr-calculator.ts` - Core spaced repetition algorithm implementations
 - `src/config/algorithm.ts` - Configurable algorithm parameters
 - `src/prompts/prompt-pack.ts` - Learning guidance prompts
-- `src/resources/notion-schemas.ts` - Notion database schema definitions
 
 **Learning System Design:**
 - **Scaffolding**: Complex problems broken into 5-9 digestible chunks
@@ -72,29 +71,30 @@ pnpm run test:prompts
 **Exposed Capabilities:**
 - **Tools**: Spaced repetition calculators, priority scoring, prompt generators, orchestration guidance
 - **Prompts**: Scaffolding, learning, retrieval, review, workflow guidance
-- **Resources**: Notion schema definitions
+- **Resources**: Local SQLite database integration
 
-## Multi-Server Orchestration
+## SQLite Integration
 
 **Critical Workflow for Learning Recommendations:**
-The `what_to_learn_today` tool requires a specific workflow when integrating with Notion:
+The `what_to_learn_today` tool requires a specific workflow with SQLite:
 
-1. **First**: Query Notion MCP server to fetch learning items from your database
+1. **First**: Query local SQLite database using `list_learning_items_sqlite` to fetch learning items
 2. **Then**: Pass those items to `what_to_learn_today` tool's `learningItems` parameter
 3. **Receive**: Personalized recommendations based on spaced repetition algorithms
 
-**Orchestration Tools:**
-- `orchestrate_learning_workflow`: Provides step-by-step guidance for multi-server workflows
+**SQLite Tools:**
+- `list_learning_items_sqlite`: Fetches learning items from local SQLite database
+- `orchestrate_learning_workflow`: Provides step-by-step guidance for SQLite-based workflows
 - `what_to_learn_today`: Enhanced with orchestration hints when no data is provided
 
 **Example Integration:**
 ```bash
-# Step 1: Query Notion (via Notion MCP server)
+# Step 1: Query SQLite database using list_learning_items_sqlite
 # Step 2: Call what_to_learn_today with the fetched items
 # Step 3: Receive recommendations with scheduling guidance
 ```
 
-If you call `what_to_learn_today` with an empty `learningItems` array, it will return an `orchestrationHint` field guiding you through the proper workflow.
+If you call `what_to_learn_today` with an empty `learningItems` array, it will return an `orchestrationHint` field guiding you through the proper SQLite workflow.
 
 ## Code Architecture Patterns
 
@@ -156,18 +156,18 @@ Key environment variables for algorithm tuning:
 - Edge cases for invalid inputs, boundary conditions
 - Config-driven test scenarios for algorithm parameters
 
-## Notion Integration
+## SQLite Database Schema
 
-**Schema Resources:**
-- Learning Topics Database: Problem definitions and metadata
-- Learning Chunks Database: Scaffolded learning segments with SM-2 data
-- Review Schedule Database: Priority-based scheduling
-- Performance Analytics Database: Learning pattern tracking
+**Database Tables:**
+- Learning Topics: Problem definitions and metadata
+- Learning Chunks: Scaffolded learning segments with SM-2 data
+- Review Schedule: Priority-based scheduling
+- Performance Analytics: Learning pattern tracking
 
-**MCP Stateless Design:**
-- Server provides schemas and calculations only
-- No direct Notion API calls from MCP server
-- Claude Desktop handles Notion integration via separate MCP server
+**Local-First Design:**
+- Complete data ownership and privacy through local storage
+- Fast, reliable operation without external dependencies
+- SQLite integration via Drizzle ORM for type safety
 
 ## Development Guidelines
 

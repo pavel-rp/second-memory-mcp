@@ -28,7 +28,6 @@ describe("registerServerTools", () => {
 		expect(stub.tools).toContain("retrieval_prompt");
 		expect(stub.tools).toContain("review_prompt");
 		expect(stub.tools).toContain("workflow_guidance_prompt");
-		expect(stub.tools).toContain("notion_schemas");
 		// New chunk tools
 		expect(stub.tools).toContain("chunk_generation_prompt");
 		expect(stub.tools).toContain("chunk_management_prompt");

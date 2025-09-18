@@ -9,7 +9,7 @@ export type ChunkType = "new" | "review" | "remediation";
 // Subject preference types
 export type SubjectPreference = "CS" | "Math" | "SWE" | "Language" | "Any";
 
-// Learning item from Notion database
+// Learning item from SQLite database
 export type LearningItem = {
 	id: string;
 	title: string;
@@ -100,7 +100,7 @@ export type RecommendationInput = {
 	mode?: RecommendationMode; // "guided" for zero-friction, "explicit" for specified params
 	timeAvailable?: number; // minutes
 	subjectPreference?: SubjectPreference; // subject filter or "Any"
-	learningItems: LearningItem[]; // candidate items from Notion
+	learningItems: LearningItem[]; // candidate items from SQLite database
 	userHistory?: SessionHistory; // recent learning patterns
 	sessionContext?: SessionContext; // current session state if continuing
 	constraints?: SessionConstraints; // additional filtering/limits

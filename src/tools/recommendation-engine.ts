@@ -57,7 +57,7 @@ export class RecommendationEngine {
 
     // Add orchestration hint if no learning items provided
     const orchestrationHint = processedInput.learningItems.length === 0
-      ? "No learning items provided. You should first fetch learning items from the Notion MCP server, then pass them to this tool. Use the orchestrate_learning_workflow tool for step-by-step guidance."
+      ? "No learning items provided. You should first fetch learning items from the local SQLite database using list_learning_items_sqlite, then pass them to this tool. Use the orchestrate_learning_workflow tool for step-by-step guidance."
       : undefined;
 
     return {

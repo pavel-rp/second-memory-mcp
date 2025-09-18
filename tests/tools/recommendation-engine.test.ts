@@ -148,7 +148,7 @@ describe("RecommendationEngine", () => {
 
     expect(result.orchestrationHint).toBeDefined();
     expect(result.orchestrationHint).toContain("No learning items provided");
-    expect(result.orchestrationHint).toContain("fetch learning items from the Notion MCP server");
+    expect(result.orchestrationHint).toContain("fetch learning items from the local SQLite database");
     expect(result.orchestrationHint).toContain("orchestrate_learning_workflow tool");
   });
 
