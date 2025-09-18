@@ -511,12 +511,12 @@ export function registerServerTools(server: McpServer): void {
 		}
 	);
 
-	// Write endpoints - Create Learning Item (Priority #1)
+	// Write endpoints - Create Learning Item (DEPRECATED - Use create_topic_with_chunks instead)
 	server.registerTool(
 		"create_learning_item",
 		{
-			title: "Create Learning Item",
-			description: "Create a new learning item with seamless operation and zero friction. This is the highest priority write endpoint that automatically handles topic creation and sets initial SM-2 values.",
+			title: "Create Learning Item (DEPRECATED)",
+			description: "⚠️ DEPRECATED: This tool only creates single chunks and breaks the guided learning workflow. Use 'create_topic_with_chunks' or 'create_topic_with_generated_chunks' instead for proper topic + chunks creation. This tool will be removed in a future version.",
 			inputSchema: {
 				title: z.string()
 					.min(1, "Title cannot be empty")
@@ -570,6 +570,9 @@ export function registerServerTools(server: McpServer): void {
 			topicId?: string;
 		}) => {
 			try {
+				// Log deprecation warning
+				console.warn("⚠️ DEPRECATION WARNING: create_learning_item tool is deprecated. Use create_topic_with_chunks or create_topic_with_generated_chunks instead for proper guided learning workflows.");
+				
 				// Generate unique ID
 				const id = crypto.randomUUID();
 				const now = Date.now();
@@ -607,7 +610,8 @@ export function registerServerTools(server: McpServer): void {
 						text: JSON.stringify({ 
 							success: true, 
 							item: learningItem,
-							message: "Learning item created successfully"
+							message: "Learning item created successfully",
+							deprecationWarning: "⚠️ This tool is deprecated. Use 'create_topic_with_chunks' or 'create_topic_with_generated_chunks' for proper guided learning workflows."
 						}) 
 					}] 
 				};
@@ -705,6 +709,234 @@ export function registerServerTools(server: McpServer): void {
 								message: errorMsg,
 								retryable: true
 							}
+						}) 
+					}] 
+				};
+			}
+		}
+	);
+
+	// New: Topic + Chunks Creation Tool
+	server.registerTool(
+		"create_topic_with_chunks",
+		{
+			title: "Create Topic with Chunks",
+			description: "Create a new learning topic with multiple scaffolded chunks in a single atomic operation. This is the primary tool for guided learning workflows.",
+			inputSchema: {
+				topicTitle: z.string()
+					.min(1, "Topic title cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.describe("Title of the learning topic"),
+				topicDescription: z.string()
+					.max(1000, "Topic description cannot exceed 1000 characters")
+					.optional()
+					.describe("Description of the learning topic"),
+				subject: z.string()
+					.min(1, "Subject cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH, `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`)
+					.describe("Subject/category of the learning topic"),
+				chunks: z.array(z.object({
+					id: z.string().min(1, "Chunk ID cannot be empty"),
+					title: z.string()
+						.min(1, "Chunk title cannot be empty")
+						.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Chunk title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`),
+					content: z.string().min(1, "Chunk content cannot be empty"),
+					difficulty: z.number()
+						.int("Difficulty must be an integer")
+						.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
+						.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`),
+					prerequisites: z.array(z.string()).default([]),
+					estimatedDuration: z.number()
+						.int("Estimated duration must be an integer")
+						.min(1, "Estimated duration must be at least 1 minute")
+						.max(120, "Estimated duration cannot exceed 120 minutes"),
+					order: z.number().int().min(1, "Order must be at least 1"),
+					tags: z.array(z.string()).default([]),
+					chunkType: z.enum(["new", "review", "remediation"], {
+						errorMap: () => ({ message: "Chunk type must be one of: new, review, remediation" })
+					}).default("new")
+				}))
+				.min(1, "At least one chunk is required")
+				.max(20, "Maximum 20 chunks per topic")
+				.describe("Array of chunk definitions for the topic"),
+				userPreferences: z.object({
+					preferredDifficulty: z.number()
+						.int()
+						.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
+						.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
+						.optional(),
+					learningStyle: z.enum(["visual", "auditory", "kinesthetic", "reading"]).optional(),
+					maxChunkDuration: z.number().int().min(1).max(120).optional(),
+					includePrerequisites: z.boolean().optional()
+				}).optional()
+				.describe("User learning preferences")
+			},
+		},
+		async (input: {
+			topicTitle: string;
+			topicDescription?: string;
+			subject: string;
+			chunks: Array<{
+				id: string;
+				title: string;
+				content: string;
+				difficulty: number;
+				prerequisites: string[];
+				estimatedDuration: number;
+				order: number;
+				tags: string[];
+				chunkType: "new" | "review" | "remediation";
+			}>;
+			userPreferences?: {
+				preferredDifficulty?: number;
+				learningStyle?: "visual" | "auditory" | "kinesthetic" | "reading";
+				maxChunkDuration?: number;
+				includePrerequisites?: boolean;
+			};
+		}) => {
+			try {
+				const { topicCreationService } = await import("../services/topic-creation.js");
+				
+				const result = await topicCreationService.createTopicWithChunks({
+					topicTitle: input.topicTitle,
+					topicDescription: input.topicDescription,
+					subject: input.subject,
+					chunks: input.chunks,
+					userPreferences: input.userPreferences
+				});
+
+				if (result.success && result.topic) {
+					return { 
+						content: [{ 
+							type: "text", 
+							text: JSON.stringify({ 
+								success: true, 
+								topic: result.topic,
+								message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`
+							}) 
+						}] 
+					};
+				} else {
+					return { 
+						content: [{ 
+							type: "text", 
+							text: JSON.stringify({ 
+								success: false, 
+								error: result.error,
+								message: `Failed to create topic "${input.topicTitle}": ${result.error?.message || "Unknown error"}`
+							}) 
+						}] 
+					};
+				}
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: false, 
+							error: {
+								type: "system",
+								message: errorMsg,
+								retryable: true
+							},
+							message: `System error while creating topic "${input.topicTitle}": ${errorMsg}`
+						}) 
+					}] 
+				};
+			}
+		}
+	);
+
+	// New: Create Topic with Generated Chunks Tool
+	server.registerTool(
+		"create_topic_with_generated_chunks",
+		{
+			title: "Create Topic with Generated Chunks",
+			description: "Create a new learning topic and automatically generate scaffolded chunks using AI. Perfect for guided learning workflows.",
+			inputSchema: {
+				topicTitle: z.string()
+					.min(1, "Topic title cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.describe("Title of the learning topic"),
+				topicDescription: z.string()
+					.max(1000, "Topic description cannot exceed 1000 characters")
+					.optional()
+					.describe("Description of the learning topic"),
+				subject: z.string()
+					.min(1, "Subject cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH, `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`)
+					.describe("Subject/category of the learning topic"),
+				userPreferences: z.object({
+					preferredDifficulty: z.number()
+						.int()
+						.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
+						.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
+						.optional(),
+					learningStyle: z.enum(["visual", "auditory", "kinesthetic", "reading"]).optional(),
+					maxChunkDuration: z.number().int().min(1).max(120).optional(),
+					includePrerequisites: z.boolean().optional()
+				}).optional()
+				.describe("User learning preferences")
+			},
+		},
+		async (input: {
+			topicTitle: string;
+			topicDescription?: string;
+			subject: string;
+			userPreferences?: {
+				preferredDifficulty?: number;
+				learningStyle?: "visual" | "auditory" | "kinesthetic" | "reading";
+				maxChunkDuration?: number;
+				includePrerequisites?: boolean;
+			};
+		}) => {
+			try {
+				const { topicCreationService } = await import("../services/topic-creation.js");
+				
+				const result = await topicCreationService.createTopicWithGeneratedChunks(
+					input.topicTitle,
+					input.topicDescription || `Learn ${input.topicTitle} through structured, scaffolded lessons`,
+					input.subject,
+					input.userPreferences
+				);
+
+				if (result.success && result.topic) {
+					return { 
+						content: [{ 
+							type: "text", 
+							text: JSON.stringify({ 
+								success: true, 
+								topic: result.topic,
+								message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} generated chunks`
+							}) 
+						}] 
+					};
+				} else {
+					return { 
+						content: [{ 
+							type: "text", 
+							text: JSON.stringify({ 
+								success: false, 
+								error: result.error,
+								message: `Failed to create topic "${input.topicTitle}": ${result.error?.message || "Unknown error"}`
+							}) 
+						}] 
+					};
+				}
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: false, 
+							error: {
+								type: "system",
+								message: errorMsg,
+								retryable: true
+							},
+							message: `System error while creating topic "${input.topicTitle}": ${errorMsg}`
 						}) 
 					}] 
 				};

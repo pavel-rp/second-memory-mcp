@@ -6,9 +6,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "start": "node dist/server/main.js",
-    "start:pnpm": "pnpm run build && node dist/server/main.js",
-    "start:stdio": "node dist/server/main.js",
+    "start": "node dist/src/server/main.js",
+    "start:pnpm": "pnpm run build && node dist/src/server/main.js",
+    "start:stdio": "node --inspect=9229 dist/src/server/main.js",
     "test:prompts": "node scripts/test-prompts.mjs",
     "test": "pnpm run build && vitest run --coverage",
     "lint": "eslint src tests --ext .ts,.tsx --report-unused-disable-directives --max-warnings 100",

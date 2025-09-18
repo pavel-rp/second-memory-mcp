@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { registerServerTools } from "./tools.js";
+import { ensureSchema } from "../db/migrate.js";
 
 type ChunkGenerationPromptArgs = {
   topicTitle: string;
@@ -20,6 +21,8 @@ type ChunkManagementPromptArgs = {
 };
 
 async function bootstrap(): Promise<void> {
+  ensureSchema();
+
   const server = new McpServer({
     name: "second-memory-learning",
     version: "0.1.0"

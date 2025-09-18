@@ -8,14 +8,16 @@ import {
 	reviewSchedule,
 	sessionLogs,
 	performanceAnalytics,
+	frictionMetrics,
 	NewLearningTopicRow,
 	NewLearningChunkRow,
 	NewReviewScheduleRow,
 	NewSessionLogRow,
 	NewPerformanceAnalyticsRow,
+	NewFrictionMetricsRow,
 } from "./schema.js";
 
-function ensureSchema() {
+export function ensureSchema() {
 	const db = getDb();
 	// Minimal table creation matching schema definitions
 	db.exec(`
@@ -71,6 +73,28 @@ function ensureSchema() {
 		metrics_json TEXT NOT NULL,
 		created_at INTEGER NOT NULL
 	);
+	CREATE TABLE IF NOT EXISTS friction_metrics (
+		id TEXT PRIMARY KEY NOT NULL,
+		chunk_id TEXT NOT NULL,
+		user_id TEXT,
+		failed_attempts INTEGER NOT NULL DEFAULT 0,
+		average_time_spent INTEGER NOT NULL DEFAULT 0,
+		error_patterns_json TEXT,
+		last_struggle_date INTEGER NOT NULL,
+		friction_score REAL NOT NULL DEFAULT 0,
+		consecutive_failures INTEGER NOT NULL DEFAULT 0,
+		total_attempts INTEGER NOT NULL DEFAULT 0,
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL,
+		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
+	);
+	
+	-- Indexes for friction metrics performance
+	CREATE INDEX IF NOT EXISTS idx_friction_metrics_chunk_id ON friction_metrics(chunk_id);
+	CREATE INDEX IF NOT EXISTS idx_friction_metrics_user_id ON friction_metrics(user_id);
+	CREATE INDEX IF NOT EXISTS idx_friction_metrics_friction_score ON friction_metrics(friction_score DESC);
+	CREATE INDEX IF NOT EXISTS idx_friction_metrics_consecutive_failures ON friction_metrics(consecutive_failures DESC);
+	CREATE INDEX IF NOT EXISTS idx_friction_metrics_last_struggle_date ON friction_metrics(last_struggle_date DESC);
 	`);
 }
 
@@ -83,7 +107,7 @@ function readJson(pathOrEnv?: string) {
 
 async function importData(data: any) {
 	const db = getSql();
-	let topics = 0, chunks = 0, schedules = 0, logs = 0, analytics = 0;
+	let topics = 0, chunks = 0, schedules = 0, logs = 0, analytics = 0, friction = 0;
 
 	if (Array.isArray(data.learning_topics)) {
 		await bulkInsert<NewLearningTopicRow>(data.learning_topics as NewLearningTopicRow[], (chunk) => {
@@ -123,7 +147,14 @@ async function importData(data: any) {
 		analytics = data.performance_analytics.length;
 	}
 
-	return { topics, chunks, schedules, logs, analytics };
+	if (Array.isArray(data.friction_metrics)) {
+		await bulkInsert<NewFrictionMetricsRow>(data.friction_metrics as NewFrictionMetricsRow[], (chunk) =>
+			db.insert(frictionMetrics).values(chunk).run()
+		);
+		friction = data.friction_metrics.length;
+	}
+
+	return { topics, chunks, schedules, logs, analytics, friction };
 }
 
 async function main() {
