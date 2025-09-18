@@ -6,14 +6,14 @@ import type { LearningItem, RecommendationInput } from "./recommendations.js";
 export interface OrchestrationStep {
   step: number;
   action: 'fetch' | 'process' | 'return';
-  target: 'notion' | 'recommendation' | 'user';
+  target: 'sqlite' | 'recommendation' | 'user';
   description: string;
   toolToUse?: string;
   exampleInput?: LearningItem[] | RecommendationInput;
 }
 
 /**
- * Complete orchestration guidance for multi-server workflows
+ * Complete orchestration guidance for SQLite-based learning workflows
  */
 export interface OrchestrationGuidance {
   steps: OrchestrationStep[];
@@ -29,7 +29,6 @@ export interface OrchestrationGuidance {
 export interface OrchestrationInput {
   mode?: 'guided' | 'explicit';
   context?: {
-    hasNotionAccess?: boolean;
     currentStep?: number;
     errorMessage?: string;
   };

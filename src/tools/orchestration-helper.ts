@@ -1,7 +1,7 @@
 import type { OrchestrationGuidance, OrchestrationInput, OrchestrationStep } from "../types/orchestration.js";
 
 /**
- * Generate orchestration guidance for multi-server workflows
+ * Generate orchestration guidance for SQLite-based learning workflows
  * Provides step-by-step instructions for Claude to follow
  */
 export function generateOrchestrationGuidance(input: OrchestrationInput): OrchestrationGuidance {
@@ -13,9 +13,9 @@ export function generateOrchestrationGuidance(input: OrchestrationInput): Orches
     {
       step: 1,
       action: 'fetch',
-      target: 'notion',
-      description: 'Query the Notion MCP server to fetch existing learning items from the database',
-      toolToUse: 'notion_query_database',
+      target: 'sqlite',
+      description: 'Query the local SQLite database to fetch existing learning items using list_learning_items_sqlite',
+      toolToUse: 'list_learning_items_sqlite',
       exampleInput: []
     },
     {
@@ -42,20 +42,20 @@ export function generateOrchestrationGuidance(input: OrchestrationInput): Orches
   let fallbackInstructions: string | undefined;
 
   if (context.errorMessage) {
-    nextAction = `Error encountered: ${context.errorMessage}. Please check your Notion MCP server configuration and try again.`;
-    fallbackInstructions = "If Notion is unavailable, consider asking the user to create initial learning items manually or check the MCP configuration in Claude Desktop.";
+    nextAction = `Error encountered: ${context.errorMessage}. Please check your SQLite database configuration and try again.`;
+    fallbackInstructions = "If SQLite database is unavailable, verify the database file exists and is accessible.";
   } else if (currentStep === 1) {
-    nextAction = "Start by querying the Notion MCP server to fetch your existing learning items. Use the appropriate Notion database query tool.";
-    fallbackInstructions = "If no Notion MCP server is available, ask the user to set up the Notion integration first.";
+    nextAction = "Start by querying the local SQLite database to fetch your existing learning items. Use the list_learning_items_sqlite tool.";
+    fallbackInstructions = "If SQLite database is unavailable, verify the database file exists and is properly configured.";
   } else if (currentStep === 2) {
-    nextAction = "Now pass the learning items you fetched from Notion to the what_to_learn_today tool to get personalized recommendations.";
+    nextAction = "Now pass the learning items you fetched from SQLite to the what_to_learn_today tool to get personalized recommendations.";
   } else {
     nextAction = "Present the learning recommendations to the user and ask if they'd like to begin studying.";
   }
 
   const exampleQuery = mode === 'guided'
     ? "I'd like to know what I should learn today. Can you check my progress and give me some recommendations?"
-    : "Query Notion for learning items, then generate recommendations based on spaced repetition priorities.";
+    : "Query SQLite database for learning items, then generate recommendations based on spaced repetition priorities.";
 
   return {
     steps,

@@ -3,7 +3,6 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { registerServerTools } from "./tools.js";
-import { registerServerResources } from "./resources.js";
 
 type ChunkGenerationPromptArgs = {
   topicTitle: string;
@@ -27,9 +26,8 @@ async function bootstrap(): Promise<void> {
   });
 
   const transport = new StdioServerTransport();
-  // Register tools, tool-backed prompts, and resources
+  // Register tools and tool-backed prompts
   registerServerTools(server);
-  registerServerResources(server);
 
   // Prompts
   server.registerPrompt(
