@@ -715,7 +715,6 @@ export function registerServerTools(server: McpServer): void {
 			}
 		}
 	);
-
 	// New: Topic + Chunks Creation Tool
 	server.registerTool(
 		"create_topic_with_chunks",
