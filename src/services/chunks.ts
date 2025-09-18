@@ -4,6 +4,7 @@ import { learningChunks, learningTopics, type LearningChunkRow } from "../db/sch
 import type { LearningItem } from "../types/recommendations.js";
 import { decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
+import { scheduleReview } from "./reviews.js";
 
 export type CreateChunkInput = {
 	id: string;
@@ -126,18 +127,32 @@ export async function deleteChunk(id: string): Promise<number> {
 export async function createChunkWithTopic(input: CreateChunkInput & { topicTitle?: string }): Promise<LearningChunkRow> {
 	const db = getSql();
 	
-	// If topicTitle is provided but topicId is not, create a new topic
+	// If topicTitle is provided but topicId is not, find existing topic or create a new one
 	let finalTopicId = input.topicId;
 	if (input.topicTitle && !finalTopicId) {
-		finalTopicId = crypto.randomUUID();
-		const now = Date.now();
-		await db.insert(learningTopics).values({
-			id: finalTopicId,
-			title: input.topicTitle,
-			subject: input.subject,
-			createdAt: now,
-			updatedAt: now,
-		}).run();
+		// Check if topic already exists with the same title and subject
+		const existingTopic = db.select()
+			.from(learningTopics)
+			.where(and(
+				eq(learningTopics.title, input.topicTitle),
+				eq(learningTopics.subject, input.subject)
+			))
+			.get();
+		
+		if (existingTopic) {
+			finalTopicId = existingTopic.id;
+		} else {
+			// Create new topic
+			finalTopicId = crypto.randomUUID();
+			const now = Date.now();
+			await db.insert(learningTopics).values({
+				id: finalTopicId,
+				title: input.topicTitle,
+				subject: input.subject,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
+		}
 	}
 	
 	// Create the chunk
@@ -204,7 +219,6 @@ export async function processReviewResult(
 		.run();
 	
 	// Create review schedule entry
-	const { scheduleReview } = await import("./reviews.js");
 	await scheduleReview({
 		id: crypto.randomUUID(),
 		chunkId: itemId,

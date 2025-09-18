@@ -10,11 +10,7 @@ import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, 
 import { promptPack } from "../prompts/prompt-pack.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
 import { listChunksAsLearningItems, createChunkWithTopic, mapChunkRowToLearningItem, processReviewResult } from "../services/chunks.js";
-
-// Constants for validation and business logic
-const MAX_TITLE_LENGTH = 200;
-const MAX_SUBJECT_LENGTH = 100;
-const LEECH_THRESHOLD = 3;
+import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 
 type ChunkGenerationToolArgs = {
 	topicTitle: string;
@@ -522,10 +518,10 @@ export function registerServerTools(server: McpServer): void {
 			title: "Create Learning Item",
 			description: "Create a new learning item with seamless operation and zero friction. This is the highest priority write endpoint that automatically handles topic creation and sets initial SM-2 values.",
 			inputSchema: {
-				title: z.string().min(1).max(MAX_TITLE_LENGTH).describe("Title of the learning item"),
-				subject: z.string().min(1).max(MAX_SUBJECT_LENGTH).describe("Subject/category of the learning item"),
-				difficulty: z.number().int().min(1).max(10).describe("Difficulty level from 1-10"),
-				estimatedDuration: z.number().int().min(1).optional().default(15).describe("Estimated duration in minutes"),
+				title: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH).describe("Title of the learning item"),
+				subject: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH).describe("Subject/category of the learning item"),
+				difficulty: z.number().int().min(VALIDATION_CONSTANTS.MIN_DIFFICULTY).max(VALIDATION_CONSTANTS.MAX_DIFFICULTY).describe("Difficulty level from 1-10"),
+				estimatedDuration: z.number().int().min(1).optional().default(VALIDATION_CONSTANTS.DEFAULT_ESTIMATED_DURATION).describe("Estimated duration in minutes"),
 				chunkType: z.enum(["new", "review", "remediation"]).optional().default("new").describe("Type of learning chunk"),
 				prerequisites: z.array(z.string()).optional().default([]).describe("Prerequisites for this item"),
 				tags: z.array(z.string()).optional().default([]).describe("Tags for categorization"),
@@ -613,7 +609,7 @@ export function registerServerTools(server: McpServer): void {
 			description: "Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.",
 			inputSchema: {
 				itemId: z.string().min(1).describe("ID of the learning item"),
-				quality: z.number().min(0).max(5).describe("Quality score from 0-5"),
+				quality: z.number().min(VALIDATION_CONSTANTS.MIN_QUALITY_SCORE).max(VALIDATION_CONSTANTS.MAX_QUALITY_SCORE).describe("Quality score from 0-5"),
 				timeSpentMs: z.number().int().min(0).optional().default(0).describe("Time spent studying in milliseconds"),
 				consecutiveFailures: z.number().int().min(0).optional().default(0).describe("Number of consecutive failures"),
 				daysOverdue: z.number().int().min(0).optional().default(0).describe("Number of days overdue")
