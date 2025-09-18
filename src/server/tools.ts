@@ -518,15 +518,44 @@ export function registerServerTools(server: McpServer): void {
 			title: "Create Learning Item",
 			description: "Create a new learning item with seamless operation and zero friction. This is the highest priority write endpoint that automatically handles topic creation and sets initial SM-2 values.",
 			inputSchema: {
-				title: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH).describe("Title of the learning item"),
-				subject: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH).describe("Subject/category of the learning item"),
-				difficulty: z.number().int().min(VALIDATION_CONSTANTS.MIN_DIFFICULTY).max(VALIDATION_CONSTANTS.MAX_DIFFICULTY).describe("Difficulty level from 1-10"),
-				estimatedDuration: z.number().int().min(1).optional().default(VALIDATION_CONSTANTS.DEFAULT_ESTIMATED_DURATION).describe("Estimated duration in minutes"),
-				chunkType: z.enum(["new", "review", "remediation"]).optional().default("new").describe("Type of learning chunk"),
-				prerequisites: z.array(z.string()).optional().default([]).describe("Prerequisites for this item"),
-				tags: z.array(z.string()).optional().default([]).describe("Tags for categorization"),
-				topicTitle: z.string().optional().describe("Title for auto-created topic if topicId not provided"),
-				topicId: z.string().optional().describe("Existing topic ID (optional)")
+				title: z.string()
+					.min(1, "Title cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.describe("Title of the learning item"),
+				subject: z.string()
+					.min(1, "Subject cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH, `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`)
+					.describe("Subject/category of the learning item"),
+				difficulty: z.number()
+					.int("Difficulty must be an integer")
+					.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
+					.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
+					.describe("Difficulty level from 1-10"),
+				estimatedDuration: z.number()
+					.int("Estimated duration must be an integer")
+					.min(1, "Estimated duration must be at least 1 minute")
+					.optional()
+					.default(VALIDATION_CONSTANTS.DEFAULT_ESTIMATED_DURATION)
+					.describe("Estimated duration in minutes"),
+				chunkType: z.enum(["new", "review", "remediation"], {
+					errorMap: () => ({ message: "Chunk type must be one of: new, review, remediation" })
+				}).optional().default("new").describe("Type of learning chunk"),
+				prerequisites: z.array(z.string())
+					.optional()
+					.default([])
+					.describe("Prerequisites for this item"),
+				tags: z.array(z.string())
+					.optional()
+					.default([])
+					.describe("Tags for categorization"),
+				topicTitle: z.string()
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.optional()
+					.describe("Title for auto-created topic if topicId not provided"),
+				topicId: z.string()
+					.min(1, "Topic ID cannot be empty if provided")
+					.optional()
+					.describe("Existing topic ID (optional)")
 			},
 		},
 		async (input: {
@@ -608,11 +637,31 @@ export function registerServerTools(server: McpServer): void {
 			title: "Record Review Result",
 			description: "Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.",
 			inputSchema: {
-				itemId: z.string().min(1).describe("ID of the learning item"),
-				quality: z.number().min(VALIDATION_CONSTANTS.MIN_QUALITY_SCORE).max(VALIDATION_CONSTANTS.MAX_QUALITY_SCORE).describe("Quality score from 0-5"),
-				timeSpentMs: z.number().int().min(0).optional().default(0).describe("Time spent studying in milliseconds"),
-				consecutiveFailures: z.number().int().min(0).optional().default(0).describe("Number of consecutive failures"),
-				daysOverdue: z.number().int().min(0).optional().default(0).describe("Number of days overdue")
+				itemId: z.string()
+					.min(1, "Item ID cannot be empty")
+					.describe("ID of the learning item"),
+				quality: z.number()
+					.min(VALIDATION_CONSTANTS.MIN_QUALITY_SCORE, `Quality score must be at least ${VALIDATION_CONSTANTS.MIN_QUALITY_SCORE}`)
+					.max(VALIDATION_CONSTANTS.MAX_QUALITY_SCORE, `Quality score cannot exceed ${VALIDATION_CONSTANTS.MAX_QUALITY_SCORE}`)
+					.describe("Quality score from 0-5"),
+				timeSpentMs: z.number()
+					.int("Time spent must be an integer")
+					.min(0, "Time spent cannot be negative")
+					.optional()
+					.default(0)
+					.describe("Time spent studying in milliseconds"),
+				consecutiveFailures: z.number()
+					.int("Consecutive failures must be an integer")
+					.min(0, "Consecutive failures cannot be negative")
+					.optional()
+					.default(0)
+					.describe("Number of consecutive failures"),
+				daysOverdue: z.number()
+					.int("Days overdue must be an integer")
+					.min(0, "Days overdue cannot be negative")
+					.optional()
+					.default(0)
+					.describe("Number of days overdue")
 			},
 		},
 		async (input: {
