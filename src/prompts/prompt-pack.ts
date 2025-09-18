@@ -45,8 +45,6 @@ export type PromptContext = {
 
 /**
  * PromptPack centralizes standardized prompt strings used by the MCP server.
- * Prompts are concise, research-aligned, and explicitly instruct the model to
- * use a separate Notion MCP layer for any persistence (no database writes from this server).
  */
 export class PromptPack {
 	getPrompt(name: PromptName, context: PromptContext = {}): string {
@@ -72,7 +70,6 @@ export class PromptPack {
 		const problem = context.problem ?? "<problem not provided>";
 		return [
 			"You are an expert tutor applying evidence-based learning.",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
 			"Objective: Analyze the learning challenge and create an optimal scaffolding plan.",
 			"",
 			`PROBLEM: ${problem}`,
@@ -87,6 +84,7 @@ export class PromptPack {
 			"Constraints:",
 			"- Manage cognitive load; prefer concrete examples before abstractions",
 			"- Keep explanations concise and supportive",
+			"- Persist the result to this server once it's ready."
 		].join("\n");
 	}
 
@@ -100,7 +98,6 @@ export class PromptPack {
 
 		return [
 			"You are teaching with cognitive load awareness and scaffolding.",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
 			"",
 			`CURRENT CHUNK (${chunkNumber}/${totalChunks}): "${chunkTitle}"`,
 			`Focus: ${chunkContent}`,
@@ -124,7 +121,6 @@ export class PromptPack {
 
 		return [
 			"You are generating a retrieval practice drill.",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
 			"",
 			`CHUNK: "${chunkTitle}"`,
 			`FORMAT: ${drillFormat}`,
@@ -146,7 +142,6 @@ export class PromptPack {
 
 		return [
 			"You are conducting a spaced review session.",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
 			"",
 			`LAST REVIEWED: ${lastReviewed}`,
 			`CURRENT MASTERY: ${mastery}/5`,
@@ -164,8 +159,7 @@ export class PromptPack {
 
 	private getWorkflowGuidancePrompt(): string {
 		return [
-			"WORKFLOW GUIDANCE (stateless MCP server)",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using the provided schemas.",
+			"WORKFLOW GUIDANCE",
 			"",
 			"End-to-end flow:",
 			"1) Intake problem → request 'scaffolding' prompt (produce 5–9 chunks)",
@@ -174,12 +168,12 @@ export class PromptPack {
 			"4) After retrieval → call tools to schedule next review:",
 			"   - calculate_next_review(quality, repetitions, ease_factor, interval) → { interval, repetitions, ease_factor, next_review }",
 			"   - calculate_priority_score(next_review_date, ease_factor, repetitions, difficulty) → { priority }",
-			"5) Persist topic/chunk/schedule/analytics/logs via Notion MCP only (never direct Notion API from this server)",
+			"5) Persist topic/chunk/schedule/analytics/logs via this server's tools",
 			"6) Use 'review' prompt during scheduled sessions; apply interleaving when helpful",
 			"",
 			"Scope boundaries:",
-			"- This server is stateless; no session storage, no external network I/O",
 			"- Only exposes prompts/resources/tools via MCP capabilities",
+			"- Write the data to the server as soon as you produce new artifacts like chunks or schedules",
 			"",
 			"Style and pedagogy:",
 			"- Manage cognitive load; use concrete → abstract progression",
@@ -195,7 +189,6 @@ export class PromptPack {
 
 		return [
 			"You are assisting with chunk generation for a learning topic.",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
 			"",
 			`TOPIC: ${topicTitle}`,
 			`DESCRIPTION: ${topicDescription}`,
@@ -221,7 +214,6 @@ export class PromptPack {
 
 		return [
 			"You are assisting with chunk maintenance (update/merge/split/retire).",
-			"Do not write to databases from this server. Use a separate Notion MCP layer for persistence using provided schemas.",
 			"",
 			`OPERATION: ${op}`,
 			`TARGET CHUNK: ${chunk.title}`,

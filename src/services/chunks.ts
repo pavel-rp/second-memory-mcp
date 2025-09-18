@@ -1,6 +1,6 @@
 import { and, eq, lte } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
-import { learningChunks } from "../db/schema.js";
+import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
 import type { LearningItem } from "../types/recommendations.js";
 import { decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 
@@ -119,4 +119,110 @@ export async function deleteChunk(id: string): Promise<number> {
 	const db = getSql();
 	const res = db.delete(learningChunks).where(eq(learningChunks.id, id)).run();
 	return res.changes ?? 0;
+}
+
+// Enhanced createChunk with auto-topic creation
+export async function createChunkWithTopic(input: CreateChunkInput & { topicTitle?: string }): Promise<LearningChunkRow> {
+	const db = getSql();
+	
+	// If topicTitle is provided but topicId is not, create a new topic
+	let finalTopicId = input.topicId;
+	if (input.topicTitle && !finalTopicId) {
+		finalTopicId = crypto.randomUUID();
+		const now = Date.now();
+		await db.insert(learningTopics).values({
+			id: finalTopicId,
+			title: input.topicTitle,
+			subject: input.subject,
+			createdAt: now,
+			updatedAt: now,
+		}).run();
+	}
+	
+	// Create the chunk
+	await db.insert(learningChunks).values({
+		...input,
+		topicId: finalTopicId,
+		prerequisitesJson: encodeJsonArray(input.prerequisites),
+		tagsJson: encodeJsonArray(input.tags),
+	}).run();
+	
+	// Return the created chunk
+	const createdChunk = db.select().from(learningChunks).where(eq(learningChunks.id, input.id)).get();
+	if (!createdChunk) {
+		throw new Error(`Failed to create chunk with id: ${input.id}`);
+	}
+	
+	return createdChunk;
+}
+
+// Process review result with SM-2 calculations
+export async function processReviewResult(
+	itemId: string, 
+	quality: number, 
+	options: {
+		timeSpentMs?: number;
+		consecutiveFailures?: number;
+		daysOverdue?: number;
+	}
+): Promise<LearningChunkRow> {
+	const db = getSql();
+	
+	// Get current chunk data
+	const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
+	if (!currentChunk) {
+		throw new Error(`Learning item not found: ${itemId}`);
+	}
+	
+	// Import SM-2 calculator
+	const { calculateNextReviewAdvanced } = await import("../tools/sr-calculator.js");
+	
+	// Calculate new SM-2 values
+	const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
+	const intervalDays = Math.floor((Date.now() - lastReviewedAt) / (1000 * 60 * 60 * 24)) || 1;
+	
+	const sm2Result = calculateNextReviewAdvanced({
+		quality,
+		repetitions: currentChunk.repetitions,
+		easeFactor: currentChunk.easeFactor,
+		interval: intervalDays,
+		daysOverdue: options.daysOverdue || 0,
+		consecutiveFailures: options.consecutiveFailures || 0
+	});
+	
+	// Update chunk with new values
+	const now = Date.now();
+	const updateData = {
+		easeFactor: sm2Result.easeFactor,
+		repetitions: sm2Result.repetitions,
+		nextReviewAt: new Date(sm2Result.nextReview).getTime(),
+		lastReviewedAt: now,
+		updatedAt: now
+	};
+	
+	await db.update(learningChunks)
+		.set(updateData)
+		.where(eq(learningChunks.id, itemId))
+		.run();
+	
+	// Create review schedule entry
+	const { scheduleReview } = await import("./reviews.js");
+	await scheduleReview({
+		id: crypto.randomUUID(),
+		chunkId: itemId,
+		nextReviewAt: new Date(sm2Result.nextReview).getTime(),
+		intervalDays: sm2Result.interval,
+		repetitions: sm2Result.repetitions,
+		easeFactor: sm2Result.easeFactor,
+		createdAt: now,
+		updatedAt: now
+	});
+	
+	// Return updated chunk
+	const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
+	if (!updatedChunk) {
+		throw new Error(`Failed to update chunk: ${itemId}`);
+	}
+	
+	return updatedChunk;
 }

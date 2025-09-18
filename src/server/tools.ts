@@ -9,7 +9,7 @@ import { SessionInputSchema } from "../types/session.js";
 import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, SessionHistorySchema, SessionConstraintsSchema } from "../types/recommendations.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
-import { listChunksAsLearningItems } from "../services/chunks.js";
+import { listChunksAsLearningItems, createChunkWithTopic, mapChunkRowToLearningItem, processReviewResult } from "../services/chunks.js";
 
 type ChunkGenerationToolArgs = {
 	topicTitle: string;
@@ -506,6 +506,161 @@ export function registerServerTools(server: McpServer): void {
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
 				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	// Write endpoints - Create Learning Item (Priority #1)
+	server.registerTool(
+		"create_learning_item",
+		{
+			title: "Create Learning Item",
+			description: "Create a new learning item with seamless operation and zero friction. This is the highest priority write endpoint that automatically handles topic creation and sets initial SM-2 values.",
+			inputSchema: {
+				title: z.string().min(1).max(200).describe("Title of the learning item"),
+				subject: z.string().min(1).max(100).describe("Subject/category of the learning item"),
+				difficulty: z.number().int().min(1).max(10).describe("Difficulty level from 1-10"),
+				estimatedDuration: z.number().int().min(1).optional().default(15).describe("Estimated duration in minutes"),
+				chunkType: z.enum(["new", "review", "remediation"]).optional().default("new").describe("Type of learning chunk"),
+				prerequisites: z.array(z.string()).optional().default([]).describe("Prerequisites for this item"),
+				tags: z.array(z.string()).optional().default([]).describe("Tags for categorization"),
+				topicTitle: z.string().optional().describe("Title for auto-created topic if topicId not provided"),
+				topicId: z.string().optional().describe("Existing topic ID (optional)")
+			},
+		},
+		async (input: {
+			title: string;
+			subject: string;
+			difficulty: number;
+			estimatedDuration?: number;
+			chunkType?: "new" | "review" | "remediation";
+			prerequisites?: string[];
+			tags?: string[];
+			topicTitle?: string;
+			topicId?: string;
+		}) => {
+			try {
+				// Generate unique ID
+				const id = crypto.randomUUID();
+				const now = Date.now();
+				
+				// Set initial SM-2 values
+				const initialEaseFactor = 2.5;
+				const initialRepetitions = 0;
+				const initialNextReviewAt = now; // Review immediately for new items
+				
+				// Create the chunk with auto-topic creation
+				const createdChunk = await createChunkWithTopic({
+					id,
+					topicId: input.topicId || "",
+					title: input.title,
+					subject: input.subject,
+					difficulty: input.difficulty,
+					nextReviewAt: initialNextReviewAt,
+					easeFactor: initialEaseFactor,
+					repetitions: initialRepetitions,
+					estimatedDuration: input.estimatedDuration || 15,
+					chunkType: input.chunkType || "new",
+					prerequisites: input.prerequisites || [],
+					tags: input.tags || [],
+					createdAt: now,
+					updatedAt: now,
+					topicTitle: input.topicTitle
+				});
+				
+				// Convert to LearningItem format for response
+				const learningItem = mapChunkRowToLearningItem(createdChunk);
+				
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: true, 
+							item: learningItem,
+							message: "Learning item created successfully"
+						}) 
+					}] 
+				};
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: false, 
+							error: {
+								type: "database",
+								message: errorMsg,
+								retryable: true
+							}
+						}) 
+					}] 
+				};
+			}
+		}
+	);
+
+	// Write endpoints - Record Review Result
+	server.registerTool(
+		"record_review_result",
+		{
+			title: "Record Review Result",
+			description: "Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.",
+			inputSchema: {
+				itemId: z.string().min(1).describe("ID of the learning item"),
+				quality: z.number().min(0).max(5).describe("Quality score from 0-5"),
+				timeSpentMs: z.number().int().min(0).optional().default(0).describe("Time spent studying in milliseconds"),
+				consecutiveFailures: z.number().int().min(0).optional().default(0).describe("Number of consecutive failures"),
+				daysOverdue: z.number().int().min(0).optional().default(0).describe("Number of days overdue")
+			},
+		},
+		async (input: {
+			itemId: string;
+			quality: number;
+			timeSpentMs?: number;
+			consecutiveFailures?: number;
+			daysOverdue?: number;
+		}) => {
+			try {
+				// Process the review result
+				const updatedChunk = await processReviewResult(input.itemId, input.quality, {
+					timeSpentMs: input.timeSpentMs,
+					consecutiveFailures: input.consecutiveFailures,
+					daysOverdue: input.daysOverdue
+				});
+				
+				// Convert to LearningItem format for response
+				const learningItem = mapChunkRowToLearningItem(updatedChunk);
+				
+				// Check for leech detection (consecutive failures > 3)
+				const isLeech = (input.consecutiveFailures || 0) > 3;
+				
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: true, 
+							item: learningItem,
+							isLeech,
+							message: isLeech ? "Item marked as leech due to consecutive failures" : "Review result recorded successfully"
+						}) 
+					}] 
+				};
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: false, 
+							error: {
+								type: "database",
+								message: errorMsg,
+								retryable: true
+							}
+						}) 
+					}] 
+				};
 			}
 		}
 	);
