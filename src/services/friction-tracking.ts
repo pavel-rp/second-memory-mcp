@@ -1,4 +1,4 @@
-import { and, eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 import { getSql, withTx } from "../db/operations.js";
 import { frictionMetrics, learningChunks, type FrictionMetricsRow, type NewFrictionMetricsRow } from "../db/schema.js";
@@ -70,6 +70,8 @@ export class FrictionTrackingService {
 			});
 
 		} catch (error) {
+			// Log error for debugging
+			// eslint-disable-next-line no-console
 			console.error("Failed to record friction metrics:", error);
 			throw new Error(`Failed to record friction metrics: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
@@ -109,6 +111,8 @@ export class FrictionTrackingService {
 			}));
 
 		} catch (error) {
+			// Log error for debugging
+			// eslint-disable-next-line no-console
 			console.error("Failed to get high friction chunks:", error);
 			return [];
 		}
@@ -154,6 +158,8 @@ export class FrictionTrackingService {
 			};
 
 		} catch (error) {
+			// Log error for debugging
+			// eslint-disable-next-line no-console
 			console.error("Failed to analyze chunk friction:", error);
 			return null;
 		}
@@ -186,6 +192,8 @@ export class FrictionTrackingService {
 				.run();
 
 		} catch (error) {
+			// Log error for debugging
+			// eslint-disable-next-line no-console
 			console.error("Failed to update chunk priority:", error);
 			throw new Error(`Failed to update chunk priority: ${error instanceof Error ? error.message : "Unknown error"}`);
 		}
@@ -220,6 +228,8 @@ export class FrictionTrackingService {
 			};
 
 		} catch (error) {
+			// Log error for debugging
+			// eslint-disable-next-line no-console
 			console.error("Failed to get friction metrics:", error);
 			return null;
 		}
@@ -237,8 +247,8 @@ export class FrictionTrackingService {
 		totalAttempts: number;
 	} {
 		const isFailure = update.attemptResult === "failure";
-		const isPartial = update.attemptResult === "partial";
-		
+		// const isPartial = update.attemptResult === "partial"; // Unused for now
+
 		// Update failed attempts
 		const newFailedAttempts = existing.failedAttempts + (isFailure ? 1 : 0);
 		

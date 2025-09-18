@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 import { getSql, withTx } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow, type LearningTopicRow } from "../db/schema.js";

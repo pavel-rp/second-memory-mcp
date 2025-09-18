@@ -15,7 +15,9 @@ try {
 
 import { getDb, resetDatabase } from "../../src/db/client.js";
 import { frictionTrackingService } from "../../src/services/friction-tracking.js";
-import type { FrictionTrackingInput, FrictionUpdate } from "../../src/types/topic-creation.js";
+import type { FrictionTrackingInput } from "../../src/types/topic-creation.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { FrictionUpdate } from "../../src/types/topic-creation.js";
 
 function ensureSchema() {
 	const db = getDb();

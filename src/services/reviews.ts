@@ -1,6 +1,6 @@
-import { and, eq, lte } from "drizzle-orm";
+import { eq, lte } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
-import { learningChunks, reviewSchedule, sessionLogs, performanceAnalytics } from "../db/schema.js";
+import { reviewSchedule, sessionLogs, performanceAnalytics } from "../db/schema.js";
 
 export async function scheduleReview(params: {
 	id: string;

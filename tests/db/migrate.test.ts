@@ -40,10 +40,10 @@ function tmpDbPath() {
 
 	afterEach(async () => {
 		await resetDatabase(); // Close database connection
-		try { fs.unlinkSync(dbFile); } catch {}
-		try { fs.unlinkSync(`${dbFile}-shm`); } catch {}
-		try { fs.unlinkSync(`${dbFile}-wal`); } catch {}
-		try { fs.unlinkSync(jsonFile); } catch {}
+		try { fs.unlinkSync(dbFile); } catch { /* Ignore cleanup errors */ }
+		try { fs.unlinkSync(`${dbFile}-shm`); } catch { /* Ignore cleanup errors */ }
+		try { fs.unlinkSync(`${dbFile}-wal`); } catch { /* Ignore cleanup errors */ }
+		try { fs.unlinkSync(jsonFile); } catch { /* Ignore cleanup errors */ }
 	});
 
 	it("imports topics from JSON", async () => {
@@ -58,7 +58,7 @@ function tmpDbPath() {
 		});
 
 		const db = getDb();
-		const row = db.prepare("SELECT COUNT(*) as cnt FROM learning_topics").get() as any;
+		const row = db.prepare("SELECT COUNT(*) as cnt FROM learning_topics").get() as { cnt: number };
 		expect(row.cnt).toBe(1);
 	});
 });

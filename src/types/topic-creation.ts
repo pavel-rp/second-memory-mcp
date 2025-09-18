@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
-import type { ChunkType, SubjectPreference } from "./recommendations.js";
+import type { ChunkType } from "./recommendations.js";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { SubjectPreference } from "./recommendations.js";
 
 // Topic creation request types
 export type TopicCreationRequest = {

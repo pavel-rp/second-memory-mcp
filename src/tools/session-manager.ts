@@ -4,6 +4,7 @@ import type {
 	SessionProgress,
 	WorkflowPhase,
 	CompletionStatus,
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	SessionMode,
 } from "../types/session.js";
 import { SessionInputSchema } from "../types/session.js";

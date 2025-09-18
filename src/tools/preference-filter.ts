@@ -163,7 +163,7 @@ export function composeBalancedSession(
 	items: LearningItem[],
 	constraints: SessionConstraints
 ): LearningItem[] {
-	let sessionItems: LearningItem[] = [];
+	const sessionItems: LearningItem[] = [];
 	let remainingTime = constraints.maxDuration || 30;
 	let remainingCognitiveLoad = constraints.maxCognitiveLoad || 20;
 
