@@ -9,7 +9,8 @@ import { SessionInputSchema } from "../types/session.js";
 import { SubjectPreferenceSchema, RecommendationModeSchema, LearningItemSchema, SessionHistorySchema, SessionConstraintsSchema } from "../types/recommendations.js";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
-import { listChunksAsLearningItems } from "../services/chunks.js";
+import { listChunksAsLearningItems, createChunkWithTopic, mapChunkRowToLearningItem, processReviewResult } from "../services/chunks.js";
+import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 
 type ChunkGenerationToolArgs = {
 	topicTitle: string;
@@ -506,6 +507,207 @@ export function registerServerTools(server: McpServer): void {
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
 				return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
+			}
+		}
+	);
+
+	// Write endpoints - Create Learning Item (Priority #1)
+	server.registerTool(
+		"create_learning_item",
+		{
+			title: "Create Learning Item",
+			description: "Create a new learning item with seamless operation and zero friction. This is the highest priority write endpoint that automatically handles topic creation and sets initial SM-2 values.",
+			inputSchema: {
+				title: z.string()
+					.min(1, "Title cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.describe("Title of the learning item"),
+				subject: z.string()
+					.min(1, "Subject cannot be empty")
+					.max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH, `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`)
+					.describe("Subject/category of the learning item"),
+				difficulty: z.number()
+					.int("Difficulty must be an integer")
+					.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
+					.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
+					.describe("Difficulty level from 1-10"),
+				estimatedDuration: z.number()
+					.int("Estimated duration must be an integer")
+					.min(1, "Estimated duration must be at least 1 minute")
+					.optional()
+					.default(VALIDATION_CONSTANTS.DEFAULT_ESTIMATED_DURATION)
+					.describe("Estimated duration in minutes"),
+				chunkType: z.enum(["new", "review", "remediation"], {
+					errorMap: () => ({ message: "Chunk type must be one of: new, review, remediation" })
+				}).optional().default("new").describe("Type of learning chunk"),
+				prerequisites: z.array(z.string())
+					.optional()
+					.default([])
+					.describe("Prerequisites for this item"),
+				tags: z.array(z.string())
+					.optional()
+					.default([])
+					.describe("Tags for categorization"),
+				topicTitle: z.string()
+					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+					.optional()
+					.describe("Title for auto-created topic if topicId not provided"),
+				topicId: z.string()
+					.min(1, "Topic ID cannot be empty if provided")
+					.optional()
+					.describe("Existing topic ID (optional)")
+			},
+		},
+		async (input: {
+			title: string;
+			subject: string;
+			difficulty: number;
+			estimatedDuration?: number;
+			chunkType?: "new" | "review" | "remediation";
+			prerequisites?: string[];
+			tags?: string[];
+			topicTitle?: string;
+			topicId?: string;
+		}) => {
+			try {
+				// Generate unique ID
+				const id = crypto.randomUUID();
+				const now = Date.now();
+				
+				// Set initial SM-2 values
+				const initialEaseFactor = 2.5;
+				const initialRepetitions = 0;
+				const initialNextReviewAt = now; // Review immediately for new items
+				
+				// Create the chunk with auto-topic creation
+				const createdChunk = await createChunkWithTopic({
+					id,
+					topicId: input.topicId || "",
+					title: input.title,
+					subject: input.subject,
+					difficulty: input.difficulty,
+					nextReviewAt: initialNextReviewAt,
+					easeFactor: initialEaseFactor,
+					repetitions: initialRepetitions,
+					estimatedDuration: input.estimatedDuration || 15,
+					chunkType: input.chunkType || "new",
+					prerequisites: input.prerequisites || [],
+					tags: input.tags || [],
+					createdAt: now,
+					updatedAt: now,
+					topicTitle: input.topicTitle
+				});
+				
+				// Convert to LearningItem format for response
+				const learningItem = mapChunkRowToLearningItem(createdChunk);
+				
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: true, 
+							item: learningItem,
+							message: "Learning item created successfully"
+						}) 
+					}] 
+				};
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: false, 
+							error: {
+								type: "database",
+								message: errorMsg,
+								retryable: true
+							}
+						}) 
+					}] 
+				};
+			}
+		}
+	);
+
+	// Write endpoints - Record Review Result
+	server.registerTool(
+		"record_review_result",
+		{
+			title: "Record Review Result",
+			description: "Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.",
+			inputSchema: {
+				itemId: z.string()
+					.min(1, "Item ID cannot be empty")
+					.describe("ID of the learning item"),
+				quality: z.number()
+					.min(VALIDATION_CONSTANTS.MIN_QUALITY_SCORE, `Quality score must be at least ${VALIDATION_CONSTANTS.MIN_QUALITY_SCORE}`)
+					.max(VALIDATION_CONSTANTS.MAX_QUALITY_SCORE, `Quality score cannot exceed ${VALIDATION_CONSTANTS.MAX_QUALITY_SCORE}`)
+					.describe("Quality score from 0-5"),
+				timeSpentMs: z.number()
+					.int("Time spent must be an integer")
+					.min(0, "Time spent cannot be negative")
+					.optional()
+					.default(0)
+					.describe("Time spent studying in milliseconds"),
+				consecutiveFailures: z.number()
+					.int("Consecutive failures must be an integer")
+					.min(0, "Consecutive failures cannot be negative")
+					.optional()
+					.default(0)
+					.describe("Number of consecutive failures"),
+				daysOverdue: z.number()
+					.int("Days overdue must be an integer")
+					.min(0, "Days overdue cannot be negative")
+					.optional()
+					.default(0)
+					.describe("Number of days overdue")
+			},
+		},
+		async (input: {
+			itemId: string;
+			quality: number;
+			timeSpentMs?: number;
+			consecutiveFailures?: number;
+			daysOverdue?: number;
+		}) => {
+			try {
+				// Process the review result
+				const result = await processReviewResult(input.itemId, input.quality, {
+					timeSpentMs: input.timeSpentMs,
+					consecutiveFailures: input.consecutiveFailures,
+					daysOverdue: input.daysOverdue
+				});
+				
+				// Convert to LearningItem format for response
+				const learningItem = mapChunkRowToLearningItem(result.chunk);
+				
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: true, 
+							item: learningItem,
+							isLeech: result.isLeech,
+							message: result.isLeech ? "Item marked as leech due to consecutive failures" : "Review result recorded successfully"
+						}) 
+					}] 
+				};
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+				return { 
+					content: [{ 
+						type: "text", 
+						text: JSON.stringify({ 
+							success: false, 
+							error: {
+								type: "database",
+								message: errorMsg,
+								retryable: true
+							}
+						}) 
+					}] 
+				};
 			}
 		}
 	);

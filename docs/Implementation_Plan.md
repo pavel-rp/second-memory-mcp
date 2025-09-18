@@ -647,25 +647,6 @@ Focus on creating scaffolding that can be gradually removed as competence develo
 - [ ] Deployment automation
 
 
-## Configuration Files
-
-### Claude Desktop Configuration
-
-```json
-{
-  "mcpServers": {
-    "second-memory-learning": {
-      "command": "pnpm",
-      "args": ["--silent", "--reporter", "silent", "--dir", "B:\\Projects\\second-memory", "run", "--silent", "start:pnpm"],
-      "env": {
-        "NOTION_API_KEY": "your_notion_integration_token",
-        "NOTION_DATABASES": "{\"topics\":\"db_id_1\",\"chunks\":\"db_id_2\",\"schedule\":\"db_id_3\",\"analytics\":\"db_id_4\",\"logs\":\"db_id_5\"}"
-      }
-    }
-  }
-}
-```
-
 ### Prompt exposure workaround
 
 Some clients currently don’t surface MCP prompts in UI even when the server implements `prompts/list` and `prompts/get`. As a reliable workaround, this server also exposes prompt-generating tools that return the same text:
@@ -678,47 +659,6 @@ Some clients currently don’t surface MCP prompts in UI even when the server im
 
 Use these when prompts don’t appear. This keeps flows functional across clients while we track prompt support.
 
-
-### Environment Configuration
-
-```typescript
-// config.ts
-export const CONFIG = {
-  // Spaced repetition parameters
-  SR_CONFIG: {
-    DEFAULT_EASE_FACTOR: 2.5,
-    MIN_EASE_FACTOR: 1.3,
-    MAX_EASE_FACTOR: 4.0,
-    INITIAL_INTERVALS: [1, 6], // days
-    QUALITY_THRESHOLD: 3,
-    PHASE_TRANSITION_THRESHOLD: 0.15 // from research
-  },
-
-  // Learning parameters
-  LEARNING_CONFIG: {
-    MAX_CHUNKS_PER_TOPIC: 9, // cognitive load theory
-    MIN_CHUNKS_PER_TOPIC: 3,
-    MAX_WORKING_MEMORY: 7,
-    RETRIEVAL_ATTEMPTS: 2,
-    CHUNK_SIZE_TARGET: 300 // tokens
-  },
-
-  // Priority calculation weights
-  PRIORITY_CONFIG: {
-    OVERDUE_WEIGHT: 10,
-    DIFFICULTY_WEIGHT: 0.2,
-    EASE_FACTOR_WEIGHT: 3.0,
-    REPETITION_WEIGHT: 5
-  },
-
-  // Notion configuration
-  NOTION_CONFIG: {
-    RATE_LIMIT_MS: 334, // 3 requests per second
-    BATCH_SIZE: 100,
-    RETRY_ATTEMPTS: 3
-  }
-};
-```
 
 
 ## Success Metrics and Analytics
@@ -755,15 +695,12 @@ The system continuously learns and adapts:
 
 ### Data Protection
 
-- All learning data remains in user's personal Notion workspace
-- No external data transmission except to Notion API
 - Local MCP server processing for sensitive calculations
 - Configurable data retention policies
 
 
 ### Access Control
 
-- Notion integration tokens with minimal required permissions
 - MCP server runs with user-level privileges only
 - No cross-user data access or sharing capabilities
 - Audit logs for all database operations
@@ -772,8 +709,6 @@ The system continuously learns and adapts:
 ## Conclusion
 
 This implementation plan delivers a sophisticated, scientifically-grounded learning system that leverages the best of modern AI capabilities while maintaining user control and privacy. The system's foundation in peer-reviewed learning science research, combined with advanced spaced repetition algorithms and intelligent scaffolding, creates a powerful tool for deep, systematic learning.
-
-The modular MCP architecture ensures the system can evolve and be enhanced over time, while the Notion integration provides a familiar, powerful interface for data management and visualization. By implementing evidence-based learning principles at every level, from cognitive load theory to priority scheduling algorithms, this system represents a significant advance in AI-powered personal tutoring technology.
 
 The system specifically excels at the user's requirement to "scaffold very hard problems into small easily digestible chunks" through its implementation of cognitive load theory, sophisticated scaffolding algorithms, and research-proven chunking strategies. The spaced repetition implementation using enhanced SM-2 algorithms with priority scheduling ensures optimal long-term retention while avoiding the phase transition problems identified in scheduling research.
 <span style="display:none">[^10][^100][^101][^102][^103][^104][^105][^106][^107][^108][^109][^11][^110][^111][^112][^113][^114][^115][^116][^117][^118][^119][^12][^120][^121][^122][^123][^124][^125][^126][^127][^128][^129][^13][^130][^131][^132][^133][^134][^135][^136][^137][^138][^139][^14][^140][^141][^142][^143][^144][^145][^146][^147][^148][^149][^15][^150][^151][^152][^153][^154][^155][^16][^17][^18][^19][^20][^21][^22][^23][^24][^25][^26][^27][^28][^29][^30][^31][^32][^33][^34][^35][^36][^37][^38][^39][^40][^41][^42][^43][^44][^45][^46][^47][^48][^49][^50][^51][^52][^53][^54][^55][^56][^57][^58][^59][^60][^61][^62][^63][^64][^65][^66][^67][^68][^69][^70][^71][^72][^73][^74][^75][^76][^77][^78][^79][^80][^81][^82][^83][^84][^85][^86][^87][^88][^89][^9][^90][^91][^92][^93][^94][^95][^96][^97][^98][^99]</span>

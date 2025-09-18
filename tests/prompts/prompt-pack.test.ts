@@ -6,7 +6,6 @@ describe("promptPack", () => {
 		const text = promptPack.getPrompt("workflow_guidance", {});
 		expect(text).toContain("calculate_next_review");
 		expect(text).toContain("calculate_priority_score");
-		expect(text).toContain("Notion MCP");
 	});
 
 	it("learning prompt includes chunk metadata", () => {
