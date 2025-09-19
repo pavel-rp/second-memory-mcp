@@ -111,8 +111,8 @@ export function mapChunkRowToLearningItem(row: any): LearningItem {
 		chunkType: row.chunkType,
 		prerequisites: decodeJsonArray(row.prerequisitesJson),
 		tags: decodeJsonArray(row.tagsJson),
-		topicId: row.topicTitle ? row.topicId : undefined, // Only include if topic actually exists
-		topicTitle: row.topicTitle || undefined,
+		topicId: row.topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
+		topicTitle: row.topicTitle !== null ? row.topicTitle : undefined,
 	};
 }
 

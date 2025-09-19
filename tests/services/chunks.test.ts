@@ -165,7 +165,7 @@ function tmpDbPath() {
 	});
 
 	it("validates topic fields with Zod schema", async () => {
-		// Test valid UUID for topicId
+		// Test valid topicId (any non-empty string)
 		const validItem = {
 			id: "test-chunk",
 			title: "Test Chunk",
@@ -176,16 +176,16 @@ function tmpDbPath() {
 			repetitions: 1,
 			estimatedDuration: 20,
 			chunkType: "new" as const,
-			topicId: "550e8400-e29b-41d4-a716-446655440000", // Valid UUID
+			topicId: "topic-1", // Valid non-empty string
 			topicTitle: "Test Topic",
 		};
 
 		expect(() => LearningItemSchema.parse(validItem)).not.toThrow();
 
-		// Test invalid UUID for topicId
+		// Test invalid empty topicId
 		const invalidItem = {
 			...validItem,
-			topicId: "invalid-uuid", // Invalid UUID
+			topicId: "", // Invalid empty string
 		};
 
 		expect(() => LearningItemSchema.parse(invalidItem)).toThrow();

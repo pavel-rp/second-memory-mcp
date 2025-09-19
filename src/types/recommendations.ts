@@ -158,7 +158,7 @@ export const LearningItemSchema = z.object({
 	chunkType: ChunkTypeSchema,
 	prerequisites: z.array(z.string()).optional(),
 	tags: z.array(z.string()).optional(),
-	topicId: z.string().uuid().optional(),
+	topicId: z.string().min(1).optional(),
 	topicTitle: z.string().min(1).optional(),
 });
 
