@@ -15,10 +15,19 @@ try {
 
 import { getDb, resetDatabase } from "../../src/db/client.js";
 import { createChunk, listChunks, listChunksAsLearningItems } from "../../src/services/chunks.js";
+import { LearningItemSchema } from "../../src/types/recommendations.js";
 
 function ensureSchema() {
 	const db = getDb();
 	db.exec(`
+	CREATE TABLE IF NOT EXISTS learning_topics (
+		id TEXT PRIMARY KEY NOT NULL,
+		title TEXT NOT NULL,
+		subject TEXT NOT NULL,
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL
+	);
+
 	CREATE TABLE IF NOT EXISTS learning_chunks (
 		id TEXT PRIMARY KEY NOT NULL,
 		topic_id TEXT NOT NULL,
@@ -92,5 +101,102 @@ function tmpDbPath() {
 		expect(items[0].title).toBe("Two Sum");
 		expect(items[0].subject).toBe("CS");
 		expect(items[0].chunkType).toBe("new");
+	});
+
+	it("includes topic information when topic exists", async () => {
+		const now = Date.now();
+		const db = getDb();
+
+		// Create a topic first
+		db.exec(`
+			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+			VALUES ('topic-1', 'Algorithm Fundamentals', 'CS', ${now}, ${now})
+		`);
+
+		// Create chunk linked to the topic
+		await createChunk({
+			id: "chunk-1",
+			topicId: "topic-1",
+			title: "Two Sum Problem",
+			subject: "CS",
+			difficulty: 5,
+			nextReviewAt: now + 86400000,
+			easeFactor: 2.5,
+			repetitions: 1,
+			lastReviewedAt: now,
+			estimatedDuration: 20,
+			chunkType: "new",
+			prerequisites: ["arrays"],
+			tags: ["leetcode"],
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		const items = await listChunksAsLearningItems();
+		expect(items).toHaveLength(1);
+		expect(items[0].topicId).toBe("topic-1");
+		expect(items[0].topicTitle).toBe("Algorithm Fundamentals");
+	});
+
+	it("handles orphaned chunks without topic", async () => {
+		const now = Date.now();
+
+		// Create chunk with non-existent topicId
+		await createChunk({
+			id: "orphan-chunk",
+			topicId: "non-existent-topic",
+			title: "Orphaned Chunk",
+			subject: "CS",
+			difficulty: 3,
+			nextReviewAt: now + 86400000,
+			easeFactor: 2.5,
+			repetitions: 0,
+			estimatedDuration: 15,
+			chunkType: "new",
+			createdAt: now,
+			updatedAt: now,
+		});
+
+		const items = await listChunksAsLearningItems();
+		expect(items).toHaveLength(1);
+		expect(items[0].id).toBe("orphan-chunk");
+		expect(items[0].topicId).toBeUndefined();
+		expect(items[0].topicTitle).toBeUndefined();
+	});
+
+	it("validates topic fields with Zod schema", async () => {
+		// Test valid topicId (any non-empty string)
+		const validItem = {
+			id: "test-chunk",
+			title: "Test Chunk",
+			subject: "CS",
+			difficulty: 5,
+			nextReviewDate: "2024-01-01",
+			easeFactor: 2.5,
+			repetitions: 1,
+			estimatedDuration: 20,
+			chunkType: "new" as const,
+			topicId: "topic-1", // Valid non-empty string
+			topicTitle: "Test Topic",
+		};
+
+		expect(() => LearningItemSchema.parse(validItem)).not.toThrow();
+
+		// Test invalid empty topicId
+		const invalidItem = {
+			...validItem,
+			topicId: "", // Invalid empty string
+		};
+
+		expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
+
+		// Test optional fields work
+		const itemWithoutTopic = {
+			...validItem,
+			topicId: undefined,
+			topicTitle: undefined,
+		};
+
+		expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();
 	});
 });
