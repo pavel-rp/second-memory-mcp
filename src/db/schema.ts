@@ -6,6 +6,7 @@ export const learningTopics = sqliteTable("learning_topics", {
 	id: text("id").primaryKey().notNull(),
 	title: text("title").notNull(),
 	subject: text("subject").notNull(),
+	summary: text("summary"), // Brief summary of the topic
 	createdAt: integer("created_at", { mode: "number" }).notNull(), // epoch ms
 	updatedAt: integer("updated_at", { mode: "number" }).notNull(), // epoch ms
 });
@@ -15,6 +16,7 @@ export const learningChunks = sqliteTable("learning_chunks", {
 	topicId: text("topic_id").notNull().references(() => learningTopics.id, { onDelete: "cascade" }),
 	title: text("title").notNull(),
 	subject: text("subject").notNull(),
+	summary: text("summary"), // Brief summary of the chunk content
 	difficulty: integer("difficulty", { mode: "number" }).notNull(),
 	nextReviewAt: integer("next_review_at", { mode: "number" }).notNull(), // epoch ms
 	easeFactor: real("ease_factor").notNull(),

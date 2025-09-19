@@ -24,6 +24,7 @@ function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
@@ -33,6 +34,7 @@ function ensureSchema() {
 		topic_id TEXT NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
 		difficulty INTEGER NOT NULL,
 		next_review_at INTEGER NOT NULL,
 		ease_factor REAL NOT NULL,
@@ -109,8 +111,8 @@ function tmpDbPath() {
 
 		// Create a topic first
 		db.exec(`
-			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
-			VALUES ('topic-1', 'Algorithm Fundamentals', 'CS', ${now}, ${now})
+			INSERT INTO learning_topics (id, title, subject, summary, created_at, updated_at)
+			VALUES ('topic-1', 'Algorithm Fundamentals', 'CS', 'Core algorithms and data structures', ${now}, ${now})
 		`);
 
 		// Create chunk linked to the topic
@@ -119,6 +121,7 @@ function tmpDbPath() {
 			topicId: "topic-1",
 			title: "Two Sum Problem",
 			subject: "CS",
+			summary: "Find two numbers in array that add up to target",
 			difficulty: 5,
 			nextReviewAt: now + 86400000,
 			easeFactor: 2.5,
@@ -136,6 +139,8 @@ function tmpDbPath() {
 		expect(items).toHaveLength(1);
 		expect(items[0].topicId).toBe("topic-1");
 		expect(items[0].topicTitle).toBe("Algorithm Fundamentals");
+		expect(items[0].topicSummary).toBe("Core algorithms and data structures");
+		expect(items[0].summary).toBe("Find two numbers in array that add up to target");
 	});
 
 	it("handles orphaned chunks without topic", async () => {
@@ -165,11 +170,12 @@ function tmpDbPath() {
 	});
 
 	it("validates topic fields with Zod schema", async () => {
-		// Test valid topicId (any non-empty string)
+		// Test valid item with summary fields
 		const validItem = {
 			id: "test-chunk",
 			title: "Test Chunk",
 			subject: "CS",
+			summary: "Test chunk summary",
 			difficulty: 5,
 			nextReviewDate: "2024-01-01",
 			easeFactor: 2.5,
@@ -178,6 +184,7 @@ function tmpDbPath() {
 			chunkType: "new" as const,
 			topicId: "topic-1", // Valid non-empty string
 			topicTitle: "Test Topic",
+			topicSummary: "Test topic summary",
 		};
 
 		expect(() => LearningItemSchema.parse(validItem)).not.toThrow();
@@ -190,13 +197,23 @@ function tmpDbPath() {
 
 		expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
 
-		// Test optional fields work
-		const itemWithoutTopic = {
+		// Test invalid empty summary
+		const invalidSummaryItem = {
 			...validItem,
-			topicId: undefined,
-			topicTitle: undefined,
+			summary: "", // Invalid empty string
 		};
 
-		expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();
+		expect(() => LearningItemSchema.parse(invalidSummaryItem)).toThrow();
+
+		// Test optional fields work
+		const itemWithoutOptionalFields = {
+			...validItem,
+			summary: undefined,
+			topicId: undefined,
+			topicTitle: undefined,
+			topicSummary: undefined,
+		};
+
+		expect(() => LearningItemSchema.parse(itemWithoutOptionalFields)).not.toThrow();
 	});
 });

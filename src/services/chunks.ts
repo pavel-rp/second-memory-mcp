@@ -12,6 +12,7 @@ export type CreateChunkInput = {
 	topicId: string;
 	title: string;
 	subject: string;
+	summary?: string;
 	difficulty: number;
 	nextReviewAt: number;
 	easeFactor: number;
@@ -58,6 +59,7 @@ export async function listChunks(filter: ListChunksFilter = {}) {
 		topicId: learningChunks.topicId,
 		title: learningChunks.title,
 		subject: learningChunks.subject,
+		summary: learningChunks.summary,
 		difficulty: learningChunks.difficulty,
 		nextReviewAt: learningChunks.nextReviewAt,
 		easeFactor: learningChunks.easeFactor,
@@ -70,6 +72,7 @@ export async function listChunks(filter: ListChunksFilter = {}) {
 		createdAt: learningChunks.createdAt,
 		updatedAt: learningChunks.updatedAt,
 		topicTitle: learningTopics.title,
+		topicSummary: learningTopics.summary,
 	})
 	.from(learningChunks)
 	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
@@ -102,6 +105,7 @@ export function mapChunkRowToLearningItem(row: any): LearningItem {
 		id: row.id,
 		title: row.title,
 		subject: row.subject,
+		summary: row.summary || undefined,
 		difficulty: row.difficulty,
 		nextReviewDate: toIsoDate(row.nextReviewAt),
 		easeFactor: row.easeFactor,
@@ -113,6 +117,7 @@ export function mapChunkRowToLearningItem(row: any): LearningItem {
 		tags: decodeJsonArray(row.tagsJson),
 		topicId: row.topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
 		topicTitle: row.topicTitle !== null ? row.topicTitle : undefined,
+		topicSummary: row.topicSummary || undefined,
 	};
 }
 
@@ -151,7 +156,7 @@ export async function deleteChunk(id: string): Promise<number> {
 }
 
 // Enhanced createChunk with auto-topic creation
-export async function createChunkWithTopic(input: CreateChunkInput & { topicTitle?: string }): Promise<LearningChunkRow> {
+export async function createChunkWithTopic(input: CreateChunkInput & { topicTitle?: string; topicSummary?: string }): Promise<LearningChunkRow> {
 	const db = getSql();
 	
 	// If topicTitle is provided but topicId is not, find existing topic or create a new one
@@ -176,6 +181,7 @@ export async function createChunkWithTopic(input: CreateChunkInput & { topicTitl
 				id: finalTopicId,
 				title: input.topicTitle,
 				subject: input.subject,
+				summary: input.topicSummary,
 				createdAt: now,
 				updatedAt: now,
 			}).run();

@@ -14,6 +14,7 @@ export type LearningItem = {
 	id: string;
 	title: string;
 	subject: string;
+	summary?: string; // Brief summary of the chunk content
 	difficulty: number; // 1-10
 	nextReviewDate: string; // ISO date
 	easeFactor: number;
@@ -25,6 +26,7 @@ export type LearningItem = {
 	tags?: string[];
 	topicId?: string; // UUID of parent topic
 	topicTitle?: string; // Human-readable topic title
+	topicSummary?: string; // Brief summary of the parent topic
 };
 
 // Session constraints for composition
@@ -149,6 +151,7 @@ export const LearningItemSchema = z.object({
 	id: z.string().min(1),
 	title: z.string().min(1),
 	subject: z.string().min(1),
+	summary: z.string().min(1).optional(),
 	difficulty: z.number().int().min(1).max(10),
 	nextReviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD"),
 	easeFactor: z.number().min(1.3),
@@ -160,6 +163,7 @@ export const LearningItemSchema = z.object({
 	tags: z.array(z.string()).optional(),
 	topicId: z.string().min(1).optional(),
 	topicTitle: z.string().min(1).optional(),
+	topicSummary: z.string().min(1).optional(),
 });
 
 export const SessionConstraintsSchema = z.object({
