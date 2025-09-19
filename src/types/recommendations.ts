@@ -23,6 +23,8 @@ export type LearningItem = {
 	chunkType: ChunkType;
 	prerequisites?: string[];
 	tags?: string[];
+	topicId?: string; // UUID of parent topic
+	topicTitle?: string; // Human-readable topic title
 };
 
 // Session constraints for composition
@@ -156,6 +158,8 @@ export const LearningItemSchema = z.object({
 	chunkType: ChunkTypeSchema,
 	prerequisites: z.array(z.string()).optional(),
 	tags: z.array(z.string()).optional(),
+	topicId: z.string().uuid().optional(),
+	topicTitle: z.string().min(1).optional(),
 });
 
 export const SessionConstraintsSchema = z.object({

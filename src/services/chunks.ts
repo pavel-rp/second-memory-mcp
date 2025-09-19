@@ -52,17 +52,41 @@ export async function listChunks(filter: ListChunksFilter = {}) {
 	const conditions: ReturnType<typeof eq>[] = [];
 	if (filter.subject) conditions.push(eq(learningChunks.subject, filter.subject));
 	if (filter.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
-	const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-	let query = whereClause
-		? db.select().from(learningChunks).where(whereClause)
-		: db.select().from(learningChunks);
+	const baseQuery = db.select({
+		id: learningChunks.id,
+		topicId: learningChunks.topicId,
+		title: learningChunks.title,
+		subject: learningChunks.subject,
+		difficulty: learningChunks.difficulty,
+		nextReviewAt: learningChunks.nextReviewAt,
+		easeFactor: learningChunks.easeFactor,
+		repetitions: learningChunks.repetitions,
+		lastReviewedAt: learningChunks.lastReviewedAt,
+		estimatedDuration: learningChunks.estimatedDuration,
+		chunkType: learningChunks.chunkType,
+		prerequisitesJson: learningChunks.prerequisitesJson,
+		tagsJson: learningChunks.tagsJson,
+		createdAt: learningChunks.createdAt,
+		updatedAt: learningChunks.updatedAt,
+		topicTitle: learningTopics.title,
+	})
+	.from(learningChunks)
+	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
-	if (filter.limit && filter.limit > 0) {
-		query = query.limit(filter.limit) as typeof query;
+	if (conditions.length > 0) {
+		const query = baseQuery.where(and(...conditions));
+		if (filter.limit && filter.limit > 0) {
+			return query.limit(filter.limit).all();
+		}
+		return query.all();
 	}
 
-	return query.all();
+	if (filter.limit && filter.limit > 0) {
+		return baseQuery.limit(filter.limit).all();
+	}
+
+	return baseQuery.all();
 }
 
 function toIsoDate(epochMs: number): string {
@@ -87,6 +111,8 @@ export function mapChunkRowToLearningItem(row: any): LearningItem {
 		chunkType: row.chunkType,
 		prerequisites: decodeJsonArray(row.prerequisitesJson),
 		tags: decodeJsonArray(row.tagsJson),
+		topicId: row.topicTitle ? row.topicId : undefined, // Only include if topic actually exists
+		topicTitle: row.topicTitle || undefined,
 	};
 }
 
