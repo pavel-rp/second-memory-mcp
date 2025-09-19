@@ -17,6 +17,7 @@ type ChunkGenerationToolArgs = {
 	topicTitle: string;
 	topicDescription?: string;
 	existingChunkTitles?: string[];
+	workflowContext?: 'guided' | 'explicit';
 };
 
 type ChunkManagementToolArgs = {
@@ -374,17 +375,70 @@ export function registerServerTools(server: McpServer): void {
 	server.registerTool(
 		"chunk_generation_prompt",
 		{
-			title: "Generate Chunk Set",
-			description: "Produce chunk proposals (titles, order, content summary, prerequisites)",
+			title: "Generate Chunk Set with Instructions",
+			description: "Provide comprehensive step-by-step instructions for generating scaffolded learning chunks with workflow integration",
 			inputSchema: {
 				topicTitle: z.string().describe("Topic title"),
 				topicDescription: z.string().optional(),
 				existingChunkTitles: z.array(z.string()).optional(),
+				workflowContext: z.enum(['guided', 'explicit']).optional().describe("Workflow context: guided for conversation flow, explicit for direct requests"),
 			},
 		},
 		async (args: ChunkGenerationToolArgs) => {
-			const text = promptPack.getPrompt("chunk_generation", args);
-			return { content: [{ type: "text", text }] };
+			// Get the base prompt for chunk generation
+			const basePrompt = promptPack.getPrompt("chunk_generation", args);
+
+			// Create comprehensive instructions with workflow integration
+			const instructions = `# Chunk Generation Instructions
+
+## Step-by-Step Guide
+
+1. **Use your reasoning capabilities** to analyze the topic: "${args.topicTitle}"
+2. **Generate 5-9 scaffolded learning chunks** following these guidelines:
+   - Break down complex concepts into digestible pieces
+   - Ensure logical progression from basic to advanced
+   - Include prerequisite relationships between chunks
+   - Estimate appropriate difficulty levels (1-10)
+   - Set realistic duration estimates (5-30 minutes per chunk)
+
+3. **Follow the structured format** shown in the prompt below
+4. **Create chunks using this exact schema**:
+   \`\`\`json
+   {
+     "id": "unique-chunk-id",
+     "title": "Descriptive Chunk Title",
+     "content": "Learning content description",
+     "difficulty": 1-10,
+     "prerequisites": ["prerequisite-chunk-titles"],
+     "estimatedDuration": 15,
+     "order": 1,
+     "tags": ["relevant", "tags"],
+     "chunkType": "new"
+   }
+   \`\`\`
+
+5. **After generating chunks**, use the \`create_topic_with_chunks\` tool with your generated chunks
+
+## Base Prompt for Reference:
+${basePrompt}
+
+## Workflow Integration:
+${args.workflowContext === 'guided'
+	? '- This is part of a guided learning session\n- Follow up by calling create_topic_with_chunks with your generated chunks\n- The system will handle the rest of the workflow automatically'
+	: '- This is an explicit chunk generation request\n- Generate chunks according to the topic requirements\n- Use create_topic_with_chunks tool when ready to persist the topic'
+}
+
+## Next Actions:
+1. Generate your chunk definitions using the guidance above
+2. Call \`create_topic_with_chunks\` tool with:
+   - topicTitle: "${args.topicTitle}"
+   - topicDescription: "${args.topicDescription || `Learn ${args.topicTitle} through structured lessons`}"
+   - subject: [infer appropriate subject]
+   - chunks: [your generated chunk array]
+
+Remember: You are generating the content using your reasoning - the server only provides this guidance structure.`;
+
+			return { content: [{ type: "text", text: instructions }] };
 		}
 	);
 
@@ -726,101 +780,6 @@ export function registerServerTools(server: McpServer): void {
 		}
 	);
 
-	// New: Create Topic with Generated Chunks Tool
-	server.registerTool(
-		"create_topic_with_generated_chunks",
-		{
-			title: "Create Topic with Generated Chunks",
-			description: "Create a new learning topic and automatically generate scaffolded chunks using AI. Perfect for guided learning workflows.",
-			inputSchema: {
-				topicTitle: z.string()
-					.min(1, "Topic title cannot be empty")
-					.max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
-					.describe("Title of the learning topic"),
-				topicDescription: z.string()
-					.max(1000, "Topic description cannot exceed 1000 characters")
-					.optional()
-					.describe("Description of the learning topic"),
-				subject: z.string()
-					.min(1, "Subject cannot be empty")
-					.max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH, `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`)
-					.describe("Subject/category of the learning topic"),
-				userPreferences: z.object({
-					preferredDifficulty: z.number()
-						.int()
-						.min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
-						.max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
-						.optional(),
-					learningStyle: z.enum(["visual", "auditory", "kinesthetic", "reading"]).optional(),
-					maxChunkDuration: z.number().int().min(1).max(120).optional(),
-					includePrerequisites: z.boolean().optional()
-				}).optional()
-				.describe("User learning preferences")
-			},
-		},
-		async (input: {
-			topicTitle: string;
-			topicDescription?: string;
-			subject: string;
-			userPreferences?: {
-				preferredDifficulty?: number;
-				learningStyle?: "visual" | "auditory" | "kinesthetic" | "reading";
-				maxChunkDuration?: number;
-				includePrerequisites?: boolean;
-			};
-		}) => {
-			try {
-				const { topicCreationService } = await import("../services/topic-creation.js");
-				
-				const result = await topicCreationService.createTopicWithGeneratedChunks(
-					input.topicTitle,
-					input.topicDescription || `Learn ${input.topicTitle} through structured, scaffolded lessons`,
-					input.subject,
-					input.userPreferences
-				);
-
-				if (result.success && result.topic) {
-					return { 
-						content: [{ 
-							type: "text", 
-							text: JSON.stringify({ 
-								success: true, 
-								topic: result.topic,
-								message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} generated chunks`
-							}) 
-						}] 
-					};
-				} else {
-					return { 
-						content: [{ 
-							type: "text", 
-							text: JSON.stringify({ 
-								success: false, 
-								error: result.error,
-								message: `Failed to create topic "${input.topicTitle}": ${result.error?.message || "Unknown error"}`
-							}) 
-						}] 
-					};
-				}
-			} catch (error) {
-				const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-				return { 
-					content: [{ 
-						type: "text", 
-						text: JSON.stringify({ 
-							success: false, 
-							error: {
-								type: "system",
-								message: errorMsg,
-								retryable: true
-							},
-							message: `System error while creating topic "${input.topicTitle}": ${errorMsg}`
-						}) 
-					}] 
-				};
-			}
-		}
-	);
 
 	// Basic Learning Item Creation Tool
 	server.registerTool(

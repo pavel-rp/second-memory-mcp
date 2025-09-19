@@ -3,7 +3,6 @@ import crypto from "node:crypto";
 import { getSql, withTx } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow, type LearningTopicRow } from "../db/schema.js";
 import { encodeJsonArray } from "../db/operations.js";
-import { promptPack } from "../prompts/prompt-pack.js";
 import type { 
 	TopicCreationInput, 
 	TopicCreationResult, 
@@ -122,108 +121,7 @@ export class TopicCreationService {
 		}
 	}
 
-	/**
-	 * Generate chunks from topic content using AI prompts
-	 */
-	async generateChunksFromContent(
-		topicTitle: string, 
-		topicDescription: string, 
-		subject: string,
-		userPreferences?: UserPreferences
-	): Promise<ChunkDefinition[]> {
-		try {
-			// Use existing chunk generation prompt
-			const prompt = promptPack.getPrompt("chunk_generation", {
-				topicTitle,
-				topicDescription,
-				existingChunkTitles: []
-			});
 
-			// For now, return a structured response that would come from AI
-			// In a real implementation, this would call an AI service
-			const chunks: ChunkDefinition[] = [
-				{
-					id: crypto.randomUUID(),
-					title: `${topicTitle} - Overview`,
-					content: `Introduction to ${topicTitle}. Understanding the basic concepts and context.`,
-					difficulty: userPreferences?.preferredDifficulty || 3,
-					prerequisites: [],
-					estimatedDuration: userPreferences?.maxChunkDuration || 15,
-					order: 1,
-					tags: ["overview", "introduction"],
-					chunkType: "new"
-				},
-				{
-					id: crypto.randomUUID(),
-					title: `${topicTitle} - Core Concepts`,
-					content: `Deep dive into the core concepts of ${topicTitle}.`,
-					difficulty: (userPreferences?.preferredDifficulty || 3) + 1,
-					prerequisites: [`${topicTitle} - Overview`],
-					estimatedDuration: userPreferences?.maxChunkDuration || 15,
-					order: 2,
-					tags: ["core", "concepts"],
-					chunkType: "new"
-				},
-				{
-					id: crypto.randomUUID(),
-					title: `${topicTitle} - Applications`,
-					content: `Practical applications and examples of ${topicTitle}.`,
-					difficulty: (userPreferences?.preferredDifficulty || 3) + 2,
-					prerequisites: [`${topicTitle} - Core Concepts`],
-					estimatedDuration: userPreferences?.maxChunkDuration || 15,
-					order: 3,
-					tags: ["applications", "examples"],
-					chunkType: "new"
-				}
-			];
-
-			return chunks;
-
-		} catch (error) {
-			console.error("Chunk generation failed:", error);
-			throw new Error(`Failed to generate chunks: ${error instanceof Error ? error.message : "Unknown error"}`);
-		}
-	}
-
-	/**
-	 * Create topic with auto-generated chunks
-	 */
-	async createTopicWithGeneratedChunks(
-		topicTitle: string,
-		topicDescription: string,
-		subject: string,
-		userPreferences?: UserPreferences
-	): Promise<TopicCreationResult> {
-		try {
-			// Generate chunks from content
-			const chunks = await this.generateChunksFromContent(
-				topicTitle,
-				topicDescription,
-				subject,
-				userPreferences
-			);
-
-			// Create topic with generated chunks
-			return await this.createTopicWithChunks({
-				topicTitle,
-				topicDescription,
-				subject,
-				chunks,
-				userPreferences
-			});
-
-		} catch (error) {
-			console.error("Topic creation with generated chunks failed:", error);
-			return {
-				success: false,
-				error: {
-					type: "generation",
-					message: error instanceof Error ? error.message : "Failed to generate topic content",
-					retryable: true
-				}
-			};
-		}
-	}
 
 	/**
 	 * Get topic with its chunks

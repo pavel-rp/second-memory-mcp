@@ -129,60 +129,47 @@ export class ConversationManager {
 			includePrerequisites: context.includePrerequisites as boolean
 		};
 
-		try {
-			// Create topic with generated chunks
-			const result = await topicCreationService.createTopicWithGeneratedChunks(
-				topicTitle,
-				`Learn ${topicTitle} through structured, scaffolded lessons`,
-				subject,
-				userPreferences
-			);
+		// Guide the client through instruction-based chunk generation workflow
+		const topicDescription = `Learn ${topicTitle} through structured, scaffolded lessons`;
 
-			if (result.success && result.topic) {
-				const topic = result.topic;
-				const chunkCount = topic.chunks.length;
-				
-				return {
-					message: `Great! I've created a learning path for "${topicTitle}" with ${chunkCount} scaffolded lessons.\n\n` +
-						`Here's what we'll cover:\n` +
-						topic.chunks.map((chunk: any, index: number) => `${index + 1}. ${chunk.title}`).join('\n') +
-						`\n\nReady to start learning? I'll guide you through each lesson step by step.`,
-					needsInput: false,
-					suggestedInputs: ["Start the first lesson", "Tell me more about this topic", "Show me the learning path"],
-					sessionUpdated: true,
-					// Store topic info in context for next steps
-					recommendations: {
-						recommendations: [],
-						sessionSummary: {
-							totalItems: chunkCount,
-							totalDuration: topic.chunks.reduce((sum: number, chunk: any) => sum + chunk.estimatedDuration, 0),
-							totalCognitiveLoad: 0,
-							newItems: chunkCount,
-							reviewItems: 0,
-							remediationItems: 0,
-							subjects: [subject]
-						},
-						estimatedDuration: topic.chunks.reduce((sum: number, chunk: any) => sum + chunk.estimatedDuration, 0),
-						rationale: `Created structured learning path for ${topicTitle} with ${chunkCount} scaffolded lessons`,
-						nextActions: ["Start first lesson", "Review learning objectives", "Adjust difficulty"]
-					}
-				};
-			} else {
-				return {
-					message: `I had trouble creating a learning path for "${topicTitle}". ${result.error?.message || "Please try again."}`,
-					needsInput: true,
-					suggestedInputs: ["Try again", "Choose a different topic", "Get help"],
-				};
+		return {
+			message: `Excellent choice! I'll guide you through creating a structured learning path for "${topicTitle}".\n\n` +
+				`To create the best possible learning experience, I need you to:\n\n` +
+				`1. **Generate learning chunks** using the \`chunk_generation_prompt\` tool with these parameters:\n` +
+				`   - topicTitle: "${topicTitle}"\n` +
+				`   - topicDescription: "${topicDescription}"\n` +
+				`   - workflowContext: "guided"\n\n` +
+				`2. **Follow the detailed instructions** provided by that tool to create 5-9 scaffolded chunks\n\n` +
+				`3. **Create the topic** using \`create_topic_with_chunks\` with your generated chunks\n\n` +
+				`This approach ensures you get a personalized learning path designed specifically for "${topicTitle}" in the ${subject} domain.`,
+			needsInput: false,
+			suggestedInputs: [
+				"Use chunk_generation_prompt tool",
+				"Tell me more about chunk generation",
+				"Choose a different topic"
+			],
+			sessionUpdated: true,
+			// Store guidance context for next steps
+			recommendations: {
+				recommendations: [],
+				sessionSummary: {
+					totalItems: 0,
+					totalDuration: 0,
+					totalCognitiveLoad: 0,
+					newItems: 0,
+					reviewItems: 0,
+					remediationItems: 0,
+					subjects: [subject]
+				},
+				estimatedDuration: 0,
+				rationale: `Providing instruction-based workflow guidance for creating "${topicTitle}" learning path`,
+				nextActions: [
+					"Use chunk_generation_prompt tool",
+					"Generate learning chunks using your reasoning",
+					"Create topic with create_topic_with_chunks tool"
+				]
 			}
-
-		} catch (error) {
-			console.error("Topic creation failed:", error);
-			return {
-				message: `I encountered an issue while creating your learning path for "${topicTitle}". Please try again or choose a different topic.`,
-				needsInput: true,
-				suggestedInputs: ["Try again", "Choose a different topic", "Get help"],
-			};
-		}
+		};
 	}
 
 	/**
