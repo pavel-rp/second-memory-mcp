@@ -108,10 +108,10 @@ describe("Enhanced chunk_generation_prompt tool", () => {
 		const instructions = result.content[0].text;
 
 		// Check for JSON schema components
-		expect(instructions).toMatch(/```json/);
+		expect(instructions).toMatch(/```json\s*\n/);
 		expect(instructions).toContain('"id": "unique-chunk-id"');
 		expect(instructions).toContain('"title": "Descriptive Chunk Title"');
-		expect(instructions).toContain('"difficulty": 1-10');
+		expect(instructions).toContain('"difficulty": 5');
 		expect(instructions).toContain('"prerequisites": ["prerequisite-chunk-titles"]');
 		expect(instructions).toContain('"estimatedDuration": 15');
 		expect(instructions).toContain('"chunkType": "new"');

@@ -408,7 +408,7 @@ export function registerServerTools(server: McpServer): void {
      "id": "unique-chunk-id",
      "title": "Descriptive Chunk Title",
      "content": "Learning content description",
-     "difficulty": 1-10,
+     "difficulty": 5,
      "prerequisites": ["prerequisite-chunk-titles"],
      "estimatedDuration": 15,
      "order": 1,
