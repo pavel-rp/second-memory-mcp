@@ -41,6 +41,11 @@ export type PromptContext = {
 	operation?: "update" | "merge" | "split" | "retire";
 	managedChunk?: { title: string; order?: number; content?: string; prerequisites?: string };
 	intent?: string;
+
+	// Research context (optional)
+	researchRequired?: boolean;
+	searchEmphasis?: "current" | "comprehensive" | "authoritative";
+	topicSearchTerms?: string[];
 };
 
 /**
@@ -66,9 +71,71 @@ export class PromptPack {
 		}
 	}
 
+	private getResearchPrefix(topic: string, searchType: "current" | "comprehensive" | "authoritative" = "comprehensive"): string {
+		const searchQueries = this.getSearchQuerySuggestions(topic);
+		const sourceGuidance = this.getSourceQualityGuidance();
+
+		const searchFocus = {
+			current: "recent information (2024-2025) and latest best practices",
+			comprehensive: "multiple perspectives, solutions, and comprehensive coverage",
+			authoritative: "official documentation, recognized experts, and peer-reviewed sources"
+		}[searchType];
+
+		return [
+			"## RESEARCH FIRST",
+			`Before generating any learning content, search the web for current information about ${topic}.`,
+			"",
+			"Search for:",
+			...searchQueries.map(query => `- ${query}`),
+			`- ${searchFocus}`,
+			"",
+			sourceGuidance,
+			"",
+			"If web search is unavailable, explicitly note this limitation and use best available knowledge with uncertainty markers.",
+			""
+		].join("\n");
+	}
+
+	private getSourceQualityGuidance(): string {
+		return [
+			"Prioritize:",
+			"- Official documentation and authoritative sources",
+			"- Peer-reviewed articles and established educational platforms",
+			"- Recognized industry experts and thought leaders",
+			"- Recent tutorials and guides from reputable sources",
+			"",
+			"When conflicting information is found:",
+			"- Present multiple perspectives with noted trade-offs",
+			"- Indicate areas of consensus vs. disagreement",
+			"- Explicitly state limitations and uncertainties"
+		].join("\n");
+	}
+
+	private getSearchQuerySuggestions(topic: string): string[] {
+		const baseQueries = [
+			`"${topic}" best practices 2024 2025`,
+			`"${topic}" tutorial guide comprehensive`,
+			`"${topic}" official documentation`,
+			`"${topic}" examples real world applications`
+		];
+
+		// Add topic-specific search terms if provided in context
+		return baseQueries;
+	}
+
 	private getScaffoldingPrompt(context: PromptContext): string {
 		const problem = context.problem ?? "<problem not provided>";
+		const searchEmphasis = context.searchEmphasis ?? "comprehensive";
+
+		// Include research instructions if researchRequired is not explicitly false
+		const includeResearch = context.researchRequired !== false;
+
+		const researchSection = includeResearch
+			? this.getResearchPrefix(problem, searchEmphasis)
+			: "";
+
 		return [
+			researchSection,
 			"You are an expert tutor applying evidence-based learning.",
 			"Objective: Analyze the learning challenge and create an optimal scaffolding plan.",
 			"",
@@ -85,7 +152,7 @@ export class PromptPack {
 			"- Manage cognitive load; prefer concrete examples before abstractions",
 			"- Keep explanations concise and supportive",
 			"- Persist the result to this server once it's ready."
-		].join("\n");
+		].filter(Boolean).join("\n");
 	}
 
 	private getLearningPrompt(context: PromptContext): string {
@@ -162,17 +229,27 @@ export class PromptPack {
 			"WORKFLOW GUIDANCE",
 			"",
 			"End-to-end flow:",
-			"1) Intake problem → request 'scaffolding' prompt (produce 5–9 chunks)",
-			"2) For each chunk → request 'learning' prompt → conduct retrieval",
-			"3) Retrieval checks enforce a two-attempt policy with immediate feedback",
-			"4) After retrieval → call tools to schedule next review:",
+			"1) Research phase → Search web for current information about the learning topic",
+			"   - Use authoritative sources, official documentation, and recent best practices",
+			"   - Gather multiple perspectives and real-world examples",
+			"   - Note any limitations if web search is unavailable",
+			"2) Intake problem → request 'scaffolding' prompt (produce 5–9 chunks)",
+			"3) For each chunk → request 'learning' prompt → conduct retrieval",
+			"4) Retrieval checks enforce a two-attempt policy with immediate feedback",
+			"5) After retrieval → call tools to schedule next review:",
 			"   - calculate_next_review(quality, repetitions, ease_factor, interval) → { interval, repetitions, ease_factor, next_review }",
 			"   - calculate_priority_score(next_review_date, ease_factor, repetitions, difficulty) → { priority }",
-			"5) Persist topic/chunk/schedule/analytics/logs via this server's tools",
-			"6) Use 'review' prompt during scheduled sessions; apply interleaving when helpful",
+			"6) Persist topic/chunk/schedule/analytics/logs via this server's tools",
+			"7) Use 'review' prompt during scheduled sessions; apply interleaving when helpful",
+			"",
+			"Research-enhanced learning:",
+			"- All learning prompts now include web search instructions by default",
+			"- Research ensures content is current, accurate, and comprehensive",
+			"- Multiple sources provide balanced perspectives and best practices",
 			"",
 			"Scope boundaries:",
 			"- Only exposes prompts/resources/tools via MCP capabilities",
+			"- Web search performed by client using their own capabilities",
 			"- Write the data to the server as soon as you produce new artifacts like chunks or schedules",
 			"",
 			"Style and pedagogy:",
@@ -186,8 +263,17 @@ export class PromptPack {
 		const topicDescription = context.topicDescription ?? "<description not provided>";
 		const existing = Array.isArray(context.existingChunkTitles) ? context.existingChunkTitles : [];
 		const existingList = existing.length > 0 ? `Existing chunk titles: ${existing.join(", ")}` : "No existing chunk titles provided.";
+		const searchEmphasis = context.searchEmphasis ?? "current";
+
+		// Include research instructions if researchRequired is not explicitly false
+		const includeResearch = context.researchRequired !== false;
+
+		const researchSection = includeResearch
+			? this.getResearchPrefix(topicTitle, searchEmphasis)
+			: "";
 
 		return [
+			researchSection,
 			"You are assisting with chunk generation for a learning topic.",
 			"",
 			`TOPIC: ${topicTitle}`,
@@ -204,7 +290,8 @@ export class PromptPack {
 			"- Avoid duplication with existing titles",
 			"- Manage cognitive load; keep chunks digestible",
 			"- Reference 'Learning Chunks' fields as per schemas",
-		].join("\n");
+			"- Base chunks on current examples and best practices found through research"
+		].filter(Boolean).join("\n");
 	}
 
 	private getChunkManagementPrompt(context: PromptContext): string {
