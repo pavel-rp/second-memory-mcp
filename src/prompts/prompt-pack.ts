@@ -71,12 +71,13 @@ export class PromptPack {
 		}
 	}
 
-	private getResearchPrefix(topic: string, searchType: "current" | "comprehensive" | "authoritative" = "comprehensive"): string {
-		const searchQueries = this.getSearchQuerySuggestions(topic);
+	private getResearchPrefix(topic: string, searchType: "current" | "comprehensive" | "authoritative" = "comprehensive", additionalSearchTerms?: string[]): string {
+		const searchQueries = this.getSearchQuerySuggestions(topic, additionalSearchTerms);
 		const sourceGuidance = this.getSourceQualityGuidance();
 
+		const currentYear = new Date().getFullYear();
 		const searchFocus = {
-			current: "recent information (2024-2025) and latest best practices",
+			current: `recent information (${currentYear - 1}-${currentYear}) and latest best practices`,
 			comprehensive: "multiple perspectives, solutions, and comprehensive coverage",
 			authoritative: "official documentation, recognized experts, and peer-reviewed sources"
 		}[searchType];
@@ -111,15 +112,20 @@ export class PromptPack {
 		].join("\n");
 	}
 
-	private getSearchQuerySuggestions(topic: string): string[] {
+	private getSearchQuerySuggestions(topic: string, additionalSearchTerms?: string[]): string[] {
+		const currentYear = new Date().getFullYear();
 		const baseQueries = [
-			`"${topic}" best practices 2024 2025`,
+			`"${topic}" best practices ${currentYear - 1} ${currentYear}`,
 			`"${topic}" tutorial guide comprehensive`,
 			`"${topic}" official documentation`,
 			`"${topic}" examples real world applications`
 		];
 
-		// Add topic-specific search terms if provided in context
+		// Add topic-specific search terms if provided
+		if (additionalSearchTerms && additionalSearchTerms.length > 0) {
+			return [...baseQueries, ...additionalSearchTerms.map(term => `"${topic}" ${term}`)];
+		}
+
 		return baseQueries;
 	}
 
@@ -131,7 +137,7 @@ export class PromptPack {
 		const includeResearch = context.researchRequired !== false;
 
 		const researchSection = includeResearch
-			? this.getResearchPrefix(problem, searchEmphasis)
+			? this.getResearchPrefix(problem, searchEmphasis, context.topicSearchTerms)
 			: "";
 
 		return [
@@ -243,7 +249,7 @@ export class PromptPack {
 			"7) Use 'review' prompt during scheduled sessions; apply interleaving when helpful",
 			"",
 			"Research-enhanced learning:",
-			"- All learning prompts now include web search instructions by default",
+			"- Scaffolding and chunk generation prompts include web search instructions by default",
 			"- Research ensures content is current, accurate, and comprehensive",
 			"- Multiple sources provide balanced perspectives and best practices",
 			"",
@@ -269,8 +275,19 @@ export class PromptPack {
 		const includeResearch = context.researchRequired !== false;
 
 		const researchSection = includeResearch
-			? this.getResearchPrefix(topicTitle, searchEmphasis)
+			? this.getResearchPrefix(topicTitle, searchEmphasis, context.topicSearchTerms)
 			: "";
+
+		const constraints = [
+			"- Avoid duplication with existing titles",
+			"- Manage cognitive load; keep chunks digestible",
+			"- Reference 'Learning Chunks' fields as per schemas"
+		];
+
+		// Only add research-based constraint if research is included
+		if (includeResearch) {
+			constraints.push("- Base chunks on current examples and best practices found through research");
+		}
 
 		return [
 			researchSection,
@@ -287,10 +304,7 @@ export class PromptPack {
 			"- prerequisites (bulleted list or concise text)",
 			"",
 			"Constraints:",
-			"- Avoid duplication with existing titles",
-			"- Manage cognitive load; keep chunks digestible",
-			"- Reference 'Learning Chunks' fields as per schemas",
-			"- Base chunks on current examples and best practices found through research"
+			...constraints
 		].filter(Boolean).join("\n");
 	}
 

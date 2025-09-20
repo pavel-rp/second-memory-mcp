@@ -55,8 +55,9 @@ describe("promptPack", () => {
 		});
 
 		it("scaffolding prompt uses different search emphasis", () => {
+			const currentYear = new Date().getFullYear();
 			const currentText = promptPack.getPrompt("scaffolding", { problem: "React Hooks", searchEmphasis: "current" });
-			expect(currentText).toContain("recent information (2024-2025)");
+			expect(currentText).toContain(`recent information (${currentYear - 1}-${currentYear})`);
 
 			const authText = promptPack.getPrompt("scaffolding", { problem: "React Hooks", searchEmphasis: "authoritative" });
 			expect(authText).toContain("official documentation, recognized experts");
@@ -77,8 +78,9 @@ describe("promptPack", () => {
 		});
 
 		it("chunk generation prompt uses current search emphasis by default", () => {
+			const currentYear = new Date().getFullYear();
 			const text = promptPack.getPrompt("chunk_generation", { topicTitle: "Node.js APIs" });
-			expect(text).toContain("recent information (2024-2025)");
+			expect(text).toContain(`recent information (${currentYear - 1}-${currentYear})`);
 		});
 
 		it("workflow guidance includes research step", () => {
@@ -109,8 +111,9 @@ describe("promptPack", () => {
 		});
 
 		it("search query suggestions include topic-specific terms", () => {
+			const currentYear = new Date().getFullYear();
 			const text = promptPack.getPrompt("scaffolding", { problem: "GraphQL" });
-			expect(text).toContain('"GraphQL" best practices 2024 2025');
+			expect(text).toContain(`"GraphQL" best practices ${currentYear - 1} ${currentYear}`);
 			expect(text).toContain('"GraphQL" tutorial guide comprehensive');
 			expect(text).toContain('"GraphQL" official documentation');
 			expect(text).toContain('"GraphQL" examples real world applications');
@@ -140,6 +143,27 @@ describe("promptPack", () => {
 			const review = promptPack.getPrompt("review", { masteryLevel: 3 });
 			expect(review).not.toContain("## RESEARCH FIRST");
 			expect(review).toContain("You are conducting a spaced review session");
+		});
+
+		it("uses additional topic search terms when provided", () => {
+			const text = promptPack.getPrompt("scaffolding", {
+				problem: "React Hooks",
+				topicSearchTerms: ["useState", "useEffect", "custom hooks"]
+			});
+			expect(text).toContain('"React Hooks" useState');
+			expect(text).toContain('"React Hooks" useEffect');
+			expect(text).toContain('"React Hooks" custom hooks');
+		});
+
+		it("chunk generation excludes research constraint when research disabled", () => {
+			const withResearch = promptPack.getPrompt("chunk_generation", { topicTitle: "Test" });
+			expect(withResearch).toContain("Base chunks on current examples and best practices found through research");
+
+			const withoutResearch = promptPack.getPrompt("chunk_generation", {
+				topicTitle: "Test",
+				researchRequired: false
+			});
+			expect(withoutResearch).not.toContain("Base chunks on current examples and best practices found through research");
 		});
 	});
 });
