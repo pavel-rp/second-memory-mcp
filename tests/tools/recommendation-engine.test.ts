@@ -17,7 +17,7 @@ function makeItem(overrides: Partial<any> = {}): any {
   };
 }
 
-describe("RecommendationEngine", () => {
+describe("RecommendationEngine", async () => {
   const originalEnv = { ...process.env };
   beforeEach(() => {
     vi.resetModules();
@@ -26,9 +26,9 @@ describe("RecommendationEngine", () => {
     process.env = { ...originalEnv };
   });
 
-  it("returns empty when no items match constraints", () => {
+  it("returns empty when no items match constraints", async () => {
     const engine = new RecommendationEngine();
-    const out = engine.generateRecommendations({
+    const out = await engine.generateRecommendations({
       mode: "explicit",
       learningItems: [makeItem({ id: "a", subject: "Math" })],
       constraints: { subjectFilter: "CS", maxDuration: 5 },
@@ -39,14 +39,14 @@ describe("RecommendationEngine", () => {
     expect(out.estimatedDuration).toBe(0);
   });
 
-  it("guided mode applies intelligent defaults (fills timeAvailable and constraints)", () => {
+  it("guided mode applies intelligent defaults (fills timeAvailable and constraints)", async () => {
     const engine = new RecommendationEngine();
     const items = [
       makeItem({ id: "r1", chunkType: "review", estimatedDuration: 10, nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0,10) }),
       makeItem({ id: "n1", chunkType: "new", estimatedDuration: 10 }),
     ];
 
-    const out = engine.generateRecommendations({
+    const out = await engine.generateRecommendations({
       mode: "guided",
       learningItems: items,
       userHistory: {
@@ -67,7 +67,7 @@ describe("RecommendationEngine", () => {
     expect(out.rationale).toMatch(/spaced repetition/i);
   });
 
-  it("respects maxNewItems constraint and session duration/cognitive load limits", () => {
+  it("respects maxNewItems constraint and session duration/cognitive load limits", async () => {
     const engine = new RecommendationEngine();
     const items = [
       // Overdue review items
@@ -79,7 +79,7 @@ describe("RecommendationEngine", () => {
       makeItem({ id: "n3", chunkType: "new", estimatedDuration: 10, difficulty: 7 }),
     ];
 
-    const out = engine.generateRecommendations({
+    const out = await engine.generateRecommendations({
       mode: "explicit",
       learningItems: items,
       timeAvailable: 30,
@@ -92,7 +92,7 @@ describe("RecommendationEngine", () => {
     expect(out.sessionSummary.totalCognitiveLoad).toBeGreaterThan(0);
   });
 
-  it("interleaves recommendations by difficulty buckets", () => {
+  it("interleaves recommendations by difficulty buckets", async () => {
     const engine = new RecommendationEngine();
     const items = [
       makeItem({ id: "e1", difficulty: 3, estimatedDuration: 5 }),
@@ -103,7 +103,7 @@ describe("RecommendationEngine", () => {
       makeItem({ id: "h2", difficulty: 9, estimatedDuration: 5, easeFactor: 1.6 }),
     ];
 
-    const out = engine.generateRecommendations({
+    const out = await engine.generateRecommendations({
       mode: "explicit",
       learningItems: items,
       timeAvailable: 40,
@@ -119,11 +119,11 @@ describe("RecommendationEngine", () => {
     }
   });
 
-  it("produces alternatives distinct from selected items", () => {
+  it("produces alternatives distinct from selected items", async () => {
     const engine = new RecommendationEngine();
     const items = Array.from({ length: 8 }).map((_, i) => makeItem({ id: `id-${i}`, estimatedDuration: 5 + (i%3), difficulty: 4 + (i%5) }));
 
-    const out = engine.generateRecommendations({
+    const out = await engine.generateRecommendations({
       mode: "explicit",
       learningItems: items,
       timeAvailable: 20,
@@ -138,9 +138,9 @@ describe("RecommendationEngine", () => {
     }
   });
 
-  it("returns orchestrationHint when learningItems array is empty", () => {
+  it("returns orchestrationHint when learningItems array is empty", async () => {
     const engine = new RecommendationEngine();
-    const result = engine.generateRecommendations({
+    const result = await engine.generateRecommendations({
       mode: "guided",
       learningItems: [],
       timeAvailable: 30,
@@ -152,11 +152,11 @@ describe("RecommendationEngine", () => {
     expect(result.orchestrationHint).toContain("orchestrate_learning_workflow tool");
   });
 
-  it("does not return orchestrationHint when learningItems are provided", () => {
+  it("does not return orchestrationHint when learningItems are provided", async () => {
     const engine = new RecommendationEngine();
     const items = [makeItem({ id: "test-item", estimatedDuration: 10 })];
 
-    const result = engine.generateRecommendations({
+    const result = await engine.generateRecommendations({
       mode: "guided",
       learningItems: items,
       timeAvailable: 30,
@@ -165,9 +165,9 @@ describe("RecommendationEngine", () => {
     expect(result.orchestrationHint).toBeUndefined();
   });
 
-  it("handles empty learningItems in explicit mode", () => {
+  it("handles empty learningItems in explicit mode", async () => {
     const engine = new RecommendationEngine();
-    const result = engine.generateRecommendations({
+    const result = await engine.generateRecommendations({
       mode: "explicit",
       learningItems: [],
       timeAvailable: 30,
@@ -178,11 +178,11 @@ describe("RecommendationEngine", () => {
     expect(result.sessionSummary.totalItems).toBe(0);
   });
 
-  it("maintains backward compatibility - orchestrationHint is optional", () => {
+  it("maintains backward compatibility - orchestrationHint is optional", async () => {
     const engine = new RecommendationEngine();
     const items = [makeItem({ id: "test-item", estimatedDuration: 10 })];
 
-    const result = engine.generateRecommendations({
+    const result = await engine.generateRecommendations({
       mode: "guided",
       learningItems: items,
       timeAvailable: 30,

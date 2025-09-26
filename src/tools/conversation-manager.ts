@@ -31,7 +31,7 @@ export class ConversationManager {
 			case "create_topic":
 				return await this.handleTopicCreation(request, intent.details!);
 			case "start_learning":
-				return this.handleStartLearning(request);
+				return await this.handleStartLearning(request);
 			case "continue_session":
 				return this.handleContinueSession(request);
 			case "need_clarification":
@@ -41,7 +41,7 @@ export class ConversationManager {
 			case "get_help":
 				return this.handleGetHelp(request);
 			default:
-				return this.handleGeneralLearning(request);
+				return await this.handleGeneralLearning(request);
 		}
 	}
 
@@ -205,7 +205,7 @@ export class ConversationManager {
 	/**
 	 * Handle initial learning request
 	 */
-	private handleStartLearning(request: ConversationRequest): ConversationResponse {
+	private async handleStartLearning(request: ConversationRequest): Promise<ConversationResponse> {
 		const context = request.context || {};
 
 		// Check if we have enough information to start
@@ -229,7 +229,7 @@ export class ConversationManager {
 				sessionContext: context.sessionContext as SessionContext | undefined,
 			};
 
-			const recommendations = this.recommendationEngine.generateRecommendations(recommendationInput);
+			const recommendations = await this.recommendationEngine.generateRecommendations(recommendationInput);
 
 			if (recommendations.recommendations.length === 0) {
 				return {
@@ -365,7 +365,7 @@ Just say "teach me" and I'll take care of the rest!`,
 	/**
 	 * Handle general learning requests
 	 */
-	private handleGeneralLearning(request: ConversationRequest): ConversationResponse {
+	private async handleGeneralLearning(request: ConversationRequest): Promise<ConversationResponse> {
 		// Extract any time or subject hints from user input
 		const timeHints = this.extractTimeHints(request.userInput);
 		const subjectHints = this.extractSubjectHints(request.userInput);
@@ -388,7 +388,7 @@ Just say "teach me" and I'll take care of the rest!`,
 		}
 
 		// Try to proceed with available information
-		return this.handleStartLearning(request);
+		return await this.handleStartLearning(request);
 	}
 
 	/**

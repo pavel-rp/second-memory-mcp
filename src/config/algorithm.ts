@@ -52,6 +52,21 @@ export type AlgorithmConfig = {
       verbosity: "low" | "medium" | "high"; // guidance verbosity level
     };
   };
+  // Prerequisite validation configuration
+  prerequisiteConfig: {
+    mastery: {
+      minimumQualityScore: number; // minimum average quality score for mastery (0-5)
+      requiredAttempts: number; // minimum successful attempts required
+      recencyDays: number; // max age in days for attempts to be considered recent
+      successRate: number; // minimum success rate required (0-1)
+    };
+    validation: {
+      strictValidation: boolean; // fail on any invalid prerequisite references
+      maxDependencyDepth: number; // max depth for dependency graph traversal
+      enableCaching: boolean; // cache mastery status results for performance
+      cacheExpiryMs: number; // cache expiry time in milliseconds
+    };
+  };
 };
 
 function parseNumber(envValue: string | undefined, fallback: number): number {
@@ -178,6 +193,35 @@ export const algorithmConfig: AlgorithmConfig = {
       verbosity:
         (process.env.SM_REC_CONVO_VERBOSITY as "low" | "medium" | "high") ||
         "medium",
+    },
+  },
+  prerequisiteConfig: {
+    mastery: {
+      minimumQualityScore: parseNumber(
+        process.env.SM_PREREQ_MIN_QUALITY,
+        4.0
+      ),
+      requiredAttempts: parseNumber(
+        process.env.SM_PREREQ_REQUIRED_ATTEMPTS,
+        2
+      ),
+      recencyDays: parseNumber(process.env.SM_PREREQ_RECENCY_DAYS, 30),
+      successRate: parseNumber(process.env.SM_PREREQ_SUCCESS_RATE, 0.8),
+    },
+    validation: {
+      strictValidation: parseBoolean(
+        process.env.SM_PREREQ_STRICT_VALIDATION,
+        false
+      ),
+      maxDependencyDepth: parseNumber(
+        process.env.SM_PREREQ_MAX_DEPTH,
+        5
+      ),
+      enableCaching: parseBoolean(process.env.SM_PREREQ_ENABLE_CACHE, true),
+      cacheExpiryMs: parseNumber(
+        process.env.SM_PREREQ_CACHE_EXPIRY_MS,
+        5 * 60 * 1000
+      ), // 5 minutes default
     },
   },
 };

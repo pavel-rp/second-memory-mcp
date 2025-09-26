@@ -17,7 +17,8 @@
       "Bash(npm run test:chunks:*)",
       "Bash(npx vitest run:*)",
       "Bash(pnpm exec vitest run:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

@@ -151,7 +151,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
                 async (input: any) => {
                         try {
                                 const engine = new RecommendationEngine();
-                                const result = engine.generateRecommendations(input);
+                                const result = await engine.generateRecommendations(input);
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };
                         } catch (error) {
                                 const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";

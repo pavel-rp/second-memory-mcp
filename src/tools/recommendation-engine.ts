@@ -5,6 +5,7 @@ import {
   calculateSessionProgress,
   determineNextPhase,
 } from "./session-manager.js";
+import { prerequisiteValidator } from "./prerequisite-validator.js";
 import type {
   RecommendationInput,
   RecommendationOutput,
@@ -21,15 +22,17 @@ import type {
  * based on spaced repetition algorithms, cognitive load theory, and user history
  */
 export class RecommendationEngine {
+  private lastPrerequisiteFiltering: { rationale: string; filteredCount: number } | null = null;
+
   /**
    * Generate personalized learning recommendations
    */
-  generateRecommendations(input: RecommendationInput): RecommendationOutput {
+  async generateRecommendations(input: RecommendationInput): Promise<RecommendationOutput> {
     // Apply intelligent defaults for guided mode
     const processedInput = this.applyIntelligentDefaults(input);
 
     // Filter and prioritize learning items
-    const candidates = this.filterAndPrioritizeCandidates(
+    const candidates = await this.filterAndPrioritizeCandidates(
       processedInput.learningItems,
       processedInput.constraints
     );
@@ -145,10 +148,10 @@ export class RecommendationEngine {
   /**
    * Filter and prioritize learning items using existing algorithms
    */
-  private filterAndPrioritizeCandidates(
+  private async filterAndPrioritizeCandidates(
     items: LearningItem[],
     constraints?: SessionConstraints
-  ): LearningItem[] {
+  ): Promise<LearningItem[]> {
     let filtered = [...items];
 
     // Apply subject filter
@@ -165,7 +168,31 @@ export class RecommendationEngine {
       );
     }
 
-    // Calculate priorities for all items
+    // Apply prerequisite filtering (before priority scoring)
+    try {
+      const prerequisiteResult = await prerequisiteValidator.filterByPrerequisites(
+        filtered,
+        constraints?.excludeIds
+      );
+
+      // Store filtering information for rationale generation
+      this.lastPrerequisiteFiltering = {
+        rationale: prerequisiteResult.rationale,
+        filteredCount: prerequisiteResult.filteredItems.length,
+      };
+
+      // Use only items that passed prerequisite validation
+      filtered = prerequisiteResult.validItems;
+    } catch (error) {
+      // Log error but continue with original filtering if prerequisite validation fails
+      console.warn('Prerequisite validation failed, continuing without prerequisite filtering:', error);
+      this.lastPrerequisiteFiltering = {
+        rationale: 'Prerequisite validation unavailable - continuing with all items',
+        filteredCount: 0,
+      };
+    }
+
+    // Calculate priorities for remaining items
     const itemsWithPriority = filtered.map((item) => {
       const priorityInput = {
         nextReviewDate: item.nextReviewDate,
@@ -511,6 +538,20 @@ export class RecommendationEngine {
 
     rationale +=
       ". Items are interleaved by difficulty to optimize cognitive load.";
+
+    // Add prerequisite filtering explanation if applicable
+    if (this.lastPrerequisiteFiltering) {
+      if (this.lastPrerequisiteFiltering.filteredCount > 0) {
+        rationale += ` Note: ${this.lastPrerequisiteFiltering.filteredCount} items were filtered out due to unmet prerequisites - focus on mastering foundational concepts first.`;
+      }
+      // Include detailed prerequisite rationale if available
+      if (this.lastPrerequisiteFiltering.rationale &&
+          !this.lastPrerequisiteFiltering.rationale.includes("No items were processed") &&
+          !this.lastPrerequisiteFiltering.rationale.includes("All") &&
+          !this.lastPrerequisiteFiltering.rationale.includes("unavailable")) {
+        rationale += ` ${this.lastPrerequisiteFiltering.rationale}`;
+      }
+    }
 
     return rationale;
   }
