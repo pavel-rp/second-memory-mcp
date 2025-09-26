@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
-import { learningChunks, frictionMetrics } from "../db/schema.js";
+import { learningChunks, frictionMetrics, type LearningChunkRow, type FrictionMetricsRow } from "../db/schema.js";
 import { algorithmConfig } from "../config/algorithm.js";
 import type { MasteryCriteria, MasteryStatus } from "../types/prerequisite-validation.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Service for determining prerequisite mastery based on learning performance data
@@ -54,7 +55,7 @@ export class PrerequisiteMasteryService {
       };
     } catch (error) {
       // Return safe defaults on error
-      console.error(`Error checking mastery for item ${itemId}:`, error);
+      logger.error(`Error checking mastery for item ${itemId}:`, error);
       return {
         itemId,
         isMastered: false,
@@ -94,7 +95,7 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID
    * @returns Chunk data or null if not found
    */
-  private async getChunkData(itemId: string) {
+  private async getChunkData(itemId: string): Promise<LearningChunkRow | undefined> {
     const db = getSql();
     const chunk = db
       .select()
@@ -111,7 +112,7 @@ export class PrerequisiteMasteryService {
    * @param chunk Chunk data from database
    * @returns Calculated metrics
    */
-  private async calculateMasteryMetrics(itemId: string, chunk: any) {
+  private async calculateMasteryMetrics(itemId: string, chunk: LearningChunkRow) {
     const db = getSql();
 
     // Get friction metrics for this chunk (if available)
@@ -142,9 +143,11 @@ export class PrerequisiteMasteryService {
 
     // Calculate success rate from friction metrics or estimate from ease factor
     let successRate: number;
-    if (friction && friction.totalAttempts > 0) {
-      const successfulAttempts = friction.totalAttempts - friction.failedAttempts;
-      successRate = successfulAttempts / friction.totalAttempts;
+    const frictionRow = friction as FrictionMetricsRow | undefined;
+
+    if (frictionRow && frictionRow.totalAttempts > 0) {
+      const successfulAttempts = frictionRow.totalAttempts - frictionRow.failedAttempts;
+      successRate = successfulAttempts / frictionRow.totalAttempts;
     } else {
       // Estimate success rate from ease factor and repetitions
       if (chunk.repetitions === 0) {

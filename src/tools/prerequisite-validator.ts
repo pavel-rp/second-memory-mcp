@@ -6,9 +6,9 @@ import type {
   ValidationResult,
   FilteredResult,
   MasteryStatus,
-  PrerequisiteValidationInput,
 } from "../types/prerequisite-validation.js";
 import type { LearningItem } from "../types/recommendations.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Core prerequisite validation service that filters learning items based on prerequisite mastery
@@ -59,7 +59,7 @@ export class PrerequisiteValidator {
         this.databaseAvailable = true;
       } else {
         this.databaseAvailable = false;
-        console.warn("Database services unavailable for prerequisite validation:", errorMessage);
+        logger.warn("Database services unavailable for prerequisite validation:", errorMessage);
       }
     }
 

@@ -13,6 +13,7 @@ import {
         LearningItemSchema,
         SessionHistorySchema,
         SessionConstraintsSchema,
+        RecommendationInputSchema,
 } from "../types/recommendations.js";
 import { mapChunkRowToLearningItem, processReviewResult } from "../services/chunks.js";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
@@ -144,14 +145,15 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
                                 subjectPreference: SubjectPreferenceSchema.optional(),
                                 learningItems: z.array(LearningItemSchema),
                                 userHistory: SessionHistorySchema.optional(),
-                                sessionContext: z.any().optional(),
+                                sessionContext: RecommendationInputSchema.shape.sessionContext,
                                 constraints: SessionConstraintsSchema.optional(),
                         },
                 },
-                async (input: any) => {
+                async (input: unknown) => {
                         try {
+                                const parsedInput = RecommendationInputSchema.parse(input);
                                 const engine = new RecommendationEngine();
-                                const result = await engine.generateRecommendations(input);
+                                const result = await engine.generateRecommendations(parsedInput);
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };
                         } catch (error) {
                                 const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";

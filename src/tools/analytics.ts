@@ -70,13 +70,15 @@ function cleanEntries(entries: ReviewEntry[]): ReviewEntry[] {
 function groupEntriesByDate(entries: ReviewEntry[]): Map<string, ReviewEntry[]> {
 	const grouped = new Map<string, ReviewEntry[]>();
 
-	for (const entry of entries) {
-		const date = entry.date;
-		if (!grouped.has(date)) {
-			grouped.set(date, []);
-		}
-		grouped.get(date)!.push(entry);
-	}
+        for (const entry of entries) {
+                const date = entry.date;
+                const existing = grouped.get(date);
+                if (existing) {
+                        existing.push(entry);
+                } else {
+                        grouped.set(date, [entry]);
+                }
+        }
 
 	return grouped;
 }
@@ -200,17 +202,18 @@ export function computeWindowRollup(
 		const breakdowns: NonNullable<AnalyticsOutput['breakdowns']> = {};
 
 		// Topic breakdown
-		const topicStats = new Map<string, { reviews: number; qualities: number[] }>();
-		for (const entry of cleanedEntries) {
-			if (entry.topic) {
-				if (!topicStats.has(entry.topic)) {
-					topicStats.set(entry.topic, { reviews: 0, qualities: [] });
-				}
-				const stats = topicStats.get(entry.topic)!;
-				stats.reviews++;
-				stats.qualities.push(entry.quality || 0);
-			}
-		}
+                const topicStats = new Map<string, { reviews: number; qualities: number[] }>();
+                for (const entry of cleanedEntries) {
+                        if (entry.topic) {
+                                const stats = topicStats.get(entry.topic);
+                                const bucket = stats ?? { reviews: 0, qualities: [] };
+                                bucket.reviews++;
+                                bucket.qualities.push(entry.quality || 0);
+                                if (!stats) {
+                                        topicStats.set(entry.topic, bucket);
+                                }
+                        }
+                }
 
 		const by_topic: Record<string, { reviews_completed: number; average_quality: number }> = {};
 		for (const [topic, stats] of topicStats) {
@@ -224,17 +227,18 @@ export function computeWindowRollup(
 		}
 
 		// Tag breakdown
-		const tagStats = new Map<string, { reviews: number; qualities: number[] }>();
-		for (const entry of cleanedEntries) {
-			for (const tag of entry.tags || []) {
-				if (!tagStats.has(tag)) {
-					tagStats.set(tag, { reviews: 0, qualities: [] });
-				}
-				const stats = tagStats.get(tag)!;
-				stats.reviews++;
-				stats.qualities.push(entry.quality || 0);
-			}
-		}
+                const tagStats = new Map<string, { reviews: number; qualities: number[] }>();
+                for (const entry of cleanedEntries) {
+                        for (const tag of entry.tags || []) {
+                                const stats = tagStats.get(tag);
+                                const bucket = stats ?? { reviews: 0, qualities: [] };
+                                bucket.reviews++;
+                                bucket.qualities.push(entry.quality || 0);
+                                if (!stats) {
+                                        tagStats.set(tag, bucket);
+                                }
+                        }
+                }
 
 		const by_tag: Record<string, { reviews_completed: number; average_quality: number }> = {};
 		for (const [tag, stats] of tagStats) {

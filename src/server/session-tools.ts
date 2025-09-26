@@ -9,6 +9,7 @@ import {
 import { ConversationManager } from "../tools/conversation-manager.js";
 import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
 import { sessionToolInputSchema } from "./tool-helpers.js";
+import { ConversationRequestSchema } from "../types/recommendations.js";
 
 export function registerSessionTools(server: McpServer): void {
         server.registerTool(
@@ -18,7 +19,7 @@ export function registerSessionTools(server: McpServer): void {
                         description: "Compute session progress metrics including completion percentages and quality averages",
                         inputSchema: sessionToolInputSchema,
                 },
-                async (sessionData: any) => {
+                async (sessionData: unknown) => {
                         try {
                                 const validatedSession = validateSessionContext(sessionData);
                                 const result = calculateSessionProgress(validatedSession);
@@ -37,7 +38,7 @@ export function registerSessionTools(server: McpServer): void {
                         description: "Analyze session state and provide workflow guidance for next learning phase",
                         inputSchema: sessionToolInputSchema,
                 },
-                async (sessionData: any) => {
+                async (sessionData: unknown) => {
                         try {
                                 const validatedSession = validateSessionContext(sessionData);
                                 const result = determineNextPhase(validatedSession);
@@ -56,7 +57,7 @@ export function registerSessionTools(server: McpServer): void {
                         description: "Analyze session metrics to determine if session should be completed",
                         inputSchema: sessionToolInputSchema,
                 },
-                async (sessionData: any) => {
+                async (sessionData: unknown) => {
                         try {
                                 const validatedSession = validateSessionContext(sessionData);
                                 const result = checkSessionCompletion(validatedSession);
@@ -76,15 +77,16 @@ export function registerSessionTools(server: McpServer): void {
                                 "Conduct a conversational 'teach me' session with zero friction. Handles session guidance, clarifying questions, and learning orchestration.",
                         inputSchema: {
                                 intent: z.string().min(1),
-                                context: z.any().optional(),
+                                context: z.unknown().optional(),
                                 userInput: z.string().optional(),
-                                sessionState: z.any().optional(),
+                                sessionState: z.unknown().optional(),
                         },
                 },
-                async (input: any) => {
+                async (input: unknown) => {
                         try {
+                                const parsedInput = ConversationRequestSchema.parse(input);
                                 const conversationManager = new ConversationManager();
-                                const result = await conversationManager.conductLearningSession(input);
+                                const result = await conversationManager.conductLearningSession(parsedInput);
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };
                         } catch (error) {
                                 const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";

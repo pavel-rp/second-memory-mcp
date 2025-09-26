@@ -3,14 +3,13 @@ import crypto from "node:crypto";
 import { getSql, withTx } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow, type LearningTopicRow } from "../db/schema.js";
 import { encodeJsonArray } from "../db/operations.js";
-import type { 
-	TopicCreationInput, 
-	TopicCreationResult, 
-	TopicWithChunks, 
-	ChunkDefinition,
-	UserPreferences 
+import type {
+        TopicCreationInput,
+        TopicCreationResult,
+        TopicWithChunks,
 } from "../types/topic-creation.js";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Topic Creation Service
@@ -23,17 +22,18 @@ export class TopicCreationService {
 	async createTopicWithChunks(input: TopicCreationInput): Promise<TopicCreationResult> {
 		try {
 			// Validate input
-			const validationResult = this.validateInput(input);
-			if (!validationResult.valid) {
-				return {
-					success: false,
-					error: {
-						type: "validation",
-						message: validationResult.error!,
-						retryable: false
-					}
-				};
-			}
+                        const validationResult = this.validateInput(input);
+                        if (!validationResult.valid) {
+                                const errorMessage = validationResult.error ?? "Invalid topic input";
+                                return {
+                                        success: false,
+                                        error: {
+                                                type: "validation",
+                                                message: errorMessage,
+                                                retryable: false
+                                        }
+                                };
+                        }
 
 			// Create topic and chunks in transaction
 			const result = withTx((tx) => {
@@ -76,11 +76,11 @@ export class TopicCreationService {
 					createdChunks.push(chunk);
 				}
 
-				return {
-					topic,
-					chunks: createdChunks
-				};
-			});
+                                return {
+                                        topic,
+                                        chunks: createdChunks
+                                };
+                        });
 
 			// Convert to response format
 			const topicWithChunks: TopicWithChunks = {
@@ -108,13 +108,13 @@ export class TopicCreationService {
 				topic: topicWithChunks
 			};
 
-		} catch (error) {
-			console.error("Topic creation failed:", error);
-			return {
-				success: false,
-				error: {
-					type: "database",
-					message: error instanceof Error ? error.message : "Unknown database error",
+                } catch (error) {
+                        logger.error("Topic creation failed:", error);
+                        return {
+                                success: false,
+                                error: {
+                                        type: "database",
+                                        message: error instanceof Error ? error.message : "Unknown database error",
 					retryable: true
 				}
 			};
@@ -166,11 +166,11 @@ export class TopicCreationService {
 				updatedAt: topic.updatedAt
 			};
 
-		} catch (error) {
-			console.error("Failed to get topic with chunks:", error);
-			return null;
-		}
-	}
+                } catch (error) {
+                        logger.error("Failed to get topic with chunks:", error);
+                        return null;
+                }
+        }
 
 	/**
 	 * Validate input for topic creation

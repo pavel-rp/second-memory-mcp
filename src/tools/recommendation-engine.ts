@@ -1,10 +1,5 @@
-import { algorithmConfig } from "../config/algorithm.js";
 import { calculatePriorityScore } from "./sr-calculator.js";
 import { calculateItemCognitiveLoad } from "./cognitive-load.js";
-import {
-  calculateSessionProgress,
-  determineNextPhase,
-} from "./session-manager.js";
 import { prerequisiteValidator } from "./prerequisite-validator.js";
 import type {
   RecommendationInput,
@@ -15,7 +10,9 @@ import type {
   ConversationGuidance,
   SessionConstraints,
   LearningPatterns,
+  SubjectPreference,
 } from "../types/recommendations.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Core recommendation engine that generates intelligent learning recommendations
@@ -104,7 +101,11 @@ export class RecommendationEngine {
       const topSubject = Object.entries(preferences).sort(
         ([, a], [, b]) => b - a
       )[0]?.[0];
-      defaults.subjectPreference = (topSubject as any) || "Any";
+      if (this.isSubjectPreference(topSubject)) {
+        defaults.subjectPreference = topSubject;
+      } else {
+        defaults.subjectPreference = "Any";
+      }
     }
 
     // Constraints based on cognitive load patterns
@@ -121,7 +122,6 @@ export class RecommendationEngine {
   private generateIntelligentConstraints(
     input: RecommendationInput
   ): SessionConstraints {
-    const config = algorithmConfig.sessionConfig;
     const patterns = input.userHistory?.patterns;
 
     return {
@@ -162,9 +162,10 @@ export class RecommendationEngine {
     }
 
     // Exclude specific IDs
-    if (constraints?.excludeIds?.length) {
+    const excludeIds = constraints?.excludeIds;
+    if (excludeIds && excludeIds.length > 0) {
       filtered = filtered.filter(
-        (item) => !constraints.excludeIds!.includes(item.id)
+        (item) => !excludeIds.includes(item.id)
       );
     }
 
@@ -185,7 +186,7 @@ export class RecommendationEngine {
       filtered = prerequisiteResult.validItems;
     } catch (error) {
       // Log error but continue with original filtering if prerequisite validation fails
-      console.warn('Prerequisite validation failed, continuing without prerequisite filtering:', error);
+      logger.warn('Prerequisite validation failed, continuing without prerequisite filtering:', error);
       this.lastPrerequisiteFiltering = {
         rationale: 'Prerequisite validation unavailable - continuing with all items',
         filteredCount: 0,
@@ -208,7 +209,7 @@ export class RecommendationEngine {
     // Sort by priority (highest first)
     return itemsWithPriority
       .sort((a, b) => b.calculatedPriority - a.calculatedPriority)
-      .map(({ calculatedPriority, ...item }) => item);
+      .map(({ calculatedPriority: _calculatedPriority, ...item }) => item);
   }
 
   /**
@@ -218,7 +219,7 @@ export class RecommendationEngine {
     candidates: LearningItem[],
     input: RecommendationInput
   ): LearningRecommendation[] {
-    const constraints = input.constraints!;
+    const constraints = input.constraints ?? this.generateIntelligentConstraints(input);
     const recommendations: LearningRecommendation[] = [];
     let totalDuration = 0;
     let totalCognitiveLoad = 0;
@@ -593,5 +594,9 @@ export class RecommendationEngine {
     }
 
     return actions;
+  }
+
+  private isSubjectPreference(value: unknown): value is SubjectPreference {
+    return value === "CS" || value === "Math" || value === "SWE" || value === "Language" || value === "Any";
   }
 }

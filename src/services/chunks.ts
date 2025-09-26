@@ -97,23 +97,31 @@ function toIsoDate(epochMs: number): string {
 	return `${y}-${m}-${day}`;
 }
 
-export function mapChunkRowToLearningItem(row: any): LearningItem {
-	return {
-		id: row.id,
-		title: row.title,
-		subject: row.subject,
-		difficulty: row.difficulty,
-		nextReviewDate: toIsoDate(row.nextReviewAt),
-		easeFactor: row.easeFactor,
-		repetitions: row.repetitions,
-		lastReviewed: row.lastReviewedAt ? toIsoDate(row.lastReviewedAt) : undefined,
-		estimatedDuration: row.estimatedDuration,
-		chunkType: row.chunkType,
-		prerequisites: decodeJsonArray(row.prerequisitesJson),
-		tags: decodeJsonArray(row.tagsJson),
-		topicId: row.topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
-		topicTitle: row.topicTitle !== null ? row.topicTitle : undefined,
-	};
+type ChunkListRow = LearningChunkRow & { topicTitle?: string | null };
+
+export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
+        const rawChunkType = row.chunkType;
+        const chunkType: LearningItem["chunkType"] = rawChunkType === "review" || rawChunkType === "remediation"
+                ? rawChunkType
+                : "new";
+        const topicTitle = row.topicTitle ?? null;
+
+        return {
+                id: row.id,
+                title: row.title,
+                subject: row.subject,
+                difficulty: row.difficulty,
+                nextReviewDate: toIsoDate(row.nextReviewAt),
+                easeFactor: row.easeFactor,
+                repetitions: row.repetitions,
+                lastReviewed: row.lastReviewedAt ? toIsoDate(row.lastReviewedAt) : undefined,
+                estimatedDuration: row.estimatedDuration,
+                chunkType,
+                prerequisites: decodeJsonArray(row.prerequisitesJson),
+                tags: decodeJsonArray(row.tagsJson),
+                topicId: topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
+                topicTitle: topicTitle ?? undefined,
+        };
 }
 
 export async function listChunksAsLearningItems(filter: ListChunksFilter = {}): Promise<LearningItem[]> {

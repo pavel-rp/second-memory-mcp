@@ -17,7 +17,7 @@ function makeItem(overrides: Partial<any> = {}): any {
   };
 }
 
-describe("RecommendationEngine", async () => {
+describe("RecommendationEngine", () => {
   const originalEnv = { ...process.env };
   beforeEach(() => {
     vi.resetModules();
