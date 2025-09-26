@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
 import { learningChunks } from "../db/schema.js";
 import type { PrerequisiteReferenceValidationResult } from "../types/prerequisite-validation.js";
@@ -93,7 +93,8 @@ export class PrerequisiteReferenceValidator {
   private async getExistingChunkIds(idsToCheck: string[]): Promise<Set<string>> {
     // Check if we have a fresh cache with all needed IDs
     if (this.chunkIdCache && Date.now() < this.cacheExpiry) {
-      const cachedResults = idsToCheck.filter(id => this.chunkIdCache!.has(id));
+      const cache = this.chunkIdCache;
+      const cachedResults = idsToCheck.filter(id => cache.has(id));
       if (cachedResults.length === idsToCheck.length) {
         return new Set(cachedResults);
       }
@@ -126,8 +127,10 @@ export class PrerequisiteReferenceValidator {
       this.chunkIdCache = new Set();
     }
 
+    const cache = this.chunkIdCache;
+
     // Add new IDs to cache
-    newIds.forEach(id => this.chunkIdCache!.add(id));
+    newIds.forEach(id => cache.add(id));
 
     // Set cache expiry
     this.cacheExpiry = Date.now() + this.CACHE_DURATION_MS;

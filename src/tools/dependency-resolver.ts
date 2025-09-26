@@ -196,51 +196,60 @@ export class DependencyResolver {
    */
   private topologicalSort(dependencyGraph: Map<string, string[]>, targetItems: string[]): string[] {
     const inDegree = new Map<string, number>();
+    const dependentsMap = new Map<string, string[]>();
     const result: string[] = [];
     const queue: string[] = [];
 
-    // Calculate in-degree for each node
-    const allNodes = new Set([...dependencyGraph.keys(), ...targetItems]);
-    for (const node of allNodes) {
-      inDegree.set(node, 0);
-    }
-
+    // Collect all nodes present either as items or prerequisites
+    const allNodes = new Set<string>();
     for (const [node, prerequisites] of dependencyGraph) {
+      allNodes.add(node);
+      inDegree.set(node, prerequisites.length);
+
       for (const prereq of prerequisites) {
-        inDegree.set(prereq, (inDegree.get(prereq) || 0) + 1);
+        allNodes.add(prereq);
+        inDegree.set(prereq, inDegree.get(prereq) ?? 0);
+        const dependents = dependentsMap.get(prereq) ?? [];
+        dependents.push(node);
+        dependentsMap.set(prereq, dependents);
       }
     }
 
-    // Find all nodes with no incoming edges
+    for (const target of targetItems) {
+      allNodes.add(target);
+      if (!inDegree.has(target)) {
+        inDegree.set(target, 0);
+      }
+    }
+
+    // Nodes with no incoming edges are prerequisites that can be processed first
     for (const [node, degree] of inDegree) {
       if (degree === 0) {
         queue.push(node);
       }
     }
 
-    // Process queue
     while (queue.length > 0) {
-      const current = queue.shift()!;
+      const current = queue.shift();
+      if (!current) {
+        continue;
+      }
       result.push(current);
 
-      // Update in-degree for dependent nodes
-      const prerequisites = dependencyGraph.get(current) || [];
-      for (const prereq of prerequisites) {
-        const newInDegree = (inDegree.get(prereq) || 0) - 1;
-        inDegree.set(prereq, newInDegree);
-
+      const dependents = dependentsMap.get(current) ?? [];
+      for (const dependent of dependents) {
+        const newInDegree = (inDegree.get(dependent) || 0) - 1;
+        inDegree.set(dependent, newInDegree);
         if (newInDegree === 0) {
-          queue.push(prereq);
+          queue.push(dependent);
         }
       }
     }
 
-    // Check if all nodes were processed (no cycles)
     if (result.length !== allNodes.size) {
       throw new Error("Dependency cycle detected during topological sort");
     }
 
-    // Filter to only include target items and their dependencies
     const relevantItems = this.findAllDependencies(dependencyGraph, targetItems);
     return result.filter(item => relevantItems.has(item));
   }

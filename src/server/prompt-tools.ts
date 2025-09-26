@@ -3,6 +3,36 @@ import { z } from "zod";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { ChunkGenerationToolArgs, ChunkManagementToolArgs } from "./tool-helpers.js";
 
+const drillFormatSchema = z.enum([
+        "multiple_choice",
+        "open_ended",
+        "coding_problem",
+        "explanation",
+        "application",
+]);
+
+const learningPromptSchema = z.object({
+        chunkNumber: z.number().int().optional(),
+        totalChunks: z.number().int().optional(),
+        chunkTitle: z.string().optional(),
+        chunkContent: z.string().optional(),
+        prerequisites: z.string().optional(),
+        drillFormat: drillFormatSchema.optional(),
+});
+
+const retrievalPromptSchema = z.object({
+        chunkTitle: z.string().optional(),
+        drillFormat: drillFormatSchema.optional(),
+        masteryLevel: z.number().int().optional(),
+});
+
+const reviewPromptSchema = z.object({
+        lastReviewed: z.string().optional(),
+        masteryLevel: z.number().int().optional(),
+        previousAttempts: z.number().int().optional(),
+        weakAreas: z.string().optional(),
+});
+
 export function registerPromptTools(server: McpServer): void {
         server.registerTool(
                 "scaffolding_prompt",
@@ -32,7 +62,8 @@ export function registerPromptTools(server: McpServer): void {
                         },
                 },
                 async (args: Record<string, unknown>) => {
-                        const text = promptPack.getPrompt("learning", args as any);
+                        const parsedArgs = learningPromptSchema.parse(args);
+                        const text = promptPack.getPrompt("learning", parsedArgs);
                         return { content: [{ type: "text", text }] };
                 }
         );
@@ -49,7 +80,8 @@ export function registerPromptTools(server: McpServer): void {
                         },
                 },
                 async (args: Record<string, unknown>) => {
-                        const text = promptPack.getPrompt("retrieval", args as any);
+                        const parsedArgs = retrievalPromptSchema.parse(args);
+                        const text = promptPack.getPrompt("retrieval", parsedArgs);
                         return { content: [{ type: "text", text }] };
                 }
         );
@@ -67,7 +99,8 @@ export function registerPromptTools(server: McpServer): void {
                         },
                 },
                 async (args: Record<string, unknown>) => {
-                        const text = promptPack.getPrompt("review", args as any);
+                        const parsedArgs = reviewPromptSchema.parse(args);
+                        const text = promptPack.getPrompt("review", parsedArgs);
                         return { content: [{ type: "text", text }] };
                 }
         );
