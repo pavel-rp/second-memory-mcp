@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getDb } from "./client.js";
 import { getSql, bulkInsert, encodeJsonArray } from "./operations.js";
+import { logger } from "../utils/logger.js";
 import {
 	learningTopics,
 	learningChunks,
@@ -98,61 +99,78 @@ export function ensureSchema() {
 	`);
 }
 
-function readJson(pathOrEnv?: string) {
-	const src = pathOrEnv || process.env.MIGRATE_SOURCE || "./notion-export.json";
-	const full = path.resolve(src);
-	const raw = fs.readFileSync(full, "utf-8");
-	return JSON.parse(raw);
+type RawLearningChunk = Omit<NewLearningChunkRow, "prerequisitesJson" | "tagsJson"> & {
+        prerequisites?: string[] | null;
+        tags?: string[] | null;
+};
+
+type MigrationData = {
+        learning_topics?: NewLearningTopicRow[];
+        learning_chunks?: RawLearningChunk[];
+        review_schedule?: NewReviewScheduleRow[];
+        session_logs?: NewSessionLogRow[];
+        performance_analytics?: NewPerformanceAnalyticsRow[];
+        friction_metrics?: NewFrictionMetricsRow[];
+};
+
+function readJson(pathOrEnv?: string): MigrationData {
+        const src = pathOrEnv || process.env.MIGRATE_SOURCE || "./notion-export.json";
+        const full = path.resolve(src);
+        const raw = fs.readFileSync(full, "utf-8");
+        return JSON.parse(raw) as MigrationData;
 }
 
-async function importData(data: any) {
-	const db = getSql();
-	let topics = 0, chunks = 0, schedules = 0, logs = 0, analytics = 0, friction = 0;
+async function importData(data: MigrationData) {
+        const db = getSql();
+        let topics = 0, chunks = 0, schedules = 0, logs = 0, analytics = 0, friction = 0;
 
-	if (Array.isArray(data.learning_topics)) {
-		await bulkInsert<NewLearningTopicRow>(data.learning_topics as NewLearningTopicRow[], (chunk) => {
-			return db.insert(learningTopics).values(chunk).run();
-		});
-		topics = data.learning_topics.length;
-	}
+        if (Array.isArray(data.learning_topics)) {
+                await bulkInsert<NewLearningTopicRow>(data.learning_topics, (chunk) => {
+                        return db.insert(learningTopics).values(chunk).run();
+                });
+                topics = data.learning_topics.length;
+        }
 
-	if (Array.isArray(data.learning_chunks)) {
-		const mapped: NewLearningChunkRow[] = (data.learning_chunks as any[]).map((c) => ({
-			...c,
-			prerequisitesJson: encodeJsonArray(c.prerequisites),
-			tagsJson: encodeJsonArray(c.tags),
-		}));
-		await bulkInsert<NewLearningChunkRow>(mapped, (chunk) => db.insert(learningChunks).values(chunk).run());
-		chunks = mapped.length;
-	}
+        if (Array.isArray(data.learning_chunks)) {
+                const mapped: NewLearningChunkRow[] = data.learning_chunks.map(chunk => {
+                        const { prerequisites, tags, ...chunkWithoutLists } = chunk;
+                        return {
+                                ...chunkWithoutLists,
+                                prerequisitesJson: encodeJsonArray(prerequisites ?? undefined),
+                                tagsJson: encodeJsonArray(tags ?? undefined),
+                        };
+                });
+                await bulkInsert<NewLearningChunkRow>(mapped, (chunk) => db.insert(learningChunks).values(chunk).run());
+                chunks = mapped.length;
+        }
 
-	if (Array.isArray(data.review_schedule)) {
-		await bulkInsert<NewReviewScheduleRow>(data.review_schedule as NewReviewScheduleRow[], (chunk) =>
-			db.insert(reviewSchedule).values(chunk).run()
-		);
-		schedules = data.review_schedule.length;
-	}
+        if (Array.isArray(data.review_schedule)) {
+                await bulkInsert<NewReviewScheduleRow>(data.review_schedule, (chunk) =>
+                        db.insert(reviewSchedule).values(chunk).run()
+                );
+                schedules = data.review_schedule.length;
+        }
 
-	if (Array.isArray(data.session_logs)) {
-		await bulkInsert<NewSessionLogRow>(data.session_logs as NewSessionLogRow[], (chunk) =>
-			db.insert(sessionLogs).values(chunk).run()
-		);
-		logs = data.session_logs.length;
-	}
+        if (Array.isArray(data.session_logs)) {
+                await bulkInsert<NewSessionLogRow>(data.session_logs, (chunk) =>
+                        db.insert(sessionLogs).values(chunk).run()
+                );
+                logs = data.session_logs.length;
+        }
 
-	if (Array.isArray(data.performance_analytics)) {
-		await bulkInsert<NewPerformanceAnalyticsRow>(data.performance_analytics as NewPerformanceAnalyticsRow[], (chunk) =>
-			db.insert(performanceAnalytics).values(chunk).run()
-		);
-		analytics = data.performance_analytics.length;
-	}
+        if (Array.isArray(data.performance_analytics)) {
+                await bulkInsert<NewPerformanceAnalyticsRow>(data.performance_analytics, (chunk) =>
+                        db.insert(performanceAnalytics).values(chunk).run()
+                );
+                analytics = data.performance_analytics.length;
+        }
 
-	if (Array.isArray(data.friction_metrics)) {
-		await bulkInsert<NewFrictionMetricsRow>(data.friction_metrics as NewFrictionMetricsRow[], (chunk) =>
-			db.insert(frictionMetrics).values(chunk).run()
-		);
-		friction = data.friction_metrics.length;
-	}
+        if (Array.isArray(data.friction_metrics)) {
+                await bulkInsert<NewFrictionMetricsRow>(data.friction_metrics, (chunk) =>
+                        db.insert(frictionMetrics).values(chunk).run()
+                );
+                friction = data.friction_metrics.length;
+        }
 
 	return { topics, chunks, schedules, logs, analytics, friction };
 }
@@ -161,9 +179,8 @@ async function main() {
 	ensureSchema();
 	const src = process.argv[2];
 	const data = readJson(src);
-	const summary = await importData(data);
-	// eslint-disable-next-line no-console
-	console.log(JSON.stringify({ status: "ok", summary }, null, 2));
+        const summary = await importData(data);
+        logger.info(JSON.stringify({ status: "ok", summary }, null, 2));
 }
 
 // Check if this script is being run directly (not imported)
@@ -172,9 +189,8 @@ const argFile = process.argv[1];
 const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.replace(/\\/g, '/'));
 
 if (isMainModule) {
-	main().catch((err) => {
-		// eslint-disable-next-line no-console
-		console.error("Migration failed:", err);
-		process.exit(1);
-	});
+        main().catch((err) => {
+                logger.error("Migration failed:", err);
+                process.exit(1);
+        });
 }

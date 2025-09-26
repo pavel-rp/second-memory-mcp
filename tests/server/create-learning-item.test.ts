@@ -1,11 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { registerServerTools } from "../../src/server/tools.js";
-
-interface ServerTool {
-	name: string;
-	spec: unknown;
-	handler: unknown;
-}
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 class StubServer {
 	public tools: string[] = [];
@@ -17,13 +12,13 @@ class StubServer {
 describe("MCP Write Endpoints", () => {
 	it("should register the create_learning_item tool", () => {
 		const stub = new StubServer();
-		registerServerTools(stub as any); // Type assertion needed for registerServerTools compatibility
+                registerServerTools(stub as unknown as McpServer);
 		expect(stub.tools).toContain("create_learning_item");
 	});
 
 	it("should register the record_review_result tool", () => {
 		const stub = new StubServer();
-		registerServerTools(stub as any); // Type assertion needed for registerServerTools compatibility
+                registerServerTools(stub as unknown as McpServer);
 		expect(stub.tools).toContain("record_review_result");
 	});
 });

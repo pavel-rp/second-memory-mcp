@@ -1,4 +1,3 @@
-import { algorithmConfig } from "../config/algorithm.js";
 import { calculateItemCognitiveLoad } from "./cognitive-load.js";
 export { calculateItemCognitiveLoad } from "./cognitive-load.js";
 import type {
@@ -211,13 +210,11 @@ export function composeBalancedSession(
  * Generate intelligent constraints based on time and context
  */
 export function generateIntelligentConstraints(
-	timeAvailable: number,
-	userPatterns?: LearningPatterns
+        timeAvailable: number,
+        userPatterns?: LearningPatterns
 ): SessionConstraints {
-	const config = algorithmConfig.sessionConfig;
-
-	// Base cognitive load on available time
-	let maxCognitiveLoad = Math.min(25, timeAvailable * 0.5); // Rough heuristic
+        // Base cognitive load on available time
+        let maxCognitiveLoad = Math.min(25, timeAvailable * 0.5); // Rough heuristic
 
 	// Adjust based on user patterns
 	if (userPatterns) {

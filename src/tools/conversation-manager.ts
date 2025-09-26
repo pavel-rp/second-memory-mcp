@@ -1,14 +1,13 @@
 import { RecommendationEngine } from "./recommendation-engine.js";
-import { topicCreationService } from "../services/topic-creation.js";
 import type {
-	ConversationRequest,
-	ConversationResponse,
-	RecommendationInput,
-	LearningItem,
-	SessionHistory,
-	SessionContext,
+        ConversationRequest,
+        ConversationResponse,
+        RecommendationInput,
+        LearningItem,
+        SessionHistory,
+        SessionContext,
 } from "../types/recommendations.js";
-import type { UserPreferences } from "../types/topic-creation.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Manages conversational "teach me" workflows with zero friction
@@ -28,10 +27,13 @@ export class ConversationManager {
 		const intent = this.parseIntent(request);
 
 		switch (intent.type) {
-			case "create_topic":
-				return await this.handleTopicCreation(request, intent.details!);
+                        case "create_topic":
+                                return await this.handleTopicCreation(request, intent.details ?? {
+                                        topicTitle: "",
+                                        originalInput: request.userInput ?? request.intent,
+                                });
 			case "start_learning":
-				return this.handleStartLearning(request);
+				return await this.handleStartLearning(request);
 			case "continue_session":
 				return this.handleContinueSession(request);
 			case "need_clarification":
@@ -41,7 +43,7 @@ export class ConversationManager {
 			case "get_help":
 				return this.handleGetHelp(request);
 			default:
-				return this.handleGeneralLearning(request);
+				return await this.handleGeneralLearning(request);
 		}
 	}
 
@@ -108,7 +110,7 @@ export class ConversationManager {
 	 */
 	private async handleTopicCreation(request: ConversationRequest, details: { topicTitle: string; originalInput: string }): Promise<ConversationResponse> {
 		const topicTitle = details?.topicTitle;
-		const context = request.context || {};
+                const context = (request.context ?? {}) as Record<string, unknown>;
 
 		if (!topicTitle) {
 			return {
@@ -119,15 +121,9 @@ export class ConversationManager {
 		}
 
 		// Extract subject from context or infer from topic
-		const subject = context.subject as string || this.inferSubject(topicTitle);
-		
-		// Extract user preferences from context
-		const userPreferences: UserPreferences = {
-			preferredDifficulty: context.preferredDifficulty as number,
-			learningStyle: context.learningStyle as "visual" | "auditory" | "kinesthetic" | "reading",
-			maxChunkDuration: context.maxChunkDuration as number,
-			includePrerequisites: context.includePrerequisites as boolean
-		};
+                const subject = typeof context.subject === "string"
+                        ? context.subject
+                        : this.inferSubject(topicTitle);
 
 		// Guide the client through instruction-based chunk generation workflow
 		const topicDescription = `Learn ${topicTitle} through structured, scaffolded lessons`;
@@ -205,12 +201,13 @@ export class ConversationManager {
 	/**
 	 * Handle initial learning request
 	 */
-	private handleStartLearning(request: ConversationRequest): ConversationResponse {
-		const context = request.context || {};
+	private async handleStartLearning(request: ConversationRequest): Promise<ConversationResponse> {
+                const context = (request.context ?? {}) as Record<string, unknown>;
 
-		// Check if we have enough information to start
-		const learningItems = context.learningItems as LearningItem[] | undefined;
-		const hasLearningItems = learningItems && learningItems.length > 0;
+                const learningItems = Array.isArray(context.learningItems)
+                        ? (context.learningItems as LearningItem[])
+                        : [];
+                const hasLearningItems = learningItems.length > 0;
 
 		if (!hasLearningItems) {
 			return {
@@ -222,14 +219,14 @@ export class ConversationManager {
 
 		// Try to generate recommendations with minimal information
 		try {
-			const recommendationInput: RecommendationInput = {
-				mode: "guided",
-				learningItems: learningItems!,
-				userHistory: context.userHistory as SessionHistory | undefined,
-				sessionContext: context.sessionContext as SessionContext | undefined,
-			};
+                        const recommendationInput: RecommendationInput = {
+                                mode: "guided",
+                                learningItems,
+                                userHistory: context.userHistory as SessionHistory | undefined,
+                                sessionContext: context.sessionContext as SessionContext | undefined,
+                        };
 
-			const recommendations = this.recommendationEngine.generateRecommendations(recommendationInput);
+			const recommendations = await this.recommendationEngine.generateRecommendations(recommendationInput);
 
 			if (recommendations.recommendations.length === 0) {
 				return {
@@ -240,14 +237,17 @@ export class ConversationManager {
 			}
 
 			// Provide immediate guidance with minimal friction
-			const guidance = recommendations.conversationGuidance!;
-			return {
-				message: `Perfect! ${guidance.nextAction}\n\n${guidance.encouragement || ""}\n\n${guidance.progressUpdate || ""}`,
-				recommendations,
-				needsInput: false,
-				suggestedInputs: ["Let's start", "Tell me more about this session", "Adjust the plan"],
-				sessionUpdated: true,
-			};
+                        const guidance = recommendations.conversationGuidance;
+                        const baseMessage = guidance
+                                ? `Perfect! ${guidance.nextAction}\n\n${guidance.encouragement || ""}\n\n${guidance.progressUpdate || ""}`.trim()
+                                : "Perfect! I have a learning plan ready for you.";
+                        return {
+                                message: baseMessage,
+                                recommendations,
+                                needsInput: false,
+                                suggestedInputs: ["Let's start", "Tell me more about this session", "Adjust the plan"],
+                                sessionUpdated: true,
+                        };
 
 		} catch (error) {
 			return this.handleError("generating your learning plan", error);
@@ -347,7 +347,7 @@ export class ConversationManager {
 	/**
 	 * Handle help requests
 	 */
-	private handleGetHelp(request: ConversationRequest): ConversationResponse {
+        private handleGetHelp(_request: ConversationRequest): ConversationResponse {
 		return {
 			message: `I'm your intelligent learning assistant! Here's what I can do:
 
@@ -365,7 +365,7 @@ Just say "teach me" and I'll take care of the rest!`,
 	/**
 	 * Handle general learning requests
 	 */
-	private handleGeneralLearning(request: ConversationRequest): ConversationResponse {
+	private async handleGeneralLearning(request: ConversationRequest): Promise<ConversationResponse> {
 		// Extract any time or subject hints from user input
 		const timeHints = this.extractTimeHints(request.userInput);
 		const subjectHints = this.extractSubjectHints(request.userInput);
@@ -388,15 +388,15 @@ Just say "teach me" and I'll take care of the rest!`,
 		}
 
 		// Try to proceed with available information
-		return this.handleStartLearning(request);
+		return await this.handleStartLearning(request);
 	}
 
 	/**
 	 * Handle session completion
 	 */
-	private handleSessionCompletion(sessionState: any): ConversationResponse {
-		const completedItems = sessionState.currentItemIndex || 0;
-		const totalItems = sessionState.currentRecommendations?.length || 0;
+        private handleSessionCompletion(sessionState: SessionContext): ConversationResponse {
+                const completedItems = sessionState.currentItemIndex ?? 0;
+                const totalItems = sessionState.currentRecommendations?.length ?? 0;
 
 		let message = `Excellent work! You've completed ${completedItems} out of ${totalItems} items in this session.`;
 
@@ -476,8 +476,8 @@ Just say "teach me" and I'll take care of the rest!`,
 	/**
 	 * Handle errors gracefully
 	 */
-	private handleError(action: string, error: any): ConversationResponse {
-		console.error(`ConversationManager error while ${action}:`, error);
+        private handleError(action: string, error: unknown): ConversationResponse {
+                logger.error(`ConversationManager error while ${action}:`, error);
 
 		return {
 			message: `I encountered an issue while ${action}. Please try again, or let me know if you need help with something specific.`,

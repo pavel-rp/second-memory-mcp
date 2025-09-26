@@ -29,6 +29,18 @@
     "no-empty": "warn",
     "no-unused-vars": "off"
   },
+  "overrides": [
+    {
+      "files": ["tests/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/ban-types": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+        "no-console": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "dist/",
     "node_modules/",

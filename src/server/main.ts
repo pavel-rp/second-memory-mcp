@@ -4,6 +4,7 @@ import { z } from "zod";
 import { promptPack } from "../prompts/prompt-pack.js";
 import { registerServerTools } from "./tools.js";
 import { ensureSchema } from "../db/migrate.js";
+import { logger } from "../utils/logger.js";
 
 type ChunkGenerationPromptArgs = {
   topicTitle: string;
@@ -238,8 +239,7 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap().catch((error) => {
-  // eslint-disable-next-line no-console
-  console.error("Failed to start MCP server:", error);
+  logger.error("Failed to start MCP server:", error);
   process.exit(1);
 });
 

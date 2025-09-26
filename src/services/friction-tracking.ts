@@ -3,13 +3,14 @@ import crypto from "node:crypto";
 import { getSql, withTx } from "../db/operations.js";
 import { frictionMetrics, learningChunks, type FrictionMetricsRow, type NewFrictionMetricsRow } from "../db/schema.js";
 import { encodeJsonArray, decodeJsonArray } from "../db/operations.js";
-import type { 
-	FrictionTrackingInput, 
-	FrictionAnalysisResult, 
-	FrictionUpdate,
-	FrictionMetrics as FrictionMetricsType 
+import type {
+        FrictionTrackingInput,
+        FrictionAnalysisResult,
+        FrictionUpdate,
+        FrictionMetrics as FrictionMetricsType
 } from "../types/topic-creation.js";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Friction Tracking Service
@@ -69,13 +70,11 @@ export class FrictionTrackingService {
 				}
 			});
 
-		} catch (error) {
-			// Log error for debugging
-			// eslint-disable-next-line no-console
-			console.error("Failed to record friction metrics:", error);
-			throw new Error(`Failed to record friction metrics: ${error instanceof Error ? error.message : "Unknown error"}`);
-		}
-	}
+                } catch (error) {
+                        logger.error("Failed to record friction metrics:", error);
+                        throw new Error(`Failed to record friction metrics: ${error instanceof Error ? error.message : "Unknown error"}`);
+                }
+        }
 
 	/**
 	 * Get high-friction chunks for prioritization
@@ -110,13 +109,11 @@ export class FrictionTrackingService {
 				isLeech: chunk.consecutiveFailures >= VALIDATION_CONSTANTS.LEECH_THRESHOLD
 			}));
 
-		} catch (error) {
-			// Log error for debugging
-			// eslint-disable-next-line no-console
-			console.error("Failed to get high friction chunks:", error);
-			return [];
-		}
-	}
+                } catch (error) {
+                        logger.error("Failed to get high friction chunks:", error);
+                        return [];
+                }
+        }
 
 	/**
 	 * Analyze friction patterns for a specific chunk
@@ -157,13 +154,11 @@ export class FrictionTrackingService {
 				isLeech: metrics.consecutiveFailures >= VALIDATION_CONSTANTS.LEECH_THRESHOLD
 			};
 
-		} catch (error) {
-			// Log error for debugging
-			// eslint-disable-next-line no-console
-			console.error("Failed to analyze chunk friction:", error);
-			return null;
-		}
-	}
+                } catch (error) {
+                        logger.error("Failed to analyze chunk friction:", error);
+                        return null;
+                }
+        }
 
 	/**
 	 * Update chunk priority based on friction
@@ -191,13 +186,11 @@ export class FrictionTrackingService {
 				.where(eq(frictionMetrics.chunkId, chunkId))
 				.run();
 
-		} catch (error) {
-			// Log error for debugging
-			// eslint-disable-next-line no-console
-			console.error("Failed to update chunk priority:", error);
-			throw new Error(`Failed to update chunk priority: ${error instanceof Error ? error.message : "Unknown error"}`);
-		}
-	}
+                } catch (error) {
+                        logger.error("Failed to update chunk priority:", error);
+                        throw new Error(`Failed to update chunk priority: ${error instanceof Error ? error.message : "Unknown error"}`);
+                }
+        }
 
 	/**
 	 * Get friction metrics for a chunk
@@ -227,13 +220,11 @@ export class FrictionTrackingService {
 				totalAttempts: metrics.totalAttempts
 			};
 
-		} catch (error) {
-			// Log error for debugging
-			// eslint-disable-next-line no-console
-			console.error("Failed to get friction metrics:", error);
-			return null;
-		}
-	}
+                } catch (error) {
+                        logger.error("Failed to get friction metrics:", error);
+                        return null;
+                }
+        }
 
 	/**
 	 * Calculate updated metrics based on new attempt

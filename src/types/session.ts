@@ -28,7 +28,7 @@ export type SessionInput = {
 	start_time: string; // ISO timestamp
 	current_time?: string; // ISO timestamp (defaults to now)
 	chunks: SessionChunk[];
-	context?: Record<string, any>; // optional session metadata
+        context?: Record<string, unknown>; // optional session metadata
 };
 
 // Session progress output
@@ -87,7 +87,7 @@ export const SessionInputSchema = z.object({
 	start_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Start time must be in ISO format"),
 	current_time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/, "Current time must be in ISO format").optional(),
 	chunks: z.array(SessionChunkSchema),
-	context: z.record(z.any()).optional(),
+        context: z.record(z.unknown()).optional(),
 });
 
 export const SessionProgressSchema = z.object({
