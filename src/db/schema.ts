@@ -6,6 +6,9 @@ export const learningTopics = sqliteTable("learning_topics", {
 	id: text("id").primaryKey().notNull(),
 	title: text("title").notNull(),
 	subject: text("subject").notNull(),
+	summary: text("summary"), // client-provided topic summary content
+	summaryVersion: integer("summary_version", { mode: "number" }).default(1), // versioning for summary content
+	summaryUpdatedAt: integer("summary_updated_at", { mode: "number" }), // epoch ms, when summary was last updated
 	createdAt: integer("created_at", { mode: "number" }).notNull(), // epoch ms
 	updatedAt: integer("updated_at", { mode: "number" }).notNull(), // epoch ms
 });
@@ -24,6 +27,9 @@ export const learningChunks = sqliteTable("learning_chunks", {
 	chunkType: text("chunk_type").notNull(), // "new" | "review" | "remediation"
 	prerequisitesJson: text("prerequisites_json"), // JSON string array
 	tagsJson: text("tags_json"), // JSON string array
+	content: text("content"), // client-provided chunk content
+	contentVersion: integer("content_version", { mode: "number" }).default(1), // versioning for content
+	contentUpdatedAt: integer("content_updated_at", { mode: "number" }), // epoch ms, when content was last updated
 	createdAt: integer("created_at", { mode: "number" }).notNull(),
 	updatedAt: integer("updated_at", { mode: "number" }).notNull(),
 });

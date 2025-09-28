@@ -18,7 +18,8 @@
       "Bash(npx vitest run:*)",
       "Bash(pnpm exec vitest run:*)",
       "Bash(git commit:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(pnpm dlx:*)"
     ],
     "deny": [],
     "ask": []

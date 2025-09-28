@@ -45,6 +45,9 @@ export class TopicCreationService {
 					id: topicId,
 					title: input.topicTitle,
 					subject: input.subject,
+					summary: input.topicSummary || null,
+					summaryVersion: input.topicSummary ? 1 : null,
+					summaryUpdatedAt: input.topicSummary ? now : null,
 					createdAt: now,
 					updatedAt: now
 				};
@@ -68,6 +71,9 @@ export class TopicCreationService {
 						chunkType: chunkDef.chunkType,
 						prerequisitesJson: encodeJsonArray(chunkDef.prerequisites),
 						tagsJson: encodeJsonArray(chunkDef.tags),
+						content: chunkDef.content || null,
+						contentVersion: chunkDef.content ? 1 : null,
+						contentUpdatedAt: chunkDef.content ? now : null,
 						createdAt: now,
 						updatedAt: now
 					};
@@ -88,19 +94,21 @@ export class TopicCreationService {
 				topicTitle: result.topic.title,
 				topicDescription: input.topicDescription || "",
 				subject: result.topic.subject,
-				chunks: result.chunks.map(chunk => ({
+				chunks: result.chunks.map((chunk, index) => ({
 					id: chunk.id,
 					title: chunk.title,
-					content: "", // Content will be generated separately
+					content: chunk.content || "", // Persist actual content
 					difficulty: chunk.difficulty,
 					prerequisites: chunk.prerequisitesJson ? JSON.parse(chunk.prerequisitesJson) : [],
 					estimatedDuration: chunk.estimatedDuration,
-					order: 0, // Will be set based on chunk order
+					order: index + 1, // Set proper order based on array index
 					tags: chunk.tagsJson ? JSON.parse(chunk.tagsJson) : [],
 					chunkType: chunk.chunkType as "new" | "review" | "remediation"
 				})),
 				createdAt: result.topic.createdAt,
-				updatedAt: result.topic.updatedAt
+				updatedAt: result.topic.updatedAt,
+				// Include persisted summary content
+				topicSummary: result.topic.summary || undefined
 			};
 
 			return {

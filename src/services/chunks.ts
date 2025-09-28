@@ -23,6 +23,10 @@ export type CreateChunkInput = {
 	tags?: string[];
 	createdAt: number;
 	updatedAt: number;
+	// Content persistence fields
+	content?: string;
+	contentVersion?: number;
+	contentUpdatedAt?: number;
 };
 
 export async function createChunk(input: CreateChunkInput): Promise<void> {
@@ -31,6 +35,9 @@ export async function createChunk(input: CreateChunkInput): Promise<void> {
 		...input,
 		prerequisitesJson: encodeJsonArray(input.prerequisites),
 		tagsJson: encodeJsonArray(input.tags),
+		content: input.content || null,
+		contentVersion: input.content ? (input.contentVersion || 1) : null,
+		contentUpdatedAt: input.content ? (input.contentUpdatedAt || Date.now()) : null,
 	}).run();
 }
 
@@ -67,6 +74,9 @@ export async function listChunks(filter: ListChunksFilter = {}) {
 		chunkType: learningChunks.chunkType,
 		prerequisitesJson: learningChunks.prerequisitesJson,
 		tagsJson: learningChunks.tagsJson,
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
 		createdAt: learningChunks.createdAt,
 		updatedAt: learningChunks.updatedAt,
 		topicTitle: learningTopics.title,
@@ -205,6 +215,60 @@ export async function createChunkWithTopic(input: CreateChunkInput & { topicTitl
 	}
 	
 	return createdChunk;
+}
+
+// Content retrieval functions
+
+export async function getChunkContent(id: string): Promise<{ content: string | null; contentVersion: number | null; contentUpdatedAt: number | null } | null> {
+	const db = getSql();
+	const result = db.select({
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
+	}).from(learningChunks).where(eq(learningChunks.id, id)).get();
+
+	return result || null;
+}
+
+export async function getChunkWithContent(id: string): Promise<(LearningChunkRow & { topicTitle?: string | null }) | null> {
+	const db = getSql();
+	const result = db.select({
+		id: learningChunks.id,
+		topicId: learningChunks.topicId,
+		title: learningChunks.title,
+		subject: learningChunks.subject,
+		difficulty: learningChunks.difficulty,
+		nextReviewAt: learningChunks.nextReviewAt,
+		easeFactor: learningChunks.easeFactor,
+		repetitions: learningChunks.repetitions,
+		lastReviewedAt: learningChunks.lastReviewedAt,
+		estimatedDuration: learningChunks.estimatedDuration,
+		chunkType: learningChunks.chunkType,
+		prerequisitesJson: learningChunks.prerequisitesJson,
+		tagsJson: learningChunks.tagsJson,
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
+		createdAt: learningChunks.createdAt,
+		updatedAt: learningChunks.updatedAt,
+		topicTitle: learningTopics.title,
+	})
+	.from(learningChunks)
+	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+	.where(eq(learningChunks.id, id))
+	.get();
+
+	return result || null;
+}
+
+export type ListChunksWithContentFilter = ListChunksFilter & {
+	includeContent?: boolean;
+};
+
+export async function listChunksWithContent(filter: ListChunksWithContentFilter = {}): Promise<LearningItem[]> {
+	// For now, reuse existing listChunks since it already includes content fields
+	const rows = await listChunks(filter);
+	return rows.map(mapChunkRowToLearningItem);
 }
 
 // Process review result with SM-2 calculations

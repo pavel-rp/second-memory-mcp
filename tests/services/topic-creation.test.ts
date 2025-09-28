@@ -24,6 +24,9 @@ function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
+		summary_version INTEGER,
+		summary_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
@@ -41,6 +44,9 @@ function ensureSchema() {
 		chunk_type TEXT NOT NULL,
 		prerequisites_json TEXT,
 		tags_json TEXT,
+		content TEXT,
+		content_version INTEGER,
+		content_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL,
 		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE CASCADE

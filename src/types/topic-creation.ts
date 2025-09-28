@@ -42,6 +42,8 @@ export type TopicWithChunks = {
 	chunks: ChunkDefinition[];
 	createdAt: number;
 	updatedAt: number;
+	// Content persistence fields
+	topicSummary?: string;
 };
 
 // Friction tracking types
@@ -71,6 +73,8 @@ export type TopicCreationInput = {
 	subject: string;
 	chunks: ChunkDefinition[];
 	userPreferences?: UserPreferences;
+	// Content persistence fields
+	topicSummary?: string;
 };
 
 export type TopicCreationResult = {
@@ -109,7 +113,7 @@ export const UserPreferencesSchema = z.object({
 export const ChunkDefinitionSchema = z.object({
 	id: z.string().min(1),
 	title: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH),
-	content: z.string().min(1),
+	content: z.string().min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH).max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE),
 	difficulty: z.number().int().min(VALIDATION_CONSTANTS.MIN_DIFFICULTY).max(VALIDATION_CONSTANTS.MAX_DIFFICULTY),
 	prerequisites: z.array(z.string()),
 	estimatedDuration: z.number().min(1).max(120), // 1-120 minutes
@@ -134,6 +138,8 @@ export const TopicWithChunksSchema = z.object({
 	chunks: z.array(ChunkDefinitionSchema),
 	createdAt: z.number().int().min(0),
 	updatedAt: z.number().int().min(0),
+	// Content persistence validation
+	topicSummary: z.string().optional(),
 });
 
 export const FrictionMetricsSchema = z.object({
@@ -162,6 +168,8 @@ export const TopicCreationInputSchema = z.object({
 	subject: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH),
 	chunks: z.array(ChunkDefinitionSchema).min(1).max(20), // 1-20 chunks per topic
 	userPreferences: UserPreferencesSchema.optional(),
+	// Content persistence validation
+	topicSummary: z.string().min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH).max(VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE).optional(),
 });
 
 export const TopicCreationResultSchema = z.object({
