@@ -151,7 +151,7 @@ export class PromptPack {
 			"1) HIGH-LEVEL OVERVIEW: key concepts and components",
 			"2) CHUNK BREAKDOWN: a reasonable number of logically ordered, digestible chunks",
 			"2.1) CHUNK ORDER: the order of the chunks should be based on the logical progression of the concepts",
-			"2.2) CHUNK CONTENT: the content of the chunks should be a single concept or idea, not a collection of concepts. It should follow the principles of cognitive load theory and be digestible.",
+			"2.2) CHUNK CONTENT: Each chunk should contain a single digestible concept following cognitive load theory principles.",
 			"2.3) CHUNK NUMBER: the number of chunks should be based on the complexity of the concept. It should be picked intelligently and not be too many or too few.",
 			"3) PREREQUISITE MAPPING: what must be mastered before each chunk",
 			"4) DIFFICULTY ASSESSMENT: overall difficulty (1–10)",
