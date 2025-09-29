@@ -271,10 +271,15 @@ export async function getChunkWithContent(id: string): Promise<(LearningChunkRow
 }
 
 export type ListChunksWithContentFilter = ListChunksFilter & {
+	/**
+	 * Whether to include content fields in the response.
+	 * Content is expensive to retrieve and not included by default.
+	 * Set to true to explicitly include content fields.
+	 */
 	includeContent?: boolean;
 };
 
-export async function listChunksWithContent(filter: ListChunksWithContentFilter = {}): Promise<LearningItem[]> {
+export async function listChunksWithContent(filter: ListChunksWithContentFilter = { includeContent: false }): Promise<LearningItem[]> {
 	const db = getSql();
 	const now = Date.now();
 	const conditions: ReturnType<typeof eq>[] = [];
@@ -297,7 +302,7 @@ export async function listChunksWithContent(filter: ListChunksWithContentFilter 
 		chunkType: learningChunks.chunkType,
 		prerequisitesJson: learningChunks.prerequisitesJson,
 		tagsJson: learningChunks.tagsJson,
-		...(filter.includeContent !== false && {
+		...(filter.includeContent && {
 			content: learningChunks.content,
 			contentVersion: learningChunks.contentVersion,
 			contentUpdatedAt: learningChunks.contentUpdatedAt,
