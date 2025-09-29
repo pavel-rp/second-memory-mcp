@@ -24,6 +24,9 @@ function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
+		summary_version INTEGER,
+		summary_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);

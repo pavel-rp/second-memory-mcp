@@ -24,6 +24,9 @@ function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
+		summary_version INTEGER,
+		summary_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
@@ -42,6 +45,9 @@ function ensureSchema() {
 		chunk_type TEXT NOT NULL,
 		prerequisites_json TEXT,
 		tags_json TEXT,
+		content TEXT,
+		content_version INTEGER,
+		content_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
@@ -109,8 +115,8 @@ function tmpDbPath() {
 
 		// Create a topic first
 		db.exec(`
-			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
-			VALUES ('topic-1', 'Algorithm Fundamentals', 'CS', ${now}, ${now})
+			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
+			VALUES ('topic-1', 'Algorithm Fundamentals', 'CS', NULL, NULL, NULL, ${now}, ${now})
 		`);
 
 		// Create chunk linked to the topic

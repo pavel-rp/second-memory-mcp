@@ -55,6 +55,12 @@ export function registerPersistenceTools(server: McpServer): void {
                                                 `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`
                                         )
                                         .describe("Subject/category of the learning topic"),
+                                topicSummary: z
+                                        .string()
+                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Topic summary cannot be empty if provided")
+                                        .max(VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE, `Topic summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`)
+                                        .optional()
+                                        .describe("Summary content for the learning topic"),
                                 chunks: z
                                         .array(
                                                 z.object({
@@ -66,7 +72,7 @@ export function registerPersistenceTools(server: McpServer): void {
                                                                         VALIDATION_CONSTANTS.MAX_TITLE_LENGTH,
                                                                         `Chunk title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
                                                                 ),
-                                                        content: z.string().min(1, "Chunk content cannot be empty"),
+                                                        content: z.string().min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Chunk content cannot be empty").max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Chunk content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`),
                                                         difficulty: z
                                                                 .number()
                                                                 .int("Difficulty must be an integer")
@@ -118,6 +124,7 @@ export function registerPersistenceTools(server: McpServer): void {
                         topicTitle: string;
                         topicDescription?: string;
                         subject: string;
+                        topicSummary?: string;
                         chunks: Array<{
                                 id: string;
                                 title: string;
@@ -143,6 +150,7 @@ export function registerPersistenceTools(server: McpServer): void {
                                         topicTitle: input.topicTitle,
                                         topicDescription: input.topicDescription,
                                         subject: input.subject,
+                                        topicSummary: input.topicSummary,
                                         chunks: input.chunks,
                                         userPreferences: input.userPreferences,
                                 });
@@ -213,7 +221,8 @@ export function registerPersistenceTools(server: McpServer): void {
                                         .describe("Title of the learning item"),
                                 content: z
                                         .string()
-                                        .min(1, "Content cannot be empty")
+                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Content cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`)
                                         .describe("Content or description of the learning item"),
                                 subject: z
                                         .string()
@@ -275,9 +284,12 @@ export function registerPersistenceTools(server: McpServer): void {
                                         chunkType: "new" as const,
                                         prerequisites: input.prerequisites,
                                         tags: input.tags,
+                                        content: input.content,
+                                        contentVersion: 1,
+                                        contentUpdatedAt: now,
                                         createdAt: now,
                                         updatedAt: now,
-                                        topicTitle: input.topicTitle || `Topic: ${input.title}`,
+                                        topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
                                 });
 
                                 const learningItem = mapChunkRowToLearningItem(chunk);

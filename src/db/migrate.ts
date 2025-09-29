@@ -18,6 +18,11 @@ import {
 	NewFrictionMetricsRow,
 } from "./schema.js";
 
+function checkColumnExists(db: { prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> } }, tableName: string, columnName: string): boolean {
+	const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
+	return result.some((col) => col.name === columnName);
+}
+
 export function ensureSchema() {
 	const db = getDb();
 	// Minimal table creation matching schema definitions
@@ -26,6 +31,9 @@ export function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
+		summary_version INTEGER DEFAULT 1,
+		summary_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
@@ -43,6 +51,9 @@ export function ensureSchema() {
 		chunk_type TEXT NOT NULL,
 		prerequisites_json TEXT,
 		tags_json TEXT,
+		content TEXT,
+		content_version INTEGER DEFAULT 1,
+		content_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL,
 		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE CASCADE
@@ -97,6 +108,40 @@ export function ensureSchema() {
 	CREATE INDEX IF NOT EXISTS idx_friction_metrics_consecutive_failures ON friction_metrics(consecutive_failures DESC);
 	CREATE INDEX IF NOT EXISTS idx_friction_metrics_last_struggle_date ON friction_metrics(last_struggle_date DESC);
 	`);
+
+	// Add content fields to existing tables if they don't exist (migration for content persistence)
+	try {
+		// Add content fields to learning_topics
+		if (!checkColumnExists(db, 'learning_topics', 'summary')) {
+			db.exec('ALTER TABLE learning_topics ADD COLUMN summary TEXT');
+			logger.info('Added summary column to learning_topics table');
+		}
+		if (!checkColumnExists(db, 'learning_topics', 'summary_version')) {
+			db.exec('ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1');
+			logger.info('Added summary_version column to learning_topics table');
+		}
+		if (!checkColumnExists(db, 'learning_topics', 'summary_updated_at')) {
+			db.exec('ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER');
+			logger.info('Added summary_updated_at column to learning_topics table');
+		}
+
+		// Add content fields to learning_chunks
+		if (!checkColumnExists(db, 'learning_chunks', 'content')) {
+			db.exec('ALTER TABLE learning_chunks ADD COLUMN content TEXT');
+			logger.info('Added content column to learning_chunks table');
+		}
+		if (!checkColumnExists(db, 'learning_chunks', 'content_version')) {
+			db.exec('ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1');
+			logger.info('Added content_version column to learning_chunks table');
+		}
+		if (!checkColumnExists(db, 'learning_chunks', 'content_updated_at')) {
+			db.exec('ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER');
+			logger.info('Added content_updated_at column to learning_chunks table');
+		}
+	} catch (error) {
+		logger.error('Content fields migration failed:', error);
+		throw new Error(`Content persistence migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+	}
 }
 
 type RawLearningChunk = Omit<NewLearningChunkRow, "prerequisitesJson" | "tagsJson"> & {

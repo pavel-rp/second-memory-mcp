@@ -12,6 +12,20 @@ import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 import { logger } from "../utils/logger.js";
 
 /**
+ * Safely parse JSON array with error handling
+ */
+function parseJsonArraySafely(jsonString: string | null): string[] {
+	if (!jsonString) return [];
+	try {
+		const parsed = JSON.parse(jsonString);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch (error) {
+		logger.warn("Failed to parse JSON array:", error);
+		return [];
+	}
+}
+
+/**
  * Topic Creation Service
  * Handles creation of topics with multiple chunks in atomic transactions
  */
@@ -45,6 +59,9 @@ export class TopicCreationService {
 					id: topicId,
 					title: input.topicTitle,
 					subject: input.subject,
+					summary: input.topicSummary || null,
+					summaryVersion: input.topicSummary ? 1 : null,
+					summaryUpdatedAt: input.topicSummary ? now : null,
 					createdAt: now,
 					updatedAt: now
 				};
@@ -68,6 +85,9 @@ export class TopicCreationService {
 						chunkType: chunkDef.chunkType,
 						prerequisitesJson: encodeJsonArray(chunkDef.prerequisites),
 						tagsJson: encodeJsonArray(chunkDef.tags),
+						content: chunkDef.content || null,
+						contentVersion: chunkDef.content ? 1 : null,
+						contentUpdatedAt: chunkDef.content ? now : null,
 						createdAt: now,
 						updatedAt: now
 					};
@@ -88,19 +108,21 @@ export class TopicCreationService {
 				topicTitle: result.topic.title,
 				topicDescription: input.topicDescription || "",
 				subject: result.topic.subject,
-				chunks: result.chunks.map(chunk => ({
+				chunks: result.chunks.map((chunk, index) => ({
 					id: chunk.id,
 					title: chunk.title,
-					content: "", // Content will be generated separately
+					content: chunk.content || "", // Persist actual content
 					difficulty: chunk.difficulty,
-					prerequisites: chunk.prerequisitesJson ? JSON.parse(chunk.prerequisitesJson) : [],
+					prerequisites: parseJsonArraySafely(chunk.prerequisitesJson),
 					estimatedDuration: chunk.estimatedDuration,
-					order: 0, // Will be set based on chunk order
-					tags: chunk.tagsJson ? JSON.parse(chunk.tagsJson) : [],
+					order: index + 1, // Set proper order based on array index
+					tags: parseJsonArraySafely(chunk.tagsJson),
 					chunkType: chunk.chunkType as "new" | "review" | "remediation"
 				})),
 				createdAt: result.topic.createdAt,
-				updatedAt: result.topic.updatedAt
+				updatedAt: result.topic.updatedAt,
+				// Include persisted summary content
+				topicSummary: result.topic.summary || undefined
 			};
 
 			return {
@@ -154,12 +176,12 @@ export class TopicCreationService {
 				chunks: chunks.map(chunk => ({
 					id: chunk.id,
 					title: chunk.title,
-					content: "", // Content not stored in current schema
+					content: chunk.content || "", // Content persisted in schema, but may be null for legacy chunks
 					difficulty: chunk.difficulty,
-					prerequisites: chunk.prerequisitesJson ? JSON.parse(chunk.prerequisitesJson) : [],
+					prerequisites: parseJsonArraySafely(chunk.prerequisitesJson),
 					estimatedDuration: chunk.estimatedDuration,
-					order: 0, // Order not stored in current schema
-					tags: chunk.tagsJson ? JSON.parse(chunk.tagsJson) : [],
+					order: 0, // Order inferred from creation sequence or array index
+					tags: parseJsonArraySafely(chunk.tagsJson),
 					chunkType: chunk.chunkType as "new" | "review" | "remediation"
 				})),
 				createdAt: topic.createdAt,

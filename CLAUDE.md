@@ -23,7 +23,7 @@ Second Memory Learning is an MCP (Model Context Protocol) server that implements
 - `src/prompts/prompt-pack.ts` - Learning guidance prompts
 
 **Learning System Design:**
-- **Scaffolding**: Complex problems broken into 5-9 digestible chunks
+- **Scaffolding**: Complex problems broken into a reasonable amount of digestible chunks
 - **Spaced Repetition**: Advanced SM-2 with priority scheduling and leech handling
 - **Cognitive Load Theory**: Chunking optimized for working memory limits
 - **Evidence-Based**: Two-attempt policy, interleaving, retrieval practice
@@ -196,3 +196,9 @@ Key environment variables for algorithm tuning:
 - MCP handlers in `src/server/`
 - Type definitions in `src/types/`
 - Tests mirror source structure in `tests/`
+
+**Workflow Specifications**
+- Follow the spec-workflow defined in the corresponding MCP server when explicitly asked
+- Before starting work in the spec-workflow paradigm, checkout a feature branch if we're on develop, and don't have uncommited or unsynced with remote changes.
+- If there are uncommited or unsynced with remote changes, ask how to act.
+- Always run all builds, lints and tests before claiming a task is completed.

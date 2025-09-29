@@ -4,6 +4,7 @@ import { registerPromptTools } from "./prompt-tools.js";
 import { registerSessionTools } from "./session-tools.js";
 import { registerSpacedRepetitionTools } from "./spaced-repetition-tools.js";
 import { registerPersistenceTools } from "./persistence-tools.js";
+import { registerContentTools } from "./content-tools.js";
 
 export function registerServerTools(server: McpServer): void {
   registerSpacedRepetitionTools(server);
@@ -11,4 +12,5 @@ export function registerServerTools(server: McpServer): void {
   registerSessionTools(server);
   registerPromptTools(server);
   registerPersistenceTools(server);
+  registerContentTools(server);
 }

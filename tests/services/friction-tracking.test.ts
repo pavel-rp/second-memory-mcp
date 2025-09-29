@@ -26,6 +26,9 @@ function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
 		subject TEXT NOT NULL,
+		summary TEXT,
+		summary_version INTEGER,
+		summary_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL
 	);
@@ -43,6 +46,9 @@ function ensureSchema() {
 		chunk_type TEXT NOT NULL,
 		prerequisites_json TEXT,
 		tags_json TEXT,
+		content TEXT,
+		content_version INTEGER,
+		content_updated_at INTEGER,
 		created_at INTEGER NOT NULL,
 		updated_at INTEGER NOT NULL,
 		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE CASCADE
@@ -75,14 +81,14 @@ function createTestChunk(chunkId: string, topicId: string) {
 
 	// Use INSERT OR IGNORE to avoid UNIQUE constraint errors
 	db.prepare(`
-		INSERT OR IGNORE INTO learning_topics (id, title, subject, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
-	`).run(topicId, "Test Topic", "Test", now, now);
+		INSERT OR IGNORE INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`).run(topicId, "Test Topic", "Test", null, null, null, now, now);
 
 	db.prepare(`
-		INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`).run(chunkId, topicId, "Test Chunk", "Test", 5, now, 2.5, 0, 15, "new", now, now);
+		INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, content, content_version, content_updated_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`).run(chunkId, topicId, "Test Chunk", "Test", 5, now, 2.5, 0, 15, "new", null, null, null, now, now);
 }
 
 (hasBinding ? describe : describe.skip)("friction tracking service", () => {

@@ -160,7 +160,9 @@ export class PromptPack {
 			"Constraints:",
 			"- Manage cognitive load; prefer concrete examples before abstractions",
 			"- Keep explanations concise and supportive",
-			"- Persist the result to this server once it's ready."
+			"- Include comprehensive content for each chunk (examples, explanations, exercises)",
+			"- Provide a topic summary that captures the overall learning objectives",
+			"- Persist the result with full content to this server using create_topic_with_chunks tool."
 		].filter(Boolean).join("\n");
 	}
 
@@ -178,6 +180,8 @@ export class PromptPack {
 			`CURRENT CHUNK (${chunkNumber}/${totalChunks}): "${chunkTitle}"`,
 			`Focus: ${chunkContent}`,
 			`Prerequisites verified: ${prerequisites}`,
+			"",
+			"Content Access: If you need the full chunk content, use the get_chunk_content tool to retrieve comprehensive details including examples and exercises.",
 			"",
 			"Approach:",
 			"1) Present the core concept using simple, concrete examples",
@@ -250,6 +254,14 @@ export class PromptPack {
 			"   - calculate_priority_score(next_review_date, ease_factor, repetitions, difficulty) → { priority }",
 			"6) Persist topic/chunk/schedule/analytics/logs via this server's tools",
 			"7) Use 'review' prompt during scheduled sessions; apply interleaving when helpful",
+			"",
+			"Content Persistence Best Practices:",
+			"- When creating topics: include comprehensive summaries using topicSummary field",
+			"- When creating chunks: provide detailed content with examples, explanations, and exercises",
+			"- Use create_topic_with_chunks tool with full content for new topics",
+			"- Retrieve existing content using get_chunk_content or get_topic_summary tools",
+			"- Use list_items_with_content for batch operations and overview sessions",
+			"- Content is automatically versioned and timestamped for tracking changes",
 			"",
 			"Research-enhanced learning:",
 			"- Scaffolding and chunk generation prompts include web search instructions by default",

@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^12.4.1",
     "drizzle-orm": "^0.31.0",
     "zod": "^3.23.8"
   },

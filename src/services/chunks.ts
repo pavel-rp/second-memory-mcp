@@ -23,6 +23,10 @@ export type CreateChunkInput = {
 	tags?: string[];
 	createdAt: number;
 	updatedAt: number;
+	// Content persistence fields
+	content?: string;
+	contentVersion?: number;
+	contentUpdatedAt?: number;
 };
 
 export async function createChunk(input: CreateChunkInput): Promise<void> {
@@ -31,6 +35,9 @@ export async function createChunk(input: CreateChunkInput): Promise<void> {
 		...input,
 		prerequisitesJson: encodeJsonArray(input.prerequisites),
 		tagsJson: encodeJsonArray(input.tags),
+		content: input.content || null,
+		contentVersion: input.content ? (input.contentVersion || 1) : null,
+		contentUpdatedAt: input.content ? (input.contentUpdatedAt || Date.now()) : null,
 	}).run();
 }
 
@@ -67,6 +74,9 @@ export async function listChunks(filter: ListChunksFilter = {}) {
 		chunkType: learningChunks.chunkType,
 		prerequisitesJson: learningChunks.prerequisitesJson,
 		tagsJson: learningChunks.tagsJson,
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
 		createdAt: learningChunks.createdAt,
 		updatedAt: learningChunks.updatedAt,
 		topicTitle: learningTopics.title,
@@ -106,7 +116,8 @@ export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
                 : "new";
         const topicTitle = row.topicTitle ?? null;
 
-        return {
+        // Create the base LearningItem
+        const learningItem: LearningItem = {
                 id: row.id,
                 title: row.title,
                 subject: row.subject,
@@ -122,6 +133,8 @@ export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
                 topicId: topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
                 topicTitle: topicTitle ?? undefined,
         };
+
+        return learningItem;
 }
 
 export async function listChunksAsLearningItems(filter: ListChunksFilter = {}): Promise<LearningItem[]> {
@@ -205,6 +218,119 @@ export async function createChunkWithTopic(input: CreateChunkInput & { topicTitl
 	}
 	
 	return createdChunk;
+}
+
+// Content retrieval functions
+
+export type ChunkContentResult = {
+	content: string | null;
+	contentVersion: number | null;
+	contentUpdatedAt: number | null;
+};
+
+export async function getChunkContent(id: string): Promise<ChunkContentResult | null> {
+	const db = getSql();
+	const result = db.select({
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
+	}).from(learningChunks).where(eq(learningChunks.id, id)).get();
+
+	return result || null;
+}
+
+export async function getChunkWithContent(id: string): Promise<(LearningChunkRow & { topicTitle?: string | null }) | null> {
+	const db = getSql();
+	const result = db.select({
+		id: learningChunks.id,
+		topicId: learningChunks.topicId,
+		title: learningChunks.title,
+		subject: learningChunks.subject,
+		difficulty: learningChunks.difficulty,
+		nextReviewAt: learningChunks.nextReviewAt,
+		easeFactor: learningChunks.easeFactor,
+		repetitions: learningChunks.repetitions,
+		lastReviewedAt: learningChunks.lastReviewedAt,
+		estimatedDuration: learningChunks.estimatedDuration,
+		chunkType: learningChunks.chunkType,
+		prerequisitesJson: learningChunks.prerequisitesJson,
+		tagsJson: learningChunks.tagsJson,
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
+		createdAt: learningChunks.createdAt,
+		updatedAt: learningChunks.updatedAt,
+		topicTitle: learningTopics.title,
+	})
+	.from(learningChunks)
+	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+	.where(eq(learningChunks.id, id))
+	.get();
+
+	return result || null;
+}
+
+export type ListChunksWithContentFilter = ListChunksFilter & {
+	/**
+	 * Whether to include content fields in the response.
+	 * Content is expensive to retrieve and not included by default.
+	 * Set to true to explicitly include content fields.
+	 */
+	includeContent?: boolean;
+};
+
+export async function listChunksWithContent(filter: ListChunksWithContentFilter = { includeContent: false }): Promise<LearningItem[]> {
+	const db = getSql();
+	const now = Date.now();
+	const conditions: ReturnType<typeof eq>[] = [];
+
+	if (filter.subject) conditions.push(eq(learningChunks.subject, filter.subject));
+	if (filter.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
+
+	// Build base query including all fields
+	const baseQuery = db.select({
+		id: learningChunks.id,
+		topicId: learningChunks.topicId,
+		title: learningChunks.title,
+		subject: learningChunks.subject,
+		difficulty: learningChunks.difficulty,
+		nextReviewAt: learningChunks.nextReviewAt,
+		easeFactor: learningChunks.easeFactor,
+		repetitions: learningChunks.repetitions,
+		lastReviewedAt: learningChunks.lastReviewedAt,
+		estimatedDuration: learningChunks.estimatedDuration,
+		chunkType: learningChunks.chunkType,
+		prerequisitesJson: learningChunks.prerequisitesJson,
+		tagsJson: learningChunks.tagsJson,
+		...(filter.includeContent && {
+			content: learningChunks.content,
+			contentVersion: learningChunks.contentVersion,
+			contentUpdatedAt: learningChunks.contentUpdatedAt,
+		}),
+		createdAt: learningChunks.createdAt,
+		updatedAt: learningChunks.updatedAt,
+		topicTitle: learningTopics.title,
+	})
+	.from(learningChunks)
+	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
+
+	if (conditions.length > 0) {
+		const query = baseQuery.where(and(...conditions));
+		if (filter.limit && filter.limit > 0) {
+			const rows = query.limit(filter.limit).all();
+			return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+		}
+		const rows = query.all();
+		return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+	}
+
+	if (filter.limit && filter.limit > 0) {
+		const rows = baseQuery.limit(filter.limit).all();
+		return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+	}
+
+	const rows = baseQuery.all();
+	return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
 }
 
 // Process review result with SM-2 calculations
