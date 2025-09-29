@@ -1,6 +1,16 @@
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 
 /**
+ * Educational content detection patterns
+ */
+const EDUCATIONAL_PATTERNS = [
+	/\b(learn|understand|explain|example|concept|definition|practice|exercise|tutorial|guide)\b/gi,
+	/\b(step|steps|process|method|approach|technique|strategy)\b/gi,
+	/\b(because|therefore|however|furthermore|moreover|additionally)\b/gi,
+	/\?|\.|:|;/, // Question marks, periods, colons, semicolons indicate structured content
+] as const;
+
+/**
  * Content validation utilities for chunk and topic content
  * Ensures content meets size, format, and security requirements
  */
@@ -61,7 +71,7 @@ export function validateContentFormat(content: string): ContentValidationResult 
 	const warnings: string[] = [];
 
 	// Check for potential script injection
-	const scriptPattern = /<script[^>]*>.*?<\/script>/gi;
+	const scriptPattern = /<script[^>]*>[\s\S]*?<\/script>/gi;
 	if (scriptPattern.test(content)) {
 		return {
 			success: false,
@@ -107,7 +117,7 @@ export function sanitizeContent(content: string, options: { preserveBasicMarkdow
 	let sanitized = content;
 
 	// Remove script tags completely
-	sanitized = sanitized.replace(/<script[^>]*>.*?<\/script>/gi, "");
+	sanitized = sanitized.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
 
 	// Remove dangerous URL schemes
 	sanitized = sanitized.replace(/(javascript|data|vbscript):/gi, "unsafe:");
@@ -151,13 +161,13 @@ export function validateContent(content: string, type: ContentType, options: { s
 	}
 
 	// Then validate format and security
-	const formatValidation = validateContentFormat(sizeValidation.sanitizedContent!);
+	const formatValidation = validateContentFormat(sizeValidation.sanitizedContent || "");
 	if (!formatValidation.success) {
 		return formatValidation;
 	}
 
 	// Optionally sanitize content
-	let finalContent = sizeValidation.sanitizedContent!;
+	let finalContent = sizeValidation.sanitizedContent || "";
 	if (options.sanitize) {
 		finalContent = sanitizeContent(finalContent, {
 			preserveBasicMarkdown: options.preserveBasicMarkdown,
@@ -190,15 +200,7 @@ export function isEducationalContent(content: string): boolean {
 		return false;
 	}
 
-	// Look for educational keywords and patterns
-	const educationalPatterns = [
-		/\b(learn|understand|explain|example|concept|definition|practice|exercise|tutorial|guide)\b/gi,
-		/\b(step|steps|process|method|approach|technique|strategy)\b/gi,
-		/\b(because|therefore|however|furthermore|moreover|additionally)\b/gi,
-		/\?|\.|:|;/, // Question marks, periods, colons, semicolons indicate structured content
-	];
-
-	return educationalPatterns.some(pattern => pattern.test(content));
+	return EDUCATIONAL_PATTERNS.some(pattern => pattern.test(content));
 }
 
 /**

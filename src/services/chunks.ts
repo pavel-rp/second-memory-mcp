@@ -219,7 +219,13 @@ export async function createChunkWithTopic(input: CreateChunkInput & { topicTitl
 
 // Content retrieval functions
 
-export async function getChunkContent(id: string): Promise<{ content: string | null; contentVersion: number | null; contentUpdatedAt: number | null } | null> {
+export type ChunkContentResult = {
+	content: string | null;
+	contentVersion: number | null;
+	contentUpdatedAt: number | null;
+};
+
+export async function getChunkContent(id: string): Promise<ChunkContentResult | null> {
 	const db = getSql();
 	const result = db.select({
 		content: learningChunks.content,
@@ -266,9 +272,55 @@ export type ListChunksWithContentFilter = ListChunksFilter & {
 };
 
 export async function listChunksWithContent(filter: ListChunksWithContentFilter = {}): Promise<LearningItem[]> {
-	// For now, reuse existing listChunks since it already includes content fields
-	const rows = await listChunks(filter);
-	return rows.map(mapChunkRowToLearningItem);
+	const db = getSql();
+	const now = Date.now();
+	const conditions: ReturnType<typeof eq>[] = [];
+
+	if (filter.subject) conditions.push(eq(learningChunks.subject, filter.subject));
+	if (filter.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
+
+	// Build base query including all fields
+	const baseQuery = db.select({
+		id: learningChunks.id,
+		topicId: learningChunks.topicId,
+		title: learningChunks.title,
+		subject: learningChunks.subject,
+		difficulty: learningChunks.difficulty,
+		nextReviewAt: learningChunks.nextReviewAt,
+		easeFactor: learningChunks.easeFactor,
+		repetitions: learningChunks.repetitions,
+		lastReviewedAt: learningChunks.lastReviewedAt,
+		estimatedDuration: learningChunks.estimatedDuration,
+		chunkType: learningChunks.chunkType,
+		prerequisitesJson: learningChunks.prerequisitesJson,
+		tagsJson: learningChunks.tagsJson,
+		content: learningChunks.content,
+		contentVersion: learningChunks.contentVersion,
+		contentUpdatedAt: learningChunks.contentUpdatedAt,
+		createdAt: learningChunks.createdAt,
+		updatedAt: learningChunks.updatedAt,
+		topicTitle: learningTopics.title,
+	})
+	.from(learningChunks)
+	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
+
+	if (conditions.length > 0) {
+		const query = baseQuery.where(and(...conditions));
+		if (filter.limit && filter.limit > 0) {
+			const rows = query.limit(filter.limit).all();
+			return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+		}
+		const rows = query.all();
+		return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+	}
+
+	if (filter.limit && filter.limit > 0) {
+		const rows = baseQuery.limit(filter.limit).all();
+		return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+	}
+
+	const rows = baseQuery.all();
+	return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
 }
 
 // Process review result with SM-2 calculations

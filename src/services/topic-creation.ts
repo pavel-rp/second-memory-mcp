@@ -12,6 +12,20 @@ import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 import { logger } from "../utils/logger.js";
 
 /**
+ * Safely parse JSON array with error handling
+ */
+function parseJsonArraySafely(jsonString: string | null): string[] {
+	if (!jsonString) return [];
+	try {
+		const parsed = JSON.parse(jsonString);
+		return Array.isArray(parsed) ? parsed : [];
+	} catch (error) {
+		logger.warn("Failed to parse JSON array:", error);
+		return [];
+	}
+}
+
+/**
  * Topic Creation Service
  * Handles creation of topics with multiple chunks in atomic transactions
  */
@@ -99,10 +113,10 @@ export class TopicCreationService {
 					title: chunk.title,
 					content: chunk.content || "", // Persist actual content
 					difficulty: chunk.difficulty,
-					prerequisites: chunk.prerequisitesJson ? JSON.parse(chunk.prerequisitesJson) : [],
+					prerequisites: parseJsonArraySafely(chunk.prerequisitesJson),
 					estimatedDuration: chunk.estimatedDuration,
 					order: index + 1, // Set proper order based on array index
-					tags: chunk.tagsJson ? JSON.parse(chunk.tagsJson) : [],
+					tags: parseJsonArraySafely(chunk.tagsJson),
 					chunkType: chunk.chunkType as "new" | "review" | "remediation"
 				})),
 				createdAt: result.topic.createdAt,
@@ -164,10 +178,10 @@ export class TopicCreationService {
 					title: chunk.title,
 					content: "", // Content not stored in current schema
 					difficulty: chunk.difficulty,
-					prerequisites: chunk.prerequisitesJson ? JSON.parse(chunk.prerequisitesJson) : [],
+					prerequisites: parseJsonArraySafely(chunk.prerequisitesJson),
 					estimatedDuration: chunk.estimatedDuration,
 					order: 0, // Order not stored in current schema
-					tags: chunk.tagsJson ? JSON.parse(chunk.tagsJson) : [],
+					tags: parseJsonArraySafely(chunk.tagsJson),
 					chunkType: chunk.chunkType as "new" | "review" | "remediation"
 				})),
 				createdAt: topic.createdAt,
