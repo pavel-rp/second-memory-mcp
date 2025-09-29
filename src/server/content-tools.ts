@@ -168,11 +168,8 @@ export function registerContentTools(server: McpServer): void {
 				
 				const items = await listChunksWithContent(filter);
 				
-				// If content is not requested, remove content fields to reduce response size
-				const responseItems = includeContent ? items : items.map(item => {
-					const { ...itemWithoutContent } = item;
-					return itemWithoutContent;
-				});
+				// The service already handles includeContent filtering, so we can use items directly
+				const responseItems = items;
 				
 				return {
 					content: [

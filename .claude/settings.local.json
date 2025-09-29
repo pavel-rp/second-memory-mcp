@@ -19,7 +19,9 @@
       "Bash(pnpm exec vitest run:*)",
       "Bash(git commit:*)",
       "Bash(mkdir:*)",
-      "Bash(pnpm dlx:*)"
+      "Bash(pnpm dlx:*)",
+      "Bash(rm:*)",
+      "Bash(pnpm install:*)"
     ],
     "deny": [],
     "ask": []

@@ -116,7 +116,8 @@ export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
                 : "new";
         const topicTitle = row.topicTitle ?? null;
 
-        return {
+        // Create the base LearningItem
+        const learningItem: LearningItem = {
                 id: row.id,
                 title: row.title,
                 subject: row.subject,
@@ -132,6 +133,8 @@ export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
                 topicId: topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
                 topicTitle: topicTitle ?? undefined,
         };
+
+        return learningItem;
 }
 
 export async function listChunksAsLearningItems(filter: ListChunksFilter = {}): Promise<LearningItem[]> {
@@ -294,9 +297,11 @@ export async function listChunksWithContent(filter: ListChunksWithContentFilter 
 		chunkType: learningChunks.chunkType,
 		prerequisitesJson: learningChunks.prerequisitesJson,
 		tagsJson: learningChunks.tagsJson,
-		content: learningChunks.content,
-		contentVersion: learningChunks.contentVersion,
-		contentUpdatedAt: learningChunks.contentUpdatedAt,
+		...(filter.includeContent !== false && {
+			content: learningChunks.content,
+			contentVersion: learningChunks.contentVersion,
+			contentUpdatedAt: learningChunks.contentUpdatedAt,
+		}),
 		createdAt: learningChunks.createdAt,
 		updatedAt: learningChunks.updatedAt,
 		topicTitle: learningTopics.title,

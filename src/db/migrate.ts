@@ -18,9 +18,9 @@ import {
 	NewFrictionMetricsRow,
 } from "./schema.js";
 
-function checkColumnExists(db: any, tableName: string, columnName: string): boolean {
+function checkColumnExists(db: { prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> } }, tableName: string, columnName: string): boolean {
 	const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
-	return result.some((col: any) => col.name === columnName);
+	return result.some((col) => col.name === columnName);
 }
 
 export function ensureSchema() {

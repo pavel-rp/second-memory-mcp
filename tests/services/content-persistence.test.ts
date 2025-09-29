@@ -1,6 +1,4 @@
 import { describe, it, beforeEach, afterEach, expect } from "vitest";
-import fs from "node:fs";
-import path from "node:path";
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -13,7 +11,7 @@ try {
 	hasBinding = false;
 }
 
-import { getDb, resetDatabase } from "../../src/db/client.js";
+import { resetDatabase } from "../../src/db/client.js";
 import { ensureSchema } from "../../src/db/migrate.js";
 import { getChunkContent, getChunkWithContent, createChunk } from "../../src/services/chunks.js";
 import { topicCreationService } from "../../src/services/topic-creation.js";

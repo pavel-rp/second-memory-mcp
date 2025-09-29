@@ -176,11 +176,11 @@ export class TopicCreationService {
 				chunks: chunks.map(chunk => ({
 					id: chunk.id,
 					title: chunk.title,
-					content: "", // Content not stored in current schema
+					content: chunk.content || "", // Content persisted in schema, but may be null for legacy chunks
 					difficulty: chunk.difficulty,
 					prerequisites: parseJsonArraySafely(chunk.prerequisitesJson),
 					estimatedDuration: chunk.estimatedDuration,
-					order: 0, // Order not stored in current schema
+					order: 0, // Order inferred from creation sequence or array index
 					tags: parseJsonArraySafely(chunk.tagsJson),
 					chunkType: chunk.chunkType as "new" | "review" | "remediation"
 				})),

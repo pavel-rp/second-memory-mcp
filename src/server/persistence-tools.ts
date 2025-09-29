@@ -289,7 +289,7 @@ export function registerPersistenceTools(server: McpServer): void {
                                         contentUpdatedAt: now,
                                         createdAt: now,
                                         updatedAt: now,
-                                        topicTitle: input.topicTitle || `Topic: ${input.title}`,
+                                        topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
                                 });
 
                                 const learningItem = mapChunkRowToLearningItem(chunk);
