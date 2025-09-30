@@ -198,9 +198,9 @@ export class TopicCreationService {
 	 * Validate input for topic creation
 	 */
 	/**
-	 * Update topic metadata (title and description)
+	 * Update topic metadata (title only)
 	 */
-	async updateTopic(topicId: string, updates: { title?: string; description?: string }): Promise<{
+	async updateTopic(topicId: string, updates: { title?: string }): Promise<{
 		success: boolean;
 		topic?: LearningTopicRow;
 		error?: {

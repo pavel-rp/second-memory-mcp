@@ -608,7 +608,7 @@ export function registerPersistenceTools(server: McpServer): void {
                 "update_topic",
                 {
                         title: "Update Topic",
-                        description: "Update topic metadata like title and description",
+                        description: "Update topic metadata (title only). Use update_topic_summary to update topic content.",
                         inputSchema: {
                                 topicId: z.string().min(1, "Topic ID cannot be empty").describe("ID of the topic to update"),
                                 title: z.string()
@@ -616,19 +616,14 @@ export function registerPersistenceTools(server: McpServer): void {
                                         .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
                                         .optional()
                                         .describe("New title for the topic"),
-                                description: z.string()
-                                        .max(1000, "Description cannot exceed 1000 characters")
-                                        .optional()
-                                        .describe("New description for the topic"),
                         },
                 },
-                async (input: { topicId: string; title?: string; description?: string }) => {
+                async (input: { topicId: string; title?: string }) => {
                         try {
                                 const { topicCreationService } = await import("../services/topic-creation.js");
 
                                 const result = await topicCreationService.updateTopic(input.topicId, {
                                         title: input.title,
-                                        description: input.description,
                                 });
 
                                 if (result.success && result.topic) {
