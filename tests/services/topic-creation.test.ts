@@ -341,4 +341,215 @@ function tmpDbPath() {
 			expect(chunks).toHaveLength(2);
 		});
 	});
+
+	describe("Topic Update Functions", () => {
+		it("should update topic title successfully", async () => {
+			// Create a topic first
+			const createInput: TopicCreationInput = {
+				topicTitle: "Original Topic",
+				subject: "Test Subject",
+				chunks: [
+					{
+						id: crypto.randomUUID(),
+						title: "Test Chunk",
+						content: "Test content",
+						difficulty: 5,
+						prerequisites: [],
+						estimatedDuration: 15,
+						order: 1,
+						tags: [],
+						chunkType: "new"
+					}
+				]
+			};
+
+			const createResult = await topicCreationService.createTopicWithChunks(createInput);
+			expect(createResult.success).toBe(true);
+			expect(createResult.topic).toBeDefined();
+
+			const topicId = createResult.topic!.topicId;
+
+			// Update the topic
+			const updateResult = await topicCreationService.updateTopic(topicId, {
+				title: "Updated Topic Title"
+			});
+
+			expect(updateResult.success).toBe(true);
+			expect(updateResult.topic).toBeDefined();
+			expect(updateResult.topic?.title).toBe("Updated Topic Title");
+			expect(updateResult.topic?.updatedAt).toBeGreaterThan(createResult.topic!.createdAt);
+		});
+
+		it("should return error for non-existent topic", async () => {
+			const result = await topicCreationService.updateTopic("non-existent-id", {
+				title: "New Title"
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error?.type).toBe("not_found");
+			expect(result.error?.message).toContain("not found");
+		});
+
+		it("should validate title length constraints", async () => {
+			// Create a topic first
+			const createInput: TopicCreationInput = {
+				topicTitle: "Test Topic",
+				subject: "Test Subject",
+				chunks: [
+					{
+						id: crypto.randomUUID(),
+						title: "Test Chunk",
+						content: "Test content",
+						difficulty: 5,
+						prerequisites: [],
+						estimatedDuration: 15,
+						order: 1,
+						tags: [],
+						chunkType: "new"
+					}
+				]
+			};
+
+			const createResult = await topicCreationService.createTopicWithChunks(createInput);
+			const topicId = createResult.topic!.topicId;
+
+			// Test empty title
+			const emptyResult = await topicCreationService.updateTopic(topicId, {
+				title: ""
+			});
+
+			expect(emptyResult.success).toBe(false);
+			expect(emptyResult.error?.type).toBe("validation");
+			expect(emptyResult.error?.field).toBe("title");
+
+			// Test overly long title
+			const longTitle = "a".repeat(201); // Over MAX_TITLE_LENGTH
+			const longResult = await topicCreationService.updateTopic(topicId, {
+				title: longTitle
+			});
+
+			expect(longResult.success).toBe(false);
+			expect(longResult.error?.type).toBe("validation");
+			expect(longResult.error?.field).toBe("title");
+		});
+
+		it("should update topic summary with versioning", async () => {
+			// Create a topic first
+			const createInput: TopicCreationInput = {
+				topicTitle: "Test Topic",
+				subject: "Test Subject",
+				topicSummary: "Original summary",
+				chunks: [
+					{
+						id: crypto.randomUUID(),
+						title: "Test Chunk",
+						content: "Test content",
+						difficulty: 5,
+						prerequisites: [],
+						estimatedDuration: 15,
+						order: 1,
+						tags: [],
+						chunkType: "new"
+					}
+				]
+			};
+
+			const createResult = await topicCreationService.createTopicWithChunks(createInput);
+			expect(createResult.success).toBe(true);
+			const topicId = createResult.topic!.topicId;
+
+			// Update the summary
+			const newSummary = "This is an updated summary with more detailed information about the topic.";
+			const updateResult = await topicCreationService.updateTopicSummary(topicId, newSummary);
+
+			expect(updateResult.success).toBe(true);
+			expect(updateResult.topic).toBeDefined();
+			expect(updateResult.topic?.summary).toBe(newSummary);
+			expect(updateResult.topic?.summaryVersion).toBe(2); // Should increment from 1
+			expect(updateResult.topic?.summaryUpdatedAt).toBeGreaterThan(createResult.topic!.createdAt);
+		});
+
+		it("should validate summary length constraints", async () => {
+			// Create a topic first
+			const createInput: TopicCreationInput = {
+				topicTitle: "Test Topic",
+				subject: "Test Subject",
+				chunks: [
+					{
+						id: crypto.randomUUID(),
+						title: "Test Chunk",
+						content: "Test content",
+						difficulty: 5,
+						prerequisites: [],
+						estimatedDuration: 15,
+						order: 1,
+						tags: [],
+						chunkType: "new"
+					}
+				]
+			};
+
+			const createResult = await topicCreationService.createTopicWithChunks(createInput);
+			const topicId = createResult.topic!.topicId;
+
+			// Test empty summary
+			const emptyResult = await topicCreationService.updateTopicSummary(topicId, "");
+
+			expect(emptyResult.success).toBe(false);
+			expect(emptyResult.error?.type).toBe("validation");
+			expect(emptyResult.error?.field).toBe("summary");
+
+			// Test overly long summary
+			const longSummary = "a".repeat(5001); // Over MAX_SUMMARY_SIZE
+			const longResult = await topicCreationService.updateTopicSummary(topicId, longSummary);
+
+			expect(longResult.success).toBe(false);
+			expect(longResult.error?.type).toBe("validation");
+			expect(longResult.error?.field).toBe("summary");
+		});
+
+		it("should return error for summary update on non-existent topic", async () => {
+			const result = await topicCreationService.updateTopicSummary("non-existent-id", "New summary");
+
+			expect(result.success).toBe(false);
+			expect(result.error?.type).toBe("not_found");
+			expect(result.error?.message).toContain("not found");
+		});
+
+		it("should handle summary versioning correctly with multiple updates", async () => {
+			// Create a topic first
+			const createInput: TopicCreationInput = {
+				topicTitle: "Test Topic",
+				subject: "Test Subject",
+				topicSummary: "Original summary",
+				chunks: [
+					{
+						id: crypto.randomUUID(),
+						title: "Test Chunk",
+						content: "Test content",
+						difficulty: 5,
+						prerequisites: [],
+						estimatedDuration: 15,
+						order: 1,
+						tags: [],
+						chunkType: "new"
+					}
+				]
+			};
+
+			const createResult = await topicCreationService.createTopicWithChunks(createInput);
+			const topicId = createResult.topic!.topicId;
+
+			// First update
+			const firstUpdate = await topicCreationService.updateTopicSummary(topicId, "First updated summary");
+			expect(firstUpdate.success).toBe(true);
+			expect(firstUpdate.topic?.summaryVersion).toBe(2);
+
+			// Second update
+			const secondUpdate = await topicCreationService.updateTopicSummary(topicId, "Second updated summary");
+			expect(secondUpdate.success).toBe(true);
+			expect(secondUpdate.topic?.summaryVersion).toBe(3);
+			expect(secondUpdate.topic?.summary).toBe("Second updated summary");
+		});
+	});
 });

@@ -327,4 +327,424 @@ export function registerPersistenceTools(server: McpServer): void {
                         }
                 }
         );
+
+        server.registerTool(
+                "update_chunk_content",
+                {
+                        title: "Update Chunk Content",
+                        description: "Update the content of an existing learning chunk with versioning and optional progress reset",
+                        inputSchema: {
+                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to update"),
+                                content: z.string()
+                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Content cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`)
+                                        .describe("New content for the chunk"),
+                                resetProgress: z.boolean().optional().describe("Whether to reset spaced repetition progress"),
+                        },
+                },
+                async (input: { chunkId: string; content: string; resetProgress?: boolean }) => {
+                        try {
+                                const { updateChunkContent } = await import("../services/chunks.js");
+
+                                const result = await updateChunkContent(input.chunkId, {
+                                        content: input.content,
+                                        resetProgress: input.resetProgress,
+                                });
+
+                                if (result.success && result.chunk) {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: true,
+                                                                        chunk: result.chunk,
+                                                                        progressReset: result.progressReset,
+                                                                        message: `Successfully updated content for chunk "${result.chunk.title}"`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                } else {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: false,
+                                                                        error: result.error,
+                                                                        message: `Failed to update chunk content: ${result.error?.message || "Unknown error"}`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                }
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "system",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `System error while updating chunk content: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "update_chunk_metadata",
+                {
+                        title: "Update Chunk Metadata",
+                        description: "Update metadata fields of an existing learning chunk (title, difficulty, prerequisites, tags, duration)",
+                        inputSchema: {
+                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to update"),
+                                title: z.string()
+                                        .min(1, "Title cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+                                        .optional()
+                                        .describe("New title for the chunk"),
+                                difficulty: z.number()
+                                        .int("Difficulty must be an integer")
+                                        .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
+                                        .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
+                                        .optional()
+                                        .describe("New difficulty level (1-10)"),
+                                prerequisites: z.array(z.string()).optional().describe("New prerequisites array"),
+                                tags: z.array(z.string()).optional().describe("New tags array"),
+                                estimatedDuration: z.number()
+                                        .int("Estimated duration must be an integer")
+                                        .min(1, "Estimated duration must be at least 1 minute")
+                                        .max(120, "Estimated duration cannot exceed 120 minutes")
+                                        .optional()
+                                        .describe("New estimated study duration in minutes"),
+                        },
+                },
+                async (input: {
+                        chunkId: string;
+                        title?: string;
+                        difficulty?: number;
+                        prerequisites?: string[];
+                        tags?: string[];
+                        estimatedDuration?: number;
+                }) => {
+                        try {
+                                const { updateChunkMetadata } = await import("../services/chunks.js");
+
+                                const result = await updateChunkMetadata(input.chunkId, {
+                                        title: input.title,
+                                        difficulty: input.difficulty,
+                                        prerequisites: input.prerequisites,
+                                        tags: input.tags,
+                                        estimatedDuration: input.estimatedDuration,
+                                });
+
+                                if (result.success && result.chunk) {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: true,
+                                                                        chunk: result.chunk,
+                                                                        message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                } else {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: false,
+                                                                        error: result.error,
+                                                                        message: `Failed to update chunk metadata: ${result.error?.message || "Unknown error"}`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                }
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "system",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `System error while updating chunk metadata: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "update_chunk",
+                {
+                        title: "Update Chunk",
+                        description: "Comprehensive chunk update with automatic progress reset based on content changes",
+                        inputSchema: {
+                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to update"),
+                                content: z.string()
+                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Content cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`)
+                                        .optional()
+                                        .describe("New content for the chunk"),
+                                title: z.string()
+                                        .min(1, "Title cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+                                        .optional()
+                                        .describe("New title for the chunk"),
+                                difficulty: z.number()
+                                        .int("Difficulty must be an integer")
+                                        .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
+                                        .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
+                                        .optional()
+                                        .describe("New difficulty level (1-10)"),
+                                prerequisites: z.array(z.string()).optional().describe("New prerequisites array"),
+                                tags: z.array(z.string()).optional().describe("New tags array"),
+                                estimatedDuration: z.number()
+                                        .int("Estimated duration must be an integer")
+                                        .min(1, "Estimated duration must be at least 1 minute")
+                                        .max(120, "Estimated duration cannot exceed 120 minutes")
+                                        .optional()
+                                        .describe("New estimated study duration in minutes"),
+                                forceReset: z.boolean().optional().describe("Force reset of spaced repetition progress"),
+                        },
+                },
+                async (input: {
+                        chunkId: string;
+                        content?: string;
+                        title?: string;
+                        difficulty?: number;
+                        prerequisites?: string[];
+                        tags?: string[];
+                        estimatedDuration?: number;
+                        forceReset?: boolean;
+                }) => {
+                        try {
+                                const { updateChunkWithProgressReset } = await import("../services/chunks.js");
+
+                                const result = await updateChunkWithProgressReset(input.chunkId, {
+                                        content: input.content,
+                                        title: input.title,
+                                        difficulty: input.difficulty,
+                                        prerequisites: input.prerequisites,
+                                        tags: input.tags,
+                                        estimatedDuration: input.estimatedDuration,
+                                        forceReset: input.forceReset,
+                                });
+
+                                if (result.success && result.chunk) {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: true,
+                                                                        chunk: result.chunk,
+                                                                        progressReset: result.progressReset,
+                                                                        message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? " (progress reset)" : ""}`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                } else {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: false,
+                                                                        error: result.error,
+                                                                        message: `Failed to update chunk: ${result.error?.message || "Unknown error"}`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                }
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "system",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `System error while updating chunk: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "update_topic",
+                {
+                        title: "Update Topic",
+                        description: "Update topic metadata like title and description",
+                        inputSchema: {
+                                topicId: z.string().min(1, "Topic ID cannot be empty").describe("ID of the topic to update"),
+                                title: z.string()
+                                        .min(1, "Title cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
+                                        .optional()
+                                        .describe("New title for the topic"),
+                                description: z.string()
+                                        .max(1000, "Description cannot exceed 1000 characters")
+                                        .optional()
+                                        .describe("New description for the topic"),
+                        },
+                },
+                async (input: { topicId: string; title?: string; description?: string }) => {
+                        try {
+                                const { topicCreationService } = await import("../services/topic-creation.js");
+
+                                const result = await topicCreationService.updateTopic(input.topicId, {
+                                        title: input.title,
+                                        description: input.description,
+                                });
+
+                                if (result.success && result.topic) {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: true,
+                                                                        topic: result.topic,
+                                                                        message: `Successfully updated topic "${result.topic.title}"`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                } else {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: false,
+                                                                        error: result.error,
+                                                                        message: `Failed to update topic: ${result.error?.message || "Unknown error"}`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                }
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "system",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `System error while updating topic: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "update_topic_summary",
+                {
+                        title: "Update Topic Summary",
+                        description: "Update topic summary content with versioning",
+                        inputSchema: {
+                                topicId: z.string().min(1, "Topic ID cannot be empty").describe("ID of the topic to update"),
+                                summary: z.string()
+                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Summary cannot be empty")
+                                        .max(VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE, `Summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`)
+                                        .describe("New summary content for the topic"),
+                        },
+                },
+                async (input: { topicId: string; summary: string }) => {
+                        try {
+                                const { topicCreationService } = await import("../services/topic-creation.js");
+
+                                const result = await topicCreationService.updateTopicSummary(input.topicId, input.summary);
+
+                                if (result.success && result.topic) {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: true,
+                                                                        topic: result.topic,
+                                                                        message: `Successfully updated summary for topic "${result.topic.title}"`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                } else {
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: false,
+                                                                        error: result.error,
+                                                                        message: `Failed to update topic summary: ${result.error?.message || "Unknown error"}`,
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                }
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "system",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `System error while updating topic summary: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
 }

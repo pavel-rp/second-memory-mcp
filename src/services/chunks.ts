@@ -165,6 +165,297 @@ export async function updateChunk(id: string, changes: Partial<Omit<CreateChunkI
 	return res.changes ?? 0;
 }
 
+// Enhanced update functions for content and metadata management
+
+export type UpdateChunkContentInput = {
+	content: string;
+	resetProgress?: boolean;
+};
+
+export type UpdateChunkContentResult = {
+	success: boolean;
+	chunk?: LearningChunkRow;
+	progressReset?: boolean;
+	error?: {
+		type: "validation" | "not_found" | "database";
+		message: string;
+		field?: string;
+	};
+};
+
+export async function updateChunkContent(id: string, input: UpdateChunkContentInput): Promise<UpdateChunkContentResult> {
+	const db = getSql();
+
+	try {
+		// Get current chunk
+		const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+		if (!currentChunk) {
+			return {
+				success: false,
+				error: {
+					type: "not_found",
+					message: `Chunk with id "${id}" not found`,
+				},
+			};
+		}
+
+		const now = Date.now();
+		const newVersion = (currentChunk.contentVersion || 1) + 1;
+
+		// Prepare update data
+		const updateData: Record<string, unknown> = {
+			content: input.content,
+			contentVersion: newVersion,
+			contentUpdatedAt: now,
+			updatedAt: now,
+		};
+
+		// Handle progress reset if requested
+		if (input.resetProgress) {
+			updateData.repetitions = 0;
+			updateData.easeFactor = 2.5;
+			updateData.nextReviewAt = now;
+			updateData.lastReviewedAt = null;
+		}
+
+		// Update chunk
+		const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
+
+		if (res.changes === 0) {
+			return {
+				success: false,
+				error: {
+					type: "database",
+					message: "Failed to update chunk content",
+				},
+			};
+		}
+
+		// Return updated chunk
+		const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+		return {
+			success: true,
+			chunk: updatedChunk || undefined,
+			progressReset: input.resetProgress || false,
+		};
+
+	} catch (error) {
+		return {
+			success: false,
+			error: {
+				type: "database",
+				message: error instanceof Error ? error.message : "Unknown database error",
+			},
+		};
+	}
+}
+
+export type UpdateChunkMetadataInput = {
+	title?: string;
+	difficulty?: number;
+	prerequisites?: string[];
+	tags?: string[];
+	estimatedDuration?: number;
+};
+
+export type UpdateChunkMetadataResult = {
+	success: boolean;
+	chunk?: LearningChunkRow;
+	error?: {
+		type: "validation" | "not_found" | "database";
+		message: string;
+		field?: string;
+	};
+};
+
+export async function updateChunkMetadata(id: string, input: UpdateChunkMetadataInput): Promise<UpdateChunkMetadataResult> {
+	const db = getSql();
+
+	try {
+		// Check if chunk exists
+		const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+		if (!currentChunk) {
+			return {
+				success: false,
+				error: {
+					type: "not_found",
+					message: `Chunk with id "${id}" not found`,
+				},
+			};
+		}
+
+		// Prepare update data
+		const updateData: Record<string, unknown> = {
+			updatedAt: Date.now(),
+		};
+
+		// Update individual fields
+		if (input.title !== undefined) {
+			updateData.title = input.title;
+		}
+		if (input.difficulty !== undefined) {
+			updateData.difficulty = input.difficulty;
+		}
+		if (input.estimatedDuration !== undefined) {
+			updateData.estimatedDuration = input.estimatedDuration;
+		}
+		if (input.prerequisites !== undefined) {
+			updateData.prerequisitesJson = encodeJsonArray(input.prerequisites);
+		}
+		if (input.tags !== undefined) {
+			updateData.tagsJson = encodeJsonArray(input.tags);
+		}
+
+		// Update chunk
+		const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
+
+		if (res.changes === 0) {
+			return {
+				success: false,
+				error: {
+					type: "database",
+					message: "Failed to update chunk metadata",
+				},
+			};
+		}
+
+		// Return updated chunk
+		const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+		return {
+			success: true,
+			chunk: updatedChunk || undefined,
+		};
+
+	} catch (error) {
+		return {
+			success: false,
+			error: {
+				type: "database",
+				message: error instanceof Error ? error.message : "Unknown database error",
+			},
+		};
+	}
+}
+
+export type UpdateChunkWithProgressResetInput = {
+	content?: string;
+	title?: string;
+	difficulty?: number;
+	prerequisites?: string[];
+	tags?: string[];
+	estimatedDuration?: number;
+	forceReset?: boolean;
+};
+
+export type UpdateChunkWithProgressResetResult = {
+	success: boolean;
+	chunk?: LearningChunkRow;
+	progressReset?: boolean;
+	error?: {
+		type: "validation" | "not_found" | "database";
+		message: string;
+		field?: string;
+	};
+};
+
+export async function updateChunkWithProgressReset(id: string, input: UpdateChunkWithProgressResetInput): Promise<UpdateChunkWithProgressResetResult> {
+	const db = getSql();
+
+	try {
+		// Get current chunk
+		const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+		if (!currentChunk) {
+			return {
+				success: false,
+				error: {
+					type: "not_found",
+					message: `Chunk with id "${id}" not found`,
+				},
+			};
+		}
+
+		const now = Date.now();
+		let shouldResetProgress = input.forceReset || false;
+
+		// Check if content has changed significantly (simple heuristic)
+		if (input.content && currentChunk.content) {
+			const currentLength = currentChunk.content.length;
+			const newLength = input.content.length;
+			const contentChange = Math.abs(newLength - currentLength) / Math.max(currentLength, 1);
+
+			// Reset if content changed by more than 50%
+			if (contentChange > 0.5) {
+				shouldResetProgress = true;
+			}
+		}
+
+		// Prepare update data
+		const updateData: Record<string, unknown> = {
+			updatedAt: now,
+		};
+
+		// Update fields
+		if (input.content !== undefined) {
+			updateData.content = input.content;
+			updateData.contentVersion = (currentChunk.contentVersion || 1) + 1;
+			updateData.contentUpdatedAt = now;
+		}
+		if (input.title !== undefined) {
+			updateData.title = input.title;
+		}
+		if (input.difficulty !== undefined) {
+			updateData.difficulty = input.difficulty;
+		}
+		if (input.estimatedDuration !== undefined) {
+			updateData.estimatedDuration = input.estimatedDuration;
+		}
+		if (input.prerequisites !== undefined) {
+			updateData.prerequisitesJson = encodeJsonArray(input.prerequisites);
+		}
+		if (input.tags !== undefined) {
+			updateData.tagsJson = encodeJsonArray(input.tags);
+		}
+
+		// Reset progress if needed
+		if (shouldResetProgress) {
+			updateData.repetitions = 0;
+			updateData.easeFactor = 2.5;
+			updateData.nextReviewAt = now;
+			updateData.lastReviewedAt = null;
+		}
+
+		// Update chunk
+		const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
+
+		if (res.changes === 0) {
+			return {
+				success: false,
+				error: {
+					type: "database",
+					message: "Failed to update chunk",
+				},
+			};
+		}
+
+		// Return updated chunk
+		const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+		return {
+			success: true,
+			chunk: updatedChunk || undefined,
+			progressReset: shouldResetProgress,
+		};
+
+	} catch (error) {
+		return {
+			success: false,
+			error: {
+				type: "database",
+				message: error instanceof Error ? error.message : "Unknown database error",
+			},
+		};
+	}
+}
+
 export async function deleteChunk(id: string): Promise<number> {
 	const db = getSql();
 	const res = db.delete(learningChunks).where(eq(learningChunks.id, id)).run();
