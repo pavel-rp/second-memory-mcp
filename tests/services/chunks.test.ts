@@ -206,3 +206,362 @@ function tmpDbPath() {
 		expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();
 	});
 });
+
+describe.skipIf(!hasBinding)("Chunk Update Functions", () => {
+	beforeEach(() => {
+		resetDatabase();
+		ensureSchema();
+	});
+
+	afterEach(() => {
+		resetDatabase();
+	});
+
+	describe("updateChunkContent", () => {
+		it("should update chunk content with versioning", async () => {
+			const { updateChunkContent } = await import("../../src/services/chunks.js");
+
+			// Create a test chunk first
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Test Chunk",
+				subject: "Test Subject",
+				difficulty: 5,
+				nextReviewAt: now,
+				easeFactor: 2.5,
+				repetitions: 2,
+				estimatedDuration: 15,
+				chunkType: "new",
+				content: "Original content",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Update the content
+			const result = await updateChunkContent(chunkId, {
+				content: "Updated content",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.chunk).toBeDefined();
+			expect(result.chunk?.content).toBe("Updated content");
+			expect(result.chunk?.contentVersion).toBe(2);
+			expect(result.chunk?.contentUpdatedAt).toBeGreaterThan(now);
+			expect(result.progressReset).toBe(false);
+		});
+
+		it("should reset progress when requested", async () => {
+			const { updateChunkContent } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Test Chunk",
+				subject: "Test Subject",
+				difficulty: 5,
+				nextReviewAt: now + 86400000, // 1 day later
+				easeFactor: 3.0,
+				repetitions: 5,
+				lastReviewedAt: now - 3600000, // 1 hour ago
+				estimatedDuration: 15,
+				chunkType: "review",
+				content: "Original content",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			const result = await updateChunkContent(chunkId, {
+				content: "Updated content",
+				resetProgress: true,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.chunk).toBeDefined();
+			expect(result.chunk?.repetitions).toBe(0);
+			expect(result.chunk?.easeFactor).toBe(2.5);
+			expect(result.chunk?.lastReviewedAt).toBeNull();
+			expect(result.progressReset).toBe(true);
+		});
+
+		it("should return error for non-existent chunk", async () => {
+			const { updateChunkContent } = await import("../../src/services/chunks.js");
+
+			const result = await updateChunkContent("non-existent-id", {
+				content: "New content",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error?.type).toBe("not_found");
+			expect(result.error?.message).toContain("not found");
+		});
+	});
+
+	describe("updateChunkMetadata", () => {
+		it("should update chunk metadata fields", async () => {
+			const { updateChunkMetadata } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Original Title",
+				subject: "Test Subject",
+				difficulty: 3,
+				nextReviewAt: now,
+				easeFactor: 2.5,
+				repetitions: 0,
+				estimatedDuration: 15,
+				chunkType: "new",
+				prerequisites: ["prereq1"],
+				tags: ["tag1"],
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			const result = await updateChunkMetadata(chunkId, {
+				title: "Updated Title",
+				difficulty: 7,
+				prerequisites: ["prereq1", "prereq2"],
+				tags: ["tag1", "tag2", "tag3"],
+				estimatedDuration: 25,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.chunk).toBeDefined();
+			expect(result.chunk?.title).toBe("Updated Title");
+			expect(result.chunk?.difficulty).toBe(7);
+			expect(result.chunk?.estimatedDuration).toBe(25);
+			expect(result.chunk?.updatedAt).toBeGreaterThan(now);
+		});
+
+		it("should handle partial updates", async () => {
+			const { updateChunkMetadata } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Original Title",
+				subject: "Test Subject",
+				difficulty: 3,
+				nextReviewAt: now,
+				easeFactor: 2.5,
+				repetitions: 0,
+				estimatedDuration: 15,
+				chunkType: "new",
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Update only title
+			const result = await updateChunkMetadata(chunkId, {
+				title: "Updated Title Only",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.chunk?.title).toBe("Updated Title Only");
+			expect(result.chunk?.difficulty).toBe(3); // Should remain unchanged
+		});
+
+		it("should return error for non-existent chunk", async () => {
+			const { updateChunkMetadata } = await import("../../src/services/chunks.js");
+
+			const result = await updateChunkMetadata("non-existent-id", {
+				title: "New Title",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error?.type).toBe("not_found");
+		});
+	});
+
+	describe("updateChunkWithProgressReset", () => {
+		it("should automatically reset progress for significant content changes", async () => {
+			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Test Chunk",
+				subject: "Test Subject",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 3.0,
+				repetitions: 5,
+				lastReviewedAt: now - 3600000,
+				estimatedDuration: 15,
+				chunkType: "review",
+				content: "Short content",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Update with significantly longer content (>50% change)
+			const longContent = "This is a much longer content that represents a significant change from the original short content. ".repeat(10);
+
+			const result = await updateChunkWithProgressReset(chunkId, {
+				content: longContent,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.progressReset).toBe(true);
+			expect(result.chunk?.repetitions).toBe(0);
+			expect(result.chunk?.easeFactor).toBe(2.5);
+			expect(result.chunk?.lastReviewedAt).toBeNull();
+		});
+
+		it("should preserve progress for minor content changes", async () => {
+			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Test Chunk",
+				subject: "Test Subject",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 3.0,
+				repetitions: 5,
+				lastReviewedAt: now - 3600000,
+				estimatedDuration: 15,
+				chunkType: "review",
+				content: "Original content with some details",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Minor change - just fix a typo
+			const result = await updateChunkWithProgressReset(chunkId, {
+				content: "Original content with some details fixed",
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.progressReset).toBe(false);
+			expect(result.chunk?.repetitions).toBe(5); // Should preserve
+			expect(result.chunk?.easeFactor).toBe(3.0); // Should preserve
+		});
+
+		it("should force reset when requested", async () => {
+			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Test Chunk",
+				subject: "Test Subject",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 3.0,
+				repetitions: 5,
+				lastReviewedAt: now - 3600000,
+				estimatedDuration: 15,
+				chunkType: "review",
+				content: "Original content",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			const result = await updateChunkWithProgressReset(chunkId, {
+				title: "Updated Title",
+				forceReset: true,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.progressReset).toBe(true);
+			expect(result.chunk?.repetitions).toBe(0);
+			expect(result.chunk?.easeFactor).toBe(2.5);
+		});
+
+		it("should update multiple fields simultaneously", async () => {
+			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Original Title",
+				subject: "Test Subject",
+				difficulty: 3,
+				nextReviewAt: now,
+				easeFactor: 2.5,
+				repetitions: 0,
+				estimatedDuration: 15,
+				chunkType: "new",
+				content: "Original content",
+				prerequisites: ["prereq1"],
+				tags: ["tag1"],
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			const result = await updateChunkWithProgressReset(chunkId, {
+				content: "Updated content",
+				title: "Updated Title",
+				difficulty: 7,
+				prerequisites: ["prereq1", "prereq2"],
+				tags: ["tag1", "tag2"],
+				estimatedDuration: 25,
+			});
+
+			expect(result.success).toBe(true);
+			expect(result.chunk?.content).toBe("Updated content");
+			expect(result.chunk?.title).toBe("Updated Title");
+			expect(result.chunk?.difficulty).toBe(7);
+			expect(result.chunk?.estimatedDuration).toBe(25);
+			expect(result.chunk?.contentVersion).toBe(2);
+		});
+
+		it("should return error for non-existent chunk", async () => {
+			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
+
+			const result = await updateChunkWithProgressReset("non-existent-id", {
+				content: "New content",
+			});
+
+			expect(result.success).toBe(false);
+			expect(result.error?.type).toBe("not_found");
+		});
+	});
+});
