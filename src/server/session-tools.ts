@@ -75,12 +75,7 @@ export function registerSessionTools(server: McpServer): void {
                         title: "Guided Learning Conversation",
                         description:
                                 "Conduct a conversational 'teach me' session with zero friction. Handles session guidance, clarifying questions, and learning orchestration.",
-                        inputSchema: {
-                                intent: z.string().min(1),
-                                context: z.unknown().optional(),
-                                userInput: z.string().optional(),
-                                sessionState: z.unknown().optional(),
-                        },
+                        inputSchema: ConversationRequestSchema.shape,
                 },
                 async (input: unknown) => {
                         try {

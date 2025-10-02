@@ -370,10 +370,12 @@ Just say "teach me" and I'll take care of the rest!`,
 		const timeHints = this.extractTimeHints(request.userInput);
 		const subjectHints = this.extractSubjectHints(request.userInput);
 
+		const context = (request.context ?? {}) as Record<string, unknown>;
+
 		let message = "I'd be happy to help you learn! ";
 
 		// Ask clarifying questions only if needed
-		if (!timeHints && !subjectHints && !request.context?.learningItems) {
+		if (!timeHints && !subjectHints && !context.learningItems) {
 			message += "To give you the best recommendations, could you tell me:";
 			return {
 				message,

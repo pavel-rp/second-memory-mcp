@@ -123,7 +123,7 @@ export type RecommendationOutput = {
 // Conversation request for guided mode
 export type ConversationRequest = {
 	intent: string; // "start_learning", "continue_session", "get_recommendations"
-	context?: Record<string, unknown>; // conversation context
+	context?: Record<string, unknown>; // conversation context (object only)
 	userInput?: string; // user's message/request
 	sessionState?: SessionContext; // current learning session state
 };
