@@ -14,7 +14,7 @@ try {
 }
 
 import { getDb, resetDatabase } from "../../src/db/client.js";
-import { createChunk, listChunks, listChunksAsLearningItems } from "../../src/services/chunks.js";
+import { createChunk, listChunks, listChunksAsLearningItems, deleteChunk } from "../../src/services/chunks.js";
 import { LearningItemSchema } from "../../src/types/recommendations.js";
 
 function ensureSchema() {
@@ -170,9 +170,9 @@ function tmpDbPath() {
 		expect(items[0].topicTitle).toBeUndefined();
 	});
 
-	it("validates topic fields with Zod schema", async () => {
-		// Test valid topicId (any non-empty string)
-		const validItem = {
+        it("validates topic fields with Zod schema", async () => {
+                // Test valid topicId (any non-empty string)
+                const validItem = {
 			id: "test-chunk",
 			title: "Test Chunk",
 			subject: "CS",
@@ -194,17 +194,77 @@ function tmpDbPath() {
 			topicId: "", // Invalid empty string
 		};
 
-		expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
+                expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
 
-		// Test optional fields work
-		const itemWithoutTopic = {
-			...validItem,
-			topicId: undefined,
-			topicTitle: undefined,
-		};
+                // Test optional fields work
+                const itemWithoutTopic = {
+                        ...validItem,
+                        topicId: undefined,
+                        topicTitle: undefined,
+                };
 
-		expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();
-	});
+                expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();
+        });
+
+        it("deletes chunks and removes prerequisite references", async () => {
+                const now = Date.now();
+
+                await createChunk({
+                        id: "chunk-a",
+                        topicId: "topic-alpha",
+                        title: "Chunk A",
+                        subject: "Math",
+                        difficulty: 4,
+                        nextReviewAt: now,
+                        easeFactor: 2.5,
+                        repetitions: 1,
+                        estimatedDuration: 10,
+                        chunkType: "new",
+                        createdAt: now,
+                        updatedAt: now,
+                });
+
+                await createChunk({
+                        id: "chunk-b",
+                        topicId: "topic-alpha",
+                        title: "Chunk B",
+                        subject: "Math",
+                        difficulty: 5,
+                        nextReviewAt: now,
+                        easeFactor: 2.5,
+                        repetitions: 0,
+                        estimatedDuration: 15,
+                        chunkType: "new",
+                        prerequisites: ["chunk-a", "chunk-c"],
+                        createdAt: now,
+                        updatedAt: now,
+                });
+
+                const deleteResult = await deleteChunk("chunk-a");
+                expect(deleteResult.success).toBe(true);
+                expect(deleteResult.chunk?.id).toBe("chunk-a");
+                expect(deleteResult.removedDependencies).toEqual([
+                        {
+                                chunkId: "chunk-b",
+                                chunkTitle: "Chunk B",
+                                removedPrerequisites: ["chunk-a"],
+                                previousPrerequisites: ["chunk-a", "chunk-c"],
+                                remainingPrerequisites: ["chunk-c"],
+                        },
+                ]);
+
+                const remainingChunks = await listChunks();
+                expect(remainingChunks.find(chunk => chunk.id === "chunk-a")).toBeUndefined();
+                const chunkB = remainingChunks.find(chunk => chunk.id === "chunk-b");
+                const updatedPrereqs = chunkB?.prerequisitesJson ? JSON.parse(chunkB.prerequisitesJson) : [];
+                expect(updatedPrereqs).toEqual(["chunk-c"]);
+        });
+
+        it("returns validation error when deleting unknown chunk", async () => {
+                const result = await deleteChunk("missing-chunk-id");
+                expect(result.success).toBe(false);
+                expect(result.error?.type).toBe("not_found");
+        });
 });
 
 describe.skipIf(!hasBinding)("Chunk Update Functions", () => {

@@ -16,9 +16,15 @@ describe("MCP Write Endpoints", () => {
 		expect(stub.tools).toContain("create_learning_item");
 	});
 
-	it("should register the record_review_result tool", () => {
-		const stub = new StubServer();
+        it("should register the record_review_result tool", () => {
+                const stub = new StubServer();
                 registerServerTools(stub as unknown as McpServer);
-		expect(stub.tools).toContain("record_review_result");
-	});
+                expect(stub.tools).toContain("record_review_result");
+        });
+
+        it("should register the delete_chunk tool", () => {
+                const stub = new StubServer();
+                registerServerTools(stub as unknown as McpServer);
+                expect(stub.tools).toContain("delete_chunk");
+        });
 });

@@ -1,11 +1,11 @@
 import { and, eq, lte } from "drizzle-orm";
 import crypto from "node:crypto";
-import { getSql } from "../db/operations.js";
+import { getSql, withTx, decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
 import type { LearningItem } from "../types/recommendations.js";
-import { decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 import { scheduleReview } from "./reviews.js";
+import { prerequisiteReferenceValidator } from "../tools/prerequisite-reference-validator.js";
 
 export type CreateChunkInput = {
 	id: string;
@@ -456,10 +456,113 @@ export async function updateChunkWithProgressReset(id: string, input: UpdateChun
 	}
 }
 
-export async function deleteChunk(id: string): Promise<number> {
-	const db = getSql();
-	const res = db.delete(learningChunks).where(eq(learningChunks.id, id)).run();
-	return res.changes ?? 0;
+export type ChunkDependencyCleanup = {
+        chunkId: string;
+        chunkTitle: string;
+        removedPrerequisites: string[];
+        previousPrerequisites: string[];
+        remainingPrerequisites: string[];
+};
+
+export type DeleteChunkResult = {
+        success: boolean;
+        chunk?: LearningChunkRow;
+        removedDependencies?: ChunkDependencyCleanup[];
+        error?: {
+                type: "not_found" | "database";
+                message: string;
+                retryable?: boolean;
+        };
+};
+
+export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
+        const db = getSql();
+
+        try {
+                const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+
+                if (!chunkToDelete) {
+                        return {
+                                success: false,
+                                error: {
+                                        type: "not_found",
+                                        message: `Chunk with id "${id}" not found`,
+                                        retryable: false,
+                                },
+                        };
+                }
+
+                const dependencyUpdates = withTx<ChunkDependencyCleanup[]>((tx) => {
+                        const updates: ChunkDependencyCleanup[] = [];
+                        const now = Date.now();
+
+                        const candidateChunks = tx
+                                .select({
+                                        id: learningChunks.id,
+                                        title: learningChunks.title,
+                                        prerequisitesJson: learningChunks.prerequisitesJson,
+                                })
+                                .from(learningChunks)
+                                .all();
+
+                        for (const candidate of candidateChunks) {
+                                if (candidate.id === id) {
+                                        continue;
+                                }
+
+                                const prerequisites = decodeJsonArray(candidate.prerequisitesJson);
+                                if (prerequisites.length === 0) {
+                                        continue;
+                                }
+
+                                const remaining = prerequisites.filter((prereqId) => prereqId !== id);
+                                if (remaining.length === prerequisites.length) {
+                                        continue;
+                                }
+
+                                const removedCount = prerequisites.length - remaining.length;
+                                tx.update(learningChunks)
+                                        .set({
+                                                prerequisitesJson: encodeJsonArray(remaining),
+                                                updatedAt: now,
+                                        })
+                                        .where(eq(learningChunks.id, candidate.id))
+                                        .run();
+
+                                updates.push({
+                                        chunkId: candidate.id,
+                                        chunkTitle: candidate.title,
+                                        removedPrerequisites: Array.from({ length: removedCount }, () => id),
+                                        previousPrerequisites: prerequisites,
+                                        remainingPrerequisites: remaining,
+                                });
+                        }
+
+                        const deleteResult = tx.delete(learningChunks).where(eq(learningChunks.id, id)).run();
+                        if ((deleteResult.changes ?? 0) === 0) {
+                                throw new Error("FAILED_TO_DELETE_CHUNK");
+                        }
+
+                        return updates;
+                });
+
+                prerequisiteReferenceValidator.clearCache();
+
+                return {
+                        success: true,
+                        chunk: chunkToDelete,
+                        removedDependencies: dependencyUpdates,
+                };
+        } catch (error) {
+                return {
+                        success: false,
+                        error: {
+                                type: "database",
+                                message: error instanceof Error ? error.message : "Unknown database error",
+                                retryable: true,
+                        },
+                };
+        }
 }
 
 // Enhanced createChunk with auto-topic creation
