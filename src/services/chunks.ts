@@ -520,7 +520,8 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
                                         continue;
                                 }
 
-                                const removedCount = prerequisites.length - remaining.length;
+                                const removedPrerequisites = prerequisites.filter((prereqId) => prereqId === id);
+                                const removedCount = removedPrerequisites.length;
                                 tx.update(learningChunks)
                                         .set({
                                                 prerequisitesJson: encodeJsonArray(remaining),
@@ -532,7 +533,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
                                 updates.push({
                                         chunkId: candidate.id,
                                         chunkTitle: candidate.title,
-                                        removedPrerequisites: Array.from({ length: removedCount }, () => id),
+                                        removedPrerequisites,
                                         previousPrerequisites: prerequisites,
                                         remainingPrerequisites: remaining,
                                 });

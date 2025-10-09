@@ -4,6 +4,10 @@ import crypto from "node:crypto";
 import { listChunksAsLearningItems, mapChunkRowToLearningItem, deleteChunk } from "../services/chunks.js";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 
+const deleteChunkInputSchema = z.object({
+        chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to delete"),
+});
+
 export function registerPersistenceTools(server: McpServer): void {
         server.registerTool(
                 "list_learning_items_sqlite",
@@ -610,9 +614,7 @@ export function registerPersistenceTools(server: McpServer): void {
                         title: "Delete Chunk",
                         description:
                                 "Delete a learning chunk and automatically clean up prerequisite references from dependent chunks.",
-                        inputSchema: {
-                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to delete"),
-                        },
+                        inputSchema: deleteChunkInputSchema.shape,
                 },
                 async ({ chunkId }: { chunkId: string }) => {
                         try {
