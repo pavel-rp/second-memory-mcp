@@ -1,8 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import crypto from "node:crypto";
-import { listChunksAsLearningItems, mapChunkRowToLearningItem } from "../services/chunks.js";
+import { listChunksAsLearningItems, mapChunkRowToLearningItem, deleteChunk } from "../services/chunks.js";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
+
+const deleteChunkInputSchema = z.object({
+        chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to delete"),
+});
 
 export function registerPersistenceTools(server: McpServer): void {
         server.registerTool(
@@ -596,6 +600,80 @@ export function registerPersistenceTools(server: McpServer): void {
                                                                         retryable: true,
                                                                 },
                                                                 message: `System error while updating chunk: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "delete_chunk",
+                {
+                        title: "Delete Chunk",
+                        description:
+                                "Delete a learning chunk and automatically clean up prerequisite references from dependent chunks.",
+                        inputSchema: deleteChunkInputSchema.shape,
+                },
+                async ({ chunkId }: { chunkId: string }) => {
+                        try {
+                                const result = await deleteChunk(chunkId);
+
+                                if (result.success) {
+                                        const removedCount = result.removedDependencies?.length ?? 0;
+                                        const chunkTitle = result.chunk?.title ?? chunkId;
+                                        const messageParts = [
+                                                `Successfully deleted chunk "${chunkTitle}"`,
+                                        ];
+
+                                        if (removedCount > 0) {
+                                                messageParts.push(
+                                                        `Removed prerequisite references from ${removedCount} dependent chunk${removedCount === 1 ? "" : "s"}.`
+                                                );
+                                        }
+
+                                        return {
+                                                content: [
+                                                        {
+                                                                type: "text",
+                                                                text: JSON.stringify({
+                                                                        success: true,
+                                                                        chunk: result.chunk,
+                                                                        removedDependencies: result.removedDependencies ?? [],
+                                                                        message: messageParts.join(" "),
+                                                                }),
+                                                        },
+                                                ],
+                                        };
+                                }
+
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: result.error,
+                                                                message: result.error?.message || `Failed to delete chunk "${chunkId}"`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "system",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `System error while deleting chunk: ${errorMsg}`,
                                                         }),
                                                 },
                                         ],

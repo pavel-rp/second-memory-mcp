@@ -1,11 +1,12 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import crypto from "node:crypto";
-import { getSql } from "../db/operations.js";
+import { getSql, withTx, decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
 import type { LearningItem } from "../types/recommendations.js";
-import { decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 import { scheduleReview } from "./reviews.js";
+import { prerequisiteReferenceValidator } from "../tools/prerequisite-reference-validator.js";
+import { dependencyResolver } from "../tools/dependency-resolver.js";
 
 export type CreateChunkInput = {
 	id: string;
@@ -456,10 +457,149 @@ export async function updateChunkWithProgressReset(id: string, input: UpdateChun
 	}
 }
 
-export async function deleteChunk(id: string): Promise<number> {
-	const db = getSql();
-	const res = db.delete(learningChunks).where(eq(learningChunks.id, id)).run();
-	return res.changes ?? 0;
+export type ChunkDependencyCleanup = {
+        chunkId: string;
+        chunkTitle: string;
+        removedPrerequisites: string[];
+        previousPrerequisites: string[];
+        remainingPrerequisites: string[];
+};
+
+export type DeleteChunkResult = {
+        success: boolean;
+        chunk?: LearningChunkRow;
+        removedDependencies?: ChunkDependencyCleanup[];
+        error?: {
+                type: "not_found" | "database";
+                message: string;
+                retryable?: boolean;
+        };
+};
+
+export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
+        const db = getSql();
+
+        try {
+                const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+
+                if (!chunkToDelete) {
+                        return {
+                                success: false,
+                                error: {
+                                        type: "not_found",
+                                        message: `Chunk with id "${id}" not found`,
+                                        retryable: false,
+                                },
+                        };
+                }
+
+                const dependentRows = db
+                        .select({
+                                id: learningChunks.id,
+                                topicId: learningChunks.topicId,
+                                title: learningChunks.title,
+                                subject: learningChunks.subject,
+                                difficulty: learningChunks.difficulty,
+                                nextReviewAt: learningChunks.nextReviewAt,
+                                easeFactor: learningChunks.easeFactor,
+                                repetitions: learningChunks.repetitions,
+                                lastReviewedAt: learningChunks.lastReviewedAt,
+                                estimatedDuration: learningChunks.estimatedDuration,
+                                chunkType: learningChunks.chunkType,
+                                prerequisitesJson: learningChunks.prerequisitesJson,
+                                tagsJson: learningChunks.tagsJson,
+                                content: learningChunks.content,
+                                contentVersion: learningChunks.contentVersion,
+                                contentUpdatedAt: learningChunks.contentUpdatedAt,
+                                createdAt: learningChunks.createdAt,
+                                updatedAt: learningChunks.updatedAt,
+                                topicTitle: learningTopics.title,
+                        })
+                        .from(learningChunks)
+                        .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+                        .where(sql`
+                                ${learningChunks.id} != ${id}
+                                AND json_type(${learningChunks.prerequisitesJson}) = 'array'
+                                AND EXISTS (
+                                        SELECT 1 FROM json_each(${learningChunks.prerequisitesJson}) WHERE value = ${id}
+                                )
+                        `)
+                        .all();
+
+                const dependentItems = dependentRows.map(mapChunkRowToLearningItem);
+                const dependentIds = dependentItems.map((item) => item.id);
+                const dependencyResolution = dependentIds.length > 0
+                        ? await dependencyResolver.resolveDependencies(dependentItems, dependentIds)
+                        : undefined;
+                const orderedDependentIds = dependencyResolution?.isValid && dependencyResolution.resolvedChain.length > 0
+                        ? dependencyResolution.resolvedChain.filter((chunkId) => dependentIds.includes(chunkId))
+                        : dependentIds;
+                const dependentRowMap = new Map(dependentRows.map((row) => [row.id, row]));
+
+                const dependencyUpdates = withTx<ChunkDependencyCleanup[]>((tx) => {
+                        const updates: ChunkDependencyCleanup[] = [];
+                        const now = Date.now();
+
+                        for (const dependentId of orderedDependentIds) {
+                                const candidate = dependentRowMap.get(dependentId);
+                                if (!candidate) {
+                                        continue;
+                                }
+
+                                const prerequisites = decodeJsonArray(candidate.prerequisitesJson);
+                                if (prerequisites.length === 0) {
+                                        continue;
+                                }
+
+                                const remaining = prerequisites.filter((prereqId) => prereqId !== id);
+                                if (remaining.length === prerequisites.length) {
+                                        continue;
+                                }
+
+                                const removedPrerequisites = prerequisites.filter((prereqId) => prereqId === id);
+
+                                tx.update(learningChunks)
+                                        .set({
+                                                prerequisitesJson: encodeJsonArray(remaining),
+                                                updatedAt: now,
+                                        })
+                                        .where(eq(learningChunks.id, candidate.id))
+                                        .run();
+
+                                updates.push({
+                                        chunkId: candidate.id,
+                                        chunkTitle: candidate.title,
+                                        removedPrerequisites,
+                                        previousPrerequisites: prerequisites,
+                                        remainingPrerequisites: remaining,
+                                });
+                        }
+
+                        const deleteResult = tx.delete(learningChunks).where(eq(learningChunks.id, id)).run();
+                        if ((deleteResult.changes ?? 0) === 0) {
+                                throw new Error("Failed to delete chunk from database");
+                        }
+
+                        return updates;
+                });
+
+                prerequisiteReferenceValidator.clearCache();
+
+                return {
+                        success: true,
+                        chunk: chunkToDelete,
+                        removedDependencies: dependencyUpdates,
+                };
+        } catch (error) {
+                return {
+                        success: false,
+                        error: {
+                                type: "database",
+                                message: error instanceof Error ? error.message : "Unknown database error",
+                                retryable: true,
+                        },
+                };
+        }
 }
 
 // Enhanced createChunk with auto-topic creation
