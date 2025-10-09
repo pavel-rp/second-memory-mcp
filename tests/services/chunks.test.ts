@@ -14,6 +14,7 @@ try {
 }
 
 import { getDb, resetDatabase } from "../../src/db/client.js";
+import { decodeJsonArray } from "../../src/db/operations.js";
 import { createChunk, listChunks, listChunksAsLearningItems, deleteChunk } from "../../src/services/chunks.js";
 import { LearningItemSchema } from "../../src/types/recommendations.js";
 
@@ -256,7 +257,7 @@ function tmpDbPath() {
                 const remainingChunks = await listChunks();
                 expect(remainingChunks.find(chunk => chunk.id === "chunk-a")).toBeUndefined();
                 const chunkB = remainingChunks.find(chunk => chunk.id === "chunk-b");
-                const updatedPrereqs = chunkB?.prerequisitesJson ? JSON.parse(chunkB.prerequisitesJson) : [];
+                const updatedPrereqs = decodeJsonArray(chunkB?.prerequisitesJson);
                 expect(updatedPrereqs).toEqual(["chunk-c"]);
         });
 
