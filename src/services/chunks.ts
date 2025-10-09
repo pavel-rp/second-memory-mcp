@@ -521,7 +521,6 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
                                 }
 
                                 const removedPrerequisites = prerequisites.filter((prereqId) => prereqId === id);
-                                const removedCount = removedPrerequisites.length;
                                 tx.update(learningChunks)
                                         .set({
                                                 prerequisitesJson: encodeJsonArray(remaining),
@@ -541,7 +540,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
 
                         const deleteResult = tx.delete(learningChunks).where(eq(learningChunks.id, id)).run();
                         if ((deleteResult.changes ?? 0) === 0) {
-                                throw new Error("FAILED_TO_DELETE_CHUNK");
+                                throw new Error("Failed to delete chunk from database");
                         }
 
                         return updates;
