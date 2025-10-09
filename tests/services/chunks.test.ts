@@ -257,7 +257,11 @@ function tmpDbPath() {
                 const remainingChunks = await listChunks();
                 expect(remainingChunks.find(chunk => chunk.id === "chunk-a")).toBeUndefined();
                 const chunkB = remainingChunks.find(chunk => chunk.id === "chunk-b");
-                const updatedPrereqs = decodeJsonArray(chunkB?.prerequisitesJson);
+                expect(chunkB).toBeDefined();
+                if (!chunkB) {
+                        throw new Error("Expected chunk-b to remain after deleting chunk-a");
+                }
+                const updatedPrereqs = decodeJsonArray(chunkB.prerequisitesJson);
                 expect(updatedPrereqs).toEqual(["chunk-c"]);
         });
 

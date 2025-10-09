@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 import { getSql, withTx, decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
@@ -6,6 +6,7 @@ import type { LearningItem } from "../types/recommendations.js";
 import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 import { scheduleReview } from "./reviews.js";
 import { prerequisiteReferenceValidator } from "../tools/prerequisite-reference-validator.js";
+import { dependencyResolver } from "../tools/dependency-resolver.js";
 
 export type CreateChunkInput = {
 	id: string;
@@ -492,21 +493,56 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
                         };
                 }
 
+                const dependentRows = db
+                        .select({
+                                id: learningChunks.id,
+                                topicId: learningChunks.topicId,
+                                title: learningChunks.title,
+                                subject: learningChunks.subject,
+                                difficulty: learningChunks.difficulty,
+                                nextReviewAt: learningChunks.nextReviewAt,
+                                easeFactor: learningChunks.easeFactor,
+                                repetitions: learningChunks.repetitions,
+                                lastReviewedAt: learningChunks.lastReviewedAt,
+                                estimatedDuration: learningChunks.estimatedDuration,
+                                chunkType: learningChunks.chunkType,
+                                prerequisitesJson: learningChunks.prerequisitesJson,
+                                tagsJson: learningChunks.tagsJson,
+                                content: learningChunks.content,
+                                contentVersion: learningChunks.contentVersion,
+                                contentUpdatedAt: learningChunks.contentUpdatedAt,
+                                createdAt: learningChunks.createdAt,
+                                updatedAt: learningChunks.updatedAt,
+                                topicTitle: learningTopics.title,
+                        })
+                        .from(learningChunks)
+                        .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+                        .where(sql`
+                                ${learningChunks.id} != ${id}
+                                AND json_type(${learningChunks.prerequisitesJson}) = 'array'
+                                AND EXISTS (
+                                        SELECT 1 FROM json_each(${learningChunks.prerequisitesJson}) WHERE value = ${id}
+                                )
+                        `)
+                        .all();
+
+                const dependentItems = dependentRows.map(mapChunkRowToLearningItem);
+                const dependentIds = dependentItems.map((item) => item.id);
+                const dependencyResolution = dependentIds.length > 0
+                        ? await dependencyResolver.resolveDependencies(dependentItems, dependentIds)
+                        : undefined;
+                const orderedDependentIds = dependencyResolution?.isValid && dependencyResolution.resolvedChain.length > 0
+                        ? dependencyResolution.resolvedChain.filter((chunkId) => dependentIds.includes(chunkId))
+                        : dependentIds;
+                const dependentRowMap = new Map(dependentRows.map((row) => [row.id, row]));
+
                 const dependencyUpdates = withTx<ChunkDependencyCleanup[]>((tx) => {
                         const updates: ChunkDependencyCleanup[] = [];
                         const now = Date.now();
 
-                        const candidateChunks = tx
-                                .select({
-                                        id: learningChunks.id,
-                                        title: learningChunks.title,
-                                        prerequisitesJson: learningChunks.prerequisitesJson,
-                                })
-                                .from(learningChunks)
-                                .all();
-
-                        for (const candidate of candidateChunks) {
-                                if (candidate.id === id) {
+                        for (const dependentId of orderedDependentIds) {
+                                const candidate = dependentRowMap.get(dependentId);
+                                if (!candidate) {
                                         continue;
                                 }
 
@@ -520,7 +556,8 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
                                         continue;
                                 }
 
-                                const removedPrerequisites = [id];
+                                const removedPrerequisites = prerequisites.filter((prereqId) => prereqId === id);
+
                                 tx.update(learningChunks)
                                         .set({
                                                 prerequisitesJson: encodeJsonArray(remaining),
