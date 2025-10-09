@@ -520,7 +520,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
                                         continue;
                                 }
 
-                                const removedPrerequisites = prerequisites.filter((prereqId) => prereqId === id);
+                                const removedPrerequisites = [id];
                                 tx.update(learningChunks)
                                         .set({
                                                 prerequisitesJson: encodeJsonArray(remaining),
