@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import crypto from "node:crypto";
-import { listChunksAsLearningItems, mapChunkRowToLearningItem, deleteChunk } from "../services/chunks.js";
+import { listChunksAsLearningItems, mapChunkRowToLearningItem, deleteChunk, batchFetchChunksMinimal } from "../services/chunks.js";
+import { batchFetchTopicsMinimal } from "../services/topics.js";
 import { VALIDATION_CONSTANTS } from "../constants/validation.js";
 
 const deleteChunkInputSchema = z.object({
@@ -813,6 +814,104 @@ export function registerPersistenceTools(server: McpServer): void {
                                                                         retryable: true,
                                                                 },
                                                                 message: `System error while updating topic summary: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "batch_fetch_topics_minimal",
+                {
+                        title: "Batch Fetch Topics (Minimal Metadata)",
+                        description: "Fetch topics with minimal metadata (IDs, title, subject, timestamps only). Efficient for listing and selection workflows.",
+                        inputSchema: {
+                                subject: z.string().optional().describe("Filter by subject/category"),
+                                limit: z.number().int().positive().optional().describe("Maximum number of topics to return"),
+                        },
+                },
+                async ({ subject, limit }: { subject?: string; limit?: number }) => {
+                        try {
+                                const topics = await batchFetchTopicsMinimal({ subject, limit });
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: true,
+                                                                topics,
+                                                                count: topics.length,
+                                                                message: `Retrieved ${topics.length} topic${topics.length === 1 ? "" : "s"}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "database",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `Failed to fetch topics: ${errorMsg}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        }
+                }
+        );
+
+        server.registerTool(
+                "batch_fetch_chunks_minimal",
+                {
+                        title: "Batch Fetch Chunks (Minimal Metadata)",
+                        description: "Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). Efficient for listing and selection workflows.",
+                        inputSchema: {
+                                topicId: z.string().optional().describe("Filter by topic ID"),
+                                subject: z.string().optional().describe("Filter by subject/category"),
+                                dueOnly: z.boolean().optional().describe("Only return chunks due for review"),
+                                limit: z.number().int().positive().optional().describe("Maximum number of chunks to return"),
+                        },
+                },
+                async ({ topicId, subject, dueOnly, limit }: { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number }) => {
+                        try {
+                                const chunks = await batchFetchChunksMinimal({ topicId, subject, dueOnly, limit });
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: true,
+                                                                chunks,
+                                                                count: chunks.length,
+                                                                message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? "" : "s"}`,
+                                                        }),
+                                                },
+                                        ],
+                                };
+                        } catch (error) {
+                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+                                return {
+                                        content: [
+                                                {
+                                                        type: "text",
+                                                        text: JSON.stringify({
+                                                                success: false,
+                                                                error: {
+                                                                        type: "database",
+                                                                        message: errorMsg,
+                                                                        retryable: true,
+                                                                },
+                                                                message: `Failed to fetch chunks: ${errorMsg}`,
                                                         }),
                                                 },
                                         ],

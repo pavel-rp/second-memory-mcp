@@ -764,6 +764,62 @@ export async function listChunksWithContent(filter: ListChunksWithContentFilter 
 	return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
 }
 
+// Batch fetch with minimal metadata
+export type ChunkMinimalMetadata = {
+	id: string;
+	topicId: string;
+	title: string;
+	subject: string;
+	difficulty: number;
+	estimatedDuration: number;
+	chunkType: string;
+	nextReviewAt: number;
+	createdAt: number;
+	updatedAt: number;
+};
+
+export async function batchFetchChunksMinimal(options?: {
+	topicId?: string;
+	subject?: string;
+	dueOnly?: boolean;
+	limit?: number;
+}): Promise<ChunkMinimalMetadata[]> {
+	const db = getSql();
+	const now = Date.now();
+	const conditions: ReturnType<typeof eq>[] = [];
+
+	if (options?.topicId) conditions.push(eq(learningChunks.topicId, options.topicId));
+	if (options?.subject) conditions.push(eq(learningChunks.subject, options.subject));
+	if (options?.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
+
+	const baseQuery = db.select({
+		id: learningChunks.id,
+		topicId: learningChunks.topicId,
+		title: learningChunks.title,
+		subject: learningChunks.subject,
+		difficulty: learningChunks.difficulty,
+		estimatedDuration: learningChunks.estimatedDuration,
+		chunkType: learningChunks.chunkType,
+		nextReviewAt: learningChunks.nextReviewAt,
+		createdAt: learningChunks.createdAt,
+		updatedAt: learningChunks.updatedAt,
+	}).from(learningChunks);
+
+	if (conditions.length > 0) {
+		const query = baseQuery.where(and(...conditions));
+		if (options?.limit && options.limit > 0) {
+			return query.limit(options.limit).all();
+		}
+		return query.all();
+	}
+
+	if (options?.limit && options.limit > 0) {
+		return baseQuery.limit(options.limit).all();
+	}
+
+	return baseQuery.all();
+}
+
 // Process review result with SM-2 calculations
 export async function processReviewResult(
 	itemId: string, 
