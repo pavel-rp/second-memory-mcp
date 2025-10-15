@@ -15,7 +15,7 @@ try {
 
 import { getDb, resetDatabase } from "../../src/db/client.js";
 import { decodeJsonArray } from "../../src/db/operations.js";
-import { createChunk, listChunks, listChunksAsLearningItems, deleteChunk } from "../../src/services/chunks.js";
+import { createChunk, listChunks, listChunksAsLearningItems, deleteChunk, batchFetchChunksMinimal } from "../../src/services/chunks.js";
 import { LearningItemSchema } from "../../src/types/recommendations.js";
 
 function ensureSchema() {
@@ -269,6 +269,100 @@ function tmpDbPath() {
                 const result = await deleteChunk("missing-chunk-id");
                 expect(result.success).toBe(false);
                 expect(result.error?.type).toBe("not_found");
+        });
+
+        it("batch fetches chunks with minimal metadata", async () => {
+                const now = Date.now();
+                const chunks = [
+                        {
+                                id: "c1",
+                                topicId: "t1",
+                                title: "Array Basics",
+                                subject: "CS",
+                                difficulty: 3,
+                                nextReviewAt: now,
+                                easeFactor: 2.5,
+                                repetitions: 0,
+                                estimatedDuration: 15,
+                                chunkType: "new" as const,
+                                createdAt: now,
+                                updatedAt: now,
+                        },
+                        {
+                                id: "c2",
+                                topicId: "t1",
+                                title: "Hash Tables",
+                                subject: "CS",
+                                difficulty: 5,
+                                nextReviewAt: now + 86400000,
+                                easeFactor: 2.5,
+                                repetitions: 1,
+                                estimatedDuration: 20,
+                                chunkType: "review" as const,
+                                createdAt: now + 1,
+                                updatedAt: now + 1,
+                        },
+                        {
+                                id: "c3",
+                                topicId: "t2",
+                                title: "Calculus",
+                                subject: "Math",
+                                difficulty: 7,
+                                nextReviewAt: now + 172800000,
+                                easeFactor: 2.5,
+                                repetitions: 2,
+                                estimatedDuration: 30,
+                                chunkType: "review" as const,
+                                createdAt: now + 2,
+                                updatedAt: now + 2,
+                        },
+                ];
+
+                for (const chunk of chunks) {
+                        await createChunk(chunk);
+                }
+
+                // Test: fetch all chunks
+                const allChunks = await batchFetchChunksMinimal();
+                expect(allChunks.length).toBe(3);
+                expect(allChunks[0]).toHaveProperty("id");
+                expect(allChunks[0]).toHaveProperty("topicId");
+                expect(allChunks[0]).toHaveProperty("title");
+                expect(allChunks[0]).toHaveProperty("subject");
+                expect(allChunks[0]).toHaveProperty("difficulty");
+                expect(allChunks[0]).toHaveProperty("estimatedDuration");
+                expect(allChunks[0]).toHaveProperty("chunkType");
+                expect(allChunks[0]).toHaveProperty("nextReviewAt");
+                expect(allChunks[0]).toHaveProperty("createdAt");
+                expect(allChunks[0]).toHaveProperty("updatedAt");
+                // Ensure no heavy fields are included
+                expect(allChunks[0]).not.toHaveProperty("content");
+                expect(allChunks[0]).not.toHaveProperty("prerequisitesJson");
+                expect(allChunks[0]).not.toHaveProperty("tagsJson");
+
+                // Test: filter by topicId
+                const topic1Chunks = await batchFetchChunksMinimal({ topicId: "t1" });
+                expect(topic1Chunks.length).toBe(2);
+                expect(topic1Chunks.every(c => c.topicId === "t1")).toBe(true);
+
+                // Test: filter by subject
+                const csChunks = await batchFetchChunksMinimal({ subject: "CS" });
+                expect(csChunks.length).toBe(2);
+                expect(csChunks.every(c => c.subject === "CS")).toBe(true);
+
+                // Test: dueOnly filter
+                const dueChunks = await batchFetchChunksMinimal({ dueOnly: true });
+                expect(dueChunks.length).toBe(1);
+                expect(dueChunks[0].id).toBe("c1");
+
+                // Test: limit results
+                const limitedChunks = await batchFetchChunksMinimal({ limit: 2 });
+                expect(limitedChunks.length).toBe(2);
+
+                // Test: combined filters
+                const filteredChunks = await batchFetchChunksMinimal({ subject: "CS", limit: 1 });
+                expect(filteredChunks.length).toBe(1);
+                expect(filteredChunks[0].subject).toBe("CS");
         });
 });
 
