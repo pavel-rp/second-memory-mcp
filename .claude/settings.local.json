@@ -21,7 +21,10 @@
       "Bash(mkdir:*)",
       "Bash(pnpm dlx:*)",
       "Bash(rm:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(echo $SM_DB_PATH)",
+      "Bash(sqlite3:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

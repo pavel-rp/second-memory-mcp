@@ -1,4 +1,6 @@
 import { describe, it, beforeEach, afterEach, expect } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import crypto from "node:crypto";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -20,18 +22,34 @@ import { getSql } from "../../src/db/operations.js";
 import { learningTopics, learningChunks } from "../../src/db/schema.js";
 import { eq } from "drizzle-orm";
 
+function tmpDbPath() {
+	return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
+}
+
 describe("Content Persistence", () => {
 	const skipTests = !hasBinding;
+	let dbFile: string;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		if (skipTests) return;
-		resetDatabase();
+		dbFile = tmpDbPath();
+		process.env.SM_DB_PATH = dbFile;
+		await resetDatabase(); // Reset singleton to pick up new path
 		ensureSchema();
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		if (skipTests) return;
-		resetDatabase();
+		await resetDatabase(); // Close database connection
+		if (fs.existsSync(dbFile)) {
+			fs.unlinkSync(dbFile);
+		}
+		if (fs.existsSync(`${dbFile}-shm`)) {
+			fs.unlinkSync(`${dbFile}-shm`);
+		}
+		if (fs.existsSync(`${dbFile}-wal`)) {
+			fs.unlinkSync(`${dbFile}-wal`);
+		}
 	});
 
 	describe("Content Validation", () => {
