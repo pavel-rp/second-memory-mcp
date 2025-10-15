@@ -662,7 +662,8 @@ export async function processReviewResult(
 		repetitions: sm2Result.repetitions,
 		nextReviewAt: new Date(sm2Result.nextReview).getTime(),
 		lastReviewedAt: now,
-		updatedAt: now
+		updatedAt: now, 
+		chunkType: sm2Result.leech ? "remediation" : "review"
 	};
 	
 	await db.update(learningChunks)

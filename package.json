@@ -10,7 +10,7 @@
     "start:pnpm": "pnpm run build && node dist/src/server/main.js",
     "start:stdio": "node --inspect=9229 dist/src/server/main.js",
     "test:prompts": "node scripts/test-prompts.mjs",
-    "test": "pnpm run build && vitest run --coverage",
+    "test": "pnpm run build && vitest run --coverage && node scripts/cleanup-test-files.js",
     "lint": "eslint src tests --ext .ts,.tsx --report-unused-disable-directives --max-warnings 100",
     "lint:fix": "eslint src tests --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
@@ -39,6 +39,7 @@
     "vitest": "^2.0.0"
   },
   "vitest": {
+    "setupFiles": ["./vitest.setup.ts"],
     "coverage": {
       "provider": "v8",
       "exclude": [

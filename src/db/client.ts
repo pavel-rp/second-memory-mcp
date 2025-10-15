@@ -7,7 +7,22 @@ let initialized = false;
 
 function resolveDbPath(): string {
 	const envPath = process.env.SM_DB_PATH && String(process.env.SM_DB_PATH).trim();
-	return envPath && envPath.length > 0 ? path.resolve(envPath) : path.resolve("./second-memory.db");
+	const resolvedPath = envPath && envPath.length > 0 ? path.resolve(envPath) : path.resolve("./second-memory.db");
+
+	// CRITICAL SAFETY CHECK: Prevent tests from using production database
+	// Check if we're in a test environment (vitest sets NODE_ENV or process.argv contains vitest)
+	const isTestEnv = process.env.NODE_ENV === "test" ||
+		process.argv.some(arg => arg.includes("vitest") || arg.includes("test"));
+
+	if (isTestEnv && resolvedPath.endsWith("second-memory.db")) {
+		throw new Error(
+			"FATAL: Tests attempted to use production database 'second-memory.db'. " +
+			"This is prevented to protect production data. " +
+			"Tests must set SM_DB_PATH to a temporary database file."
+		);
+	}
+
+	return resolvedPath;
 }
 
 function applyPragmas(db: BetterSqlite3Database): void {
