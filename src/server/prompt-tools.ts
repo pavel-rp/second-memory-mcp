@@ -1,37 +1,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import { promptPack } from "../prompts/prompt-pack.js";
-import { ChunkGenerationToolArgs, ChunkManagementToolArgs } from "./tool-helpers.js";
-
-const drillFormatSchema = z.enum([
-        "multiple_choice",
-        "open_ended",
-        "coding_problem",
-        "explanation",
-        "application",
-]);
-
-const learningPromptSchema = z.object({
-        chunkNumber: z.number().int().optional(),
-        totalChunks: z.number().int().optional(),
-        chunkTitle: z.string().optional(),
-        chunkContent: z.string().optional(),
-        prerequisites: z.string().optional(),
-        drillFormat: drillFormatSchema.optional(),
-});
-
-const retrievalPromptSchema = z.object({
-        chunkTitle: z.string().optional(),
-        drillFormat: drillFormatSchema.optional(),
-        masteryLevel: z.number().int().optional(),
-});
-
-const reviewPromptSchema = z.object({
-        lastReviewed: z.string().optional(),
-        masteryLevel: z.number().int().optional(),
-        previousAttempts: z.number().int().optional(),
-        weakAreas: z.string().optional(),
-});
+import {
+        ScaffoldingPromptInputSchema,
+        ScaffoldingPromptInputShape,
+        type ScaffoldingPromptInput,
+        LearningPromptInputSchema,
+        LearningPromptInputShape,
+        type LearningPromptInput,
+        RetrievalPromptInputSchema,
+        RetrievalPromptInputShape,
+        type RetrievalPromptInput,
+        ReviewPromptInputSchema,
+        ReviewPromptInputShape,
+        type ReviewPromptInput,
+        ChunkGenerationInputSchema,
+        ChunkGenerationInputShape,
+        type ChunkGenerationToolArgs,
+        ChunkManagementInputSchema,
+        ChunkManagementInputShape,
+        type ChunkManagementToolArgs,
+} from "../types/prompt-tools.js";
 
 export function registerPromptTools(server: McpServer): void {
         server.registerTool(
@@ -39,9 +27,10 @@ export function registerPromptTools(server: McpServer): void {
                 {
                         title: "Generate Scaffolding Prompt",
                         description: "Produce scaffolding plan guidance text",
-                        inputSchema: { problem: z.string().describe("Learning problem statement") },
+                        inputSchema: ScaffoldingPromptInputShape,
                 },
-                async ({ problem }: { problem: string }) => {
+                async (rawInput: unknown) => {
+                        const { problem }: ScaffoldingPromptInput = ScaffoldingPromptInputSchema.parse(rawInput);
                         const text = promptPack.getPrompt("scaffolding", { problem });
                         return { content: [{ type: "text", text }] };
                 }
@@ -52,17 +41,10 @@ export function registerPromptTools(server: McpServer): void {
                 {
                         title: "Generate Learning Prompt",
                         description: "Produce chunk learning guidance text",
-                        inputSchema: {
-                                chunkNumber: z.number().int().optional(),
-                                totalChunks: z.number().int().optional(),
-                                chunkTitle: z.string().optional(),
-                                chunkContent: z.string().optional(),
-                                prerequisites: z.string().optional(),
-                                drillFormat: z.string().optional(),
-                        },
+                        inputSchema: LearningPromptInputShape,
                 },
-                async (args: Record<string, unknown>) => {
-                        const parsedArgs = learningPromptSchema.parse(args);
+                async (rawInput: unknown) => {
+                        const parsedArgs: LearningPromptInput = LearningPromptInputSchema.parse(rawInput);
                         const text = promptPack.getPrompt("learning", parsedArgs);
                         return { content: [{ type: "text", text }] };
                 }
@@ -73,14 +55,10 @@ export function registerPromptTools(server: McpServer): void {
                 {
                         title: "Generate Retrieval Prompt",
                         description: "Produce retrieval practice drill text",
-                        inputSchema: {
-                                chunkTitle: z.string().optional(),
-                                drillFormat: z.string().optional(),
-                                masteryLevel: z.number().int().optional(),
-                        },
+                        inputSchema: RetrievalPromptInputShape,
                 },
-                async (args: Record<string, unknown>) => {
-                        const parsedArgs = retrievalPromptSchema.parse(args);
+                async (rawInput: unknown) => {
+                        const parsedArgs: RetrievalPromptInput = RetrievalPromptInputSchema.parse(rawInput);
                         const text = promptPack.getPrompt("retrieval", parsedArgs);
                         return { content: [{ type: "text", text }] };
                 }
@@ -91,15 +69,10 @@ export function registerPromptTools(server: McpServer): void {
                 {
                         title: "Generate Review Prompt",
                         description: "Produce spaced review session guidance text",
-                        inputSchema: {
-                                lastReviewed: z.string().optional(),
-                                masteryLevel: z.number().int().optional(),
-                                previousAttempts: z.number().int().optional(),
-                                weakAreas: z.string().optional(),
-                        },
+                        inputSchema: ReviewPromptInputShape,
                 },
-                async (args: Record<string, unknown>) => {
-                        const parsedArgs = reviewPromptSchema.parse(args);
+                async (rawInput: unknown) => {
+                        const parsedArgs: ReviewPromptInput = ReviewPromptInputSchema.parse(rawInput);
                         const text = promptPack.getPrompt("review", parsedArgs);
                         return { content: [{ type: "text", text }] };
                 }
@@ -123,17 +96,10 @@ export function registerPromptTools(server: McpServer): void {
                         title: "Generate Chunk Set with Instructions",
                         description:
                                 "Provide comprehensive step-by-step instructions for generating scaffolded learning chunks with workflow integration",
-                        inputSchema: {
-                                topicTitle: z.string().describe("Topic title"),
-                                topicDescription: z.string().optional(),
-                                existingChunkTitles: z.array(z.string()).optional(),
-                                workflowContext: z
-                                        .enum(["guided", "explicit"])
-                                        .optional()
-                                        .describe("Workflow context: guided for conversation flow, explicit for direct requests"),
-                        },
+                        inputSchema: ChunkGenerationInputShape,
                 },
-                async (args: ChunkGenerationToolArgs) => {
+                async (rawInput: unknown) => {
+                        const args: ChunkGenerationToolArgs = ChunkGenerationInputSchema.parse(rawInput);
                         const basePrompt = promptPack.getPrompt("chunk_generation", args);
 
                         const instructions = `# Chunk Generation Instructions
@@ -195,20 +161,10 @@ Remember: You are generating the content using your reasoning - the server only 
                 {
                         title: "Manage Chunk(s)",
                         description: "Propose updates/merges/splits/retirements with rationale",
-                        inputSchema: {
-                                operation: z.enum(["update", "merge", "split", "retire"]).optional(),
-                                managedChunk: z
-                                        .object({
-                                                title: z.string(),
-                                                order: z.number().int().optional(),
-                                                content: z.string().optional(),
-                                                prerequisites: z.string().optional(),
-                                        })
-                                        .optional(),
-                                intent: z.string().optional(),
-                        },
+                        inputSchema: ChunkManagementInputShape,
                 },
-                async (args: ChunkManagementToolArgs) => {
+                async (rawInput: unknown) => {
+                        const args: ChunkManagementToolArgs = ChunkManagementInputSchema.parse(rawInput);
                         const text = promptPack.getPrompt("chunk_management", args);
                         return { content: [{ type: "text", text }] };
                 }

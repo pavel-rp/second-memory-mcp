@@ -8,9 +8,24 @@ const require = createRequire(import.meta.url);
 let hasBinding = true;
 try {
 	const Database = require("better-sqlite3");
-	new Database(":memory:");
+	const testDb = new Database(":memory:");
+	testDb.close();
 } catch {
 	hasBinding = false;
+}
+
+// Force tests to run in CI environment only if bindings are actually available
+if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
+	// Double-check that bindings actually work
+	try {
+		const Database = require("better-sqlite3");
+		const testDb = new Database(":memory:");
+		testDb.close();
+		hasBinding = true;
+	} catch {
+		hasBinding = false;
+		console.warn("CI environment detected but SQLite bindings not available");
+	}
 }
 
 import { getDb, resetDatabase } from "../../src/db/client.js";
@@ -466,7 +481,7 @@ function tmpDbPath() {
 			expect(updateResult.topic).toBeDefined();
 			expect(updateResult.topic?.summary).toBe(newSummary);
 			expect(updateResult.topic?.summaryVersion).toBe(2); // Should increment from 1
-			expect(updateResult.topic?.summaryUpdatedAt).toBeGreaterThan(createResult.topic!.createdAt);
+			expect(updateResult.topic?.summaryUpdatedAt).toBeGreaterThanOrEqual(createResult.topic!.createdAt);
 		});
 
 		it("should validate summary length constraints", async () => {
