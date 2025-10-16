@@ -53,8 +53,8 @@ jobs:
       run: |
         export PYTHON=$(which python3)
         pnpm install better-sqlite3 --force
-      with:
-        approve-builds: true
+      env:
+        APPROVE_BUILDS: true
       
     - name: Debug SQLite package
       run: |
