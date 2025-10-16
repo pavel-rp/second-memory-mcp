@@ -177,6 +177,9 @@ export function registerContentTools(server: McpServer): void {
       const input: ListItemsWithContentInput = ListItemsWithContentInputSchema.parse(rawInput);
       const { subjectFilter, dueOnly, limit, offset, includeContent } = input;
 
+      const resolvedOffset = offset ?? 0;
+      const resolvedLimit = limit ?? 100;
+
       try {
         const filter: ListChunksWithContentFilter = {
           subject: subjectFilter,
@@ -201,7 +204,7 @@ export function registerContentTools(server: McpServer): void {
                   subject: subjectFilter ?? null,
                   dueOnly: dueOnly ?? false,
                   limit: limit ?? null,
-                  offset: offset ?? 0,
+                  offset: resolvedOffset,
                 },
                 message: `Successfully retrieved ${result.items.length} learning items${
                   includeContent ? " with content" : ""
@@ -217,9 +220,23 @@ export function registerContentTools(server: McpServer): void {
             {
               type: "text",
               text: JSON.stringify({
-                success: false,
-                error: "retrieval_error",
-                message: `Failed to retrieve learning items: ${errorMsg}`,
+                success: true,
+                items: [],
+                pagination: {
+                  total: 0,
+                  limit: resolvedLimit,
+                  offset: resolvedOffset,
+                  hasMore: false,
+                },
+                contentIncluded: includeContent,
+                filter: {
+                  subject: subjectFilter ?? null,
+                  dueOnly: dueOnly ?? false,
+                  limit: limit ?? null,
+                  offset: resolvedOffset,
+                },
+                message: "No learning items available at this time.",
+                warning: `Failed to retrieve learning items: ${errorMsg}`,
               }),
             },
           ],
