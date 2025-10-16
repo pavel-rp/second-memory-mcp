@@ -27,6 +27,11 @@ if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
         }
 }
 
+// Force tests to run in CI environment
+if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
+	hasBinding = true;
+}
+
 import { getDb, resetDatabase } from "../../src/db/client.js";
 import { createTopic, getTopicById, listTopics, updateTopic, deleteTopic, batchFetchTopicsMinimal } from "../../src/services/topics.js";
 
