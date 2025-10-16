@@ -183,7 +183,7 @@ const result = await what_to_learn_today({
 });
 ```
 
-**Note**: Filters (`subject`, `dueOnly`, `limit`) only apply when using `fetchFromDatabase: true`. In legacy mode, they are ignored.
+**Note**: Filters (`subjectFilter`, `dueOnly`, `limit`) only apply when using `fetchFromDatabase: true`. In legacy mode, they are ignored.
 
 ## MCP Tools
 

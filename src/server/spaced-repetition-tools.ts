@@ -200,7 +200,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
               {
                 type: "text",
                 text: JSON.stringify({
-                  error: "Choose one: fetchFromDatabase or learningItems",
+                  error: "Invalid input: provide either fetchFromDatabase: true or a non-empty learningItems array, not both.",
                 }),
               },
             ],
