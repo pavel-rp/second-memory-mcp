@@ -58,7 +58,7 @@ jobs:
     - name: Verify SQLite bindings
       run: |
         node -e "console.log('SQLite bindings test:', require('better-sqlite3'))"
-        node -e "const { Database } = require('better-sqlite3'); const db = new Database(':memory:'); console.log('SQLite test DB created successfully'); db.close();"
+        node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); console.log('SQLite test DB created successfully'); db.close();"
       
     - name: Lint code
       run: pnpm run lint
