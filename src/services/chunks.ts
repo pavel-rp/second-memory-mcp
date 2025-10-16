@@ -7,6 +7,7 @@ import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 import { scheduleReview } from "./reviews.js";
 import { prerequisiteReferenceValidator } from "../tools/prerequisite-reference-validator.js";
 import { dependencyResolver } from "../tools/dependency-resolver.js";
+import { hasSignificantContentChange } from "../utils/content-similarity.js";
 
 export type CreateChunkInput = {
 	id: string;
@@ -378,14 +379,12 @@ export async function updateChunkWithProgressReset(id: string, input: UpdateChun
 		const now = Date.now();
 		let shouldResetProgress = input.forceReset || false;
 
-		// Check if content has changed significantly (simple heuristic)
+		// Check if content has changed significantly using similarity algorithm
 		if (input.content && currentChunk.content) {
-			const currentLength = currentChunk.content.length;
-			const newLength = input.content.length;
-			const contentChange = Math.abs(newLength - currentLength) / Math.max(currentLength, 1);
-
-			// Reset if content changed by more than 50%
-			if (contentChange > 0.5) {
+			// Use Levenshtein distance-based similarity to detect significant content changes
+			// This properly detects when content is replaced with different text,
+			// even if the length remains similar
+			if (hasSignificantContentChange(currentChunk.content, input.content, 0.5)) {
 				shouldResetProgress = true;
 			}
 		}

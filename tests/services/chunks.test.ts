@@ -631,6 +631,47 @@ describe.skipIf(!hasBinding)("Chunk Update Functions", () => {
 			expect(result.chunk?.easeFactor).toBe(3.0); // Should preserve
 		});
 
+		it("should reset progress for same-length but different content (issue fix)", async () => {
+			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
+
+			const chunkId = crypto.randomUUID();
+			const topicId = crypto.randomUUID();
+			const now = Date.now();
+
+			await createChunk({
+				id: chunkId,
+				topicId,
+				title: "Test Chunk",
+				subject: "Test Subject",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 3.0,
+				repetitions: 5,
+				lastReviewedAt: now - 3600000,
+				estimatedDuration: 15,
+				chunkType: "review",
+				content: "Learn about TypeScript basics",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			});
+
+			// Replace with completely different content of the same length
+			// This is the core issue: old length-based detection would miss this
+			const result = await updateChunkWithProgressReset(chunkId, {
+				content: "Study Python advanced topics",
+			});
+
+			expect(result.success).toBe(true);
+			// Progress should be reset because content is significantly different
+			// despite having the same length
+			expect(result.progressReset).toBe(true);
+			expect(result.chunk?.repetitions).toBe(0);
+			expect(result.chunk?.easeFactor).toBe(2.5);
+			expect(result.chunk?.lastReviewedAt).toBeNull();
+		});
+
 		it("should force reset when requested", async () => {
 			const { updateChunkWithProgressReset } = await import("../../src/services/chunks.js");
 
