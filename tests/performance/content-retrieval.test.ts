@@ -3,6 +3,7 @@ import { listChunksWithContent } from "../../src/services/chunks.js";
 import { resetDatabase } from "../../src/db/client.js";
 import { ensureSchema } from "../../src/db/migrate.js";
 import { getSql } from "../../src/db/operations.js";
+import { learningTopics, learningChunks } from "../../src/db/schema.js";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -54,18 +55,40 @@ describe("Performance: Content Retrieval", () => {
 		const uniqueId = `topic-${now}-${Math.random()}`;
 
 		// Create a topic first
-		db.exec(`
-			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
-			VALUES ('${uniqueId}', 'Performance Test Topic', 'CS', NULL, NULL, NULL, ${now}, ${now})
-		`);
+		db.insert(learningTopics).values({
+			id: uniqueId,
+			title: "Performance Test Topic",
+			subject: "CS",
+			summary: null,
+			summaryVersion: null,
+			summaryUpdatedAt: null,
+			createdAt: now,
+			updatedAt: now,
+		}).run();
 
 		// Create multiple chunks with content
 		for (let i = 1; i <= itemCount; i++) {
 			const content = generateLargeContent(1); // 1KB content per item
-			db.exec(`
-				INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-				VALUES ('chunk-${now}-${i}', '${uniqueId}', 'Performance Test Chunk ${i}', 'CS', ${i % 10 + 1}, ${now + 86400000}, 2.5, 0, NULL, 20, 'new', '[]', '["performance"]', '${content}', 1, ${now}, ${now}, ${now})
-			`);
+			db.insert(learningChunks).values({
+				id: `chunk-${now}-${i}`,
+				topicId: uniqueId,
+				title: `Performance Test Chunk ${i}`,
+				subject: "CS",
+				difficulty: i % 10 + 1,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 0,
+				lastReviewedAt: null,
+				estimatedDuration: 20,
+				chunkType: "new",
+				prerequisitesJson: JSON.stringify([]),
+				tagsJson: JSON.stringify(["performance"]),
+				content: content,
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
 		}
 
 		const startTime = performance.now();
@@ -99,18 +122,40 @@ describe("Performance: Content Retrieval", () => {
 		const uniqueId = `topic-${now}-${Math.random()}`;
 
 		// Create a topic first
-		db.exec(`
-			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
-			VALUES ('${uniqueId}', 'Large Content Test Topic', 'CS', NULL, NULL, NULL, ${now}, ${now})
-		`);
+		db.insert(learningTopics).values({
+			id: uniqueId,
+			title: 'Large Content Test Topic',
+			subject: 'CS',
+			summary: null,
+			summaryVersion: null,
+			summaryUpdatedAt: null,
+			createdAt: now,
+			updatedAt: now,
+		}).run();
 
 		// Create chunks with large content
 		for (let i = 1; i <= itemCount; i++) {
 			const content = generateLargeContent(contentSizeKB);
-			db.exec(`
-				INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-				VALUES ('chunk-${now}-${i}', '${uniqueId}', 'Large Content Chunk ${i}', 'CS', ${i % 10 + 1}, ${now + 86400000}, 2.5, 0, NULL, 20, 'new', '[]', '["large-content"]', '${content}', 1, ${now}, ${now}, ${now})
-			`);
+			db.insert(learningChunks).values({
+				id: `chunk-${now}-${i}`,
+				topicId: uniqueId,
+				title: `Large Content Chunk ${i}`,
+				subject: 'CS',
+				difficulty: i % 10 + 1,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 0,
+				lastReviewedAt: null,
+				estimatedDuration: 20,
+				chunkType: 'new',
+				prerequisitesJson: JSON.stringify([]),
+				tagsJson: JSON.stringify(['large-content']),
+				content: content,
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
 		}
 
 		const startTime = performance.now();
@@ -141,18 +186,40 @@ describe("Performance: Content Retrieval", () => {
 		const uniqueId = `topic-${now}-${Math.random()}`;
 
 		// Create a topic first
-		db.exec(`
-			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
-			VALUES ('${uniqueId}', 'Pagination Test Topic', 'CS', NULL, NULL, NULL, ${now}, ${now})
-		`);
+		db.insert(learningTopics).values({
+			id: uniqueId,
+			title: 'Pagination Test Topic',
+			subject: 'CS',
+			summary: null,
+			summaryVersion: null,
+			summaryUpdatedAt: null,
+			createdAt: now,
+			updatedAt: now,
+		}).run();
 
 		// Create many chunks
 		for (let i = 1; i <= totalItems; i++) {
 			const content = generateLargeContent(0.5); // 0.5KB content per item
-			db.exec(`
-				INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-				VALUES ('chunk-${now}-${i}', '${uniqueId}', 'Pagination Test Chunk ${i}', 'CS', ${i % 10 + 1}, ${now + 86400000}, 2.5, 0, NULL, 20, 'new', '[]', '["pagination"]', '${content}', 1, ${now}, ${now}, ${now})
-			`);
+			db.insert(learningChunks).values({
+				id: `chunk-${now}-${i}`,
+				topicId: uniqueId,
+				title: `Pagination Test Chunk ${i}`,
+				subject: 'CS',
+				difficulty: i % 10 + 1,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 0,
+				lastReviewedAt: null,
+				estimatedDuration: 20,
+				chunkType: 'new',
+				prerequisitesJson: JSON.stringify([]),
+				tagsJson: JSON.stringify(['pagination']),
+				content: content,
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
 		}
 
 		// Test pagination performance
@@ -209,10 +276,16 @@ describe("Performance: Content Retrieval", () => {
 		const uniqueId = `topic-${now}-${Math.random()}`;
 
 		// Create a topic first
-		db.exec(`
-			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
-			VALUES ('${uniqueId}', 'Mixed Content Test Topic', 'CS', NULL, NULL, NULL, ${now}, ${now})
-		`);
+		db.insert(learningTopics).values({
+			id: uniqueId,
+			title: 'Mixed Content Test Topic',
+			subject: 'CS',
+			summary: null,
+			summaryVersion: null,
+			summaryUpdatedAt: null,
+			createdAt: now,
+			updatedAt: now,
+		}).run();
 
 		// Create chunks with mixed content scenarios
 		for (let i = 1; i <= itemCount; i++) {
@@ -221,10 +294,26 @@ describe("Performance: Content Retrieval", () => {
 			const contentVersion = hasContent ? 1 : null;
 			const contentUpdatedAt = hasContent ? now : null;
 			
-			db.exec(`
-				INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-				VALUES ('chunk-${now}-${i}', '${uniqueId}', 'Mixed Content Chunk ${i}', 'CS', ${i % 10 + 1}, ${now + 86400000}, 2.5, 0, NULL, 20, 'new', '[]', '["mixed"]', ${content ? `'${content}'` : 'NULL'}, ${contentVersion || 'NULL'}, ${contentUpdatedAt || 'NULL'}, ${now}, ${now})
-			`);
+			db.insert(learningChunks).values({
+				id: `chunk-${now}-${i}`,
+				topicId: uniqueId,
+				title: `Mixed Content Chunk ${i}`,
+				subject: 'CS',
+				difficulty: i % 10 + 1,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 0,
+				lastReviewedAt: null,
+				estimatedDuration: 20,
+				chunkType: 'new',
+				prerequisitesJson: JSON.stringify([]),
+				tagsJson: JSON.stringify(['mixed']),
+				content: content,
+				contentVersion: contentVersion,
+				contentUpdatedAt: contentUpdatedAt,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
 		}
 
 		const startTime = performance.now();

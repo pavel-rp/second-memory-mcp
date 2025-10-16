@@ -781,16 +781,12 @@ export async function listChunksWithContent(filter: ListChunksWithContentFilter 
 
 	// Get total count for pagination
 	let totalCount = 0;
+	const countQuery = db.select({ count: sql<number>`count(*)` })
+		.from(learningChunks);
+	
 	if (conditions.length > 0) {
-		const countQuery = db.select({ count: sql<number>`count(*)` })
-			.from(learningChunks)
-			.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
-			.where(and(...conditions));
-		totalCount = countQuery.get()?.count || 0;
+		totalCount = countQuery.where(and(...conditions)).get()?.count || 0;
 	} else {
-		const countQuery = db.select({ count: sql<number>`count(*)` })
-			.from(learningChunks)
-			.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 		totalCount = countQuery.get()?.count || 0;
 	}
 
@@ -805,17 +801,23 @@ export async function listChunksWithContent(filter: ListChunksWithContentFilter 
 		rows = baseQuery.offset(offset).limit(limit).all();
 	}
 	
-	const items = rows.map(row => mapChunkRowToLearningItemWithContent(row as ChunkListRowWithContent));
-	
-	return {
-		items,
-		pagination: {
-			total: totalCount,
-			limit,
-			offset,
-			hasMore: offset + items.length < totalCount,
-		},
-	};
+		const items = rows.map(row => {
+			if (filter.includeContent) {
+				return mapChunkRowToLearningItemWithContent(row as ChunkListRowWithContent);
+			} else {
+				return mapChunkRowToLearningItem(row as ChunkListRow);
+			}
+		});
+
+		return {
+			items,
+			pagination: {
+				total: totalCount,
+				limit,
+				offset,
+				hasMore: offset + items.length < totalCount,
+			},
+		};
 }
 
 // Batch fetch with minimal metadata
