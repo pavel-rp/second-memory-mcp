@@ -13,6 +13,11 @@ try {
 	hasBinding = false;
 }
 
+// Force tests to run in CI environment
+if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
+	hasBinding = true;
+}
+
 import { resetDatabase } from "../../src/db/client.js";
 import { ensureSchema } from "../../src/db/migrate.js";
 import { getSql } from "../../src/db/operations.js";

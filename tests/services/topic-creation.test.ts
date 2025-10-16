@@ -13,6 +13,11 @@ try {
 	hasBinding = false;
 }
 
+// Force tests to run in CI environment
+if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
+	hasBinding = true;
+}
+
 import { getDb, resetDatabase } from "../../src/db/client.js";
 import { topicCreationService } from "../../src/services/topic-creation.js";
 import { TopicCreationInput, UserPreferences } from "../../src/types/topic-creation.js";

@@ -23,6 +23,11 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         
+    - name: Install system dependencies for SQLite
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential python3 libsqlite3-dev
+        
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
@@ -44,6 +49,14 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       
+    - name: Rebuild native dependencies
+      run: |
+        export PYTHON=$(which python3)
+        pnpm rebuild better-sqlite3
+      
+    - name: Verify SQLite bindings
+      run: node -e "console.log('SQLite bindings test:', require('better-sqlite3'))"
+      
     - name: Lint code
       run: pnpm run lint
       
@@ -55,6 +68,9 @@ jobs:
       
     - name: Run tests
       run: pnpm run test
+      env:
+        CI: true
+        FORCE_SQLITE_TESTS: true
       
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
