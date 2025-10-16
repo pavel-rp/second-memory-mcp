@@ -49,11 +49,19 @@ jobs:
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
       
-    - name: Rebuild native dependencies
+    - name: Install native dependencies
       run: |
         export PYTHON=$(which python3)
-        export npm_config_build_from_source=true
-        pnpm rebuild better-sqlite3
+        pnpm install better-sqlite3 --force
+      with:
+        approve-builds: true
+      
+    - name: Debug SQLite package
+      run: |
+        echo "Checking better-sqlite3 package structure:"
+        find node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 -name "*.node" -type f
+        echo "Package contents:"
+        ls -la node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/
       
     - name: Verify SQLite bindings
       run: |
