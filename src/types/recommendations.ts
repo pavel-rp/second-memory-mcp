@@ -27,6 +27,13 @@ export type LearningItem = {
   topicTitle?: string; // Human-readable topic title
 };
 
+// Learning item with optional content fields
+export type LearningItemWithContent = LearningItem & {
+  content?: string;
+  contentVersion?: number;
+  contentUpdatedAt?: number;
+};
+
 // Session constraints for composition
 export type SessionConstraints = {
   maxDuration?: number; // minutes
@@ -177,6 +184,22 @@ export const LearningItemSchema = z.object({
   topicTitle: z.string().min(1).optional(),
 });
 
+export const LearningItemWithContentSchema = LearningItemSchema.extend({
+  content: z.string().optional(),
+  contentVersion: z.number().int().min(1).optional(),
+  contentUpdatedAt: z.number().int().min(0).optional(),
+});
+
+export const PaginatedLearningItemsResponseSchema = z.object({
+  items: z.array(LearningItemWithContentSchema),
+  pagination: z.object({
+    total: z.number().int().min(0),
+    limit: z.number().int().min(1),
+    offset: z.number().int().min(0),
+    hasMore: z.boolean(),
+  }),
+});
+
 export const SessionConstraintsSchema = z.object({
   maxDuration: z.number().min(0).optional(),
   maxCognitiveLoad: z.number().min(0).optional(),
@@ -281,12 +304,27 @@ export const RecommendationOutputSchema = z.object({
   nextActions: z.array(z.string()).optional(),
 });
 
-export const ConversationRequestSchema = z.object({
-  intent: z.string().min(1),
-  context: z.record(z.unknown()).optional(),
-  userInput: z.string().optional(),
-  sessionState: z.record(z.unknown()).optional(),
-});
+export const ConversationRequestShape = {
+  intent: z
+    .string()
+    .min(1)
+    .describe("User intent driving the guided learning conversation"),
+  context: z
+    .record(z.unknown())
+    .optional()
+    .describe("Optional contextual metadata for the conversation"),
+  userInput: z
+    .string()
+    .optional()
+    .describe("Raw user utterance or request"),
+  sessionState: z
+    .record(z.unknown())
+    .optional()
+    .describe("Opaque session state blob from prior interactions"),
+} as const;
+
+export const ConversationRequestSchema = z.object(ConversationRequestShape);
+export type ConversationRequestInput = z.infer<typeof ConversationRequestSchema>;
 
 export const ConversationResponseSchema = z.object({
   message: z.string().min(1),

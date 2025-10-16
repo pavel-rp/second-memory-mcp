@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import {
         calculateSessionProgress,
         determineNextPhase,
@@ -8,7 +7,11 @@ import {
 } from "../tools/session-manager.js";
 import { ConversationManager } from "../tools/conversation-manager.js";
 import { sessionToolInputSchema } from "./tool-helpers.js";
-import { ConversationRequestSchema } from "../types/recommendations.js";
+import {
+        ConversationRequestInput,
+        ConversationRequestSchema,
+        ConversationRequestShape,
+} from "../types/recommendations.js";
 
 export function registerSessionTools(server: McpServer): void {
         server.registerTool(
@@ -74,16 +77,11 @@ export function registerSessionTools(server: McpServer): void {
                         title: "Guided Learning Conversation",
                         description:
                                 "Conduct a conversational 'teach me' session with zero friction. Handles session guidance, clarifying questions, and learning orchestration.",
-                        inputSchema: {
-                                intent: z.string().min(1),
-                                context: z.unknown().optional(),
-                                userInput: z.string().optional(),
-                                sessionState: z.unknown().optional(),
-                        },
+                        inputSchema: ConversationRequestShape,
                 },
                 async (input: unknown) => {
                         try {
-                                const parsedInput = ConversationRequestSchema.parse(input);
+                                const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
                                 const conversationManager = new ConversationManager();
                                 const result = await conversationManager.conductLearningSession(parsedInput);
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };
