@@ -199,6 +199,6 @@ Key environment variables for algorithm tuning:
 
 **Workflow Specifications**
 - Follow the spec-workflow defined in the corresponding MCP server when explicitly asked
-- Before starting work in the spec-workflow paradigm, checkout a feature branch if we're on develop, and don't have uncommited or unsynced with remote changes.
-- If there are uncommited or unsynced with remote changes, ask how to act.
+- Before starting work in the spec-workflow paradigm, checkout a feature branch if we're on develop, and don't have uncommitted or unsynced with remote changes.
+- If there are uncommitted or unsynced with remote changes, ask how to act.
 - Always run all builds, lints and tests before claiming a task is completed.
