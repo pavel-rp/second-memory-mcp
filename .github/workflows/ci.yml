@@ -9,88 +9,63 @@ on:
 jobs:
   build-test-lint:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [20.x]
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        
-    - name: Install system dependencies for SQLite
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential python3 libsqlite3-dev
-        
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: latest
-        
-    - name: Get pnpm store directory
-      shell: bash
-      run: |
-        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-        
-    - name: Setup pnpm cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-        restore-keys: |
-          ${{ runner.os }}-pnpm-store-
-          
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-      
-    - name: Install native dependencies
-      run: |
-        export PYTHON=$(which python3)
-        pnpm install better-sqlite3 --force
-      env:
-        APPROVE_BUILDS: true
-      
-    - name: Debug SQLite package
-      run: |
-        echo "Checking better-sqlite3 package structure:"
-        find node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 -name "*.node" -type f
-        echo "Package contents:"
-        ls -la node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/
-      
-    - name: Verify SQLite bindings
-      run: |
-        node -e "console.log('SQLite bindings test:', require('better-sqlite3'))"
-        node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); console.log('SQLite test DB created successfully'); db.close();"
-      
-    - name: Lint code
-      run: pnpm run lint
-      
-    - name: Type check
-      run: pnpm run type-check
-      
-    - name: Build project
-      run: pnpm run build
-      
-    - name: Run tests
-      run: |
-        export PYTHON=$(which python3)
-        export npm_config_build_from_source=true
-        pnpm run test
-      env:
-        CI: true
-        FORCE_SQLITE_TESTS: true
-      
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
-      if: matrix.node-version == '20.x'
-      with:
-        file: ./coverage/lcov.info
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install system dependencies for SQLite
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 libsqlite3-dev
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install dependencies (build native modules)
+        env:
+          # If a prebuilt isn't available, compile from source
+          npm_config_python: python3
+          npm_config_build_from_source: true
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify SQLite bindings
+        run: |
+          node -e "console.log('SQLite bindings test:', require('better-sqlite3'))"
+          node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); console.log('SQLite test DB created successfully'); db.close();"
+
+      - name: Lint code
+        run: pnpm run lint
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Run tests
+        env:
+          CI: true
+          FORCE_SQLITE_TESTS: true
+        run: pnpm run test
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: matrix.node-version == '20.x'
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
