@@ -184,8 +184,8 @@ export function registerContentTools(server: McpServer): void {
         const filter: ListChunksWithContentFilter = {
           subject: subjectFilter,
           dueOnly,
-          limit,
-          offset,
+          limit: resolvedLimit,
+          offset: resolvedOffset,
           includeContent,
         };
 
@@ -198,12 +198,13 @@ export function registerContentTools(server: McpServer): void {
               text: JSON.stringify({
                 success: true,
                 items: result.items,
+                count: result.items.length,
                 pagination: result.pagination,
                 contentIncluded: includeContent,
                 filter: {
                   subject: subjectFilter ?? null,
                   dueOnly: dueOnly ?? false,
-                  limit: limit ?? null,
+                  limit: resolvedLimit,
                   offset: resolvedOffset,
                 },
                 message: `Successfully retrieved ${result.items.length} learning items${
@@ -222,6 +223,7 @@ export function registerContentTools(server: McpServer): void {
               text: JSON.stringify({
                 success: true,
                 items: [],
+                count: 0,
                 pagination: {
                   total: 0,
                   limit: resolvedLimit,
@@ -232,7 +234,7 @@ export function registerContentTools(server: McpServer): void {
                 filter: {
                   subject: subjectFilter ?? null,
                   dueOnly: dueOnly ?? false,
-                  limit: limit ?? null,
+                  limit: resolvedLimit,
                   offset: resolvedOffset,
                 },
                 message: "No learning items available at this time.",
