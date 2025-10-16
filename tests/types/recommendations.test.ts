@@ -15,14 +15,14 @@ describe("RecommendationInputSchema - self-fetch parameters", () => {
 		const input = {
 			learningItems: [],
 			fetchFromDatabase: true,
-			subject: "Math",
+			subjectFilter: "Math",
 			dueOnly: true,
 			limit: 10,
 		};
 
 		const result = RecommendationInputSchema.parse(input);
 		expect(result.fetchFromDatabase).toBe(true);
-		expect(result.subject).toBe("Math");
+		expect(result.subjectFilter).toBe("Math");
 		expect(result.dueOnly).toBe(true);
 		expect(result.limit).toBe(10);
 	});
@@ -40,11 +40,11 @@ describe("RecommendationInputSchema - self-fetch parameters", () => {
 	it("validates subject filter is optional", () => {
 		const input = {
 			learningItems: [],
-			subject: "CS",
+			subjectFilter: "CS",
 		};
 
 		const result = RecommendationInputSchema.parse(input);
-		expect(result.subject).toBe("CS");
+		expect(result.subjectFilter).toBe("CS");
 	});
 
 	it("validates dueOnly filter is optional", () => {
@@ -98,14 +98,14 @@ describe("RecommendationInputSchema - self-fetch parameters", () => {
 		const input = {
 			learningItems: [],
 			fetchFromDatabase: true,
-			subject: "SWE",
+			subjectFilter: "SWE",
 			dueOnly: false,
 			limit: 20,
 		};
 
 		const result = RecommendationInputSchema.parse(input);
 		expect(result.fetchFromDatabase).toBe(true);
-		expect(result.subject).toBe("SWE");
+		expect(result.subjectFilter).toBe("SWE");
 		expect(result.dueOnly).toBe(false);
 		expect(result.limit).toBe(20);
 	});
@@ -118,7 +118,7 @@ describe("RecommendationInputSchema - self-fetch parameters", () => {
 
 		const result = RecommendationInputSchema.parse(input);
 		expect(result.fetchFromDatabase).toBe(true);
-		expect(result.subject).toBeUndefined();
+		expect(result.subjectFilter).toBeUndefined();
 		expect(result.dueOnly).toBeUndefined();
 		expect(result.limit).toBeUndefined();
 	});
@@ -126,7 +126,7 @@ describe("RecommendationInputSchema - self-fetch parameters", () => {
 	it("validates backward compatibility - filters can be provided without fetchFromDatabase", () => {
 		const input = {
 			learningItems: [],
-			subject: "Math",
+			subjectFilter: "Math",
 			dueOnly: true,
 			limit: 10,
 		};
@@ -135,7 +135,7 @@ describe("RecommendationInputSchema - self-fetch parameters", () => {
 		// fetchFromDatabase should default to false
 		expect(result.fetchFromDatabase).toBe(false);
 		// But filters should still be present in the parsed result
-		expect(result.subject).toBe("Math");
+		expect(result.subjectFilter).toBe("Math");
 		expect(result.dueOnly).toBe(true);
 		expect(result.limit).toBe(10);
 	});

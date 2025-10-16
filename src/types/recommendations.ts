@@ -101,13 +101,13 @@ export interface SessionContext {
 export type RecommendationInput = {
   mode?: RecommendationMode; // "guided" for zero-friction, "explicit" for specified params
   timeAvailable?: number; // minutes
-  subjectPreference?: SubjectPreference; // subject filter or "Any"
+  subjectPreference?: SubjectPreference; // general subject preference (e.g., "Any" or specific SubjectPreference). Used for non-fetch modes or as a fallback.
   learningItems?: LearningItem[]; // candidate items from SQLite database
   userHistory?: SessionHistory; // recent learning patterns
   sessionContext?: SessionContext; // current session state if continuing
-  constraints?: SessionConstraints; // additional filtering/limits
+  constraints?: SessionConstraints; // additional filtering/limits (may include subjectFilter for broader subject-based rules)
   fetchFromDatabase?: boolean; // self-fetch mode: automatically fetch items from database (default: false)
-  subject?: string; // filter by subject when fetchFromDatabase is true
+  subjectFilter?: string; // subject filter applied when fetchFromDatabase is true. Overrides general preferences for precise database querying.
   dueOnly?: boolean; // filter to only due items when fetchFromDatabase is true
   limit?: number; // limit number of items fetched when fetchFromDatabase is true
 };
@@ -253,7 +253,7 @@ export const RecommendationInputShape = {
   sessionContext: SessionContextSchema.optional(),
   constraints: SessionConstraintsSchema.optional(),
   fetchFromDatabase: z.boolean().optional().default(false),
-  subject: z.string().optional(),
+  subjectFilter: z.string().optional(),
   dueOnly: z.boolean().optional(),
   limit: z.number().int().min(1).optional(),
 };

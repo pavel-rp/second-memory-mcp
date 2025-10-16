@@ -212,7 +212,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         if (parsedInput.fetchFromDatabase) {
           try {
             itemsToProcess = await listChunksAsLearningItems({
-              subject: parsedInput.subject,
+              subject: parsedInput.subjectFilter,
               dueOnly: parsedInput.dueOnly,
               limit: parsedInput.limit,
             });
