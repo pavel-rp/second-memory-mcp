@@ -156,5 +156,50 @@ describe("content-similarity", () => {
 
 			expect(hasSignificantContentChange(original, expanded)).toBe(true);
 		});
+
+		it("should handle very large strings efficiently with fallback", () => {
+			// Create strings larger than MAX_LEVENSHTEIN_LENGTH (10000 chars)
+			const largeStr1 = "a".repeat(15000);
+			const largeStr2 = "b".repeat(15000);
+
+			// Should still work without excessive memory usage
+			const result = hasSignificantContentChange(largeStr1, largeStr2);
+			
+			// Should detect as significant change since they're completely different
+			expect(result).toBe(true);
+		});
+
+		it("should handle large similar strings with fallback", () => {
+			// Create large similar strings
+			const largeStr1 = "a".repeat(15000);
+			const largeStr2 = "a".repeat(15000);
+
+			// Should detect as not significantly changed
+			const result = hasSignificantContentChange(largeStr1, largeStr2);
+			expect(result).toBe(false);
+		});
+	});
+
+	describe("Memory efficiency", () => {
+		it("should use space-efficient algorithm for normal strings", () => {
+			// Test with moderately sized strings that would use the optimized algorithm
+			const str1 = "a".repeat(1000);
+			const str2 = "b".repeat(1000);
+
+			// Should complete without memory issues
+			const distance = calculateLevenshteinDistance(str1, str2);
+			expect(distance).toBe(1000);
+		});
+
+		it("should swap strings to use shorter length for optimization", () => {
+			// Longer string first, shorter second
+			const long = "a".repeat(500);
+			const short = "b".repeat(100);
+
+			const distance = calculateLevenshteinDistance(long, short);
+			
+			// Should still calculate correctly
+			expect(distance).toBeGreaterThan(0);
+		});
 	});
 });
