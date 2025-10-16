@@ -8,11 +8,6 @@ import {
 } from "../tools/sr-calculator.js";
 import { RecommendationEngine } from "../tools/recommendation-engine.js";
 import {
-  RecommendationModeSchema,
-  SubjectPreferenceSchema,
-  LearningItemSchema,
-  SessionHistorySchema,
-  SessionConstraintsSchema,
   RecommendationInputSchema,
   RecommendationInputShape,
 } from "../types/recommendations.js";

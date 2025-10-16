@@ -27,6 +27,13 @@ export type LearningItem = {
   topicTitle?: string; // Human-readable topic title
 };
 
+// Learning item with optional content fields
+export type LearningItemWithContent = LearningItem & {
+  content?: string;
+  contentVersion?: number;
+  contentUpdatedAt?: number;
+};
+
 // Session constraints for composition
 export type SessionConstraints = {
   maxDuration?: number; // minutes
@@ -175,6 +182,22 @@ export const LearningItemSchema = z.object({
   tags: z.array(z.string()).optional(),
   topicId: z.string().min(1).optional(),
   topicTitle: z.string().min(1).optional(),
+});
+
+export const LearningItemWithContentSchema = LearningItemSchema.extend({
+  content: z.string().optional(),
+  contentVersion: z.number().int().min(1).optional(),
+  contentUpdatedAt: z.number().int().min(0).optional(),
+});
+
+export const PaginatedLearningItemsResponseSchema = z.object({
+  items: z.array(LearningItemWithContentSchema),
+  pagination: z.object({
+    total: z.number().int().min(0),
+    limit: z.number().int().min(1),
+    offset: z.number().int().min(0),
+    hasMore: z.boolean(),
+  }),
 });
 
 export const SessionConstraintsSchema = z.object({
