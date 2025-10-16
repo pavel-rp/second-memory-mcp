@@ -129,18 +129,15 @@ export class ConversationManager {
 		const topicDescription = `Learn ${topicTitle} through structured, scaffolded lessons`;
 
 		return {
-			message: `Excellent choice! I'll guide you through creating a structured learning path for "${topicTitle}".\n\n` +
-				`To create the best possible learning experience, I need you to:\n\n` +
-				`1. **Generate learning chunks** using the \`chunk_generation_prompt\` tool with these parameters:\n` +
-				`   - topicTitle: "${topicTitle}"\n` +
-				`   - topicDescription: "${topicDescription}"\n` +
-				`   - workflowContext: "guided"\n\n` +
-				`2. **Follow the detailed instructions** provided by that tool to create 5-9 scaffolded chunks\n\n` +
-				`3. **Create the topic** using \`create_topic_with_chunks\` with your generated chunks\n\n` +
-				`This approach ensures you get a personalized learning path designed specifically for "${topicTitle}" in the ${subject} domain.`,
+			message: `I'll help you create a structured learning path for "${topicTitle}".\n\n` +
+				`I need to generate 5-9 scaffolded learning chunks for this topic. ` +
+				`I'll analyze the topic, break it down into digestible pieces with logical progression, ` +
+				`and create the chunks using the \`create_topic_with_chunks\` tool.\n\n` +
+				`Subject: ${subject}\n` +
+				`Let me generate the chunks now...`,
 			needsInput: false,
 			suggestedInputs: [
-				"Use chunk_generation_prompt tool",
+				"Generate the chunks now",
 				"Tell me more about chunk generation",
 				"Choose a different topic"
 			],
@@ -160,8 +157,7 @@ export class ConversationManager {
 				estimatedDuration: 0,
 				rationale: `Providing instruction-based workflow guidance for creating "${topicTitle}" learning path`,
 				nextActions: [
-					"Use chunk_generation_prompt tool",
-					"Generate learning chunks using your reasoning",
+					"Generate learning chunks using reasoning",
 					"Create topic with create_topic_with_chunks tool"
 				]
 			}

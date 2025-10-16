@@ -647,17 +647,19 @@ Focus on creating scaffolding that can be gradually removed as competence develo
 - [ ] Deployment automation
 
 
-### Prompt exposure workaround
+### Prompt access
 
-Some clients currently don’t surface MCP prompts in UI even when the server implements `prompts/list` and `prompts/get`. As a reliable workaround, this server also exposes prompt-generating tools that return the same text:
+The server exposes learning prompts via MCP's standard prompt interface:
 
-- `scaffolding_prompt({ problem })`
-- `learning_prompt({ chunkNumber?, totalChunks?, chunkTitle?, chunkContent?, prerequisites?, drillFormat? })`
-- `retrieval_prompt({ chunkTitle?, drillFormat?, masteryLevel? })`
-- `review_prompt({ lastReviewed?, masteryLevel?, previousAttempts?, weakAreas? })`
-- `workflow_guidance_prompt()`
+- `scaffolding` - Create scaffolding plan (5–9 chunks)
+- `learning` - Active learning guidance for a chunk  
+- `retrieval` - Generate retrieval drill (two-attempt policy)
+- `review` - Spaced review session guidance
+- `workflow_guidance` - End-to-end orchestration guidance
+- `chunk_generation` - Propose 5–9 chunks with fields
+- `chunk_management` - Update/Merge/Split/Retire with rationale
 
-Use these when prompts don’t appear. This keeps flows functional across clients while we track prompt support.
+These prompts provide the same functionality as the previous tool wrappers but through the proper MCP prompt interface.
 
 
 

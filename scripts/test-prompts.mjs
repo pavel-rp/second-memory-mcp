@@ -78,18 +78,7 @@ async function run() {
     console.log(`\n[${p.name}]`, text.slice(0, 180).replace(/\n/g, " ") + (text.length > 180 ? "..." : ""));
   }
 
-  // 5) tools/call for chunk prompts
-  const cgId = nextId++;
-  send(child, req(cgId, "tools/call", { name: "chunk_generation_prompt", arguments: { topicTitle: "Graph Theory", topicDescription: "Basics", existingChunkTitles: ["Intro"] } }));
-  await waitFor(responses, cgId, 5000, "tools/call chunk_generation_prompt timeout");
-  const cgText = responses.get(cgId)?.result?.content?.[0]?.text ?? "<no text>";
-  console.log("\n[chunk_generation_prompt]", cgText.slice(0, 180).replace(/\n/g, " ") + (cgText.length > 180 ? "..." : ""));
-
-  const cmId = nextId++;
-  send(child, req(cmId, "tools/call", { name: "chunk_management_prompt", arguments: { operation: "merge", managedChunk: { title: "Intro" }, intent: "deduplicate" } }));
-  await waitFor(responses, cmId, 5000, "tools/call chunk_management_prompt timeout");
-  const cmText = responses.get(cmId)?.result?.content?.[0]?.text ?? "<no text>";
-  console.log("\n[chunk_management_prompt]", cmText.slice(0, 180).replace(/\n/g, " ") + (cmText.length > 180 ? "..." : ""));
+  // 5) tools/call for remaining tools (chunk_generation_prompt and chunk_management_prompt removed)
 
   // 6) shutdown
   send(child, req(999, "shutdown", {}));
