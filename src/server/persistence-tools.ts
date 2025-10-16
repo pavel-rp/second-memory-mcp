@@ -14,7 +14,7 @@ export function registerPersistenceTools(server: McpServer): void {
                 "list_learning_items_sqlite",
                 {
                         title: "List Learning Items (SQLite)",
-                        description: "Fetch learning items from local SQLite database via services layer.",
+                        description: "LEGACY two-step approach: Fetch learning items from local SQLite database via services layer. For single-call convenience, use what_to_learn_today with fetchFromDatabase: true instead, which automatically fetches and generates recommendations in one call.",
                         inputSchema: {
                                 subject: z.string().optional(),
                                 dueOnly: z.boolean().optional(),

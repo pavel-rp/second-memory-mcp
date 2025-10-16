@@ -141,13 +141,63 @@ The migration script will:
 pnpm run db:studio
 ```
 
+## Usage Examples
+
+### Get Learning Recommendations (Single-Call Pattern - Recommended)
+
+The fastest way to get personalized learning recommendations is to use the self-fetching pattern:
+
+```javascript
+// Single call - automatically fetches from database and generates recommendations
+const result = await what_to_learn_today({
+  fetchFromDatabase: true,
+  subject: "Math",        // optional: filter by subject
+  dueOnly: true,          // optional: only items due for review
+  limit: 20,              // optional: limit number of items fetched
+  mode: "explicit",
+  timeAvailable: 60
+});
+
+// Result includes recommendations, session summary, and guidance
+console.log(result.recommendations);
+console.log(result.sessionSummary);
+```
+
+### Legacy Two-Step Pattern
+
+If you need more control, you can fetch items separately and then generate recommendations:
+
+```javascript
+// Step 1: Fetch learning items
+const items = await list_learning_items_sqlite({
+  subject: "Math",
+  dueOnly: true,
+  limit: 20
+});
+
+// Step 2: Generate recommendations
+const result = await what_to_learn_today({
+  learningItems: items,
+  mode: "explicit",
+  timeAvailable: 60
+});
+```
+
+**Note**: Filters (`subject`, `dueOnly`, `limit`) only apply when using `fetchFromDatabase: true`. In legacy mode, they are ignored.
+
 ## MCP Tools
 
 The server exposes several MCP tools for learning management:
 
+### Learning Recommendations
+- `what_to_learn_today`: Generate personalized learning recommendations
+  - **Recommended**: Use `fetchFromDatabase: true` for single-call convenience
+  - Parameters: `fetchFromDatabase` (boolean), `subject`, `dueOnly`, `limit`, `mode`, `timeAvailable`, `learningItems` (for legacy mode)
+
 ### Learning Items
-- `list_learning_items_sqlite`: Fetch learning items from SQLite database
-  - Parameters: `subject` (optional), `chunkType` (optional)
+- `list_learning_items_sqlite`: (Legacy) Fetch learning items from SQLite database
+  - For single-call convenience, use `what_to_learn_today` with `fetchFromDatabase: true` instead
+  - Parameters: `subject` (optional), `dueOnly` (optional), `limit` (optional)
 
 ### Spaced Repetition
 - `calculate_next_review`: Calculate next review date using SM-2 algorithm

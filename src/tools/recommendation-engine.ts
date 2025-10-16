@@ -56,8 +56,8 @@ export class RecommendationEngine {
     const alternatives = this.generateAlternatives(candidates, recommendations);
 
     // Add orchestration hint if no learning items provided
-    const orchestrationHint = processedInput.learningItems.length === 0
-      ? "No learning items provided. You should first fetch learning items from the local SQLite database using list_learning_items_sqlite, then pass them to this tool. Use the orchestrate_learning_workflow tool for step-by-step guidance."
+    const orchestrationHint = (processedInput.learningItems?.length ?? 0) === 0
+      ? "No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool."
       : undefined;
 
     return {
@@ -149,10 +149,10 @@ export class RecommendationEngine {
    * Filter and prioritize learning items using existing algorithms
    */
   private async filterAndPrioritizeCandidates(
-    items: LearningItem[],
+    items?: LearningItem[],
     constraints?: SessionConstraints
   ): Promise<LearningItem[]> {
-    let filtered = [...items];
+    let filtered = items ? [...items] : [];
 
     // Apply subject filter
     if (constraints?.subjectFilter) {

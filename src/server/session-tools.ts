@@ -7,7 +7,6 @@ import {
         validateSessionContext,
 } from "../tools/session-manager.js";
 import { ConversationManager } from "../tools/conversation-manager.js";
-import { generateOrchestrationGuidance } from "../tools/orchestration-helper.js";
 import { sessionToolInputSchema } from "./tool-helpers.js";
 import { ConversationRequestSchema } from "../types/recommendations.js";
 
@@ -87,33 +86,6 @@ export function registerSessionTools(server: McpServer): void {
                                 const parsedInput = ConversationRequestSchema.parse(input);
                                 const conversationManager = new ConversationManager();
                                 const result = await conversationManager.conductLearningSession(parsedInput);
-                                return { content: [{ type: "text", text: JSON.stringify(result) }] };
-                        } catch (error) {
-                                const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
-                                return { content: [{ type: "text", text: JSON.stringify({ error: errorMsg }) }] };
-                        }
-                }
-        );
-
-        server.registerTool(
-                "orchestrate_learning_workflow",
-                {
-                        title: "Orchestrate Learning Workflow",
-                        description:
-                                "Provides step-by-step guidance for SQLite-based learning workflows. Use this when you need instructions on how to use list_learning_items_sqlite and recommendation tools together for optimal learning sessions.",
-                        inputSchema: {
-                                mode: z.enum(["guided", "explicit"]).optional(),
-                                context: z
-                                        .object({
-                                                currentStep: z.number().optional(),
-                                                errorMessage: z.string().optional(),
-                                        })
-                                        .optional(),
-                        },
-                },
-                async (input: { mode?: "guided" | "explicit"; context?: { currentStep?: number; errorMessage?: string } }) => {
-                        try {
-                                const result = generateOrchestrationGuidance(input);
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };
                         } catch (error) {
                                 const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
