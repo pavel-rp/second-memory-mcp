@@ -7,11 +7,24 @@ const require = createRequire(import.meta.url);
 
 let hasBinding = true;
 try {
-	const Database = require("better-sqlite3");
-	// try opening an in-memory DB to ensure binding exists
-	new Database(":memory:");
+        const Database = require("better-sqlite3");
+        const testDb = new Database(":memory:");
+        testDb.close();
 } catch {
-	hasBinding = false;
+        hasBinding = false;
+}
+
+// Force tests to run in CI environment only if bindings are actually available
+if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
+        try {
+                const Database = require("better-sqlite3");
+                const testDb = new Database(":memory:");
+                testDb.close();
+                hasBinding = true;
+        } catch {
+                hasBinding = false;
+                console.warn("CI environment detected but SQLite bindings not available");
+        }
 }
 
 // Force tests to run in CI environment

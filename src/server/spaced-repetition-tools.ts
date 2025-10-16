@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import {
   calculateNextReview,
   calculatePriorityScore,
@@ -10,14 +9,30 @@ import { RecommendationEngine } from "../tools/recommendation-engine.js";
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
+  type RecommendationInput,
 } from "../types/recommendations.js";
 import {
   mapChunkRowToLearningItem,
   processReviewResult,
   listChunksAsLearningItems,
 } from "../services/chunks.js";
-import { VALIDATION_CONSTANTS } from "../constants/validation.js";
-import { AdvancedNextArgs, RankCandidatesArgs } from "./tool-helpers.js";
+import {
+  CalculateNextReviewInputSchema,
+  CalculateNextReviewInputShape,
+  type CalculateNextReviewInput,
+  CalculatePriorityScoreInputSchema,
+  CalculatePriorityScoreInputShape,
+  type CalculatePriorityScoreInput,
+  CalculateNextReviewAdvancedInputSchema,
+  CalculateNextReviewAdvancedInputShape,
+  type CalculateNextReviewAdvancedInput,
+  RankCandidatesInputSchema,
+  RankCandidatesInputShape,
+  type RankCandidatesInput,
+  RecordReviewResultInputSchema,
+  RecordReviewResultInputShape,
+  type RecordReviewResultInput,
+} from "../types/spaced-repetition-tools.js";
 
 export function registerSpacedRepetitionTools(server: McpServer): void {
   server.registerTool(
@@ -26,24 +41,17 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       title: "Calculate Next Review",
       description:
         "SM-2 style scheduler: returns next interval/repetitions/ease_factor/next_review",
-      inputSchema: {
-        quality: z.number().min(0).max(5),
-        repetitions: z.number().int().min(0),
-        ease_factor: z.number().min(1.3),
-        interval: z.number().int().min(0),
-      },
+      inputSchema: CalculateNextReviewInputShape,
     },
-    async ({
-      quality,
-      repetitions,
-      ease_factor,
-      interval,
-    }: {
-      quality: number;
-      repetitions: number;
-      ease_factor: number;
-      interval: number;
-    }) => {
+    async (rawInput: unknown) => {
+      const {
+        quality,
+        repetitions,
+        ease_factor,
+        interval,
+      }: CalculateNextReviewInput = CalculateNextReviewInputSchema.parse(
+        rawInput,
+      );
       const {
         interval: outInterval,
         repetitions: outReps,
@@ -72,24 +80,17 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       title: "Calculate Priority Score",
       description:
         "Rank review priority using next_review_date, ease_factor, repetitions, difficulty",
-      inputSchema: {
-        next_review_date: z.string().describe("ISO date string"),
-        ease_factor: z.number().min(1.3),
-        repetitions: z.number().int().min(0),
-        difficulty: z.number().int().min(1).max(10),
-      },
+      inputSchema: CalculatePriorityScoreInputShape,
     },
-    async ({
-      next_review_date,
-      ease_factor,
-      repetitions,
-      difficulty,
-    }: {
-      next_review_date: string;
-      ease_factor: number;
-      repetitions: number;
-      difficulty: number;
-    }) => {
+    async (rawInput: unknown) => {
+      const {
+        next_review_date,
+        ease_factor,
+        repetitions,
+        difficulty,
+      }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(
+        rawInput,
+      );
       const { priority } = calculatePriorityScore({
         nextReviewDate: next_review_date,
         easeFactor: ease_factor,
@@ -107,23 +108,18 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
     {
       title: "Calculate Next Review (Advanced)",
       description: "Advanced scheduler with lapses/leech handling",
-      inputSchema: {
-        quality: z.number().min(0).max(5),
-        repetitions: z.number().int().min(0),
-        ease_factor: z.number().min(1.3),
-        interval: z.number().int().min(0),
-        days_overdue: z.number().int().min(0).optional(),
-        consecutive_failures: z.number().int().min(0).optional(),
-      },
+      inputSchema: CalculateNextReviewAdvancedInputShape,
     },
-    async ({
-      quality,
-      repetitions,
-      ease_factor,
-      interval,
-      days_overdue,
-      consecutive_failures,
-    }: AdvancedNextArgs) => {
+    async (rawInput: unknown) => {
+      const {
+        quality,
+        repetitions,
+        ease_factor,
+        interval,
+        days_overdue,
+        consecutive_failures,
+      }: CalculateNextReviewAdvancedInput =
+        CalculateNextReviewAdvancedInputSchema.parse(rawInput);
       const out = calculateNextReviewAdvanced({
         quality,
         repetitions,
@@ -142,21 +138,11 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       title: "Rank Candidates",
       description:
         "Rank learning items using priority, tag weights, and daily caps",
-      inputSchema: {
-        candidates: z.array(
-          z.object({
-            id: z.string(),
-            next_review_date: z.string(),
-            ease_factor: z.number().min(1.3),
-            repetitions: z.number().int().min(0),
-            difficulty: z.number().int().min(1).max(10),
-            tags: z.array(z.string()).optional(),
-          })
-        ),
-        timeboxMinutes: z.number().int().optional(),
-      },
+      inputSchema: RankCandidatesInputShape,
     },
-    async ({ candidates, timeboxMinutes }: RankCandidatesArgs) => {
+    async (rawInput: unknown) => {
+      const { candidates, timeboxMinutes }: RankCandidatesInput =
+        RankCandidatesInputSchema.parse(rawInput);
       const mapped = candidates.map((c) => ({
         id: c.id,
         nextReviewDate: c.next_review_date,
@@ -183,7 +169,8 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
     },
     async (input: unknown) => {
       try {
-        const parsedInput = RecommendationInputSchema.parse(input);
+        const parsedInput: RecommendationInput =
+          RecommendationInputSchema.parse(input);
 
         // Validate mutual exclusivity BEFORE any database fetch
         if (
@@ -254,52 +241,11 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       title: "Record Review Result",
       description:
         "Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.",
-      inputSchema: {
-        itemId: z
-          .string()
-          .min(1, "Item ID cannot be empty")
-          .describe("ID of the learning item"),
-        quality: z
-          .number()
-          .min(
-            VALIDATION_CONSTANTS.MIN_QUALITY_SCORE,
-            `Quality score must be at least ${VALIDATION_CONSTANTS.MIN_QUALITY_SCORE}`
-          )
-          .max(
-            VALIDATION_CONSTANTS.MAX_QUALITY_SCORE,
-            `Quality score cannot exceed ${VALIDATION_CONSTANTS.MAX_QUALITY_SCORE}`
-          )
-          .describe("Quality score from 0-5"),
-        timeSpentMs: z
-          .number()
-          .int("Time spent must be an integer")
-          .min(0, "Time spent cannot be negative")
-          .optional()
-          .default(0)
-          .describe("Time spent studying in milliseconds"),
-        consecutiveFailures: z
-          .number()
-          .int("Consecutive failures must be an integer")
-          .min(0, "Consecutive failures cannot be negative")
-          .optional()
-          .default(0)
-          .describe("Number of consecutive failures"),
-        daysOverdue: z
-          .number()
-          .int("Days overdue must be an integer")
-          .min(0, "Days overdue cannot be negative")
-          .optional()
-          .default(0)
-          .describe("Number of days overdue"),
-      },
+      inputSchema: RecordReviewResultInputShape,
     },
-    async (input: {
-      itemId: string;
-      quality: number;
-      timeSpentMs?: number;
-      consecutiveFailures?: number;
-      daysOverdue?: number;
-    }) => {
+    async (rawInput: unknown) => {
+      const input: RecordReviewResultInput =
+        RecordReviewResultInputSchema.parse(rawInput);
       try {
         const result = await processReviewResult(input.itemId, input.quality, {
           timeSpentMs: input.timeSpentMs,

@@ -2,7 +2,11 @@ import { and, eq, lte, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 import { getSql, withTx, decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
-import type { LearningItem, LearningItemWithContent } from "../types/recommendations.js";
+import type {
+        LearningItem,
+        LearningItemWithContent,
+        PaginatedLearningItemsResponse,
+} from "../types/recommendations.js";
 import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 import { scheduleReview } from "./reviews.js";
 import { prerequisiteReferenceValidator } from "../tools/prerequisite-reference-validator.js";
@@ -732,16 +736,6 @@ export type ListChunksWithContentFilter = ListChunksFilter & {
 	 * Offset for pagination (number of items to skip)
 	 */
 	offset?: number;
-};
-
-export type PaginatedLearningItemsResponse = {
-	items: LearningItemWithContent[];
-	pagination: {
-		total: number;
-		limit: number;
-		offset: number;
-		hasMore: boolean;
-	};
 };
 
 export async function listChunksWithContent(filter: ListChunksWithContentFilter = { includeContent: false }): Promise<PaginatedLearningItemsResponse> {

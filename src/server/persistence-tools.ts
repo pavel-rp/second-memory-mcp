@@ -1,13 +1,42 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import crypto from "node:crypto";
 import { listChunksAsLearningItems, mapChunkRowToLearningItem, deleteChunk, batchFetchChunksMinimal } from "../services/chunks.js";
 import { batchFetchTopicsMinimal } from "../services/topics.js";
-import { VALIDATION_CONSTANTS } from "../constants/validation.js";
-
-const deleteChunkInputSchema = z.object({
-        chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to delete"),
-});
+import {
+        BatchFetchChunksMinimalInputSchema,
+        BatchFetchChunksMinimalInputShape,
+        type BatchFetchChunksMinimalInput,
+        BatchFetchTopicsMinimalInputSchema,
+        BatchFetchTopicsMinimalInputShape,
+        type BatchFetchTopicsMinimalInput,
+        CreateLearningItemInputSchema,
+        CreateLearningItemInputShape,
+        type CreateLearningItemInput,
+        CreateTopicWithChunksInputSchema,
+        CreateTopicWithChunksInputShape,
+        type CreateTopicWithChunksInput,
+        DeleteChunkInputSchema,
+        DeleteChunkInputShape,
+        type DeleteChunkInput,
+        ListLearningItemsInputSchema,
+        ListLearningItemsInputShape,
+        type ListLearningItemsInput,
+        UpdateChunkContentInputSchema,
+        UpdateChunkContentInputShape,
+        type UpdateChunkContentInput,
+        UpdateChunkInputSchema,
+        UpdateChunkInputShape,
+        type UpdateChunkInput,
+        UpdateChunkMetadataInputSchema,
+        UpdateChunkMetadataInputShape,
+        type UpdateChunkMetadataInput,
+        UpdateTopicInputSchema,
+        UpdateTopicInputShape,
+        type UpdateTopicInput,
+        UpdateTopicSummaryInputSchema,
+        UpdateTopicSummaryInputShape,
+        type UpdateTopicSummaryInput,
+} from "../types/persistence-tools.js";
 
 export function registerPersistenceTools(server: McpServer): void {
         server.registerTool(
@@ -15,13 +44,11 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "List Learning Items (SQLite)",
                         description: "LEGACY two-step approach: Fetch learning items from local SQLite database via services layer. For single-call convenience, use what_to_learn_today with fetchFromDatabase: true instead, which automatically fetches and generates recommendations in one call.",
-                        inputSchema: {
-                                subjectFilter: z.string().optional(),
-                                dueOnly: z.boolean().optional(),
-                                limit: z.number().int().optional(),
-                        },
+                        inputSchema: ListLearningItemsInputShape,
                 },
-                async ({ subjectFilter, dueOnly, limit }: { subjectFilter?: string; dueOnly?: boolean; limit?: number }) => {
+                async (rawInput: unknown) => {
+                        const { subjectFilter, dueOnly, limit }: ListLearningItemsInput =
+                                ListLearningItemsInputSchema.parse(rawInput);
                         try {
                                 const items = await listChunksAsLearningItems({ subject: subjectFilter, dueOnly, limit });
                                 return { content: [{ type: "text", text: JSON.stringify(items) }] };
@@ -38,116 +65,10 @@ export function registerPersistenceTools(server: McpServer): void {
                         title: "Create Topic with Chunks",
                         description:
                                 "Create a new learning topic with multiple scaffolded chunks in a single atomic operation. This is the primary tool for guided learning workflows.",
-                        inputSchema: {
-                                topicTitle: z
-                                        .string()
-                                        .min(1, "Topic title cannot be empty")
-                                        .max(
-                                                VALIDATION_CONSTANTS.MAX_TITLE_LENGTH,
-                                                `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
-                                        )
-                                        .describe("Title of the learning topic"),
-                                topicDescription: z
-                                        .string()
-                                        .max(1000, "Topic description cannot exceed 1000 characters")
-                                        .optional()
-                                        .describe("Description of the learning topic"),
-                                subject: z
-                                        .string()
-                                        .min(1, "Subject cannot be empty")
-                                        .max(
-                                                VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH,
-                                                `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`
-                                        )
-                                        .describe("Subject/category of the learning topic"),
-                                topicSummary: z
-                                        .string()
-                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Topic summary cannot be empty if provided")
-                                        .max(VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE, `Topic summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`)
-                                        .optional()
-                                        .describe("Summary content for the learning topic"),
-                                chunks: z
-                                        .array(
-                                                z.object({
-                                                        id: z.string().min(1, "Chunk ID cannot be empty"),
-                                                        title: z
-                                                                .string()
-                                                                .min(1, "Chunk title cannot be empty")
-                                                                .max(
-                                                                        VALIDATION_CONSTANTS.MAX_TITLE_LENGTH,
-                                                                        `Chunk title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
-                                                                ),
-                                                        content: z.string().min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Chunk content cannot be empty").max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Chunk content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`),
-                                                        difficulty: z
-                                                                .number()
-                                                                .int("Difficulty must be an integer")
-                                                                .min(
-                                                                        VALIDATION_CONSTANTS.MIN_DIFFICULTY,
-                                                                        `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`
-                                                                )
-                                                                .max(
-                                                                        VALIDATION_CONSTANTS.MAX_DIFFICULTY,
-                                                                        `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`
-                                                                ),
-                                                        prerequisites: z.array(z.string()).default([]),
-                                                        estimatedDuration: z
-                                                                .number()
-                                                                .int("Estimated duration must be an integer")
-                                                                .min(1, "Estimated duration must be at least 1 minute")
-                                                                .max(120, "Estimated duration cannot exceed 120 minutes"),
-                                                        order: z.number().int().min(1, "Order must be at least 1"),
-                                                        tags: z.array(z.string()).default([]),
-                                                        chunkType: z
-                                                                .enum(["new", "review", "remediation"], {
-                                                                        errorMap: () => ({
-                                                                                message: "Chunk type must be one of: new, review, remediation",
-                                                                        }),
-                                                                })
-                                                                .default("new"),
-                                                })
-                                        )
-                                        .min(1, "At least one chunk is required")
-                                        .max(20, "Maximum 20 chunks per topic")
-                                        .describe("Array of chunk definitions for the topic"),
-                                userPreferences: z
-                                        .object({
-                                                preferredDifficulty: z
-                                                        .number()
-                                                        .int()
-                                                        .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
-                                                        .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
-                                                        .optional(),
-                                                learningStyle: z.enum(["visual", "auditory", "kinesthetic", "reading"]).optional(),
-                                                maxChunkDuration: z.number().int().min(1).max(120).optional(),
-                                                includePrerequisites: z.boolean().optional(),
-                                        })
-                                        .optional()
-                                        .describe("User learning preferences"),
-                        },
+                        inputSchema: CreateTopicWithChunksInputShape,
                 },
-                async (input: {
-                        topicTitle: string;
-                        topicDescription?: string;
-                        subject: string;
-                        topicSummary?: string;
-                        chunks: Array<{
-                                id: string;
-                                title: string;
-                                content: string;
-                                difficulty: number;
-                                prerequisites: string[];
-                                estimatedDuration: number;
-                                order: number;
-                                tags: string[];
-                                chunkType: "new" | "review" | "remediation";
-                        }>;
-                        userPreferences?: {
-                                preferredDifficulty?: number;
-                                learningStyle?: "visual" | "auditory" | "kinesthetic" | "reading";
-                                maxChunkDuration?: number;
-                                includePrerequisites?: boolean;
-                        };
-                }) => {
+                async (rawInput: unknown) => {
+                        const input: CreateTopicWithChunksInput = CreateTopicWithChunksInputSchema.parse(rawInput);
                         try {
                                 const { topicCreationService } = await import("../services/topic-creation.js");
 
@@ -215,61 +136,10 @@ export function registerPersistenceTools(server: McpServer): void {
                         title: "Create Learning Item",
                         description:
                                 "Create a single learning item with automatic topic management. Simpler alternative to create_topic_with_chunks for individual items.",
-                        inputSchema: {
-                                title: z
-                                        .string()
-                                        .min(1, "Title cannot be empty")
-                                        .max(
-                                                VALIDATION_CONSTANTS.MAX_TITLE_LENGTH,
-                                                `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
-                                        )
-                                        .describe("Title of the learning item"),
-                                content: z
-                                        .string()
-                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Content cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`)
-                                        .describe("Content or description of the learning item"),
-                                subject: z
-                                        .string()
-                                        .min(1, "Subject cannot be empty")
-                                        .max(
-                                                VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH,
-                                                `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`
-                                        )
-                                        .describe("Subject/category of the learning item"),
-                                difficulty: z
-                                        .number()
-                                        .int("Difficulty must be an integer")
-                                        .min(
-                                                VALIDATION_CONSTANTS.MIN_DIFFICULTY,
-                                                `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`
-                                        )
-                                        .max(
-                                                VALIDATION_CONSTANTS.MAX_DIFFICULTY,
-                                                `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`
-                                        )
-                                        .describe("Difficulty level from 1-10"),
-                                estimatedDuration: z
-                                        .number()
-                                        .int("Estimated duration must be an integer")
-                                        .min(1, "Estimated duration must be at least 1 minute")
-                                        .max(120, "Estimated duration cannot exceed 120 minutes")
-                                        .describe("Estimated study duration in minutes"),
-                                prerequisites: z.array(z.string()).default([]).describe("Prerequisites for this item"),
-                                tags: z.array(z.string()).default([]).describe("Tags for categorization"),
-                                topicTitle: z.string().optional().describe("Topic title (will be created if doesn't exist)"),
-                        },
+                        inputSchema: CreateLearningItemInputShape,
                 },
-                async (input: {
-                        title: string;
-                        content: string;
-                        subject: string;
-                        difficulty: number;
-                        estimatedDuration: number;
-                        prerequisites: string[];
-                        tags: string[];
-                        topicTitle?: string;
-                }) => {
+                async (rawInput: unknown) => {
+                        const input: CreateLearningItemInput = CreateLearningItemInputSchema.parse(rawInput);
                         try {
                                 const { createChunkWithTopic } = await import("../services/chunks.js");
 
@@ -338,16 +208,10 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Update Chunk Content",
                         description: "Update the content of an existing learning chunk with versioning and optional progress reset",
-                        inputSchema: {
-                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to update"),
-                                content: z.string()
-                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Content cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`)
-                                        .describe("New content for the chunk"),
-                                resetProgress: z.boolean().optional().describe("Whether to reset spaced repetition progress"),
-                        },
+                        inputSchema: UpdateChunkContentInputShape,
                 },
-                async (input: { chunkId: string; content: string; resetProgress?: boolean }) => {
+                async (rawInput: unknown) => {
+                        const input: UpdateChunkContentInput = UpdateChunkContentInputSchema.parse(rawInput);
                         try {
                                 const { updateChunkContent } = await import("../services/chunks.js");
 
@@ -411,37 +275,10 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Update Chunk Metadata",
                         description: "Update metadata fields of an existing learning chunk (title, difficulty, prerequisites, tags, duration)",
-                        inputSchema: {
-                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to update"),
-                                title: z.string()
-                                        .min(1, "Title cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
-                                        .optional()
-                                        .describe("New title for the chunk"),
-                                difficulty: z.number()
-                                        .int("Difficulty must be an integer")
-                                        .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
-                                        .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
-                                        .optional()
-                                        .describe("New difficulty level (1-10)"),
-                                prerequisites: z.array(z.string()).optional().describe("New prerequisites array"),
-                                tags: z.array(z.string()).optional().describe("New tags array"),
-                                estimatedDuration: z.number()
-                                        .int("Estimated duration must be an integer")
-                                        .min(1, "Estimated duration must be at least 1 minute")
-                                        .max(120, "Estimated duration cannot exceed 120 minutes")
-                                        .optional()
-                                        .describe("New estimated study duration in minutes"),
-                        },
+                        inputSchema: UpdateChunkMetadataInputShape,
                 },
-                async (input: {
-                        chunkId: string;
-                        title?: string;
-                        difficulty?: number;
-                        prerequisites?: string[];
-                        tags?: string[];
-                        estimatedDuration?: number;
-                }) => {
+                async (rawInput: unknown) => {
+                        const input: UpdateChunkMetadataInput = UpdateChunkMetadataInputSchema.parse(rawInput);
                         try {
                                 const { updateChunkMetadata } = await import("../services/chunks.js");
 
@@ -507,45 +344,10 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Update Chunk",
                         description: "Comprehensive chunk update with automatic progress reset based on content changes",
-                        inputSchema: {
-                                chunkId: z.string().min(1, "Chunk ID cannot be empty").describe("ID of the chunk to update"),
-                                content: z.string()
-                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Content cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_CONTENT_SIZE, `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`)
-                                        .optional()
-                                        .describe("New content for the chunk"),
-                                title: z.string()
-                                        .min(1, "Title cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
-                                        .optional()
-                                        .describe("New title for the chunk"),
-                                difficulty: z.number()
-                                        .int("Difficulty must be an integer")
-                                        .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY, `Difficulty must be at least ${VALIDATION_CONSTANTS.MIN_DIFFICULTY}`)
-                                        .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY, `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`)
-                                        .optional()
-                                        .describe("New difficulty level (1-10)"),
-                                prerequisites: z.array(z.string()).optional().describe("New prerequisites array"),
-                                tags: z.array(z.string()).optional().describe("New tags array"),
-                                estimatedDuration: z.number()
-                                        .int("Estimated duration must be an integer")
-                                        .min(1, "Estimated duration must be at least 1 minute")
-                                        .max(120, "Estimated duration cannot exceed 120 minutes")
-                                        .optional()
-                                        .describe("New estimated study duration in minutes"),
-                                forceReset: z.boolean().optional().describe("Force reset of spaced repetition progress"),
-                        },
+                        inputSchema: UpdateChunkInputShape,
                 },
-                async (input: {
-                        chunkId: string;
-                        content?: string;
-                        title?: string;
-                        difficulty?: number;
-                        prerequisites?: string[];
-                        tags?: string[];
-                        estimatedDuration?: number;
-                        forceReset?: boolean;
-                }) => {
+                async (rawInput: unknown) => {
+                        const input: UpdateChunkInput = UpdateChunkInputSchema.parse(rawInput);
                         try {
                                 const { updateChunkWithProgressReset } = await import("../services/chunks.js");
 
@@ -615,9 +417,10 @@ export function registerPersistenceTools(server: McpServer): void {
                         title: "Delete Chunk",
                         description:
                                 "Delete a learning chunk and automatically clean up prerequisite references from dependent chunks.",
-                        inputSchema: deleteChunkInputSchema.shape,
+                        inputSchema: DeleteChunkInputShape,
                 },
-                async ({ chunkId }: { chunkId: string }) => {
+                async (rawInput: unknown) => {
+                        const { chunkId }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
                         try {
                                 const result = await deleteChunk(chunkId);
 
@@ -688,16 +491,10 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Update Topic",
                         description: "Update topic metadata (title only). Use update_topic_summary to update topic content.",
-                        inputSchema: {
-                                topicId: z.string().min(1, "Topic ID cannot be empty").describe("ID of the topic to update"),
-                                title: z.string()
-                                        .min(1, "Title cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH, `Title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`)
-                                        .optional()
-                                        .describe("New title for the topic"),
-                        },
+                        inputSchema: UpdateTopicInputShape,
                 },
-                async (input: { topicId: string; title?: string }) => {
+                async (rawInput: unknown) => {
+                        const input: UpdateTopicInput = UpdateTopicInputSchema.parse(rawInput);
                         try {
                                 const { topicCreationService } = await import("../services/topic-creation.js");
 
@@ -759,15 +556,10 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Update Topic Summary",
                         description: "Update topic summary content with versioning",
-                        inputSchema: {
-                                topicId: z.string().min(1, "Topic ID cannot be empty").describe("ID of the topic to update"),
-                                summary: z.string()
-                                        .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, "Summary cannot be empty")
-                                        .max(VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE, `Summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`)
-                                        .describe("New summary content for the topic"),
-                        },
+                        inputSchema: UpdateTopicSummaryInputShape,
                 },
-                async (input: { topicId: string; summary: string }) => {
+                async (rawInput: unknown) => {
+                        const input: UpdateTopicSummaryInput = UpdateTopicSummaryInputSchema.parse(rawInput);
                         try {
                                 const { topicCreationService } = await import("../services/topic-creation.js");
 
@@ -827,12 +619,11 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Batch Fetch Topics (Minimal Metadata)",
                         description: "Fetch topics with minimal metadata (IDs, title, subject, timestamps only). Efficient for listing and selection workflows.",
-                        inputSchema: {
-                                subjectFilter: z.string().optional().describe("Filter by subject/category"),
-                                limit: z.number().int().positive().optional().describe("Maximum number of topics to return"),
-                        },
+                        inputSchema: BatchFetchTopicsMinimalInputShape,
                 },
-                async ({ subjectFilter, limit }: { subjectFilter?: string; limit?: number }) => {
+                async (rawInput: unknown) => {
+                        const { subjectFilter, limit }: BatchFetchTopicsMinimalInput =
+                                BatchFetchTopicsMinimalInputSchema.parse(rawInput);
                         try {
                                 const topics = await batchFetchTopicsMinimal({ subject: subjectFilter, limit });
                                 return {
@@ -875,14 +666,11 @@ export function registerPersistenceTools(server: McpServer): void {
                 {
                         title: "Batch Fetch Chunks (Minimal Metadata)",
                         description: "Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). Efficient for listing and selection workflows.",
-                        inputSchema: {
-                                topicId: z.string().optional().describe("Filter by topic ID"),
-                                subjectFilter: z.string().optional().describe("Filter by subject/category"),
-                                dueOnly: z.boolean().optional().describe("Only return chunks due for review"),
-                                limit: z.number().int().positive().optional().describe("Maximum number of chunks to return"),
-                        },
+                        inputSchema: BatchFetchChunksMinimalInputShape,
                 },
-                async ({ topicId, subjectFilter, dueOnly, limit }: { topicId?: string; subjectFilter?: string; dueOnly?: boolean; limit?: number }) => {
+                async (rawInput: unknown) => {
+                        const { topicId, subjectFilter, dueOnly, limit }: BatchFetchChunksMinimalInput =
+                                BatchFetchChunksMinimalInputSchema.parse(rawInput);
                         try {
                                 const chunks = await batchFetchChunksMinimal({ topicId, subject: subjectFilter, dueOnly, limit });
                                 return {

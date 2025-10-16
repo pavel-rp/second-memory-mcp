@@ -46,22 +46,80 @@ export type AnalyticsOutput = {
 
 // Zod schemas for runtime validation
 
-export const ReviewEntrySchema = z.object({
-	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
-	quality: z.number().min(0).max(5).optional().default(0),
-	isNew: z.boolean().optional().default(false),
-	topic: z.string().optional(),
-	tags: z.array(z.string()).optional().default([]),
-});
+export const ReviewEntryShape = {
+        date: z
+                .string()
+                .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
+                .describe("Review date in YYYY-MM-DD format"),
+        quality: z
+                .number()
+                .min(0)
+                .max(5)
+                .optional()
+                .default(0)
+                .describe("Quality score for the review (0-5)"),
+        isNew: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe("Whether this entry represents a new learning item"),
+        topic: z.string().optional().describe("Optional topic label for the review"),
+        tags: z
+                .array(z.string())
+                .optional()
+                .default([])
+                .describe("Optional tags associated with the review"),
+} as const;
 
-export const AnalyticsInputSchema = z.object({
-	entries: z.array(ReviewEntrySchema),
-});
+export const ReviewEntrySchema = z.object(ReviewEntryShape);
+export type ReviewEntryInput = z.infer<typeof ReviewEntrySchema>;
 
-export const WindowSpecSchema = z.object({
-	start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),
-	end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format"),
-});
+export const AnalyticsInputShape = {
+        entries: z
+                .array(ReviewEntrySchema)
+                .describe("Review entries used to compute analytics"),
+} as const;
+
+export const AnalyticsInputSchema = z.object(AnalyticsInputShape);
+export type AnalyticsInputZod = z.infer<typeof AnalyticsInputSchema>;
+
+export const WindowSpecShape = {
+        start: z
+                .string()
+                .regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format")
+                .describe("Window start date (YYYY-MM-DD)"),
+        end: z
+                .string()
+                .regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format")
+                .describe("Window end date (YYYY-MM-DD)"),
+} as const;
+
+export const WindowSpecSchema = z.object(WindowSpecShape);
+export type WindowSpecInput = z.infer<typeof WindowSpecSchema>;
+
+export const AnalyticsDailyInputShape = {
+        entries: z
+                .array(ReviewEntrySchema)
+                .describe("Review entries for a single day"),
+} as const;
+
+export const AnalyticsDailyInputSchema = z.object(AnalyticsDailyInputShape);
+export type AnalyticsDailyInput = z.infer<typeof AnalyticsDailyInputSchema>;
+
+export const AnalyticsWindowInputShape = {
+        entries: z
+                .array(ReviewEntrySchema)
+                .describe("Review entries across the requested window"),
+        window: WindowSpecSchema.describe("Date range window to analyze"),
+        includeBreakdowns: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe("Include topic/tag breakdowns in the analytics output"),
+} as const;
+
+export const AnalyticsWindowInputSchema = z.object(AnalyticsWindowInputShape);
+export type AnalyticsWindowInput = z.infer<typeof AnalyticsWindowInputSchema>;
 
 export const DailyKpisSchema = z.object({
 	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),

@@ -1,6 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import { computeDailyKpis, computeWindowRollup } from "../tools/analytics.js";
+import {
+        AnalyticsDailyInputSchema,
+        AnalyticsDailyInputShape,
+        type AnalyticsDailyInput,
+        AnalyticsWindowInputSchema,
+        AnalyticsWindowInputShape,
+        type AnalyticsWindowInput,
+} from "../types/analytics.js";
 
 export function registerAnalyticsTools(server: McpServer): void {
         server.registerTool(
@@ -8,21 +15,10 @@ export function registerAnalyticsTools(server: McpServer): void {
                 {
                         title: "Calculate Daily KPIs",
                         description: "Compute daily analytics KPIs from review entries for a single day",
-                        inputSchema: {
-                                entries: z.array(
-                                        z.object({
-                                                date: z
-                                                        .string()
-                                                        .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
-                                                quality: z.number().min(0).max(5).optional().default(0),
-                                                isNew: z.boolean().optional().default(false),
-                                                topic: z.string().optional(),
-                                                tags: z.array(z.string()).optional().default([]),
-                                        })
-                                ),
-                        },
+                        inputSchema: AnalyticsDailyInputShape,
                 },
-                async ({ entries }: { entries: Array<{ date: string; quality?: number; isNew?: boolean; topic?: string; tags?: string[] }> }) => {
+                async (rawInput: unknown) => {
+                        const { entries }: AnalyticsDailyInput = AnalyticsDailyInputSchema.parse(rawInput);
                         try {
                                 const result = computeDailyKpis(entries);
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };
@@ -38,34 +34,11 @@ export function registerAnalyticsTools(server: McpServer): void {
                 {
                         title: "Calculate Window Analytics",
                         description: "Compute analytics for a date range with optional topic/tag breakdowns",
-                        inputSchema: {
-                                entries: z.array(
-                                        z.object({
-                                                date: z
-                                                        .string()
-                                                        .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
-                                                quality: z.number().min(0).max(5).optional().default(0),
-                                                isNew: z.boolean().optional().default(false),
-                                                topic: z.string().optional(),
-                                                tags: z.array(z.string()).optional().default([]),
-                                        })
-                                ),
-                                window: z.object({
-                                        start: z
-                                                .string()
-                                                .regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),
-                                        end: z
-                                                .string()
-                                                .regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format"),
-                                }),
-                                includeBreakdowns: z.boolean().optional().default(false),
-                        },
+                        inputSchema: AnalyticsWindowInputShape,
                 },
-                async ({ entries, window, includeBreakdowns }: {
-                        entries: Array<{ date: string; quality?: number; isNew?: boolean; topic?: string; tags?: string[] }>;
-                        window: { start: string; end: string };
-                        includeBreakdowns?: boolean;
-                }) => {
+                async (rawInput: unknown) => {
+                        const { entries, window, includeBreakdowns }: AnalyticsWindowInput =
+                                AnalyticsWindowInputSchema.parse(rawInput);
                         try {
                                 const result = computeWindowRollup({ entries }, window, { includeBreakdowns });
                                 return { content: [{ type: "text", text: JSON.stringify(result) }] };

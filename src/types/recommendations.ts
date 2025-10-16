@@ -200,6 +200,10 @@ export const PaginatedLearningItemsResponseSchema = z.object({
   }),
 });
 
+export type PaginatedLearningItemsResponse = z.infer<
+  typeof PaginatedLearningItemsResponseSchema
+>;
+
 export const SessionConstraintsSchema = z.object({
   maxDuration: z.number().min(0).optional(),
   maxCognitiveLoad: z.number().min(0).optional(),
@@ -304,12 +308,27 @@ export const RecommendationOutputSchema = z.object({
   nextActions: z.array(z.string()).optional(),
 });
 
-export const ConversationRequestSchema = z.object({
-  intent: z.string().min(1),
-  context: z.record(z.unknown()).optional(),
-  userInput: z.string().optional(),
-  sessionState: z.record(z.unknown()).optional(),
-});
+export const ConversationRequestShape = {
+  intent: z
+    .string()
+    .min(1)
+    .describe("User intent driving the guided learning conversation"),
+  context: z
+    .record(z.unknown())
+    .optional()
+    .describe("Optional contextual metadata for the conversation"),
+  userInput: z
+    .string()
+    .optional()
+    .describe("Raw user utterance or request"),
+  sessionState: z
+    .record(z.unknown())
+    .optional()
+    .describe("Opaque session state blob from prior interactions"),
+} as const;
+
+export const ConversationRequestSchema = z.object(ConversationRequestShape);
+export type ConversationRequestInput = z.infer<typeof ConversationRequestSchema>;
 
 export const ConversationResponseSchema = z.object({
   message: z.string().min(1),
