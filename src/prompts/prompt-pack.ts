@@ -258,7 +258,7 @@ export class PromptPack {
 			"Getting Recommendations (Single Call):",
 			"- Use: what_to_learn_today({ fetchFromDatabase: true, timeAvailable: 30 })",
 			"- This automatically fetches and ranks items in one efficient call",
-			"- Supports filters: subject, dueOnly, limit",
+			"- Supports filters: subjectFilter, dueOnly, limit",
 			"- Saves ~95% on token usage vs old two-step approach",
 			"",
 			"Legacy Pattern (only if needed for custom filtering):",

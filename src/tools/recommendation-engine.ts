@@ -57,7 +57,9 @@ export class RecommendationEngine {
 
     // Add orchestration hint if no learning items provided
     const orchestrationHint = (processedInput.learningItems?.length ?? 0) === 0
-      ? "No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool."
+      ? processedInput.fetchFromDatabase
+        ? "No learning items found with current filters. Try relaxing filters (subjectFilter, dueOnly, limit) or add more learning content to the database."
+        : "No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool."
       : undefined;
 
     return {
