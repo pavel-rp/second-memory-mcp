@@ -148,8 +148,8 @@ describe("RecommendationEngine", () => {
 
     expect(result.orchestrationHint).toBeDefined();
     expect(result.orchestrationHint).toContain("No learning items provided");
-    expect(result.orchestrationHint).toContain("fetch learning items from the local SQLite database");
-    expect(result.orchestrationHint).toContain("orchestrate_learning_workflow tool");
+    expect(result.orchestrationHint).toContain("fetchFromDatabase: true");
+    expect(result.orchestrationHint).toContain("automatically fetch");
   });
 
   it("does not return orchestrationHint when learningItems are provided", async () => {

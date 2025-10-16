@@ -151,16 +151,16 @@ export function registerContentTools(server: McpServer): void {
 			title: "List Learning Items with Content",
 			description: "Retrieve learning items with their content. Supports filtering by subject and due status.",
 			inputSchema: {
-				subject: z.string().optional().describe("Filter by subject/category"),
+				subjectFilter: z.string().optional().describe("Filter by subject/category"),
 				dueOnly: z.boolean().optional().describe("Only return items due for review"),
 				limit: z.number().int().min(1).max(100).optional().describe("Maximum number of items to return (1-100)"),
 				includeContent: z.boolean().default(true).describe("Whether to include content in the response"),
 			},
 		},
-		async ({ subject, dueOnly, limit, includeContent = true }: { subject?: string; dueOnly?: boolean; limit?: number; includeContent?: boolean }) => {
+		async ({ subjectFilter, dueOnly, limit, includeContent = true }: { subjectFilter?: string; dueOnly?: boolean; limit?: number; includeContent?: boolean }) => {
 			try {
 				const filter: ListChunksWithContentFilter = {
-					subject,
+					subject: subjectFilter,
 					dueOnly,
 					limit,
 					includeContent,
@@ -181,7 +181,7 @@ export function registerContentTools(server: McpServer): void {
 								count: responseItems.length,
 								contentIncluded: includeContent,
 								filter: {
-									subject: subject || null,
+									subject: subjectFilter || null,
 									dueOnly: dueOnly || false,
 									limit: limit || null,
 								},

@@ -14,16 +14,16 @@ export function registerPersistenceTools(server: McpServer): void {
                 "list_learning_items_sqlite",
                 {
                         title: "List Learning Items (SQLite)",
-                        description: "Fetch learning items from local SQLite database via services layer.",
+                        description: "LEGACY two-step approach: Fetch learning items from local SQLite database via services layer. For single-call convenience, use what_to_learn_today with fetchFromDatabase: true instead, which automatically fetches and generates recommendations in one call.",
                         inputSchema: {
-                                subject: z.string().optional(),
+                                subjectFilter: z.string().optional(),
                                 dueOnly: z.boolean().optional(),
                                 limit: z.number().int().optional(),
                         },
                 },
-                async ({ subject, dueOnly, limit }: { subject?: string; dueOnly?: boolean; limit?: number }) => {
+                async ({ subjectFilter, dueOnly, limit }: { subjectFilter?: string; dueOnly?: boolean; limit?: number }) => {
                         try {
-                                const items = await listChunksAsLearningItems({ subject, dueOnly, limit });
+                                const items = await listChunksAsLearningItems({ subject: subjectFilter, dueOnly, limit });
                                 return { content: [{ type: "text", text: JSON.stringify(items) }] };
                         } catch (error) {
                                 const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
@@ -828,13 +828,13 @@ export function registerPersistenceTools(server: McpServer): void {
                         title: "Batch Fetch Topics (Minimal Metadata)",
                         description: "Fetch topics with minimal metadata (IDs, title, subject, timestamps only). Efficient for listing and selection workflows.",
                         inputSchema: {
-                                subject: z.string().optional().describe("Filter by subject/category"),
+                                subjectFilter: z.string().optional().describe("Filter by subject/category"),
                                 limit: z.number().int().positive().optional().describe("Maximum number of topics to return"),
                         },
                 },
-                async ({ subject, limit }: { subject?: string; limit?: number }) => {
+                async ({ subjectFilter, limit }: { subjectFilter?: string; limit?: number }) => {
                         try {
-                                const topics = await batchFetchTopicsMinimal({ subject, limit });
+                                const topics = await batchFetchTopicsMinimal({ subject: subjectFilter, limit });
                                 return {
                                         content: [
                                                 {
@@ -877,14 +877,14 @@ export function registerPersistenceTools(server: McpServer): void {
                         description: "Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). Efficient for listing and selection workflows.",
                         inputSchema: {
                                 topicId: z.string().optional().describe("Filter by topic ID"),
-                                subject: z.string().optional().describe("Filter by subject/category"),
+                                subjectFilter: z.string().optional().describe("Filter by subject/category"),
                                 dueOnly: z.boolean().optional().describe("Only return chunks due for review"),
                                 limit: z.number().int().positive().optional().describe("Maximum number of chunks to return"),
                         },
                 },
-                async ({ topicId, subject, dueOnly, limit }: { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number }) => {
+                async ({ topicId, subjectFilter, dueOnly, limit }: { topicId?: string; subjectFilter?: string; dueOnly?: boolean; limit?: number }) => {
                         try {
-                                const chunks = await batchFetchChunksMinimal({ topicId, subject, dueOnly, limit });
+                                const chunks = await batchFetchChunksMinimal({ topicId, subject: subjectFilter, dueOnly, limit });
                                 return {
                                         content: [
                                                 {
