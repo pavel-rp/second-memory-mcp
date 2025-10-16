@@ -33,7 +33,6 @@ import { ensureSchema } from "../../src/db/migrate.js";
 import { getSql } from "../../src/db/operations.js";
 import { decodeJsonArray } from "../../src/db/operations.js";
 import { learningTopics, learningChunks } from "../../src/db/schema.js";
-import { eq } from "drizzle-orm";
 import { createChunk, listChunks, listChunksAsLearningItems, deleteChunk, batchFetchChunksMinimal } from "../../src/services/chunks.js";
 import { LearningItemSchema } from "../../src/types/recommendations.js";
 
