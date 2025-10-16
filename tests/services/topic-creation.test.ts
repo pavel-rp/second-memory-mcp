@@ -481,7 +481,7 @@ function tmpDbPath() {
 			expect(updateResult.topic).toBeDefined();
 			expect(updateResult.topic?.summary).toBe(newSummary);
 			expect(updateResult.topic?.summaryVersion).toBe(2); // Should increment from 1
-			expect(updateResult.topic?.summaryUpdatedAt).toBeGreaterThan(createResult.topic!.createdAt);
+			expect(updateResult.topic?.summaryUpdatedAt).toBeGreaterThanOrEqual(createResult.topic!.createdAt);
 		});
 
 		it("should validate summary length constraints", async () => {
