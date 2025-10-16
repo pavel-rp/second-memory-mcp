@@ -2,7 +2,7 @@ import { and, eq, lte, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 import { getSql, withTx, decodeJsonArray, encodeJsonArray } from "../db/operations.js";
 import { learningChunks, learningTopics, type LearningChunkRow } from "../db/schema.js";
-import type { LearningItem } from "../types/recommendations.js";
+import type { LearningItem, LearningItemWithContent } from "../types/recommendations.js";
 import { calculateNextReviewAdvanced } from "../tools/sr-calculator.js";
 import { scheduleReview } from "./reviews.js";
 import { prerequisiteReferenceValidator } from "../tools/prerequisite-reference-validator.js";
@@ -111,6 +111,12 @@ function toIsoDate(epochMs: number): string {
 
 type ChunkListRow = LearningChunkRow & { topicTitle?: string | null };
 
+type ChunkListRowWithContent = ChunkListRow & {
+	content?: string | null;
+	contentVersion?: number | null;
+	contentUpdatedAt?: number | null;
+};
+
 export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
         const rawChunkType = row.chunkType;
         const chunkType: LearningItem["chunkType"] = rawChunkType === "review" || rawChunkType === "remediation"
@@ -137,6 +143,21 @@ export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
         };
 
         return learningItem;
+}
+
+export function mapChunkRowToLearningItemWithContent(row: ChunkListRowWithContent): LearningItemWithContent {
+        // Start with the base mapping
+        const baseItem = mapChunkRowToLearningItem(row);
+        
+        // Add content fields if they exist
+        const contentItem: LearningItemWithContent = {
+                ...baseItem,
+                content: row.content ?? undefined,
+                contentVersion: row.contentVersion ?? undefined,
+                contentUpdatedAt: row.contentUpdatedAt ?? undefined,
+        };
+
+        return contentItem;
 }
 
 export async function listChunksAsLearningItems(filter: ListChunksFilter = {}): Promise<LearningItem[]> {
@@ -707,9 +728,23 @@ export type ListChunksWithContentFilter = ListChunksFilter & {
 	 * Set to true to explicitly include content fields.
 	 */
 	includeContent?: boolean;
+	/**
+	 * Offset for pagination (number of items to skip)
+	 */
+	offset?: number;
 };
 
-export async function listChunksWithContent(filter: ListChunksWithContentFilter = { includeContent: false }): Promise<LearningItem[]> {
+export type PaginatedLearningItemsResponse = {
+	items: LearningItemWithContent[];
+	pagination: {
+		total: number;
+		limit: number;
+		offset: number;
+		hasMore: boolean;
+	};
+};
+
+export async function listChunksWithContent(filter: ListChunksWithContentFilter = { includeContent: false }): Promise<PaginatedLearningItemsResponse> {
 	const db = getSql();
 	const now = Date.now();
 	const conditions: ReturnType<typeof eq>[] = [];
@@ -744,23 +779,43 @@ export async function listChunksWithContent(filter: ListChunksWithContentFilter 
 	.from(learningChunks)
 	.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
+	// Get total count for pagination
+	let totalCount = 0;
 	if (conditions.length > 0) {
-		const query = baseQuery.where(and(...conditions));
-		if (filter.limit && filter.limit > 0) {
-			const rows = query.limit(filter.limit).all();
-			return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
-		}
-		const rows = query.all();
-		return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+		const countQuery = db.select({ count: sql<number>`count(*)` })
+			.from(learningChunks)
+			.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+			.where(and(...conditions));
+		totalCount = countQuery.get()?.count || 0;
+	} else {
+		const countQuery = db.select({ count: sql<number>`count(*)` })
+			.from(learningChunks)
+			.leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
+		totalCount = countQuery.get()?.count || 0;
 	}
 
-	if (filter.limit && filter.limit > 0) {
-		const rows = baseQuery.limit(filter.limit).all();
-		return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+	// Apply pagination and conditions
+	const offset = filter.offset || 0;
+	const limit = filter.limit || 100; // Default limit
+	
+	let rows;
+	if (conditions.length > 0) {
+		rows = baseQuery.where(and(...conditions)).offset(offset).limit(limit).all();
+	} else {
+		rows = baseQuery.offset(offset).limit(limit).all();
 	}
-
-	const rows = baseQuery.all();
-	return rows.map(row => mapChunkRowToLearningItem(row as ChunkListRow));
+	
+	const items = rows.map(row => mapChunkRowToLearningItemWithContent(row as ChunkListRowWithContent));
+	
+	return {
+		items,
+		pagination: {
+			total: totalCount,
+			limit,
+			offset,
+			hasMore: offset + items.length < totalCount,
+		},
+	};
 }
 
 // Batch fetch with minimal metadata

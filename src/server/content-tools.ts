@@ -149,27 +149,26 @@ export function registerContentTools(server: McpServer): void {
 		"list_items_with_content",
 		{
 			title: "List Learning Items with Content",
-			description: "Retrieve learning items with their content. Supports filtering by subject and due status.",
+			description: "Retrieve learning items with their content. Supports filtering by subject and due status. Returns paginated results with content fields when includeContent is true.",
 			inputSchema: {
 				subjectFilter: z.string().optional().describe("Filter by subject/category"),
 				dueOnly: z.boolean().optional().describe("Only return items due for review"),
 				limit: z.number().int().min(1).max(100).optional().describe("Maximum number of items to return (1-100)"),
-				includeContent: z.boolean().default(true).describe("Whether to include content in the response"),
+				offset: z.number().int().min(0).optional().describe("Number of items to skip for pagination"),
+				includeContent: z.boolean().default(true).describe("Whether to include content fields (content, contentVersion, contentUpdatedAt) in the response"),
 			},
 		},
-		async ({ subjectFilter, dueOnly, limit, includeContent = true }: { subjectFilter?: string; dueOnly?: boolean; limit?: number; includeContent?: boolean }) => {
+		async ({ subjectFilter, dueOnly, limit, offset, includeContent = true }: { subjectFilter?: string; dueOnly?: boolean; limit?: number; offset?: number; includeContent?: boolean }) => {
 			try {
 				const filter: ListChunksWithContentFilter = {
 					subject: subjectFilter,
 					dueOnly,
 					limit,
+					offset,
 					includeContent,
 				};
 				
-				const items = await listChunksWithContent(filter);
-				
-				// The service already handles includeContent filtering, so we can use items directly
-				const responseItems = items;
+				const result = await listChunksWithContent(filter);
 				
 				return {
 					content: [
@@ -177,15 +176,16 @@ export function registerContentTools(server: McpServer): void {
 							type: "text",
 							text: JSON.stringify({
 								success: true,
-								items: responseItems,
-								count: responseItems.length,
+								items: result.items,
+								pagination: result.pagination,
 								contentIncluded: includeContent,
 								filter: {
 									subject: subjectFilter || null,
 									dueOnly: dueOnly || false,
 									limit: limit || null,
+									offset: offset || 0,
 								},
-								message: `Successfully retrieved ${responseItems.length} learning items${includeContent ? ' with content' : ''}`,
+								message: `Successfully retrieved ${result.items.length} learning items${includeContent ? ' with content' : ''}`,
 							}),
 						},
 					],

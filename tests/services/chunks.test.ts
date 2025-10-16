@@ -13,47 +13,13 @@ try {
 	hasBinding = false;
 }
 
-import { getDb, resetDatabase } from "../../src/db/client.js";
+import { resetDatabase } from "../../src/db/client.js";
+import { ensureSchema } from "../../src/db/migrate.js";
+import { getSql } from "../../src/db/operations.js";
 import { decodeJsonArray } from "../../src/db/operations.js";
+import { learningTopics, learningChunks } from "../../src/db/schema.js";
 import { createChunk, listChunks, listChunksAsLearningItems, deleteChunk, batchFetchChunksMinimal } from "../../src/services/chunks.js";
 import { LearningItemSchema } from "../../src/types/recommendations.js";
-
-function ensureSchema() {
-	const db = getDb();
-	db.exec(`
-	CREATE TABLE IF NOT EXISTS learning_topics (
-		id TEXT PRIMARY KEY NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		summary TEXT,
-		summary_version INTEGER,
-		summary_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
-	);
-
-	CREATE TABLE IF NOT EXISTS learning_chunks (
-		id TEXT PRIMARY KEY NOT NULL,
-		topic_id TEXT NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		difficulty INTEGER NOT NULL,
-		next_review_at INTEGER NOT NULL,
-		ease_factor REAL NOT NULL,
-		repetitions INTEGER NOT NULL,
-		last_reviewed_at INTEGER,
-		estimated_duration INTEGER NOT NULL,
-		chunk_type TEXT NOT NULL,
-		prerequisites_json TEXT,
-		tags_json TEXT,
-		content TEXT,
-		content_version INTEGER,
-		content_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
-	);
-	`);
-}
 
 function tmpDbPath() {
 	return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
@@ -762,6 +728,260 @@ describe.skipIf(!hasBinding)("Chunk Update Functions", () => {
 
 			expect(result.success).toBe(false);
 			expect(result.error?.type).toBe("not_found");
+		});
+	});
+});
+
+describe.skipIf(!hasBinding)("Content Inclusion Functions", () => {
+	let dbFile: string;
+
+	beforeEach(async () => {
+		dbFile = tmpDbPath();
+		process.env.SM_DB_PATH = dbFile;
+		await resetDatabase(); // Reset singleton to pick up new path
+		ensureSchema();
+	});
+
+	afterEach(async () => {
+		await resetDatabase(); // Close database connection
+		if (fs.existsSync(dbFile)) {
+			fs.unlinkSync(dbFile);
+		}
+		if (fs.existsSync(`${dbFile}-shm`)) {
+			fs.unlinkSync(`${dbFile}-shm`);
+		}
+		if (fs.existsSync(`${dbFile}-wal`)) {
+			fs.unlinkSync(`${dbFile}-wal`);
+		}
+	});
+
+	describe("mapChunkRowToLearningItemWithContent", () => {
+		it("should map chunk row with content fields", async () => {
+			const { mapChunkRowToLearningItemWithContent } = await import("../../src/services/chunks.js");
+			
+			const now = Date.now();
+			const mockRow = {
+				id: "test-chunk",
+				topicId: "test-topic",
+				title: "Test Chunk",
+				subject: "Testing",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 1,
+				lastReviewedAt: now,
+				estimatedDuration: 20,
+				chunkType: "new",
+				prerequisitesJson: '["arrays"]',
+				tagsJson: '["test"]',
+				content: "This is test content",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+				topicTitle: "Test Topic",
+			};
+
+			const result = mapChunkRowToLearningItemWithContent(mockRow);
+
+			expect(result.id).toBe("test-chunk");
+			expect(result.title).toBe("Test Chunk");
+			expect(result.content).toBe("This is test content");
+			expect(result.contentVersion).toBe(1);
+			expect(result.contentUpdatedAt).toBe(now);
+			expect(result.prerequisites).toEqual(["arrays"]);
+			expect(result.tags).toEqual(["test"]);
+		});
+
+		it("should handle null content fields gracefully", async () => {
+			const { mapChunkRowToLearningItemWithContent } = await import("../../src/services/chunks.js");
+			
+			const now = Date.now();
+			const mockRow = {
+				id: "test-chunk",
+				topicId: "test-topic",
+				title: "Test Chunk",
+				subject: "Testing",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 1,
+				lastReviewedAt: now,
+				estimatedDuration: 20,
+				chunkType: "new",
+				prerequisitesJson: '[]',
+				tagsJson: '[]',
+				content: null,
+				contentVersion: null,
+				contentUpdatedAt: null,
+				createdAt: now,
+				updatedAt: now,
+				topicTitle: null,
+			};
+
+			const result = mapChunkRowToLearningItemWithContent(mockRow);
+
+			expect(result.id).toBe("test-chunk");
+			expect(result.title).toBe("Test Chunk");
+			expect(result.content).toBeUndefined();
+			expect(result.contentVersion).toBeUndefined();
+			expect(result.contentUpdatedAt).toBeUndefined();
+			expect(result.topicId).toBeUndefined();
+			expect(result.topicTitle).toBeUndefined();
+		});
+	});
+
+	describe("listChunksWithContent", () => {
+		it("should include content fields when includeContent is true", async () => {
+			const { listChunksWithContent } = await import("../../src/services/chunks.js");
+			
+			const now = Date.now();
+			const db = getSql();
+			const uniqueId = `topic-${now}-${Math.random()}`;
+
+			// Create a topic first
+			db.insert(learningTopics).values({
+				id: uniqueId,
+				title: "Algorithm Fundamentals",
+				subject: "CS",
+				summary: null,
+				summaryVersion: null,
+				summaryUpdatedAt: null,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
+
+			// Create chunk with content
+			db.insert(learningChunks).values({
+				id: `chunk-${now}`,
+				topicId: uniqueId,
+				title: "Two Sum Problem",
+				subject: "CS",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 1,
+				lastReviewedAt: now,
+				estimatedDuration: 20,
+				chunkType: "new",
+				prerequisitesJson: JSON.stringify(["arrays"]),
+				tagsJson: JSON.stringify(["leetcode"]),
+				content: "This is the content for Two Sum problem",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
+
+			const result = await listChunksWithContent({ includeContent: true });
+
+			expect(result.items).toHaveLength(1);
+			expect(result.items[0].content).toBe("This is the content for Two Sum problem");
+			expect(result.items[0].contentVersion).toBe(1);
+			expect(result.items[0].contentUpdatedAt).toBe(now);
+			expect(result.pagination.total).toBe(1);
+			expect(result.pagination.hasMore).toBe(false);
+		});
+
+		it("should exclude content fields when includeContent is false", async () => {
+			const { listChunksWithContent } = await import("../../src/services/chunks.js");
+			
+			const now = Date.now();
+			const db = getSql();
+			const uniqueId = `topic-${now}-${Math.random()}`;
+
+			// Create a topic first
+			db.insert(learningTopics).values({
+				id: uniqueId,
+				title: "Algorithm Fundamentals",
+				subject: "CS",
+				summary: null,
+				summaryVersion: null,
+				summaryUpdatedAt: null,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
+
+			// Create chunk with content
+			db.insert(learningChunks).values({
+				id: `chunk-${now}`,
+				topicId: uniqueId,
+				title: "Two Sum Problem",
+				subject: "CS",
+				difficulty: 5,
+				nextReviewAt: now + 86400000,
+				easeFactor: 2.5,
+				repetitions: 1,
+				lastReviewedAt: now,
+				estimatedDuration: 20,
+				chunkType: "new",
+				prerequisitesJson: JSON.stringify(["arrays"]),
+				tagsJson: JSON.stringify(["leetcode"]),
+				content: "This is the content for Two Sum problem",
+				contentVersion: 1,
+				contentUpdatedAt: now,
+				createdAt: now,
+				updatedAt: now,
+			}).run();
+
+			const result = await listChunksWithContent({ includeContent: false });
+
+			expect(result.items).toHaveLength(1);
+			expect(result.items[0].content).toBeUndefined();
+			expect(result.items[0].contentVersion).toBeUndefined();
+			expect(result.items[0].contentUpdatedAt).toBeUndefined();
+			expect(result.items[0].title).toBe("Two Sum Problem");
+			expect(result.pagination.total).toBe(1);
+		});
+
+		it("should handle pagination correctly", async () => {
+			const { listChunksWithContent } = await import("../../src/services/chunks.js");
+			
+			const now = Date.now();
+			const db = getSql();
+			const uniqueId = `topic-${now}-${Math.random()}`;
+
+			// Create multiple chunks
+			for (let i = 1; i <= 5; i++) {
+				db.insert(learningChunks).values({
+					id: `chunk-${now}-${i}`,
+					topicId: uniqueId,
+					title: `Chunk ${i}`,
+					subject: "CS",
+					difficulty: i,
+					nextReviewAt: now + 86400000,
+					easeFactor: 2.5,
+					repetitions: 0,
+					lastReviewedAt: null,
+					estimatedDuration: 20,
+					chunkType: "new",
+					prerequisitesJson: JSON.stringify([]),
+					tagsJson: JSON.stringify([]),
+					content: `Content for chunk ${i}`,
+					contentVersion: 1,
+					contentUpdatedAt: now,
+					createdAt: now,
+					updatedAt: now,
+				}).run();
+			}
+
+			// Test pagination
+			const result1 = await listChunksWithContent({ includeContent: true, limit: 2, offset: 0 });
+			expect(result1.items).toHaveLength(2);
+			expect(result1.pagination.total).toBe(5);
+			expect(result1.pagination.hasMore).toBe(true);
+			expect(result1.pagination.offset).toBe(0);
+			expect(result1.pagination.limit).toBe(2);
+
+			const result2 = await listChunksWithContent({ includeContent: true, limit: 2, offset: 2 });
+			expect(result2.items).toHaveLength(2);
+			expect(result2.pagination.hasMore).toBe(true);
+			expect(result2.pagination.offset).toBe(2);
+
+			const result3 = await listChunksWithContent({ includeContent: true, limit: 2, offset: 4 });
+			expect(result3.items).toHaveLength(1);
+			expect(result3.pagination.hasMore).toBe(false);
+			expect(result3.pagination.offset).toBe(4);
 		});
 	});
 });
