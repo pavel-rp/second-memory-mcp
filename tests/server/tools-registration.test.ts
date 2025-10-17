@@ -23,15 +23,8 @@ describe("registerServerTools", () => {
 		expect(stub.tools).toContain("session_progress");
 		expect(stub.tools).toContain("session_workflow");
 		expect(stub.tools).toContain("session_completion");
-		expect(stub.tools).toContain("scaffolding_prompt");
-		expect(stub.tools).toContain("learning_prompt");
-		expect(stub.tools).toContain("retrieval_prompt");
-		expect(stub.tools).toContain("review_prompt");
-		expect(stub.tools).toContain("workflow_guidance_prompt");
-                // New chunk tools
-                expect(stub.tools).toContain("chunk_generation_prompt");
-                expect(stub.tools).toContain("chunk_management_prompt");
-                expect(stub.tools).toContain("delete_chunk");
+		// New chunk tools
+		expect(stub.tools).toContain("delete_chunk");
 		// Learning recommendation tools
 		expect(stub.tools).toContain("what_to_learn_today");
 		expect(stub.tools).toContain("guided_learning_conversation");
