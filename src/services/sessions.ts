@@ -193,7 +193,8 @@ export async function convertSessionToSessionInput(sessionId: string): Promise<S
 				const rawAttempts = JSON.parse(chunk.attemptsJson) as Array<{
 					timestamp: string | number;
 					quality: number;
-					time_spent_ms: number;
+					timeSpentMs?: number; // camelCase from create_session_chunk tool
+					time_spent_ms?: number; // snake_case from legacy data
 					completed: boolean;
 				}>;
 				// Convert attempts to proper format
@@ -202,7 +203,7 @@ export async function convertSessionToSessionInput(sessionId: string): Promise<S
 						? new Date(attempt.timestamp).toISOString()
 						: attempt.timestamp,
 					quality: attempt.quality,
-					time_spent_ms: attempt.time_spent_ms || 0,
+					time_spent_ms: attempt.timeSpentMs || attempt.time_spent_ms || 0,
 					completed: attempt.completed,
 				}));
 			}
