@@ -72,7 +72,7 @@ describe("ConversationManager", () => {
       expect(out.sessionUpdated).toBe(true);
       expect(out.message).toContain("react");
       expect(out.message).toContain("create_topic_with_chunks");
-      expect(out.message).toContain("generate the chunks now");
+      expect(out.message).toContain("chunk_generation");
     });
 
     it("handles empty topic title gracefully", async () => {
@@ -95,8 +95,8 @@ describe("ConversationManager", () => {
       } as any);
 
       expect(out.message).toContain("javascript");
-      expect(out.message).toContain("Subject: SWE"); // Should infer Software Engineering
-      expect(out.recommendations?.nextActions).toContain("Generate learning chunks using reasoning");
+      expect(out.message).toContain("subject: \"SWE\""); // Should infer Software Engineering
+      expect(out.recommendations?.nextActions).toContain("Call chunk_generation prompt with topic details");
     });
 
     it("includes comprehensive instruction steps", async () => {
@@ -106,7 +106,7 @@ describe("ConversationManager", () => {
         userInput: "I want to learn Machine Learning"
       } as any);
 
-      expect(out.message).toContain("generate the chunks now");
+      expect(out.message).toContain("chunk_generation");
       expect(out.message).toContain("create_topic_with_chunks");
       expect(out.message).toContain("5-9 scaffolded learning chunks");
     });
@@ -119,14 +119,14 @@ describe("ConversationManager", () => {
         intent: "I want to learn algorithms",
         userInput: "teach me algorithms"
       } as any);
-      expect(csOut.message).toContain("Subject: CS");
+      expect(csOut.message).toContain("subject: \"CS\"");
 
       // Test Math topic
       const mathOut = await cm.conductLearningSession({
         intent: "I want to learn calculus",
         userInput: "teach me calculus"
       } as any);
-      expect(mathOut.message).toContain("Subject: Math");
+      expect(mathOut.message).toContain("subject: \"Math\"");
     });
 
     it("maintains conversation flow with proper suggested inputs", async () => {
@@ -136,8 +136,8 @@ describe("ConversationManager", () => {
         userInput: "I want to learn Python programming"
       } as any);
 
-      expect(out.suggestedInputs).toContain("Generate the chunks now");
-      expect(out.suggestedInputs).toContain("Tell me more about chunk generation");
+      expect(out.suggestedInputs).toContain("Call chunk_generation prompt now");
+      expect(out.suggestedInputs).toContain("Tell me more about the chunk generation process");
       expect(out.suggestedInputs).toContain("Choose a different topic");
     });
 
@@ -154,7 +154,7 @@ describe("ConversationManager", () => {
       } as any);
 
       // Should still provide direct workflow guidance regardless of preferences
-      expect(out.message).toContain("generate the chunks now");
+      expect(out.message).toContain("chunk_generation");
       expect(out.message).toContain("react");
     });
 
@@ -165,9 +165,9 @@ describe("ConversationManager", () => {
         userInput: "I want to learn Data Structures"
       } as any);
 
-      expect(out.recommendations?.rationale).toContain("instruction-based workflow guidance");
+      expect(out.recommendations?.rationale).toContain("explicit guidance for chunk generation workflow");
       expect(out.recommendations?.rationale).toContain("data structures");
-      expect(out.recommendations?.nextActions).toHaveLength(2);
+      expect(out.recommendations?.nextActions).toHaveLength(3);
     });
   });
 });

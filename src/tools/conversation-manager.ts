@@ -130,15 +130,18 @@ export class ConversationManager {
 
 		return {
 			message: `I'll help you create a structured learning path for "${topicTitle}".\n\n` +
-				`I need to generate 5-9 scaffolded learning chunks for this topic. ` +
-				`I'll analyze the topic, break it down into digestible pieces with logical progression, ` +
-				`and create the chunks using the \`create_topic_with_chunks\` tool.\n\n` +
-				`Subject: ${subject}\n` +
-				`Let me generate the chunks now...`,
+				`To generate the learning chunks, please call the \`chunk_generation\` prompt with these parameters:\n\n` +
+				`**Prompt:** chunk_generation\n` +
+				`**Arguments:**\n` +
+				`- topicTitle: "${topicTitle}"\n` +
+				`- topicDescription: "${topicDescription}"\n` +
+				`- subject: "${subject}"\n\n` +
+				`This will generate 5-9 scaffolded learning chunks with titles, content summaries, and prerequisites. ` +
+				`Once you have the chunk proposals, you can then use the \`create_topic_with_chunks\` tool to create the complete learning topic.`,
 			needsInput: false,
 			suggestedInputs: [
-				"Generate the chunks now",
-				"Tell me more about chunk generation",
+				"Call chunk_generation prompt now",
+				"Tell me more about the chunk generation process",
 				"Choose a different topic"
 			],
 			sessionUpdated: true,
@@ -155,9 +158,10 @@ export class ConversationManager {
 					subjects: [subject]
 				},
 				estimatedDuration: 0,
-				rationale: `Providing instruction-based workflow guidance for creating "${topicTitle}" learning path`,
+				rationale: `Providing explicit guidance for chunk generation workflow for "${topicTitle}"`,
 				nextActions: [
-					"Generate learning chunks using reasoning",
+					"Call chunk_generation prompt with topic details",
+					"Review generated chunk proposals",
 					"Create topic with create_topic_with_chunks tool"
 				]
 			}
