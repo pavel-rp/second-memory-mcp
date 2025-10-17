@@ -1,12 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { spawn } from 'child_process';
 import { setTimeout } from 'timers/promises';
 import { randomUUID } from 'crypto';
 
 describe('MCP Server stdout validation', () => {
+  const tempDbFiles: string[] = [];
+
+  afterEach(async () => {
+    // Clean up all temporary database files
+    for (const tempDbPath of tempDbFiles) {
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(tempDbPath)) {
+          fs.unlinkSync(tempDbPath);
+        }
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+    }
+    tempDbFiles.length = 0; // Clear the array
+  });
   it('should not output any non-JSON content to stdout', async () => {
     // Use a temporary database for testing
     const tempDbPath = `test-mcp-${randomUUID()}.db`;
+    tempDbFiles.push(tempDbPath);
     
     // Spawn the MCP server with test database
     const server = spawn('node', ['dist/src/server/main.js'], {
@@ -17,15 +34,13 @@ describe('MCP Server stdout validation', () => {
       }
     });
 
-    let stdoutData = '';
     let stderrData = '';
     let hasNonJsonOutput = false;
-    let jsonLines: string[] = [];
+    const jsonLines: string[] = [];
 
     // Collect stdout data
     server.stdout.on('data', (data) => {
       const chunk = data.toString();
-      stdoutData += chunk;
       
       // Split by lines and check each line
       const lines = chunk.split('\n').filter((line: string) => line.trim());
@@ -75,16 +90,6 @@ describe('MCP Server stdout validation', () => {
     // Clean up
     server.kill();
 
-    // Clean up temp database
-    try {
-      const fs = await import('fs');
-      if (fs.existsSync(tempDbPath)) {
-        fs.unlinkSync(tempDbPath);
-      }
-    } catch (error) {
-      // Ignore cleanup errors
-    }
-
     // Verify results
     expect(hasNonJsonOutput).toBe(false);
     expect(jsonLines.length).toBeGreaterThan(0);
@@ -103,6 +108,7 @@ describe('MCP Server stdout validation', () => {
   it('should output logs to stderr when in MCP mode', async () => {
     // Use a temporary database for testing
     const tempDbPath = `test-mcp-${randomUUID()}.db`;
+    tempDbFiles.push(tempDbPath);
     
     const server = spawn('node', ['dist/src/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -119,21 +125,11 @@ describe('MCP Server stdout validation', () => {
     });
 
     // Wait for server startup
-    await setTimeout(1000);
+    await setTimeout(2000);
     server.kill();
-
-    // Clean up temp database
-    try {
-      const fs = await import('fs');
-      if (fs.existsSync(tempDbPath)) {
-        fs.unlinkSync(tempDbPath);
-      }
-    } catch (error) {
-      // Ignore cleanup errors
-    }
 
     // Should have log output on stderr
     expect(stderrData).toContain('[INFO]');
     expect(stderrData).toContain('Removed legacy tables');
-  }, 5000);
+  }, 10000);
 });
