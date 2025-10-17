@@ -250,8 +250,22 @@ export function registerSessionManagementTools(server: McpServer): void {
 
 				// Calculate final metrics from completed session data
 				const duration = updatedSession.endTime ? updatedSession.endTime - updatedSession.startTime : 0;
-				const chunksCompleted = 0; // Will be calculated from session chunks in future enhancement
-				const averageQuality = 0; // Will be calculated from session chunks in future enhancement
+				
+				// Calculate actual metrics from session chunks
+				const sessionInput = await convertSessionToSessionInput(validatedInput.sessionId);
+				let chunksCompleted = 0;
+				let averageQuality = 0;
+				
+				if (sessionInput) {
+					chunksCompleted = sessionInput.chunks.filter(chunk => chunk.status === "completed").length;
+					
+					// Calculate average quality from all attempts across all chunks
+					const allAttempts = sessionInput.chunks.flatMap(chunk => chunk.attempts);
+					if (allAttempts.length > 0) {
+						const totalQuality = allAttempts.reduce((sum, attempt) => sum + (attempt.quality ?? 0), 0);
+						averageQuality = totalQuality / allAttempts.length;
+					}
+				}
 
 				const result = CompleteSessionResultSchema.parse({
 					sessionId: validatedInput.sessionId,

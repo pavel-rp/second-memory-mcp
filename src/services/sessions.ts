@@ -197,13 +197,13 @@ export async function convertSessionToSessionInput(sessionId: string): Promise<S
 					time_spent_ms?: number; // snake_case from legacy data
 					completed: boolean;
 				}>;
-				// Convert attempts to proper format
+				// Convert attempts to proper format (standardize on snake_case for SessionInput)
 				attempts = rawAttempts.map((attempt) => ({
 					timestamp: typeof attempt.timestamp === 'number' 
 						? new Date(attempt.timestamp).toISOString()
 						: attempt.timestamp,
 					quality: attempt.quality,
-					time_spent_ms: attempt.timeSpentMs || attempt.time_spent_ms || 0,
+					time_spent_ms: attempt.timeSpentMs ?? attempt.time_spent_ms ?? 0,
 					completed: attempt.completed,
 				}));
 			}
