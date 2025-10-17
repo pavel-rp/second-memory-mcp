@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
-import { learningChunks, frictionMetrics, type LearningChunkRow, type FrictionMetricsRow } from "../db/schema.js";
+import { learningChunks, type LearningChunkRow } from "../db/schema.js";
 import { algorithmConfig } from "../config/algorithm.js";
 import type { MasteryCriteria, MasteryStatus } from "../types/prerequisite-validation.js";
 import { logger } from "../utils/logger.js";
@@ -113,15 +113,6 @@ export class PrerequisiteMasteryService {
    * @returns Calculated metrics
    */
   private async calculateMasteryMetrics(itemId: string, chunk: LearningChunkRow) {
-    const db = getSql();
-
-    // Get friction metrics for this chunk (if available)
-    const friction = db
-      .select()
-      .from(frictionMetrics)
-      .where(eq(frictionMetrics.chunkId, itemId))
-      .get();
-
     // Calculate days since last review
     const daysSinceLastReview = chunk.lastReviewedAt
       ? Math.floor((Date.now() - chunk.lastReviewedAt) / (24 * 60 * 60 * 1000))
@@ -141,21 +132,13 @@ export class PrerequisiteMasteryService {
       averageQuality = Math.min(5, Math.max(0, (chunk.easeFactor - 1.3) * 3 + 1));
     }
 
-    // Calculate success rate from friction metrics or estimate from ease factor
+    // Calculate success rate from ease factor and repetitions
     let successRate: number;
-    const frictionRow = friction as FrictionMetricsRow | undefined;
-
-    if (frictionRow && frictionRow.totalAttempts > 0) {
-      const successfulAttempts = frictionRow.totalAttempts - frictionRow.failedAttempts;
-      successRate = successfulAttempts / frictionRow.totalAttempts;
+    if (chunk.repetitions === 0) {
+      successRate = 0;
     } else {
-      // Estimate success rate from ease factor and repetitions
-      if (chunk.repetitions === 0) {
-        successRate = 0;
-      } else {
-        // Higher ease factor suggests better success rate
-        successRate = Math.min(1, Math.max(0, (chunk.easeFactor - 1.3) / 1.7));
-      }
+      // Higher ease factor suggests better success rate
+      successRate = Math.min(1, Math.max(0, (chunk.easeFactor - 1.3) / 1.7));
     }
 
     return {
