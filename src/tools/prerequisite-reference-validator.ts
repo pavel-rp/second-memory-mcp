@@ -1,7 +1,7 @@
-import { inArray } from "drizzle-orm";
-import { getSql } from "../db/operations.js";
-import { learningChunks } from "../db/schema.js";
-import type { PrerequisiteReferenceValidationResult } from "../types/prerequisite-validation.js";
+import { inArray } from 'drizzle-orm';
+import { getSql } from '../db/operations.js';
+import { learningChunks } from '../db/schema.js';
+import type { PrerequisiteReferenceValidationResult } from '../types/prerequisite-validation.js';
 
 /**
  * Validates that prerequisite references point to existing chunk IDs in the database
@@ -17,7 +17,9 @@ export class PrerequisiteReferenceValidator {
    * @param prerequisiteIds Array of prerequisite chunk IDs to validate
    * @returns Validation result with valid/invalid references
    */
-  async validatePrerequisiteReferences(prerequisiteIds: string[]): Promise<PrerequisiteReferenceValidationResult> {
+  async validatePrerequisiteReferences(
+    prerequisiteIds: string[]
+  ): Promise<PrerequisiteReferenceValidationResult> {
     if (!prerequisiteIds || prerequisiteIds.length === 0) {
       return {
         isValid: true,
@@ -44,8 +46,8 @@ export class PrerequisiteReferenceValidator {
       const validReferences = uniqueIds.filter(id => existingChunkIds.has(id));
       const invalidReferences = uniqueIds.filter(id => !existingChunkIds.has(id));
 
-      const errors = invalidReferences.map(id =>
-        `Prerequisite reference '${id}' does not exist as a chunk ID in the database`
+      const errors = invalidReferences.map(
+        id => `Prerequisite reference '${id}' does not exist as a chunk ID in the database`
       );
 
       return {
@@ -71,14 +73,15 @@ export class PrerequisiteReferenceValidator {
    * @param prerequisites Array of prerequisite chunk IDs
    * @returns Validation result
    */
-  async validateChunkPrerequisites(chunkId: string, prerequisites: string[]): Promise<PrerequisiteReferenceValidationResult> {
+  async validateChunkPrerequisites(
+    chunkId: string,
+    prerequisites: string[]
+  ): Promise<PrerequisiteReferenceValidationResult> {
     const result = await this.validatePrerequisiteReferences(prerequisites);
 
     // Add context about which chunk has invalid prerequisites
     if (!result.isValid) {
-      result.errors = result.errors.map(error =>
-        `Chunk '${chunkId}': ${error}`
-      );
+      result.errors = result.errors.map(error => `Chunk '${chunkId}': ${error}`);
     }
 
     return result;
@@ -152,10 +155,7 @@ export class PrerequisiteReferenceValidator {
    */
   async getAllChunkIds(): Promise<Set<string>> {
     const db = getSql();
-    const allChunks = db
-      .select({ id: learningChunks.id })
-      .from(learningChunks)
-      .all();
+    const allChunks = db.select({ id: learningChunks.id }).from(learningChunks).all();
 
     const allIds = new Set(allChunks.map(chunk => chunk.id));
 

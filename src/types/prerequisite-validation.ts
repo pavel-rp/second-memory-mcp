@@ -1,5 +1,5 @@
-import { z } from "zod";
-import type { LearningItem } from "./recommendations.js";
+import { z } from 'zod';
+import type { LearningItem } from './recommendations.js';
 
 // Core validation types for prerequisite checking
 

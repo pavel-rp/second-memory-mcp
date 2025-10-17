@@ -1,5 +1,5 @@
-import { algorithmConfig } from "../config/algorithm.js";
-import type { LearningItem } from "../types/recommendations.js";
+import { algorithmConfig } from '../config/algorithm.js';
+import type { LearningItem } from '../types/recommendations.js';
 
 /**
  * Result of dependency resolution
@@ -53,7 +53,7 @@ export class DependencyResolver {
         circularDependencies,
         maxDepthReached: 0,
         isValid: false,
-        errors: [`Circular dependencies detected: ${circularDependencies.join(" -> ")}`],
+        errors: [`Circular dependencies detected: ${circularDependencies.join(' -> ')}`],
       };
     }
 
@@ -69,7 +69,8 @@ export class DependencyResolver {
         errors: [],
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown dependency resolution error";
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown dependency resolution error';
       return {
         resolvedChain: [],
         circularDependencies: [],
@@ -131,7 +132,9 @@ export class DependencyResolver {
     for (const itemId of dependencyGraph.keys()) {
       if (!visited.has(itemId)) {
         const recursionStack = new Set<string>();
-        if (this.findCircularPath(itemId, dependencyGraph, visited, recursionStack, circularItems)) {
+        if (
+          this.findCircularPath(itemId, dependencyGraph, visited, recursionStack, circularItems)
+        ) {
           // Add all items in current recursion stack to circular items
           recursionStack.forEach(id => circularItems.add(id));
         }
@@ -158,7 +161,9 @@ export class DependencyResolver {
 
     for (const prereqId of prerequisites) {
       if (!visited.has(prereqId)) {
-        if (this.findCircularPath(prereqId, dependencyGraph, visited, recursionStack, circularItems)) {
+        if (
+          this.findCircularPath(prereqId, dependencyGraph, visited, recursionStack, circularItems)
+        ) {
           circularItems.add(itemId);
           return true;
         }
@@ -247,7 +252,7 @@ export class DependencyResolver {
     }
 
     if (result.length !== allNodes.size) {
-      throw new Error("Dependency cycle detected during topological sort");
+      throw new Error('Dependency cycle detected during topological sort');
     }
 
     const relevantItems = this.findAllDependencies(dependencyGraph, targetItems);
@@ -260,7 +265,10 @@ export class DependencyResolver {
    * @param targetItems Target items to find dependencies for
    * @returns Set of all relevant item IDs
    */
-  private findAllDependencies(dependencyGraph: Map<string, string[]>, targetItems: string[]): Set<string> {
+  private findAllDependencies(
+    dependencyGraph: Map<string, string[]>,
+    targetItems: string[]
+  ): Set<string> {
     const relevant = new Set<string>();
     const visited = new Set<string>();
 

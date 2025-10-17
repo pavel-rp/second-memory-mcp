@@ -1,21 +1,21 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
   calculateNextReview,
   calculatePriorityScore,
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
-} from "../tools/sr-calculator.js";
-import { RecommendationEngine } from "../tools/recommendation-engine.js";
+} from '../tools/sr-calculator.js';
+import { RecommendationEngine } from '../tools/recommendation-engine.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
   type RecommendationInput,
-} from "../types/recommendations.js";
+} from '../types/recommendations.js';
 import {
   mapChunkRowToLearningItem,
   processReviewResult,
   listChunksAsLearningItems,
-} from "../services/chunks.js";
+} from '../services/chunks.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -32,26 +32,20 @@ import {
   RecordReviewResultInputSchema,
   RecordReviewResultInputShape,
   type RecordReviewResultInput,
-} from "../types/spaced-repetition-tools.js";
+} from '../types/spaced-repetition-tools.js';
 
 export function registerSpacedRepetitionTools(server: McpServer): void {
   server.registerTool(
-    "calculate_next_review",
+    'calculate_next_review',
     {
-      title: "Calculate Next Review",
+      title: 'Calculate Next Review',
       description:
-        "SM-2 style scheduler: returns next interval/repetitions/ease_factor/next_review",
+        'SM-2 style scheduler: returns next interval/repetitions/ease_factor/next_review',
       inputSchema: CalculateNextReviewInputShape,
     },
     async (rawInput: unknown) => {
-      const {
-        quality,
-        repetitions,
-        ease_factor,
-        interval,
-      }: CalculateNextReviewInput = CalculateNextReviewInputSchema.parse(
-        rawInput,
-      );
+      const { quality, repetitions, ease_factor, interval }: CalculateNextReviewInput =
+        CalculateNextReviewInputSchema.parse(rawInput);
       const {
         interval: outInterval,
         repetitions: outReps,
@@ -70,16 +64,16 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         ease_factor: Number(easeFactor.toFixed(3)),
         next_review: nextReview,
       };
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     }
   );
 
   server.registerTool(
-    "calculate_priority_score",
+    'calculate_priority_score',
     {
-      title: "Calculate Priority Score",
+      title: 'Calculate Priority Score',
       description:
-        "Rank review priority using next_review_date, ease_factor, repetitions, difficulty",
+        'Rank review priority using next_review_date, ease_factor, repetitions, difficulty',
       inputSchema: CalculatePriorityScoreInputShape,
     },
     async (rawInput: unknown) => {
@@ -88,9 +82,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         ease_factor,
         repetitions,
         difficulty,
-      }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(
-        rawInput,
-      );
+      }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(rawInput);
       const { priority } = calculatePriorityScore({
         nextReviewDate: next_review_date,
         easeFactor: ease_factor,
@@ -98,16 +90,16 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         difficulty,
       });
       return {
-        content: [{ type: "text", text: JSON.stringify({ priority }) }],
+        content: [{ type: 'text', text: JSON.stringify({ priority }) }],
       };
     }
   );
 
   server.registerTool(
-    "calculate_next_review_advanced",
+    'calculate_next_review_advanced',
     {
-      title: "Calculate Next Review (Advanced)",
-      description: "Advanced scheduler with lapses/leech handling",
+      title: 'Calculate Next Review (Advanced)',
+      description: 'Advanced scheduler with lapses/leech handling',
       inputSchema: CalculateNextReviewAdvancedInputShape,
     },
     async (rawInput: unknown) => {
@@ -118,8 +110,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         interval,
         days_overdue,
         consecutive_failures,
-      }: CalculateNextReviewAdvancedInput =
-        CalculateNextReviewAdvancedInputSchema.parse(rawInput);
+      }: CalculateNextReviewAdvancedInput = CalculateNextReviewAdvancedInputSchema.parse(rawInput);
       const out = calculateNextReviewAdvanced({
         quality,
         repetitions,
@@ -128,22 +119,21 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         daysOverdue: days_overdue,
         consecutiveFailures: consecutive_failures,
       });
-      return { content: [{ type: "text", text: JSON.stringify(out) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(out) }] };
     }
   );
 
   server.registerTool(
-    "rank_candidates",
+    'rank_candidates',
     {
-      title: "Rank Candidates",
-      description:
-        "Rank learning items using priority, tag weights, and daily caps",
+      title: 'Rank Candidates',
+      description: 'Rank learning items using priority, tag weights, and daily caps',
       inputSchema: RankCandidatesInputShape,
     },
     async (rawInput: unknown) => {
       const { candidates, timeboxMinutes }: RankCandidatesInput =
         RankCandidatesInputSchema.parse(rawInput);
-      const mapped = candidates.map((c) => ({
+      const mapped = candidates.map(c => ({
         id: c.id,
         nextReviewDate: c.next_review_date,
         easeFactor: c.ease_factor,
@@ -155,34 +145,31 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         candidates: mapped,
         timeboxMinutes,
       });
-      return { content: [{ type: "text", text: JSON.stringify(out) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(out) }] };
     }
   );
 
   server.registerTool(
-    "what_to_learn_today",
+    'what_to_learn_today',
     {
-      title: "Get Learning Recommendations",
+      title: 'Get Learning Recommendations',
       description:
         "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and recommend in one call - this is the primary and most convenient pattern. FILTERS: subjectFilter, dueOnly, and limit apply only when fetchFromDatabase: true. EXAMPLES: (1) Single-call pattern: {fetchFromDatabase: true, subjectFilter: 'Math', dueOnly: true} fetches due Math items and generates recommendations. (2) Legacy pattern: {learningItems: [...]} uses pre-fetched items (filters are ignored in this mode). Supports both guided 'teach me' mode and explicit parameter mode. The tool provides fast, local-first recommendations without external dependencies.",
       inputSchema: RecommendationInputShape,
     },
     async (input: unknown) => {
       try {
-        const parsedInput: RecommendationInput =
-          RecommendationInputSchema.parse(input);
+        const parsedInput: RecommendationInput = RecommendationInputSchema.parse(input);
 
         // Validate mutual exclusivity BEFORE any database fetch
-        if (
-          parsedInput.fetchFromDatabase &&
-          (parsedInput.learningItems?.length ?? 0) > 0
-        ) {
+        if (parsedInput.fetchFromDatabase && (parsedInput.learningItems?.length ?? 0) > 0) {
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: JSON.stringify({
-                  error: "Invalid input: provide either fetchFromDatabase: true or a non-empty learningItems array, not both.",
+                  error:
+                    'Invalid input: provide either fetchFromDatabase: true or a non-empty learningItems array, not both.',
                 }),
               },
             ],
@@ -199,14 +186,11 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
               limit: parsedInput.limit,
             });
           } catch (dbError) {
-            const dbErrorMsg =
-              dbError instanceof Error
-                ? dbError.message
-                : "Database fetch failed";
+            const dbErrorMsg = dbError instanceof Error ? dbError.message : 'Database fetch failed';
             return {
               content: [
                 {
-                  type: "text",
+                  type: 'text',
                   text: JSON.stringify({
                     error: `Database error: ${dbErrorMsg}`,
                   }),
@@ -222,30 +206,26 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });
-        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
-          content: [
-            { type: "text", text: JSON.stringify({ error: errorMsg }) },
-          ],
+          content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }],
         };
       }
     }
   );
 
   server.registerTool(
-    "record_review_result",
+    'record_review_result',
     {
-      title: "Record Review Result",
+      title: 'Record Review Result',
       description:
-        "Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.",
+        'Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.',
       inputSchema: RecordReviewResultInputShape,
     },
     async (rawInput: unknown) => {
-      const input: RecordReviewResultInput =
-        RecordReviewResultInputSchema.parse(rawInput);
+      const input: RecordReviewResultInput = RecordReviewResultInputSchema.parse(rawInput);
       try {
         const result = await processReviewResult(input.itemId, input.quality, {
           timeSpentMs: input.timeSpentMs,
@@ -258,29 +238,28 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: true,
                 item: learningItem,
                 isLeech: result.isLeech,
                 message: result.isLeech
-                  ? "Item marked as leech due to consecutive failures"
-                  : "Review result recorded successfully",
+                  ? 'Item marked as leech due to consecutive failures'
+                  : 'Review result recorded successfully',
               }),
             },
           ],
         };
       } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: false,
                 error: {
-                  type: "database",
+                  type: 'database',
                   message: errorMsg,
                   retryable: true,
                 },

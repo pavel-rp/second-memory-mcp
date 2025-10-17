@@ -1,13 +1,13 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Recommendation mode types
-export type RecommendationMode = "guided" | "explicit";
+export type RecommendationMode = 'guided' | 'explicit';
 
 // Learning item chunk types
-export type ChunkType = "new" | "review" | "remediation";
+export type ChunkType = 'new' | 'review' | 'remediation';
 
 // Subject preference types
-export type SubjectPreference = "CS" | "Math" | "SWE" | "Language" | "Any";
+export type SubjectPreference = 'CS' | 'Math' | 'SWE' | 'Language' | 'Any';
 
 // Learning item from SQLite database
 export type LearningItem = {
@@ -150,31 +150,23 @@ export type ConversationResponse = {
 
 // Zod schemas for runtime validation
 
-export const RecommendationModeSchema = z.enum(["guided", "explicit"]);
+export const RecommendationModeSchema = z.enum(['guided', 'explicit']);
 
-export const ChunkTypeSchema = z.enum(["new", "review", "remediation"]);
+export const ChunkTypeSchema = z.enum(['new', 'review', 'remediation']);
 
-export const SubjectPreferenceSchema = z.enum([
-  "CS",
-  "Math",
-  "SWE",
-  "Language",
-  "Any",
-]);
+export const SubjectPreferenceSchema = z.enum(['CS', 'Math', 'SWE', 'Language', 'Any']);
 
 export const LearningItemSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   subject: z.string().min(1),
   difficulty: z.number().int().min(1).max(10),
-  nextReviewDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD"),
+  nextReviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
   easeFactor: z.number().min(1.3),
   repetitions: z.number().int().min(0),
   lastReviewed: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD')
     .optional(),
   estimatedDuration: z.number().min(0),
   chunkType: ChunkTypeSchema,
@@ -200,9 +192,7 @@ export const PaginatedLearningItemsResponseSchema = z.object({
   }),
 });
 
-export type PaginatedLearningItemsResponse = z.infer<
-  typeof PaginatedLearningItemsResponseSchema
->;
+export type PaginatedLearningItemsResponse = z.infer<typeof PaginatedLearningItemsResponseSchema>;
 
 export const SessionConstraintsSchema = z.object({
   maxDuration: z.number().min(0).optional(),
@@ -249,9 +239,7 @@ export const LearningPatternsSchema = z.object({
 export const SessionHistorySchema = z.object({
   recentSessions: z.array(
     z.object({
-      date: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be ISO date format YYYY-MM-DD"),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
       duration: z.number().min(0),
       itemsCompleted: z.number().int().min(0),
       averageQuality: z.number().min(0).max(5),
@@ -293,7 +281,7 @@ export const RecommendationInputSchema = z
     } else if (!val.learningItems) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Provide learningItems when fetchFromDatabase is false.",
+        message: 'Provide learningItems when fetchFromDatabase is false.',
       });
     }
   });
@@ -309,22 +297,16 @@ export const RecommendationOutputSchema = z.object({
 });
 
 export const ConversationRequestShape = {
-  intent: z
-    .string()
-    .min(1)
-    .describe("User intent driving the guided learning conversation"),
+  intent: z.string().min(1).describe('User intent driving the guided learning conversation'),
   context: z
     .record(z.unknown())
     .optional()
-    .describe("Optional contextual metadata for the conversation"),
-  userInput: z
-    .string()
-    .optional()
-    .describe("Raw user utterance or request"),
+    .describe('Optional contextual metadata for the conversation'),
+  userInput: z.string().optional().describe('Raw user utterance or request'),
   sessionState: z
     .record(z.unknown())
     .optional()
-    .describe("Opaque session state blob from prior interactions"),
+    .describe('Opaque session state blob from prior interactions'),
 } as const;
 
 export const ConversationRequestSchema = z.object(ConversationRequestShape);

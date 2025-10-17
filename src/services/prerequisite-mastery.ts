@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
-import { getSql } from "../db/operations.js";
-import { learningChunks, type LearningChunkRow } from "../db/schema.js";
-import { algorithmConfig } from "../config/algorithm.js";
-import type { MasteryCriteria, MasteryStatus } from "../types/prerequisite-validation.js";
-import { logger } from "../utils/logger.js";
+import { eq } from 'drizzle-orm';
+import { getSql } from '../db/operations.js';
+import { learningChunks, type LearningChunkRow } from '../db/schema.js';
+import { algorithmConfig } from '../config/algorithm.js';
+import type { MasteryCriteria, MasteryStatus } from '../types/prerequisite-validation.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Service for determining prerequisite mastery based on learning performance data
@@ -76,7 +76,7 @@ export class PrerequisiteMasteryService {
     const results = new Map<string, MasteryStatus>();
 
     // Process items in parallel for better performance
-    const masteryPromises = itemIds.map(async (itemId) => {
+    const masteryPromises = itemIds.map(async itemId => {
       const mastery = await this.checkItemMastery(itemId);
       return [itemId, mastery] as [string, MasteryStatus];
     });
@@ -97,11 +97,7 @@ export class PrerequisiteMasteryService {
    */
   private async getChunkData(itemId: string): Promise<LearningChunkRow | undefined> {
     const db = getSql();
-    const chunk = db
-      .select()
-      .from(learningChunks)
-      .where(eq(learningChunks.id, itemId))
-      .get();
+    const chunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
 
     return chunk;
   }

@@ -1,7 +1,7 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { eq } from "drizzle-orm";
-import { getSql } from "../db/operations.js";
-import { learningTopics } from "../db/schema.js";
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { eq } from 'drizzle-orm';
+import { getSql } from '../db/operations.js';
+import { learningTopics } from '../db/schema.js';
 import {
   GetChunkContentInputSchema,
   GetChunkContentInputShape,
@@ -12,20 +12,20 @@ import {
   ListItemsWithContentInputSchema,
   ListItemsWithContentInputShape,
   type ListItemsWithContentInput,
-} from "../types/content-tools.js";
+} from '../types/content-tools.js';
 import {
   getChunkContent,
   listChunksWithContent,
   type ListChunksWithContentFilter,
-} from "../services/chunks.js";
+} from '../services/chunks.js';
 
 export function registerContentTools(server: McpServer): void {
   // Tool for retrieving individual chunk content
   server.registerTool(
-    "get_chunk_content",
+    'get_chunk_content',
     {
-      title: "Get Chunk Content",
-      description: "Retrieve the content of a specific learning chunk by ID.",
+      title: 'Get Chunk Content',
+      description: 'Retrieve the content of a specific learning chunk by ID.',
       inputSchema: GetChunkContentInputShape,
     },
     async (rawInput: unknown) => {
@@ -39,10 +39,10 @@ export function registerContentTools(server: McpServer): void {
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: JSON.stringify({
                   success: false,
-                  error: "Chunk not found",
+                  error: 'Chunk not found',
                   message: `No chunk found with ID: ${chunkId}`,
                 }),
               },
@@ -53,7 +53,7 @@ export function registerContentTools(server: McpServer): void {
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: true,
                 chunkId,
@@ -66,29 +66,29 @@ export function registerContentTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: false,
-                error: "retrieval_error",
+                error: 'retrieval_error',
                 message: `Failed to retrieve chunk content: ${errorMsg}`,
               }),
             },
           ],
         };
       }
-    },
+    }
   );
 
   // Tool for retrieving topic summary
   server.registerTool(
-    "get_topic_summary",
+    'get_topic_summary',
     {
-      title: "Get Topic Summary",
-      description: "Retrieve the summary content of a specific learning topic by ID.",
+      title: 'Get Topic Summary',
+      description: 'Retrieve the summary content of a specific learning topic by ID.',
       inputSchema: GetTopicSummaryInputShape,
     },
     async (rawInput: unknown) => {
@@ -116,10 +116,10 @@ export function registerContentTools(server: McpServer): void {
           return {
             content: [
               {
-                type: "text",
+                type: 'text',
                 text: JSON.stringify({
                   success: false,
-                  error: "Topic not found",
+                  error: 'Topic not found',
                   message: `No topic found with ID: ${topicId}`,
                 }),
               },
@@ -130,7 +130,7 @@ export function registerContentTools(server: McpServer): void {
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: true,
                 topicId,
@@ -147,30 +147,30 @@ export function registerContentTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: false,
-                error: "retrieval_error",
+                error: 'retrieval_error',
                 message: `Failed to retrieve topic summary: ${errorMsg}`,
               }),
             },
           ],
         };
       }
-    },
+    }
   );
 
   // Tool for batch content retrieval
   server.registerTool(
-    "list_items_with_content",
+    'list_items_with_content',
     {
-      title: "List Learning Items with Content",
+      title: 'List Learning Items with Content',
       description:
-        "Retrieve learning items with their content. Supports filtering by subject and due status. Returns paginated results with content fields when includeContent is true.",
+        'Retrieve learning items with their content. Supports filtering by subject and due status. Returns paginated results with content fields when includeContent is true.',
       inputSchema: ListItemsWithContentInputShape,
     },
     async (rawInput: unknown) => {
@@ -194,7 +194,7 @@ export function registerContentTools(server: McpServer): void {
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: true,
                 items: result.items,
@@ -208,18 +208,18 @@ export function registerContentTools(server: McpServer): void {
                   offset: resolvedOffset,
                 },
                 message: `Successfully retrieved ${result.items.length} learning items${
-                  includeContent ? " with content" : ""
+                  includeContent ? ' with content' : ''
                 }`,
               }),
             },
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Unknown error occurred";
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
         return {
           content: [
             {
-              type: "text",
+              type: 'text',
               text: JSON.stringify({
                 success: true,
                 items: [],
@@ -237,13 +237,13 @@ export function registerContentTools(server: McpServer): void {
                   limit: resolvedLimit,
                   offset: resolvedOffset,
                 },
-                message: "No learning items available at this time.",
+                message: 'No learning items available at this time.',
                 warning: `Failed to retrieve learning items: ${errorMsg}`,
               }),
             },
           ],
         };
       }
-    },
+    }
   );
 }
