@@ -205,6 +205,9 @@ describe("Integration: Session Management Tools", () => {
 			updatedAt: now,
 		}).run();
 
+		// Add a small delay to ensure duration > 0
+		await new Promise(resolve => setTimeout(resolve, 10));
+
 		const result = await completeSessionTool.handler({
 			sessionId: sessionId,
 			feedback: "Great session!",
@@ -243,6 +246,9 @@ describe("Integration: Session Management Tools", () => {
 			createdAt: now,
 			updatedAt: now,
 		}).run();
+
+		// Add a small delay to ensure duration > 0
+		await new Promise(resolve => setTimeout(resolve, 10));
 
 		const result = await completeSessionTool.handler({
 			sessionId: sessionId,
