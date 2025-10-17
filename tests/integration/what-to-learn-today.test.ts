@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { registerServerTools } from "../../src/server/tools.js";
+import { describe, it, expect } from 'vitest';
+import { registerServerTools } from '../../src/server/tools.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -11,8 +11,8 @@ class CaptureServer {
 function makeItem(overrides: Partial<any> = {}): any {
   return {
     id: overrides.id ?? Math.random().toString(36).slice(2),
-    title: overrides.title ?? "Item",
-    subject: overrides.subject ?? "CS",
+    title: overrides.title ?? 'Item',
+    subject: overrides.subject ?? 'CS',
     difficulty: overrides.difficulty ?? 5,
     next_review_date: undefined, // not used here
     nextReviewDate: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
@@ -20,7 +20,7 @@ function makeItem(overrides: Partial<any> = {}): any {
     easeFactor: overrides.easeFactor ?? 2.5,
     repetitions: overrides.repetitions ?? 2,
     estimatedDuration: overrides.estimatedDuration ?? 10,
-    chunkType: overrides.chunkType ?? "review",
+    chunkType: overrides.chunkType ?? 'review',
     prerequisites: overrides.prerequisites,
     tags: overrides.tags,
   };
@@ -28,49 +28,58 @@ function makeItem(overrides: Partial<any> = {}): any {
 
 function parseToolResult(out: any): any {
   const text = out?.content?.[0]?.text;
-  try { return JSON.parse(text); } catch { return out; }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return out;
+  }
 }
 
-describe("Integration: what_to_learn_today", () => {
-  it("generates explicit recommendations honoring constraints", async () => {
+describe('Integration: what_to_learn_today', () => {
+  it('generates explicit recommendations honoring constraints', async () => {
     const server = new CaptureServer() as any;
     registerServerTools(server);
-    const tool = server.tools.get("what_to_learn_today");
+    const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
     const items = [
-      makeItem({ id: "o1", chunkType: "review", nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0,10), estimatedDuration: 10 }),
-      makeItem({ id: "n1", chunkType: "new", estimatedDuration: 15 }),
-      makeItem({ id: "r1", chunkType: "review", estimatedDuration: 10 }),
+      makeItem({
+        id: 'o1',
+        chunkType: 'review',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        estimatedDuration: 10,
+      }),
+      makeItem({ id: 'n1', chunkType: 'new', estimatedDuration: 15 }),
+      makeItem({ id: 'r1', chunkType: 'review', estimatedDuration: 10 }),
     ];
 
     const out = await tool.handler({
-      mode: "explicit",
+      mode: 'explicit',
       timeAvailable: 30,
-      subjectPreference: "Any",
+      subjectPreference: 'Any',
       learningItems: items,
       constraints: { maxDuration: 30, maxCognitiveLoad: 40, maxNewItems: 1 },
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);
-    const newCount = result.recommendations.filter((r: any) => r.item.chunkType === "new").length;
+    const newCount = result.recommendations.filter((r: any) => r.item.chunkType === 'new').length;
     expect(newCount).toBeLessThanOrEqual(1);
     expect(result.estimatedDuration).toBeLessThanOrEqual(30);
   });
 
-  it("guided mode works with minimal inputs and produces guidance", async () => {
+  it('guided mode works with minimal inputs and produces guidance', async () => {
     const server = new CaptureServer() as any;
     registerServerTools(server);
-    const tool = server.tools.get("what_to_learn_today");
+    const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
     const items = [
-      makeItem({ id: "a", chunkType: "review", estimatedDuration: 10 }),
-      makeItem({ id: "b", chunkType: "new", estimatedDuration: 10 }),
+      makeItem({ id: 'a', chunkType: 'review', estimatedDuration: 10 }),
+      makeItem({ id: 'b', chunkType: 'new', estimatedDuration: 10 }),
     ];
 
     const out = await tool.handler({
-      mode: "guided",
+      mode: 'guided',
       learningItems: items,
       userHistory: {
         recentSessions: [],
@@ -90,17 +99,17 @@ describe("Integration: what_to_learn_today", () => {
   });
 });
 
-describe("Integration: guided_learning_conversation", () => {
-  it("starts a session and returns user-facing guidance", async () => {
+describe('Integration: guided_learning_conversation', () => {
+  it('starts a session and returns user-facing guidance', async () => {
     const server = new CaptureServer() as any;
     registerServerTools(server);
-    const tool = server.tools.get("guided_learning_conversation");
+    const tool = server.tools.get('guided_learning_conversation');
     expect(tool).toBeDefined();
 
     const out = await tool.handler({
-      intent: "start_learning",
+      intent: 'start_learning',
       context: {
-        learningItems: [makeItem({ id: "a" })],
+        learningItems: [makeItem({ id: 'a' })],
       },
     });
     const result = parseToolResult(out);
@@ -108,5 +117,3 @@ describe("Integration: guided_learning_conversation", () => {
     expect(result.needsInput).toBe(false);
   });
 });
-
-

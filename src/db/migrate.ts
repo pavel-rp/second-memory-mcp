@@ -1,30 +1,34 @@
-import fs from "node:fs";
-import path from "node:path";
-import { getDb } from "./client.js";
-import { getSql, bulkInsert, encodeJsonArray } from "./operations.js";
-import { logger } from "../utils/logger.js";
+import fs from 'node:fs';
+import path from 'node:path';
+import { getDb } from './client.js';
+import { getSql, bulkInsert, encodeJsonArray } from './operations.js';
+import { logger } from '../utils/logger.js';
 import {
-	learningTopics,
-	learningChunks,
-	reviewSchedule,
-	learningSessions,
-	sessionChunks,
-	NewLearningTopicRow,
-	NewLearningChunkRow,
-	NewReviewScheduleRow,
-	NewLearningSessionRow,
-	NewSessionChunkRow,
-} from "./schema.js";
+  learningTopics,
+  learningChunks,
+  reviewSchedule,
+  learningSessions,
+  sessionChunks,
+  NewLearningTopicRow,
+  NewLearningChunkRow,
+  NewReviewScheduleRow,
+  NewLearningSessionRow,
+  NewSessionChunkRow,
+} from './schema.js';
 
-function checkColumnExists(db: { prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> } }, tableName: string, columnName: string): boolean {
-	const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
-	return result.some((col) => col.name === columnName);
+function checkColumnExists(
+  db: { prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> } },
+  tableName: string,
+  columnName: string
+): boolean {
+  const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
+  return result.some(col => col.name === columnName);
 }
 
 export function ensureSchema() {
-	const db = getDb();
-	// Minimal table creation matching schema definitions
-	db.exec(`
+  const db = getDb();
+  // Minimal table creation matching schema definitions
+  db.exec(`
 	CREATE TABLE IF NOT EXISTS learning_topics (
 		id TEXT PRIMARY KEY NOT NULL,
 		title TEXT NOT NULL,
@@ -103,128 +107,138 @@ export function ensureSchema() {
 	CREATE INDEX IF NOT EXISTS idx_session_chunks_status ON session_chunks(status);
 	`);
 
-	// Add content fields to existing tables if they don't exist (migration for content persistence)
-	try {
-		// Add content fields to learning_topics
-		if (!checkColumnExists(db, 'learning_topics', 'summary')) {
-			db.exec('ALTER TABLE learning_topics ADD COLUMN summary TEXT');
-			logger.info('Added summary column to learning_topics table');
-		}
-		if (!checkColumnExists(db, 'learning_topics', 'summary_version')) {
-			db.exec('ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1');
-			logger.info('Added summary_version column to learning_topics table');
-		}
-		if (!checkColumnExists(db, 'learning_topics', 'summary_updated_at')) {
-			db.exec('ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER');
-			logger.info('Added summary_updated_at column to learning_topics table');
-		}
+  // Add content fields to existing tables if they don't exist (migration for content persistence)
+  try {
+    // Add content fields to learning_topics
+    if (!checkColumnExists(db, 'learning_topics', 'summary')) {
+      db.exec('ALTER TABLE learning_topics ADD COLUMN summary TEXT');
+      logger.info('Added summary column to learning_topics table');
+    }
+    if (!checkColumnExists(db, 'learning_topics', 'summary_version')) {
+      db.exec('ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1');
+      logger.info('Added summary_version column to learning_topics table');
+    }
+    if (!checkColumnExists(db, 'learning_topics', 'summary_updated_at')) {
+      db.exec('ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER');
+      logger.info('Added summary_updated_at column to learning_topics table');
+    }
 
-		// Add content fields to learning_chunks
-		if (!checkColumnExists(db, 'learning_chunks', 'content')) {
-			db.exec('ALTER TABLE learning_chunks ADD COLUMN content TEXT');
-			logger.info('Added content column to learning_chunks table');
-		}
-		if (!checkColumnExists(db, 'learning_chunks', 'content_version')) {
-			db.exec('ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1');
-			logger.info('Added content_version column to learning_chunks table');
-		}
-		if (!checkColumnExists(db, 'learning_chunks', 'content_updated_at')) {
-			db.exec('ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER');
-			logger.info('Added content_updated_at column to learning_chunks table');
-		}
-	} catch (error) {
-		logger.error('Content fields migration failed:', error);
-		throw new Error(`Content persistence migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-	}
+    // Add content fields to learning_chunks
+    if (!checkColumnExists(db, 'learning_chunks', 'content')) {
+      db.exec('ALTER TABLE learning_chunks ADD COLUMN content TEXT');
+      logger.info('Added content column to learning_chunks table');
+    }
+    if (!checkColumnExists(db, 'learning_chunks', 'content_version')) {
+      db.exec('ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1');
+      logger.info('Added content_version column to learning_chunks table');
+    }
+    if (!checkColumnExists(db, 'learning_chunks', 'content_updated_at')) {
+      db.exec('ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER');
+      logger.info('Added content_updated_at column to learning_chunks table');
+    }
+  } catch (error) {
+    logger.error('Content fields migration failed:', error);
+    throw new Error(
+      `Content persistence migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 
-	// Remove legacy tables (migration cleanup)
-	try {
-		db.exec(`
+  // Remove legacy tables (migration cleanup)
+  try {
+    db.exec(`
 		DROP TABLE IF EXISTS session_logs;
 		DROP TABLE IF EXISTS performance_analytics;
 		DROP TABLE IF EXISTS friction_metrics;
 		`);
-		logger.info('Removed legacy tables: session_logs, performance_analytics, friction_metrics');
-	} catch (error) {
-		logger.error('Legacy table cleanup failed:', error);
-		throw new Error(`Legacy cleanup migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-	}
+    logger.info('Removed legacy tables: session_logs, performance_analytics, friction_metrics');
+  } catch (error) {
+    logger.error('Legacy table cleanup failed:', error);
+    throw new Error(
+      `Legacy cleanup migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
-type RawLearningChunk = Omit<NewLearningChunkRow, "prerequisitesJson" | "tagsJson"> & {
-        prerequisites?: string[] | null;
-        tags?: string[] | null;
+type RawLearningChunk = Omit<NewLearningChunkRow, 'prerequisitesJson' | 'tagsJson'> & {
+  prerequisites?: string[] | null;
+  tags?: string[] | null;
 };
 
 type MigrationData = {
-        learning_topics?: NewLearningTopicRow[];
-        learning_chunks?: RawLearningChunk[];
-        review_schedule?: NewReviewScheduleRow[];
-        learning_sessions?: NewLearningSessionRow[];
-        session_chunks?: NewSessionChunkRow[];
+  learning_topics?: NewLearningTopicRow[];
+  learning_chunks?: RawLearningChunk[];
+  review_schedule?: NewReviewScheduleRow[];
+  learning_sessions?: NewLearningSessionRow[];
+  session_chunks?: NewSessionChunkRow[];
 };
 
 function readJson(pathOrEnv?: string): MigrationData {
-        const src = pathOrEnv || process.env.MIGRATE_SOURCE || "./notion-export.json";
-        const full = path.resolve(src);
-        const raw = fs.readFileSync(full, "utf-8");
-        return JSON.parse(raw) as MigrationData;
+  const src = pathOrEnv || process.env.MIGRATE_SOURCE || './notion-export.json';
+  const full = path.resolve(src);
+  const raw = fs.readFileSync(full, 'utf-8');
+  return JSON.parse(raw) as MigrationData;
 }
 
 async function importData(data: MigrationData) {
-        const db = getSql();
-        let topics = 0, chunks = 0, schedules = 0, sessions = 0, sessionChunkCount = 0;
+  const db = getSql();
+  let topics = 0,
+    chunks = 0,
+    schedules = 0,
+    sessions = 0,
+    sessionChunkCount = 0;
 
-        if (Array.isArray(data.learning_topics)) {
-                await bulkInsert<NewLearningTopicRow>(data.learning_topics, (chunk) => {
-                        return db.insert(learningTopics).values(chunk).run();
-                });
-                topics = data.learning_topics.length;
-        }
+  if (Array.isArray(data.learning_topics)) {
+    await bulkInsert<NewLearningTopicRow>(data.learning_topics, chunk => {
+      return db.insert(learningTopics).values(chunk).run();
+    });
+    topics = data.learning_topics.length;
+  }
 
-        if (Array.isArray(data.learning_chunks)) {
-                const mapped: NewLearningChunkRow[] = data.learning_chunks.map(chunk => {
-                        const { prerequisites, tags, ...chunkWithoutLists } = chunk;
-                        return {
-                                ...chunkWithoutLists,
-                                prerequisitesJson: encodeJsonArray(prerequisites ?? undefined),
-                                tagsJson: encodeJsonArray(tags ?? undefined),
-                        };
-                });
-                await bulkInsert<NewLearningChunkRow>(mapped, (chunk) => db.insert(learningChunks).values(chunk).run());
-                chunks = mapped.length;
-        }
+  if (Array.isArray(data.learning_chunks)) {
+    const mapped: NewLearningChunkRow[] = data.learning_chunks.map(chunk => {
+      const { prerequisites, tags, ...chunkWithoutLists } = chunk;
+      return {
+        ...chunkWithoutLists,
+        prerequisitesJson: encodeJsonArray(prerequisites ?? undefined),
+        tagsJson: encodeJsonArray(tags ?? undefined),
+      };
+    });
+    await bulkInsert<NewLearningChunkRow>(mapped, chunk =>
+      db.insert(learningChunks).values(chunk).run()
+    );
+    chunks = mapped.length;
+  }
 
-        if (Array.isArray(data.review_schedule)) {
-                await bulkInsert<NewReviewScheduleRow>(data.review_schedule, (chunk) =>
-                        db.insert(reviewSchedule).values(chunk).run()
-                );
-                schedules = data.review_schedule.length;
-        }
+  if (Array.isArray(data.review_schedule)) {
+    await bulkInsert<NewReviewScheduleRow>(data.review_schedule, chunk =>
+      db.insert(reviewSchedule).values(chunk).run()
+    );
+    schedules = data.review_schedule.length;
+  }
 
-        if (Array.isArray(data.learning_sessions)) {
-                await bulkInsert<NewLearningSessionRow>(data.learning_sessions, (chunk) =>
-                        db.insert(learningSessions).values(chunk).run()
-                );
-                sessions = data.learning_sessions.length;
-        }
+  if (Array.isArray(data.learning_sessions)) {
+    await bulkInsert<NewLearningSessionRow>(data.learning_sessions, chunk =>
+      db.insert(learningSessions).values(chunk).run()
+    );
+    sessions = data.learning_sessions.length;
+  }
 
-        if (Array.isArray(data.session_chunks)) {
-                await bulkInsert<NewSessionChunkRow>(data.session_chunks, (chunk) =>
-                        db.insert(sessionChunks).values(chunk).run()
-                );
-                sessionChunkCount = data.session_chunks.length;
-        }
+  if (Array.isArray(data.session_chunks)) {
+    await bulkInsert<NewSessionChunkRow>(data.session_chunks, chunk =>
+      db.insert(sessionChunks).values(chunk).run()
+    );
+    sessionChunkCount = data.session_chunks.length;
+  }
 
-	return { topics, chunks, schedules, sessions, sessionChunks: sessionChunkCount };
+  return { topics, chunks, schedules, sessions, sessionChunks: sessionChunkCount };
 }
 
 async function main() {
-	ensureSchema();
-	const src = process.argv[2];
-	const data = readJson(src);
-        const summary = await importData(data);
-        logger.info(JSON.stringify({ status: "ok", summary }, null, 2));
+  ensureSchema();
+  const src = process.argv[2];
+  const data = readJson(src);
+  const summary = await importData(data);
+  logger.info(JSON.stringify({ status: 'ok', summary }, null, 2));
 }
 
 // Check if this script is being run directly (not imported)
@@ -233,8 +247,8 @@ const argFile = process.argv[1];
 const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.replace(/\\/g, '/'));
 
 if (isMainModule) {
-        main().catch((err) => {
-                logger.error("Migration failed:", err);
-                process.exit(1);
-        });
+  main().catch(err => {
+    logger.error('Migration failed:', err);
+    process.exit(1);
+  });
 }

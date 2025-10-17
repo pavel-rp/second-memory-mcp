@@ -1,14 +1,14 @@
-import { algorithmConfig } from "../config/algorithm.js";
-import { prerequisiteReferenceValidator } from "./prerequisite-reference-validator.js";
-import { prerequisiteMasteryService } from "../services/prerequisite-mastery.js";
+import { algorithmConfig } from '../config/algorithm.js';
+import { prerequisiteReferenceValidator } from './prerequisite-reference-validator.js';
+import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import type {
   MasteryCriteria,
   ValidationResult,
   FilteredResult,
   MasteryStatus,
-} from "../types/prerequisite-validation.js";
-import type { LearningItem } from "../types/recommendations.js";
-import { logger } from "../utils/logger.js";
+} from '../types/prerequisite-validation.js';
+import type { LearningItem } from '../types/recommendations.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Core prerequisite validation service that filters learning items based on prerequisite mastery
@@ -41,25 +41,30 @@ export class PrerequisiteValidator {
     const now = Date.now();
 
     // Use cached result if recent
-    if (this.databaseAvailable !== null && (now - this.lastDbCheck) < this.DB_CHECK_INTERVAL) {
+    if (this.databaseAvailable !== null && now - this.lastDbCheck < this.DB_CHECK_INTERVAL) {
       return this.databaseAvailable;
     }
 
     try {
       // Quick test of database connectivity - use minimal test for better performance
-      await prerequisiteReferenceValidator.validateChunkPrerequisites("test", []);
+      await prerequisiteReferenceValidator.validateChunkPrerequisites('test', []);
       this.databaseAvailable = true;
     } catch (error) {
       // Database is not available - check if we're in a test environment with mocks
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       // In test environments with mocks, treat mock rejections as database available
       // This allows unit tests to properly test error handling scenarios
-      if (errorMessage.includes("mock") || errorMessage.includes("vi.") || process.env.NODE_ENV === "test" || process.env.VITEST) {
+      if (
+        errorMessage.includes('mock') ||
+        errorMessage.includes('vi.') ||
+        process.env.NODE_ENV === 'test' ||
+        process.env.VITEST
+      ) {
         this.databaseAvailable = true;
       } else {
         this.databaseAvailable = false;
-        logger.warn("Database services unavailable for prerequisite validation:", errorMessage);
+        logger.warn('Database services unavailable for prerequisite validation:', errorMessage);
       }
     }
 
@@ -96,7 +101,7 @@ export class PrerequisiteValidator {
       return {
         validItems: [],
         filteredItems: [],
-        rationale: "No learning items provided for prerequisite validation.",
+        rationale: 'No learning items provided for prerequisite validation.',
       };
     }
 
@@ -105,9 +110,9 @@ export class PrerequisiteValidator {
 
     if (!databaseAvailable) {
       // Fallback: only filter items without prerequisites, allow all others through
-      const itemsWithoutPrereqs = items.filter(item =>
-        !(excludeIds?.includes(item.id)) &&
-        (!item.prerequisites || item.prerequisites.length === 0)
+      const itemsWithoutPrereqs = items.filter(
+        item =>
+          !excludeIds?.includes(item.id) && (!item.prerequisites || item.prerequisites.length === 0)
       );
 
       const filteredCount = items.length - (excludeIds?.length || 0) - itemsWithoutPrereqs.length;
@@ -157,14 +162,17 @@ export class PrerequisiteValidator {
       try {
         // Validate prerequisite references first with timeout
         const referenceValidation = await this.withTimeout(
-          prerequisiteReferenceValidator.validateChunkPrerequisites(item.id, item.prerequisites || []),
+          prerequisiteReferenceValidator.validateChunkPrerequisites(
+            item.id,
+            item.prerequisites || []
+          ),
           this.VALIDATION_TIMEOUT
         );
 
         if (!referenceValidation.isValid) {
           filteredItems.push({
             item,
-            reason: `Invalid prerequisite references: ${referenceValidation.invalidReferences.join(", ")}`,
+            reason: `Invalid prerequisite references: ${referenceValidation.invalidReferences.join(', ')}`,
             missingPrerequisites: referenceValidation.invalidReferences,
           });
           totalFiltered++;
@@ -180,9 +188,10 @@ export class PrerequisiteValidator {
         if (validation.isValid) {
           validItems.push(item);
         } else {
-          const reason = validation.missingPrerequisites.length === 1
-            ? `Prerequisite "${validation.missingPrerequisites[0]}" not yet mastered`
-            : `${validation.missingPrerequisites.length} prerequisites not yet mastered: ${validation.missingPrerequisites.slice(0, 3).join(", ")}${validation.missingPrerequisites.length > 3 ? "..." : ""}`;
+          const reason =
+            validation.missingPrerequisites.length === 1
+              ? `Prerequisite "${validation.missingPrerequisites[0]}" not yet mastered`
+              : `${validation.missingPrerequisites.length} prerequisites not yet mastered: ${validation.missingPrerequisites.slice(0, 3).join(', ')}${validation.missingPrerequisites.length > 3 ? '...' : ''}`;
 
           filteredItems.push({
             item,
@@ -193,7 +202,7 @@ export class PrerequisiteValidator {
         }
       } catch (error) {
         // Handle validation errors gracefully
-        const errorMessage = error instanceof Error ? error.message : "Unknown validation error";
+        const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
         filteredItems.push({
           item,
           reason: `Prerequisite validation failed: ${errorMessage}`,
@@ -246,7 +255,7 @@ export class PrerequisiteValidator {
           missingPrerequisites.push(prereqId);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         validationErrors.push(`Error checking mastery for ${prereqId}: ${errorMessage}`);
         missingPrerequisites.push(prereqId); // Assume not mastered on error
       }
@@ -287,7 +296,7 @@ export class PrerequisiteValidator {
     const totalPassedItems = itemsWithoutPrereqs + (totalProcessed - totalFiltered);
 
     if (totalItems === 0) {
-      return "No items were processed for prerequisite validation.";
+      return 'No items were processed for prerequisite validation.';
     }
 
     if (totalFiltered === 0) {
@@ -299,16 +308,18 @@ export class PrerequisiteValidator {
     // Add details about common filtering reasons
     const reasons = new Map<string, number>();
     for (const filtered of filteredItems) {
-      const reasonType = filtered.reason.includes("Invalid prerequisite") ? "Invalid references" :
-                        filtered.reason.includes("not yet mastered") ? "Unmet prerequisites" :
-                        "Validation errors";
+      const reasonType = filtered.reason.includes('Invalid prerequisite')
+        ? 'Invalid references'
+        : filtered.reason.includes('not yet mastered')
+          ? 'Unmet prerequisites'
+          : 'Validation errors';
       reasons.set(reasonType, (reasons.get(reasonType) || 0) + 1);
     }
 
     if (reasons.size > 0) {
       const reasonDetails = Array.from(reasons.entries())
         .map(([reason, count]) => `${count} due to ${reason.toLowerCase()}`)
-        .join(", ");
+        .join(', ');
       rationale += ` Filtered items: ${reasonDetails}.`;
     }
 

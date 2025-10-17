@@ -24,14 +24,14 @@ describe('MCP Server stdout validation', () => {
     // Use a temporary database for testing
     const tempDbPath = `test-mcp-${randomUUID()}.db`;
     tempDbFiles.push(tempDbPath);
-    
+
     // Spawn the MCP server with test database
     const server = spawn('node', ['dist/src/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        SM_DB_PATH: tempDbPath
-      }
+        SM_DB_PATH: tempDbPath,
+      },
     });
 
     let stderrData = '';
@@ -39,15 +39,15 @@ describe('MCP Server stdout validation', () => {
     const jsonLines: string[] = [];
 
     // Collect stdout data
-    server.stdout.on('data', (data) => {
+    server.stdout.on('data', data => {
       const chunk = data.toString();
-      
+
       // Split by lines and check each line
       const lines = chunk.split('\n').filter((line: string) => line.trim());
       for (const line of lines) {
         // Skip empty lines
         if (!line.trim()) continue;
-        
+
         try {
           // Try to parse as JSON
           JSON.parse(line);
@@ -61,7 +61,7 @@ describe('MCP Server stdout validation', () => {
     });
 
     // Collect stderr data (should contain logs)
-    server.stderr.on('data', (data) => {
+    server.stderr.on('data', data => {
       stderrData += data.toString();
     });
 
@@ -75,9 +75,9 @@ describe('MCP Server stdout validation', () => {
         capabilities: {},
         clientInfo: {
           name: 'test-client',
-          version: '1.0.0'
-        }
-      }
+          version: '1.0.0',
+        },
+      },
     };
 
     // Wait a bit for server startup, then send request
@@ -98,7 +98,7 @@ describe('MCP Server stdout validation', () => {
     // Verify we got a proper JSON-RPC response
     const response = jsonLines.find(line => line.includes('"result"'));
     expect(response).toBeDefined();
-    
+
     const parsedResponse = JSON.parse(response!);
     expect(parsedResponse.jsonrpc).toBe('2.0');
     expect(parsedResponse.result).toBeDefined();
@@ -109,18 +109,18 @@ describe('MCP Server stdout validation', () => {
     // Use a temporary database for testing
     const tempDbPath = `test-mcp-${randomUUID()}.db`;
     tempDbFiles.push(tempDbPath);
-    
+
     const server = spawn('node', ['dist/src/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        SM_DB_PATH: tempDbPath
-      }
+        SM_DB_PATH: tempDbPath,
+      },
     });
 
     let stderrData = '';
 
-    server.stderr.on('data', (data) => {
+    server.stderr.on('data', data => {
       stderrData += data.toString();
     });
 

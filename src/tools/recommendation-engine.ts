@@ -1,6 +1,6 @@
-import { calculatePriorityScore } from "./sr-calculator.js";
-import { calculateItemCognitiveLoad } from "./cognitive-load.js";
-import { prerequisiteValidator } from "./prerequisite-validator.js";
+import { calculatePriorityScore } from './sr-calculator.js';
+import { calculateItemCognitiveLoad } from './cognitive-load.js';
+import { prerequisiteValidator } from './prerequisite-validator.js';
 import type {
   RecommendationInput,
   RecommendationOutput,
@@ -11,8 +11,8 @@ import type {
   SessionConstraints,
   LearningPatterns,
   SubjectPreference,
-} from "../types/recommendations.js";
-import { logger } from "../utils/logger.js";
+} from '../types/recommendations.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Core recommendation engine that generates intelligent learning recommendations
@@ -35,17 +35,14 @@ export class RecommendationEngine {
     );
 
     // Compose balanced session
-    const recommendations = this.composeBalancedSession(
-      candidates,
-      processedInput
-    );
+    const recommendations = this.composeBalancedSession(candidates, processedInput);
 
     // Generate session summary
     const sessionSummary = this.generateSessionSummary(recommendations);
 
     // Generate conversation guidance for guided mode
     const conversationGuidance =
-      processedInput.mode === "guided"
+      processedInput.mode === 'guided'
         ? this.generateConversationGuidance(processedInput, recommendations)
         : undefined;
 
@@ -56,11 +53,12 @@ export class RecommendationEngine {
     const alternatives = this.generateAlternatives(candidates, recommendations);
 
     // Add orchestration hint if no learning items provided
-    const orchestrationHint = (processedInput.learningItems?.length ?? 0) === 0
-      ? processedInput.fetchFromDatabase
-        ? "No learning items found with current filters. Try relaxing filters (subjectFilter, dueOnly, limit) or add more learning content to the database."
-        : "No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool."
-      : undefined;
+    const orchestrationHint =
+      (processedInput.learningItems?.length ?? 0) === 0
+        ? processedInput.fetchFromDatabase
+          ? 'No learning items found with current filters. Try relaxing filters (subjectFilter, dueOnly, limit) or add more learning content to the database.'
+          : 'No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool.'
+        : undefined;
 
     return {
       recommendations,
@@ -77,36 +75,28 @@ export class RecommendationEngine {
   /**
    * Apply intelligent defaults based on user history and mode
    */
-  private applyIntelligentDefaults(
-    input: RecommendationInput
-  ): RecommendationInput {
+  private applyIntelligentDefaults(input: RecommendationInput): RecommendationInput {
     const defaults: Partial<RecommendationInput> = {
-      mode: input.mode || "guided",
+      mode: input.mode || 'guided',
     };
 
     // Time estimation based on history or system defaults
     if (!input.timeAvailable) {
       if (input.userHistory?.patterns.averageSessionDuration) {
-        defaults.timeAvailable =
-          input.userHistory.patterns.averageSessionDuration;
+        defaults.timeAvailable = input.userHistory.patterns.averageSessionDuration;
       } else {
         defaults.timeAvailable = 30; // 30-minute default
       }
     }
 
     // Subject preference from history
-    if (
-      !input.subjectPreference &&
-      input.userHistory?.patterns.subjectPreferences
-    ) {
+    if (!input.subjectPreference && input.userHistory?.patterns.subjectPreferences) {
       const preferences = input.userHistory.patterns.subjectPreferences;
-      const topSubject = Object.entries(preferences).sort(
-        ([, a], [, b]) => b - a
-      )[0]?.[0];
+      const topSubject = Object.entries(preferences).sort(([, a], [, b]) => b - a)[0]?.[0];
       if (this.isSubjectPreference(topSubject)) {
         defaults.subjectPreference = topSubject;
       } else {
-        defaults.subjectPreference = "Any";
+        defaults.subjectPreference = 'Any';
       }
     }
 
@@ -121,17 +111,14 @@ export class RecommendationEngine {
   /**
    * Generate intelligent constraints based on user patterns
    */
-  private generateIntelligentConstraints(
-    input: RecommendationInput
-  ): SessionConstraints {
+  private generateIntelligentConstraints(input: RecommendationInput): SessionConstraints {
     const patterns = input.userHistory?.patterns;
 
     return {
       maxDuration: input.timeAvailable || 30,
       maxCognitiveLoad: patterns?.fatigueThreshold || 20,
       maxNewItems: this.calculateOptimalNewItems(patterns),
-      subjectFilter:
-        input.subjectPreference !== "Any" ? input.subjectPreference : undefined,
+      subjectFilter: input.subjectPreference !== 'Any' ? input.subjectPreference : undefined,
     };
   }
 
@@ -158,17 +145,13 @@ export class RecommendationEngine {
 
     // Apply subject filter
     if (constraints?.subjectFilter) {
-      filtered = filtered.filter(
-        (item) => item.subject === constraints.subjectFilter
-      );
+      filtered = filtered.filter(item => item.subject === constraints.subjectFilter);
     }
 
     // Exclude specific IDs
     const excludeIds = constraints?.excludeIds;
     if (excludeIds && excludeIds.length > 0) {
-      filtered = filtered.filter(
-        (item) => !excludeIds.includes(item.id)
-      );
+      filtered = filtered.filter(item => !excludeIds.includes(item.id));
     }
 
     // Apply prerequisite filtering (before priority scoring)
@@ -188,7 +171,10 @@ export class RecommendationEngine {
       filtered = prerequisiteResult.validItems;
     } catch (error) {
       // Log error but continue with original filtering if prerequisite validation fails
-      logger.warn('Prerequisite validation failed, continuing without prerequisite filtering:', error);
+      logger.warn(
+        'Prerequisite validation failed, continuing without prerequisite filtering:',
+        error
+      );
       this.lastPrerequisiteFiltering = {
         rationale: 'Prerequisite validation unavailable - continuing with all items',
         filteredCount: 0,
@@ -196,7 +182,7 @@ export class RecommendationEngine {
     }
 
     // Calculate priorities for remaining items
-    const itemsWithPriority = filtered.map((item) => {
+    const itemsWithPriority = filtered.map(item => {
       const priorityInput = {
         nextReviewDate: item.nextReviewDate,
         easeFactor: item.easeFactor,
@@ -228,30 +214,19 @@ export class RecommendationEngine {
     let newItemCount = 0;
 
     // Separate items by type for balanced selection
-    const overdueItems = candidates.filter(
-      (item) => new Date(item.nextReviewDate) <= new Date()
-    );
+    const overdueItems = candidates.filter(item => new Date(item.nextReviewDate) <= new Date());
     const reviewItems = candidates.filter(
-      (item) =>
-        new Date(item.nextReviewDate) > new Date() &&
-        item.chunkType === "review"
+      item => new Date(item.nextReviewDate) > new Date() && item.chunkType === 'review'
     );
-    const newItems = candidates.filter((item) => item.chunkType === "new");
+    const newItems = candidates.filter(item => item.chunkType === 'new');
 
     // Prioritize overdue items
     for (const item of overdueItems) {
-      if (
-        this.shouldAddToSession(
-          item,
-          constraints,
-          totalDuration,
-          totalCognitiveLoad
-        )
-      ) {
+      if (this.shouldAddToSession(item, constraints, totalDuration, totalCognitiveLoad)) {
         const recommendation = this.createRecommendation(
           item,
           recommendations.length + 1,
-          "overdue - needs immediate attention"
+          'overdue - needs immediate attention'
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
@@ -261,18 +236,11 @@ export class RecommendationEngine {
 
     // Add review items
     for (const item of reviewItems) {
-      if (
-        this.shouldAddToSession(
-          item,
-          constraints,
-          totalDuration,
-          totalCognitiveLoad
-        )
-      ) {
+      if (this.shouldAddToSession(item, constraints, totalDuration, totalCognitiveLoad)) {
         const recommendation = this.createRecommendation(
           item,
           recommendations.length + 1,
-          "optimal review timing"
+          'optimal review timing'
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
@@ -283,18 +251,11 @@ export class RecommendationEngine {
     // Add new items up to limit
     for (const item of newItems) {
       if (newItemCount >= (constraints.maxNewItems || 5)) break;
-      if (
-        this.shouldAddToSession(
-          item,
-          constraints,
-          totalDuration,
-          totalCognitiveLoad
-        )
-      ) {
+      if (this.shouldAddToSession(item, constraints, totalDuration, totalCognitiveLoad)) {
         const recommendation = this.createRecommendation(
           item,
           recommendations.length + 1,
-          "new content - expanding knowledge"
+          'new content - expanding knowledge'
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
@@ -376,11 +337,9 @@ export class RecommendationEngine {
     recommendations: LearningRecommendation[]
   ): LearningRecommendation[] {
     // Sort by cognitive load to interleave easy/hard items
-    const easy = recommendations.filter((r) => r.cognitiveLoad < 10);
-    const medium = recommendations.filter(
-      (r) => r.cognitiveLoad >= 10 && r.cognitiveLoad < 15
-    );
-    const hard = recommendations.filter((r) => r.cognitiveLoad >= 15);
+    const easy = recommendations.filter(r => r.cognitiveLoad < 10);
+    const medium = recommendations.filter(r => r.cognitiveLoad >= 10 && r.cognitiveLoad < 15);
+    const hard = recommendations.filter(r => r.cognitiveLoad >= 15);
 
     const interleaved: LearningRecommendation[] = [];
     let order = 1;
@@ -405,31 +364,17 @@ export class RecommendationEngine {
   /**
    * Generate session summary
    */
-  private generateSessionSummary(
-    recommendations: LearningRecommendation[]
-  ): SessionSummary {
-    const newItems = recommendations.filter(
-      (r) => r.item.chunkType === "new"
-    ).length;
-    const reviewItems = recommendations.filter(
-      (r) => r.item.chunkType === "review"
-    ).length;
-    const remediationItems = recommendations.filter(
-      (r) => r.item.chunkType === "remediation"
-    ).length;
+  private generateSessionSummary(recommendations: LearningRecommendation[]): SessionSummary {
+    const newItems = recommendations.filter(r => r.item.chunkType === 'new').length;
+    const reviewItems = recommendations.filter(r => r.item.chunkType === 'review').length;
+    const remediationItems = recommendations.filter(r => r.item.chunkType === 'remediation').length;
 
-    const subjects = [...new Set(recommendations.map((r) => r.item.subject))];
+    const subjects = [...new Set(recommendations.map(r => r.item.subject))];
 
     return {
       totalItems: recommendations.length,
-      totalDuration: recommendations.reduce(
-        (sum, r) => sum + r.item.estimatedDuration,
-        0
-      ),
-      totalCognitiveLoad: recommendations.reduce(
-        (sum, r) => sum + r.cognitiveLoad,
-        0
-      ),
+      totalDuration: recommendations.reduce((sum, r) => sum + r.item.estimatedDuration, 0),
+      totalCognitiveLoad: recommendations.reduce((sum, r) => sum + r.cognitiveLoad, 0),
       newItems,
       reviewItems,
       remediationItems,
@@ -447,16 +392,13 @@ export class RecommendationEngine {
     if (recommendations.length === 0) {
       return {
         nextAction:
-          "No items are due for review right now. Consider studying new content or taking a break.",
-        encouragement: "Great job staying on top of your learning schedule!",
+          'No items are due for review right now. Consider studying new content or taking a break.',
+        encouragement: 'Great job staying on top of your learning schedule!',
       };
     }
 
     const firstItem = recommendations[0];
-    const totalTime = recommendations.reduce(
-      (sum, r) => sum + r.item.estimatedDuration,
-      0
-    );
+    const totalTime = recommendations.reduce((sum, r) => sum + r.item.estimatedDuration, 0);
 
     let nextAction = `Start with "${firstItem.item.title}" (${firstItem.item.estimatedDuration} min, ${firstItem.reason}).`;
 
@@ -482,22 +424,18 @@ export class RecommendationEngine {
     input: RecommendationInput,
     recommendations: LearningRecommendation[]
   ): string {
-    const overdueCount = recommendations.filter((r) =>
-      r.reason.includes("overdue")
-    ).length;
-    const newCount = recommendations.filter(
-      (r) => r.item.chunkType === "new"
-    ).length;
+    const overdueCount = recommendations.filter(r => r.reason.includes('overdue')).length;
+    const newCount = recommendations.filter(r => r.item.chunkType === 'new').length;
 
     if (overdueCount > 0) {
       return "You're catching up on some overdue items - excellent work maintaining your learning momentum!";
     }
 
     if (newCount > 0) {
-      return "Ready to explore new concepts! This session will expand your knowledge effectively.";
+      return 'Ready to explore new concepts! This session will expand your knowledge effectively.';
     }
 
-    return "Perfect timing for reinforcing your knowledge. Consistent review leads to lasting learning!";
+    return 'Perfect timing for reinforcing your knowledge. Consistent review leads to lasting learning!';
   }
 
   /**
@@ -508,18 +446,12 @@ export class RecommendationEngine {
     input: RecommendationInput
   ): string {
     if (recommendations.length === 0) {
-      return "No items match your current criteria or constraints.";
+      return 'No items match your current criteria or constraints.';
     }
 
-    const overdueCount = recommendations.filter((r) =>
-      r.reason.includes("overdue")
-    ).length;
-    const newCount = recommendations.filter(
-      (r) => r.item.chunkType === "new"
-    ).length;
-    const reviewCount = recommendations.filter(
-      (r) => r.item.chunkType === "review"
-    ).length;
+    const overdueCount = recommendations.filter(r => r.reason.includes('overdue')).length;
+    const newCount = recommendations.filter(r => r.item.chunkType === 'new').length;
+    const reviewCount = recommendations.filter(r => r.item.chunkType === 'review').length;
 
     let rationale = `Selected ${recommendations.length} items based on spaced repetition priorities`;
 
@@ -539,8 +471,7 @@ export class RecommendationEngine {
       rationale += `. Added ${reviewCount} optimally-timed reviews for reinforcement`;
     }
 
-    rationale +=
-      ". Items are interleaved by difficulty to optimize cognitive load.";
+    rationale += '. Items are interleaved by difficulty to optimize cognitive load.';
 
     // Add prerequisite filtering explanation if applicable
     if (this.lastPrerequisiteFiltering) {
@@ -548,10 +479,12 @@ export class RecommendationEngine {
         rationale += ` Note: ${this.lastPrerequisiteFiltering.filteredCount} items were filtered out due to unmet prerequisites - focus on mastering foundational concepts first.`;
       }
       // Include detailed prerequisite rationale if available
-      if (this.lastPrerequisiteFiltering.rationale &&
-          !this.lastPrerequisiteFiltering.rationale.includes("No items were processed") &&
-          !this.lastPrerequisiteFiltering.rationale.includes("All") &&
-          !this.lastPrerequisiteFiltering.rationale.includes("unavailable")) {
+      if (
+        this.lastPrerequisiteFiltering.rationale &&
+        !this.lastPrerequisiteFiltering.rationale.includes('No items were processed') &&
+        !this.lastPrerequisiteFiltering.rationale.includes('All') &&
+        !this.lastPrerequisiteFiltering.rationale.includes('unavailable')
+      ) {
         rationale += ` ${this.lastPrerequisiteFiltering.rationale}`;
       }
     }
@@ -566,13 +499,11 @@ export class RecommendationEngine {
     candidates: LearningItem[],
     selected: LearningRecommendation[]
   ): LearningRecommendation[] {
-    const selectedIds = new Set(selected.map((r) => r.item.id));
+    const selectedIds = new Set(selected.map(r => r.item.id));
     const alternatives = candidates
-      .filter((item) => !selectedIds.has(item.id))
+      .filter(item => !selectedIds.has(item.id))
       .slice(0, 3) // Up to 3 alternatives
-      .map((item, index) =>
-        this.createRecommendation(item, index + 1, "alternative option")
-      );
+      .map((item, index) => this.createRecommendation(item, index + 1, 'alternative option'));
 
     return alternatives;
   }
@@ -585,20 +516,26 @@ export class RecommendationEngine {
     input: RecommendationInput
   ): string[] {
     if (recommendations.length === 0) {
-      return ["Check for new content to study", "Review your learning goals"];
+      return ['Check for new content to study', 'Review your learning goals'];
     }
 
-    const actions = ["Begin learning session with recommended items"];
+    const actions = ['Begin learning session with recommended items'];
 
-    if (input.mode === "guided") {
+    if (input.mode === 'guided') {
       actions.push("Say 'next' when ready for the next item");
-      actions.push("Ask questions if you need clarification");
+      actions.push('Ask questions if you need clarification');
     }
 
     return actions;
   }
 
   private isSubjectPreference(value: unknown): value is SubjectPreference {
-    return value === "CS" || value === "Math" || value === "SWE" || value === "Language" || value === "Any";
+    return (
+      value === 'CS' ||
+      value === 'Math' ||
+      value === 'SWE' ||
+      value === 'Language' ||
+      value === 'Any'
+    );
   }
 }
