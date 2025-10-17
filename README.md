@@ -185,6 +185,44 @@ const result = await what_to_learn_today({
 
 **Note**: Filters (`subjectFilter`, `dueOnly`, `limit`) only apply when using `fetchFromDatabase: true`. In legacy mode, they are ignored.
 
+### Session Management
+
+Create and manage structured learning sessions:
+
+```javascript
+// Create a new learning session
+const session = await create_session({
+  topicId: "topic-id",           // optional: associate with a topic
+  chunkIds: ["chunk1", "chunk2"], // optional: specific chunks to work on
+  mode: "learning",              // scaffolding, learning, retrieval, or review
+  estimatedDuration: 30          // optional: estimated duration in minutes
+});
+
+// Get the active session
+const activeSession = await get_active_session();
+
+// Create session chunks to track progress
+await create_session_chunk({
+  sessionId: session.sessionId,
+  chunkId: "chunk1",
+  status: "completed",
+  attempts: [{
+    timestamp: Date.now(),
+    timeSpentMs: 5000,
+    completed: true,
+    quality: 4
+  }],
+  qualityScores: [4],
+  timeSpentMs: 5000
+});
+
+// Complete the session
+await complete_session({
+  sessionId: session.sessionId,
+  feedback: "Great session! Learned a lot."
+});
+```
+
 ## MCP Tools
 
 The server exposes several MCP tools for learning management:
@@ -209,6 +247,10 @@ The server exposes several MCP tools for learning management:
 - `analytics_window`: Analyze performance over date ranges
 
 ### Session Management
+- `create_session`: Create a new learning session with specific parameters
+- `get_active_session`: Retrieve the most recently created active session
+- `complete_session`: Mark a session as completed with optional feedback
+- `create_session_chunk`: Create session chunks to track learning progress
 - `session_progress`: Track session completion metrics
 - `session_workflow`: Get guidance for next learning phase
 - `session_completion`: Determine if session should end
@@ -264,13 +306,15 @@ pnpm run dev
 
 ### Database Schema
 
-The SQLite database contains five main tables:
+The SQLite database contains seven main tables:
 
 - **learning_topics**: Subject areas and topics
 - **learning_chunks**: Individual learning items with content
 - **review_schedule**: Spaced repetition scheduling data
-- **session_logs**: Learning session history
-- **performance_analytics**: Performance metrics and analytics
+- **learning_sessions**: Learning session management and tracking
+- **session_chunks**: Individual chunk progress within sessions
+- **session_logs**: Learning session history (legacy)
+- **performance_analytics**: Performance metrics and analytics (legacy)
 
 ### Service Layer
 
@@ -278,6 +322,7 @@ The application uses a service layer pattern:
 - **Topics Service**: Manages learning topics and subjects
 - **Chunks Service**: Handles learning items and content
 - **Reviews Service**: Manages spaced repetition schedules
+- **Sessions Service**: Handles learning session management and tracking
 
 ### MCP Integration
 

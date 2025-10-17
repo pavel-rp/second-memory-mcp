@@ -1,6 +1,6 @@
-import { eq, lte } from "drizzle-orm";
+import { lte } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
-import { reviewSchedule, sessionLogs, performanceAnalytics } from "../db/schema.js";
+import { reviewSchedule } from "../db/schema.js";
 
 export async function scheduleReview(params: {
 	id: string;
@@ -23,26 +23,4 @@ export async function listDueReviews(now: number = Date.now()) {
 		.from(reviewSchedule)
 		.where(lte(reviewSchedule.nextReviewAt, now))
 		.all();
-}
-
-export async function logSession(entry: {
-	id: string;
-	date: number;
-	duration: number;
-	itemsCompleted: number;
-	averageQuality: number;
-	cognitiveLoad: number;
-	createdAt: number;
-}): Promise<void> {
-	const db = getSql();
-	await db.insert(sessionLogs).values(entry).run();
-}
-
-export async function getPerformanceStats(date?: number) {
-	const db = getSql();
-	let query = db.select().from(performanceAnalytics);
-	if (date) {
-		query = query.where(eq(performanceAnalytics.date, date)) as typeof query;
-	}
-	return query.all();
 }
