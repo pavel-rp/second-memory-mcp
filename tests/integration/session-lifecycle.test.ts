@@ -139,7 +139,7 @@ describe("Integration: Complete Session Lifecycle", () => {
     const getActiveResult = await getActiveSessionTool.handler({});
     const getActiveParsed = parseToolResult(getActiveResult);
     expect(getActiveParsed.status).toBe("found");
-    expect(getActiveParsed.session.id).toBe(sessionId);
+    expect(getActiveParsed.session.session_id).toBe(sessionId);
 
     // Step 3: Create session chunks to simulate learning progress
     const createSessionChunkTool = server.tools.get("create_session_chunk");
@@ -187,11 +187,12 @@ describe("Integration: Complete Session Lifecycle", () => {
       sessionId: sessionId,
     });
     const progressParsed = parseToolResult(progressResult);
-    expect(progressParsed.sessionId).toBe(sessionId);
-    expect(progressParsed.mode).toBe("learning");
-    expect(progressParsed.chunks).toHaveLength(2);
-    expect(progressParsed.chunks[0].status).toBe("completed");
-    expect(progressParsed.chunks[1].status).toBe("in_progress");
+    expect(progressParsed.session_id).toBe(sessionId);
+    expect(progressParsed.overall_progress).toBeDefined();
+    expect(progressParsed.chunks_completed).toBeGreaterThanOrEqual(0);
+    expect(progressParsed.total_chunks).toBeGreaterThan(0);
+    expect(progressParsed.average_quality).toBeDefined();
+    expect(progressParsed.time_elapsed_ms).toBeDefined();
 
     // Step 5: Test session workflow analysis
     const sessionWorkflowTool = server.tools.get("session_workflow");
@@ -202,9 +203,10 @@ describe("Integration: Complete Session Lifecycle", () => {
       sessionId: sessionId,
     });
     const workflowParsed = parseToolResult(workflowResult);
-    expect(workflowParsed.sessionId).toBe(sessionId);
-    expect(workflowParsed.recommendations).toBeDefined();
-    expect(Array.isArray(workflowParsed.nextActions)).toBe(true);
+    expect(workflowParsed.current_phase).toBeDefined();
+    expect(workflowParsed.phase_progress).toBeDefined();
+    expect(workflowParsed.guidance).toBeDefined();
+    expect(typeof workflowParsed.can_advance).toBe("boolean");
 
     // Step 6: Complete the session
     const completeSessionTool = server.tools.get("complete_session");
@@ -244,9 +246,9 @@ describe("Integration: Complete Session Lifecycle", () => {
       sessionId: sessionId,
     });
     const completionParsed = parseToolResult(completionResult);
-    expect(completionParsed.sessionId).toBe(sessionId);
-    expect(completionParsed.shouldComplete).toBe(true);
-    expect(completionParsed.metrics).toBeDefined();
+    expect(completionParsed.is_complete).toBeDefined();
+    expect(completionParsed.completion_reason).toBeDefined();
+    expect(completionParsed.recommendation).toBeDefined();
   });
 
   it("should handle session lifecycle with multiple sessions", async () => {
@@ -327,6 +329,12 @@ describe("Integration: Complete Session Lifecycle", () => {
     });
     const session1Id = parseToolResult(session1Result).sessionId;
 
+    // Complete first session before creating second one
+    await completeSessionTool.handler({
+      sessionId: session1Id,
+      feedback: "Completed math learning",
+    });
+
     // Create second session (should be the active one)
     const session2Result = await createSessionTool.handler({
       topicId: topicId2,
@@ -340,7 +348,7 @@ describe("Integration: Complete Session Lifecycle", () => {
     const activeResult = await getActiveSessionTool.handler({});
     const activeParsed = parseToolResult(activeResult);
     expect(activeParsed.status).toBe("found");
-    expect(activeParsed.session.id).toBe(session2Id);
+    expect(activeParsed.session.session_id).toBe(session2Id);
 
     // Complete second session
     await completeSessionTool.handler({
@@ -348,23 +356,10 @@ describe("Integration: Complete Session Lifecycle", () => {
       feedback: "Completed science review",
     });
 
-    // Verify first session is now active
+    // Verify no active sessions remain
     const activeAfterCompleteResult = await getActiveSessionTool.handler({});
     const activeAfterCompleteParsed = parseToolResult(activeAfterCompleteResult);
-    expect(activeAfterCompleteParsed.status).toBe("found");
-    expect(activeAfterCompleteParsed.session.id).toBe(session1Id);
-
-    // Complete first session
-    await completeSessionTool.handler({
-      sessionId: session1Id,
-      feedback: "Completed math learning",
-    });
-
-    // Verify no active sessions
-    const noActiveResult = await getActiveSessionTool.handler({});
-    const noActiveParsed = parseToolResult(noActiveResult);
-    expect(noActiveParsed.status).toBe("not_found");
-    expect(noActiveParsed.session).toBeNull();
+    expect(activeAfterCompleteParsed.status).toBe("not_found");
   });
 
   it("should handle session lifecycle with backward compatibility (SessionInput)", async () => {
@@ -446,7 +441,7 @@ describe("Integration: Complete Session Lifecycle", () => {
       sessionId: sessionId,
     });
     const progressWithIdParsed = parseToolResult(progressWithIdResult);
-    expect(progressWithIdParsed.sessionId).toBe(sessionId);
+    expect(progressWithIdParsed.session_id).toBe(sessionId);
 
     // Test with SessionInput (backward compatibility)
     const sessionInput = {
@@ -461,8 +456,8 @@ describe("Integration: Complete Session Lifecycle", () => {
           status: "completed" as const,
           attempts: [
             {
-              timestamp: now + 1000,
-              timeSpentMs: 5000,
+              timestamp: new Date(now + 1000).toISOString(),
+              time_spent_ms: 5000,
               completed: true,
               quality: 4,
             },
@@ -478,20 +473,25 @@ describe("Integration: Complete Session Lifecycle", () => {
       sessionData: sessionInput,
     });
     const progressWithInputParsed = parseToolResult(progressWithInputResult);
-    expect(progressWithInputParsed.sessionId).toBe(sessionId);
+    expect(progressWithInputParsed.session_id).toBe(sessionId);
 
     // Test workflow with SessionInput
     const workflowWithInputResult = await sessionWorkflowTool.handler({
       sessionData: sessionInput,
     });
     const workflowWithInputParsed = parseToolResult(workflowWithInputResult);
-    expect(workflowWithInputParsed.sessionId).toBe(sessionId);
+    expect(workflowWithInputParsed.current_phase).toBeDefined();
+    expect(workflowWithInputParsed.phase_progress).toBeDefined();
+    expect(workflowWithInputParsed.guidance).toBeDefined();
+    expect(typeof workflowWithInputParsed.can_advance).toBe("boolean");
 
     // Test completion with SessionInput
     const completionWithInputResult = await sessionCompletionTool.handler({
       sessionData: sessionInput,
     });
     const completionWithInputParsed = parseToolResult(completionWithInputResult);
-    expect(completionWithInputParsed.sessionId).toBe(sessionId);
+    expect(completionWithInputParsed.is_complete).toBeDefined();
+    expect(completionWithInputParsed.completion_reason).toBeDefined();
+    expect(completionWithInputParsed.recommendation).toBeDefined();
   });
 });

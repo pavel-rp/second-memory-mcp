@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { eq } from "drizzle-orm";
 import { registerSessionManagementTools } from "../../src/server/session-management-tools.js";
-import { resetDatabase } from "../../src/db/client.js";
+import { resetDatabase, getDb } from "../../src/db/client.js";
 import { ensureSchema } from "../../src/db/migrate.js";
 import { getSql } from "../../src/db/operations.js";
 import { learningTopics, learningChunks, learningSessions, sessionChunks } from "../../src/db/schema.js";
@@ -296,10 +296,14 @@ describe("Integration: Session Management Tools", () => {
 	});
 
 	it("should handle database errors gracefully", async () => {
-		// Reset database to cause an error by removing schema
+		// Reset database and drop tables to cause a real database error
 		await resetDatabase();
 		
-		// Don't recreate schema - this should cause an error
+		// Drop the learning_sessions table to cause a foreign key constraint error
+		const db = getDb();
+		db.exec("DROP TABLE IF EXISTS learning_sessions");
+		
+		// This should cause a database error since the table doesn't exist
 		const result = await createSessionTool.handler({
 			mode: "learning",
 		});

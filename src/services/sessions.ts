@@ -1,6 +1,6 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { getSql } from "../db/operations.js";
-import { learningSessions, sessionChunks, type LearningSessionRow, type SessionChunkRow, type NewLearningSessionRow, type NewSessionChunkRow } from "../db/schema.js";
+import { learningSessions, sessionChunks, learningChunks, type LearningSessionRow, type SessionChunkRow, type NewLearningSessionRow, type NewSessionChunkRow, type LearningChunkRow } from "../db/schema.js";
 import { SessionInput, SessionMode } from "../types/session.js";
 import { logger } from "../utils/logger.js";
 
@@ -171,6 +171,18 @@ export async function convertSessionToSessionInput(sessionId: string): Promise<S
 		return null;
 	}
 
+	// Get chunk details for titles
+	const chunkIds = chunks.map(c => c.chunkId);
+	let chunkDetails: LearningChunkRow[] = [];
+	if (chunkIds.length > 0) {
+		chunkDetails = await getSql().select()
+			.from(learningChunks)
+			.where(inArray(learningChunks.id, chunkIds))
+			.all();
+	}
+	
+	const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
+
 	// Convert database chunks to SessionInput format
 	const sessionChunks: SessionInput["chunks"] = chunks.map(chunk => {
 		let attempts: SessionInput["chunks"][0]["attempts"] = [];
@@ -178,7 +190,21 @@ export async function convertSessionToSessionInput(sessionId: string): Promise<S
 		
 		try {
 			if (chunk.attemptsJson) {
-				attempts = JSON.parse(chunk.attemptsJson);
+				const rawAttempts = JSON.parse(chunk.attemptsJson) as Array<{
+					timestamp: string | number;
+					quality: number;
+					time_spent_ms: number;
+					completed: boolean;
+				}>;
+				// Convert attempts to proper format
+				attempts = rawAttempts.map((attempt) => ({
+					timestamp: typeof attempt.timestamp === 'number' 
+						? new Date(attempt.timestamp).toISOString()
+						: attempt.timestamp,
+					quality: attempt.quality,
+					time_spent_ms: attempt.time_spent_ms || 0,
+					completed: attempt.completed,
+				}));
 			}
 			if (chunk.qualityScoresJson) {
 				qualityScores = JSON.parse(chunk.qualityScoresJson);
@@ -187,9 +213,12 @@ export async function convertSessionToSessionInput(sessionId: string): Promise<S
 			logger.error(`Failed to parse JSON for session chunk ${chunk.id}:`, error);
 		}
 
+		const chunkDetail = chunkMap.get(chunk.chunkId);
+		const title = chunkDetail?.title || `Chunk ${chunk.chunkId}`;
+
 		return {
 			chunk_id: chunk.chunkId,
-			title: "", // Will be populated by calling code if needed
+			title: title,
 			status: chunk.status as "pending" | "in_progress" | "completed",
 			attempts,
 			quality_scores: qualityScores,

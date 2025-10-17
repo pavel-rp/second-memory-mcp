@@ -145,6 +145,24 @@ function tmpDbPath() {
 
 	it("creates, reads, updates, and deletes a session", async () => {
 		const now = Date.now();
+		
+		// Create required foreign key references first
+		const db = getDb();
+		await db.prepare(`
+			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?)
+		`).run("t1", "Test Topic", "Math", now, now);
+		
+		await db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c1", "t1", "Chunk 1", "Math", 5, now, 2.5, 0, 10, "new", now, now);
+		
+		await db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c2", "t1", "Chunk 2", "Math", 5, now, 2.5, 0, 10, "new", now, now);
+
 		const sessionInput: CreateSessionInput = {
 			id: "s1",
 			topicId: "t1",
@@ -225,6 +243,25 @@ function tmpDbPath() {
 
 	it("creates and manages session chunks", async () => {
 		const now = Date.now();
+		const db = getDb();
+		
+		// Create a topic and chunks first
+		const topicId = `topic-${now}`;
+		db.prepare(`
+			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`).run(topicId, "Test Topic", "CS", null, null, null, now, now);
+
+		// Create learning chunks that session chunks will reference
+		db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c1", topicId, "Test Chunk 1", "CS", 5, now + 86400000, 2.5, 0, null, 10, "new", null, null, null, null, null, now, now);
+
+		db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c2", topicId, "Test Chunk 2", "CS", 3, now + 86400000, 2.5, 0, null, 15, "new", null, null, null, null, null, now, now);
 		
 		// Create a session first
 		const sessionInput: CreateSessionInput = {
@@ -303,9 +340,23 @@ function tmpDbPath() {
 	it("converts session to SessionInput format", async () => {
 		const now = Date.now();
 		
+		// Create required foreign key references first
+		const db = getDb();
+		await db.prepare(`
+			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?)
+		`).run("t1", "Test Topic", "Math", now, now);
+		
+		await db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c1", "t1", "Chunk 1", "Math", 5, now, 2.5, 0, 10, "new", now, now);
+		
 		// Create a session with chunks
 		const sessionInput: CreateSessionInput = {
 			id: "s1",
+			topicId: "t1",
+			chunkIds: ["c1"],
 			mode: "learning",
 			startTime: now,
 			createdAt: now,
@@ -346,10 +397,34 @@ function tmpDbPath() {
 
 	it("handles batch operations", async () => {
 		const now = Date.now();
+		const db = getDb();
+		
+		// Create required foreign key references using raw SQL
+		db.prepare(`
+			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("t1", "Test Topic", "Math", null, null, null, now, now);
+		
+		db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c1", "t1", "Chunk 1", "Math", 5, now, 2.5, 0, null, 10, "new", null, null, null, null, null, now, now);
+		
+		db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c2", "t1", "Chunk 2", "Math", 5, now, 2.5, 0, null, 10, "new", null, null, null, null, null, now, now);
+		
+		db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c3", "t1", "Chunk 3", "Math", 5, now, 2.5, 0, null, 10, "new", null, null, null, null, null, now, now);
 		
 		// Create a session
 		const sessionInput: CreateSessionInput = {
 			id: "s1",
+			topicId: "t1",
+			chunkIds: ["c1", "c2"],
 			mode: "learning",
 			startTime: now,
 			createdAt: now,
@@ -493,9 +568,23 @@ function tmpDbPath() {
 	it("maintains data integrity with foreign key constraints", async () => {
 		const now = Date.now();
 		
+		// Create required foreign key references first
+		const db = getDb();
+		await db.prepare(`
+			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?)
+		`).run("t1", "Test Topic", "Math", now, now);
+		
+		await db.prepare(`
+			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`).run("c1", "t1", "Chunk 1", "Math", 5, now, 2.5, 0, 10, "new", now, now);
+		
 		// Create a session
 		const sessionInput: CreateSessionInput = {
 			id: "s1",
+			topicId: "t1",
+			chunkIds: ["c1"],
 			mode: "learning",
 			startTime: now,
 			createdAt: now,

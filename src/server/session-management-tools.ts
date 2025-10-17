@@ -141,7 +141,7 @@ export function registerSessionManagementTools(server: McpServer): void {
 					return { content: [{ type: "text", text: JSON.stringify(result) }] };
 				}
 
-				// Convert database session to SessionInput format
+				// Convert database session to SessionInput format (includes chunks)
 				const sessionInput = await convertSessionToSessionInput(activeSession.id);
 
 				if (!sessionInput) {
@@ -192,8 +192,8 @@ export function registerSessionManagementTools(server: McpServer): void {
 					return { content: [{ type: "text", text: JSON.stringify(result) }] };
 				}
 
-				// Convert database session to SessionInput format
-				const sessionInput = await convertSessionToSessionInput(session.id);
+				// Convert database session to SessionInput format (includes chunks)
+				const sessionInput = await convertSessionToSessionInput(validatedInput.sessionId);
 
 				if (!sessionInput) {
 					const result = GetActiveSessionResultSchema.parse({
@@ -242,8 +242,14 @@ export function registerSessionManagementTools(server: McpServer): void {
 					throw new Error(`Failed to complete session ${validatedInput.sessionId}`);
 				}
 
-				// Calculate final metrics
-				const duration = session.endTime ? session.endTime - session.startTime : 0;
+				// Get updated session data after completion to calculate metrics
+				const updatedSession = await getSessionById(validatedInput.sessionId);
+				if (!updatedSession) {
+					throw new Error(`Session ${validatedInput.sessionId} not found after completion`);
+				}
+
+				// Calculate final metrics from completed session data
+				const duration = updatedSession.endTime ? updatedSession.endTime - updatedSession.startTime : 0;
 				const chunksCompleted = 0; // Will be calculated from session chunks in future enhancement
 				const averageQuality = 0; // Will be calculated from session chunks in future enhancement
 
