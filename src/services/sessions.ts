@@ -55,6 +55,15 @@ export type UpdateSessionChunkInput = {
 // Session service functions
 export async function createSession(input: CreateSessionInput): Promise<void> {
   const db = getSql();
+
+  // Check for existing active session
+  const existingActive = await getActiveSession();
+  if (existingActive) {
+    throw new Error(
+      'Active session already exists. Please complete the current session before creating a new one.'
+    );
+  }
+
   const sessionData: NewLearningSessionRow = {
     id: input.id,
     topicId: input.topicId || null,

@@ -205,6 +205,34 @@ function tmpDbPath() {
     expect(notFound).toBeNull();
   });
 
+  it('prevents creating second active session', async () => {
+    const now = Date.now();
+
+    // Create first session
+    await createSession({
+      id: 's1',
+      mode: 'learning',
+      startTime: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Attempt to create second session should throw
+    await expect(async () => {
+      await createSession({
+        id: 's2',
+        mode: 'review',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }).rejects.toThrow('Active session already exists');
+
+    // Verify only one session exists
+    const active = await getActiveSession();
+    expect(active?.id).toBe('s1');
+  });
+
   it('manages active sessions correctly', async () => {
     const now = Date.now();
 
@@ -217,7 +245,20 @@ function tmpDbPath() {
       updatedAt: now,
     };
 
-    // Create second session (more recent)
+    await createSession(session1);
+
+    // Should return the active session
+    const active = await getActiveSession();
+    expect(active?.id).toBe('s1');
+
+    // Complete the first session
+    await completeSession('s1', 'Great session!');
+
+    // Should return null when no active sessions
+    const noActive = await getActiveSession();
+    expect(noActive).toBeNull();
+
+    // Now create second session (more recent)
     const session2: CreateSessionInput = {
       id: 's2',
       mode: 'review',
@@ -226,26 +267,18 @@ function tmpDbPath() {
       updatedAt: now + 1000,
     };
 
-    await createSession(session1);
     await createSession(session2);
 
-    // Should return the most recent active session
-    const active = await getActiveSession();
-    expect(active?.id).toBe('s2');
-
-    // Complete the active session
-    await completeSession('s2', 'Great session!');
-
-    // Should now return the first session as active
+    // Should return the new active session
     const newActive = await getActiveSession();
-    expect(newActive?.id).toBe('s1');
+    expect(newActive?.id).toBe('s2');
 
-    // Complete all sessions
-    await completeSession('s1');
+    // Complete the second session
+    await completeSession('s2');
 
     // Should return null when no active sessions
-    const noActive = await getActiveSession();
-    expect(noActive).toBeNull();
+    const finalCheck = await getActiveSession();
+    expect(finalCheck).toBeNull();
   });
 
   it('creates and manages session chunks', async () => {

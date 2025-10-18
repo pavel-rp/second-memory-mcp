@@ -434,14 +434,12 @@ describe('Integration: Session Management Tools', () => {
     expect(getParsed.session.chunks[0].quality_scores).toEqual([5]);
   });
 
-  it('should handle multiple active sessions correctly', async () => {
+  it('should handle session lifecycle correctly', async () => {
     const now = Date.now();
     const db = getSql();
 
-    // Create multiple sessions with different timestamps
+    // Create first session
     const session1Id = `session-${now}`;
-    const session2Id = `session-${now + 1000}`;
-
     db.insert(learningSessions)
       .values({
         id: session1Id,
@@ -458,6 +456,28 @@ describe('Integration: Session Management Tools', () => {
       })
       .run();
 
+    // Should return the active session
+    const result1 = await getActiveSessionTool.handler({});
+    const parsed1 = parseToolResult(result1);
+    expect(parsed1.status).toBe('found');
+    expect(parsed1.session.session_id).toBe(session1Id);
+    expect(parsed1.session.mode).toBe('learning');
+
+    // Complete the first session
+    const completeResult = await completeSessionTool.handler({
+      sessionId: session1Id,
+      feedback: 'Great session!',
+    });
+    const completeParsed = parseToolResult(completeResult);
+    expect(completeParsed.status).toBe('completed');
+
+    // Should return not_found when no active sessions
+    const result2 = await getActiveSessionTool.handler({});
+    const parsed2 = parseToolResult(result2);
+    expect(parsed2.status).toBe('not_found');
+
+    // Now create second session
+    const session2Id = `session-${now + 1000}`;
     db.insert(learningSessions)
       .values({
         id: session2Id,
@@ -474,12 +494,23 @@ describe('Integration: Session Management Tools', () => {
       })
       .run();
 
-    // Should return the most recent active session
-    const result = await getActiveSessionTool.handler({});
+    // Should return the new active session
+    const result3 = await getActiveSessionTool.handler({});
+    const parsed3 = parseToolResult(result3);
+    expect(parsed3.status).toBe('found');
+    expect(parsed3.session.session_id).toBe(session2Id);
+    expect(parsed3.session.mode).toBe('review');
+  });
 
-    const parsed = parseToolResult(result);
-    expect(parsed.status).toBe('found');
-    expect(parsed.session.session_id).toBe(session2Id);
-    expect(parsed.session.mode).toBe('review');
+  it('should reject creating second active session via MCP tool', async () => {
+    // Create first session
+    const result1 = await createSessionTool.handler({ mode: 'learning', estimatedDuration: 30 });
+    const parsed1 = parseToolResult(result1);
+    expect(parsed1.status).toBe('created');
+
+    // Attempt second session should return error
+    const result2 = await createSessionTool.handler({ mode: 'review', estimatedDuration: 30 });
+    const parsed2 = parseToolResult(result2);
+    expect(parsed2.error).toContain('Active session already exists');
   });
 });
