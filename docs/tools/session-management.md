@@ -245,6 +245,63 @@ const result = await create_session_chunk({
 });
 ```
 
+### batch_update_session_chunks
+
+Create or update multiple session chunks atomically within a session. Supports mixed operations (create when missing, update when exists). Validates chunk IDs against `learning_chunks` and enforces a maximum of 50 operations per call.
+
+**Parameters:**
+
+- `sessionId` (required): ID of the target session
+- `operations` (required): Array of operations with fields:
+  - `chunkId` (required): ID of the learning chunk
+  - `status` (optional): `pending` | `in_progress` | `completed`
+  - `attempts` (optional): Array of attempts `{ timestamp, quality?, time_spent_ms, completed }`
+  - `qualityScores` (optional): number[] (0-5)
+  - `timeSpentMs` (optional): number ≥ 0
+
+Limits: 1 ≤ `operations.length` ≤ 50.
+
+**Response:**
+
+```json
+{
+  "status": "ok",
+  "created": 1,
+  "updated": 2,
+  "unchanged": 0,
+  "affectedChunkIds": ["chunkA", "chunkB", "chunkC"]
+}
+```
+
+On error:
+
+```json
+{
+  "error": "Invalid chunk IDs provided: Chunk 'bad-id' not found in learning content",
+  "code": "BATCH_UPDATE_FAILED"
+}
+```
+
+**Example:**
+
+```javascript
+const result = await batch_update_session_chunks({
+  sessionId: 'session-uuid',
+  operations: [
+    {
+      chunkId: 'chunkA',
+      status: 'completed',
+      attempts: [
+        { timestamp: new Date().toISOString(), quality: 4, time_spent_ms: 60000, completed: true },
+      ],
+      qualityScores: [4],
+      timeSpentMs: 60000,
+    },
+    { chunkId: 'chunkB', status: 'pending', attempts: [], qualityScores: [], timeSpentMs: 0 },
+  ],
+});
+```
+
 ## Session Analysis Tools
 
 The following tools work with both session IDs and SessionInput objects for backward compatibility:

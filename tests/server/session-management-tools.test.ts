@@ -40,6 +40,7 @@ describe('Integration: Session Management Tools', () => {
   let getActiveSessionTool: { spec: any; handler: Function };
   let getSessionTool: { spec: any; handler: Function };
   let completeSessionTool: { spec: any; handler: Function };
+  let batchUpdateChunksTool: { spec: any; handler: Function };
   let dbFile: string;
 
   beforeEach(async () => {
@@ -55,11 +56,13 @@ describe('Integration: Session Management Tools', () => {
     getActiveSessionTool = server.tools.get('get_active_session')!;
     getSessionTool = server.tools.get('get_session')!;
     completeSessionTool = server.tools.get('complete_session')!;
+    batchUpdateChunksTool = server.tools.get('batch_update_session_chunks')!;
 
     expect(createSessionTool).toBeDefined();
     expect(getActiveSessionTool).toBeDefined();
     expect(getSessionTool).toBeDefined();
     expect(completeSessionTool).toBeDefined();
+    expect(batchUpdateChunksTool).toBeDefined();
   });
 
   afterEach(async () => {
@@ -552,6 +555,137 @@ describe('Integration: Session Management Tools', () => {
     expect(parsed3.status).toBe('found');
     expect(parsed3.session.session_id).toBe(session2Id);
     expect(parsed3.session.mode).toBe('review');
+  });
+
+  it('should batch create and update session chunks atomically', async () => {
+    const now = Date.now();
+    const db = getSql();
+    const topicId = `topic-${now}`;
+
+    // Create topic and two learning chunks
+    db.insert(learningTopics)
+      .values({
+        id: topicId,
+        title: 'Batch Topic',
+        subject: 'CS',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    db.insert(learningChunks)
+      .values({
+        id: 'bchunk1',
+        topicId,
+        title: 'Batch Chunk 1',
+        subject: 'CS',
+        difficulty: 3,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        lastReviewedAt: null,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisitesJson: null,
+        tagsJson: null,
+        content: 'c1',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    db.insert(learningChunks)
+      .values({
+        id: 'bchunk2',
+        topicId,
+        title: 'Batch Chunk 2',
+        subject: 'CS',
+        difficulty: 3,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        lastReviewedAt: null,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisitesJson: null,
+        tagsJson: null,
+        content: 'c2',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    // Create a session with one chunk auto-initialized
+    const createOut = await createSessionTool.handler({
+      topicId,
+      chunkIds: ['bchunk1'],
+      mode: 'learning',
+      estimatedDuration: 25,
+    });
+    const created = parseToolResult(createOut);
+    const sessionId = created.sessionId;
+
+    // Batch: update existing bchunk1 to completed and create new bchunk2 pending
+    const batchOut = await batchUpdateChunksTool.handler({
+      sessionId,
+      operations: [
+        {
+          chunkId: 'bchunk1',
+          status: 'completed',
+          attempts: [
+            {
+              timestamp: new Date(now).toISOString(),
+              quality: 4,
+              time_spent_ms: 60000,
+              completed: true,
+            },
+          ],
+          qualityScores: [4],
+          timeSpentMs: 60000,
+        },
+        {
+          chunkId: 'bchunk2',
+          status: 'pending',
+          attempts: [],
+          qualityScores: [],
+          timeSpentMs: 0,
+        },
+      ],
+    });
+
+    const batchParsed = parseToolResult(batchOut);
+    expect(batchParsed.status).toBe('ok');
+    expect(batchParsed.created).toBe(1);
+    expect(batchParsed.updated).toBe(1);
+    expect(batchParsed.unchanged).toBe(0);
+    expect(batchParsed.affectedChunkIds.sort()).toEqual(['bchunk1', 'bchunk2']);
+
+    // Verify DB state
+    const session = db
+      .select()
+      .from(learningSessions)
+      .where(eq(learningSessions.id, sessionId))
+      .get();
+    expect(session).toBeDefined();
+
+    const sChunks = db
+      .select()
+      .from(sessionChunks)
+      .where(eq(sessionChunks.sessionId, sessionId))
+      .all();
+    expect(sChunks.length).toBe(2);
+
+    const c1 = sChunks.find(c => c.chunkId === 'bchunk1')!;
+    const c2 = sChunks.find(c => c.chunkId === 'bchunk2')!;
+    expect(c1.status).toBe('completed');
+    expect(c2.status).toBe('pending');
   });
 
   it('should reject creating second active session via MCP tool', async () => {
