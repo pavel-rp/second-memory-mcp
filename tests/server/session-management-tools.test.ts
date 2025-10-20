@@ -94,6 +94,53 @@ describe('Integration: Session Management Tools', () => {
       })
       .run();
 
+    // Create the chunks that will be referenced
+    db.insert(learningChunks)
+      .values({
+        id: 'chunk1',
+        topicId: uniqueId,
+        title: 'Test Chunk 1',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        lastReviewedAt: null,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisitesJson: null,
+        tagsJson: null,
+        content: 'Test content 1',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    db.insert(learningChunks)
+      .values({
+        id: 'chunk2',
+        topicId: uniqueId,
+        title: 'Test Chunk 2',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        lastReviewedAt: null,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisitesJson: null,
+        tagsJson: null,
+        content: 'Test content 2',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
     const result = await createSessionTool.handler({
       topicId: uniqueId,
       chunkIds: ['chunk1', 'chunk2'],
@@ -428,10 +475,15 @@ describe('Integration: Session Management Tools', () => {
 
     const getParsed = parseToolResult(getResult);
     expect(getParsed.status).toBe('found');
-    expect(getParsed.session.chunks).toHaveLength(1);
-    expect(getParsed.session.chunks[0].chunk_id).toBe(chunkId);
-    expect(getParsed.session.chunks[0].status).toBe('completed');
-    expect(getParsed.session.chunks[0].quality_scores).toEqual([5]);
+    expect(getParsed.session.chunks).toHaveLength(2);
+    // Find the completed chunk (the one we manually added)
+    const completedChunk = getParsed.session.chunks.find(
+      (chunk: any) => chunk.status === 'completed'
+    );
+    expect(completedChunk).toBeDefined();
+    expect(completedChunk!.chunk_id).toBe(chunkId);
+    expect(completedChunk!.status).toBe('completed');
+    expect(completedChunk!.quality_scores).toEqual([5]);
   });
 
   it('should handle session lifecycle correctly', async () => {

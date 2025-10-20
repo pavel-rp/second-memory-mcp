@@ -374,6 +374,94 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(activeAfterCompleteParsed.status).toBe('not_found');
   });
 
+  it('should verify automatic session chunk creation integration', async () => {
+    // Setup: Create test data
+    const now = Date.now();
+    const topicId = crypto.randomUUID();
+    const chunkId1 = crypto.randomUUID();
+    const chunkId2 = crypto.randomUUID();
+
+    // Create topic and chunks
+    await getSql()
+      .insert(learningTopics)
+      .values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Math',
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run();
+
+    await getSql()
+      .insert(learningChunks)
+      .values([
+        {
+          id: chunkId1,
+          topicId: topicId,
+          title: 'Chunk 1',
+          subject: 'Math',
+          difficulty: 5,
+          nextReviewAt: now,
+          easeFactor: 2.5,
+          repetitions: 0,
+          estimatedDuration: 10,
+          chunkType: 'new',
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: chunkId2,
+          topicId: topicId,
+          title: 'Chunk 2',
+          subject: 'Math',
+          difficulty: 5,
+          nextReviewAt: now,
+          easeFactor: 2.5,
+          repetitions: 0,
+          estimatedDuration: 10,
+          chunkType: 'new',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ])
+      .run();
+
+    // Create session with chunkIds - this should automatically create session chunks
+    const createSessionTool = server.tools.get('create_session');
+    expect(createSessionTool).toBeDefined();
+    if (!createSessionTool) throw new Error('create_session tool not found');
+
+    const createResult = await createSessionTool.handler({
+      topicId: topicId,
+      chunkIds: [chunkId1, chunkId2],
+      mode: 'learning',
+      estimatedDuration: 20,
+    });
+
+    const createParsed = parseToolResult(createResult);
+    expect(createParsed.status).toBe('created');
+    expect(createParsed.message).toContain('2 chunks initialized');
+    const sessionId = createParsed.sessionId;
+
+    // Verify session chunks were created automatically
+    const getActiveSessionTool = server.tools.get('get_active_session');
+    expect(getActiveSessionTool).toBeDefined();
+    if (!getActiveSessionTool) throw new Error('get_active_session tool not found');
+
+    const getActiveResult = await getActiveSessionTool.handler({});
+    const getActiveParsed = parseToolResult(getActiveResult);
+    expect(getActiveParsed.status).toBe('found');
+    expect(getActiveParsed.session.session_id).toBe(sessionId);
+
+    // Verify that session chunks were created automatically
+    expect(getActiveParsed.session.chunks).toHaveLength(2);
+    expect(getActiveParsed.session.chunks[0].chunk_id).toBe(chunkId1);
+    expect(getActiveParsed.session.chunks[0].status).toBe('pending');
+    expect(getActiveParsed.session.chunks[1].chunk_id).toBe(chunkId2);
+    expect(getActiveParsed.session.chunks[1].status).toBe('pending');
+  });
+
   it('should handle session lifecycle with backward compatibility (SessionInput)', async () => {
     // Setup: Create test data
     const now = Date.now();

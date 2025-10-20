@@ -6,6 +6,17 @@ This document provides comprehensive documentation for the session management MC
 
 The session management system provides structured learning sessions with persistent tracking of progress, attempts, and completion metrics. Sessions can be associated with topics and specific learning chunks, allowing for focused learning experiences.
 
+### Automatic Session Chunk Creation
+
+When creating a session with the `chunkIds` parameter, the system automatically creates corresponding `session_chunks` records. This eliminates the need to manually create session chunks after session creation, streamlining the learning workflow.
+
+**Key Features:**
+
+- **Automatic Initialization**: Session chunks are created with `status: "pending"` and default values
+- **Validation**: Chunk IDs are validated against existing `learning_chunks` before session creation
+- **Error Handling**: Clear error messages when invalid chunk IDs are provided
+- **Atomic Operations**: Session and session chunks are created in a single transaction
+
 ## Database Schema
 
 ### learning_sessions Table
@@ -50,31 +61,52 @@ CREATE TABLE session_chunks (
 
 ### create_session
 
-Creates a new learning session with specified parameters.
+Creates a new learning session with specified parameters. When `chunkIds` are provided, session chunks are automatically created with `status: "pending"`.
 
 **Parameters:**
+
 - `topicId` (optional): ID of the topic to associate with the session
-- `chunkIds` (optional): Array of chunk IDs to work on in this session
+- `chunkIds` (optional): Array of chunk IDs to work on in this session. **When provided, session chunks are automatically created for each chunk ID.**
 - `mode` (required): Session mode - one of: `scaffolding`, `learning`, `retrieval`, `review`
 - `estimatedDuration` (optional): Estimated duration in minutes (1-480)
 
 **Response:**
+
 ```json
 {
   "sessionId": "uuid",
   "status": "created",
-  "message": "Session created successfully"
+  "message": "Session created successfully with mode: learning and 2 chunks initialized"
+}
+```
+
+**Automatic Chunk Creation:**
+When `chunkIds` are provided, the system automatically:
+
+1. Validates that all chunk IDs exist in the `learning_chunks` table
+2. Creates corresponding `session_chunks` records with `status: "pending"`
+3. Links each session chunk to the session via foreign key
+4. Initializes default values: `timeSpentMs: 0`, empty attempts and quality scores
+
+**Error Handling:**
+If any chunk IDs are invalid (don't exist in `learning_chunks`), the session creation fails with a descriptive error message:
+
+```json
+{
+  "error": "Invalid chunk IDs provided: Chunk 'nonexistent-chunk' not found in learning content. Please verify the chunk IDs or use list_chunks to see available chunks."
 }
 ```
 
 **Example:**
+
 ```javascript
 const result = await create_session({
-  topicId: "math-algebra",
-  chunkIds: ["chunk1", "chunk2"],
-  mode: "learning",
-  estimatedDuration: 30
+  topicId: 'math-algebra',
+  chunkIds: ['chunk1', 'chunk2'],
+  mode: 'learning',
+  estimatedDuration: 30,
 });
+// This automatically creates 2 session chunks with status: "pending"
 ```
 
 ### get_active_session
@@ -84,6 +116,7 @@ Retrieves the most recently created active session.
 **Parameters:** None
 
 **Response:**
+
 ```json
 {
   "session": {
@@ -97,17 +130,42 @@ Retrieves the most recently created active session.
     "endTime": null,
     "feedback": null,
     "createdAt": 1704067200000,
-    "updatedAt": 1704067200000
+    "updatedAt": 1704067200000,
+    "chunks": [
+      {
+        "id": "session-chunk-1",
+        "session_id": "uuid",
+        "chunk_id": "chunk1",
+        "status": "pending",
+        "attempts": [],
+        "quality_scores": [],
+        "time_spent_ms": 0,
+        "created_at": 1704067200000,
+        "updated_at": 1704067200000
+      },
+      {
+        "id": "session-chunk-2",
+        "session_id": "uuid",
+        "chunk_id": "chunk2",
+        "status": "pending",
+        "attempts": [],
+        "quality_scores": [],
+        "time_spent_ms": 0,
+        "created_at": 1704067200000,
+        "updated_at": 1704067200000
+      }
+    ]
   },
   "status": "found"
 }
 ```
 
 **Example:**
+
 ```javascript
 const result = await get_active_session();
-if (result.status === "found") {
-  console.log("Active session:", result.session.id);
+if (result.status === 'found') {
+  console.log('Active session:', result.session.id);
 }
 ```
 
@@ -116,10 +174,12 @@ if (result.status === "found") {
 Marks an active session as completed and optionally records feedback.
 
 **Parameters:**
+
 - `sessionId` (required): ID of the session to complete
 - `feedback` (optional): Optional completion feedback
 
 **Response:**
+
 ```json
 {
   "sessionId": "uuid",
@@ -134,10 +194,11 @@ Marks an active session as completed and optionally records feedback.
 ```
 
 **Example:**
+
 ```javascript
 const result = await complete_session({
-  sessionId: "session-uuid",
-  feedback: "Great session! Learned a lot about algebra."
+  sessionId: 'session-uuid',
+  feedback: 'Great session! Learned a lot about algebra.',
 });
 ```
 
@@ -146,6 +207,7 @@ const result = await complete_session({
 Creates a session chunk to track learning progress for a specific chunk within a session.
 
 **Parameters:**
+
 - `sessionId` (required): ID of the session
 - `chunkId` (required): ID of the learning chunk
 - `status` (optional): Chunk status - `pending`, `in_progress`, or `completed` (default: `pending`)
@@ -154,6 +216,7 @@ Creates a session chunk to track learning progress for a specific chunk within a
 - `timeSpentMs` (optional): Total time spent on this chunk in milliseconds (default: 0)
 
 **Response:**
+
 ```json
 {
   "sessionChunkId": "uuid",
@@ -163,19 +226,22 @@ Creates a session chunk to track learning progress for a specific chunk within a
 ```
 
 **Example:**
+
 ```javascript
 const result = await create_session_chunk({
-  sessionId: "session-uuid",
-  chunkId: "chunk-uuid",
-  status: "completed",
-  attempts: [{
-    timestamp: Date.now(),
-    timeSpentMs: 5000,
-    completed: true,
-    quality: 4
-  }],
+  sessionId: 'session-uuid',
+  chunkId: 'chunk-uuid',
+  status: 'completed',
+  attempts: [
+    {
+      timestamp: Date.now(),
+      timeSpentMs: 5000,
+      completed: true,
+      quality: 4,
+    },
+  ],
   qualityScores: [4],
-  timeSpentMs: 5000
+  timeSpentMs: 5000,
 });
 ```
 
@@ -188,10 +254,12 @@ The following tools work with both session IDs and SessionInput objects for back
 Tracks session completion metrics and progress.
 
 **Parameters:**
+
 - `sessionId` (optional): ID of the session to analyze
 - `sessionData` (optional): SessionInput object with session data
 
 **Response:**
+
 ```json
 {
   "sessionId": "uuid",
@@ -221,18 +289,17 @@ Tracks session completion metrics and progress.
 Provides guidance for the next learning phase.
 
 **Parameters:**
+
 - `sessionId` (optional): ID of the session to analyze
 - `sessionData` (optional): SessionInput object with session data
 
 **Response:**
+
 ```json
 {
   "sessionId": "uuid",
   "recommendations": "Continue with the next chunk...",
-  "nextActions": [
-    "Review completed chunks",
-    "Start next pending chunk"
-  ],
+  "nextActions": ["Review completed chunks", "Start next pending chunk"],
   "workflowGuidance": "Focus on understanding the concepts..."
 }
 ```
@@ -242,10 +309,12 @@ Provides guidance for the next learning phase.
 Determines if a session should be completed based on progress and metrics.
 
 **Parameters:**
+
 - `sessionId` (optional): ID of the session to analyze
 - `sessionData` (optional): SessionInput object with session data
 
 **Response:**
+
 ```json
 {
   "sessionId": "uuid",
@@ -267,9 +336,9 @@ Determines if a session should be completed based on progress and metrics.
 ```javascript
 // 1. Create a session
 const session = await create_session({
-  topicId: "math-algebra",
-  mode: "learning",
-  estimatedDuration: 30
+  topicId: 'math-algebra',
+  mode: 'learning',
+  estimatedDuration: 30,
 });
 
 // 2. Get the active session
@@ -278,27 +347,29 @@ const activeSession = await get_active_session();
 // 3. Create session chunks as you work
 await create_session_chunk({
   sessionId: session.sessionId,
-  chunkId: "chunk1",
-  status: "completed",
-  attempts: [{
-    timestamp: Date.now(),
-    timeSpentMs: 5000,
-    completed: true,
-    quality: 4
-  }],
+  chunkId: 'chunk1',
+  status: 'completed',
+  attempts: [
+    {
+      timestamp: Date.now(),
+      timeSpentMs: 5000,
+      completed: true,
+      quality: 4,
+    },
+  ],
   qualityScores: [4],
-  timeSpentMs: 5000
+  timeSpentMs: 5000,
 });
 
 // 4. Check progress
 const progress = await session_progress({
-  sessionId: session.sessionId
+  sessionId: session.sessionId,
 });
 
 // 5. Complete the session
 await complete_session({
   sessionId: session.sessionId,
-  feedback: "Great session!"
+  feedback: 'Great session!',
 });
 ```
 
@@ -334,6 +405,7 @@ All session management tools return structured error responses:
 ```
 
 Common error scenarios:
+
 - Invalid session ID
 - Foreign key constraint violations
 - Invalid input parameters
