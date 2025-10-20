@@ -15,7 +15,10 @@ function cleanupTestFiles() {
     'tmp-test-*.db',
     'tmp-test-*.db-shm',
     'tmp-test-*.db-wal',
-    'tmp-data-*.json'
+    'tmp-data-*.json',
+    'test-mcp-*.db',
+    'test-mcp-*.db-shm',
+    'test-mcp-*.db-wal',
   ];
 
   let cleanedCount = 0;

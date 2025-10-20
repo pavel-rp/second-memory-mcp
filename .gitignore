@@ -53,3 +53,4 @@ desktop.ini
 *.db
 *.db-shm
 *.db-wal
+test-artifacts/

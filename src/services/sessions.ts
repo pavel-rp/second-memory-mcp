@@ -1,4 +1,5 @@
 import { eq, desc, inArray } from 'drizzle-orm';
+import crypto from 'node:crypto';
 import { getSql } from '../db/operations.js';
 import {
   learningSessions,
@@ -52,6 +53,67 @@ export type UpdateSessionChunkInput = {
   updatedAt: number;
 };
 
+// Chunk validation types
+export type ChunkValidationResult = {
+  isValid: boolean;
+  validChunkIds: string[];
+  invalidChunkIds: string[];
+  errors: string[];
+};
+
+// Chunk validation function
+export async function validateChunkIds(chunkIds: string[]): Promise<ChunkValidationResult> {
+  if (!chunkIds || chunkIds.length === 0) {
+    return {
+      isValid: true,
+      validChunkIds: [],
+      invalidChunkIds: [],
+      errors: [],
+    };
+  }
+
+  const db = getSql();
+
+  try {
+    // Query database for existing chunk IDs
+    const existingChunks = await db
+      .select({ id: learningChunks.id })
+      .from(learningChunks)
+      .where(inArray(learningChunks.id, chunkIds))
+      .all();
+
+    const existingIds = new Set(existingChunks.map(chunk => chunk.id));
+    const validChunkIds: string[] = [];
+    const invalidChunkIds: string[] = [];
+    const errors: string[] = [];
+
+    // Categorize chunk IDs
+    for (const chunkId of chunkIds) {
+      if (existingIds.has(chunkId)) {
+        validChunkIds.push(chunkId);
+      } else {
+        invalidChunkIds.push(chunkId);
+        errors.push(`Chunk '${chunkId}' not found in learning content`);
+      }
+    }
+
+    return {
+      isValid: invalidChunkIds.length === 0,
+      validChunkIds,
+      invalidChunkIds,
+      errors,
+    };
+  } catch (error) {
+    logger.error('Failed to validate chunk IDs:', error);
+    return {
+      isValid: false,
+      validChunkIds: [],
+      invalidChunkIds: chunkIds,
+      errors: ['Failed to validate chunk IDs due to database error'],
+    };
+  }
+}
+
 // Session service functions
 export async function createSession(input: CreateSessionInput): Promise<void> {
   const db = getSql();
@@ -62,6 +124,15 @@ export async function createSession(input: CreateSessionInput): Promise<void> {
     throw new Error(
       'Active session already exists. Please complete the current session before creating a new one.'
     );
+  }
+
+  // Validate chunk IDs if provided
+  if (input.chunkIds && input.chunkIds.length > 0) {
+    const validation = await validateChunkIds(input.chunkIds);
+    if (!validation.isValid) {
+      const errorMessage = `Invalid chunk IDs provided: ${validation.errors.join(', ')}. Please verify the chunk IDs or use list_chunks to see available chunks.`;
+      throw new Error(errorMessage);
+    }
   }
 
   const sessionData: NewLearningSessionRow = {
@@ -80,6 +151,24 @@ export async function createSession(input: CreateSessionInput): Promise<void> {
 
   await db.insert(learningSessions).values(sessionData).run();
   logger.info(`Created session ${input.id} with mode ${input.mode}`);
+
+  // Automatically create session chunks if chunkIds provided
+  if (input.chunkIds && input.chunkIds.length > 0) {
+    const sessionChunkInputs: CreateSessionChunkInput[] = input.chunkIds.map(chunkId => ({
+      id: crypto.randomUUID(),
+      sessionId: input.id,
+      chunkId: chunkId,
+      status: 'pending',
+      attemptsJson: undefined,
+      qualityScoresJson: undefined,
+      timeSpentMs: 0,
+      createdAt: input.createdAt,
+      updatedAt: input.updatedAt,
+    }));
+
+    await batchCreateSessionChunks(sessionChunkInputs);
+    logger.info(`Created ${sessionChunkInputs.length} session chunks for session ${input.id}`);
+  }
 }
 
 export async function getSessionById(id: string): Promise<LearningSessionRow | null> {

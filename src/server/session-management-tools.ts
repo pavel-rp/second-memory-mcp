@@ -110,10 +110,15 @@ export function registerSessionManagementTools(server: McpServer): void {
 
         await createSession(sessionInput);
 
+        const chunkInfo =
+          validatedInput.chunkIds && validatedInput.chunkIds.length > 0
+            ? ` and ${validatedInput.chunkIds.length} chunks initialized`
+            : '';
+
         const result = CreateSessionResultSchema.parse({
           sessionId,
           status: 'created' as const,
-          message: `Session created successfully with mode: ${validatedInput.mode}`,
+          message: `Session created successfully with mode: ${validatedInput.mode}${chunkInfo}`,
         });
 
         logger.info(`Created session ${sessionId} with mode ${validatedInput.mode}`);

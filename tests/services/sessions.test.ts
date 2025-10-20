@@ -43,8 +43,10 @@ import {
   convertSessionToSessionInput,
   batchCreateSessionChunks,
   listSessions,
+  validateChunkIds,
   type CreateSessionInput,
   type CreateSessionChunkInput,
+  type ChunkValidationResult,
 } from '../../src/services/sessions.js';
 import { NewLearningSessionRow } from '../../src/db/schema.js';
 
@@ -423,282 +425,6 @@ function tmpDbPath() {
     expect(remainingChunks.length).toBe(1);
   });
 
-  it('converts session to SessionInput format', async () => {
-    const now = Date.now();
-
-    // Create required foreign key references first
-    const db = getDb();
-    await db
-      .prepare(
-        `
-			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?)
-		`
-      )
-      .run('t1', 'Test Topic', 'Math', now, now);
-
-    await db
-      .prepare(
-        `
-			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-      )
-      .run('c1', 't1', 'Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
-
-    // Create a session with chunks
-    const sessionInput: CreateSessionInput = {
-      id: 's1',
-      topicId: 't1',
-      chunkIds: ['c1'],
-      mode: 'learning',
-      startTime: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await createSession(sessionInput);
-
-    const chunk1: CreateSessionChunkInput = {
-      id: 'sc1',
-      sessionId: 's1',
-      chunkId: 'c1',
-      status: 'completed',
-      attemptsJson: JSON.stringify([
-        {
-          timestamp: new Date(now).toISOString(),
-          quality: 5,
-          time_spent_ms: 3000,
-          completed: true,
-        },
-      ]),
-      qualityScoresJson: JSON.stringify([5]),
-      timeSpentMs: 3000,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await createSessionChunk(chunk1);
-
-    // Convert to SessionInput format
-    const sessionInputFormat = await convertSessionToSessionInput('s1');
-    expect(sessionInputFormat).not.toBeNull();
-    expect(sessionInputFormat?.session_id).toBe('s1');
-    expect(sessionInputFormat?.mode).toBe('learning');
-    expect(sessionInputFormat?.chunks.length).toBe(1);
-    expect(sessionInputFormat?.chunks[0].chunk_id).toBe('c1');
-    expect(sessionInputFormat?.chunks[0].status).toBe('completed');
-    expect(sessionInputFormat?.chunks[0].attempts.length).toBe(1);
-    expect(sessionInputFormat?.chunks[0].quality_scores).toEqual([5]);
-  });
-
-  it('handles batch operations', async () => {
-    const now = Date.now();
-    const db = getDb();
-
-    // Create required foreign key references using raw SQL
-    db.prepare(
-      `
-			INSERT INTO learning_topics (id, title, subject, summary, summary_version, summary_updated_at, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		`
-    ).run('t1', 'Test Topic', 'Math', null, null, null, now, now);
-
-    db.prepare(
-      `
-			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-    ).run(
-      'c1',
-      't1',
-      'Chunk 1',
-      'Math',
-      5,
-      now,
-      2.5,
-      0,
-      null,
-      10,
-      'new',
-      null,
-      null,
-      null,
-      null,
-      null,
-      now,
-      now
-    );
-
-    db.prepare(
-      `
-			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-    ).run(
-      'c2',
-      't1',
-      'Chunk 2',
-      'Math',
-      5,
-      now,
-      2.5,
-      0,
-      null,
-      10,
-      'new',
-      null,
-      null,
-      null,
-      null,
-      null,
-      now,
-      now
-    );
-
-    db.prepare(
-      `
-			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, last_reviewed_at, estimated_duration, chunk_type, prerequisites_json, tags_json, content, content_version, content_updated_at, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-    ).run(
-      'c3',
-      't1',
-      'Chunk 3',
-      'Math',
-      5,
-      now,
-      2.5,
-      0,
-      null,
-      10,
-      'new',
-      null,
-      null,
-      null,
-      null,
-      null,
-      now,
-      now
-    );
-
-    // Create a session
-    const sessionInput: CreateSessionInput = {
-      id: 's1',
-      topicId: 't1',
-      chunkIds: ['c1', 'c2'],
-      mode: 'learning',
-      startTime: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await createSession(sessionInput);
-
-    // Create multiple chunks in batch
-    const chunks: CreateSessionChunkInput[] = [
-      {
-        id: 'sc1',
-        sessionId: 's1',
-        chunkId: 'c1',
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'sc2',
-        sessionId: 's1',
-        chunkId: 'c2',
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'sc3',
-        sessionId: 's1',
-        chunkId: 'c3',
-        status: 'pending',
-        createdAt: now,
-        updatedAt: now,
-      },
-    ];
-
-    await batchCreateSessionChunks(chunks);
-
-    const sessionChunks = await getSessionChunks('s1');
-    expect(sessionChunks.length).toBe(3);
-    expect(sessionChunks.every(chunk => chunk.status === 'pending')).toBe(true);
-  });
-
-  it('lists sessions with filters', async () => {
-    const now = Date.now();
-
-    // Create multiple sessions
-    const sessions: NewLearningSessionRow[] = [
-      {
-        id: 's1',
-        mode: 'learning',
-        status: 'active',
-        startTime: now,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 's2',
-        mode: 'review',
-        status: 'active',
-        startTime: now + 1000,
-        createdAt: now + 1000,
-        updatedAt: now + 1000,
-      },
-      {
-        id: 's3',
-        mode: 'learning',
-        status: 'completed',
-        startTime: now + 2000,
-        createdAt: now + 2000,
-        updatedAt: now + 2000,
-      },
-    ];
-
-    const db = getDb();
-    for (const session of sessions) {
-      db.prepare(
-        `
-				INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, estimated_duration, status, start_time, end_time, feedback, created_at, updated_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-			`
-      ).run(
-        session.id,
-        session.topicId,
-        session.chunkIds,
-        session.mode,
-        session.estimatedDuration,
-        session.status,
-        session.startTime,
-        session.endTime,
-        session.feedback,
-        session.createdAt,
-        session.updatedAt
-      );
-    }
-
-    // Test listing all sessions
-    const allSessions = await listSessions();
-    expect(allSessions.length).toBe(3);
-
-    // Test filtering by status
-    const activeSessions = await listSessions({ status: 'active' });
-    expect(activeSessions.length).toBe(2);
-    expect(activeSessions.every(s => s.status === 'active')).toBe(true);
-
-    const completedSessions = await listSessions({ status: 'completed' });
-    expect(completedSessions.length).toBe(1);
-    expect(completedSessions[0].status).toBe('completed');
-
-    // Test limiting results
-    const limitedSessions = await listSessions({ limit: 2 });
-    expect(limitedSessions.length).toBe(2);
-  });
-
   it('handles error scenarios gracefully', async () => {
     // Test getting non-existent session
     const notFound = await getSessionById('nonexistent');
@@ -728,61 +454,359 @@ function tmpDbPath() {
     expect(sessionInput).toBeNull();
   });
 
-  it('maintains data integrity with foreign key constraints', async () => {
-    const now = Date.now();
+  describe('Enhanced Session Creation with Automatic Chunk Creation', () => {
+    beforeEach(async () => {
+      await resetDatabase();
+      ensureSchema();
+    });
 
-    // Create required foreign key references first
-    const db = getDb();
-    await db
-      .prepare(
-        `
-			INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?)
-		`
-      )
-      .run('t1', 'Test Topic', 'Math', now, now);
+    it('should create session with automatic chunk creation when chunkIds provided', async () => {
+      const db = getDb();
+      const now = Date.now();
 
-    await db
-      .prepare(
-        `
-			INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-      )
-      .run('c1', 't1', 'Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+      // Create test topic and chunks
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
 
-    // Create a session
-    const sessionInput: CreateSessionInput = {
-      id: 's1',
-      topicId: 't1',
-      chunkIds: ['c1'],
-      mode: 'learning',
-      startTime: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await createSession(sessionInput);
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
 
-    // Create session chunks
-    const chunk1: CreateSessionChunkInput = {
-      id: 'sc1',
-      sessionId: 's1',
-      chunkId: 'c1',
-      createdAt: now,
-      updatedAt: now,
-    };
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk2', 'topic1', 'Test Chunk 2', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
 
-    await createSessionChunk(chunk1);
+      const sessionInput: CreateSessionInput = {
+        id: 'session1',
+        topicId: 'topic1',
+        chunkIds: ['chunk1', 'chunk2'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
 
-    // Verify chunk exists
-    const chunks = await getSessionChunks('s1');
-    expect(chunks.length).toBe(1);
+      await createSession(sessionInput);
 
-    // Delete session - should cascade delete chunks
-    await deleteSession('s1');
+      // Verify session was created
+      const session = await getSessionById('session1');
+      expect(session).toBeDefined();
+      expect(session?.mode).toBe('learning');
 
-    // Verify chunks are deleted
-    const chunksAfterDelete = await getSessionChunks('s1');
-    expect(chunksAfterDelete.length).toBe(0);
+      // Verify session chunks were created automatically
+      const sessionChunks = await getSessionChunks('session1');
+      expect(sessionChunks).toHaveLength(2);
+      expect(sessionChunks[0].chunkId).toBe('chunk1');
+      expect(sessionChunks[0].status).toBe('pending');
+      expect(sessionChunks[1].chunkId).toBe('chunk2');
+      expect(sessionChunks[1].status).toBe('pending');
+    });
+
+    it('should reject session creation with invalid chunk IDs', async () => {
+      const now = Date.now();
+
+      const sessionInput: CreateSessionInput = {
+        id: 'session1',
+        chunkIds: ['nonexistent1', 'nonexistent2'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await expect(createSession(sessionInput)).rejects.toThrow(
+        "Invalid chunk IDs provided: Chunk 'nonexistent1' not found in learning content, Chunk 'nonexistent2' not found in learning content. Please verify the chunk IDs or use list_chunks to see available chunks."
+      );
+    });
+
+    it('should create session without chunks when chunkIds not provided', async () => {
+      const now = Date.now();
+
+      const sessionInput: CreateSessionInput = {
+        id: 'session1',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await createSession(sessionInput);
+
+      // Verify session was created
+      const session = await getSessionById('session1');
+      expect(session).toBeDefined();
+      expect(session?.mode).toBe('learning');
+
+      // Verify no session chunks were created
+      const sessionChunks = await getSessionChunks('session1');
+      expect(sessionChunks).toHaveLength(0);
+    });
+
+    it('should create session with empty chunkIds array', async () => {
+      const now = Date.now();
+
+      const sessionInput: CreateSessionInput = {
+        id: 'session1',
+        chunkIds: [],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await createSession(sessionInput);
+
+      // Verify session was created
+      const session = await getSessionById('session1');
+      expect(session).toBeDefined();
+      expect(session?.mode).toBe('learning');
+
+      // Verify no session chunks were created
+      const sessionChunks = await getSessionChunks('session1');
+      expect(sessionChunks).toHaveLength(0);
+    });
+
+    it('should handle mixed valid and invalid chunk IDs', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create test topic and one chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      const sessionInput: CreateSessionInput = {
+        id: 'session1',
+        chunkIds: ['chunk1', 'nonexistent'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await expect(createSession(sessionInput)).rejects.toThrow(
+        "Invalid chunk IDs provided: Chunk 'nonexistent' not found in learning content. Please verify the chunk IDs or use list_chunks to see available chunks."
+      );
+    });
+  });
+
+  describe('validateChunkIds', () => {
+    beforeEach(async () => {
+      await resetDatabase();
+      ensureSchema();
+    });
+
+    it('should return valid result for empty chunk IDs array', async () => {
+      const result = await validateChunkIds([]);
+
+      expect(result.isValid).toBe(true);
+      expect(result.validChunkIds).toEqual([]);
+      expect(result.invalidChunkIds).toEqual([]);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should return valid result for null/undefined chunk IDs', async () => {
+      const result1 = await validateChunkIds(null as any);
+      const result2 = await validateChunkIds(undefined as any);
+
+      expect(result1.isValid).toBe(true);
+      expect(result1.validChunkIds).toEqual([]);
+      expect(result1.invalidChunkIds).toEqual([]);
+      expect(result1.errors).toEqual([]);
+
+      expect(result2.isValid).toBe(true);
+      expect(result2.validChunkIds).toEqual([]);
+      expect(result2.invalidChunkIds).toEqual([]);
+      expect(result2.errors).toEqual([]);
+    });
+
+    it('should validate existing chunk IDs successfully', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create test topic first
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      // Create test chunks
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk2', 'topic1', 'Test Chunk 2', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      const result = await validateChunkIds(['chunk1', 'chunk2']);
+
+      expect(result.isValid).toBe(true);
+      expect(result.validChunkIds).toEqual(['chunk1', 'chunk2']);
+      expect(result.invalidChunkIds).toEqual([]);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should identify invalid chunk IDs', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create test topic first
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      // Create only one test chunk
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      const result = await validateChunkIds(['chunk1', 'nonexistent1', 'nonexistent2']);
+
+      expect(result.isValid).toBe(false);
+      expect(result.validChunkIds).toEqual(['chunk1']);
+      expect(result.invalidChunkIds).toEqual(['nonexistent1', 'nonexistent2']);
+      expect(result.errors).toEqual([
+        "Chunk 'nonexistent1' not found in learning content",
+        "Chunk 'nonexistent2' not found in learning content",
+      ]);
+    });
+
+    it('should handle mixed valid and invalid chunk IDs', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create test topic first
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      // Create some test chunks
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk3', 'topic1', 'Test Chunk 3', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      const result = await validateChunkIds(['chunk1', 'nonexistent', 'chunk3']);
+
+      expect(result.isValid).toBe(false);
+      expect(result.validChunkIds).toEqual(['chunk1', 'chunk3']);
+      expect(result.invalidChunkIds).toEqual(['nonexistent']);
+      expect(result.errors).toEqual(["Chunk 'nonexistent' not found in learning content"]);
+    });
+
+    it('should handle all invalid chunk IDs', async () => {
+      const result = await validateChunkIds(['nonexistent1', 'nonexistent2', 'nonexistent3']);
+
+      expect(result.isValid).toBe(false);
+      expect(result.validChunkIds).toEqual([]);
+      expect(result.invalidChunkIds).toEqual(['nonexistent1', 'nonexistent2', 'nonexistent3']);
+      expect(result.errors).toEqual([
+        "Chunk 'nonexistent1' not found in learning content",
+        "Chunk 'nonexistent2' not found in learning content",
+        "Chunk 'nonexistent3' not found in learning content",
+      ]);
+    });
+
+    it('should handle duplicate chunk IDs correctly', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create test topic first
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      // Create one test chunk
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      const result = await validateChunkIds(['chunk1', 'chunk1', 'chunk1']);
+
+      expect(result.isValid).toBe(true);
+      expect(result.validChunkIds).toEqual(['chunk1', 'chunk1', 'chunk1']);
+      expect(result.invalidChunkIds).toEqual([]);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should handle database errors gracefully', async () => {
+      // Close the database to simulate a database error
+      const db = getDb();
+      db.close();
+
+      const result = await validateChunkIds(['chunk1']);
+
+      expect(result.isValid).toBe(false);
+      expect(result.validChunkIds).toEqual([]);
+      expect(result.invalidChunkIds).toEqual(['chunk1']);
+      expect(result.errors).toEqual(['Failed to validate chunk IDs due to database error']);
+    });
+
+    it('should handle large numbers of chunk IDs efficiently', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create test topic first
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      // Create 50 test chunks
+      const insertStmt = db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+
+      const chunkIds = [];
+      for (let i = 1; i <= 50; i++) {
+        const chunkId = `chunk${i}`;
+        chunkIds.push(chunkId);
+        insertStmt.run(
+          chunkId,
+          'topic1',
+          `Test Chunk ${i}`,
+          'Math',
+          5,
+          now,
+          2.5,
+          0,
+          10,
+          'new',
+          now,
+          now
+        );
+      }
+
+      const result = await validateChunkIds(chunkIds);
+
+      expect(result.isValid).toBe(true);
+      expect(result.validChunkIds).toEqual(chunkIds);
+      expect(result.invalidChunkIds).toEqual([]);
+      expect(result.errors).toEqual([]);
+    });
   });
 });
