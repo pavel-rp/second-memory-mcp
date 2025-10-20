@@ -11,8 +11,9 @@ import {
   type CreateSessionInput,
   type CreateSessionChunkInput,
 } from '../services/sessions.js';
-import { SessionModeSchema } from '../types/session.js';
+import { SessionModeSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
+import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 
 // Input schemas for session management tools
 const CreateSessionInputSchema = z.object({
@@ -352,6 +353,46 @@ export function registerSessionManagementTools(server: McpServer): void {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
         logger.error('Failed to create session chunk:', error);
         return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+      }
+    }
+  );
+
+  // Batch update session chunks tool
+  server.registerTool(
+    'batch_update_session_chunks',
+    {
+      title: 'Batch Update Session Chunks',
+      description: 'Create or update multiple session chunks atomically within the active session',
+      inputSchema: BatchUpdateInputSchema.shape,
+    },
+    async (input: unknown) => {
+      try {
+        const validatedInput = BatchUpdateInputSchema.parse(input);
+        const result = await applyBatchSessionChunkOperations({
+          sessionId: validatedInput.sessionId,
+          operations: validatedInput.operations,
+        });
+
+        const response = {
+          status: 'ok' as const,
+          ...result,
+        };
+
+        logger.info(
+          `Batch update for session ${validatedInput.sessionId}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
+        );
+        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        logger.error('Failed to batch update session chunks:', error);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ error: errorMsg, code: 'BATCH_UPDATE_FAILED' }),
+            },
+          ],
+        };
       }
     }
   );

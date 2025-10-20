@@ -132,3 +132,33 @@ export const CompletionStatusSchema = z.object({
   chunk_threshold_met: z.boolean(),
   recommendation: z.enum(['continue', 'complete', 'break']),
 });
+
+// Batch update types and schemas
+
+export type BatchOperation = {
+  chunkId: string;
+  title?: string;
+  status?: 'pending' | 'in_progress' | 'completed';
+  attempts?: ChunkAttempt[];
+  qualityScores?: number[];
+  timeSpentMs?: number;
+};
+
+export type BatchUpdateInput = {
+  sessionId: string;
+  operations: BatchOperation[];
+};
+
+export const BatchOperationSchema = z.object({
+  chunkId: z.string().min(1),
+  title: z.string().min(1).optional(),
+  status: z.enum(['pending', 'in_progress', 'completed']).optional(),
+  attempts: z.array(ChunkAttemptSchema).optional(),
+  qualityScores: z.array(z.number().min(0).max(5)).optional(),
+  timeSpentMs: z.number().min(0).optional(),
+});
+
+export const BatchUpdateInputSchema = z.object({
+  sessionId: z.string().min(1),
+  operations: z.array(BatchOperationSchema).min(1).max(50),
+});
