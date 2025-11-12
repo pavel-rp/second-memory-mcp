@@ -1,366 +1,178 @@
 # Second Memory Learning
 
-A Model Context Protocol (MCP) server for spaced repetition learning with SQLite persistence.
+Second Memory Learning is a Model Context Protocol (MCP) server that delivers an AI-powered spaced repetition experience backed by a local SQLite database. The server exposes rich tool and prompt surfaces so Claude Desktop can orchestrate complete learning sessions without relying on any external SaaS integrations.
 
-## Features
+## Key Capabilities
 
-- **Spaced Repetition Algorithm**: SM-2 style scheduling with advanced features
-- **Learning Analytics**: Performance tracking and cognitive load management
-- **Session Management**: Structured learning sessions with progress tracking
-- **SQLite Persistence**: Fast, reliable local database storage
-- **MCP Integration**: Exposes prompts, tools, and resources via MCP protocol
+- **Evidence-based scheduling** – Enhanced SM-2 algorithms with lapse handling, cognitive load caps, and candidate ranking (`src/server/spaced-repetition-tools.ts`, `src/tools/sr-calculator.ts`).
+- **Guided recommendations** – `what_to_learn_today` can fetch items directly from SQLite, balance new vs. review work, and produce conversational guidance for the learner (`src/tools/recommendation-engine.ts`).
+- **Session management** – Create, track, and complete structured learning sessions with automatic session chunk creation (`src/server/session-management-tools.ts`, `src/services/sessions.ts`).
+- **Content operations** – Topic and chunk creation helpers with validation and transactional persistence (`src/server/persistence-tools.ts`, `src/services/topic-creation.ts`).
+- **Prompt pack integration** – First-class MCP prompts for scaffolding, learning, retrieval, review, and workflow guidance (`src/prompts/prompt-pack.ts`).
 
-## Quick Start
+## Getting Started
 
 ### Prerequisites
 
-- Node.js 20 or higher
-- pnpm package manager
+- Node.js 20+
+- pnpm
 
-### Installation
+### Installation & Build
 
 ```bash
 # Clone and install dependencies
 git clone <repository-url>
-cd second-memory
+cd second-memory-mcp
 pnpm install
 
-# Build the project
+# Type-check and compile TypeScript to dist/
 pnpm run build
+```
 
-# Start the MCP server
-pnpm start
+### Running the MCP Server
+
+```bash
+# Run the already-built server
+pnpm run start
+
+# Or build and run in a single step
+pnpm run start:pnpm
+
+# Launch in stdio mode (for Claude Desktop integration / debugging)
+pnpm run start:stdio
 ```
 
 ### Database Setup
 
-The application uses SQLite for data persistence. The database file is created automatically on first run.
+The server creates the SQLite database on demand. Run the migration script once to ensure the schema and optional seed data are applied:
 
-**Environment Variables:**
-- `SM_DB_PATH`: Path to SQLite database file (default: `./second-memory.db`)
-
-**Database Scripts:**
 ```bash
-# Run database migrations
+# Apply schema migrations and optional seed import (see docs/MIGRATION_GUIDE.md)
 pnpm run db:migrate
+```
 
-# Open Drizzle Studio (database GUI)
+Configuration is driven by environment variables:
+
+- `SM_DB_PATH` – Path to the SQLite database file (defaults to `./second-memory.db`).
+- `MIGRATE_SOURCE` – Path to a JSON import file consumed by `pnpm run db:migrate` when seeding data.
+
+To inspect the database visually, start Drizzle Studio:
+
+```bash
 pnpm run db:studio
 ```
 
-## Migration from Notion
+## Using the MCP Tools
 
-If you have existing data in Notion, you can migrate it to SQLite:
+The server registers tools across five categories:
 
-### Step 1: Export Notion Data
+| Category           | Tool                                                                                                                                                                                                                                                  | Purpose                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Spaced repetition  | `calculate_next_review`, `calculate_next_review_advanced`, `calculate_priority_score`, `rank_candidates`                                                                                                                                              | Core SM-2 computations and scheduling utilities                            |
+| Recommendations    | `what_to_learn_today`, `guided_learning_conversation`                                                                                                                                                                                                 | Generate or converse through personalized learning plans                   |
+| Session analytics  | `session_progress`, `session_completion`, `session_workflow`, `session_readiness`, `analyze_attempts`                                                                                                                                                 | Track session health and decision points                                   |
+| Session management | `create_session`, `create_session_chunk`, `get_active_session`, `complete_session`, `list_sessions`                                                                                                                                                   | Persisted session lifecycle management with automatic chunk initialization |
+| Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_metadata`, `update_chunk_content`, `delete_chunk`, `batch_fetch_topics`, `batch_fetch_chunks`, `list_learning_items_sqlite` | CRUD helpers for topics and chunks backed by SQLite                        |
 
-1. Export your Notion workspace as JSON
-2. Place the exported file at `mock-notion-export.json` in the project root
-3. Ensure the JSON structure matches the expected format:
+### Recommendation Example
 
-```json
-{
-  "learning_topics": [
-    {
-      "id": "topic-id",
-      "title": "Topic Title",
-      "subject": "Subject",
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
+```ts
+const result = await what_to_learn_today({
+  fetchFromDatabase: true,
+  subjectFilter: 'Math',
+  dueOnly: true,
+  timeAvailable: 30,
+});
+
+/* → {
+  recommendations: [
+    { id: 'chunk-123', priority: 0.94, reason: 'Overdue review with high impact', ... }
   ],
-  "learning_chunks": [
-    {
-      "id": "chunk-id",
-      "topicId": "topic-id",
-      "title": "Chunk Title",
-      "content": "Chunk content...",
-      "chunkType": "new",
-      "difficulty": 5,
-      "estimatedDuration": 15,
-      "prerequisites": ["prereq1", "prereq2"],
-      "tags": ["tag1", "tag2"],
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
-  ],
-  "review_schedule": [
-    {
-      "id": "review-id",
-      "chunkId": "chunk-id",
-      "nextReviewAt": "2024-01-01T00:00:00.000Z",
-      "easeFactor": 2.5,
-      "repetitions": 0,
-      "intervalDays": 0,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
-  ],
-  "session_logs": [
-    {
-      "id": "session-id",
-      "date": "2024-01-01T00:00:00.000Z",
-      "duration": 30,
-      "itemsCompleted": 5,
-      "averageQuality": 4.2,
-      "cognitiveLoad": 7.5,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
-  ],
-  "performance_analytics": [
-    {
-      "id": "analytics-id",
-      "date": "2024-01-01T00:00:00.000Z",
-      "topic": "Topic Name",
-      "metricsJson": {"key": "value"},
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
-    }
-  ]
+  estimatedDuration: 28,
+  sessionSummary: { newItems: 1, reviews: 4, remediation: 0 },
+  nextActions: ['Run guided_learning_conversation', 'Start a retrieval drill']
+} */
+```
+
+### Session Lifecycle Example
+
+```ts
+const session = await create_session({
+  topicId: 'math-linear-algebra',
+  chunkIds: ['chunk-123', 'chunk-456'],
+  mode: 'learning',
+  estimatedDuration: 40,
+});
+
+await create_session_chunk({
+  sessionId: session.sessionId,
+  chunkId: 'chunk-123',
+  status: 'completed',
+  attempts: [{ timestamp: Date.now(), completed: true, quality: 4, timeSpentMs: 480000 }],
+  qualityScores: [4],
+  timeSpentMs: 480000,
+});
+
+const completion = await session_completion({ sessionId: session.sessionId });
+if (completion.shouldComplete) {
+  await complete_session({
+    sessionId: session.sessionId,
+    feedback: 'Reached fluency for both chunks.',
+  });
 }
 ```
 
-### Step 2: Run Migration
-
-```bash
-# Run the migration script
-pnpm run db:migrate
-```
-
-The migration script will:
-- Create the SQLite database schema
-- Import all data from the JSON export
-- Report the number of records imported per table
-- Validate data integrity
-
-### Step 3: Verify Migration
-
-```bash
-# Open Drizzle Studio to inspect the data
-pnpm run db:studio
-```
-
-## Usage Examples
-
-### Get Learning Recommendations (Single-Call Pattern - Recommended)
-
-The fastest way to get personalized learning recommendations is to use the self-fetching pattern:
-
-```javascript
-// Single call - automatically fetches from database and generates recommendations
-const result = await what_to_learn_today({
-  fetchFromDatabase: true,
-  subjectFilter: "Math",        // optional: filter by subject
-  dueOnly: true,          // optional: only items due for review
-  limit: 20,              // optional: limit number of items fetched
-  mode: "explicit",
-  timeAvailable: 60
-});
-
-// Result includes recommendations, session summary, and guidance
-console.log(result.recommendations);
-console.log(result.sessionSummary);
-```
-
-### Legacy Two-Step Pattern
-
-If you need more control, you can fetch items separately and then generate recommendations:
-
-```javascript
-// Step 1: Fetch learning items
-const items = await list_learning_items_sqlite({
-  subjectFilter: "Math",
-  dueOnly: true,
-  limit: 20
-});
-
-// Step 2: Generate recommendations
-const result = await what_to_learn_today({
-  learningItems: items,
-  mode: "explicit",
-  timeAvailable: 60
-});
-```
-
-**Note**: Filters (`subjectFilter`, `dueOnly`, `limit`) only apply when using `fetchFromDatabase: true`. In legacy mode, they are ignored.
-
-### Session Management
-
-Create and manage structured learning sessions:
-
-```javascript
-// Create a new learning session
-const session = await create_session({
-  topicId: "topic-id",           // optional: associate with a topic
-  chunkIds: ["chunk1", "chunk2"], // optional: specific chunks to work on
-  mode: "learning",              // scaffolding, learning, retrieval, or review
-  estimatedDuration: 30          // optional: estimated duration in minutes
-});
-
-// Get the active session
-const activeSession = await get_active_session();
-
-// Create session chunks to track progress
-await create_session_chunk({
-  sessionId: session.sessionId,
-  chunkId: "chunk1",
-  status: "completed",
-  attempts: [{
-    timestamp: Date.now(),
-    timeSpentMs: 5000,
-    completed: true,
-    quality: 4
-  }],
-  qualityScores: [4],
-  timeSpentMs: 5000
-});
-
-// Complete the session
-await complete_session({
-  sessionId: session.sessionId,
-  feedback: "Great session! Learned a lot."
-});
-```
-
-## MCP Tools
-
-The server exposes several MCP tools for learning management:
-
-### Learning Recommendations
-- `what_to_learn_today`: Generate personalized learning recommendations
-  - **Recommended**: Use `fetchFromDatabase: true` for single-call convenience
-  - Parameters: `fetchFromDatabase` (boolean), `subjectFilter`, `dueOnly`, `limit`, `mode`, `timeAvailable`, `learningItems` (for legacy mode)
-
-### Learning Items
-- `list_learning_items_sqlite`: (Legacy) Fetch learning items from SQLite database
-  - For single-call convenience, use `what_to_learn_today` with `fetchFromDatabase: true` instead
-  - Parameters: `subjectFilter` (optional), `dueOnly` (optional), `limit` (optional)
-
-### Spaced Repetition
-- `calculate_next_review`: Calculate next review date using SM-2 algorithm
-- `calculate_next_review_advanced`: Advanced scheduling with lapse handling
-- `calculate_priority_score`: Rank items by review priority
-
-### Analytics
-- `analytics_daily`: Compute daily learning metrics
-- `analytics_window`: Analyze performance over date ranges
-
-### Session Management
-- `create_session`: Create a new learning session with specific parameters
-- `get_active_session`: Retrieve the most recently created active session
-- `complete_session`: Mark a session as completed with optional feedback
-- `create_session_chunk`: Create session chunks to track learning progress
-- `session_progress`: Track session completion metrics
-- `session_workflow`: Get guidance for next learning phase
-- `session_completion`: Determine if session should end
-
-## Development
-
-### Project Structure
+## Architecture Overview
 
 ```
 src/
-├── db/                 # Database layer
-│   ├── client.ts      # SQLite connection
-│   ├── schema.ts      # Drizzle schema definitions
-│   ├── operations.ts  # Database helpers
-│   └── migrate.ts     # Migration script
-├── services/          # Business logic services
-│   ├── topics.ts      # Topic CRUD operations
-│   ├── chunks.ts      # Learning chunk operations
-│   └── reviews.ts     # Review schedule operations
-├── server/            # MCP server implementation
-├── tools/             # Learning algorithm tools
-├── prompts/           # MCP prompts
-└── types/             # TypeScript type definitions
+├── server/             # MCP server registration (tools, prompts, analytics)
+├── services/           # Business logic with transactional persistence
+├── tools/              # Pure calculation engines (SM-2, recommendation, analytics)
+├── db/                 # SQLite setup (Drizzle schema, migrations, operations)
+├── prompts/            # Prompt pack definitions
+├── types/              # Zod schemas and shared types for tool inputs/outputs
+└── utils/              # Logger and helper utilities
 ```
 
-### Testing
+Key entry points:
+
+- `src/server/main.ts` – Boots the MCP server, registers prompts, and ensures the database schema exists.
+- `src/server/tools.ts` – Wires up all tool registrars.
+- `src/db/migrate.ts` – Creates tables, performs lightweight migrations, and can import seed data from JSON.
+
+## Database Schema Summary
+
+- **learning_topics** – Topic metadata, optional summaries, timestamps.
+- **learning_chunks** – Individual learning items with content, SM-2 attributes, tags, and prerequisites.
+- **review_schedule** – Next review intervals and ease factors per chunk.
+- **learning_sessions** – Persisted session metadata (mode, status, timing, feedback, chunk list).
+- **session_chunks** – Per-session chunk progress including attempts, quality scores, and time spent.
+
+Legacy tables (`session_logs`, `performance_analytics`, `friction_metrics`) are automatically removed during migration to keep the database clean.
+
+## Testing & Quality
 
 ```bash
-# Run all tests
+# Compile and run the full Vitest suite with coverage
 pnpm test
 
-# Run tests with coverage
-pnpm test --coverage
+# Type-check only
+pnpm run type-check
+
+# Lint and format
+pnpm run lint
+pnpm run format
 ```
 
-**Note**: SQLite tests may be skipped on systems without native build tools for `better-sqlite3`. To run all tests:
-
-1. Install Visual Studio Build Tools (Windows) or Xcode Command Line Tools (macOS)
-2. Install Python 3.x
-3. Rebuild: `pnpm rebuild better-sqlite3`
-
-### Building
-
-```bash
-# Build TypeScript to JavaScript
-pnpm run build
-
-# Watch mode for development
-pnpm run dev
-```
-
-## Architecture
-
-### Database Schema
-
-The SQLite database contains seven main tables:
-
-- **learning_topics**: Subject areas and topics
-- **learning_chunks**: Individual learning items with content
-- **review_schedule**: Spaced repetition scheduling data
-- **learning_sessions**: Learning session management and tracking
-- **session_chunks**: Individual chunk progress within sessions
-- **session_logs**: Learning session history (legacy)
-- **performance_analytics**: Performance metrics and analytics (legacy)
-
-### Service Layer
-
-The application uses a service layer pattern:
-- **Topics Service**: Manages learning topics and subjects
-- **Chunks Service**: Handles learning items and content
-- **Reviews Service**: Manages spaced repetition schedules
-- **Sessions Service**: Handles learning session management and tracking
-
-### MCP Integration
-
-The server implements the Model Context Protocol to expose:
-- **Prompts**: Learning guidance and instructions
-- **Tools**: Pure calculation functions for algorithms
-- **Resources**: Read-only data access
-
-## Troubleshooting
-
-### Database Issues
-
-**Database file not found:**
-- Ensure the `SM_DB_PATH` environment variable points to a valid location
-- Check file permissions for the database directory
-
-**Migration fails:**
-- Verify the JSON export format matches the expected structure
-- Check that all required fields are present
-- Ensure timestamps are in ISO format
-
-### Build Issues
-
-**Native module compilation fails:**
-- Install build tools for your platform
-- Run `pnpm rebuild better-sqlite3`
-- Consider using a pre-built binary if available
-
-**TypeScript errors:**
-- Run `pnpm run build` to check for type issues
-- Ensure all dependencies are properly installed
+Vitest integration tests exercise recommendation workflows, prerequisite mastery, and session management to ensure parity with the live MCP behavior. Refer to the `tests/` directory for concrete examples of tool invocations.
 
 ## Contributing
 
-1. Follow the existing code style and patterns
-2. Add tests for new functionality
-3. Update documentation for API changes
-4. Ensure all tests pass before submitting
+1. Follow the existing TypeScript style conventions (2-space indentation, single quotes).
+2. Add or update tests alongside behavior changes.
+3. Run `pnpm run lint`, `pnpm run type-check`, and `pnpm test` before opening a pull request.
+4. Update documentation when new features or workflows ship.
 
 ## License
 

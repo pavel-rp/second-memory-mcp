@@ -173,7 +173,7 @@ type MigrationData = {
 };
 
 function readJson(pathOrEnv?: string): MigrationData {
-  const src = pathOrEnv || process.env.MIGRATE_SOURCE || './notion-export.json';
+  const src = pathOrEnv || process.env.MIGRATE_SOURCE || './learning-import.json';
   const full = path.resolve(src);
   const raw = fs.readFileSync(full, 'utf-8');
   return JSON.parse(raw) as MigrationData;
