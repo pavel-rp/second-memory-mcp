@@ -173,7 +173,3 @@ Vitest integration tests exercise recommendation workflows, prerequisite mastery
 2. Add or update tests alongside behavior changes.
 3. Run `pnpm run lint`, `pnpm run type-check`, and `pnpm test` before opening a pull request.
 4. Update documentation when new features or workflows ship.
-
-## License
-
-[Add your license information here]
