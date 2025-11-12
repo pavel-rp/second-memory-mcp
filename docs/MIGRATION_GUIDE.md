@@ -1,282 +1,148 @@
-# Migration Guide: Notion to SQLite
+# Data Migration & Seeding Guide
 
-This guide walks you through migrating your learning data from Notion to the new SQLite-based system.
+The `pnpm run db:migrate` script creates (or upgrades) the SQLite schema and optionally imports seed data from a JSON file. Use this guide when you need to:
 
-## Overview
+- Bootstrap a fresh database with existing topics, chunks, schedules, or session history.
+- Move data between environments (for example, from a laptop to a desktop machine).
+- Restore a backup generated from the same schema.
 
-The migration process involves:
-1. Exporting data from Notion
-2. Formatting the export for the migration script
-3. Running the migration
-4. Verifying the results
+## Overview of the Migration Script
 
-## Prerequisites
+`src/db/migrate.ts` performs three tasks:
 
-- Existing Notion workspace with learning data
-- Second Memory Learning application installed
-- Access to Notion's export functionality
+1. Ensures every required table and index exists.
+2. Applies lightweight column migrations for content persistence and removes deprecated tables.
+3. If an import file is supplied, bulk inserts data into the current schema.
 
-## Step 1: Export from Notion
+You can point the script at a JSON file in two ways:
 
-### Option A: Full Workspace Export
+- Set the `MIGRATE_SOURCE` environment variable.
+- Pass the file path as the first CLI argument (`pnpm run db:migrate -- ./my-export.json`).
 
-1. Go to your Notion workspace settings
-2. Navigate to "Settings & Members" → "Export"
-3. Select "Export all content"
-4. Choose "Markdown & CSV" or "HTML" format
-5. Download the export file
+If neither is provided the script looks for `./learning-import.json` in the project root.
 
-### Option B: Database Export (Recommended)
+## JSON Structure
 
-1. Open each Notion database you want to migrate
-2. Use the "..." menu → "Export"
-3. Choose "CSV" format for structured data
-4. Repeat for all relevant databases
-
-## Step 2: Prepare Export Data
-
-Create a file named `mock-notion-export.json` in your project root with the following structure:
+The import format mirrors the Drizzle models defined in `src/db/schema.ts`. Each top-level array is optional—include only the collections you need to seed.
 
 ```json
 {
   "learning_topics": [
     {
-      "id": "unique-topic-id",
-      "title": "Topic Title",
-      "subject": "Subject Area",
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "id": "uuid",
+      "title": "Topic title",
+      "subject": "Math",
+      "summary": "Optional learner-facing summary",
+      "summaryVersion": 1,
+      "summaryUpdatedAt": 1737072000000,
+      "createdAt": 1736985600000,
+      "updatedAt": 1737072000000
     }
   ],
   "learning_chunks": [
     {
-      "id": "unique-chunk-id",
-      "topicId": "topic-id-reference",
-      "title": "Chunk Title",
-      "content": "Full content text here...",
-      "chunkType": "new",
+      "id": "uuid",
+      "topicId": "uuid",
+      "title": "Chunk title",
+      "subject": "Math",
       "difficulty": 5,
+      "nextReviewAt": 1737158400000,
+      "easeFactor": 2.5,
+      "repetitions": 0,
+      "lastReviewedAt": null,
       "estimatedDuration": 15,
-      "prerequisites": ["prereq1", "prereq2"],
-      "tags": ["tag1", "tag2"],
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "chunkType": "new",
+      "prerequisites": ["chunk-prereq-id"],
+      "tags": ["algebra"],
+      "content": "Optional stored content",
+      "contentVersion": 1,
+      "contentUpdatedAt": 1737072000000,
+      "createdAt": 1736985600000,
+      "updatedAt": 1737072000000
     }
   ],
   "review_schedule": [
     {
-      "id": "unique-review-id",
-      "chunkId": "chunk-id-reference",
-      "nextReviewAt": "2024-01-01T00:00:00.000Z",
-      "easeFactor": 2.5,
-      "repetitions": 0,
-      "intervalDays": 0,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "id": "uuid",
+      "chunkId": "uuid",
+      "nextReviewAt": 1737244800000,
+      "intervalDays": 3,
+      "repetitions": 1,
+      "easeFactor": 2.36,
+      "createdAt": 1736985600000,
+      "updatedAt": 1737072000000
     }
   ],
-  "session_logs": [
+  "learning_sessions": [
     {
-      "id": "unique-session-id",
-      "date": "2024-01-01T00:00:00.000Z",
-      "duration": 30,
-      "itemsCompleted": 5,
-      "averageQuality": 4.2,
-      "cognitiveLoad": 7.5,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "id": "uuid",
+      "topicId": "uuid",
+      "chunkIds": "[\"chunk-1\",\"chunk-2\"]",
+      "mode": "learning",
+      "estimatedDuration": 40,
+      "status": "completed",
+      "startTime": 1737072000000,
+      "endTime": 1737074400000,
+      "feedback": "Focused review session",
+      "createdAt": 1737072000000,
+      "updatedAt": 1737074400000
     }
   ],
-  "performance_analytics": [
+  "session_chunks": [
     {
-      "id": "unique-analytics-id",
-      "date": "2024-01-01T00:00:00.000Z",
-      "topic": "Topic Name",
-      "metricsJson": {"key": "value"},
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "updatedAt": "2024-01-01T00:00:00.000Z"
+      "id": "uuid",
+      "sessionId": "uuid",
+      "chunkId": "uuid",
+      "status": "completed",
+      "attempts_json": "[]",
+      "quality_scores_json": "[4,5]",
+      "time_spent_ms": 540000,
+      "createdAt": 1737072000000,
+      "updatedAt": 1737074400000
     }
   ]
 }
 ```
 
-### Data Mapping Guidelines
+### Notes on Field Names
 
-#### Learning Topics
-- **id**: Unique identifier (string)
-- **title**: Topic name
-- **subject**: Subject area (e.g., "CS", "Math", "Language")
-- **createdAt/updatedAt**: ISO timestamp strings
+- For `learning_chunks` you may provide `prerequisites` and `tags` as arrays; the migrator automatically encodes them for storage.
+- Fields with `_json` suffix (`attempts_json`, `quality_scores_json`) should be valid JSON strings representing arrays.
+- Timestamps are stored as epoch milliseconds.
 
-#### Learning Chunks
-- **id**: Unique identifier (string)
-- **topicId**: Reference to learning topic ID
-- **title**: Chunk title
-- **content**: Full content text
-- **chunkType**: "new", "review", or "remediation"
-- **difficulty**: Integer 1-10
-- **estimatedDuration**: Minutes (integer)
-- **prerequisites**: Array of prerequisite IDs
-- **tags**: Array of tag strings
-
-#### Review Schedule
-- **id**: Unique identifier (string)
-- **chunkId**: Reference to learning chunk ID
-- **nextReviewAt**: Next review date (ISO timestamp)
-- **easeFactor**: Spaced repetition ease factor (decimal)
-- **repetitions**: Number of successful reviews (integer)
-- **intervalDays**: Days until next review (integer)
-
-#### Session Logs
-- **id**: Unique identifier (string)
-- **date**: Session date (ISO timestamp)
-- **duration**: Session duration in minutes
-- **itemsCompleted**: Number of items completed
-- **averageQuality**: Average quality score (decimal)
-- **cognitiveLoad**: Cognitive load rating (decimal)
-
-#### Performance Analytics
-- **id**: Unique identifier (string)
-- **date**: Analytics date (ISO timestamp)
-- **topic**: Topic name (optional)
-- **metricsJson**: JSON object with metrics data
-
-## Step 3: Run Migration
+## Running the Import
 
 ```bash
-# Navigate to project directory
-cd second-memory
+# Using an environment variable
+MIGRATE_SOURCE=./backups/2025-01-05-learning.json pnpm run db:migrate
 
-# Run the migration script
-pnpm run db:migrate
+# Passing the file as an argument
+pnpm run db:migrate -- ./backups/2025-01-05-learning.json
 ```
 
-### Expected Output
+The script logs a JSON summary indicating how many records were inserted per collection. Existing records with conflicting primary keys will cause the migration to fail, so ensure you start from an empty database when importing full backups.
 
-```
-Running Drizzle migrations...
-Drizzle migrations complete.
-Fetching data from Notion (mock)...
-Notion data fetched.
-Importing learning topics...
-Imported 5 topics.
-Importing learning chunks...
-Imported 23 chunks.
-Importing review schedule...
-Imported 18 reviews.
-Importing session logs...
-Imported 12 session logs.
-Importing performance analytics...
-Imported 8 performance analytics.
-Migration complete!
-```
+## Verification Checklist
 
-## Step 4: Verify Migration
-
-### Option A: Database Studio
-
-```bash
-# Open Drizzle Studio
-pnpm run db:studio
-```
-
-This opens a web interface where you can:
-- Browse all tables
-- View imported data
-- Run queries
-- Verify data integrity
-
-### Option B: Test MCP Tools
-
-```bash
-# Start the MCP server
-pnpm start
-
-# Test the new SQLite tool
-# (Use your MCP client to call list_learning_items_sqlite)
-```
-
-### Option C: Direct Database Query
-
-```bash
-# Install sqlite3 CLI tool
-npm install -g sqlite3
-
-# Query the database
-sqlite3 second-memory.db "SELECT COUNT(*) FROM learning_topics;"
-sqlite3 second-memory.db "SELECT COUNT(*) FROM learning_chunks;"
-sqlite3 second-memory.db "SELECT COUNT(*) FROM review_schedule;"
-```
+1. **Inspect counts** – Use `pnpm run db:studio` or the SQLite CLI to verify row counts across tables.
+2. **Exercise core tools** – Invoke `list_learning_items_sqlite` or `what_to_learn_today({ fetchFromDatabase: true })` to confirm items are visible through the MCP layer.
+3. **Validate sessions** – Run `session_progress` for a migrated session to confirm attempts and quality scores round-trip correctly.
 
 ## Troubleshooting
 
-### Common Issues
+| Symptom                                                  | Resolution                                                                                                                       |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Database error: UNIQUE constraint failed`               | Remove existing rows or use a fresh database file before re-importing.                                                           |
+| `Database error: JSON parse error`                       | Confirm any `_json` field contains a valid JSON string (e.g., `"[]"`).                                                           |
+| `Database error: foreign key constraint failed`          | Ensure referenced IDs exist (chunks must reference an existing topic, session chunks must reference both a session and a chunk). |
+| Script exits with `Content persistence migration failed` | Another process may be holding the database open. Shut down the MCP server and retry.                                            |
 
-#### "Could not locate the bindings file"
-This error occurs when `better-sqlite3` native bindings aren't built:
+## Backups
 
-```bash
-# Install build tools and rebuild
-pnpm rebuild better-sqlite3
-```
-
-#### "Foreign key constraint failed"
-Ensure all foreign key references are valid:
-- `topicId` in chunks must exist in topics
-- `chunkId` in reviews must exist in chunks
-
-#### "Invalid timestamp format"
-Ensure all timestamps are in ISO format:
-- ✅ `"2024-01-01T00:00:00.000Z"`
-- ❌ `"2024-01-01"` or `"January 1, 2024"`
-
-#### "JSON parse error"
-Check that JSON fields are properly formatted:
-- Arrays: `["item1", "item2"]`
-- Objects: `{"key": "value"}`
-
-### Data Validation
-
-After migration, verify:
-
-1. **Record counts match**: Compare exported vs imported counts
-2. **Foreign keys are valid**: All references exist
-3. **Timestamps are preserved**: Dates match original data
-4. **JSON fields are intact**: Arrays and objects are properly stored
-
-### Rollback Plan
-
-If migration fails:
-
-1. **Delete the database file**: `rm second-memory.db`
-2. **Fix the JSON export**: Correct any formatting issues
-3. **Re-run migration**: `pnpm run db:migrate`
-
-## Post-Migration
-
-### Clean Up
-
-1. **Remove export file**: `rm mock-notion-export.json`
-2. **Update environment**: Set `SM_DB_PATH` if needed
-3. **Test functionality**: Verify all MCP tools work correctly
-
-### Backup Strategy
+To capture a portable snapshot of your learning data:
 
 ```bash
-# Create regular backups
-cp second-memory.db "backup-$(date +%Y%m%d).db"
-
-# Or use SQLite's backup command
-sqlite3 second-memory.db ".backup backup-$(date +%Y%m%d).db"
+sqlite3 second-memory.db ".backup backups/$(date +%Y-%m-%d)-second-memory.db"
 ```
 
-## Support
-
-If you encounter issues:
-
-1. Check the troubleshooting section above
-2. Verify your JSON export format
-3. Ensure all dependencies are installed
-4. Check the application logs for detailed error messages
-
-For additional help, refer to the main README.md or create an issue in the project repository.
+Store the resulting file with your version control or cloud backups and restore it by copying it back to the path referenced by `SM_DB_PATH`.
