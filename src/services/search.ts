@@ -1,4 +1,4 @@
-import { and, eq, sql, type SQL } from 'drizzle-orm';
+import { and, eq, or, sql, type SQL } from 'drizzle-orm';
 import { getSql } from '../db/operations.js';
 import { learningChunks, learningTopics } from '../db/schema.js';
 import {
@@ -26,7 +26,16 @@ type ChunkRow = {
   topicTitle: string | null;
 };
 
+// Fetch 3x the requested limit to allow for accurate relevance scoring and ranking
+// before slicing to the final limit. This ensures we get the best matches after
+// computing match scores for a larger candidate set.
 const FETCH_MULTIPLIER = 3;
+
+// Match score weighting factors (can sum > 1.0 but final score is bounded to [0, 1])
+const SIMILARITY_WEIGHT = 0.6; // Overall string similarity using Levenshtein distance
+const TOKEN_MATCH_WEIGHT = 0.3; // Fraction of search tokens present in candidate
+const PREFIX_BONUS = 0.1; // Bonus for tokens matching at start of title
+const EXACT_MATCH_BONUS = 0.2; // Bonus for exact query match after normalization
 
 type NormalizedQuery = {
   normalized: string;
@@ -55,6 +64,18 @@ function buildTokenConditions(
   return tokens.map(token => sql`lower(${column}) LIKE ${`%${token}%`}`);
 }
 
+function combineTokenConditions(conditions: SQL[]): SQL | undefined {
+  if (conditions.length === 0) {
+    return undefined;
+  }
+
+  if (conditions.length === 1) {
+    return conditions[0];
+  }
+
+  return or(...conditions);
+}
+
 function combineConditions(conditions: SQL[]): SQL | undefined {
   if (conditions.length === 0) {
     return undefined;
@@ -75,10 +96,16 @@ function computeMatchScore(candidate: string, query: NormalizedQuery): number {
       ? 0
       : query.tokens.filter(token => candidateLower.includes(token)).length / query.tokens.length;
 
-  const prefixBonus = query.tokens.some(token => candidateLower.startsWith(token)) ? 0.1 : 0;
-  const exactMatchBonus = candidateLower === query.normalized ? 0.2 : 0;
+  const prefixBonus = query.tokens.some(token => candidateLower.startsWith(token))
+    ? PREFIX_BONUS
+    : 0;
+  const exactMatchBonus = candidateLower === query.normalized ? EXACT_MATCH_BONUS : 0;
 
-  const rawScore = similarity * 0.6 + matchedTokens * 0.3 + prefixBonus + exactMatchBonus;
+  const rawScore =
+    similarity * SIMILARITY_WEIGHT +
+    matchedTokens * TOKEN_MATCH_WEIGHT +
+    prefixBonus +
+    exactMatchBonus;
   const boundedScore = Math.max(0, Math.min(1, rawScore));
 
   return Number(boundedScore.toFixed(4));
@@ -125,7 +152,8 @@ export async function searchLearningContent(
   const normalizedQuery = normalizeSearchQuery(input.query);
 
   const topicTokenConditions = buildTokenConditions(learningTopics.title, normalizedQuery.tokens);
-  const topicConditions: SQL[] = [...topicTokenConditions];
+  const tokenCondition = combineTokenConditions(topicTokenConditions);
+  const topicConditions: SQL[] = tokenCondition ? [tokenCondition] : [];
   if (input.subject) {
     topicConditions.push(eq(learningTopics.subject, input.subject));
   }
@@ -147,7 +175,8 @@ export async function searchLearningContent(
     : topicQuery.limit(fetchLimit).all();
 
   const chunkTokenConditions = buildTokenConditions(learningChunks.title, normalizedQuery.tokens);
-  const chunkConditions: SQL[] = [...chunkTokenConditions];
+  const chunkTokenCondition = combineTokenConditions(chunkTokenConditions);
+  const chunkConditions: SQL[] = chunkTokenCondition ? [chunkTokenCondition] : [];
   if (input.subject) {
     chunkConditions.push(eq(learningChunks.subject, input.subject));
   }
