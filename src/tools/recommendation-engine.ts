@@ -1,6 +1,8 @@
 import { calculatePriorityScore } from './sr-calculator.js';
 import { calculateItemCognitiveLoad } from './cognitive-load.js';
 import { prerequisiteValidator } from './prerequisite-validator.js';
+import { dependencyResolver } from './dependency-resolver.js';
+import { getChunk, mapChunkRowToLearningItem } from '../services/chunks.js';
 import type {
   RecommendationInput,
   RecommendationOutput,
@@ -20,6 +22,10 @@ import { logger } from '../utils/logger.js';
  */
 export class RecommendationEngine {
   private lastPrerequisiteFiltering: { rationale: string; filteredCount: number } | null = null;
+  private lastDependencyResolution: {
+    addedPrerequisites: string[];
+    resolvedChain: string[];
+  } | null = null;
 
   /**
    * Generate personalized learning recommendations
@@ -35,7 +41,13 @@ export class RecommendationEngine {
     );
 
     // Compose balanced session
-    const recommendations = this.composeBalancedSession(candidates, processedInput);
+    let recommendations = this.composeBalancedSession(candidates, processedInput);
+
+    // Resolve dependencies and include missing prerequisites
+    recommendations = await this.resolveAndIncludePrerequisites(
+      recommendations,
+      processedInput.learningItems || []
+    );
 
     // Generate session summary
     const sessionSummary = this.generateSessionSummary(recommendations);
@@ -60,6 +72,15 @@ export class RecommendationEngine {
           : 'No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool.'
         : undefined;
 
+    // Include dependency resolution info if prerequisites were added
+    const dependencyResolution =
+      this.lastDependencyResolution && this.lastDependencyResolution.addedPrerequisites.length > 0
+        ? {
+            addedPrerequisites: this.lastDependencyResolution.addedPrerequisites,
+            resolvedOrder: this.lastDependencyResolution.resolvedChain,
+          }
+        : undefined;
+
     return {
       recommendations,
       sessionSummary,
@@ -69,6 +90,7 @@ export class RecommendationEngine {
       alternatives,
       nextActions: this.generateNextActions(recommendations, processedInput),
       orchestrationHint,
+      dependencyResolution,
     };
   }
 
@@ -362,6 +384,158 @@ export class RecommendationEngine {
   }
 
   /**
+   * Resolve dependencies and automatically include missing prerequisites
+   * @param recommendations Current recommendations
+   * @param allAvailableItems All learning items available (for prerequisite lookup)
+   * @returns Recommendations with prerequisites included and ordered correctly
+   */
+  private async resolveAndIncludePrerequisites(
+    recommendations: LearningRecommendation[],
+    allAvailableItems: LearningItem[]
+  ): Promise<LearningRecommendation[]> {
+    if (recommendations.length === 0) {
+      this.lastDependencyResolution = null;
+      return recommendations;
+    }
+
+    try {
+      // Extract IDs of selected items
+      const selectedIds = recommendations.map(r => r.item.id);
+
+      // Build a map of all available items (selected + available)
+      const itemMap = new Map<string, LearningItem>();
+      for (const item of allAvailableItems) {
+        itemMap.set(item.id, item);
+      }
+      for (const rec of recommendations) {
+        itemMap.set(rec.item.id, rec.item);
+      }
+
+      // Resolve dependencies for selected items
+      const allItems = Array.from(itemMap.values());
+      const resolution = await dependencyResolver.resolveDependencies(allItems, selectedIds);
+
+      if (!resolution.isValid) {
+        logger.warn('Dependency resolution failed:', resolution.errors.join(', '));
+        this.lastDependencyResolution = null;
+        return recommendations;
+      }
+
+      // Find prerequisites that need to be added (in resolved chain but not in current recommendations)
+      const selectedIdSet = new Set(selectedIds);
+      const missingPrerequisiteIds = resolution.resolvedChain.filter(id => !selectedIdSet.has(id));
+
+      if (missingPrerequisiteIds.length === 0) {
+        // No missing prerequisites, but still need to reorder based on dependencies
+        const orderedRecommendations = this.reorderByDependencies(
+          recommendations,
+          resolution.resolvedChain
+        );
+        this.lastDependencyResolution = {
+          addedPrerequisites: [],
+          resolvedChain: orderedRecommendations.map(r => r.item.id), // Only include items actually in recommendations
+        };
+        return orderedRecommendations;
+      }
+
+      // Fetch missing prerequisites from database or available items
+      const prerequisiteItems: LearningItem[] = [];
+      const failedToFetchIds: string[] = [];
+
+      for (const prereqId of missingPrerequisiteIds) {
+        // First check if it's in available items
+        const existingItem = itemMap.get(prereqId);
+        if (existingItem) {
+          prerequisiteItems.push(existingItem);
+        } else {
+          // Fetch from database
+          const chunkRow = await getChunk(prereqId);
+          if (chunkRow) {
+            const item = mapChunkRowToLearningItem(chunkRow);
+            prerequisiteItems.push(item);
+          } else {
+            logger.warn(`Prerequisite chunk ${prereqId} not found in database`);
+            failedToFetchIds.push(prereqId);
+          }
+        }
+      }
+
+      // Create recommendations for prerequisites
+      let order = 1;
+      const allRecommendations: LearningRecommendation[] = [];
+      const actuallyIncludedIds: string[] = [];
+
+      for (const itemId of resolution.resolvedChain) {
+        if (selectedIdSet.has(itemId)) {
+          // Find existing recommendation
+          const existing = recommendations.find(r => r.item.id === itemId);
+          if (existing) {
+            allRecommendations.push({
+              ...existing,
+              order: order++,
+            });
+            actuallyIncludedIds.push(itemId);
+          }
+        } else {
+          // Add prerequisite
+          const prereqItem = prerequisiteItems.find(item => item.id === itemId);
+          if (prereqItem) {
+            const prereqRecommendation = this.createRecommendation(
+              prereqItem,
+              order++,
+              'prerequisite - required for selected items'
+            );
+            allRecommendations.push(prereqRecommendation);
+            actuallyIncludedIds.push(itemId);
+          } else {
+            // Item was in resolved chain but couldn't be fetched - log warning
+            logger.warn(
+              `Skipping item ${itemId} from dependency chain - failed to fetch from database or not found in available items`
+            );
+          }
+        }
+      }
+
+      // Only include successfully added prerequisites in the response
+      const successfullyAddedPrerequisites = missingPrerequisiteIds.filter(
+        id => !failedToFetchIds.includes(id)
+      );
+
+      this.lastDependencyResolution = {
+        addedPrerequisites: successfullyAddedPrerequisites,
+        resolvedChain: actuallyIncludedIds, // Only include items that were actually added
+      };
+
+      return allRecommendations;
+    } catch (error) {
+      logger.error('Error resolving dependencies:', error);
+      this.lastDependencyResolution = null;
+      return recommendations;
+    }
+  }
+
+  /**
+   * Reorder recommendations based on dependency chain
+   */
+  private reorderByDependencies(
+    recommendations: LearningRecommendation[],
+    resolvedChain: string[]
+  ): LearningRecommendation[] {
+    const recMap = new Map(recommendations.map(r => [r.item.id, r]));
+    const ordered: LearningRecommendation[] = [];
+    let order = 1;
+
+    for (const itemId of resolvedChain) {
+      const rec = recMap.get(itemId);
+      if (rec) {
+        ordered.push({ ...rec, order: order++ });
+      }
+    }
+
+    return ordered;
+  }
+
+  /**
    * Generate session summary
    */
   private generateSessionSummary(recommendations: LearningRecommendation[]): SessionSummary {
@@ -472,6 +646,15 @@ export class RecommendationEngine {
     }
 
     rationale += '. Items are interleaved by difficulty to optimize cognitive load.';
+
+    // Add dependency resolution explanation if applicable
+    if (
+      this.lastDependencyResolution &&
+      this.lastDependencyResolution.addedPrerequisites.length > 0
+    ) {
+      const prereqCount = this.lastDependencyResolution.addedPrerequisites.length;
+      rationale += ` Automatically included ${prereqCount} prerequisite${prereqCount > 1 ? 's' : ''} to ensure proper learning progression. Prerequisites are ordered first to build foundational knowledge.`;
+    }
 
     // Add prerequisite filtering explanation if applicable
     if (this.lastPrerequisiteFiltering) {

@@ -14,6 +14,8 @@ import {
 import { SessionModeSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
+import { dependencyResolver } from '../tools/dependency-resolver.js';
+import { listChunks, mapChunkRowToLearningItem } from '../services/chunks.js';
 
 // Input schemas for session management tools
 const CreateSessionInputSchema = z.object({
@@ -74,6 +76,65 @@ const CompleteSessionResultSchema = z.object({
 });
 
 /**
+ * Helper function to resolve dependencies and include prerequisites for session chunks
+ * @param chunkIds Array of chunk IDs to resolve dependencies for
+ * @returns Resolved and ordered chunk IDs with prerequisites included
+ */
+async function resolveSessionChunkDependencies(chunkIds: string[]): Promise<{
+  resolvedChunkIds: string[];
+  addedPrerequisites: string[];
+  message: string;
+}> {
+  if (!chunkIds || chunkIds.length === 0) {
+    return {
+      resolvedChunkIds: [],
+      addedPrerequisites: [],
+      message: '',
+    };
+  }
+
+  try {
+    // Fetch all chunks from database
+    const allChunks = await listChunks();
+    const allItems = allChunks.map(mapChunkRowToLearningItem);
+
+    // Resolve dependencies for selected chunks
+    const resolution = await dependencyResolver.resolveDependencies(allItems, chunkIds);
+
+    if (!resolution.isValid) {
+      logger.warn('Dependency resolution failed for session chunks:', resolution.errors.join(', '));
+      return {
+        resolvedChunkIds: chunkIds,
+        addedPrerequisites: [],
+        message: '',
+      };
+    }
+
+    // Find prerequisites that need to be added
+    const chunkIdSet = new Set(chunkIds);
+    const addedPrerequisites = resolution.resolvedChain.filter(id => !chunkIdSet.has(id));
+
+    let message = '';
+    if (addedPrerequisites.length > 0) {
+      message = ` Automatically included ${addedPrerequisites.length} prerequisite${addedPrerequisites.length > 1 ? 's' : ''} to ensure proper learning progression.`;
+    }
+
+    return {
+      resolvedChunkIds: resolution.resolvedChain,
+      addedPrerequisites,
+      message,
+    };
+  } catch (error) {
+    logger.error('Error resolving session chunk dependencies:', error);
+    return {
+      resolvedChunkIds: chunkIds,
+      addedPrerequisites: [],
+      message: '',
+    };
+  }
+}
+
+/**
  * Registers session management MCP tools for creating, tracking, and completing learning sessions.
  *
  * This function registers the following tools:
@@ -98,10 +159,26 @@ export function registerSessionManagementTools(server: McpServer): void {
         const now = Date.now();
         const sessionId = crypto.randomUUID();
 
+        // Resolve dependencies and include prerequisites if chunkIds are provided
+        let finalChunkIds = validatedInput.chunkIds;
+        let dependencyMessage = '';
+
+        if (validatedInput.chunkIds && validatedInput.chunkIds.length > 0) {
+          const resolution = await resolveSessionChunkDependencies(validatedInput.chunkIds);
+          finalChunkIds = resolution.resolvedChunkIds;
+          dependencyMessage = resolution.message;
+
+          if (resolution.addedPrerequisites.length > 0) {
+            logger.info(
+              `Session ${sessionId}: Added ${resolution.addedPrerequisites.length} prerequisites: ${resolution.addedPrerequisites.join(', ')}`
+            );
+          }
+        }
+
         const sessionInput: CreateSessionInput = {
           id: sessionId,
           topicId: validatedInput.topicId,
-          chunkIds: validatedInput.chunkIds,
+          chunkIds: finalChunkIds,
           mode: validatedInput.mode,
           estimatedDuration: validatedInput.estimatedDuration,
           startTime: now,
@@ -112,14 +189,14 @@ export function registerSessionManagementTools(server: McpServer): void {
         await createSession(sessionInput);
 
         const chunkInfo =
-          validatedInput.chunkIds && validatedInput.chunkIds.length > 0
-            ? ` and ${validatedInput.chunkIds.length} chunks initialized`
+          finalChunkIds && finalChunkIds.length > 0
+            ? ` and ${finalChunkIds.length} chunks initialized`
             : '';
 
         const result = CreateSessionResultSchema.parse({
           sessionId,
           status: 'created' as const,
-          message: `Session created successfully with mode: ${validatedInput.mode}${chunkInfo}`,
+          message: `Session created successfully with mode: ${validatedInput.mode}${chunkInfo}${dependencyMessage}`,
         });
 
         logger.info(`Created session ${sessionId} with mode ${validatedInput.mode}`);

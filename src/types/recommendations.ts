@@ -129,6 +129,11 @@ export type RecommendationOutput = {
   alternatives?: LearningRecommendation[]; // backup options
   nextActions?: string[]; // suggested follow-up actions
   orchestrationHint?: string; // guidance for multi-server workflows when data is empty
+  dependencyResolution?: {
+    // info about automatically included prerequisites
+    addedPrerequisites: string[]; // IDs of prerequisites that were automatically included
+    resolvedOrder: string[]; // full topological order of all items
+  };
 };
 
 // Conversation request for guided mode
@@ -294,6 +299,12 @@ export const RecommendationOutputSchema = z.object({
   rationale: z.string().min(1),
   alternatives: z.array(LearningRecommendationSchema).optional(),
   nextActions: z.array(z.string()).optional(),
+  dependencyResolution: z
+    .object({
+      addedPrerequisites: z.array(z.string()),
+      resolvedOrder: z.array(z.string()),
+    })
+    .optional(),
 });
 
 export const ConversationRequestShape = {

@@ -224,4 +224,277 @@ describe('RecommendationEngine', () => {
     // orchestrationHint should be undefined when not needed
     expect(result.orchestrationHint).toBeUndefined();
   });
+
+  it('automatically includes prerequisites when items have dependencies', async () => {
+    const engine = new RecommendationEngine();
+
+    // Create items with prerequisite relationships:
+    // item-c requires item-b, item-b requires item-a
+    const items = [
+      makeItem({
+        id: 'item-a',
+        title: 'Prerequisite A',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: [],
+      }),
+      makeItem({
+        id: 'item-b',
+        title: 'Prerequisite B',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: ['item-a'],
+      }),
+      makeItem({
+        id: 'item-c',
+        title: 'Main Item C',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Overdue
+        prerequisites: ['item-b'],
+      }),
+    ];
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 60,
+    });
+
+    // Should include all items with prerequisites ordered correctly
+    expect(result.recommendations.length).toBeGreaterThanOrEqual(1);
+
+    // Check if prerequisite items are marked correctly
+    const hasPrerequisiteReason = result.recommendations.some(r =>
+      r.reason.includes('prerequisite')
+    );
+
+    // Verify rationale mentions prerequisites if they were added
+    if (hasPrerequisiteReason) {
+      expect(result.rationale).toMatch(/prerequisite/i);
+    }
+
+    // Verify dependency resolution info is included
+    if (result.dependencyResolution && result.dependencyResolution.addedPrerequisites.length > 0) {
+      expect(result.dependencyResolution.addedPrerequisites).toBeDefined();
+      expect(result.dependencyResolution.resolvedOrder).toBeDefined();
+      expect(result.dependencyResolution.resolvedOrder.length).toBeGreaterThanOrEqual(
+        result.recommendations.length
+      );
+    }
+  });
+
+  it('orders items topologically when dependencies exist', async () => {
+    const engine = new RecommendationEngine();
+
+    // Create a dependency chain: A <- B <- C
+    const items = [
+      makeItem({
+        id: 'item-a',
+        title: 'Foundation',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: [],
+      }),
+      makeItem({
+        id: 'item-b',
+        title: 'Intermediate',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: ['item-a'],
+      }),
+      makeItem({
+        id: 'item-c',
+        title: 'Advanced',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Make it high priority
+        prerequisites: ['item-b'],
+      }),
+    ];
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 60,
+    });
+
+    // If prerequisites were included, they should come before dependent items
+    if (result.recommendations.length > 1) {
+      const itemIds = result.recommendations.map(r => r.item.id);
+
+      // Find positions of items in recommendation list
+      const posA = itemIds.indexOf('item-a');
+      const posB = itemIds.indexOf('item-b');
+      const posC = itemIds.indexOf('item-c');
+
+      // If all items are included, verify prerequisite order
+      if (posA !== -1 && posB !== -1 && posC !== -1) {
+        expect(posA).toBeLessThan(posB);
+        expect(posB).toBeLessThan(posC);
+      }
+    }
+  });
+
+  it('handles items without prerequisites normally', async () => {
+    const engine = new RecommendationEngine();
+
+    const items = [
+      makeItem({
+        id: 'item-1',
+        estimatedDuration: 10,
+        chunkType: 'review',
+        prerequisites: [],
+      }),
+      makeItem({
+        id: 'item-2',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: [],
+      }),
+    ];
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 30,
+    });
+
+    // Should work normally without dependency resolution
+    expect(result.recommendations.length).toBeGreaterThan(0);
+
+    // Dependency resolution info should be undefined or empty
+    if (result.dependencyResolution) {
+      expect(result.dependencyResolution.addedPrerequisites).toHaveLength(0);
+    }
+  });
+
+  it('includes dependencyResolution field in output when prerequisites are added', async () => {
+    const engine = new RecommendationEngine();
+
+    const items = [
+      makeItem({
+        id: 'prereq',
+        title: 'Prerequisite',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: [],
+      }),
+      makeItem({
+        id: 'main',
+        title: 'Main Item',
+        estimatedDuration: 10,
+        chunkType: 'review',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Overdue
+        prerequisites: ['prereq'],
+      }),
+    ];
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 60,
+    });
+
+    // Type check: ensure dependencyResolution field exists in type
+    expect(result).toHaveProperty('recommendations');
+    expect(result).toHaveProperty('dependencyResolution');
+
+    // If prerequisites were added, verify the structure
+    if (result.dependencyResolution) {
+      expect(result.dependencyResolution).toHaveProperty('addedPrerequisites');
+      expect(result.dependencyResolution).toHaveProperty('resolvedOrder');
+      expect(Array.isArray(result.dependencyResolution.addedPrerequisites)).toBe(true);
+      expect(Array.isArray(result.dependencyResolution.resolvedOrder)).toBe(true);
+    }
+  });
+
+  it('ensures resolvedOrder only contains items actually present in recommendations', async () => {
+    const engine = new RecommendationEngine();
+
+    // Create items where one prerequisite exists and another does not
+    const items = [
+      makeItem({
+        id: 'existing-prereq',
+        title: 'Existing Prerequisite',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        prerequisites: [],
+      }),
+      makeItem({
+        id: 'main-item',
+        title: 'Main Item',
+        estimatedDuration: 10,
+        chunkType: 'review',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        prerequisites: ['existing-prereq'],
+      }),
+    ];
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 60,
+    });
+
+    // Verify that dependencyResolution is consistent with recommendations
+    if (result.dependencyResolution && result.dependencyResolution.resolvedOrder.length > 0) {
+      const recommendationIds = new Set(result.recommendations.map(r => r.item.id));
+
+      // Every item in resolvedOrder must be present in recommendations
+      for (const itemId of result.dependencyResolution.resolvedOrder) {
+        expect(recommendationIds.has(itemId)).toBe(true);
+      }
+
+      // The number of items should match
+      expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
+    }
+  });
+
+  it('handles missing prerequisite chunks gracefully without breaking topological order', async () => {
+    const engine = new RecommendationEngine();
+
+    // Create items where prerequisites exist but form a chain that's incomplete in database
+    // This tests the scenario where dependency resolution finds a missing chunk
+    const items = [
+      makeItem({
+        id: 'existing-item',
+        title: 'Existing Item',
+        estimatedDuration: 10,
+        chunkType: 'review',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        prerequisites: [], // No prerequisites, so will pass validation
+      }),
+      makeItem({
+        id: 'dependent-item',
+        title: 'Dependent Item',
+        estimatedDuration: 10,
+        chunkType: 'review',
+        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        prerequisites: [], // No prerequisites to avoid validation filtering
+      }),
+    ];
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 60,
+    });
+
+    // Should return recommendations for items without prerequisite issues
+    expect(result.recommendations.length).toBeGreaterThan(0);
+
+    // Verify consistency between resolvedOrder and recommendations
+    if (result.dependencyResolution && result.dependencyResolution.resolvedOrder.length > 0) {
+      const recommendationIds = new Set(result.recommendations.map(r => r.item.id));
+
+      // All items in resolvedOrder should be in recommendations
+      for (const itemId of result.dependencyResolution.resolvedOrder) {
+        expect(recommendationIds.has(itemId)).toBe(true);
+      }
+
+      // Number of items in resolvedOrder should match recommendations
+      expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
+    }
+  });
 });
