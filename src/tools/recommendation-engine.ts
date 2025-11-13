@@ -1,6 +1,8 @@
 import { calculatePriorityScore } from './sr-calculator.js';
 import { calculateItemCognitiveLoad } from './cognitive-load.js';
 import { prerequisiteValidator } from './prerequisite-validator.js';
+import { dependencyResolver } from './dependency-resolver.js';
+import { getChunk, mapChunkRowToLearningItem } from '../services/chunks.js';
 import type {
   RecommendationInput,
   RecommendationOutput,
@@ -20,6 +22,10 @@ import { logger } from '../utils/logger.js';
  */
 export class RecommendationEngine {
   private lastPrerequisiteFiltering: { rationale: string; filteredCount: number } | null = null;
+  private lastDependencyResolution: {
+    addedPrerequisites: string[];
+    resolvedChain: string[];
+  } | null = null;
 
   /**
    * Generate personalized learning recommendations
@@ -35,7 +41,13 @@ export class RecommendationEngine {
     );
 
     // Compose balanced session
-    const recommendations = this.composeBalancedSession(candidates, processedInput);
+    let recommendations = this.composeBalancedSession(candidates, processedInput);
+
+    // Resolve dependencies and include missing prerequisites
+    recommendations = await this.resolveAndIncludePrerequisites(
+      recommendations,
+      processedInput.learningItems || []
+    );
 
     // Generate session summary
     const sessionSummary = this.generateSessionSummary(recommendations);
@@ -60,6 +72,15 @@ export class RecommendationEngine {
           : 'No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items_sqlite to fetch items manually and then pass them to this tool.'
         : undefined;
 
+    // Include dependency resolution info if prerequisites were added
+    const dependencyResolution =
+      this.lastDependencyResolution && this.lastDependencyResolution.addedPrerequisites.length > 0
+        ? {
+            addedPrerequisites: this.lastDependencyResolution.addedPrerequisites,
+            resolvedOrder: this.lastDependencyResolution.resolvedChain,
+          }
+        : undefined;
+
     return {
       recommendations,
       sessionSummary,
@@ -69,6 +90,7 @@ export class RecommendationEngine {
       alternatives,
       nextActions: this.generateNextActions(recommendations, processedInput),
       orchestrationHint,
+      dependencyResolution,
     };
   }
 
@@ -362,6 +384,132 @@ export class RecommendationEngine {
   }
 
   /**
+   * Resolve dependencies and automatically include missing prerequisites
+   * @param recommendations Current recommendations
+   * @param allAvailableItems All learning items available (for prerequisite lookup)
+   * @returns Recommendations with prerequisites included and ordered correctly
+   */
+  private async resolveAndIncludePrerequisites(
+    recommendations: LearningRecommendation[],
+    allAvailableItems: LearningItem[]
+  ): Promise<LearningRecommendation[]> {
+    if (recommendations.length === 0) {
+      this.lastDependencyResolution = null;
+      return recommendations;
+    }
+
+    try {
+      const selectedIds = recommendations.map(r => r.item.id);
+      const selectedIdSet = new Set(selectedIds);
+
+      // Build a cache of learning items reachable from the selected items
+      const itemMap = new Map<string, LearningItem>();
+      for (const item of allAvailableItems) {
+        itemMap.set(item.id, item);
+      }
+      for (const rec of recommendations) {
+        itemMap.set(rec.item.id, rec.item);
+      }
+
+      const queue: string[] = [...selectedIds];
+      const visited = new Set<string>();
+
+      while (queue.length > 0) {
+        const currentId = queue.shift();
+        if (!currentId || visited.has(currentId)) {
+          continue;
+        }
+        visited.add(currentId);
+
+        let item = itemMap.get(currentId);
+        if (!item) {
+          const chunkRow = await getChunk(currentId);
+          if (!chunkRow) {
+            logger.warn(`Prerequisite chunk ${currentId} not found in database`);
+            continue;
+          }
+          item = mapChunkRowToLearningItem(chunkRow);
+          itemMap.set(currentId, item);
+        }
+
+        const prerequisites = item.prerequisites || [];
+        for (const prereqId of prerequisites) {
+          if (!visited.has(prereqId)) {
+            queue.push(prereqId);
+          }
+        }
+      }
+
+      const relevantItems = Array.from(itemMap.entries())
+        .filter(([id]) => visited.has(id))
+        .map(([, item]) => item);
+
+      if (relevantItems.length === 0) {
+        this.lastDependencyResolution = null;
+        return recommendations;
+      }
+
+      // Resolve dependencies for selected items using the expanded item graph
+      const resolution = await dependencyResolver.resolveDependencies(relevantItems, selectedIds);
+
+      if (!resolution.isValid) {
+        logger.warn('Dependency resolution failed:', resolution.errors.join(', '));
+        this.lastDependencyResolution = null;
+        return recommendations;
+      }
+
+      const resolvedChain = resolution.resolvedChain.filter(id => visited.has(id));
+      const recommendationMap = new Map(recommendations.map(r => [r.item.id, r]));
+
+      let order = 1;
+      const combinedRecommendations: LearningRecommendation[] = [];
+      const includedIds: string[] = [];
+
+      for (const itemId of resolvedChain) {
+        if (selectedIdSet.has(itemId)) {
+          const existing = recommendationMap.get(itemId);
+          if (existing) {
+            combinedRecommendations.push({
+              ...existing,
+              order: order++,
+            });
+            includedIds.push(itemId);
+          }
+          continue;
+        }
+
+        const item = itemMap.get(itemId);
+        if (!item) {
+          logger.warn(
+            `Skipped item ${itemId} from dependency resolution chain - not available after lookup`
+          );
+          continue;
+        }
+
+        const prereqRecommendation = this.createRecommendation(
+          item,
+          order++,
+          'prerequisite - required for selected items'
+        );
+        combinedRecommendations.push(prereqRecommendation);
+        includedIds.push(itemId);
+      }
+
+      const addedPrerequisites = includedIds.filter(id => !selectedIdSet.has(id));
+      this.lastDependencyResolution = {
+        addedPrerequisites,
+        resolvedChain: combinedRecommendations.map(rec => rec.item.id),
+      };
+
+      return combinedRecommendations;
+    } catch (error) {
+      logger.error('Error resolving dependencies:', error);
+      this.lastDependencyResolution = null;
+      return recommendations;
+    }
+  }
+
+  /**
    * Generate session summary
    */
   private generateSessionSummary(recommendations: LearningRecommendation[]): SessionSummary {
@@ -472,6 +620,15 @@ export class RecommendationEngine {
     }
 
     rationale += '. Items are interleaved by difficulty to optimize cognitive load.';
+
+    // Add dependency resolution explanation if applicable
+    if (
+      this.lastDependencyResolution &&
+      this.lastDependencyResolution.addedPrerequisites.length > 0
+    ) {
+      const prereqCount = this.lastDependencyResolution.addedPrerequisites.length;
+      rationale += ` Automatically included ${prereqCount} prerequisite${prereqCount > 1 ? 's' : ''} to ensure proper learning progression. Prerequisites are ordered first to build foundational knowledge.`;
+    }
 
     // Add prerequisite filtering explanation if applicable
     if (this.lastPrerequisiteFiltering) {
