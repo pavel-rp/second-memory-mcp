@@ -85,6 +85,7 @@ describe('ConversationManager', () => {
       expect(out.message).toContain('react');
       expect(out.message).toContain('create_topic_with_chunks');
       expect(out.message).toContain('chunk_generation');
+      expect(out.message).toContain('search_learning_content');
     });
 
     it('handles empty topic title gracefully', async () => {
@@ -109,6 +110,9 @@ describe('ConversationManager', () => {
       expect(out.message).toContain('javascript');
       expect(out.message).toContain('subject: "SWE"'); // Should infer Software Engineering
       expect(out.recommendations?.nextActions).toContain(
+        'Call search_learning_content tool with topic keywords'
+      );
+      expect(out.recommendations?.nextActions).toContain(
         'Call chunk_generation prompt with topic details'
       );
     });
@@ -123,6 +127,7 @@ describe('ConversationManager', () => {
       expect(out.message).toContain('chunk_generation');
       expect(out.message).toContain('create_topic_with_chunks');
       expect(out.message).toContain('5-9 scaffolded learning chunks');
+      expect(out.message).toContain('search_learning_content');
     });
 
     it('provides context-aware subject inference', async () => {
@@ -150,6 +155,7 @@ describe('ConversationManager', () => {
         userInput: 'I want to learn Python programming',
       } as any);
 
+      expect(out.suggestedInputs).toContain('Run search for existing content');
       expect(out.suggestedInputs).toContain('Call chunk_generation prompt now');
       expect(out.suggestedInputs).toContain('Tell me more about the chunk generation process');
       expect(out.suggestedInputs).toContain('Choose a different topic');
@@ -180,10 +186,10 @@ describe('ConversationManager', () => {
       } as any);
 
       expect(out.recommendations?.rationale).toContain(
-        'explicit guidance for chunk generation workflow'
+        'duplicate check and chunk generation workflow'
       );
       expect(out.recommendations?.rationale).toContain('data structures');
-      expect(out.recommendations?.nextActions).toHaveLength(3);
+      expect(out.recommendations?.nextActions).toHaveLength(5);
     });
   });
 });

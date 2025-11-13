@@ -138,13 +138,19 @@ export class ConversationManager {
 
     // Guide the client through instruction-based chunk generation workflow
     const topicDescription = `Learn ${topicTitle} through structured, scaffolded lessons`;
+    const searchLimit = 10;
+    const subjectLine = subject ? `\n- subject: "${subject}"` : '';
 
     return {
       message:
         `I'll help you create a structured learning path for "${topicTitle}".\n\n` +
-        `To generate the learning chunks, please call the \`chunk_generation\` prompt with these parameters:\n\n` +
-        `**Prompt:** chunk_generation\n` +
-        `**Arguments:**\n` +
+        `**Step 1 — Check for existing content**\n` +
+        `Call the \`search_learning_content\` tool to see if we already have relevant topics or chunks:\n` +
+        `- query: "${topicTitle}"\n` +
+        `- limit: ${searchLimit}${subjectLine}\n\n` +
+        `If you find a match, you can reuse it right away. If not, continue to Step 2.\n\n` +
+        `**Step 2 — Generate new learning chunks**\n` +
+        `Call the \`chunk_generation\` prompt with these parameters:\n` +
         `- topicTitle: "${topicTitle}"\n` +
         `- topicDescription: "${topicDescription}"\n` +
         `- subject: "${subject}"\n\n` +
@@ -152,6 +158,7 @@ export class ConversationManager {
         `Once you have the chunk proposals, you can then use the \`create_topic_with_chunks\` tool to create the complete learning topic.`,
       needsInput: false,
       suggestedInputs: [
+        'Run search for existing content',
         'Call chunk_generation prompt now',
         'Tell me more about the chunk generation process',
         'Choose a different topic',
@@ -170,8 +177,10 @@ export class ConversationManager {
           subjects: [subject],
         },
         estimatedDuration: 0,
-        rationale: `Providing explicit guidance for chunk generation workflow for "${topicTitle}"`,
+        rationale: `Guiding duplicate check and chunk generation workflow for "${topicTitle}"`,
         nextActions: [
+          'Call search_learning_content tool with topic keywords',
+          'Review search results to reuse existing content if available',
           'Call chunk_generation prompt with topic details',
           'Review generated chunk proposals',
           'Create topic with create_topic_with_chunks tool',

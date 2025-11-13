@@ -5,6 +5,7 @@ import { registerSessionManagementTools } from './session-management-tools.js';
 import { registerSpacedRepetitionTools } from './spaced-repetition-tools.js';
 import { registerPersistenceTools } from './persistence-tools.js';
 import { registerContentTools } from './content-tools.js';
+import { registerSearchTools } from './search-tools.js';
 
 export function registerServerTools(server: McpServer): void {
   registerSpacedRepetitionTools(server);
@@ -13,4 +14,5 @@ export function registerServerTools(server: McpServer): void {
   registerSessionManagementTools(server);
   registerPersistenceTools(server);
   registerContentTools(server);
+  registerSearchTools(server);
 }
