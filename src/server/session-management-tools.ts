@@ -15,7 +15,7 @@ import { SessionModeSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { dependencyResolver } from '../tools/dependency-resolver.js';
-import { listChunks, mapChunkRowToLearningItem } from '../services/chunks.js';
+import { getChunk, mapChunkRowToLearningItem } from '../services/chunks.js';
 
 // Input schemas for session management tools
 const CreateSessionInputSchema = z.object({
@@ -78,7 +78,7 @@ const CompleteSessionResultSchema = z.object({
 /**
  * Helper function to resolve dependencies and include prerequisites for session chunks
  * @param chunkIds Array of chunk IDs to resolve dependencies for
- * @returns Resolved and ordered chunk IDs with prerequisites included
+ * @returns Resolved topological order including original chunk IDs and any existing prerequisites
  */
 async function resolveSessionChunkDependencies(chunkIds: string[]): Promise<{
   resolvedChunkIds: string[];
@@ -93,13 +93,72 @@ async function resolveSessionChunkDependencies(chunkIds: string[]): Promise<{
     };
   }
 
+  const inputChunkSet = new Set(chunkIds);
+  const chunkMap = new Map<string, ReturnType<typeof mapChunkRowToLearningItem>>();
+  const missingPrerequisites: string[] = [];
+  const missingRequestedChunks: string[] = [];
+  const queue: string[] = [...chunkIds];
+  const visited = new Set<string>();
+
   try {
-    // Fetch all chunks from database
-    const allChunks = await listChunks();
-    const allItems = allChunks.map(mapChunkRowToLearningItem);
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!currentId || visited.has(currentId)) {
+        continue;
+      }
+      visited.add(currentId);
+
+      let item = chunkMap.get(currentId);
+      if (!item) {
+        const chunkRow = await getChunk(currentId);
+        if (!chunkRow) {
+          if (inputChunkSet.has(currentId)) {
+            missingRequestedChunks.push(currentId);
+          } else {
+            missingPrerequisites.push(currentId);
+          }
+          logger.warn(
+            `Skipping chunk ${currentId} while resolving session dependencies - not found in database`
+          );
+          continue;
+        }
+        item = mapChunkRowToLearningItem(chunkRow);
+        chunkMap.set(currentId, item);
+      }
+
+      const prerequisites = item.prerequisites || [];
+      for (const prereqId of prerequisites) {
+        if (!visited.has(prereqId)) {
+          queue.push(prereqId);
+        }
+      }
+    }
+
+    if (missingRequestedChunks.length > 0) {
+      logger.warn(
+        `Cannot resolve dependencies for missing requested chunks: ${missingRequestedChunks.join(', ')}`
+      );
+      return {
+        resolvedChunkIds: chunkIds,
+        addedPrerequisites: [],
+        message: '',
+      };
+    }
+
+    const relevantItems = Array.from(chunkMap.entries())
+      .filter(([id]) => visited.has(id))
+      .map(([, item]) => item);
+
+    if (relevantItems.length === 0) {
+      return {
+        resolvedChunkIds: chunkIds,
+        addedPrerequisites: [],
+        message: '',
+      };
+    }
 
     // Resolve dependencies for selected chunks
-    const resolution = await dependencyResolver.resolveDependencies(allItems, chunkIds);
+    const resolution = await dependencyResolver.resolveDependencies(relevantItems, chunkIds);
 
     if (!resolution.isValid) {
       logger.warn('Dependency resolution failed for session chunks:', resolution.errors.join(', '));
@@ -110,17 +169,30 @@ async function resolveSessionChunkDependencies(chunkIds: string[]): Promise<{
       };
     }
 
-    // Find prerequisites that need to be added
+    const existingResolvedChain = resolution.resolvedChain.filter(id => chunkMap.has(id));
     const chunkIdSet = new Set(chunkIds);
-    const addedPrerequisites = resolution.resolvedChain.filter(id => !chunkIdSet.has(id));
+    const addedPrerequisites = existingResolvedChain.filter(id => !chunkIdSet.has(id));
 
-    let message = '';
+    const messageParts: string[] = [];
     if (addedPrerequisites.length > 0) {
-      message = ` Automatically included ${addedPrerequisites.length} prerequisite${addedPrerequisites.length > 1 ? 's' : ''} to ensure proper learning progression.`;
+      messageParts.push(
+        `Automatically included ${addedPrerequisites.length} prerequisite${addedPrerequisites.length > 1 ? 's' : ''} to ensure proper learning progression.`
+      );
     }
 
+    if (missingPrerequisites.length > 0) {
+      messageParts.push(
+        `Skipped ${missingPrerequisites.length} missing prerequisite${missingPrerequisites.length > 1 ? 's' : ''}: ${missingPrerequisites.join(', ')}.`
+      );
+      logger.warn(
+        `Skipped missing prerequisite chunks during session dependency resolution: ${missingPrerequisites.join(', ')}`
+      );
+    }
+
+    const message = messageParts.length > 0 ? ` ${messageParts.join(' ')}` : '';
+
     return {
-      resolvedChunkIds: resolution.resolvedChain,
+      resolvedChunkIds: existingResolvedChain,
       addedPrerequisites,
       message,
     };

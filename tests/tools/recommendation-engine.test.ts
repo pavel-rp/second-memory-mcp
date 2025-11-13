@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
+import * as chunksService from '../../src/services/chunks.js';
+import { prerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
 
 function makeItem(overrides: Partial<any> = {}): any {
   return {
@@ -17,12 +19,41 @@ function makeItem(overrides: Partial<any> = {}): any {
   };
 }
 
+function makeChunkRow(
+  id: string,
+  prerequisites: string[] = [],
+  overrides: Partial<Record<string, unknown>> = {}
+): any {
+  const now = Date.now();
+  return {
+    id,
+    topicId: 'topic',
+    title: overrides.title ?? `Chunk ${id}`,
+    subject: overrides.subject ?? 'CS',
+    difficulty: overrides.difficulty ?? 5,
+    nextReviewAt: overrides.nextReviewAt ?? now,
+    easeFactor: overrides.easeFactor ?? 2.5,
+    repetitions: overrides.repetitions ?? 1,
+    lastReviewedAt: overrides.lastReviewedAt ?? null,
+    estimatedDuration: overrides.estimatedDuration ?? 10,
+    chunkType: overrides.chunkType ?? 'new',
+    prerequisitesJson: JSON.stringify(prerequisites),
+    tagsJson: JSON.stringify(overrides.tags ?? []),
+    content: overrides.content ?? null,
+    contentVersion: overrides.contentVersion ?? null,
+    contentUpdatedAt: overrides.contentUpdatedAt ?? null,
+    createdAt: overrides.createdAt ?? now,
+    updatedAt: overrides.updatedAt ?? now,
+  };
+}
+
 describe('RecommendationEngine', () => {
   const originalEnv = { ...process.env };
   beforeEach(() => {
     vi.resetModules();
   });
   afterEach(() => {
+    vi.restoreAllMocks();
     process.env = { ...originalEnv };
   });
 
@@ -278,10 +309,55 @@ describe('RecommendationEngine', () => {
     if (result.dependencyResolution && result.dependencyResolution.addedPrerequisites.length > 0) {
       expect(result.dependencyResolution.addedPrerequisites).toBeDefined();
       expect(result.dependencyResolution.resolvedOrder).toBeDefined();
-      expect(result.dependencyResolution.resolvedOrder.length).toBeGreaterThanOrEqual(
-        result.recommendations.length
-      );
+      expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
     }
+  });
+
+  it('includes transitive prerequisites when only dependent item is provided', async () => {
+    const engine = new RecommendationEngine();
+
+    const overdueDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const items = [
+      makeItem({
+        id: 'item-b',
+        title: 'Intermediate Item B',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        nextReviewDate: overdueDate,
+        prerequisites: ['item-a'],
+      }),
+      makeItem({
+        id: 'item-c',
+        title: 'Main Item C',
+        estimatedDuration: 10,
+        chunkType: 'new',
+        nextReviewDate: overdueDate,
+        prerequisites: ['item-b'],
+      }),
+    ];
+
+    const chunkRows: Record<string, any> = {
+      'item-a': makeChunkRow('item-a', []),
+    };
+
+    vi.spyOn(chunksService, 'getChunk').mockImplementation(async id => chunkRows[id] ?? null);
+    vi.spyOn(prerequisiteValidator, 'filterByPrerequisites').mockResolvedValue({
+      validItems: items,
+      filteredItems: [],
+      rationale: 'mocked for transitive prerequisite test',
+    });
+
+    const result = await engine.generateRecommendations({
+      mode: 'explicit',
+      learningItems: items,
+      timeAvailable: 60,
+    });
+
+    const orderedIds = result.recommendations.map(r => r.item.id);
+    expect(orderedIds).toEqual(['item-a', 'item-b', 'item-c']);
+
+    expect(result.dependencyResolution).toBeDefined();
+    expect(result.dependencyResolution?.addedPrerequisites).toContain('item-a');
   });
 
   it('orders items topologically when dependencies exist', async () => {
@@ -412,7 +488,7 @@ describe('RecommendationEngine', () => {
   it('ensures resolvedOrder only contains items actually present in recommendations', async () => {
     const engine = new RecommendationEngine();
 
-    // Create items where one prerequisite exists and another does not
+    // Create items with a simple prerequisite relationship
     const items = [
       makeItem({
         id: 'existing-prereq',
