@@ -3,11 +3,13 @@ import { z } from 'zod';
 export const SearchLearningContentInputShape = {
   query: z
     .string()
+    .trim()
     .min(2, 'Search query must be at least 2 characters')
     .max(120, 'Search query must be at most 120 characters')
     .describe('Keywords to search for across learning topics and chunk titles'),
   subject: z
     .string()
+    .trim()
     .min(1, 'Subject cannot be empty')
     .max(32, 'Subject must be at most 32 characters')
     .optional()
