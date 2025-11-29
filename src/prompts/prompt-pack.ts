@@ -21,6 +21,16 @@ export type PromptFeedbackEntry = {
   feedback: string;
 };
 
+// Utility function to map HistoricalFeedback[] to PromptFeedbackEntry[]
+export function mapHistoricalFeedbackToPromptFeedback(
+  feedback: Array<{ session_mode: string; completed_at: string; feedback: string }>
+): PromptFeedbackEntry[] {
+  return feedback.map(f => ({
+    sessionMode: f.session_mode,
+    completedAt: f.completed_at,
+    feedback: f.feedback,
+  }));
+}
 export type PromptContext = {
   // Common
   problem?: string;
