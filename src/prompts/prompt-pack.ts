@@ -15,22 +15,12 @@ export type DrillFormat =
   | 'application';
 
 // Historical feedback entry from past sessions
+// Uses snake_case to match HistoricalFeedback type in session.ts for consistency
 export type PromptFeedbackEntry = {
-  sessionMode: string;
-  completedAt: string;
+  session_mode: string;
+  completed_at: string;
   feedback: string;
 };
-
-// Utility function to map HistoricalFeedback[] to PromptFeedbackEntry[]
-export function mapHistoricalFeedbackToPromptFeedback(
-  feedback: Array<{ session_mode: string; completed_at: string; feedback: string }>
-): PromptFeedbackEntry[] {
-  return feedback.map(f => ({
-    sessionMode: f.session_mode,
-    completedAt: f.completed_at,
-    feedback: f.feedback,
-  }));
-}
 export type PromptContext = {
   // Common
   problem?: string;
@@ -442,8 +432,8 @@ export class PromptPack {
     }
 
     const feedbackLines = feedback.map((entry, idx) => {
-      const date = entry.completedAt.split('T')[0];
-      return `  ${idx + 1}. [${date}, ${entry.sessionMode}]: ${entry.feedback}`;
+      const date = entry.completed_at.split('T')[0];
+      return `  ${idx + 1}. [${date}, ${entry.session_mode}]: ${entry.feedback}`;
     });
 
     return [
