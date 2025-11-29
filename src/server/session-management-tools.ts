@@ -408,9 +408,8 @@ export function registerSessionManagementTools(server: McpServer): void {
       title: 'Complete Learning Session',
       description:
         'Complete a learning session with optional feedback and final metrics. ' +
-        'Informative feedback should be added, which must include what was difficult, and what was easy. ' +
-        "Specifically, it's very important to log the hard parts sufficiently, so that the system can learn from them and improve the learning experience. " +
-        'It should include the specific pain points and where the user struggled to understand.',
+        'Feedback should describe what was difficult and what was easy, with specific focus on pain points ' +
+        'and areas where the user struggled. This enables the system to provide better guidance in future sessions.',
       inputSchema: CompleteSessionInputSchema.shape,
     },
     async (input: unknown) => {
