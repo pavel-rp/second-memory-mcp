@@ -11,7 +11,7 @@ import {
   type NewSessionChunkRow,
   type LearningChunkRow,
 } from '../db/schema.js';
-import { SessionInput, SessionMode } from '../types/session.js';
+import { SessionInput, SessionMode, HistoricalFeedback } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 
 // Input types for session operations
@@ -273,8 +273,20 @@ export async function getSessionWithChunks(sessionId: string): Promise<{
   return { session, chunks };
 }
 
+/**
+ * Convert a database session to SessionInput format.
+ *
+ * @param sessionId - The session ID to convert
+ * @param options - Optional configuration
+ * @param options.includeHistoricalFeedback - Include feedback from past sessions on same chunks
+ * @param options.historicalFeedbackLimit - Max number of historical feedback entries (default: 5)
+ */
 export async function convertSessionToSessionInput(
-  sessionId: string
+  sessionId: string,
+  options?: {
+    includeHistoricalFeedback?: boolean;
+    historicalFeedbackLimit?: number;
+  }
 ): Promise<SessionInput | null> {
   const { session, chunks } = await getSessionWithChunks(sessionId);
 
@@ -296,7 +308,7 @@ export async function convertSessionToSessionInput(
   const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
 
   // Convert database chunks to SessionInput format
-  const sessionChunks: SessionInput['chunks'] = chunks.map(chunk => {
+  const sessionChunksData: SessionInput['chunks'] = chunks.map(chunk => {
     let attempts: SessionInput['chunks'][0]['attempts'] = [];
     let qualityScores: number[] = [];
 
@@ -340,11 +352,26 @@ export async function convertSessionToSessionInput(
     };
   });
 
+  // Fetch historical feedback for review/retrieval sessions if requested
+  let historicalFeedback: HistoricalFeedback[] | undefined;
+  if (options?.includeHistoricalFeedback && chunkIds.length > 0) {
+    historicalFeedback = await getHistoricalFeedbackForChunks(chunkIds, {
+      limit: options.historicalFeedbackLimit ?? 5,
+      excludeSessionId: sessionId,
+    });
+    // Only include if there's actual feedback
+    if (historicalFeedback.length === 0) {
+      historicalFeedback = undefined;
+    }
+  }
+
   return {
     session_id: session.id,
     mode: session.mode as SessionMode,
     start_time: new Date(session.startTime).toISOString(),
-    chunks: sessionChunks,
+    chunks: sessionChunksData,
+    feedback: session.feedback || undefined,
+    historical_feedback: historicalFeedback,
   };
 }
 
@@ -390,4 +417,87 @@ export async function listSessions(options?: {
   }
 
   return query.all();
+}
+
+/**
+ * Fetch historical feedback from completed sessions that covered specific chunks.
+ * This enables the AI to consider past struggles and successes during reviews.
+ *
+ * @param chunkIds - Array of chunk IDs to find related feedback for
+ * @param options - Optional configuration for filtering
+ * @returns Array of historical feedback entries, sorted by most recent first
+ */
+export async function getHistoricalFeedbackForChunks(
+  chunkIds: string[],
+  options?: {
+    limit?: number;
+    excludeSessionId?: string; // Exclude current session from results
+  }
+): Promise<HistoricalFeedback[]> {
+  if (!chunkIds || chunkIds.length === 0) {
+    return [];
+  }
+
+  const db = getSql();
+
+  try {
+    // Find completed sessions that have feedback and involved any of the specified chunks
+    const completedSessions = await db
+      .select()
+      .from(learningSessions)
+      .where(eq(learningSessions.status, 'completed'))
+      .orderBy(desc(learningSessions.endTime))
+      .all();
+
+    const feedbackEntries: HistoricalFeedback[] = [];
+    const chunkIdSet = new Set(chunkIds);
+
+    for (const session of completedSessions) {
+      // Skip current session if specified
+      if (options?.excludeSessionId && session.id === options.excludeSessionId) {
+        continue;
+      }
+
+      // Skip sessions without feedback
+      if (!session.feedback || session.feedback.trim() === '') {
+        continue;
+      }
+
+      // Parse session chunk IDs and check for overlap
+      let sessionChunkIds: string[] = [];
+      if (session.chunkIds) {
+        try {
+          sessionChunkIds = JSON.parse(session.chunkIds) as string[];
+        } catch {
+          logger.warn(`Failed to parse chunk IDs for session ${session.id}`);
+          continue;
+        }
+      }
+
+      // Find overlapping chunks
+      const overlappingChunks = sessionChunkIds.filter(id => chunkIdSet.has(id));
+
+      if (overlappingChunks.length > 0) {
+        feedbackEntries.push({
+          session_id: session.id,
+          session_mode: session.mode as SessionMode,
+          completed_at: session.endTime
+            ? new Date(session.endTime).toISOString()
+            : new Date(session.updatedAt).toISOString(),
+          feedback: session.feedback,
+          chunk_ids: overlappingChunks,
+        });
+      }
+
+      // Apply limit if specified
+      if (options?.limit && feedbackEntries.length >= options.limit) {
+        break;
+      }
+    }
+
+    return feedbackEntries;
+  } catch (error) {
+    logger.error('Failed to fetch historical feedback:', error);
+    return [];
+  }
 }

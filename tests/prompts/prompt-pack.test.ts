@@ -121,9 +121,18 @@ describe('promptPack', () => {
       expect(text).toContain('1) Research phase');
       expect(text).toContain('Search web for current information');
       expect(text).toContain('authoritative sources');
-      expect(text).toContain('Research-enhanced learning');
       expect(text).toContain('Web search performed by client');
       expect(text).toContain('2) Intake problem'); // Workflow steps renumbered
+    });
+
+    it('workflow guidance includes session enforcement for recall/review', () => {
+      const text = promptPack.getPrompt('workflow_guidance');
+      expect(text).toContain('CRITICAL: Session Requirement for Recall/Review');
+      expect(text).toContain('MANDATORY: For ANY recall, review, or retrieval practice');
+      expect(text).toContain('Create a session BEFORE teaching');
+      expect(text).toContain('historical feedback');
+      expect(text).toContain('Review/Recall Flow');
+      expect(text).toContain('Session Completion Best Practices');
     });
 
     it('enhanced prompts preserve all original content', () => {

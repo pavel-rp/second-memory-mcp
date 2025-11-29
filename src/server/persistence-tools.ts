@@ -675,7 +675,10 @@ export function registerPersistenceTools(server: McpServer): void {
     {
       title: 'Batch Fetch Chunks (Minimal Metadata)',
       description:
-        'Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). Efficient for listing and selection workflows.',
+        'Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). ' +
+        'Efficient for listing and selection workflows. ' +
+        'IMPORTANT: For recall/review practice, after fetching chunk IDs, you MUST create a session with ' +
+        'create_session({ mode: "retrieval" or "review", chunkIds: [...] }) before teaching.',
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
     async (rawInput: unknown) => {
@@ -688,6 +691,7 @@ export function registerPersistenceTools(server: McpServer): void {
           dueOnly,
           limit,
         });
+        const chunkIds = chunks.map((c: { id: string }) => c.id);
         return {
           content: [
             {
@@ -697,6 +701,18 @@ export function registerPersistenceTools(server: McpServer): void {
                 chunks,
                 count: chunks.length,
                 message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
+                // Enforcement hint for recall/review workflows
+                workflowHint:
+                  chunks.length > 0
+                    ? {
+                        action: 'REQUIRED_FOR_RECALL',
+                        instruction:
+                          'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                          'and include these chunk IDs before teaching. This loads historical feedback.',
+                        chunkIds,
+                        nextStep: `create_session({ mode: "retrieval", chunkIds: ${JSON.stringify(chunkIds)} })`,
+                      }
+                    : undefined,
               }),
             },
           ],

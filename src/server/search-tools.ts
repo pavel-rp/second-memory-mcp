@@ -12,13 +12,21 @@ export function registerSearchTools(server: McpServer): void {
     {
       title: 'Search Learning Content',
       description:
-        'Search existing learning topics and chunks by title to avoid duplicate content creation.',
+        'Search existing learning topics and chunks by title to find content for review or avoid duplicates. ' +
+        'IMPORTANT: For recall, review, or retrieval practice, you MUST create a session using create_session ' +
+        'with the chunk IDs before proceeding. This enables tracking of historical feedback about what the ' +
+        'learner found difficult in previous sessions.',
       inputSchema: SearchLearningContentInputShape,
     },
     async (rawInput: unknown) => {
       try {
         const input: SearchLearningContentInput = SearchLearningContentInputSchema.parse(rawInput);
         const result = await searchLearningContent(input);
+
+        // Extract chunk IDs from results (results contain both topics and chunks)
+        const chunkResults = result.results.filter(item => item.resultType === 'chunk');
+        const hasChunks = chunkResults.length > 0;
+        const chunkIds = chunkResults.map(c => c.id);
 
         return {
           content: [
@@ -31,6 +39,18 @@ export function registerSearchTools(server: McpServer): void {
                     ? `Found ${result.counts.total} matching items.`
                     : 'No matching topics or chunks were found.',
                 ...result,
+                // Enforcement hint for recall/review workflows
+                workflowHint: hasChunks
+                  ? {
+                      action: 'REQUIRED_FOR_RECALL',
+                      instruction:
+                        'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                        'and include the chunk IDs before teaching. This loads historical feedback from past sessions ' +
+                        'showing what the learner struggled with previously.',
+                      suggestedChunkIds: chunkIds,
+                      nextStep: `create_session({ mode: "retrieval", chunkIds: ${JSON.stringify(chunkIds)} })`,
+                    }
+                  : undefined,
               }),
             },
           ],
