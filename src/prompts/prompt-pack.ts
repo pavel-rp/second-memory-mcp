@@ -1,3 +1,5 @@
+import { SessionMode } from '../types/session.js';
+
 export type PromptName =
   | 'scaffolding'
   | 'learning'
@@ -16,7 +18,7 @@ export type DrillFormat =
 
 // Historical feedback entry from past sessions
 export type PromptFeedbackEntry = {
-  sessionMode: string;
+  sessionMode: SessionMode;
   completedAt: string;
   feedback: string;
 };
