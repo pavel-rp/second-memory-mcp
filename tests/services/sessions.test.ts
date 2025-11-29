@@ -44,6 +44,7 @@ import {
   batchCreateSessionChunks,
   listSessions,
   validateChunkIds,
+  getHistoricalFeedbackForChunks,
   type CreateSessionInput,
   type CreateSessionChunkInput,
   type ChunkValidationResult,
@@ -807,6 +808,644 @@ function tmpDbPath() {
       expect(result.validChunkIds).toEqual(chunkIds);
       expect(result.invalidChunkIds).toEqual([]);
       expect(result.errors).toEqual([]);
+    });
+  });
+
+  describe('getHistoricalFeedbackForChunks', () => {
+    beforeEach(async () => {
+      await resetDatabase();
+      ensureSchema();
+    });
+
+    it('should return empty array for empty chunkIds array', async () => {
+      const result = await getHistoricalFeedbackForChunks([]);
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for null chunkIds', async () => {
+      const result = await getHistoricalFeedbackForChunks(null as any);
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for undefined chunkIds', async () => {
+      const result = await getHistoricalFeedbackForChunks(undefined as any);
+      expect(result).toEqual([]);
+    });
+
+    it('should return feedback from completed session with matching chunks', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a completed session with feedback
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        'Great progress on chunk1!',
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].session_id).toBe('session1');
+      expect(result[0].session_mode).toBe('learning');
+      expect(result[0].feedback).toBe('Great progress on chunk1!');
+      expect(result[0].chunk_ids).toEqual(['chunk1']);
+    });
+
+    it('should return empty array when session has feedback but no chunk overlap', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunks
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk2', 'topic1', 'Test Chunk 2', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a completed session with feedback for chunk2
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk2']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        'Great progress on chunk2!',
+        now - 3600000,
+        now
+      );
+
+      // Query for chunk1 which is not in session1
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return multiple sessions with overlapping chunks and respect limit', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create 3 completed sessions with feedback
+      for (let i = 1; i <= 3; i++) {
+        db.prepare(
+          `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          `session${i}`,
+          'topic1',
+          JSON.stringify(['chunk1']),
+          'review',
+          'completed',
+          now - (4 - i) * 3600000,
+          now - (3 - i) * 3600000,
+          `Feedback for session ${i}`,
+          now - (4 - i) * 3600000,
+          now - (3 - i) * 3600000
+        );
+      }
+
+      // Query without limit
+      const allResults = await getHistoricalFeedbackForChunks(['chunk1']);
+      expect(allResults).toHaveLength(3);
+
+      // Query with limit
+      const limitedResults = await getHistoricalFeedbackForChunks(['chunk1'], { limit: 2 });
+      expect(limitedResults).toHaveLength(2);
+      // Should return most recent first (session3 has the latest endTime)
+      expect(limitedResults[0].session_id).toBe('session3');
+      expect(limitedResults[1].session_id).toBe('session2');
+    });
+
+    it('should exclude session via excludeSessionId option', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create 2 completed sessions
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now - 1800000,
+        'Feedback 1',
+        now - 3600000,
+        now - 1800000
+      );
+
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session2',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'review',
+        'completed',
+        now - 1000000,
+        now,
+        'Feedback 2',
+        now - 1000000,
+        now
+      );
+
+      // Query excluding session2
+      const result = await getHistoricalFeedbackForChunks(['chunk1'], {
+        excludeSessionId: 'session2',
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].session_id).toBe('session1');
+    });
+
+    it('should skip sessions with empty feedback', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with empty string feedback
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        '',
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should skip sessions with whitespace-only feedback', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with whitespace-only feedback
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        '   \t\n  ',
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should skip sessions with null feedback', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with null feedback
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        null,
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should skip sessions with invalid JSON in chunkIds field', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with invalid JSON in chunkIds
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        'invalid-json{{{',
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        'Feedback for session',
+        now - 3600000,
+        now
+      );
+
+      // Create a valid session to ensure the function continues
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session2',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'review',
+        'completed',
+        now - 1800000,
+        now - 900000,
+        'Valid feedback',
+        now - 1800000,
+        now - 900000
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      // Should skip the invalid session and return the valid one
+      expect(result).toHaveLength(1);
+      expect(result[0].session_id).toBe('session2');
+    });
+
+    it('should handle database error gracefully and return empty array', async () => {
+      const db = getDb();
+      db.close();
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should fall back to updatedAt when endTime is null', async () => {
+      const db = getDb();
+      const now = Date.now();
+      const updatedAt = now - 600000;
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with null endTime
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'completed',
+        now - 3600000,
+        null,
+        'Feedback with no endTime',
+        now - 3600000,
+        updatedAt
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].completed_at).toBe(new Date(updatedAt).toISOString());
+    });
+
+    it('should only return feedback from completed sessions', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create an active session with feedback
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1']),
+        'learning',
+        'active',
+        now - 3600000,
+        null,
+        'In-progress feedback',
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return only overlapping chunks in chunk_ids', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and multiple chunks
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      for (let i = 1; i <= 4; i++) {
+        db.prepare(
+          `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          `chunk${i}`,
+          'topic1',
+          `Test Chunk ${i}`,
+          'Math',
+          5,
+          now,
+          2.5,
+          0,
+          10,
+          'new',
+          now,
+          now
+        );
+      }
+
+      // Create a session with chunk1, chunk2, chunk3
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify(['chunk1', 'chunk2', 'chunk3']),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        'Feedback for multiple chunks',
+        now - 3600000,
+        now
+      );
+
+      // Query for chunk2 and chunk4
+      const result = await getHistoricalFeedbackForChunks(['chunk2', 'chunk4']);
+
+      expect(result).toHaveLength(1);
+      // Should only include chunk2 as the overlap
+      expect(result[0].chunk_ids).toEqual(['chunk2']);
+    });
+
+    it('should handle sessions with null chunkIds field', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with null chunkIds
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        null,
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        'Feedback with no chunks',
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      // Session with null chunkIds should have no overlap
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle sessions with empty chunkIds array', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create a session with empty chunkIds array
+      db.prepare(
+        `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        'session1',
+        'topic1',
+        JSON.stringify([]),
+        'learning',
+        'completed',
+        now - 3600000,
+        now,
+        'Feedback with empty chunks',
+        now - 3600000,
+        now
+      );
+
+      const result = await getHistoricalFeedbackForChunks(['chunk1']);
+
+      // Session with empty chunkIds array should have no overlap
+      expect(result).toHaveLength(0);
+    });
+
+    it('should combine limit and excludeSessionId options', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunk
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('topic1', 'Test Topic', 'Math', now, now);
+
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('chunk1', 'topic1', 'Test Chunk 1', 'Math', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create 4 completed sessions
+      for (let i = 1; i <= 4; i++) {
+        db.prepare(
+          `INSERT INTO learning_sessions (id, topic_id, chunk_ids, mode, status, start_time, end_time, feedback, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(
+          `session${i}`,
+          'topic1',
+          JSON.stringify(['chunk1']),
+          'review',
+          'completed',
+          now - (5 - i) * 3600000,
+          now - (4 - i) * 3600000,
+          `Feedback ${i}`,
+          now - (5 - i) * 3600000,
+          now - (4 - i) * 3600000
+        );
+      }
+
+      // Query with limit=2 and exclude session3 (the second most recent)
+      const result = await getHistoricalFeedbackForChunks(['chunk1'], {
+        limit: 2,
+        excludeSessionId: 'session3',
+      });
+
+      expect(result).toHaveLength(2);
+      // Should have session4 (most recent) and session2 (skipping session3)
+      expect(result[0].session_id).toBe('session4');
+      expect(result[1].session_id).toBe('session2');
     });
   });
 });
