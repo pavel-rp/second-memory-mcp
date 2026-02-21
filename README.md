@@ -144,12 +144,11 @@ Key entry points:
 ## Database Schema Summary
 
 - **learning_topics** – Topic metadata, optional summaries, timestamps.
-- **learning_chunks** – Individual learning items with content, SM-2 attributes, tags, and prerequisites.
-- **review_schedule** – Next review intervals and ease factors per chunk.
+- **learning_chunks** – Individual learning items with content, SM-2 attributes (ease factor, interval, next review date), tags, and prerequisites.
 - **learning_sessions** – Persisted session metadata (mode, status, timing, feedback, chunk list).
 - **session_chunks** – Per-session chunk progress including attempts, quality scores, and time spent.
 
-Legacy tables (`session_logs`, `performance_analytics`, `friction_metrics`) are automatically removed during migration to keep the database clean.
+Legacy tables (`session_logs`, `performance_analytics`, `friction_metrics`, `review_schedule`) are automatically removed during migration to keep the database clean.
 
 ## Testing & Quality
 
@@ -169,7 +168,34 @@ Vitest integration tests exercise recommendation workflows, prerequisite mastery
 
 ## Contributing
 
-1. Follow the existing TypeScript style conventions (2-space indentation, single quotes).
-2. Add or update tests alongside behavior changes.
-3. Run `pnpm run lint`, `pnpm run type-check`, and `pnpm test` before opening a pull request.
-4. Update documentation when new features or workflows ship.
+### Getting Started
+
+1. Fork the repository and clone your fork.
+2. Install dependencies with `pnpm install`.
+3. Run `pnpm test` to verify everything builds and passes.
+
+### Development Workflow
+
+1. Create a feature branch from `main`.
+2. Make your changes following the conventions below.
+3. Run the full quality gate before opening a pull request:
+   ```bash
+   pnpm run type-check && pnpm run lint && pnpm test
+   ```
+4. Open a pull request with a clear description of the change and its motivation.
+
+### Code Conventions
+
+- **TypeScript style** – 2-space indentation, single quotes, trailing commas (enforced by Prettier).
+- **Formatting** – Pre-commit hooks auto-format staged files. You can also run `pnpm run format` manually.
+- **No `any`** – Use precise TypeScript types; `any` is only acceptable in test overrides or SDK type boundaries.
+- **Tests required** – Every behavior change must include corresponding test additions or updates. Coverage thresholds are enforced in CI.
+- **Documentation** – Update README, AGENTS.md, or inline docs when new features or workflows ship.
+
+### Project Structure
+
+- Algorithm logic lives in `src/tools/` — keep functions pure and configurable.
+- Business logic with persistence goes in `src/services/`.
+- MCP registration and wiring belongs in `src/server/`.
+- Shared types and Zod schemas are defined in `src/types/` — import, don't duplicate.
+- Tests mirror the source structure under `tests/`.

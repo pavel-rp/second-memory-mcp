@@ -100,9 +100,9 @@ Seven dimensions audited:
 
 | ID  | Severity       | Finding                                                                                                                                                                                                                                                                         |
 | --- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | **Medium**     | **No coverage thresholds configured.** CI uploads coverage to CodeCov but does not fail if it drops below any floor. An uncovered code path can be merged silently. Add minimum thresholds (`statements: 80, lines: 80, functions: 80`) to the vitest config in `package.json`. |
+| D1  | ~~**Medium**~~ | ~~**No coverage thresholds configured.** CI uploads coverage to CodeCov but does not fail if it drops below any floor. An uncovered code path can be merged silently. Add minimum thresholds (`statements: 80, lines: 80, functions: 80`) to the vitest config in `package.json`.~~ **DONE** — Coverage thresholds added via `vitest.config.ts` (statements: 65, lines: 65, functions: 75) scoped to `src/`; baseline guards against regression, can be raised incrementally |
 | D2  | ~~**Medium**~~ | ~~**`list_learning_items_sqlite` tests will become dead weight** if the tool is removed (see A1). They should be removed or repurposed when the tool is cleaned up.~~ **DONE** — Tool renamed to `list_learning_items`; tests remain valid                                      |
-| D3  | **Low**        | `tests/performance/content-retrieval.test.ts` — verify it includes **assertion-based time budgets** (e.g. `expect(elapsed).toBeLessThan(100)`) rather than just "doesn't throw". Without a numeric assertion the test provides no performance regression protection.            |
+| D3  | ~~**Low**~~    | ~~`tests/performance/content-retrieval.test.ts` — verify it includes **assertion-based time budgets** (e.g. `expect(elapsed).toBeLessThan(100)`) rather than just "doesn't throw". Without a numeric assertion the test provides no performance regression protection.~~ **DONE** — Verified: all 4 test cases already include `toBeLessThan` assertions (1000ms, 2000ms, 1500ms, 1000ms) |
 
 ---
 
@@ -137,8 +137,8 @@ Prerequisites are stored as JSON arrays of chunk IDs. `dependency-resolver.ts` c
 - Schema is clean and well-commented throughout
 - Foreign keys with `ON DELETE CASCADE` correctly applied on all child tables
 - Epoch-ms timestamps are consistent across all tables
-- `review_schedule` denormalisation (C1) is the main structural concern — potential data-consistency hazard
-- JSON-in-TEXT columns (B3) are pragmatic for SQLite but add invisible serialisation risk
+- ~~`review_schedule` denormalisation (C1) is the main structural concern — potential data-consistency hazard~~ Resolved — table removed, data consolidated into `learning_chunks`
+- ~~JSON-in-TEXT columns (B3) are pragmatic for SQLite but add invisible serialisation risk~~ Mitigated — schema-level comments now point to encode/decode helpers
 
 ---
 
@@ -154,9 +154,9 @@ Prerequisites are stored as JSON arrays of chunk IDs. `dependency-resolver.ts` c
 
 **Issues:**
 
-- AGENTS.md §"SQLite Integration" is outdated — contradicts current canonical workflow (C3)
+- ~~AGENTS.md §"SQLite Integration" is outdated — contradicts current canonical workflow (C3)~~ **DONE**
 - No consolidated tool reference for the 30+ exposed tools (a `docs/tools-reference.md` would strengthen the demo for reviewers)
-- README Contributing section is minimal (3 bullet points) — could be expanded for a public-facing demo repo
+- ~~README Contributing section is minimal (3 bullet points) — could be expanded for a public-facing demo repo~~ **DONE** — Expanded with subsections for Getting Started, Development Workflow, Code Conventions, and Project Structure
 
 ---
 
@@ -164,15 +164,15 @@ Prerequisites are stored as JSON arrays of chunk IDs. `dependency-resolver.ts` c
 
 | Dimension                 | Grade  | Primary Action Needed                                                    |
 | ------------------------- | ------ | ------------------------------------------------------------------------ |
-| MCP Architecture          | **B+** | Remove/rename LEGACY tool; fix dynamic import                            |
-| Code Quality              | **A-** | Move prompt arg types out of `main.ts`                                   |
+| MCP Architecture          | **B+** | ~~Remove/rename LEGACY tool; fix dynamic import~~ Done                   |
+| Code Quality              | **A-** | ~~Move prompt arg types out of `main.ts`~~ Done                          |
 | Architecture Consistency  | **B+** | ~~Resolve `review_schedule` denorm; add DB-level enum constraints~~ Done |
-| Testing                   | **A-** | Add coverage thresholds to CI                                            |
+| Testing                   | **A-** | ~~Add coverage thresholds to CI~~ Done                                   |
 | Job Fit — Agentic         | **A**  | Already strong — no changes needed                                       |
 | Job Fit — RAG             | **D**  | Add embedding-based search (future scope)                                |
 | Job Fit — Knowledge Graph | **D**  | Add typed graph layer (future scope)                                     |
 | Schema Design             | **B+** | ~~Add `CHECK` constraints on enum-like columns~~ Done                    |
-| Documentation             | **B+** | Update AGENTS.md; add tools reference                                    |
+| Documentation             | **B+** | ~~Update AGENTS.md; add tools reference~~ AGENTS.md done; Contributing expanded; README references fixed |
 
 ---
 
@@ -189,11 +189,11 @@ Prerequisites are stored as JSON arrays of chunk IDs. `dependency-resolver.ts` c
 ### Should Fix
 
 6. ~~**[C2]** Add `CHECK` constraints (or Drizzle `.enum()`) on `chunkType`, `mode`, and `status` columns~~ **DONE** — CHECK constraints added to `ensureSchema()` SQL for all enum-like columns
-7. **[D1]** Add coverage thresholds to the vitest config in `package.json`
+7. ~~**[D1]** Add coverage thresholds to the vitest config~~ **DONE** — `vitest.config.ts` created with thresholds (statements: 65, lines: 65, functions: 75) scoped to `src/`
 8. ~~**[A5]** Audit `ensureSchema()` — add `await` or add a comment explaining why it is intentionally sync~~ **DONE** — Added `await` to `ensureSchema()` call in `main.ts`
 
 ### Nice to Have
 
-9. **[D3]** Verify `tests/performance/content-retrieval.test.ts` has numeric `toBeLessThan` assertions
+9. ~~**[D3]** Verify `tests/performance/content-retrieval.test.ts` has numeric `toBeLessThan` assertions~~ **DONE** — Verified: all 4 tests have numeric `toBeLessThan` assertions
 10. ~~**[B3]** Add a schema-level comment on JSON-TEXT columns pointing to encode/decode helpers in `db/operations.ts`~~ **DONE** — Comments added to all JSON-TEXT columns in `schema.ts`
-11. Expand README Contributing section for a public-demo-ready repo
+11. ~~Expand README Contributing section for a public-demo-ready repo~~ **DONE** — Expanded with Getting Started, Development Workflow, Code Conventions, and Project Structure subsections
