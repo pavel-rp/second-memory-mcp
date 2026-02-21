@@ -484,7 +484,7 @@ export async function getHistoricalFeedbackForChunks(
           completed_at: session.endTime
             ? new Date(session.endTime).toISOString()
             : new Date(session.updatedAt).toISOString(),
-          feedback: session.feedback,
+          feedback: session.feedback.trim(),
           chunk_ids: overlappingChunks,
         });
       }
