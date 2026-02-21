@@ -1,5 +1,5 @@
 import { algorithmConfig } from '../config/algorithm.js';
-import { prerequisiteReferenceValidator } from './prerequisite-reference-validator.js';
+import { prerequisiteReferenceValidator } from '../services/chunks.js';
 import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import type {
   MasteryCriteria,

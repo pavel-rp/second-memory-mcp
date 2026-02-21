@@ -1,16 +1,23 @@
-import { inArray } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
-import { learningChunks } from '../db/schema.js';
 import type { PrerequisiteReferenceValidationResult } from '../types/prerequisite-validation.js';
 
+export type ChunkIdLookupFn = (ids: string[]) => Set<string>;
+export type AllChunkIdsLookupFn = () => Set<string>;
+
 /**
- * Validates that prerequisite references point to existing chunk IDs in the database
- * Addresses the issue of inconsistent client-provided prerequisite references
+ * Validates that prerequisite references point to existing chunk IDs.
+ * DB access is injected via lookup functions — the validator itself has no DB dependencies.
  */
 export class PrerequisiteReferenceValidator {
   private chunkIdCache: Set<string> | null = null;
   private cacheExpiry: number = 0;
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly lookupFn: ChunkIdLookupFn;
+  private readonly lookupAllFn: AllChunkIdsLookupFn;
+
+  constructor(lookupFn: ChunkIdLookupFn, lookupAllFn: AllChunkIdsLookupFn) {
+    this.lookupFn = lookupFn;
+    this.lookupAllFn = lookupAllFn;
+  }
 
   /**
    * Validate that all prerequisite IDs exist as actual chunks in the database
@@ -42,7 +49,7 @@ export class PrerequisiteReferenceValidator {
     }
 
     try {
-      const existingChunkIds = await this.getExistingChunkIds(uniqueIds);
+      const existingChunkIds = this.getExistingChunkIds(uniqueIds);
       const validReferences = uniqueIds.filter(id => existingChunkIds.has(id));
       const invalidReferences = uniqueIds.filter(id => !existingChunkIds.has(id));
 
@@ -93,7 +100,7 @@ export class PrerequisiteReferenceValidator {
    * @param idsToCheck List of chunk IDs to validate
    * @returns Set of existing chunk IDs
    */
-  private async getExistingChunkIds(idsToCheck: string[]): Promise<Set<string>> {
+  private getExistingChunkIds(idsToCheck: string[]): Set<string> {
     // Check if we have a fresh cache with all needed IDs
     if (this.chunkIdCache && Date.now() < this.cacheExpiry) {
       const cache = this.chunkIdCache;
@@ -103,15 +110,8 @@ export class PrerequisiteReferenceValidator {
       }
     }
 
-    // Query database for existing chunk IDs
-    const db = getSql();
-    const existingChunks = db
-      .select({ id: learningChunks.id })
-      .from(learningChunks)
-      .where(inArray(learningChunks.id, idsToCheck))
-      .all();
-
-    const existingIds = new Set(existingChunks.map(chunk => chunk.id));
+    // Use injected lookup function
+    const existingIds = this.lookupFn(idsToCheck);
 
     // Update cache if we're checking a reasonable number of IDs
     if (idsToCheck.length <= 100) {
@@ -149,15 +149,12 @@ export class PrerequisiteReferenceValidator {
   }
 
   /**
-   * Get all chunk IDs from the database
+   * Get all chunk IDs
    * Useful for comprehensive validation scenarios
    * @returns Set of all existing chunk IDs
    */
-  async getAllChunkIds(): Promise<Set<string>> {
-    const db = getSql();
-    const allChunks = db.select({ id: learningChunks.id }).from(learningChunks).all();
-
-    const allIds = new Set(allChunks.map(chunk => chunk.id));
+  getAllChunkIds(): Set<string> {
+    const allIds = this.lookupAllFn();
 
     // Update cache with all IDs
     this.chunkIdCache = allIds;
@@ -166,6 +163,3 @@ export class PrerequisiteReferenceValidator {
     return allIds;
   }
 }
-
-// Export singleton instance for consistent caching across the application
-export const prerequisiteReferenceValidator = new PrerequisiteReferenceValidator();

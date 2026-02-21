@@ -1,12 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
-import { prerequisiteReferenceValidator } from '../../src/tools/prerequisite-reference-validator.js';
+import { prerequisiteReferenceValidator } from '../../src/services/chunks.js';
 import { prerequisiteMasteryService } from '../../src/services/prerequisite-mastery.js';
 import type { LearningItem } from '../../src/types/recommendations.js';
 import type { MasteryStatus } from '../../src/types/prerequisite-validation.js';
 
 // Mock the dependencies
-vi.mock('../../src/tools/prerequisite-reference-validator.js');
+vi.mock('../../src/services/chunks.js', async importOriginal => {
+  const orig = await importOriginal<typeof import('../../src/services/chunks.js')>();
+  return {
+    ...orig,
+    prerequisiteReferenceValidator: {
+      validateChunkPrerequisites: vi.fn(),
+      validatePrerequisiteReferences: vi.fn(),
+      clearCache: vi.fn(),
+    },
+  };
+});
 vi.mock('../../src/services/prerequisite-mastery.js');
 
 describe('PrerequisiteValidator', () => {

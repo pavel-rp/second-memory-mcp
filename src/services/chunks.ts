@@ -1,4 +1,4 @@
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, lte, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, withTx, decodeJsonArray, encodeJsonArray } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
@@ -8,9 +8,16 @@ import type {
   PaginatedLearningItemsResponse,
 } from '../types/recommendations.js';
 import { calculateNextReviewAdvanced } from '../tools/sr-calculator.js';
-import { prerequisiteReferenceValidator } from '../tools/prerequisite-reference-validator.js';
+import { PrerequisiteReferenceValidator } from '../tools/prerequisite-reference-validator.js';
 import { dependencyResolver } from '../tools/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
+
+// Wired singleton — lookup functions are defined at the bottom of this file but
+// referenced lazily (only called when validation methods run, not at import time).
+export const prerequisiteReferenceValidator = new PrerequisiteReferenceValidator(
+  (ids: string[]) => getExistingChunkIdsByIds(ids),
+  () => getAllChunkIds()
+);
 
 export type CreateChunkInput = {
   id: string;
@@ -975,4 +982,28 @@ export async function processReviewResult(
     chunk: updatedChunk,
     isLeech: sm2Result.leech || false,
   };
+}
+
+/**
+ * Get existing chunk IDs that match a provided list.
+ * Used for prerequisite reference validation.
+ */
+export function getExistingChunkIdsByIds(ids: string[]): Set<string> {
+  const db = getSql();
+  const rows = db
+    .select({ id: learningChunks.id })
+    .from(learningChunks)
+    .where(inArray(learningChunks.id, ids))
+    .all();
+  return new Set(rows.map(r => r.id));
+}
+
+/**
+ * Get all chunk IDs from the database.
+ * Used for comprehensive prerequisite validation.
+ */
+export function getAllChunkIds(): Set<string> {
+  const db = getSql();
+  const rows = db.select({ id: learningChunks.id }).from(learningChunks).all();
+  return new Set(rows.map(r => r.id));
 }
