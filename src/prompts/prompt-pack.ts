@@ -14,6 +14,23 @@ export type DrillFormat =
   | 'explanation'
   | 'application';
 
+// Historical feedback entry from past sessions
+export type PromptFeedbackEntry = {
+  sessionMode: string;
+  completedAt: string;
+  feedback: string;
+};
+
+// Utility function to map HistoricalFeedback[] to PromptFeedbackEntry[]
+export function mapHistoricalFeedbackToPromptFeedback(
+  feedback: Array<{ session_mode: string; completed_at: string; feedback: string }>
+): PromptFeedbackEntry[] {
+  return feedback.map(f => ({
+    sessionMode: f.session_mode,
+    completedAt: f.completed_at,
+    feedback: f.feedback,
+  }));
+}
 export type PromptContext = {
   // Common
   problem?: string;
@@ -31,6 +48,7 @@ export type PromptContext = {
   lastReviewed?: string; // ISO date string
   previousAttempts?: number;
   weakAreas?: string;
+  previousSessionFeedback?: PromptFeedbackEntry[]; // Feedback from past sessions on same content
 
   // Chunk generation context
   topicTitle?: string;
@@ -204,6 +222,7 @@ export class PromptPack {
     const chunkTitle = context.chunkTitle ?? '<untitled chunk>';
     const drillFormat = context.drillFormat ?? 'open_ended';
     const mastery = context.masteryLevel ?? 2;
+    const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
 
     return [
       'You are generating a retrieval practice drill.',
@@ -211,13 +230,19 @@ export class PromptPack {
       `CHUNK: "${chunkTitle}"`,
       `FORMAT: ${drillFormat}`,
       `TARGET MASTERY: ${mastery}/5`,
+      feedbackSection,
       '',
       'Requirements:',
       '- Test core understanding, not rote memorization',
       '- Enforce a two-attempt policy before revealing answers',
       '- Provide immediate, constructive feedback',
       '- Include a near-transfer application if appropriate',
-    ].join('\n');
+      feedbackSection
+        ? '- Address previously reported difficulties with extra scaffolding or hints'
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   private getReviewPrompt(context: PromptContext): string {
@@ -225,6 +250,21 @@ export class PromptPack {
     const mastery = context.masteryLevel ?? 2;
     const previousAttempts = context.previousAttempts ?? 0;
     const weakAreas = context.weakAreas ?? 'focus foundational gaps';
+    const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
+
+    const basePlan = [
+      'Plan:',
+      '1) Quick recall check (no re-teaching)',
+      '2) If successful: brief reinforcement + harder application',
+      '3) If failed: targeted re-explanation + practice drill (two-attempt policy)',
+      '4) Use interleaving with related concepts when helpful',
+      '5) End with confidence assessment',
+    ];
+
+    // Add feedback-informed instruction if feedback exists
+    if (feedbackSection) {
+      basePlan.push('6) Pay special attention to previously reported pain points');
+    }
 
     return [
       'You are conducting a spaced review session.',
@@ -233,21 +273,31 @@ export class PromptPack {
       `CURRENT MASTERY: ${mastery}/5`,
       `PREVIOUS ATTEMPTS: ${previousAttempts}`,
       `FOCUS AREAS: ${weakAreas}`,
+      feedbackSection,
       '',
-      'Plan:',
-      '1) Quick recall check (no re-teaching)',
-      '2) If successful: brief reinforcement + harder application',
-      '3) If failed: targeted re-explanation + practice drill (two-attempt policy)',
-      '4) Use interleaving with related concepts when helpful',
-      '5) End with confidence assessment',
-    ].join('\n');
+      ...basePlan,
+    ]
+      .filter(Boolean)
+      .join('\n');
   }
 
   private getWorkflowGuidancePrompt(): string {
     return [
       'WORKFLOW GUIDANCE',
       '',
-      'End-to-end flow:',
+      '## CRITICAL: Session Requirement for Recall/Review',
+      '',
+      'MANDATORY: For ANY recall, review, or retrieval practice:',
+      '1) Search for topic/chunks using search_learning_content or batch_fetch_chunks_minimal',
+      '2) Create a session BEFORE teaching: create_session({ mode: "retrieval" or "review", chunkIds: [...] })',
+      '3) The session automatically loads historical feedback showing what the learner struggled with previously',
+      '4) Use this feedback to adapt your teaching - give extra scaffolding where they had difficulty',
+      '',
+      'DO NOT skip session creation and go directly to get_chunk_content or get_topic_summary for recall.',
+      'The session workflow ensures learning science principles are applied (spaced repetition, feedback-informed teaching).',
+      '',
+      '## End-to-end Learning Flow',
+      '',
       '1) Research phase → Search web for current information about the learning topic',
       '   - Use authoritative sources, official documentation, and recent best practices',
       '   - Gather multiple perspectives and real-world examples',
@@ -261,18 +311,25 @@ export class PromptPack {
       "6) Persist topic/chunk/schedule/analytics/logs via this server's tools",
       "7) Use 'review' prompt during scheduled sessions; apply interleaving when helpful",
       '',
-      'Getting Recommendations (Single Call):',
+      '## Review/Recall Flow (MUST follow this)',
+      '',
+      '1) User requests recall/review of a topic',
+      '2) Search: search_learning_content({ query: "topic name" }) or batch_fetch_chunks_minimal({ topicId })',
+      '3) Create session: create_session({ mode: "retrieval", chunkIds: [...found chunk IDs...] })',
+      '4) Get active session: get_active_session() - this returns historical_feedback from past sessions',
+      '5) Review the historical_feedback to see what was difficult before',
+      '6) Conduct retrieval practice, giving extra attention to previously difficult areas',
+      '7) Record results and complete session with detailed feedback',
+      '',
+      '## Getting Recommendations (Single Call)',
+      '',
       '- Use: what_to_learn_today({ fetchFromDatabase: true, timeAvailable: 30 })',
       '- This automatically fetches and ranks items in one efficient call',
       '- Supports filters: subjectFilter, dueOnly, limit',
       '- Saves ~95% on token usage vs old two-step approach',
       '',
-      'Legacy Pattern (only if needed for custom filtering):',
-      '- Fetch: list_learning_items_sqlite()',
-      '- Then: what_to_learn_today({ learningItems: [...] })',
-      '- Note: This uses significantly more tokens',
+      '## Content Persistence Best Practices',
       '',
-      'Content Persistence Best Practices:',
       '- When creating topics: include comprehensive summaries using topicSummary field',
       '- When creating chunks: provide detailed content with examples, explanations, and exercises',
       '- Use create_topic_with_chunks tool with full content for new topics',
@@ -280,22 +337,21 @@ export class PromptPack {
       '- Use list_items_with_content for batch operations and overview sessions',
       '- Content is automatically versioned and timestamped for tracking changes',
       '',
-      'Research-enhanced learning:',
-      '- Scaffolding and chunk generation prompts include web search instructions by default',
-      '- Research ensures content is current, accurate, and comprehensive',
-      '- Multiple sources provide balanced perspectives and best practices',
+      '## Session Completion Best Practices',
       '',
-      'Best Practices:',
-      '- Always use fetchFromDatabase: true for standard recommendations',
-      '- Only use manual fetching if you need custom pre-processing',
-      '- Token efficiency: Single call uses ~95% fewer tokens',
+      '- ALWAYS complete sessions with detailed feedback using complete_session',
+      '- Feedback MUST include: what was difficult, what was easy, specific pain points',
+      '- This feedback is surfaced in future review sessions to improve teaching',
+      '- Poor feedback = poor future learning adaptation',
       '',
-      'Scope boundaries:',
+      '## Scope boundaries',
+      '',
       '- Only exposes prompts/resources/tools via MCP capabilities',
       '- Web search performed by client using their own capabilities',
       '- Write the data to the server as soon as you produce new artifacts like chunks or schedules',
       '',
-      'Style and pedagogy:',
+      '## Style and pedagogy',
+      '',
       '- Manage cognitive load; use concrete → abstract progression',
       '- Keep explanations concise, supportive, and precise',
     ].join('\n');
@@ -374,6 +430,29 @@ export class PromptPack {
     ]
       .filter(Boolean)
       .join('\n');
+  }
+
+  /**
+   * Format previous session feedback into a prompt section.
+   * Returns empty string if no feedback is available.
+   */
+  private formatPreviousFeedbackSection(feedback?: PromptFeedbackEntry[]): string {
+    if (!feedback || feedback.length === 0) {
+      return '';
+    }
+
+    const feedbackLines = feedback.map((entry, idx) => {
+      const date = entry.completedAt.split('T')[0];
+      return `  ${idx + 1}. [${date}, ${entry.sessionMode}]: ${entry.feedback}`;
+    });
+
+    return [
+      '',
+      'PREVIOUS SESSION FEEDBACK (learner-reported difficulties and successes):',
+      ...feedbackLines,
+      '',
+      'NOTE: Address any reported pain points with extra care and scaffolding.',
+    ].join('\n');
   }
 }
 

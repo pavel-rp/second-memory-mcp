@@ -8,6 +8,7 @@ import {
   getSessionById,
   convertSessionToSessionInput,
   createSessionChunk,
+  getHistoricalFeedbackForChunks,
   type CreateSessionInput,
   type CreateSessionChunkInput,
 } from '../services/sessions.js';
@@ -222,7 +223,12 @@ export function registerSessionManagementTools(server: McpServer): void {
     'create_session',
     {
       title: 'Create Learning Session',
-      description: 'Create a new learning session with specific parameters for structured learning',
+      description:
+        'Create a new learning session with specific parameters for structured learning. ' +
+        'REQUIRED for recall/review/retrieval practice - you MUST create a session before teaching. ' +
+        'Use mode "retrieval" for recall practice, "review" for spaced review sessions. ' +
+        'After creation, call get_active_session to retrieve historical feedback from past sessions ' +
+        'showing what the learner found difficult previously.',
       inputSchema: CreateSessionInputSchema.shape,
     },
     async (input: unknown) => {
@@ -285,7 +291,10 @@ export function registerSessionManagementTools(server: McpServer): void {
     'get_active_session',
     {
       title: 'Get Active Session',
-      description: 'Retrieve the current active learning session to continue where you left off',
+      description:
+        'Retrieve the current active learning session to continue where you left off. ' +
+        'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
+        'to help inform teaching strategy based on previously reported difficulties.',
       inputSchema: z.object({}).shape, // No input required
     },
     async () => {
@@ -300,8 +309,15 @@ export function registerSessionManagementTools(server: McpServer): void {
           return { content: [{ type: 'text', text: JSON.stringify(result) }] };
         }
 
+        // Include historical feedback for review/retrieval sessions
+        const includeHistoricalFeedback =
+          activeSession.mode === 'review' || activeSession.mode === 'retrieval';
+
         // Convert database session to SessionInput format (includes chunks)
-        const sessionInput = await convertSessionToSessionInput(activeSession.id);
+        const sessionInput = await convertSessionToSessionInput(activeSession.id, {
+          includeHistoricalFeedback,
+          historicalFeedbackLimit: 5,
+        });
 
         if (!sessionInput) {
           const result = GetActiveSessionResultSchema.parse({
@@ -330,7 +346,10 @@ export function registerSessionManagementTools(server: McpServer): void {
     'get_session',
     {
       title: 'Get Session by ID',
-      description: 'Retrieve a specific learning session by its ID',
+      description:
+        'Retrieve a specific learning session by its ID. ' +
+        'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
+        'to help inform teaching strategy based on previously reported difficulties.',
       inputSchema: GetSessionInputSchema.shape,
     },
     async (input: unknown) => {
@@ -351,8 +370,14 @@ export function registerSessionManagementTools(server: McpServer): void {
           return { content: [{ type: 'text', text: JSON.stringify(result) }] };
         }
 
+        // Include historical feedback for review/retrieval sessions
+        const includeHistoricalFeedback = session.mode === 'review' || session.mode === 'retrieval';
+
         // Convert database session to SessionInput format (includes chunks)
-        const sessionInput = await convertSessionToSessionInput(validatedInput.sessionId);
+        const sessionInput = await convertSessionToSessionInput(validatedInput.sessionId, {
+          includeHistoricalFeedback,
+          historicalFeedbackLimit: 5,
+        });
 
         if (!sessionInput) {
           const result = GetActiveSessionResultSchema.parse({
@@ -381,7 +406,10 @@ export function registerSessionManagementTools(server: McpServer): void {
     'complete_session',
     {
       title: 'Complete Learning Session',
-      description: 'Complete a learning session with optional feedback and final metrics',
+      description:
+        'Complete a learning session with optional feedback and final metrics. ' +
+        'Feedback should describe what was difficult and what was easy, with specific focus on pain points ' +
+        'and areas where the user struggled. This enables the system to provide better guidance in future sessions.',
       inputSchema: CompleteSessionInputSchema.shape,
     },
     async (input: unknown) => {
@@ -542,6 +570,53 @@ export function registerSessionManagementTools(server: McpServer): void {
             },
           ],
         };
+      }
+    }
+  );
+
+  // Historical feedback retrieval tool
+  const GetHistoricalFeedbackInputSchema = z.object({
+    chunkIds: z.array(z.string().min(1)).min(1).max(50),
+    limit: z.number().min(1).max(20).default(5).optional(),
+  });
+
+  server.registerTool(
+    'get_historical_feedback',
+    {
+      title: 'Get Historical Feedback for Chunks',
+      description:
+        'Retrieve feedback from past completed sessions that covered specific chunks. ' +
+        'This helps inform teaching strategy during reviews by surfacing previously reported ' +
+        'difficulties, pain points, and successes. Use this to adapt your approach based on ' +
+        'what the learner struggled with or found easy in the past.',
+      inputSchema: GetHistoricalFeedbackInputSchema.shape,
+    },
+    async (input: unknown) => {
+      try {
+        const validatedInput = GetHistoricalFeedbackInputSchema.parse(input);
+
+        const feedback = await getHistoricalFeedbackForChunks(validatedInput.chunkIds, {
+          limit: validatedInput.limit ?? 5,
+        });
+
+        const result = {
+          status: 'ok' as const,
+          feedbackCount: feedback.length,
+          feedback,
+          hint:
+            feedback.length > 0
+              ? 'Pay special attention to reported difficulties when teaching these chunks.'
+              : 'No previous feedback found for these chunks.',
+        };
+
+        logger.info(
+          `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunkIds.length} chunks`
+        );
+        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        logger.error('Failed to get historical feedback:', error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
       }
     }
   );

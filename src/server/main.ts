@@ -5,24 +5,10 @@ import { promptPack } from '../prompts/prompt-pack.js';
 import { registerServerTools } from './tools.js';
 import { ensureSchema } from '../db/migrate.js';
 import { logger } from '../utils/logger.js';
-
-type ChunkGenerationPromptArgs = {
-  topicTitle: string;
-  topicDescription?: string;
-  existingChunkTitles?: string | string[];
-};
-
-type ChunkManagementPromptArgs = {
-  operation?: string;
-  managedChunkTitle?: string;
-  managedChunkOrder?: string;
-  managedChunkContent?: string;
-  managedChunkPrerequisites?: string;
-  intent?: string;
-};
+import type { ChunkGenerationPromptArgs, ChunkManagementPromptArgs } from '../types/prompts.js';
 
 async function bootstrap(): Promise<void> {
-  ensureSchema();
+  await ensureSchema();
 
   const server = new McpServer({
     name: 'second-memory-learning',

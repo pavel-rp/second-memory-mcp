@@ -5,8 +5,13 @@ import {
   mapChunkRowToLearningItem,
   deleteChunk,
   batchFetchChunksMinimal,
+  createChunkWithTopic,
+  updateChunkContent,
+  updateChunkMetadata,
+  updateChunkWithProgressReset,
 } from '../services/chunks.js';
 import { batchFetchTopicsMinimal } from '../services/topics.js';
+import { topicCreationService } from '../services/topic-creation.js';
 import {
   BatchFetchChunksMinimalInputSchema,
   BatchFetchChunksMinimalInputShape,
@@ -45,11 +50,11 @@ import {
 
 export function registerPersistenceTools(server: McpServer): void {
   server.registerTool(
-    'list_learning_items_sqlite',
+    'list_learning_items',
     {
-      title: 'List Learning Items (SQLite)',
+      title: 'List Learning Items',
       description:
-        'LEGACY two-step approach: Fetch learning items from local SQLite database via services layer. For single-call convenience, use what_to_learn_today with fetchFromDatabase: true instead, which automatically fetches and generates recommendations in one call.',
+        'Fetch learning items from the database via services layer. For single-call convenience, use what_to_learn_today with fetchFromDatabase: true instead, which automatically fetches and generates recommendations in one call.',
       inputSchema: ListLearningItemsInputShape,
     },
     async (rawInput: unknown) => {
@@ -76,8 +81,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: CreateTopicWithChunksInput = CreateTopicWithChunksInputSchema.parse(rawInput);
       try {
-        const { topicCreationService } = await import('../services/topic-creation.js');
-
         const result = await topicCreationService.createTopicWithChunks({
           topicTitle: input.topicTitle,
           topicDescription: input.topicDescription,
@@ -147,8 +150,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: CreateLearningItemInput = CreateLearningItemInputSchema.parse(rawInput);
       try {
-        const { createChunkWithTopic } = await import('../services/chunks.js');
-
         const now = Date.now();
         const chunkId = crypto.randomUUID();
 
@@ -220,8 +221,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkContentInput = UpdateChunkContentInputSchema.parse(rawInput);
       try {
-        const { updateChunkContent } = await import('../services/chunks.js');
-
         const result = await updateChunkContent(input.chunkId, {
           content: input.content,
           resetProgress: input.resetProgress,
@@ -288,8 +287,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkMetadataInput = UpdateChunkMetadataInputSchema.parse(rawInput);
       try {
-        const { updateChunkMetadata } = await import('../services/chunks.js');
-
         const result = await updateChunkMetadata(input.chunkId, {
           title: input.title,
           difficulty: input.difficulty,
@@ -358,8 +355,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkInput = UpdateChunkInputSchema.parse(rawInput);
       try {
-        const { updateChunkWithProgressReset } = await import('../services/chunks.js');
-
         const result = await updateChunkWithProgressReset(input.chunkId, {
           content: input.content,
           title: input.title,
@@ -504,8 +499,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicInput = UpdateTopicInputSchema.parse(rawInput);
       try {
-        const { topicCreationService } = await import('../services/topic-creation.js');
-
         const result = await topicCreationService.updateTopic(input.topicId, {
           title: input.title,
         });
@@ -569,8 +562,6 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicSummaryInput = UpdateTopicSummaryInputSchema.parse(rawInput);
       try {
-        const { topicCreationService } = await import('../services/topic-creation.js');
-
         const result = await topicCreationService.updateTopicSummary(input.topicId, input.summary);
 
         if (result.success && result.topic) {
@@ -675,7 +666,10 @@ export function registerPersistenceTools(server: McpServer): void {
     {
       title: 'Batch Fetch Chunks (Minimal Metadata)',
       description:
-        'Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). Efficient for listing and selection workflows.',
+        'Fetch chunks with minimal metadata (IDs, title, subject, difficulty, duration, type, timestamps only). ' +
+        'Efficient for listing and selection workflows. ' +
+        'IMPORTANT: For recall/review practice, after fetching chunk IDs, you MUST create a session with ' +
+        'create_session({ mode: "retrieval" or "review", chunkIds: [...] }) before teaching.',
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
     async (rawInput: unknown) => {
@@ -688,6 +682,7 @@ export function registerPersistenceTools(server: McpServer): void {
           dueOnly,
           limit,
         });
+        const chunkIds = chunks.map((c: { id: string }) => c.id);
         return {
           content: [
             {
@@ -697,6 +692,18 @@ export function registerPersistenceTools(server: McpServer): void {
                 chunks,
                 count: chunks.length,
                 message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
+                // Enforcement hint for recall/review workflows
+                workflowHint:
+                  chunks.length > 0
+                    ? {
+                        action: 'REQUIRED_FOR_RECALL',
+                        instruction:
+                          'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                          'and include these chunk IDs before teaching. This loads historical feedback.',
+                        chunkIds,
+                        nextStep: `create_session({ mode: "retrieval", chunkIds: ${JSON.stringify(chunkIds)} })`,
+                      }
+                    : undefined,
               }),
             },
           ],

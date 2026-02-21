@@ -21,6 +21,15 @@ export type SessionChunk = {
   time_spent_ms: number;
 };
 
+// Historical feedback from previous sessions on same chunks
+export type HistoricalFeedback = {
+  session_id: string;
+  session_mode: SessionMode;
+  completed_at: string; // ISO timestamp
+  feedback: string;
+  chunk_ids: string[]; // which chunks this feedback relates to
+};
+
 // Main session input data
 export type SessionInput = {
   session_id: string;
@@ -29,6 +38,8 @@ export type SessionInput = {
   current_time?: string; // ISO timestamp (defaults to now)
   chunks: SessionChunk[];
   context?: Record<string, unknown>; // optional session metadata
+  feedback?: string; // current session feedback (if completed)
+  historical_feedback?: HistoricalFeedback[]; // feedback from past sessions on same chunks
 };
 
 // Session progress output
@@ -86,6 +97,19 @@ export const SessionChunkSchema = z.object({
   time_spent_ms: z.number().min(0),
 });
 
+export const HistoricalFeedbackSchema = z.object({
+  session_id: z.string().min(1),
+  session_mode: SessionModeSchema,
+  completed_at: z
+    .string()
+    .regex(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/,
+      'Completed at must be in ISO format'
+    ),
+  feedback: z.string().min(1),
+  chunk_ids: z.array(z.string().min(1)),
+});
+
 export const SessionInputSchema = z.object({
   session_id: z.string().min(1),
   mode: SessionModeSchema,
@@ -104,6 +128,8 @@ export const SessionInputSchema = z.object({
     .optional(),
   chunks: z.array(SessionChunkSchema),
   context: z.record(z.unknown()).optional(),
+  feedback: z.string().optional(),
+  historical_feedback: z.array(HistoricalFeedbackSchema).optional(),
 });
 
 export const SessionProgressSchema = z.object({

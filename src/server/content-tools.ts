@@ -25,7 +25,12 @@ export function registerContentTools(server: McpServer): void {
     'get_chunk_content',
     {
       title: 'Get Chunk Content',
-      description: 'Retrieve the content of a specific learning chunk by ID.',
+      description:
+        'Retrieve the content of a specific learning chunk by ID. ' +
+        'WARNING: For recall/review/retrieval practice, do NOT use this tool directly. ' +
+        'First create a session with create_session(mode: "retrieval" or "review", chunkIds: [...]) ' +
+        'to load historical feedback about learner difficulties. Only use this tool for ' +
+        'content inspection or scaffolding new material.',
       inputSchema: GetChunkContentInputShape,
     },
     async (rawInput: unknown) => {
@@ -61,6 +66,9 @@ export function registerContentTools(server: McpServer): void {
                 contentVersion: chunkContent.contentVersion,
                 contentUpdatedAt: chunkContent.contentUpdatedAt,
                 message: `Successfully retrieved content for chunk: ${chunkId}`,
+                sessionReminder:
+                  'If conducting recall/review: Ensure you have created a session first ' +
+                  'to access historical feedback about learner difficulties.',
               }),
             },
           ],
@@ -88,7 +96,11 @@ export function registerContentTools(server: McpServer): void {
     'get_topic_summary',
     {
       title: 'Get Topic Summary',
-      description: 'Retrieve the summary content of a specific learning topic by ID.',
+      description:
+        'Retrieve the summary content of a specific learning topic by ID. ' +
+        'WARNING: For recall/review/retrieval practice, do NOT use this tool directly. ' +
+        "First use batch_fetch_chunks_minimal to get the topic's chunk IDs, then create a session " +
+        'with create_session(mode: "retrieval" or "review", chunkIds: [...]) to load historical feedback.',
       inputSchema: GetTopicSummaryInputShape,
     },
     async (rawInput: unknown) => {
@@ -142,6 +154,9 @@ export function registerContentTools(server: McpServer): void {
                 createdAt: topicResult.createdAt,
                 updatedAt: topicResult.updatedAt,
                 message: `Successfully retrieved topic summary: ${topicResult.title}`,
+                sessionReminder:
+                  'If conducting recall/review: Use batch_fetch_chunks_minimal(topicId) to get chunk IDs, ' +
+                  'then create_session(mode: "retrieval", chunkIds: [...]) to load historical feedback.',
               }),
             },
           ],

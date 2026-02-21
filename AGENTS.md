@@ -99,20 +99,20 @@ pnpm run type-check      # TypeScript type checking
 **Critical Workflow for Learning Recommendations:**
 The `what_to_learn_today` tool requires a specific workflow with SQLite:
 
-1. **First**: Query local SQLite database using `list_learning_items_sqlite` to fetch learning items
+1. **First**: Query local SQLite database using `list_learning_items` to fetch learning items
 2. **Then**: Pass those items to `what_to_learn_today` tool's `learningItems` parameter
 3. **Receive**: Personalized recommendations based on spaced repetition algorithms
 
 **SQLite Tools:**
 
-- `list_learning_items_sqlite`: Fetches learning items from local SQLite database
+- `list_learning_items`: Fetches learning items from local SQLite database
 - `orchestrate_learning_workflow`: Provides step-by-step guidance for SQLite-based workflows
 - `what_to_learn_today`: Enhanced with orchestration hints when no data is provided
 
 **Example Integration:**
 
 ```bash
-# Step 1: Query SQLite database using list_learning_items_sqlite
+# Step 1: Query SQLite database using list_learning_items
 # Step 2: Call what_to_learn_today with the fetched items
 # Step 3: Receive recommendations with scheduling guidance
 ```
