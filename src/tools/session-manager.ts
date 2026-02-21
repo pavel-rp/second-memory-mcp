@@ -8,11 +8,11 @@ import type {
 } from '../types/session.js';
 import { SessionInputSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
-import { getSessionWithChunks, validateChunkIds } from '../services/sessions.js';
-import crypto from 'node:crypto';
-import { withTx } from '../db/operations.js';
-import { sessionChunks, type SessionChunkRow } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import {
+  getSessionWithChunks,
+  validateChunkIds,
+  persistBatchSessionChunkOperations,
+} from '../services/sessions.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string): Date {
@@ -354,81 +354,9 @@ export async function applyBatchSessionChunkOperations(args: {
     throw new Error('No active session found. Create a session first.');
   }
 
-  const existingByChunkId = new Map(chunks.map(c => [c.chunkId, c]));
-  const now = Date.now();
-
-  let created = 0;
-  let updated = 0;
-  let unchanged = 0;
-  const affectedChunkIds: string[] = [];
-
-  await withTx(tx => {
-    for (const op of operations) {
-      const current = existingByChunkId.get(op.chunkId);
-      // Prepare persistence payloads
-      if (!current) {
-        // create new session chunk
-        const newId = crypto.randomUUID();
-        const insert = tx
-          .insert(sessionChunks)
-          .values({
-            id: newId,
-            sessionId,
-            chunkId: op.chunkId,
-            status: op.status || 'pending',
-            attemptsJson: op.attempts ? JSON.stringify(op.attempts) : null,
-            qualityScoresJson: op.qualityScores ? JSON.stringify(op.qualityScores) : null,
-            timeSpentMs: op.timeSpentMs || 0,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .run();
-        created += insert.changes ? 1 : 0;
-        affectedChunkIds.push(op.chunkId);
-        const createdRow: SessionChunkRow = {
-          id: newId,
-          sessionId,
-          chunkId: op.chunkId,
-          status: op.status || 'pending',
-          attemptsJson: op.attempts ? JSON.stringify(op.attempts) : null,
-          qualityScoresJson: op.qualityScores ? JSON.stringify(op.qualityScores) : null,
-          timeSpentMs: op.timeSpentMs || 0,
-          createdAt: now,
-          updatedAt: now,
-        };
-        existingByChunkId.set(op.chunkId, createdRow);
-      } else {
-        // compute if unchanged
-        const next = {
-          status: op.status ?? current.status,
-          attemptsJson: op.attempts ? JSON.stringify(op.attempts) : current.attemptsJson,
-          qualityScoresJson: op.qualityScores
-            ? JSON.stringify(op.qualityScores)
-            : current.qualityScoresJson,
-          timeSpentMs: op.timeSpentMs ?? current.timeSpentMs,
-        };
-
-        const isUnchanged =
-          next.status === current.status &&
-          next.attemptsJson === current.attemptsJson &&
-          next.qualityScoresJson === current.qualityScoresJson &&
-          next.timeSpentMs === current.timeSpentMs;
-
-        if (isUnchanged) {
-          unchanged += 1;
-          continue;
-        }
-
-        const res = tx
-          .update(sessionChunks)
-          .set({ ...next, updatedAt: now })
-          .where(eq(sessionChunks.id, current.id))
-          .run();
-        updated += res.changes ? 1 : 0;
-        affectedChunkIds.push(op.chunkId);
-      }
-    }
+  return persistBatchSessionChunkOperations({
+    sessionId,
+    operations,
+    existingChunks: chunks,
   });
-
-  return { created, updated, unchanged, affectedChunkIds };
 }
