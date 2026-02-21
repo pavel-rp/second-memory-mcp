@@ -6,12 +6,10 @@ import { logger } from '../utils/logger.js';
 import {
   learningTopics,
   learningChunks,
-  reviewSchedule,
   learningSessions,
   sessionChunks,
   NewLearningTopicRow,
   NewLearningChunkRow,
-  NewReviewScheduleRow,
   NewLearningSessionRow,
   NewSessionChunkRow,
 } from './schema.js';
@@ -50,7 +48,8 @@ export function ensureSchema() {
 		repetitions INTEGER NOT NULL,
 		last_reviewed_at INTEGER,
 		estimated_duration INTEGER NOT NULL,
-		chunk_type TEXT NOT NULL,
+		chunk_type TEXT NOT NULL CHECK(chunk_type IN ('new', 'review', 'remediation')),
+		interval_days INTEGER,
 		prerequisites_json TEXT,
 		tags_json TEXT,
 		content TEXT,
@@ -60,24 +59,13 @@ export function ensureSchema() {
 		updated_at INTEGER NOT NULL,
 		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE CASCADE
 	);
-	CREATE TABLE IF NOT EXISTS review_schedule (
-		id TEXT PRIMARY KEY NOT NULL,
-		chunk_id TEXT NOT NULL,
-		next_review_at INTEGER NOT NULL,
-		interval_days INTEGER NOT NULL,
-		repetitions INTEGER NOT NULL,
-		ease_factor REAL NOT NULL,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
-	);
 	CREATE TABLE IF NOT EXISTS learning_sessions (
 		id TEXT PRIMARY KEY NOT NULL,
 		topic_id TEXT,
 		chunk_ids TEXT,
-		mode TEXT NOT NULL,
+		mode TEXT NOT NULL CHECK(mode IN ('scaffolding', 'learning', 'retrieval', 'review')),
 		estimated_duration INTEGER,
-		status TEXT NOT NULL DEFAULT 'active',
+		status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed')),
 		start_time INTEGER NOT NULL,
 		end_time INTEGER,
 		feedback TEXT,
@@ -89,7 +77,7 @@ export function ensureSchema() {
 		id TEXT PRIMARY KEY NOT NULL,
 		session_id TEXT NOT NULL,
 		chunk_id TEXT NOT NULL,
-		status TEXT NOT NULL DEFAULT 'pending',
+		status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed')),
 		attempts_json TEXT,
 		quality_scores_json TEXT,
 		time_spent_ms INTEGER NOT NULL DEFAULT 0,
@@ -99,7 +87,8 @@ export function ensureSchema() {
 		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
 	);
 	
-	-- Indexes for session management performance
+	-- Indexes for performance
+	CREATE INDEX IF NOT EXISTS idx_learning_chunks_next_review_at ON learning_chunks(next_review_at);
 	CREATE INDEX IF NOT EXISTS idx_learning_sessions_status ON learning_sessions(status);
 	CREATE INDEX IF NOT EXISTS idx_learning_sessions_topic_id ON learning_sessions(topic_id);
 	CREATE INDEX IF NOT EXISTS idx_learning_sessions_created_at ON learning_sessions(created_at DESC);
@@ -143,14 +132,30 @@ export function ensureSchema() {
     );
   }
 
+  // Add interval_days column to learning_chunks (consolidation from review_schedule)
+  try {
+    if (!checkColumnExists(db, 'learning_chunks', 'interval_days')) {
+      db.exec('ALTER TABLE learning_chunks ADD COLUMN interval_days INTEGER');
+      logger.info('Added interval_days column to learning_chunks table');
+    }
+  } catch (error) {
+    logger.error('interval_days migration failed:', error);
+    throw new Error(
+      `interval_days migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+
   // Remove legacy tables (migration cleanup)
   try {
     db.exec(`
+		DROP TABLE IF EXISTS review_schedule;
 		DROP TABLE IF EXISTS session_logs;
 		DROP TABLE IF EXISTS performance_analytics;
 		DROP TABLE IF EXISTS friction_metrics;
 		`);
-    logger.info('Removed legacy tables: session_logs, performance_analytics, friction_metrics');
+    logger.info(
+      'Removed legacy tables: review_schedule, session_logs, performance_analytics, friction_metrics'
+    );
   } catch (error) {
     logger.error('Legacy table cleanup failed:', error);
     throw new Error(
@@ -167,7 +172,6 @@ type RawLearningChunk = Omit<NewLearningChunkRow, 'prerequisitesJson' | 'tagsJso
 type MigrationData = {
   learning_topics?: NewLearningTopicRow[];
   learning_chunks?: RawLearningChunk[];
-  review_schedule?: NewReviewScheduleRow[];
   learning_sessions?: NewLearningSessionRow[];
   session_chunks?: NewSessionChunkRow[];
 };
@@ -183,7 +187,6 @@ async function importData(data: MigrationData) {
   const db = getSql();
   let topics = 0,
     chunks = 0,
-    schedules = 0,
     sessions = 0,
     sessionChunkCount = 0;
 
@@ -209,13 +212,6 @@ async function importData(data: MigrationData) {
     chunks = mapped.length;
   }
 
-  if (Array.isArray(data.review_schedule)) {
-    await bulkInsert<NewReviewScheduleRow>(data.review_schedule, chunk =>
-      db.insert(reviewSchedule).values(chunk).run()
-    );
-    schedules = data.review_schedule.length;
-  }
-
   if (Array.isArray(data.learning_sessions)) {
     await bulkInsert<NewLearningSessionRow>(data.learning_sessions, chunk =>
       db.insert(learningSessions).values(chunk).run()
@@ -230,7 +226,7 @@ async function importData(data: MigrationData) {
     sessionChunkCount = data.session_chunks.length;
   }
 
-  return { topics, chunks, schedules, sessions, sessionChunks: sessionChunkCount };
+  return { topics, chunks, sessions, sessionChunks: sessionChunkCount };
 }
 
 async function main() {

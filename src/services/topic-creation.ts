@@ -87,6 +87,7 @@ export class TopicCreationService {
             repetitions: 0,
             lastReviewedAt: null,
             estimatedDuration: chunkDef.estimatedDuration,
+            intervalDays: null,
             chunkType: chunkDef.chunkType,
             prerequisitesJson: encodeJsonArray(chunkDef.prerequisites),
             tagsJson: encodeJsonArray(chunkDef.tags),
