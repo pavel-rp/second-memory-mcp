@@ -1,7 +1,4 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { eq } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
-import { learningTopics } from '../db/schema.js';
 import {
   GetChunkContentInputSchema,
   GetChunkContentInputShape,
@@ -18,6 +15,7 @@ import {
   listChunksWithContent,
   type ListChunksWithContentFilter,
 } from '../services/chunks.js';
+import { getTopicSummaryById } from '../services/topics.js';
 
 export function registerContentTools(server: McpServer): void {
   // Tool for retrieving individual chunk content
@@ -108,21 +106,7 @@ export function registerContentTools(server: McpServer): void {
       const { topicId } = input;
 
       try {
-        const db = getSql();
-        const topicResult = db
-          .select({
-            id: learningTopics.id,
-            title: learningTopics.title,
-            subject: learningTopics.subject,
-            summary: learningTopics.summary,
-            summaryVersion: learningTopics.summaryVersion,
-            summaryUpdatedAt: learningTopics.summaryUpdatedAt,
-            createdAt: learningTopics.createdAt,
-            updatedAt: learningTopics.updatedAt,
-          })
-          .from(learningTopics)
-          .where(eq(learningTopics.id, topicId))
-          .get();
+        const topicResult = await getTopicSummaryById(topicId);
 
         if (!topicResult) {
           return {
