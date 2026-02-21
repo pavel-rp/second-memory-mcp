@@ -23,6 +23,13 @@ function checkColumnExists(
   return result.some(col => col.name === columnName);
 }
 
+/**
+ * Public entry point for server bootstrap — wraps migration internals.
+ */
+export async function initializeDatabase(): Promise<void> {
+  ensureSchema();
+}
+
 export function ensureSchema() {
   const db = getDb();
   // Minimal table creation matching schema definitions
