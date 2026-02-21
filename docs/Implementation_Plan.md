@@ -104,7 +104,7 @@ Each service uses Drizzle transactions via `src/db/operations.ts` to ensure atom
 - `create_learning_item` – Lightweight helper to create a topic and chunk simultaneously.
 - Update helpers (`update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_metadata`, `update_chunk_content`).
 - Batch fetch tools (`batch_fetch_topics`, `batch_fetch_chunks`) for hydration.
-- `list_learning_items_sqlite` – Legacy two-step fetch retained for backwards compatibility; new flows should use `what_to_learn_today` with `fetchFromDatabase: true`.
+- `list_learning_items` – Two-step fetch for manual item listing; for convenience, use `what_to_learn_today` with `fetchFromDatabase: true`.
 
 ## Prompt Pack
 

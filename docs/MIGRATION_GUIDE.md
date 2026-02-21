@@ -125,7 +125,7 @@ The script logs a JSON summary indicating how many records were inserted per col
 ## Verification Checklist
 
 1. **Inspect counts** – Use `pnpm run db:studio` or the SQLite CLI to verify row counts across tables.
-2. **Exercise core tools** – Invoke `list_learning_items_sqlite` or `what_to_learn_today({ fetchFromDatabase: true })` to confirm items are visible through the MCP layer.
+2. **Exercise core tools** – Invoke `list_learning_items` or `what_to_learn_today({ fetchFromDatabase: true })` to confirm items are visible through the MCP layer.
 3. **Validate sessions** – Run `session_progress` for a migrated session to confirm attempts and quality scores round-trip correctly.
 
 ## Troubleshooting

@@ -54,3 +54,5 @@ desktop.ini
 *.db-shm
 *.db-wal
 test-artifacts/
+.claude/settings.local.json
+AUDIT.md
