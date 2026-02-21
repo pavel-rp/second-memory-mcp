@@ -38,7 +38,6 @@ function tmpDbPath() {
         { id: 't1', title: 'Algo', subject: 'CS', createdAt: Date.now(), updatedAt: Date.now() },
       ],
       learning_chunks: [],
-      review_schedule: [],
       session_logs: [],
       performance_analytics: [],
     };

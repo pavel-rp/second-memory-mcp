@@ -61,18 +61,6 @@ The import format mirrors the Drizzle models defined in `src/db/schema.ts`. Each
       "updatedAt": 1737072000000
     }
   ],
-  "review_schedule": [
-    {
-      "id": "uuid",
-      "chunkId": "uuid",
-      "nextReviewAt": 1737244800000,
-      "intervalDays": 3,
-      "repetitions": 1,
-      "easeFactor": 2.36,
-      "createdAt": 1736985600000,
-      "updatedAt": 1737072000000
-    }
-  ],
   "learning_sessions": [
     {
       "id": "uuid",

@@ -8,7 +8,6 @@ import type {
   PaginatedLearningItemsResponse,
 } from '../types/recommendations.js';
 import { calculateNextReviewAdvanced } from '../tools/sr-calculator.js';
-import { scheduleReview } from './reviews.js';
 import { prerequisiteReferenceValidator } from '../tools/prerequisite-reference-validator.js';
 import { dependencyResolver } from '../tools/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
@@ -81,6 +80,7 @@ export async function listChunks(filter: ListChunksFilter = {}) {
       repetitions: learningChunks.repetitions,
       lastReviewedAt: learningChunks.lastReviewedAt,
       estimatedDuration: learningChunks.estimatedDuration,
+      intervalDays: learningChunks.intervalDays,
       chunkType: learningChunks.chunkType,
       prerequisitesJson: learningChunks.prerequisitesJson,
       tagsJson: learningChunks.tagsJson,
@@ -545,6 +545,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
         repetitions: learningChunks.repetitions,
         lastReviewedAt: learningChunks.lastReviewedAt,
         estimatedDuration: learningChunks.estimatedDuration,
+        intervalDays: learningChunks.intervalDays,
         chunkType: learningChunks.chunkType,
         prerequisitesJson: learningChunks.prerequisitesJson,
         tagsJson: learningChunks.tagsJson,
@@ -746,6 +747,7 @@ export async function getChunkWithContent(
       repetitions: learningChunks.repetitions,
       lastReviewedAt: learningChunks.lastReviewedAt,
       estimatedDuration: learningChunks.estimatedDuration,
+      intervalDays: learningChunks.intervalDays,
       chunkType: learningChunks.chunkType,
       prerequisitesJson: learningChunks.prerequisitesJson,
       tagsJson: learningChunks.tagsJson,
@@ -800,6 +802,7 @@ export async function listChunksWithContent(
       repetitions: learningChunks.repetitions,
       lastReviewedAt: learningChunks.lastReviewedAt,
       estimatedDuration: learningChunks.estimatedDuration,
+      intervalDays: learningChunks.intervalDays,
       chunkType: learningChunks.chunkType,
       prerequisitesJson: learningChunks.prerequisitesJson,
       tagsJson: learningChunks.tagsJson,
@@ -948,11 +951,12 @@ export async function processReviewResult(
     consecutiveFailures: options.consecutiveFailures || 0,
   });
 
-  // Update chunk with new values
+  // Update chunk with new SM-2 values (single source of truth — no separate review_schedule table)
   const now = Date.now();
   const updateData = {
     easeFactor: sm2Result.easeFactor,
     repetitions: sm2Result.repetitions,
+    intervalDays: sm2Result.interval,
     nextReviewAt: new Date(sm2Result.nextReview).getTime(),
     lastReviewedAt: now,
     updatedAt: now,
@@ -960,18 +964,6 @@ export async function processReviewResult(
   };
 
   await db.update(learningChunks).set(updateData).where(eq(learningChunks.id, itemId)).run();
-
-  // Create review schedule entry
-  await scheduleReview({
-    id: crypto.randomUUID(),
-    chunkId: itemId,
-    nextReviewAt: new Date(sm2Result.nextReview).getTime(),
-    intervalDays: sm2Result.interval,
-    repetitions: sm2Result.repetitions,
-    easeFactor: sm2Result.easeFactor,
-    createdAt: now,
-    updatedAt: now,
-  });
 
   // Return updated chunk with leech information
   const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
