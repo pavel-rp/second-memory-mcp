@@ -234,4 +234,4 @@ Exception: if STEP-001 is unchecked, it always starts from STEP-001 regardless o
 - **Fix requires creating a new file:** Create it in the correct location. Add it to the git add list for the commit step.
 - **Step's file list is incomplete** (the actual fix requires touching a file not listed): Stop. Report the unlisted file. Do not modify it without updating the plan first. This prevents scope creep disguised as implementation.
 - **Complexity L finding:** After STEP-001, output a warning: "⚠️ This is an L-complexity item. Each step may take significant time. Checkpoints are enforced after every step." Proceed normally.
-- **Merge conflict during the implementation:** Stop immediately. Report the conflict. Do not attempt to resolve it automatically.exit
+- **Merge conflict during the implementation:** Stop immediately. Report the conflict. Do not attempt to resolve it automatically.
