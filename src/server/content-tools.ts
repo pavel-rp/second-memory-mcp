@@ -10,11 +10,11 @@ import {
   ListItemsWithContentInputShape,
   type ListItemsWithContentInput,
 } from '../types/content-tools.js';
+import { getChunkContent } from '../services/chunks.js';
 import {
-  getChunkContent,
   listChunksWithContent,
   type ListChunksWithContentFilter,
-} from '../services/chunks.js';
+} from '../services/chunk-queries.js';
 import { getTopicSummaryById } from '../services/topics.js';
 
 export function registerContentTools(server: McpServer): void {

@@ -33,13 +33,12 @@ import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import { decodeJsonArray } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { createChunk, deleteChunk } from '../../src/services/chunks.js';
 import {
-  createChunk,
   listChunks,
   listChunksAsLearningItems,
-  deleteChunk,
   batchFetchChunksMinimal,
-} from '../../src/services/chunks.js';
+} from '../../src/services/chunk-queries.js';
 import { LearningItemSchema } from '../../src/types/recommendations.js';
 
 function tmpDbPath() {
@@ -1013,7 +1012,9 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
 
   describe('mapChunkRowToLearningItemWithContent', () => {
     it('should map chunk row with content fields', async () => {
-      const { mapChunkRowToLearningItemWithContent } = await import('../../src/services/chunks.js');
+      const { mapChunkRowToLearningItemWithContent } = await import(
+        '../../src/services/chunk-queries.js'
+      );
 
       const now = Date.now();
       const mockRow = {
@@ -1051,7 +1052,9 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
     });
 
     it('should handle null content fields gracefully', async () => {
-      const { mapChunkRowToLearningItemWithContent } = await import('../../src/services/chunks.js');
+      const { mapChunkRowToLearningItemWithContent } = await import(
+        '../../src/services/chunk-queries.js'
+      );
 
       const now = Date.now();
       const mockRow = {
@@ -1091,7 +1094,7 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
 
   describe('listChunksWithContent', () => {
     it('should include content fields when includeContent is true', async () => {
-      const { listChunksWithContent } = await import('../../src/services/chunks.js');
+      const { listChunksWithContent } = await import('../../src/services/chunk-queries.js');
 
       const now = Date.now();
       const db = getSql();
@@ -1146,7 +1149,7 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
     });
 
     it('should exclude content fields when includeContent is false', async () => {
-      const { listChunksWithContent } = await import('../../src/services/chunks.js');
+      const { listChunksWithContent } = await import('../../src/services/chunk-queries.js');
 
       const now = Date.now();
       const db = getSql();
@@ -1201,7 +1204,7 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
     });
 
     it('should handle pagination correctly', async () => {
-      const { listChunksWithContent } = await import('../../src/services/chunks.js');
+      const { listChunksWithContent } = await import('../../src/services/chunk-queries.js');
 
       const now = Date.now();
       const db = getSql();

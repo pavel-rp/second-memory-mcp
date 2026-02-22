@@ -12,13 +12,10 @@ import {
   RecommendationInputShape,
   type RecommendationInput,
 } from '../types/recommendations.js';
-import {
-  getChunk,
-  mapChunkRowToLearningItem,
-  prerequisiteReferenceValidator,
-  processReviewResult,
-  listChunksAsLearningItems,
-} from '../services/chunks.js';
+import { getChunk } from '../services/chunks.js';
+import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../services/chunk-queries.js';
+import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';
+import { processReviewResult } from '../services/chunk-reviews.js';
 import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   CalculateNextReviewInputSchema,

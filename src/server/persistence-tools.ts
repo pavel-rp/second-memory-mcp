@@ -1,15 +1,17 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import crypto from 'node:crypto';
 import {
-  listChunksAsLearningItems,
-  mapChunkRowToLearningItem,
   deleteChunk,
-  batchFetchChunksMinimal,
   createChunkWithTopic,
   updateChunkContent,
   updateChunkMetadata,
   updateChunkWithProgressReset,
 } from '../services/chunks.js';
+import {
+  listChunksAsLearningItems,
+  mapChunkRowToLearningItem,
+  batchFetchChunksMinimal,
+} from '../services/chunk-queries.js';
 import { batchFetchTopicsMinimal } from '../services/topics.js';
 import { topicCreationService } from '../services/topic-creation.js';
 import {

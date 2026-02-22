@@ -19,7 +19,8 @@ import { SessionModeSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
-import { getChunk, mapChunkRowToLearningItem } from '../services/chunks.js';
+import { getChunk } from '../services/chunks.js';
+import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
 
 // Input schemas for session management tools
 const CreateSessionInputSchema = z.object({
