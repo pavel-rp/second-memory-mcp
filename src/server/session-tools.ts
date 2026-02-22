@@ -7,7 +7,15 @@ import {
   validateSessionContext,
 } from '../tools/session-manager.js';
 import { ConversationManager } from '../tools/conversation-manager.js';
+import { RecommendationEngine } from '../tools/recommendation-engine.js';
+import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
+import {
+  getChunk,
+  mapChunkRowToLearningItem,
+  prerequisiteReferenceValidator,
+} from '../services/chunks.js';
+import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   ConversationRequestInput,
   ConversationRequestSchema,
@@ -193,7 +201,19 @@ export function registerSessionTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
-        const conversationManager = new ConversationManager();
+        const chunkLookupFn = async (id: string) => {
+          const row = await getChunk(id);
+          return row ? mapChunkRowToLearningItem(row) : undefined;
+        };
+        const validator = new PrerequisiteValidator({
+          referenceValidator: prerequisiteReferenceValidator,
+          masteryService: prerequisiteMasteryService,
+        });
+        const engine = new RecommendationEngine({
+          chunkLookupFn,
+          prerequisiteValidator: validator,
+        });
+        const conversationManager = new ConversationManager(engine);
         const result = await conversationManager.conductLearningSession(parsedInput);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {

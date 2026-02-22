@@ -6,16 +6,20 @@ import {
   rankCandidatesWithConstraints,
 } from '../tools/sr-calculator.js';
 import { RecommendationEngine } from '../tools/recommendation-engine.js';
+import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
   type RecommendationInput,
 } from '../types/recommendations.js';
 import {
+  getChunk,
   mapChunkRowToLearningItem,
+  prerequisiteReferenceValidator,
   processReviewResult,
   listChunksAsLearningItems,
 } from '../services/chunks.js';
+import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -201,7 +205,18 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         }
 
         // Generate recommendations with fetched or provided items
-        const engine = new RecommendationEngine();
+        const chunkLookupFn = async (id: string) => {
+          const row = await getChunk(id);
+          return row ? mapChunkRowToLearningItem(row) : undefined;
+        };
+        const validator = new PrerequisiteValidator({
+          referenceValidator: prerequisiteReferenceValidator,
+          masteryService: prerequisiteMasteryService,
+        });
+        const engine = new RecommendationEngine({
+          chunkLookupFn,
+          prerequisiteValidator: validator,
+        });
         const result = await engine.generateRecommendations({
           ...parsedInput,
           learningItems: itemsToProcess ?? [],

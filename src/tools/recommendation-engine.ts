@@ -1,8 +1,7 @@
 import { calculatePriorityScore } from './sr-calculator.js';
 import { calculateItemCognitiveLoad } from './cognitive-load.js';
-import { prerequisiteValidator } from './prerequisite-validator.js';
+import type { PrerequisiteValidator } from './prerequisite-validator.js';
 import { dependencyResolver } from './dependency-resolver.js';
-import { getChunk, mapChunkRowToLearningItem } from '../services/chunks.js';
 import type {
   RecommendationInput,
   RecommendationOutput,
@@ -26,6 +25,16 @@ export class RecommendationEngine {
     addedPrerequisites: string[];
     resolvedChain: string[];
   } | null = null;
+  private chunkLookupFn: (id: string) => Promise<LearningItem | undefined>;
+  private prerequisiteValidator: PrerequisiteValidator;
+
+  constructor(deps: {
+    chunkLookupFn: (id: string) => Promise<LearningItem | undefined>;
+    prerequisiteValidator: PrerequisiteValidator;
+  }) {
+    this.chunkLookupFn = deps.chunkLookupFn;
+    this.prerequisiteValidator = deps.prerequisiteValidator;
+  }
 
   /**
    * Generate personalized learning recommendations
@@ -178,7 +187,7 @@ export class RecommendationEngine {
 
     // Apply prerequisite filtering (before priority scoring)
     try {
-      const prerequisiteResult = await prerequisiteValidator.filterByPrerequisites(
+      const prerequisiteResult = await this.prerequisiteValidator.filterByPrerequisites(
         filtered,
         constraints?.excludeIds
       );
@@ -423,12 +432,11 @@ export class RecommendationEngine {
 
         let item = itemMap.get(currentId);
         if (!item) {
-          const chunkRow = await getChunk(currentId);
-          if (!chunkRow) {
+          item = await this.chunkLookupFn(currentId);
+          if (!item) {
             logger.warn(`Prerequisite chunk ${currentId} not found in database`);
             continue;
           }
-          item = mapChunkRowToLearningItem(chunkRow);
           itemMap.set(currentId, item);
         }
 

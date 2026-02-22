@@ -8,11 +8,6 @@ import type {
 } from '../types/session.js';
 import { SessionInputSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
-import {
-  getSessionWithChunks,
-  validateChunkIds,
-  persistBatchSessionChunkOperations,
-} from '../services/sessions.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string): Date {
@@ -327,14 +322,23 @@ export function validateSessionContext(context: unknown): SessionInput {
 }
 
 /**
- * Apply batch session chunk operations atomically
+ * Apply batch session chunk operations atomically.
+ * Caller is responsible for validating chunk IDs, fetching session data,
+ * and providing the persistence function.
  */
-export async function applyBatchSessionChunkOperations(args: {
+export function applyBatchSessionChunkOperations(args: {
   sessionId: string;
   operations: BatchOperation[];
   maxOps?: number;
-}): Promise<{ created: number; updated: number; unchanged: number; affectedChunkIds: string[] }> {
-  const { sessionId, operations, maxOps = 50 } = args;
+  sessionExists: boolean;
+  persistFn: (args: { sessionId: string; operations: BatchOperation[] }) => {
+    created: number;
+    updated: number;
+    unchanged: number;
+    affectedChunkIds: string[];
+  };
+}): { created: number; updated: number; unchanged: number; affectedChunkIds: string[] } {
+  const { sessionId, operations, maxOps = 50, sessionExists, persistFn } = args;
 
   // Validate input shape and limits
   BatchUpdateInputSchema.parse({ sessionId, operations });
@@ -342,21 +346,9 @@ export async function applyBatchSessionChunkOperations(args: {
     throw new Error(`Too many operations: max ${maxOps} operations allowed`);
   }
 
-  // Validate referenced chunk IDs exist in learning content
-  const opChunkIds = Array.from(new Set(operations.map(op => op.chunkId)));
-  const validation = await validateChunkIds(opChunkIds);
-  if (!validation.isValid) {
-    throw new Error(`Invalid chunk IDs provided: ${validation.errors.join(', ')}`);
-  }
-
-  const { session, chunks } = await getSessionWithChunks(sessionId);
-  if (!session) {
+  if (!sessionExists) {
     throw new Error('No active session found. Create a session first.');
   }
 
-  return persistBatchSessionChunkOperations({
-    sessionId,
-    operations,
-    existingChunks: chunks,
-  });
+  return persistFn({ sessionId, operations });
 }

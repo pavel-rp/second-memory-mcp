@@ -1,6 +1,4 @@
 import { algorithmConfig } from '../config/algorithm.js';
-import { prerequisiteReferenceValidator } from '../services/chunks.js';
-import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import type {
   MasteryCriteria,
   ValidationResult,
@@ -14,21 +12,40 @@ import { logger } from '../utils/logger.js';
  * Core prerequisite validation service that filters learning items based on prerequisite mastery
  * Integrates with reference validation and mastery determination logic
  */
+export type ReferenceValidatorDep = {
+  validateChunkPrerequisites: (
+    chunkId: string,
+    prerequisites: string[]
+  ) => Promise<{ isValid: boolean; invalidReferences: string[] }>;
+};
+
+export type MasteryServiceDep = {
+  checkItemMastery: (itemId: string) => Promise<MasteryStatus>;
+};
+
 export class PrerequisiteValidator {
   private masteryCriteria: MasteryCriteria;
   private databaseAvailable: boolean | null = null;
   private lastDbCheck: number = 0;
   private readonly DB_CHECK_INTERVAL = 30000; // Check database availability every 30 seconds
   private readonly VALIDATION_TIMEOUT = 5000; // 5 second timeout for validation operations
+  private referenceValidator: ReferenceValidatorDep;
+  private masteryService: MasteryServiceDep;
 
-  constructor(customCriteria?: Partial<MasteryCriteria>) {
+  constructor(deps: {
+    referenceValidator: ReferenceValidatorDep;
+    masteryService: MasteryServiceDep;
+    customCriteria?: Partial<MasteryCriteria>;
+  }) {
+    this.referenceValidator = deps.referenceValidator;
+    this.masteryService = deps.masteryService;
     // Use custom criteria or fall back to algorithm configuration
     const config = algorithmConfig.prerequisiteConfig.mastery;
     this.masteryCriteria = {
-      minimumQualityScore: customCriteria?.minimumQualityScore ?? config.minimumQualityScore,
-      requiredAttempts: customCriteria?.requiredAttempts ?? config.requiredAttempts,
-      recencyDays: customCriteria?.recencyDays ?? config.recencyDays,
-      successRate: customCriteria?.successRate ?? config.successRate,
+      minimumQualityScore: deps.customCriteria?.minimumQualityScore ?? config.minimumQualityScore,
+      requiredAttempts: deps.customCriteria?.requiredAttempts ?? config.requiredAttempts,
+      recencyDays: deps.customCriteria?.recencyDays ?? config.recencyDays,
+      successRate: deps.customCriteria?.successRate ?? config.successRate,
     };
   }
 
@@ -47,7 +64,7 @@ export class PrerequisiteValidator {
 
     try {
       // Quick test of database connectivity - use minimal test for better performance
-      await prerequisiteReferenceValidator.validateChunkPrerequisites('test', []);
+      await this.referenceValidator.validateChunkPrerequisites('test', []);
       this.databaseAvailable = true;
     } catch (error) {
       // Database is not available - check if we're in a test environment with mocks
@@ -162,10 +179,7 @@ export class PrerequisiteValidator {
       try {
         // Validate prerequisite references first with timeout
         const referenceValidation = await this.withTimeout(
-          prerequisiteReferenceValidator.validateChunkPrerequisites(
-            item.id,
-            item.prerequisites || []
-          ),
+          this.referenceValidator.validateChunkPrerequisites(item.id, item.prerequisites || []),
           this.VALIDATION_TIMEOUT
         );
 
@@ -275,7 +289,7 @@ export class PrerequisiteValidator {
    * @returns Mastery status with detailed metrics
    */
   async checkItemMastery(itemId: string): Promise<MasteryStatus> {
-    return await prerequisiteMasteryService.checkItemMastery(itemId);
+    return await this.masteryService.checkItemMastery(itemId);
   }
 
   /**
@@ -345,6 +359,3 @@ export class PrerequisiteValidator {
     return { ...this.masteryCriteria };
   }
 }
-
-// Export singleton instance for consistent usage across the application
-export const prerequisiteValidator = new PrerequisiteValidator();

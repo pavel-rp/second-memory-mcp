@@ -1,9 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ConversationManager } from '../../src/tools/conversation-manager.js';
+import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
+import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
+
+function createTestConversationManager() {
+  const validator = new PrerequisiteValidator({
+    referenceValidator: {
+      validateChunkPrerequisites: vi
+        .fn()
+        .mockResolvedValue({ isValid: true, invalidReferences: [] }),
+    },
+    masteryService: {
+      checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+    },
+  });
+  const engine = new RecommendationEngine({
+    chunkLookupFn: async () => undefined,
+    prerequisiteValidator: validator,
+  });
+  return new ConversationManager(engine);
+}
 
 describe('ConversationManager', () => {
   it('handles start learning with no items by prompting setup', async () => {
-    const cm = new ConversationManager();
+    const cm = createTestConversationManager();
     const out = await cm.conductLearningSession({
       intent: 'start_learning',
       context: { learningItems: [] },
@@ -13,7 +33,7 @@ describe('ConversationManager', () => {
   });
 
   it('produces guidance when items exist (guided)', async () => {
-    const cm = new ConversationManager();
+    const cm = createTestConversationManager();
     const out = await cm.conductLearningSession({
       intent: 'start_learning',
       context: {
@@ -41,7 +61,7 @@ describe('ConversationManager', () => {
   });
 
   it('continues session and indicates final item when at end', async () => {
-    const cm = new ConversationManager();
+    const cm = createTestConversationManager();
     const out = await cm.conductLearningSession({
       intent: 'continue_session',
       sessionState: {
@@ -63,7 +83,7 @@ describe('ConversationManager', () => {
   });
 
   it('asks clarifying question for time', async () => {
-    const cm = new ConversationManager();
+    const cm = createTestConversationManager();
     const out = await cm.conductLearningSession({
       intent: 'need_clarification',
       userInput: 'how long should i study?',
@@ -74,7 +94,7 @@ describe('ConversationManager', () => {
 
   describe('Topic Creation with Instruction-Based Workflow', () => {
     it('provides instruction-based guidance for topic creation', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn React',
         userInput: 'I want to learn React',
@@ -89,7 +109,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles empty topic title gracefully', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn',
         userInput: 'I want to learn',
@@ -101,7 +121,7 @@ describe('ConversationManager', () => {
     });
 
     it('provides workflow guidance with inferred subject', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn JavaScript',
         userInput: 'teach me JavaScript',
@@ -118,7 +138,7 @@ describe('ConversationManager', () => {
     });
 
     it('includes comprehensive instruction steps', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn Machine Learning',
         userInput: 'I want to learn Machine Learning',
@@ -131,7 +151,7 @@ describe('ConversationManager', () => {
     });
 
     it('provides context-aware subject inference', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
 
       // Test CS topic
       const csOut = await cm.conductLearningSession({
@@ -149,7 +169,7 @@ describe('ConversationManager', () => {
     });
 
     it('maintains conversation flow with proper suggested inputs', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn Python',
         userInput: 'I want to learn Python programming',
@@ -162,7 +182,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles user preferences from context', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn React',
         userInput: 'teach me React',
@@ -179,7 +199,7 @@ describe('ConversationManager', () => {
     });
 
     it('provides rationale in recommendations', async () => {
-      const cm = new ConversationManager();
+      const cm = createTestConversationManager();
       const out = await cm.conductLearningSession({
         intent: 'I want to learn Data Structures',
         userInput: 'I want to learn Data Structures',
