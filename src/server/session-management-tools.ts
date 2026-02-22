@@ -18,7 +18,7 @@ import {
 import { SessionModeSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
-import { dependencyResolver } from '../tools/dependency-resolver.js';
+import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { getChunk, mapChunkRowToLearningItem } from '../services/chunks.js';
 
 // Input schemas for session management tools

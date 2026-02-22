@@ -61,10 +61,24 @@ export class DependencyResolver {
     try {
       const resolvedChain = this.topologicalSort(dependencyGraph, itemsToResolve);
 
+      const maxDepthReached = this.calculateMaxDepth(dependencyGraph, itemsToResolve);
+
+      if (maxDepthReached > this.maxDepth) {
+        return {
+          resolvedChain: [],
+          circularDependencies: [],
+          maxDepthReached,
+          isValid: false,
+          errors: [
+            `Dependency depth ${maxDepthReached} exceeds maximum allowed depth ${this.maxDepth}`,
+          ],
+        };
+      }
+
       return {
         resolvedChain,
         circularDependencies: [],
-        maxDepthReached: this.calculateMaxDepth(dependencyGraph, itemsToResolve),
+        maxDepthReached,
         isValid: true,
         errors: [],
       };

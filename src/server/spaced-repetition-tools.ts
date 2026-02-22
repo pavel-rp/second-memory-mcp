@@ -4,7 +4,7 @@ import {
   calculatePriorityScore,
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
-} from '../tools/sr-calculator.js';
+} from '../algorithms/sr-calculator.js';
 import { RecommendationEngine } from '../tools/recommendation-engine.js';
 import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import {

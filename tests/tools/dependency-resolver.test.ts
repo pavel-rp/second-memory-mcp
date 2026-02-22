@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DependencyResolver } from '../../src/tools/dependency-resolver.js';
+import { DependencyResolver } from '../../src/algorithms/dependency-resolver.js';
 import type { LearningItem } from '../../src/types/recommendations.js';
 
 describe('DependencyResolver', () => {
@@ -210,6 +210,7 @@ describe('DependencyResolver', () => {
 
   describe('performance and edge cases', () => {
     it('should handle large dependency graphs efficiently', async () => {
+      const deepResolver = new DependencyResolver(100);
       const items: LearningItem[] = [];
 
       // Create a large linear chain
@@ -219,7 +220,7 @@ describe('DependencyResolver', () => {
       }
 
       const startTime = Date.now();
-      const result = await resolver.resolveDependencies(items);
+      const result = await deepResolver.resolveDependencies(items);
       const endTime = Date.now();
 
       expect(result.isValid).toBe(true);

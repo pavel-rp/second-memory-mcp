@@ -1,7 +1,7 @@
-import { calculatePriorityScore } from './sr-calculator.js';
+import { calculatePriorityScore } from '../algorithms/sr-calculator.js';
 import { calculateItemCognitiveLoad } from './cognitive-load.js';
 import type { PrerequisiteValidator } from './prerequisite-validator.js';
-import { dependencyResolver } from './dependency-resolver.js';
+import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import type {
   RecommendationInput,
   RecommendationOutput,

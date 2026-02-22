@@ -7,9 +7,9 @@ import type {
   LearningItemWithContent,
   PaginatedLearningItemsResponse,
 } from '../types/recommendations.js';
-import { calculateNextReviewAdvanced } from '../tools/sr-calculator.js';
-import { PrerequisiteReferenceValidator } from '../tools/prerequisite-reference-validator.js';
-import { dependencyResolver } from '../tools/dependency-resolver.js';
+import { calculateNextReviewAdvanced } from '../algorithms/sr-calculator.js';
+import { PrerequisiteReferenceValidator } from '../algorithms/prerequisite-reference-validator.js';
+import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
 
 // Wired singleton — lookup functions are defined at the bottom of this file but

@@ -6,9 +6,7 @@ import * as chunksService from '../../src/services/chunks.js';
 function createTestEngine() {
   const mockValidator = new PrerequisiteValidator({
     referenceValidator: {
-      validateChunkPrerequisites: vi
-        .fn()
-        .mockResolvedValue({ isValid: true, invalidReferences: [] }),
+      validateChunkPrerequisites: vi.fn().mockReturnValue({ isValid: true, invalidReferences: [] }),
     },
     masteryService: {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
