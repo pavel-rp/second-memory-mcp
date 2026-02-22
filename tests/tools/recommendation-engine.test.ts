@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
 import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
 import * as chunksService from '../../src/services/chunks.js';
+import * as chunkQueriesService from '../../src/services/chunk-queries.js';
 
 function createTestEngine() {
   const mockValidator = new PrerequisiteValidator({
@@ -15,7 +16,7 @@ function createTestEngine() {
   return new RecommendationEngine({
     chunkLookupFn: async (id: string) => {
       const row = await chunksService.getChunk(id);
-      return row ? chunksService.mapChunkRowToLearningItem(row) : undefined;
+      return row ? chunkQueriesService.mapChunkRowToLearningItem(row) : undefined;
     },
     prerequisiteValidator: mockValidator,
   });

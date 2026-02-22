@@ -10,11 +10,9 @@ import { ConversationManager } from '../tools/conversation-manager.js';
 import { RecommendationEngine } from '../tools/recommendation-engine.js';
 import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
-import {
-  getChunk,
-  mapChunkRowToLearningItem,
-  prerequisiteReferenceValidator,
-} from '../services/chunks.js';
+import { getChunk } from '../services/chunks.js';
+import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
+import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';
 import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   ConversationRequestInput,

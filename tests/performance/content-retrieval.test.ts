@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { listChunksWithContent } from '../../src/services/chunks.js';
+import { listChunksWithContent } from '../../src/services/chunk-queries.js';
 import { resetDatabase } from '../../src/db/client.js';
 import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
