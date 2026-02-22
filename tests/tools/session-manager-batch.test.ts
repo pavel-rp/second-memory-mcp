@@ -162,7 +162,7 @@ describe('Service: applyBatchSessionChunkOperations', () => {
     const result = applyBatchSessionChunkOperations({
       sessionId,
       operations,
-      sessionExists: true,
+      activeSessionExists: true,
       persistFn: args =>
         persistBatchSessionChunkOperations({
           ...args,
@@ -181,7 +181,7 @@ describe('Service: applyBatchSessionChunkOperations', () => {
       applyBatchSessionChunkOperations({
         sessionId: 'nonexistent',
         operations: [{ chunkId: 'c1', status: 'pending' }],
-        sessionExists: false,
+        activeSessionExists: false,
         persistFn: () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
       })
     ).toThrow(/No active session found/);

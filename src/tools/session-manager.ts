@@ -330,7 +330,7 @@ export function applyBatchSessionChunkOperations(args: {
   sessionId: string;
   operations: BatchOperation[];
   maxOps?: number;
-  sessionExists: boolean;
+  activeSessionExists: boolean;
   persistFn: (args: { sessionId: string; operations: BatchOperation[] }) => {
     created: number;
     updated: number;
@@ -338,15 +338,13 @@ export function applyBatchSessionChunkOperations(args: {
     affectedChunkIds: string[];
   };
 }): { created: number; updated: number; unchanged: number; affectedChunkIds: string[] } {
-  const { sessionId, operations, maxOps = 50, sessionExists, persistFn } = args;
+  const { sessionId, operations, maxOps = 50, activeSessionExists, persistFn } = args;
 
-  // Validate input shape and limits
-  BatchUpdateInputSchema.parse({ sessionId, operations });
   if (operations.length > maxOps) {
     throw new Error(`Too many operations: max ${maxOps} operations allowed`);
   }
 
-  if (!sessionExists) {
+  if (!activeSessionExists) {
     throw new Error('No active session found. Create a session first.');
   }
 

@@ -39,6 +39,20 @@ const SessionAnalysisInputShape = z.object({
   sessionData: z.any().optional(),
 });
 
+// Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
+const chunkLookupFn = async (id: string) => {
+  const row = await getChunk(id);
+  return row ? mapChunkRowToLearningItem(row) : undefined;
+};
+const sharedValidator = new PrerequisiteValidator({
+  referenceValidator: prerequisiteReferenceValidator,
+  masteryService: prerequisiteMasteryService,
+});
+const sharedEngine = new RecommendationEngine({
+  chunkLookupFn,
+  prerequisiteValidator: sharedValidator,
+});
+
 export function registerSessionTools(server: McpServer): void {
   server.registerTool(
     'session_progress',
@@ -201,19 +215,7 @@ export function registerSessionTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
-        const chunkLookupFn = async (id: string) => {
-          const row = await getChunk(id);
-          return row ? mapChunkRowToLearningItem(row) : undefined;
-        };
-        const validator = new PrerequisiteValidator({
-          referenceValidator: prerequisiteReferenceValidator,
-          masteryService: prerequisiteMasteryService,
-        });
-        const engine = new RecommendationEngine({
-          chunkLookupFn,
-          prerequisiteValidator: validator,
-        });
-        const conversationManager = new ConversationManager(engine);
+        const conversationManager = new ConversationManager(sharedEngine);
         const result = await conversationManager.conductLearningSession(parsedInput);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {

@@ -562,7 +562,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         const result = applyBatchSessionChunkOperations({
           sessionId: validatedInput.sessionId,
           operations: validatedInput.operations,
-          sessionExists: !!session,
+          activeSessionExists: session?.status === 'active',
           persistFn: args =>
             persistBatchSessionChunkOperations({
               ...args,

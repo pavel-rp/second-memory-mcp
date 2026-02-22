@@ -38,6 +38,20 @@ import {
   type RecordReviewResultInput,
 } from '../types/spaced-repetition-tools.js';
 
+// Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
+const chunkLookupFn = async (id: string) => {
+  const row = await getChunk(id);
+  return row ? mapChunkRowToLearningItem(row) : undefined;
+};
+const sharedValidator = new PrerequisiteValidator({
+  referenceValidator: prerequisiteReferenceValidator,
+  masteryService: prerequisiteMasteryService,
+});
+const sharedEngine = new RecommendationEngine({
+  chunkLookupFn,
+  prerequisiteValidator: sharedValidator,
+});
+
 export function registerSpacedRepetitionTools(server: McpServer): void {
   server.registerTool(
     'calculate_next_review',
@@ -205,19 +219,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         }
 
         // Generate recommendations with fetched or provided items
-        const chunkLookupFn = async (id: string) => {
-          const row = await getChunk(id);
-          return row ? mapChunkRowToLearningItem(row) : undefined;
-        };
-        const validator = new PrerequisiteValidator({
-          referenceValidator: prerequisiteReferenceValidator,
-          masteryService: prerequisiteMasteryService,
-        });
-        const engine = new RecommendationEngine({
-          chunkLookupFn,
-          prerequisiteValidator: validator,
-        });
-        const result = await engine.generateRecommendations({
+        const result = await sharedEngine.generateRecommendations({
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });

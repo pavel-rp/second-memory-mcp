@@ -80,12 +80,31 @@ describe('MCP Server stdout validation', () => {
       },
     };
 
-    // Wait a bit for server startup, then send request
-    await setTimeout(500);
+    // Wait for server to be ready (stderr output indicates startup), then send request
+    await new Promise<void>((resolve, reject) => {
+      const timeout = global.setTimeout(() => resolve(), 3000);
+      const onStderr = () => {
+        global.clearTimeout(timeout);
+        server.stderr.off('data', onStderr);
+        resolve();
+      };
+      server.stderr.on('data', onStderr);
+      server.on('error', reject);
+    });
     server.stdin.write(JSON.stringify(request) + '\n');
 
-    // Wait for response
-    await setTimeout(1000);
+    // Wait for JSON-RPC response on stdout
+    await new Promise<void>(resolve => {
+      const timeout = global.setTimeout(() => resolve(), 3000);
+      const onData = () => {
+        if (jsonLines.some(line => line.includes('"result"'))) {
+          global.clearTimeout(timeout);
+          server.stdout.off('data', onData);
+          resolve();
+        }
+      };
+      server.stdout.on('data', onData);
+    });
 
     // Clean up
     server.kill();
