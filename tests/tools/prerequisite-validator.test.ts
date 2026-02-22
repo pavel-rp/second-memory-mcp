@@ -25,7 +25,10 @@ describe('PrerequisiteValidator', () => {
   const mockMasteryService = vi.mocked(prerequisiteMasteryService);
 
   beforeEach(() => {
-    validator = new PrerequisiteValidator();
+    validator = new PrerequisiteValidator({
+      referenceValidator: mockReferenceValidator,
+      masteryService: mockMasteryService,
+    });
     vi.clearAllMocks();
   });
 
@@ -309,18 +312,22 @@ describe('PrerequisiteValidator', () => {
 
 describe('PrerequisiteValidator Integration', () => {
   it('should work with realistic learning scenarios', async () => {
+    // Mock realistic scenario
+    const mockRefValidator = vi.mocked(prerequisiteReferenceValidator);
+    const mockMasterySvc = vi.mocked(prerequisiteMasteryService);
+
     const validator = new PrerequisiteValidator({
-      minimumQualityScore: 4.0,
-      requiredAttempts: 2,
-      recencyDays: 30,
-      successRate: 0.8,
+      referenceValidator: mockRefValidator,
+      masteryService: mockMasterySvc,
+      customCriteria: {
+        minimumQualityScore: 4.0,
+        requiredAttempts: 2,
+        recencyDays: 30,
+        successRate: 0.8,
+      },
     });
 
-    // Mock realistic scenario
-    const mockReferenceValidator = vi.mocked(prerequisiteReferenceValidator);
-    const mockMasteryService = vi.mocked(prerequisiteMasteryService);
-
-    mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+    mockRefValidator.validateChunkPrerequisites.mockResolvedValue({
       isValid: true,
       validReferences: ['basic-concepts'],
       invalidReferences: [],
@@ -328,7 +335,7 @@ describe('PrerequisiteValidator Integration', () => {
     });
 
     // Prerequisite not sufficiently mastered
-    mockMasteryService.checkItemMastery.mockResolvedValue({
+    mockMasterySvc.checkItemMastery.mockResolvedValue({
       itemId: 'basic-concepts',
       isMastered: false,
       averageQuality: 3.5, // Below threshold

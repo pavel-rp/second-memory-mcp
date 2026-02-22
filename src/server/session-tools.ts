@@ -7,7 +7,15 @@ import {
   validateSessionContext,
 } from '../tools/session-manager.js';
 import { ConversationManager } from '../tools/conversation-manager.js';
+import { RecommendationEngine } from '../tools/recommendation-engine.js';
+import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
+import {
+  getChunk,
+  mapChunkRowToLearningItem,
+  prerequisiteReferenceValidator,
+} from '../services/chunks.js';
+import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   ConversationRequestInput,
   ConversationRequestSchema,
@@ -29,6 +37,20 @@ const SessionAnalysisInputSchema = z
 const SessionAnalysisInputShape = z.object({
   sessionId: z.string().optional(),
   sessionData: z.any().optional(),
+});
+
+// Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
+const chunkLookupFn = async (id: string) => {
+  const row = await getChunk(id);
+  return row ? mapChunkRowToLearningItem(row) : undefined;
+};
+const sharedValidator = new PrerequisiteValidator({
+  referenceValidator: prerequisiteReferenceValidator,
+  masteryService: prerequisiteMasteryService,
+});
+const sharedEngine = new RecommendationEngine({
+  chunkLookupFn,
+  prerequisiteValidator: sharedValidator,
 });
 
 export function registerSessionTools(server: McpServer): void {
@@ -193,7 +215,7 @@ export function registerSessionTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
-        const conversationManager = new ConversationManager();
+        const conversationManager = new ConversationManager(sharedEngine);
         const result = await conversationManager.conductLearningSession(parsedInput);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {

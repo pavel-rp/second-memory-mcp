@@ -16,8 +16,8 @@ import { logger } from '../utils/logger.js';
 export class ConversationManager {
   private recommendationEngine: RecommendationEngine;
 
-  constructor() {
-    this.recommendationEngine = new RecommendationEngine();
+  constructor(recommendationEngine: RecommendationEngine) {
+    this.recommendationEngine = recommendationEngine;
   }
 
   /**

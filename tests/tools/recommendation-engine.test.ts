@@ -1,7 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
+import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
 import * as chunksService from '../../src/services/chunks.js';
-import { prerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
+
+function createTestEngine() {
+  const mockValidator = new PrerequisiteValidator({
+    referenceValidator: {
+      validateChunkPrerequisites: vi
+        .fn()
+        .mockResolvedValue({ isValid: true, invalidReferences: [] }),
+    },
+    masteryService: {
+      checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+    },
+  });
+  return new RecommendationEngine({
+    chunkLookupFn: async (id: string) => {
+      const row = await chunksService.getChunk(id);
+      return row ? chunksService.mapChunkRowToLearningItem(row) : undefined;
+    },
+    prerequisiteValidator: mockValidator,
+  });
+}
 
 function makeItem(overrides: Partial<any> = {}): any {
   return {
@@ -58,7 +78,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('returns empty when no items match constraints', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const out = await engine.generateRecommendations({
       mode: 'explicit',
       learningItems: [makeItem({ id: 'a', subject: 'Math' })],
@@ -71,7 +91,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('guided mode applies intelligent defaults (fills timeAvailable and constraints)', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const items = [
       makeItem({
         id: 'r1',
@@ -104,7 +124,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('respects maxNewItems constraint and session duration/cognitive load limits', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const items = [
       // Overdue review items
       makeItem({
@@ -148,7 +168,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('interleaves recommendations by difficulty buckets', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const items = [
       makeItem({ id: 'e1', difficulty: 3, estimatedDuration: 5 }),
       makeItem({ id: 'm1', difficulty: 6, estimatedDuration: 5 }),
@@ -175,7 +195,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('produces alternatives distinct from selected items', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const items = Array.from({ length: 8 }).map((_, i) =>
       makeItem({ id: `id-${i}`, estimatedDuration: 5 + (i % 3), difficulty: 4 + (i % 5) })
     );
@@ -196,7 +216,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('returns orchestrationHint when learningItems array is empty', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const result = await engine.generateRecommendations({
       mode: 'guided',
       learningItems: [],
@@ -210,7 +230,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('does not return orchestrationHint when learningItems are provided', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const items = [makeItem({ id: 'test-item', estimatedDuration: 10 })];
 
     const result = await engine.generateRecommendations({
@@ -223,7 +243,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('handles empty learningItems in explicit mode', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const result = await engine.generateRecommendations({
       mode: 'explicit',
       learningItems: [],
@@ -236,7 +256,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('maintains backward compatibility - orchestrationHint is optional', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
     const items = [makeItem({ id: 'test-item', estimatedDuration: 10 })];
 
     const result = await engine.generateRecommendations({
@@ -257,7 +277,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('automatically includes prerequisites when items have dependencies', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     // Create items with prerequisite relationships:
     // item-c requires item-b, item-b requires item-a
@@ -314,7 +334,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('includes transitive prerequisites when only dependent item is provided', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     const overdueDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const items = [
@@ -341,11 +361,6 @@ describe('RecommendationEngine', () => {
     };
 
     vi.spyOn(chunksService, 'getChunk').mockImplementation(async id => chunkRows[id] ?? null);
-    vi.spyOn(prerequisiteValidator, 'filterByPrerequisites').mockResolvedValue({
-      validItems: items,
-      filteredItems: [],
-      rationale: 'mocked for transitive prerequisite test',
-    });
 
     const result = await engine.generateRecommendations({
       mode: 'explicit',
@@ -361,7 +376,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('orders items topologically when dependencies exist', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     // Create a dependency chain: A <- B <- C
     const items = [
@@ -413,7 +428,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('handles items without prerequisites normally', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     const items = [
       makeItem({
@@ -446,7 +461,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('includes dependencyResolution field in output when prerequisites are added', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     const items = [
       makeItem({
@@ -486,7 +501,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('ensures resolvedOrder only contains items actually present in recommendations', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     // Create items with a simple prerequisite relationship
     const items = [
@@ -528,7 +543,7 @@ describe('RecommendationEngine', () => {
   });
 
   it('handles missing prerequisite chunks gracefully without breaking topological order', async () => {
-    const engine = new RecommendationEngine();
+    const engine = createTestEngine();
 
     // Create items where prerequisites exist but form a chain that's incomplete in database
     // This tests the scenario where dependency resolution finds a missing chunk

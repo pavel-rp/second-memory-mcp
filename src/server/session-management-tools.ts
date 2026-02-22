@@ -9,6 +9,9 @@ import {
   convertSessionToSessionInput,
   createSessionChunk,
   getHistoricalFeedbackForChunks,
+  validateChunkIds,
+  getSessionWithChunks,
+  persistBatchSessionChunkOperations,
   type CreateSessionInput,
   type CreateSessionChunkInput,
 } from '../services/sessions.js';
@@ -545,9 +548,26 @@ export function registerSessionManagementTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const validatedInput = BatchUpdateInputSchema.parse(input);
-        const result = await applyBatchSessionChunkOperations({
+
+        // Validate chunk IDs exist in learning content
+        const opChunkIds = Array.from(new Set(validatedInput.operations.map(op => op.chunkId)));
+        const validation = await validateChunkIds(opChunkIds);
+        if (!validation.isValid) {
+          throw new Error(`Invalid chunk IDs provided: ${validation.errors.join(', ')}`);
+        }
+
+        // Fetch session and existing chunks
+        const { session, chunks } = await getSessionWithChunks(validatedInput.sessionId);
+
+        const result = applyBatchSessionChunkOperations({
           sessionId: validatedInput.sessionId,
           operations: validatedInput.operations,
+          activeSessionExists: session?.status === 'active',
+          persistFn: args =>
+            persistBatchSessionChunkOperations({
+              ...args,
+              existingChunks: chunks,
+            }),
         });
 
         const response = {

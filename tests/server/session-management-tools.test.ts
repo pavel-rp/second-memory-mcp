@@ -688,6 +688,25 @@ describe('Integration: Session Management Tools', () => {
     expect(c2.status).toBe('pending');
   });
 
+  it('should reject batch update with invalid chunk IDs', async () => {
+    // Create a session first
+    const createOut = await createSessionTool.handler({
+      mode: 'learning',
+      estimatedDuration: 25,
+    });
+    const created = parseToolResult(createOut);
+    const sessionId = created.sessionId;
+
+    // Attempt batch update with non-existent chunk IDs
+    const batchOut = await batchUpdateChunksTool.handler({
+      sessionId,
+      operations: [{ chunkId: 'does-not-exist', status: 'pending' }],
+    });
+
+    const batchParsed = parseToolResult(batchOut);
+    expect(batchParsed.error).toMatch(/Invalid chunk IDs provided/);
+  });
+
   it('should reject creating second active session via MCP tool', async () => {
     // Create first session
     const result1 = await createSessionTool.handler({ mode: 'learning', estimatedDuration: 30 });

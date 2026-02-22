@@ -6,16 +6,20 @@ import {
   rankCandidatesWithConstraints,
 } from '../tools/sr-calculator.js';
 import { RecommendationEngine } from '../tools/recommendation-engine.js';
+import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
   type RecommendationInput,
 } from '../types/recommendations.js';
 import {
+  getChunk,
   mapChunkRowToLearningItem,
+  prerequisiteReferenceValidator,
   processReviewResult,
   listChunksAsLearningItems,
 } from '../services/chunks.js';
+import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -33,6 +37,20 @@ import {
   RecordReviewResultInputShape,
   type RecordReviewResultInput,
 } from '../types/spaced-repetition-tools.js';
+
+// Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
+const chunkLookupFn = async (id: string) => {
+  const row = await getChunk(id);
+  return row ? mapChunkRowToLearningItem(row) : undefined;
+};
+const sharedValidator = new PrerequisiteValidator({
+  referenceValidator: prerequisiteReferenceValidator,
+  masteryService: prerequisiteMasteryService,
+});
+const sharedEngine = new RecommendationEngine({
+  chunkLookupFn,
+  prerequisiteValidator: sharedValidator,
+});
 
 export function registerSpacedRepetitionTools(server: McpServer): void {
   server.registerTool(
@@ -201,8 +219,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         }
 
         // Generate recommendations with fetched or provided items
-        const engine = new RecommendationEngine();
-        const result = await engine.generateRecommendations({
+        const result = await sharedEngine.generateRecommendations({
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });
