@@ -259,6 +259,12 @@ pnpm run lint:fix
 - **Required**: Commits will fail if formatting is incorrect
 - **Zero-friction**: Developers don't need to remember to format
 
+### Commit messages
+
+- **Concise**: Commit messages must follow Pareto principle: most significant changes in most concise form.
+- **What, not how**: Write what was implemented, not how. Implementation details don't belong in commit messages.
+- **Signature**: Never add a signature that advertises you like 'Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>' or similar.
+
 ### IDE Integration
 
 - **VS Code**: Install Prettier extension for real-time formatting

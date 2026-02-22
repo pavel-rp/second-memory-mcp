@@ -33,6 +33,24 @@ export async function listTopics(): Promise<
   return db.select().from(learningTopics).all();
 }
 
+export async function getTopicSummaryById(topicId: string) {
+  const db = getSql();
+  return db
+    .select({
+      id: learningTopics.id,
+      title: learningTopics.title,
+      subject: learningTopics.subject,
+      summary: learningTopics.summary,
+      summaryVersion: learningTopics.summaryVersion,
+      summaryUpdatedAt: learningTopics.summaryUpdatedAt,
+      createdAt: learningTopics.createdAt,
+      updatedAt: learningTopics.updatedAt,
+    })
+    .from(learningTopics)
+    .where(eq(learningTopics.id, topicId))
+    .get();
+}
+
 export async function updateTopic(
   id: string,
   changes: Partial<Pick<CreateTopicInput, 'title' | 'subject' | 'updatedAt'>>
