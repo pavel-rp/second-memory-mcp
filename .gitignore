@@ -56,3 +56,4 @@ desktop.ini
 test-artifacts/
 .claude/settings.local.json
 AUDIT.md
+/audit/
