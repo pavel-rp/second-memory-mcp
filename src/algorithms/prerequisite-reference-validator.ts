@@ -24,9 +24,7 @@ export class PrerequisiteReferenceValidator {
    * @param prerequisiteIds Array of prerequisite chunk IDs to validate
    * @returns Validation result with valid/invalid references
    */
-  async validatePrerequisiteReferences(
-    prerequisiteIds: string[]
-  ): Promise<PrerequisiteReferenceValidationResult> {
+  validatePrerequisiteReferences(prerequisiteIds: string[]): PrerequisiteReferenceValidationResult {
     if (!prerequisiteIds || prerequisiteIds.length === 0) {
       return {
         isValid: true,
@@ -80,11 +78,11 @@ export class PrerequisiteReferenceValidator {
    * @param prerequisites Array of prerequisite chunk IDs
    * @returns Validation result
    */
-  async validateChunkPrerequisites(
+  validateChunkPrerequisites(
     chunkId: string,
     prerequisites: string[]
-  ): Promise<PrerequisiteReferenceValidationResult> {
-    const result = await this.validatePrerequisiteReferences(prerequisites);
+  ): PrerequisiteReferenceValidationResult {
+    const result = this.validatePrerequisiteReferences(prerequisites);
 
     // Add context about which chunk has invalid prerequisites
     if (!result.isValid) {

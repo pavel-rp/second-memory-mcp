@@ -74,14 +74,11 @@ export function calculateNextReview(input: NextReviewInput): NextReviewOutput {
 
 export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
   const now = toStartOfDay(new Date());
-  const nextReview = new Date(input.nextReviewDate);
-  if (isNaN(nextReview.getTime())) {
-    // If invalid date, consider it overdue
-    nextReview.setTime(now.getTime());
-  }
+  const parsedReview = new Date(input.nextReviewDate);
+  const normalizedReview = isNaN(parsedReview.getTime()) ? now : parsedReview;
   const daysUntil = Math.max(
     -365,
-    Math.min(365, Math.floor((toStartOfDay(nextReview).getTime() - now.getTime()) / 86400000))
+    Math.min(365, Math.floor((toStartOfDay(normalizedReview).getTime() - now.getTime()) / 86400000))
   );
 
   const ease = clampEaseFactor(input.easeFactor);

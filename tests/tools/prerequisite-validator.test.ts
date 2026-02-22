@@ -83,7 +83,7 @@ describe('PrerequisiteValidator', () => {
     it('should filter items with invalid prerequisite references', async () => {
       const item = createTestItem('item1', ['invalid-prereq']);
 
-      mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+      mockReferenceValidator.validateChunkPrerequisites.mockReturnValue({
         isValid: false,
         validReferences: [],
         invalidReferences: ['invalid-prereq'],
@@ -104,7 +104,7 @@ describe('PrerequisiteValidator', () => {
       const item = createTestItem('item1', ['prereq1', 'prereq2']);
 
       // Mock valid references
-      mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+      mockReferenceValidator.validateChunkPrerequisites.mockReturnValue({
         isValid: true,
         validReferences: ['prereq1', 'prereq2'],
         invalidReferences: [],
@@ -128,7 +128,7 @@ describe('PrerequisiteValidator', () => {
       const item = createTestItem('item1', ['prereq1', 'prereq2']);
 
       // Mock valid references
-      mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+      mockReferenceValidator.validateChunkPrerequisites.mockReturnValue({
         isValid: true,
         validReferences: ['prereq1', 'prereq2'],
         invalidReferences: [],
@@ -159,7 +159,7 @@ describe('PrerequisiteValidator', () => {
     it('should handle multiple missing prerequisites correctly', async () => {
       const item = createTestItem('item1', ['prereq1', 'prereq2', 'prereq3']);
 
-      mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+      mockReferenceValidator.validateChunkPrerequisites.mockReturnValue({
         isValid: true,
         validReferences: ['prereq1', 'prereq2', 'prereq3'],
         invalidReferences: [],
@@ -182,9 +182,9 @@ describe('PrerequisiteValidator', () => {
     it('should handle validation errors gracefully', async () => {
       const item = createTestItem('item1', ['prereq1']);
 
-      mockReferenceValidator.validateChunkPrerequisites.mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      mockReferenceValidator.validateChunkPrerequisites.mockImplementation(() => {
+        throw new Error('Database connection failed');
+      });
 
       const result = await validator.filterByPrerequisites([item]);
 
@@ -284,13 +284,13 @@ describe('PrerequisiteValidator', () => {
 
       // Setup mocks
       mockReferenceValidator.validateChunkPrerequisites
-        .mockResolvedValueOnce({
+        .mockReturnValueOnce({
           isValid: true,
           validReferences: ['prereq1'],
           invalidReferences: [],
           errors: [],
         })
-        .mockResolvedValueOnce({
+        .mockReturnValueOnce({
           isValid: true,
           validReferences: ['prereq2'],
           invalidReferences: [],
@@ -327,7 +327,7 @@ describe('PrerequisiteValidator Integration', () => {
       },
     });
 
-    mockRefValidator.validateChunkPrerequisites.mockResolvedValue({
+    mockRefValidator.validateChunkPrerequisites.mockReturnValue({
       isValid: true,
       validReferences: ['basic-concepts'],
       invalidReferences: [],

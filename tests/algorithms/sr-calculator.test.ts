@@ -4,7 +4,7 @@ import {
   calculatePriorityScore,
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
-} from '../../src/tools/sr-calculator.js';
+} from '../../src/algorithms/sr-calculator.js';
 
 describe('calculateNextReview', () => {
   it('floors ease at 1.3 and resets on failure (quality<3)', () => {
@@ -117,7 +117,7 @@ describe('advanced leech penalty clamp (config)', () => {
   });
 
   it('uses sum of penalties when above min clamp', async () => {
-    const mod = await import('../../src/tools/sr-calculator.js');
+    const mod = await import('../../src/algorithms/sr-calculator.js');
     const noLeech = mod.calculateNextReviewAdvanced({
       quality: 4,
       repetitions: 5,
@@ -140,7 +140,7 @@ describe('advanced leech penalty clamp (config)', () => {
   it('uses minLeechEasePenalty when sum is more severe (clamps)', async () => {
     process.env.SM_LEECH_EASE_ADJUST = '-0.5'; // sum -0.6 < min -0.2 => clamp to -0.2
     vi.resetModules();
-    const mod = await import('../../src/tools/sr-calculator.js');
+    const mod = await import('../../src/algorithms/sr-calculator.js');
     const noLeech = mod.calculateNextReviewAdvanced({
       quality: 4,
       repetitions: 5,
@@ -160,7 +160,7 @@ describe('advanced leech penalty clamp (config)', () => {
   });
 
   it('threshold: below threshold no leech; at threshold leech true', async () => {
-    const mod = await import('../../src/tools/sr-calculator.js');
+    const mod = await import('../../src/algorithms/sr-calculator.js');
     const below = mod.calculateNextReviewAdvanced({
       quality: 4,
       repetitions: 5,

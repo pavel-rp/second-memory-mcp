@@ -6,9 +6,7 @@ import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js
 function createTestConversationManager() {
   const validator = new PrerequisiteValidator({
     referenceValidator: {
-      validateChunkPrerequisites: vi
-        .fn()
-        .mockResolvedValue({ isValid: true, invalidReferences: [] }),
+      validateChunkPrerequisites: vi.fn().mockReturnValue({ isValid: true, invalidReferences: [] }),
     },
     masteryService: {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
