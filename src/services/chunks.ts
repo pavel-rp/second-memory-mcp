@@ -443,7 +443,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
       )
       .all();
 
-    const dependentItems = dependentRows.map(mapChunkRowToLearningItem);
+    const dependentItems = dependentRows.map(row => mapChunkRowToLearningItem(row));
     const dependentIds = dependentItems.map(item => item.id);
     const dependencyResolution =
       dependentIds.length > 0
