@@ -49,6 +49,7 @@ import {
   UpdateTopicSummaryInputShape,
   type UpdateTopicSummaryInput,
 } from '../types/persistence-tools.js';
+import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
 
 export function registerPersistenceTools(server: McpServer): void {
   server.registerTool(
@@ -66,8 +67,12 @@ export function registerPersistenceTools(server: McpServer): void {
         const items = await listChunksAsLearningItems({ subject: subjectFilter, dueOnly, limit });
         return { content: [{ type: 'text', text: JSON.stringify(items) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to list learning items: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -120,23 +125,12 @@ export function registerPersistenceTools(server: McpServer): void {
           };
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while creating topic "${input.topicTitle}": ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while creating topic "${input.topicTitle}": ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -191,23 +185,12 @@ export function registerPersistenceTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'database',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `Failed to create learning item "${input.title}": ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to create learning item "${input.title}": ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -257,23 +240,12 @@ export function registerPersistenceTools(server: McpServer): void {
           };
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while updating chunk content: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while updating chunk content: ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -325,23 +297,12 @@ export function registerPersistenceTools(server: McpServer): void {
           };
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while updating chunk metadata: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while updating chunk metadata: ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -396,23 +357,12 @@ export function registerPersistenceTools(server: McpServer): void {
           };
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while updating chunk: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while updating chunk: ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -469,23 +419,12 @@ export function registerPersistenceTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while deleting chunk: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while deleting chunk: ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -533,23 +472,12 @@ export function registerPersistenceTools(server: McpServer): void {
           };
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while updating topic: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while updating topic: ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -594,23 +522,12 @@ export function registerPersistenceTools(server: McpServer): void {
           };
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'system',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `System error while updating topic summary: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`System error while updating topic summary: ${msg}`, {
+          type: 'system',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -642,23 +559,12 @@ export function registerPersistenceTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'database',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `Failed to fetch topics: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to fetch topics: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -711,23 +617,12 @@ export function registerPersistenceTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'database',
-                  message: errorMsg,
-                  retryable: true,
-                },
-                message: `Failed to fetch chunks: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to fetch chunks: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
