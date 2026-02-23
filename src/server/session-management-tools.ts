@@ -21,6 +21,7 @@ import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { getChunk } from '../services/chunks.js';
 import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
+import { extractErrorMessage, toolError } from './tool-helpers.js';
 
 // Input schemas for session management tools
 const CreateSessionInputSchema = z.object({
@@ -284,9 +285,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(`Created session ${sessionId} with mode ${validatedInput.mode}`);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to create session:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to create session: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -339,9 +344,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(`Retrieved active session ${activeSession.id}`);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to get active session:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to get active session: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -399,9 +408,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(`Retrieved session ${validatedInput.sessionId}`);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to get session:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to get session: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -481,9 +494,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to complete session:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to complete session: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -531,9 +548,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to create session chunk:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to create session chunk: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -581,16 +602,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         );
         return { content: [{ type: 'text', text: JSON.stringify(response) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to batch update session chunks:', error);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({ error: errorMsg, code: 'BATCH_UPDATE_FAILED' }),
-            },
-          ],
-        };
+        return toolError(`Failed to batch update session chunks: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -635,9 +653,13 @@ export function registerSessionManagementTools(server: McpServer): void {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Failed to get historical feedback:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to get historical feedback: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );

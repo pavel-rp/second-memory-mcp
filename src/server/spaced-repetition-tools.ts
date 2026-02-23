@@ -17,6 +17,7 @@ import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../service
 import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';
 import { processReviewResult } from '../services/chunk-reviews.js';
 import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
+import { extractErrorMessage, toolError } from './tool-helpers.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -186,17 +187,12 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
               limit: parsedInput.limit,
             });
           } catch (dbError) {
-            const dbErrorMsg = dbError instanceof Error ? dbError.message : 'Database fetch failed';
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify({
-                    error: `Database error: ${dbErrorMsg}`,
-                  }),
-                },
-              ],
-            };
+            const msg = extractErrorMessage(dbError);
+            return toolError(`Failed to fetch learning items from database: ${msg}`, {
+              type: 'database',
+              message: msg,
+              retryable: true,
+            });
           }
         }
 
@@ -207,10 +203,11 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         });
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to generate recommendations: ${msg}`, {
+          type: 'recommendation',
+          message: msg,
+        });
       }
     }
   );
@@ -250,22 +247,12 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: {
-                  type: 'database',
-                  message: errorMsg,
-                  retryable: true,
-                },
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to record review result: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );

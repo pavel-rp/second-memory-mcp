@@ -16,6 +16,7 @@ import {
   type ListChunksWithContentFilter,
 } from '../services/chunk-queries.js';
 import { getTopicSummaryById } from '../services/topics.js';
+import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
 
 export function registerContentTools(server: McpServer): void {
   // Tool for retrieving individual chunk content
@@ -39,52 +40,28 @@ export function registerContentTools(server: McpServer): void {
         const chunkContent = await getChunkContent(chunkId);
 
         if (!chunkContent) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: 'Chunk not found',
-                  message: `No chunk found with ID: ${chunkId}`,
-                }),
-              },
-            ],
-          };
+          return toolError(`No chunk found with ID: ${chunkId}`, {
+            type: 'database',
+            message: 'Chunk not found',
+          });
         }
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                chunkId,
-                content: chunkContent.content,
-                contentVersion: chunkContent.contentVersion,
-                contentUpdatedAt: chunkContent.contentUpdatedAt,
-                message: `Successfully retrieved content for chunk: ${chunkId}`,
-                sessionReminder:
-                  'If conducting recall/review: Ensure you have created a session first ' +
-                  'to access historical feedback about learner difficulties.',
-              }),
-            },
-          ],
-        };
+        return toolOk(`Successfully retrieved content for chunk: ${chunkId}`, {
+          chunkId,
+          content: chunkContent.content,
+          contentVersion: chunkContent.contentVersion,
+          contentUpdatedAt: chunkContent.contentUpdatedAt,
+          sessionReminder:
+            'If conducting recall/review: Ensure you have created a session first ' +
+            'to access historical feedback about learner difficulties.',
+        });
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'retrieval_error',
-                message: `Failed to retrieve chunk content: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to retrieve chunk content: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -109,56 +86,32 @@ export function registerContentTools(server: McpServer): void {
         const topicResult = await getTopicSummaryById(topicId);
 
         if (!topicResult) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: 'Topic not found',
-                  message: `No topic found with ID: ${topicId}`,
-                }),
-              },
-            ],
-          };
+          return toolError(`No topic found with ID: ${topicId}`, {
+            type: 'database',
+            message: 'Topic not found',
+          });
         }
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                topicId,
-                title: topicResult.title,
-                subject: topicResult.subject,
-                summary: topicResult.summary,
-                summaryVersion: topicResult.summaryVersion,
-                summaryUpdatedAt: topicResult.summaryUpdatedAt,
-                createdAt: topicResult.createdAt,
-                updatedAt: topicResult.updatedAt,
-                message: `Successfully retrieved topic summary: ${topicResult.title}`,
-                sessionReminder:
-                  'If conducting recall/review: Use batch_fetch_chunks_minimal(topicId) to get chunk IDs, ' +
-                  'then create_session(mode: "retrieval", chunkIds: [...]) to load historical feedback.',
-              }),
-            },
-          ],
-        };
+        return toolOk(`Successfully retrieved topic summary: ${topicResult.title}`, {
+          topicId,
+          title: topicResult.title,
+          subject: topicResult.subject,
+          summary: topicResult.summary,
+          summaryVersion: topicResult.summaryVersion,
+          summaryUpdatedAt: topicResult.summaryUpdatedAt,
+          createdAt: topicResult.createdAt,
+          updatedAt: topicResult.updatedAt,
+          sessionReminder:
+            'If conducting recall/review: Use batch_fetch_chunks_minimal(topicId) to get chunk IDs, ' +
+            'then create_session(mode: "retrieval", chunkIds: [...]) to load historical feedback.',
+        });
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'retrieval_error',
-                message: `Failed to retrieve topic summary: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to retrieve topic summary: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );
@@ -190,58 +143,30 @@ export function registerContentTools(server: McpServer): void {
 
         const result = await listChunksWithContent(filter);
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                items: result.items,
-                count: result.items.length,
-                pagination: result.pagination,
-                contentIncluded: includeContent,
-                filter: {
-                  subject: subjectFilter ?? null,
-                  dueOnly: dueOnly ?? false,
-                  limit: resolvedLimit,
-                  offset: resolvedOffset,
-                },
-                message: `Successfully retrieved ${result.items.length} learning items${
-                  includeContent ? ' with content' : ''
-                }`,
-              }),
+        return toolOk(
+          `Successfully retrieved ${result.items.length} learning items${
+            includeContent ? ' with content' : ''
+          }`,
+          {
+            items: result.items,
+            count: result.items.length,
+            pagination: result.pagination,
+            contentIncluded: includeContent,
+            filter: {
+              subject: subjectFilter ?? null,
+              dueOnly: dueOnly ?? false,
+              limit: resolvedLimit,
+              offset: resolvedOffset,
             },
-          ],
-        };
+          }
+        );
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                items: [],
-                count: 0,
-                pagination: {
-                  total: 0,
-                  limit: resolvedLimit,
-                  offset: resolvedOffset,
-                  hasMore: false,
-                },
-                contentIncluded: includeContent,
-                filter: {
-                  subject: subjectFilter ?? null,
-                  dueOnly: dueOnly ?? false,
-                  limit: resolvedLimit,
-                  offset: resolvedOffset,
-                },
-                message: 'No learning items available at this time.',
-                warning: `Failed to retrieve learning items: ${errorMsg}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to retrieve learning items: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
       }
     }
   );

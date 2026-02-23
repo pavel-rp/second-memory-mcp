@@ -350,7 +350,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.error).toContain('Session nonexistent-session not found');
+    expect(parsed.message).toContain('Session nonexistent-session not found');
   });
 
   it('should handle invalid input gracefully', async () => {
@@ -704,7 +704,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const batchParsed = parseToolResult(batchOut);
-    expect(batchParsed.error).toMatch(/Invalid chunk IDs provided/);
+    expect(batchParsed.error.message).toMatch(/Invalid chunk IDs provided/);
   });
 
   it('should reject creating second active session via MCP tool', async () => {
@@ -716,6 +716,6 @@ describe('Integration: Session Management Tools', () => {
     // Attempt second session should return error
     const result2 = await createSessionTool.handler({ mode: 'review', estimatedDuration: 30 });
     const parsed2 = parseToolResult(result2);
-    expect(parsed2.error).toContain('Active session already exists');
+    expect(parsed2.message).toContain('Active session already exists');
   });
 });

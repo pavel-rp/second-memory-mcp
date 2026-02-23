@@ -5,6 +5,7 @@ import {
   type SearchLearningContentInput,
 } from '../types/search-tools.js';
 import { searchLearningContent } from '../services/search.js';
+import { extractErrorMessage, toolError } from './tool-helpers.js';
 
 export function registerSearchTools(server: McpServer): void {
   server.registerTool(
@@ -56,20 +57,11 @@ export function registerSearchTools(server: McpServer): void {
           ],
         };
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: 'search_failed',
-                message: `Failed to search learning content: ${errorMessage}`,
-              }),
-            },
-          ],
-        };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to search learning content: ${msg}`, {
+          type: 'database',
+          message: msg,
+        });
       }
     }
   );

@@ -20,6 +20,7 @@ import {
   ConversationRequestShape,
 } from '../types/recommendations.js';
 import { logger } from '../utils/logger.js';
+import { extractErrorMessage, toolError } from './tool-helpers.js';
 
 // Plain shape for MCP tool registration
 const SessionAnalysisInputShape = {
@@ -92,9 +93,12 @@ export function registerSessionTools(server: McpServer): void {
         const result = calculateSessionProgress(validatedSession);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Session progress calculation failed:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to calculate session progress: ${msg}`, {
+          type: 'session',
+          message: msg,
+        });
       }
     }
   );
@@ -142,9 +146,12 @@ export function registerSessionTools(server: McpServer): void {
         const result = determineNextPhase(validatedSession);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Session workflow analysis failed:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to determine session workflow phase: ${msg}`, {
+          type: 'session',
+          message: msg,
+        });
       }
     }
   );
@@ -192,9 +199,12 @@ export function registerSessionTools(server: McpServer): void {
         const result = checkSessionCompletion(validatedSession);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+        const msg = extractErrorMessage(error);
         logger.error('Session completion analysis failed:', error);
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        return toolError(`Failed to check session completion: ${msg}`, {
+          type: 'session',
+          message: msg,
+        });
       }
     }
   );
@@ -214,8 +224,11 @@ export function registerSessionTools(server: McpServer): void {
         const result = await conversationManager.conductLearningSession(parsedInput);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
-        return { content: [{ type: 'text', text: JSON.stringify({ error: errorMsg }) }] };
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to conduct learning conversation: ${msg}`, {
+          type: 'session',
+          message: msg,
+        });
       }
     }
   );
