@@ -58,13 +58,9 @@ export function toolJson(data: unknown): CallToolResult {
   try {
     text = JSON.stringify(data);
   } catch (error) {
-    text = JSON.stringify({
-      success: false,
-      error: {
-        type: 'system' as ErrorType,
-        message: 'Failed to serialise tool response payload',
-        cause: extractErrorMessage(error),
-      },
+    return toolError('Failed to serialise tool response payload', {
+      type: 'system',
+      message: extractErrorMessage(error),
     });
   }
 
