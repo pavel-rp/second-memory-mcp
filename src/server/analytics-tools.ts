@@ -8,7 +8,7 @@ import {
   AnalyticsWindowInputShape,
   type AnalyticsWindowInput,
 } from '../types/analytics.js';
-import { extractErrorMessage, toolError } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerAnalyticsTools(server: McpServer): void {
   server.registerTool(
@@ -22,7 +22,7 @@ export function registerAnalyticsTools(server: McpServer): void {
       const { entries }: AnalyticsDailyInput = AnalyticsDailyInputSchema.parse(rawInput);
       try {
         const result = computeDailyKpis(entries);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to compute daily KPIs: ${msg}`, {
@@ -45,7 +45,7 @@ export function registerAnalyticsTools(server: McpServer): void {
         AnalyticsWindowInputSchema.parse(rawInput);
       try {
         const result = computeWindowRollup({ entries }, window, { includeBreakdowns });
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to compute window analytics: ${msg}`, {

@@ -17,7 +17,7 @@ import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../service
 import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';
 import { processReviewResult } from '../services/chunk-reviews.js';
 import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
-import { extractErrorMessage, toolError } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -80,7 +80,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         ease_factor: Number(easeFactor.toFixed(3)),
         next_review: nextReview,
       };
-      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+      return toolJson(result);
     }
   );
 
@@ -105,9 +105,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         repetitions,
         difficulty,
       });
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ priority }) }],
-      };
+      return toolJson({ priority });
     }
   );
 
@@ -135,7 +133,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         daysOverdue: days_overdue,
         consecutiveFailures: consecutive_failures,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(out) }] };
+      return toolJson(out);
     }
   );
 
@@ -161,7 +159,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         candidates: mapped,
         timeboxMinutes,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(out) }] };
+      return toolJson(out);
     }
   );
 
@@ -201,7 +199,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to generate recommendations: ${msg}`, {
@@ -231,21 +229,14 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
 
         const learningItem = mapChunkRowToLearningItem(result.chunk);
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                item: learningItem,
-                isLeech: result.isLeech,
-                message: result.isLeech
-                  ? 'Item marked as leech due to consecutive failures'
-                  : 'Review result recorded successfully',
-              }),
-            },
-          ],
-        };
+        return toolJson({
+          success: true,
+          item: learningItem,
+          isLeech: result.isLeech,
+          message: result.isLeech
+            ? 'Item marked as leech due to consecutive failures'
+            : 'Review result recorded successfully',
+        });
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to record review result: ${msg}`, {

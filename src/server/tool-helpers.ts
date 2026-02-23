@@ -51,3 +51,8 @@ export function toolOk(message: string, data?: Record<string, unknown>): CallToo
     ],
   };
 }
+
+/** Build an MCP response that JSON-serialises arbitrary data. */
+export function toolJson(data: unknown): CallToolResult {
+  return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
+}
