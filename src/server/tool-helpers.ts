@@ -54,5 +54,20 @@ export function toolOk(message: string, data?: Record<string, unknown>): CallToo
 
 /** Build an MCP response that JSON-serialises arbitrary data. */
 export function toolJson(data: unknown): CallToolResult {
-  return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
+  let text: string;
+  try {
+    const json = JSON.stringify(data);
+    text = json === undefined ? 'null' : json;
+  } catch (error) {
+    text = JSON.stringify({
+      success: false,
+      error: {
+        type: 'system' as ErrorType,
+        message: 'Failed to serialise tool response payload',
+        cause: extractErrorMessage(error),
+      },
+    });
+  }
+
+  return { content: [{ type: 'text' as const, text }] };
 }
