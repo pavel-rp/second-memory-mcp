@@ -281,9 +281,13 @@ export const RecommendationInputShape = {
 export const RecommendationInputSchema = z
   .object(RecommendationInputShape)
   .superRefine((val, ctx) => {
-    if (val.fetchFromDatabase) {
-      // filters only make sense in fetch mode, fine
-    } else if (!val.learningItems) {
+    if (val.fetchFromDatabase && (val.learningItems?.length ?? 0) > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Invalid input: provide either fetchFromDatabase: true or a non-empty learningItems array, not both.',
+      });
+    } else if (!val.fetchFromDatabase && !val.learningItems) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Provide learningItems when fetchFromDatabase is false.',

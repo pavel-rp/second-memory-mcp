@@ -176,21 +176,6 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       try {
         const parsedInput: RecommendationInput = RecommendationInputSchema.parse(input);
 
-        // Validate mutual exclusivity BEFORE any database fetch
-        if (parsedInput.fetchFromDatabase && (parsedInput.learningItems?.length ?? 0) > 0) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  error:
-                    'Invalid input: provide either fetchFromDatabase: true or a non-empty learningItems array, not both.',
-                }),
-              },
-            ],
-          };
-        }
-
         // Self-fetch mode: fetch from database
         let itemsToProcess = parsedInput.learningItems;
         if (parsedInput.fetchFromDatabase) {
