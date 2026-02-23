@@ -13,6 +13,18 @@ export type ListChunksFilter = {
   limit?: number;
 };
 
+type ChunkFilterOptions = Pick<ListChunksFilter, 'subject' | 'dueOnly'> & {
+  topicId?: string;
+};
+
+function buildChunkWhereClause(options: ChunkFilterOptions) {
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (options.topicId) conditions.push(eq(learningChunks.topicId, options.topicId));
+  if (options.subject) conditions.push(eq(learningChunks.subject, options.subject));
+  if (options.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, Date.now()));
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
 function toIsoDate(epochMs: number): string {
   const d = new Date(epochMs);
   const y = d.getUTCFullYear();
@@ -75,12 +87,9 @@ export function mapChunkRowToLearningItemWithContent(
 
 export async function listChunks(filter: ListChunksFilter = {}) {
   const db = getSql();
-  const now = Date.now();
-  const conditions: ReturnType<typeof eq>[] = [];
-  if (filter.subject) conditions.push(eq(learningChunks.subject, filter.subject));
-  if (filter.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
+  const whereClause = buildChunkWhereClause(filter);
 
-  const baseQuery = db
+  let query = db
     .select({
       id: learningChunks.id,
       topicId: learningChunks.topicId,
@@ -104,21 +113,13 @@ export async function listChunks(filter: ListChunksFilter = {}) {
       topicTitle: learningTopics.title,
     })
     .from(learningChunks)
-    .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
+    .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+    .$dynamic();
 
-  if (conditions.length > 0) {
-    const query = baseQuery.where(and(...conditions));
-    if (filter.limit && filter.limit > 0) {
-      return query.limit(filter.limit).all();
-    }
-    return query.all();
-  }
+  if (whereClause) query = query.where(whereClause);
+  if (filter.limit && filter.limit > 0) query = query.limit(filter.limit);
 
-  if (filter.limit && filter.limit > 0) {
-    return baseQuery.limit(filter.limit).all();
-  }
-
-  return baseQuery.all();
+  return query.all();
 }
 
 export async function listChunksAsLearningItems(
@@ -145,11 +146,7 @@ export async function listChunksWithContent(
   filter: ListChunksWithContentFilter = { includeContent: false }
 ): Promise<PaginatedLearningItemsResponse> {
   const db = getSql();
-  const now = Date.now();
-  const conditions: ReturnType<typeof eq>[] = [];
-
-  if (filter.subject) conditions.push(eq(learningChunks.subject, filter.subject));
-  if (filter.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
+  const whereClause = buildChunkWhereClause(filter);
 
   // Build base query including all fields
   const baseQuery = db
@@ -181,29 +178,19 @@ export async function listChunksWithContent(
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
   // Get total count for pagination
-  let totalCount = 0;
-  const countQuery = db.select({ count: sql<number>`count(*)` }).from(learningChunks);
-
-  if (conditions.length > 0) {
-    totalCount = countQuery.where(and(...conditions)).get()?.count || 0;
-  } else {
-    totalCount = countQuery.get()?.count || 0;
-  }
+  const countQuery = db
+    .select({ count: sql<number>`count(*)` })
+    .from(learningChunks)
+    .$dynamic();
+  const totalCount = (whereClause ? countQuery.where(whereClause) : countQuery).get()?.count || 0;
 
   // Apply pagination and conditions
   const offset = filter.offset || 0;
   const limit = filter.limit || 100; // Default limit
 
-  let rows;
-  if (conditions.length > 0) {
-    rows = baseQuery
-      .where(and(...conditions))
-      .offset(offset)
-      .limit(limit)
-      .all();
-  } else {
-    rows = baseQuery.offset(offset).limit(limit).all();
-  }
+  let query = baseQuery.$dynamic();
+  if (whereClause) query = query.where(whereClause);
+  const rows = query.offset(offset).limit(limit).all();
 
   const items = rows.map(row => {
     if (filter.includeContent) {
@@ -245,14 +232,9 @@ export async function batchFetchChunksMinimal(options?: {
   limit?: number;
 }): Promise<ChunkMinimalMetadata[]> {
   const db = getSql();
-  const now = Date.now();
-  const conditions: ReturnType<typeof eq>[] = [];
+  const whereClause = buildChunkWhereClause(options ?? {});
 
-  if (options?.topicId) conditions.push(eq(learningChunks.topicId, options.topicId));
-  if (options?.subject) conditions.push(eq(learningChunks.subject, options.subject));
-  if (options?.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, now));
-
-  const baseQuery = db
+  let query = db
     .select({
       id: learningChunks.id,
       topicId: learningChunks.topicId,
@@ -265,19 +247,11 @@ export async function batchFetchChunksMinimal(options?: {
       createdAt: learningChunks.createdAt,
       updatedAt: learningChunks.updatedAt,
     })
-    .from(learningChunks);
+    .from(learningChunks)
+    .$dynamic();
 
-  if (conditions.length > 0) {
-    const query = baseQuery.where(and(...conditions));
-    if (options?.limit && options.limit > 0) {
-      return query.limit(options.limit).all();
-    }
-    return query.all();
-  }
+  if (whereClause) query = query.where(whereClause);
+  if (options?.limit && options.limit > 0) query = query.limit(options.limit);
 
-  if (options?.limit && options.limit > 0) {
-    return baseQuery.limit(options.limit).all();
-  }
-
-  return baseQuery.all();
+  return query.all();
 }
