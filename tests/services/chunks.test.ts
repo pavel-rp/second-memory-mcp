@@ -1010,11 +1010,9 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
     }
   });
 
-  describe('mapChunkRowToLearningItemWithContent', () => {
+  describe('mapChunkRowToLearningItem with includeContent', () => {
     it('should map chunk row with content fields', async () => {
-      const { mapChunkRowToLearningItemWithContent } = await import(
-        '../../src/services/chunk-queries.js'
-      );
+      const { mapChunkRowToLearningItem } = await import('../../src/services/chunk-queries.js');
 
       const now = Date.now();
       const mockRow = {
@@ -1040,7 +1038,7 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
         topicTitle: 'Test Topic',
       };
 
-      const result = mapChunkRowToLearningItemWithContent(mockRow);
+      const result = mapChunkRowToLearningItem(mockRow, { includeContent: true });
 
       expect(result.id).toBe('test-chunk');
       expect(result.title).toBe('Test Chunk');
@@ -1052,9 +1050,7 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
     });
 
     it('should handle null content fields gracefully', async () => {
-      const { mapChunkRowToLearningItemWithContent } = await import(
-        '../../src/services/chunk-queries.js'
-      );
+      const { mapChunkRowToLearningItem } = await import('../../src/services/chunk-queries.js');
 
       const now = Date.now();
       const mockRow = {
@@ -1080,7 +1076,7 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
         topicTitle: 'Test Topic',
       };
 
-      const result = mapChunkRowToLearningItemWithContent(mockRow);
+      const result = mapChunkRowToLearningItem(mockRow, { includeContent: true });
 
       expect(result.id).toBe('test-chunk');
       expect(result.title).toBe('Test Chunk');

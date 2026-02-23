@@ -41,13 +41,27 @@ type ChunkListRowWithContent = ChunkListRow & {
   contentUpdatedAt?: number | null;
 };
 
-export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
+export function mapChunkRowToLearningItem(
+  row: ChunkListRowWithContent,
+  options: { includeContent: true }
+): LearningItemWithContent;
+export function mapChunkRowToLearningItem(
+  row: ChunkListRowWithContent,
+  options?: { includeContent?: false }
+): LearningItem;
+export function mapChunkRowToLearningItem(
+  row: ChunkListRowWithContent,
+  options?: { includeContent?: boolean }
+): LearningItem | LearningItemWithContent;
+export function mapChunkRowToLearningItem(
+  row: ChunkListRowWithContent,
+  options?: { includeContent?: boolean }
+): LearningItem | LearningItemWithContent {
   const rawChunkType = row.chunkType;
   const chunkType: LearningItem['chunkType'] =
     rawChunkType === 'review' || rawChunkType === 'remediation' ? rawChunkType : 'new';
   const topicTitle = row.topicTitle ?? null;
 
-  // Create the base LearningItem
   const learningItem: LearningItem = {
     id: row.id,
     title: row.title,
@@ -61,28 +75,20 @@ export function mapChunkRowToLearningItem(row: ChunkListRow): LearningItem {
     chunkType,
     prerequisites: decodeJsonArray(row.prerequisitesJson),
     tags: decodeJsonArray(row.tagsJson),
-    topicId: topicTitle !== null ? row.topicId : undefined, // Only include if topic actually exists
+    topicId: topicTitle !== null ? row.topicId : undefined,
     topicTitle: topicTitle ?? undefined,
   };
 
+  if (options?.includeContent) {
+    return {
+      ...learningItem,
+      content: row.content ?? undefined,
+      contentVersion: row.contentVersion ?? undefined,
+      contentUpdatedAt: row.contentUpdatedAt ?? undefined,
+    } satisfies LearningItemWithContent;
+  }
+
   return learningItem;
-}
-
-export function mapChunkRowToLearningItemWithContent(
-  row: ChunkListRowWithContent
-): LearningItemWithContent {
-  // Start with the base mapping
-  const baseItem = mapChunkRowToLearningItem(row);
-
-  // Add content fields if they exist
-  const contentItem: LearningItemWithContent = {
-    ...baseItem,
-    content: row.content ?? undefined,
-    contentVersion: row.contentVersion ?? undefined,
-    contentUpdatedAt: row.contentUpdatedAt ?? undefined,
-  };
-
-  return contentItem;
 }
 
 export async function listChunks(filter: ListChunksFilter = {}) {
@@ -126,7 +132,7 @@ export async function listChunksAsLearningItems(
   filter: ListChunksFilter = {}
 ): Promise<LearningItem[]> {
   const rows = await listChunks(filter);
-  return rows.map(mapChunkRowToLearningItem);
+  return rows.map(row => mapChunkRowToLearningItem(row));
 }
 
 export type ListChunksWithContentFilter = ListChunksFilter & {
@@ -192,13 +198,11 @@ export async function listChunksWithContent(
   if (whereClause) query = query.where(whereClause);
   const rows = query.offset(offset).limit(limit).all();
 
-  const items = rows.map(row => {
-    if (filter.includeContent) {
-      return mapChunkRowToLearningItemWithContent(row as ChunkListRowWithContent);
-    } else {
-      return mapChunkRowToLearningItem(row as ChunkListRow);
-    }
-  });
+  const items = rows.map(row =>
+    mapChunkRowToLearningItem(row as ChunkListRowWithContent, {
+      includeContent: filter.includeContent,
+    })
+  );
 
   return {
     items,
