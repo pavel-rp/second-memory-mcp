@@ -21,19 +21,18 @@ import {
 } from '../types/recommendations.js';
 import { logger } from '../utils/logger.js';
 
-// Base schema for session analysis input — used for both MCP registration (.shape)
-// and runtime validation (with inline .refine() at parse sites).
-const SessionAnalysisInputSchema = z.object({
+// Plain shape for MCP tool registration
+const SessionAnalysisInputShape = {
   sessionId: z.string().optional(),
   sessionData: z.any().optional(), // SessionInput object
-});
+} as const;
 
-/** Parse and validate session analysis input, enforcing that at least one field is set. */
-function parseSessionAnalysisInput(input: unknown) {
-  return SessionAnalysisInputSchema.refine(data => data.sessionId || data.sessionData, {
+// Refined schema for runtime validation
+const SessionAnalysisInputSchema = z
+  .object(SessionAnalysisInputShape)
+  .refine(data => data.sessionId || data.sessionData, {
     message: 'Either sessionId or sessionData must be provided',
-  }).parse(input);
-}
+  });
 
 // Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
 const chunkLookupFn = async (id: string) => {
@@ -56,11 +55,11 @@ export function registerSessionTools(server: McpServer): void {
       title: 'Calculate Session Progress',
       description:
         'Compute session progress metrics including completion percentages and quality averages. Accepts either sessionId (string) or sessionData (SessionInput object) for backward compatibility.',
-      inputSchema: SessionAnalysisInputSchema.shape,
+      inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {
       try {
-        const validatedInput = parseSessionAnalysisInput(input);
+        const validatedInput = SessionAnalysisInputSchema.parse(input);
         let sessionData: unknown;
 
         if (validatedInput.sessionId) {
@@ -106,11 +105,11 @@ export function registerSessionTools(server: McpServer): void {
       title: 'Determine Session Workflow Phase',
       description:
         'Analyze session state and provide workflow guidance for next learning phase. Accepts either sessionId (string) or sessionData (SessionInput object) for backward compatibility.',
-      inputSchema: SessionAnalysisInputSchema.shape,
+      inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {
       try {
-        const validatedInput = parseSessionAnalysisInput(input);
+        const validatedInput = SessionAnalysisInputSchema.parse(input);
         let sessionData: unknown;
 
         if (validatedInput.sessionId) {
@@ -156,11 +155,11 @@ export function registerSessionTools(server: McpServer): void {
       title: 'Check Session Completion',
       description:
         'Analyze session metrics to determine if session should be completed. Accepts either sessionId (string) or sessionData (SessionInput object) for backward compatibility.',
-      inputSchema: SessionAnalysisInputSchema.shape,
+      inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {
       try {
-        const validatedInput = parseSessionAnalysisInput(input);
+        const validatedInput = SessionAnalysisInputSchema.parse(input);
         let sessionData: unknown;
 
         if (validatedInput.sessionId) {
