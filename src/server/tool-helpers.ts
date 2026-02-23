@@ -56,8 +56,7 @@ export function toolOk(message: string, data?: Record<string, unknown>): CallToo
 export function toolJson(data: unknown): CallToolResult {
   let text: string;
   try {
-    const json = JSON.stringify(data);
-    text = json === undefined ? 'null' : json;
+    text = JSON.stringify(data);
   } catch (error) {
     text = JSON.stringify({
       success: false,
