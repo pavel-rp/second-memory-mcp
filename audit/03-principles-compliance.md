@@ -86,13 +86,14 @@ Tests directory mirrors source structure, but several source files lack correspo
 - `src/server/spaced-repetition-tools.ts` — no direct test
 - `src/algorithms/prerequisite-reference-validator.ts` — no direct test
 - `src/services/chunk-prerequisites.ts`, `chunk-queries.ts`, `chunk-reviews.ts`, `prerequisite-mastery.ts`, `reviews.ts` — no direct tests
-- `src/utils/content-validation.ts` — no direct test
 - `src/tools/cognitive-load.ts` — no direct test
 - `src/constants/validation.ts` — no direct test
 
-Some of these may be tested transitively through integration tests, but 14 source files have no dedicated test file.
+Note: `src/server/session-management-tools.ts` is covered by `tests/server/session-management-tools.test.ts` (exercises `registerSessionManagementTools`). `src/utils/content-validation.ts` is exercised by the **Content Validation** suite in `tests/services/content-persistence.test.ts` (covers `validateContent()` / `sanitizeContent()`).
 
-**Severity**: Medium. AGENTS.md states "Algorithm functions must have comprehensive test coverage" and "Every behavior change must include corresponding test additions." The coverage gaps span services, server registrations, and utilities.
+Some of these may be tested transitively through integration tests, but 12 source files have no dedicated test file.
+
+**Severity**: Medium. AGENTS.md states "Algorithm functions must have comprehensive test coverage" and "Every behavior change must include corresponding test additions." The coverage gaps span services, server registrations, and utilities. (Two files initially listed — `session-management-tools.ts` and `content-validation.ts` — are actually tested indirectly.)
 
 ---
 
@@ -160,15 +161,17 @@ The conversion happens in tool registration files (e.g., `spaced-repetition-tool
 
 ## 4. Pattern Consistency
 
-### 4.1 Tool Registration Pattern — CONSISTENT
+### 4.1 Tool Registration Pattern — GENERALLY CONSISTENT
 
-All 7 tool registrar files follow the same pattern:
+Most of the 7 tool registrar files follow the same pattern:
 1. Parse input via Zod schema
 2. Call business logic
 3. Return `{ content: [{ type: 'text', text: JSON.stringify(result) }] }`
 4. Catch exceptions via `extractErrorMessage()` + `toolError()`
 
-This pattern is followed without exception across `spaced-repetition-tools.ts`, `analytics-tools.ts`, `session-tools.ts`, `session-management-tools.ts`, `persistence-tools.ts`, `content-tools.ts`, and `search-tools.ts`.
+Notable exceptions are several pure-calculation tools in `src/server/spaced-repetition-tools.ts` (`calculate_next_review`, `calculate_priority_score`, `calculate_next_review_advanced`, `rank_candidates`), which parse input and return results directly without wrapping handlers in `try/catch`; any errors surface as unhandled exceptions from the MCP tool.
+
+Aside from these specific tools in `spaced-repetition-tools.ts`, this pattern is followed across `analytics-tools.ts`, `session-tools.ts`, `session-management-tools.ts`, `persistence-tools.ts`, `content-tools.ts`, and `search-tools.ts`.
 
 ### 4.2 Zod Schema Dual-Export Pattern — MOSTLY CONSISTENT
 
@@ -245,7 +248,7 @@ Neither AGENTS.md nor README explicitly declares an error handling strategy. The
 
 ### 5.2 Actual Patterns by Layer
 
-**MCP Tool Layer**: Consistently uses try/catch with `toolError()`. Every registered tool handler wraps its logic in try/catch. **Grade: Good.**
+**MCP Tool Layer**: Most tools use try/catch with `toolError()`. Notable exceptions are the pure-calculation tools in `spaced-repetition-tools.ts` (`calculate_next_review`, `calculate_priority_score`, `calculate_next_review_advanced`, `rank_candidates`) which lack try/catch — errors from these surface as unhandled MCP exceptions. Tools with I/O (database, recommendation engine) consistently wrap in try/catch. **Grade: Good (with gaps in pure-calculation tools).**
 
 **Service Layer**: Mixed — some throw, some return Result objects (see 4.5 above). **Grade: Inconsistent.**
 
@@ -299,7 +302,7 @@ All error logging flows through `src/utils/logger.ts`, which correctly routes ou
 | M3 | Inline Zod schemas in session-management-tools.ts violate DRY principle | 4.2 |
 | M4 | Two competing error response formats (Pattern A vs Pattern B) in tool layer | 4.4 |
 | M5 | No declared error handling strategy; services mix throw vs Result patterns | 4.5, 5.1 |
-| M6 | 14 source files lack dedicated test files | 1.6 |
+| M6 | 12 source files lack dedicated test files | 1.6 |
 | M7 | MCP "Resources" claim is inaccurate — no resources are registered | 1.4 |
 
 ### Low Severity
@@ -315,7 +318,7 @@ All error logging flows through `src/utils/logger.ts`, which correctly routes ou
 
 | # | Finding |
 |---|---|
-| P1 | Tool registration pattern is consistent across all 7 registrar files |
+| P1 | Tool registration pattern is generally consistent across registrar files (minor gaps in pure-calculation tools) |
 | P2 | Algorithm layer is pure, defensive, and never throws |
 | P3 | Centralized logger correctly routes to stderr in MCP mode |
 | P4 | Zod validation is comprehensive at system boundaries |
