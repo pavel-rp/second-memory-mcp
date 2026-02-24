@@ -304,6 +304,16 @@ pnpm run lint:fix
 - Schema validation on all inputs
 - Descriptive error messages for invalid inputs
 
+**Error Handling Strategy:**
+
+The codebase uses a layered error handling approach:
+
+- **Algorithm layer** (`src/algorithms/`): Pure functions with defensive clamping. Never throws — returns computed values with safe defaults for edge cases.
+- **Service layer** (`src/services/`): Mixed patterns exist historically. Services that perform multi-step operations with partial failure modes (e.g., `topicCreationService`, `deleteChunk`) return `{ success: boolean, error?: { type, message } }` Result objects. Services that perform single atomic operations (e.g., `createSession`, `createChunkWithTopic`) throw on failure. **Convention for new code:** prefer Result objects for operations that can fail in expected ways; use throw only for truly unexpected errors.
+- **Tool layer** (`src/server/*-tools.ts`): All handlers wrap service calls in try/catch. Use `toolError()` for all error responses, `toolOk()`/`toolJson()` for success. Service Result failures map to `toolError()`; caught exceptions also map to `toolError()`.
+
+**Fail-open philosophy:** The MCP server logs errors via `src/utils/logger.ts` (stderr) and returns structured error responses to clients rather than crashing. Tool handlers always return a valid MCP response, never propagate unhandled exceptions.
+
 **File Organization:**
 
 - Algorithm implementations in `src/algorithms/` (`sr-calculator`, `dependency-resolver`, `prerequisite-reference-validator`)
