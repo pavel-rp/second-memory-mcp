@@ -6,7 +6,7 @@ import type {
   CompletionStatus,
   BatchOperation,
 } from '../types/session.js';
-import { SessionInputSchema, BatchUpdateInputSchema } from '../types/session.js';
+import { SessionInputSchema } from '../types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
 import { clamp } from '../utils/math.js';
 
