@@ -20,7 +20,7 @@ Second Memory Learning is an MCP (Model Context Protocol) server that implements
 
 - `src/server/main.ts` - MCP server bootstrap and prompt registration
 - `src/server/tools.ts` - Tool handlers for spaced repetition calculations
-- `src/tools/sr-calculator.ts` - Core spaced repetition algorithm implementations
+- `src/algorithms/sr-calculator.ts` - Core spaced repetition algorithm implementations
 - `src/config/algorithm.ts` - Configurable algorithm parameters
 - `src/prompts/prompt-pack.ts` - Learning guidance prompts
 
@@ -92,7 +92,6 @@ pnpm run type-check      # TypeScript type checking
 
 - **Tools**: Spaced repetition calculators, priority scoring, prompt generators, orchestration guidance
 - **Prompts**: Scaffolding, learning, retrieval, review, workflow guidance
-- **Resources**: Local SQLite database integration
 
 ## SQLite Integration
 
@@ -102,7 +101,6 @@ The `what_to_learn_today` tool supports `fetchFromDatabase: true` to automatical
 **SQLite Tools:**
 
 - `list_learning_items`: Fetches learning items from local SQLite database (storage-agnostic)
-- `orchestrate_learning_workflow`: Provides step-by-step guidance for SQLite-based workflows
 - `what_to_learn_today`: Use with `fetchFromDatabase: true` for automatic database retrieval
 
 ## Code Architecture Patterns
@@ -302,9 +300,11 @@ pnpm run lint:fix
 
 **File Organization:**
 
-- Algorithm logic in `src/tools/`
+- Algorithm implementations in `src/algorithms/` (`sr-calculator`, `dependency-resolver`, `prerequisite-reference-validator`)
+- Domain logic in `src/tools/` (recommendation engine, session manager, analytics — no MCP dependencies)
 - Configuration in `src/config/`
-- MCP handlers in `src/server/`
+- Constants in `src/constants/`
+- MCP tool handlers and registration in `src/server/`
 - Type definitions in `src/types/`
 - Tests mirror source structure in `tests/`
 
