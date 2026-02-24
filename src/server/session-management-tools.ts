@@ -21,7 +21,7 @@ import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { getChunk } from '../services/chunks.js';
 import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
-import { extractErrorMessage, toolError } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 // Input schemas for session management tools
 const CreateSessionInputSchema = z.object({
@@ -283,7 +283,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         });
 
         logger.info(`Created session ${sessionId} with mode ${validatedInput.mode}`);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to create session:', error);
@@ -315,7 +315,7 @@ export function registerSessionManagementTools(server: McpServer): void {
             session: null,
             status: 'not_found' as const,
           });
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+          return toolJson(result);
         }
 
         // Include historical feedback for review/retrieval sessions
@@ -333,7 +333,7 @@ export function registerSessionManagementTools(server: McpServer): void {
             session: null,
             status: 'not_found' as const,
           });
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+          return toolJson(result);
         }
 
         const result = GetActiveSessionResultSchema.parse({
@@ -342,7 +342,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         });
 
         logger.info(`Retrieved active session ${activeSession.id}`);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to get active session:', error);
@@ -380,7 +380,7 @@ export function registerSessionManagementTools(server: McpServer): void {
             session: null,
             status: 'not_found' as const,
           });
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+          return toolJson(result);
         }
 
         // Include historical feedback for review/retrieval sessions
@@ -397,7 +397,7 @@ export function registerSessionManagementTools(server: McpServer): void {
             session: null,
             status: 'not_found' as const,
           });
-          return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+          return toolJson(result);
         }
 
         const result = GetActiveSessionResultSchema.parse({
@@ -406,7 +406,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         });
 
         logger.info(`Retrieved session ${validatedInput.sessionId}`);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to get session:', error);
@@ -492,7 +492,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(
           `Completed session ${validatedInput.sessionId} with feedback: ${validatedInput.feedback || 'none'}`
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to complete session:', error);
@@ -546,7 +546,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(
           `Created session chunk ${sessionChunk.id} for session ${validatedInput.sessionId}`
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to create session chunk:', error);
@@ -600,7 +600,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(
           `Batch update for session ${validatedInput.sessionId}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
         );
-        return { content: [{ type: 'text', text: JSON.stringify(response) }] };
+        return toolJson(response);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to batch update session chunks:', error);
@@ -651,7 +651,7 @@ export function registerSessionManagementTools(server: McpServer): void {
         logger.info(
           `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunkIds.length} chunks`
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to get historical feedback:', error);

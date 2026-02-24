@@ -20,7 +20,7 @@ import {
   ConversationRequestShape,
 } from '../types/recommendations.js';
 import { logger } from '../utils/logger.js';
-import { extractErrorMessage, toolError } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 // Plain shape for MCP tool registration
 const SessionAnalysisInputShape = {
@@ -91,7 +91,7 @@ export function registerSessionTools(server: McpServer): void {
 
         const validatedSession = validateSessionContext(sessionData);
         const result = calculateSessionProgress(validatedSession);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Session progress calculation failed:', error);
@@ -144,7 +144,7 @@ export function registerSessionTools(server: McpServer): void {
 
         const validatedSession = validateSessionContext(sessionData);
         const result = determineNextPhase(validatedSession);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Session workflow analysis failed:', error);
@@ -197,7 +197,7 @@ export function registerSessionTools(server: McpServer): void {
 
         const validatedSession = validateSessionContext(sessionData);
         const result = checkSessionCompletion(validatedSession);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Session completion analysis failed:', error);
@@ -222,7 +222,7 @@ export function registerSessionTools(server: McpServer): void {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
         const conversationManager = new ConversationManager(sharedEngine);
         const result = await conversationManager.conductLearningSession(parsedInput);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to conduct learning conversation: ${msg}`, {

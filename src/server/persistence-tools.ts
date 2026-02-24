@@ -49,7 +49,7 @@ import {
   UpdateTopicSummaryInputShape,
   type UpdateTopicSummaryInput,
 } from '../types/persistence-tools.js';
-import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson, toolOk } from './tool-helpers.js';
 
 export function registerPersistenceTools(server: McpServer): void {
   server.registerTool(
@@ -65,7 +65,7 @@ export function registerPersistenceTools(server: McpServer): void {
         ListLearningItemsInputSchema.parse(rawInput);
       try {
         const items = await listChunksAsLearningItems({ subject: subjectFilter, dueOnly, limit });
-        return { content: [{ type: 'text', text: JSON.stringify(items) }] };
+        return toolJson(items);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to list learning items: ${msg}`, {
@@ -98,31 +98,17 @@ export function registerPersistenceTools(server: McpServer): void {
         });
 
         if (result.success && result.topic) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  topic: result.topic,
-                  message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            topic: result.topic,
+            message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
+          });
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: result.error,
-                  message: `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: false,
+            error: result.error,
+            message: `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
+          });
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -172,18 +158,11 @@ export function registerPersistenceTools(server: McpServer): void {
 
         const learningItem = mapChunkRowToLearningItem(chunk);
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                item: learningItem,
-                message: `Successfully created learning item "${input.title}"`,
-              }),
-            },
-          ],
-        };
+        return toolJson({
+          success: true,
+          item: learningItem,
+          message: `Successfully created learning item "${input.title}"`,
+        });
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to create learning item "${input.title}": ${msg}`, {
@@ -212,32 +191,18 @@ export function registerPersistenceTools(server: McpServer): void {
         });
 
         if (result.success && result.chunk) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  chunk: result.chunk,
-                  progressReset: result.progressReset,
-                  message: `Successfully updated content for chunk "${result.chunk.title}"`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            chunk: result.chunk,
+            progressReset: result.progressReset,
+            message: `Successfully updated content for chunk "${result.chunk.title}"`,
+          });
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: result.error,
-                  message: `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: false,
+            error: result.error,
+            message: `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
+          });
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -270,31 +235,17 @@ export function registerPersistenceTools(server: McpServer): void {
         });
 
         if (result.success && result.chunk) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  chunk: result.chunk,
-                  message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            chunk: result.chunk,
+            message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
+          });
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: result.error,
-                  message: `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: false,
+            error: result.error,
+            message: `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
+          });
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -329,32 +280,18 @@ export function registerPersistenceTools(server: McpServer): void {
         });
 
         if (result.success && result.chunk) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  chunk: result.chunk,
-                  progressReset: result.progressReset,
-                  message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            chunk: result.chunk,
+            progressReset: result.progressReset,
+            message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
+          });
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: result.error,
-                  message: `Failed to update chunk: ${result.error?.message || 'Unknown error'}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: false,
+            error: result.error,
+            message: `Failed to update chunk: ${result.error?.message || 'Unknown error'}`,
+          });
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -391,33 +328,19 @@ export function registerPersistenceTools(server: McpServer): void {
             );
           }
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  chunk: result.chunk,
-                  removedDependencies: result.removedDependencies ?? [],
-                  message: messageParts.join(' '),
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            chunk: result.chunk,
+            removedDependencies: result.removedDependencies ?? [],
+            message: messageParts.join(' '),
+          });
         }
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: result.error,
-                message: result.error?.message || `Failed to delete chunk "${chunkId}"`,
-              }),
-            },
-          ],
-        };
+        return toolJson({
+          success: false,
+          error: result.error,
+          message: result.error?.message || `Failed to delete chunk "${chunkId}"`,
+        });
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`System error while deleting chunk: ${msg}`, {
@@ -445,31 +368,17 @@ export function registerPersistenceTools(server: McpServer): void {
         });
 
         if (result.success && result.topic) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  topic: result.topic,
-                  message: `Successfully updated topic "${result.topic.title}"`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            topic: result.topic,
+            message: `Successfully updated topic "${result.topic.title}"`,
+          });
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: result.error,
-                  message: `Failed to update topic: ${result.error?.message || 'Unknown error'}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: false,
+            error: result.error,
+            message: `Failed to update topic: ${result.error?.message || 'Unknown error'}`,
+          });
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -495,31 +404,17 @@ export function registerPersistenceTools(server: McpServer): void {
         const result = await topicCreationService.updateTopicSummary(input.topicId, input.summary);
 
         if (result.success && result.topic) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: true,
-                  topic: result.topic,
-                  message: `Successfully updated summary for topic "${result.topic.title}"`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: true,
+            topic: result.topic,
+            message: `Successfully updated summary for topic "${result.topic.title}"`,
+          });
         } else {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  success: false,
-                  error: result.error,
-                  message: `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,
-                }),
-              },
-            ],
-          };
+          return toolJson({
+            success: false,
+            error: result.error,
+            message: `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,
+          });
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -545,19 +440,12 @@ export function registerPersistenceTools(server: McpServer): void {
         BatchFetchTopicsMinimalInputSchema.parse(rawInput);
       try {
         const topics = await batchFetchTopicsMinimal({ subject: subjectFilter, limit });
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                topics,
-                count: topics.length,
-                message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
-              }),
-            },
-          ],
-        };
+        return toolJson({
+          success: true,
+          topics,
+          count: topics.length,
+          message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
+        });
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to fetch topics: ${msg}`, {
@@ -591,31 +479,24 @@ export function registerPersistenceTools(server: McpServer): void {
           limit,
         });
         const chunkIds = chunks.map((c: { id: string }) => c.id);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                chunks,
-                count: chunks.length,
-                message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
-                // Enforcement hint for recall/review workflows
-                workflowHint:
-                  chunks.length > 0
-                    ? {
-                        action: 'REQUIRED_FOR_RECALL',
-                        instruction:
-                          'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
-                          'and include these chunk IDs before teaching. This loads historical feedback.',
-                        chunkIds,
-                        nextStep: `create_session({ mode: "retrieval", chunkIds: ${JSON.stringify(chunkIds)} })`,
-                      }
-                    : undefined,
-              }),
-            },
-          ],
-        };
+        return toolJson({
+          success: true,
+          chunks,
+          count: chunks.length,
+          message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
+          // Enforcement hint for recall/review workflows
+          workflowHint:
+            chunks.length > 0
+              ? {
+                  action: 'REQUIRED_FOR_RECALL',
+                  instruction:
+                    'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                    'and include these chunk IDs before teaching. This loads historical feedback.',
+                  chunkIds,
+                  nextStep: `create_session({ mode: "retrieval", chunkIds: ${JSON.stringify(chunkIds)} })`,
+                }
+              : undefined,
+        });
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to fetch chunks: ${msg}`, {
