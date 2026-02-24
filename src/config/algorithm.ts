@@ -1,6 +1,8 @@
 // Configuration for spaced repetition algorithms
 // Simple typed config with environment overrides (no secrets)
 
+import { clamp } from '../utils/math.js';
+
 export type AlgorithmConfig = {
   minimumEaseFactor: number; // floor for ease factor (>= 1.3)
   initialIntervalDays: number; // interval for the very first review (after first success)
@@ -179,5 +181,5 @@ export const algorithmConfig: AlgorithmConfig = {
 };
 
 export function clampEaseFactor(easeFactor: number): number {
-  return Math.max(easeFactor, algorithmConfig.minimumEaseFactor);
+  return clamp(easeFactor, algorithmConfig.minimumEaseFactor, Infinity);
 }
