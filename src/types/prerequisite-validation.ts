@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { LearningItem } from './recommendations.js';
+import { LearningItemSchema } from './recommendations.js';
 
 // Core validation types for prerequisite checking
 
@@ -138,7 +139,7 @@ export const PrerequisiteReferenceValidationResultSchema = z.object({
 });
 
 export const PrerequisiteValidationInputSchema = z.object({
-  items: z.array(z.any()), // LearningItemSchema would be imported from recommendations.ts
+  items: z.array(LearningItemSchema),
   masteryCriteria: MasteryCriteriaSchema,
   excludeIds: z.array(z.string()).optional(),
 });
