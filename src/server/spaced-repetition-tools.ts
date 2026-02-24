@@ -13,7 +13,7 @@ import {
 import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../services/chunk-queries.js';
 import { processReviewResult } from '../services/chunk-reviews.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
-import { sharedEngine } from './shared-instances.js';
+import { createRecommendationEngine } from './shared-instances.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -177,7 +177,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         }
 
         // Generate recommendations with fetched or provided items
-        const result = await sharedEngine.generateRecommendations({
+        const result = await createRecommendationEngine().generateRecommendations({
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });

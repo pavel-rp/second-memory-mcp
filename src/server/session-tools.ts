@@ -16,7 +16,7 @@ import {
 import { SessionInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
-import { sharedEngine } from './shared-instances.js';
+import { createRecommendationEngine } from './shared-instances.js';
 
 // Plain shape for MCP tool registration
 const SessionAnalysisInputShape = {
@@ -202,7 +202,7 @@ export function registerSessionTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
-        const conversationManager = new ConversationManager(sharedEngine);
+        const conversationManager = new ConversationManager(createRecommendationEngine());
         const result = await conversationManager.conductLearningSession(parsedInput);
         return toolJson(result);
       } catch (error) {

@@ -14,7 +14,9 @@ export const sharedValidator = new PrerequisiteValidator({
   referenceValidator: prerequisiteReferenceValidator,
   masteryService: prerequisiteMasteryService,
 });
-export const sharedEngine = new RecommendationEngine({
-  chunkLookupFn,
-  prerequisiteValidator: sharedValidator,
-});
+export function createRecommendationEngine() {
+  return new RecommendationEngine({
+    chunkLookupFn,
+    prerequisiteValidator: sharedValidator,
+  });
+}
