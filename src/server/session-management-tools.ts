@@ -15,71 +15,22 @@ import {
   type CreateSessionInput,
   type CreateSessionChunkInput,
 } from '../services/sessions.js';
-import { SessionModeSchema, SessionInputSchema, BatchUpdateInputSchema } from '../types/session.js';
+import { BatchUpdateInputSchema } from '../types/session.js';
+import {
+  CreateSessionToolInputSchema,
+  CompleteSessionInputSchema,
+  GetSessionInputSchema,
+  CreateSessionChunkToolInputSchema,
+  CreateSessionResultSchema,
+  GetActiveSessionResultSchema,
+  CompleteSessionResultSchema,
+} from '../types/session-management-tools.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { getChunk } from '../services/chunks.js';
 import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
-
-// Input schemas for session management tools
-const CreateSessionInputSchema = z.object({
-  topicId: z.string().optional(),
-  chunkIds: z.array(z.string()).optional(),
-  mode: SessionModeSchema,
-  estimatedDuration: z.number().min(1).max(480).optional(), // 1-480 minutes
-});
-
-const CompleteSessionInputSchema = z.object({
-  sessionId: z.string().min(1),
-  feedback: z.string().optional(),
-});
-
-const GetSessionInputSchema = z.object({
-  sessionId: z.string().min(1).optional(), // Optional for get_active_session
-});
-
-const CreateSessionChunkInputSchema = z.object({
-  sessionId: z.string().min(1),
-  chunkId: z.string().min(1),
-  status: z.enum(['pending', 'in_progress', 'completed']).default('pending'),
-  attempts: z
-    .array(
-      z.object({
-        timestamp: z.number(),
-        quality: z.number().min(0).max(5).optional(),
-        timeSpentMs: z.number().min(0),
-        completed: z.boolean(),
-      })
-    )
-    .optional(),
-  qualityScores: z.array(z.number().min(0).max(5)).optional(),
-  timeSpentMs: z.number().min(0).default(0),
-});
-
-// Return type schemas
-const CreateSessionResultSchema = z.object({
-  sessionId: z.string(),
-  status: z.literal('created'),
-  message: z.string(),
-});
-
-const GetActiveSessionResultSchema = z.object({
-  session: SessionInputSchema.nullable(),
-  status: z.enum(['found', 'not_found']),
-});
-
-const CompleteSessionResultSchema = z.object({
-  sessionId: z.string(),
-  status: z.literal('completed'),
-  finalMetrics: z.object({
-    duration: z.number(),
-    chunksCompleted: z.number(),
-    averageQuality: z.number(),
-  }),
-  message: z.string(),
-});
 
 /**
  * Helper function to resolve dependencies and include prerequisites for session chunks
@@ -234,11 +185,11 @@ export function registerSessionManagementTools(server: McpServer): void {
         'Use mode "retrieval" for recall practice, "review" for spaced review sessions. ' +
         'After creation, call get_active_session to retrieve historical feedback from past sessions ' +
         'showing what the learner found difficult previously.',
-      inputSchema: CreateSessionInputSchema.shape,
+      inputSchema: CreateSessionToolInputSchema.shape,
     },
     async (input: unknown) => {
       try {
-        const validatedInput = CreateSessionInputSchema.parse(input);
+        const validatedInput = CreateSessionToolInputSchema.parse(input);
         const now = Date.now();
         const sessionId = crypto.randomUUID();
 
@@ -512,11 +463,11 @@ export function registerSessionManagementTools(server: McpServer): void {
       title: 'Create Session Chunk',
       description:
         'Create a new session chunk to track learning progress for a specific chunk within a session',
-      inputSchema: CreateSessionChunkInputSchema.shape,
+      inputSchema: CreateSessionChunkToolInputSchema.shape,
     },
     async (input: unknown) => {
       try {
-        const validatedInput = CreateSessionChunkInputSchema.parse(input);
+        const validatedInput = CreateSessionChunkToolInputSchema.parse(input);
         const now = Date.now();
 
         const createSessionChunkInput: CreateSessionChunkInput = {
