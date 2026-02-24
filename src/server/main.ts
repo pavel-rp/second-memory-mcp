@@ -2,10 +2,17 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { promptPack } from '../prompts/prompt-pack.js';
+import type { DrillFormat } from '../prompts/prompt-pack.js';
 import { registerServerTools } from './tools.js';
 import { initializeDatabase } from '../db/migrate.js';
 import { logger } from '../utils/logger.js';
-import type { ChunkGenerationPromptArgs, ChunkManagementPromptArgs } from '../types/prompts.js';
+import type {
+  LearningPromptArgs,
+  RetrievalPromptArgs,
+  ReviewPromptArgs,
+  ChunkGenerationPromptArgs,
+  ChunkManagementPromptArgs,
+} from '../types/prompts.js';
 
 async function bootstrap(): Promise<void> {
   await initializeDatabase();
@@ -54,7 +61,7 @@ async function bootstrap(): Promise<void> {
         drillFormat: z.string().optional(),
       },
     },
-    (args: Record<string, string | undefined>) => ({
+    (args: LearningPromptArgs) => ({
       messages: [
         {
           role: 'user',
@@ -64,6 +71,7 @@ async function bootstrap(): Promise<void> {
               ...args,
               chunkNumber: args?.chunkNumber ? Number(args.chunkNumber) : undefined,
               totalChunks: args?.totalChunks ? Number(args.totalChunks) : undefined,
+              drillFormat: args?.drillFormat as DrillFormat | undefined,
             }),
           },
         },
@@ -82,7 +90,7 @@ async function bootstrap(): Promise<void> {
         masteryLevel: z.string().optional(),
       },
     },
-    (args: Record<string, string | undefined>) => ({
+    (args: RetrievalPromptArgs) => ({
       messages: [
         {
           role: 'user',
@@ -91,6 +99,7 @@ async function bootstrap(): Promise<void> {
             text: promptPack.getPrompt('retrieval', {
               ...args,
               masteryLevel: args?.masteryLevel ? Number(args.masteryLevel) : undefined,
+              drillFormat: args?.drillFormat as DrillFormat | undefined,
             }),
           },
         },
@@ -110,7 +119,7 @@ async function bootstrap(): Promise<void> {
         weakAreas: z.string().optional(),
       },
     },
-    (args: Record<string, string | undefined>) => ({
+    (args: ReviewPromptArgs) => ({
       messages: [
         {
           role: 'user',
