@@ -1,3 +1,27 @@
+import type { DrillFormat } from '../prompts/prompt-pack.js';
+
+export type LearningPromptArgs = {
+  chunkNumber?: string;
+  totalChunks?: string;
+  chunkTitle?: string;
+  chunkContent?: string;
+  prerequisites?: string;
+  drillFormat?: DrillFormat;
+};
+
+export type RetrievalPromptArgs = {
+  chunkTitle?: string;
+  drillFormat?: DrillFormat;
+  masteryLevel?: string;
+};
+
+export type ReviewPromptArgs = {
+  lastReviewed?: string;
+  masteryLevel?: string;
+  previousAttempts?: string;
+  weakAreas?: string;
+};
+
 export type ChunkGenerationPromptArgs = {
   topicTitle: string;
   topicDescription?: string;

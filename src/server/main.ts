@@ -5,7 +5,13 @@ import { promptPack } from '../prompts/prompt-pack.js';
 import { registerServerTools } from './tools.js';
 import { initializeDatabase } from '../db/migrate.js';
 import { logger } from '../utils/logger.js';
-import type { ChunkGenerationPromptArgs, ChunkManagementPromptArgs } from '../types/prompts.js';
+import type {
+  LearningPromptArgs,
+  RetrievalPromptArgs,
+  ReviewPromptArgs,
+  ChunkGenerationPromptArgs,
+  ChunkManagementPromptArgs,
+} from '../types/prompts.js';
 
 async function bootstrap(): Promise<void> {
   await initializeDatabase();
@@ -51,10 +57,12 @@ async function bootstrap(): Promise<void> {
         chunkTitle: z.string().optional(),
         chunkContent: z.string().optional(),
         prerequisites: z.string().optional(),
-        drillFormat: z.string().optional(),
+        drillFormat: z
+          .enum(['multiple_choice', 'open_ended', 'coding_problem', 'explanation', 'application'])
+          .optional(),
       },
     },
-    (args: Record<string, string | undefined>) => ({
+    (args: LearningPromptArgs) => ({
       messages: [
         {
           role: 'user',
@@ -78,11 +86,13 @@ async function bootstrap(): Promise<void> {
       description: 'Generate retrieval drill (two-attempt policy)',
       argsSchema: {
         chunkTitle: z.string().optional(),
-        drillFormat: z.string().optional(),
+        drillFormat: z
+          .enum(['multiple_choice', 'open_ended', 'coding_problem', 'explanation', 'application'])
+          .optional(),
         masteryLevel: z.string().optional(),
       },
     },
-    (args: Record<string, string | undefined>) => ({
+    (args: RetrievalPromptArgs) => ({
       messages: [
         {
           role: 'user',
@@ -110,7 +120,7 @@ async function bootstrap(): Promise<void> {
         weakAreas: z.string().optional(),
       },
     },
-    (args: Record<string, string | undefined>) => ({
+    (args: ReviewPromptArgs) => ({
       messages: [
         {
           role: 'user',
