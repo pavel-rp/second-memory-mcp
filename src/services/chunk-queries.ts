@@ -7,6 +7,33 @@ import type {
   PaginatedLearningItemsResponse,
 } from '../types/recommendations.js';
 
+/**
+ * Shared column selection for chunk queries that join with topics.
+ * Used by listChunks, listChunksWithContent, getChunkWithContent, and deleteChunk.
+ */
+export const CHUNK_COLUMNS_WITH_TOPIC = {
+  id: learningChunks.id,
+  topicId: learningChunks.topicId,
+  title: learningChunks.title,
+  subject: learningChunks.subject,
+  difficulty: learningChunks.difficulty,
+  nextReviewAt: learningChunks.nextReviewAt,
+  easeFactor: learningChunks.easeFactor,
+  repetitions: learningChunks.repetitions,
+  lastReviewedAt: learningChunks.lastReviewedAt,
+  estimatedDuration: learningChunks.estimatedDuration,
+  intervalDays: learningChunks.intervalDays,
+  chunkType: learningChunks.chunkType,
+  prerequisitesJson: learningChunks.prerequisitesJson,
+  tagsJson: learningChunks.tagsJson,
+  content: learningChunks.content,
+  contentVersion: learningChunks.contentVersion,
+  contentUpdatedAt: learningChunks.contentUpdatedAt,
+  createdAt: learningChunks.createdAt,
+  updatedAt: learningChunks.updatedAt,
+  topicTitle: learningTopics.title,
+};
+
 export type ListChunksFilter = {
   subject?: string;
   dueOnly?: boolean;
@@ -96,28 +123,7 @@ export async function listChunks(filter: ListChunksFilter = {}) {
   const whereClause = buildChunkWhereClause(filter);
 
   let query = db
-    .select({
-      id: learningChunks.id,
-      topicId: learningChunks.topicId,
-      title: learningChunks.title,
-      subject: learningChunks.subject,
-      difficulty: learningChunks.difficulty,
-      nextReviewAt: learningChunks.nextReviewAt,
-      easeFactor: learningChunks.easeFactor,
-      repetitions: learningChunks.repetitions,
-      lastReviewedAt: learningChunks.lastReviewedAt,
-      estimatedDuration: learningChunks.estimatedDuration,
-      intervalDays: learningChunks.intervalDays,
-      chunkType: learningChunks.chunkType,
-      prerequisitesJson: learningChunks.prerequisitesJson,
-      tagsJson: learningChunks.tagsJson,
-      content: learningChunks.content,
-      contentVersion: learningChunks.contentVersion,
-      contentUpdatedAt: learningChunks.contentUpdatedAt,
-      createdAt: learningChunks.createdAt,
-      updatedAt: learningChunks.updatedAt,
-      topicTitle: learningTopics.title,
-    })
+    .select(CHUNK_COLUMNS_WITH_TOPIC)
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
     .$dynamic();
@@ -154,32 +160,9 @@ export async function listChunksWithContent(
   const db = getSql();
   const whereClause = buildChunkWhereClause(filter);
 
-  // Build base query including all fields
+  // Build base query — content filtering is handled by mapChunkRowToLearningItem
   const baseQuery = db
-    .select({
-      id: learningChunks.id,
-      topicId: learningChunks.topicId,
-      title: learningChunks.title,
-      subject: learningChunks.subject,
-      difficulty: learningChunks.difficulty,
-      nextReviewAt: learningChunks.nextReviewAt,
-      easeFactor: learningChunks.easeFactor,
-      repetitions: learningChunks.repetitions,
-      lastReviewedAt: learningChunks.lastReviewedAt,
-      estimatedDuration: learningChunks.estimatedDuration,
-      intervalDays: learningChunks.intervalDays,
-      chunkType: learningChunks.chunkType,
-      prerequisitesJson: learningChunks.prerequisitesJson,
-      tagsJson: learningChunks.tagsJson,
-      ...(filter.includeContent && {
-        content: learningChunks.content,
-        contentVersion: learningChunks.contentVersion,
-        contentUpdatedAt: learningChunks.contentUpdatedAt,
-      }),
-      createdAt: learningChunks.createdAt,
-      updatedAt: learningChunks.updatedAt,
-      topicTitle: learningTopics.title,
-    })
+    .select(CHUNK_COLUMNS_WITH_TOPIC)
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
@@ -199,7 +182,7 @@ export async function listChunksWithContent(
   const rows = query.offset(offset).limit(limit).all();
 
   const items = rows.map(row =>
-    mapChunkRowToLearningItem(row as ChunkListRowWithContent, {
+    mapChunkRowToLearningItem(row, {
       includeContent: filter.includeContent,
     })
   );
