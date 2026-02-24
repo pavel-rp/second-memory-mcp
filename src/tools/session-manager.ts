@@ -8,6 +8,7 @@ import type {
 } from '../types/session.js';
 import { SessionInputSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
+import { clamp } from '../utils/math.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string): Date {
@@ -18,7 +19,7 @@ function parseTimestamp(timestamp: string): Date {
 // Helper function to clamp quality values to valid range
 function clampQuality(quality: number): number {
   if (!Number.isFinite(quality)) return 0;
-  return Math.max(0, Math.min(5, quality));
+  return clamp(quality, 0, 5);
 }
 
 // Helper function to calculate time elapsed between timestamps
