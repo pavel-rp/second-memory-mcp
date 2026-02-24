@@ -277,9 +277,9 @@ pnpm run lint:fix
 
 **Naming Conventions:**
 
-- **MCP API layer** (`src/types/*-tools.ts`): snake_case — `ease_factor`, `next_review_date`, `days_overdue`, `consecutive_failures`
+- **Spaced-repetition MCP tools** (`src/types/spaced-repetition-tools.ts`): snake_case — `ease_factor`, `next_review_date`, `days_overdue`, `consecutive_failures`. Other tool schemas (content, persistence, search) use camelCase; follow the existing style of each schema.
 - **Internal types and logic** (`src/types/sr.ts`, `src/algorithms/`): camelCase — `easeFactor`, `nextReviewDate`, `daysOverdue`, `consecutiveFailures`
-- **Conversion** happens in tool registration files (`src/server/`), mapping snake_case inputs to camelCase before calling internal functions
+- **Conversion** happens in spaced-repetition tool registration (`src/server/spaced-repetition-tools.ts`), mapping snake_case inputs to camelCase and camelCase outputs back to snake_case. Tools whose schemas already use camelCase pass values through without renaming.
 
 **Code Style:**
 
