@@ -41,14 +41,10 @@ import {
   updateSessionChunk,
   deleteSessionChunk,
   convertSessionToSessionInput,
-  batchCreateSessionChunks,
-  listSessions,
   validateChunkIds,
   type CreateSessionInput,
   type CreateSessionChunkInput,
-  type ChunkValidationResult,
 } from '../../src/services/sessions.js';
-import { NewLearningSessionRow } from '../../src/db/schema.js';
 
 function ensureSchema() {
   const db = getDb();

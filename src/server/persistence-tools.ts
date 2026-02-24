@@ -49,7 +49,7 @@ import {
   UpdateTopicSummaryInputShape,
   type UpdateTopicSummaryInput,
 } from '../types/persistence-tools.js';
-import { extractErrorMessage, toolError, toolJson, toolOk } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerPersistenceTools(server: McpServer): void {
   server.registerTool(
