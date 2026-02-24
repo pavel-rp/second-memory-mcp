@@ -2,7 +2,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { promptPack } from '../prompts/prompt-pack.js';
-import type { DrillFormat } from '../prompts/prompt-pack.js';
 import { registerServerTools } from './tools.js';
 import { initializeDatabase } from '../db/migrate.js';
 import { logger } from '../utils/logger.js';
@@ -58,7 +57,9 @@ async function bootstrap(): Promise<void> {
         chunkTitle: z.string().optional(),
         chunkContent: z.string().optional(),
         prerequisites: z.string().optional(),
-        drillFormat: z.string().optional(),
+        drillFormat: z
+          .enum(['multiple_choice', 'open_ended', 'coding_problem', 'explanation', 'application'])
+          .optional(),
       },
     },
     (args: LearningPromptArgs) => ({
@@ -71,7 +72,6 @@ async function bootstrap(): Promise<void> {
               ...args,
               chunkNumber: args?.chunkNumber ? Number(args.chunkNumber) : undefined,
               totalChunks: args?.totalChunks ? Number(args.totalChunks) : undefined,
-              drillFormat: args?.drillFormat as DrillFormat | undefined,
             }),
           },
         },
@@ -86,7 +86,9 @@ async function bootstrap(): Promise<void> {
       description: 'Generate retrieval drill (two-attempt policy)',
       argsSchema: {
         chunkTitle: z.string().optional(),
-        drillFormat: z.string().optional(),
+        drillFormat: z
+          .enum(['multiple_choice', 'open_ended', 'coding_problem', 'explanation', 'application'])
+          .optional(),
         masteryLevel: z.string().optional(),
       },
     },
@@ -99,7 +101,6 @@ async function bootstrap(): Promise<void> {
             text: promptPack.getPrompt('retrieval', {
               ...args,
               masteryLevel: args?.masteryLevel ? Number(args.masteryLevel) : undefined,
-              drillFormat: args?.drillFormat as DrillFormat | undefined,
             }),
           },
         },
