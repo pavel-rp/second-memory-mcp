@@ -8,8 +8,8 @@ import type {
 } from '../types/recommendations.js';
 
 /**
- * Shared column selection for chunk queries that join with topics.
- * Used by listChunks, listChunksWithContent, getChunkWithContent, and deleteChunk.
+ * Shared column selection for chunk queries that join with topics (without content).
+ * Extend with CHUNK_CONTENT_COLUMNS when content fields are needed.
  */
 export const CHUNK_COLUMNS_WITH_TOPIC = {
   id: learningChunks.id,
@@ -26,12 +26,16 @@ export const CHUNK_COLUMNS_WITH_TOPIC = {
   chunkType: learningChunks.chunkType,
   prerequisitesJson: learningChunks.prerequisitesJson,
   tagsJson: learningChunks.tagsJson,
-  content: learningChunks.content,
-  contentVersion: learningChunks.contentVersion,
-  contentUpdatedAt: learningChunks.contentUpdatedAt,
   createdAt: learningChunks.createdAt,
   updatedAt: learningChunks.updatedAt,
   topicTitle: learningTopics.title,
+};
+
+/** Content fields to spread into CHUNK_COLUMNS_WITH_TOPIC when content is needed. */
+export const CHUNK_CONTENT_COLUMNS = {
+  content: learningChunks.content,
+  contentVersion: learningChunks.contentVersion,
+  contentUpdatedAt: learningChunks.contentUpdatedAt,
 };
 
 export type ListChunksFilter = {
@@ -123,7 +127,7 @@ export async function listChunks(filter: ListChunksFilter = {}) {
   const whereClause = buildChunkWhereClause(filter);
 
   let query = db
-    .select(CHUNK_COLUMNS_WITH_TOPIC)
+    .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
     .$dynamic();
@@ -160,9 +164,12 @@ export async function listChunksWithContent(
   const db = getSql();
   const whereClause = buildChunkWhereClause(filter);
 
-  // Build base query — content filtering is handled by mapChunkRowToLearningItem
+  // Only select content columns when explicitly requested
+  const columns = filter.includeContent
+    ? { ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS }
+    : CHUNK_COLUMNS_WITH_TOPIC;
   const baseQuery = db
-    .select(CHUNK_COLUMNS_WITH_TOPIC)
+    .select(columns)
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
@@ -182,7 +189,7 @@ export async function listChunksWithContent(
   const rows = query.offset(offset).limit(limit).all();
 
   const items = rows.map(row =>
-    mapChunkRowToLearningItem(row, {
+    mapChunkRowToLearningItem(row as ChunkListRowWithContent, {
       includeContent: filter.includeContent,
     })
   );

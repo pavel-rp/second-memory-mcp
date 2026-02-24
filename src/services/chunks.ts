@@ -5,7 +5,11 @@ import { learningChunks, learningTopics, type LearningChunkRow } from '../db/sch
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
 import { prerequisiteReferenceValidator } from './chunk-prerequisites.js';
-import { CHUNK_COLUMNS_WITH_TOPIC, mapChunkRowToLearningItem } from './chunk-queries.js';
+import {
+  CHUNK_COLUMNS_WITH_TOPIC,
+  CHUNK_CONTENT_COLUMNS,
+  mapChunkRowToLearningItem,
+} from './chunk-queries.js';
 
 export type CreateChunkInput = {
   id: string;
@@ -408,7 +412,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
     }
 
     const dependentRows = db
-      .select(CHUNK_COLUMNS_WITH_TOPIC)
+      .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
       .from(learningChunks)
       .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
       .where(
@@ -589,7 +593,7 @@ export async function getChunkWithContent(
 ): Promise<(LearningChunkRow & { topicTitle?: string | null }) | null> {
   const db = getSql();
   const result = db
-    .select(CHUNK_COLUMNS_WITH_TOPIC)
+    .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
     .where(eq(learningChunks.id, id))
