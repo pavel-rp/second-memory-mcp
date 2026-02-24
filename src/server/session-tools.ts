@@ -19,13 +19,14 @@ import {
   ConversationRequestSchema,
   ConversationRequestShape,
 } from '../types/recommendations.js';
+import { SessionInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 // Plain shape for MCP tool registration
 const SessionAnalysisInputShape = {
   sessionId: z.string().optional(),
-  sessionData: z.any().optional(), // SessionInput object
+  sessionData: SessionInputSchema.optional(),
 } as const;
 
 // Refined schema for runtime validation

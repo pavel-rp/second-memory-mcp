@@ -15,7 +15,7 @@ import {
   type CreateSessionInput,
   type CreateSessionChunkInput,
 } from '../services/sessions.js';
-import { SessionModeSchema, BatchUpdateInputSchema } from '../types/session.js';
+import { SessionModeSchema, SessionInputSchema, BatchUpdateInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
@@ -66,7 +66,7 @@ const CreateSessionResultSchema = z.object({
 });
 
 const GetActiveSessionResultSchema = z.object({
-  session: z.any().nullable(), // SessionInput or null
+  session: SessionInputSchema.nullable(),
   status: z.enum(['found', 'not_found']),
 });
 
