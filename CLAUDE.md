@@ -275,6 +275,12 @@ pnpm run lint:fix
 
 ## Development Guidelines
 
+**Naming Conventions:**
+
+- **MCP API layer** (`src/types/*-tools.ts`): snake_case — `ease_factor`, `next_review_date`, `days_overdue`, `consecutive_failures`
+- **Internal types and logic** (`src/types/sr.ts`, `src/algorithms/`): camelCase — `easeFactor`, `nextReviewDate`, `daysOverdue`, `consecutiveFailures`
+- **Conversion** happens in tool registration files (`src/server/`), mapping snake_case inputs to camelCase before calling internal functions
+
 **Code Style:**
 
 - Descriptive function/variable names
