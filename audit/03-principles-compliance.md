@@ -91,7 +91,7 @@ Tests directory mirrors source structure, but several source files lack correspo
 
 Note: `src/server/session-management-tools.ts` is covered by `tests/server/session-management-tools.test.ts` (exercises `registerSessionManagementTools`). `src/utils/content-validation.ts` is exercised by the **Content Validation** suite in `tests/services/content-persistence.test.ts` (covers `validateContent()` / `sanitizeContent()`).
 
-Some of these may be tested transitively through integration tests, but 12 source files have no dedicated test file.
+Some of these may be tested transitively through integration tests, but 13 source files have no dedicated test file.
 
 **Severity**: Medium. AGENTS.md states "Algorithm functions must have comprehensive test coverage" and "Every behavior change must include corresponding test additions." The coverage gaps span services, server registrations, and utilities. (Two files initially listed — `session-management-tools.ts` and `content-validation.ts` — are actually tested indirectly.)
 
@@ -302,7 +302,7 @@ All error logging flows through `src/utils/logger.ts`, which correctly routes ou
 | M3 | Inline Zod schemas in session-management-tools.ts violate DRY principle | 4.2 |
 | M4 | Two competing error response formats (Pattern A vs Pattern B) in tool layer | 4.4 |
 | M5 | No declared error handling strategy; services mix throw vs Result patterns | 4.5, 5.1 |
-| M6 | 12 source files lack dedicated test files | 1.6 |
+| M6 | 13 source files lack dedicated test files | 1.6 |
 | M7 | MCP "Resources" claim is inaccurate — no resources are registered | 1.4 |
 
 ### Low Severity
