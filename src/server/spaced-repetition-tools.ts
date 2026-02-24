@@ -5,19 +5,15 @@ import {
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
 } from '../algorithms/sr-calculator.js';
-import { RecommendationEngine } from '../tools/recommendation-engine.js';
-import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
   type RecommendationInput,
 } from '../types/recommendations.js';
-import { getChunk } from '../services/chunks.js';
 import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../services/chunk-queries.js';
-import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';
 import { processReviewResult } from '../services/chunk-reviews.js';
-import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { createRecommendationEngine } from './shared-instances.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -35,20 +31,6 @@ import {
   RecordReviewResultInputShape,
   type RecordReviewResultInput,
 } from '../types/spaced-repetition-tools.js';
-
-// Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
-const chunkLookupFn = async (id: string) => {
-  const row = await getChunk(id);
-  return row ? mapChunkRowToLearningItem(row) : undefined;
-};
-const sharedValidator = new PrerequisiteValidator({
-  referenceValidator: prerequisiteReferenceValidator,
-  masteryService: prerequisiteMasteryService,
-});
-const sharedEngine = new RecommendationEngine({
-  chunkLookupFn,
-  prerequisiteValidator: sharedValidator,
-});
 
 export function registerSpacedRepetitionTools(server: McpServer): void {
   server.registerTool(
@@ -195,7 +177,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         }
 
         // Generate recommendations with fetched or provided items
-        const result = await sharedEngine.generateRecommendations({
+        const result = await createRecommendationEngine().generateRecommendations({
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });

@@ -7,13 +7,7 @@ import {
   validateSessionContext,
 } from '../tools/session-manager.js';
 import { ConversationManager } from '../tools/conversation-manager.js';
-import { RecommendationEngine } from '../tools/recommendation-engine.js';
-import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
 import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
-import { getChunk } from '../services/chunks.js';
-import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
-import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';
-import { prerequisiteMasteryService } from '../services/prerequisite-mastery.js';
 import {
   ConversationRequestInput,
   ConversationRequestSchema,
@@ -22,6 +16,7 @@ import {
 import { SessionInputSchema } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { createRecommendationEngine } from './shared-instances.js';
 
 // Plain shape for MCP tool registration
 const SessionAnalysisInputShape = {
@@ -35,20 +30,6 @@ const SessionAnalysisInputSchema = z
   .refine(data => data.sessionId || data.sessionData, {
     message: 'Either sessionId or sessionData must be provided',
   });
-
-// Shared instances — hoisted to preserve instance-level caching (e.g. DB availability check)
-const chunkLookupFn = async (id: string) => {
-  const row = await getChunk(id);
-  return row ? mapChunkRowToLearningItem(row) : undefined;
-};
-const sharedValidator = new PrerequisiteValidator({
-  referenceValidator: prerequisiteReferenceValidator,
-  masteryService: prerequisiteMasteryService,
-});
-const sharedEngine = new RecommendationEngine({
-  chunkLookupFn,
-  prerequisiteValidator: sharedValidator,
-});
 
 export function registerSessionTools(server: McpServer): void {
   server.registerTool(
@@ -221,7 +202,7 @@ export function registerSessionTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
-        const conversationManager = new ConversationManager(sharedEngine);
+        const conversationManager = new ConversationManager(createRecommendationEngine());
         const result = await conversationManager.conductLearningSession(parsedInput);
         return toolJson(result);
       } catch (error) {
