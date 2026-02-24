@@ -2,9 +2,9 @@
 
 ## DRY VIOLATIONS
 
-### DRY-1: Milliseconds-per-day constant repeated 4 times
+### DRY-1: Milliseconds-per-day constant repeated 5 times
 
-The magic number `24 * 60 * 60 * 1000` (or `86400000`) for converting milliseconds to days is computed inline in four separate locations with no shared constant.
+The magic number `24 * 60 * 60 * 1000` (or `86400000`) for converting milliseconds to days is computed inline in five separate locations with no shared constant.
 
 - `src/tools/analytics.ts:29` — `const msPerDay = 24 * 60 * 60 * 1000;`
 - `src/services/prerequisite-mastery.ts:114` — `Math.floor((Date.now() - chunk.lastReviewedAt) / (24 * 60 * 60 * 1000))`
@@ -356,7 +356,7 @@ import type { SubjectPreference } from './recommendations.js';
 
 ### AI-4: Scaffolding never wired up — `preference-filter.ts` standalone functions unused in production
 
-`src/tools/preference-filter.ts` exports 9 functions (293 lines), but none are imported by any production code. Only its test file imports them. The `RecommendationEngine` class in `recommendation-engine.ts` has its own private implementations of `composeBalancedSession` and `generateIntelligentConstraints`, duplicating the standalone versions.
+`src/tools/preference-filter.ts` exports 10 functions (293 lines), but none are imported by any production code. Only its test file imports them. The `RecommendationEngine` class in `recommendation-engine.ts` has its own private implementations of `composeBalancedSession` and `generateIntelligentConstraints`, duplicating the standalone versions.
 
 Functions exported but never imported in production:
 - `filterBySubject` (line 18)
