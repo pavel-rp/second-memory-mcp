@@ -104,11 +104,13 @@ export function registerPersistenceTools(server: McpServer): void {
             message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
           });
         } else {
-          return toolJson({
-            success: false,
-            error: result.error,
-            message: `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
-          });
+          return toolError(
+            `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
+            {
+              type: 'database',
+              message: result.error?.message || 'Unknown error',
+            }
+          );
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -198,11 +200,13 @@ export function registerPersistenceTools(server: McpServer): void {
             message: `Successfully updated content for chunk "${result.chunk.title}"`,
           });
         } else {
-          return toolJson({
-            success: false,
-            error: result.error,
-            message: `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
-          });
+          return toolError(
+            `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
+            {
+              type: 'database',
+              message: result.error?.message || 'Unknown error',
+            }
+          );
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -241,11 +245,13 @@ export function registerPersistenceTools(server: McpServer): void {
             message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
           });
         } else {
-          return toolJson({
-            success: false,
-            error: result.error,
-            message: `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
-          });
+          return toolError(
+            `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
+            {
+              type: 'database',
+              message: result.error?.message || 'Unknown error',
+            }
+          );
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -287,10 +293,9 @@ export function registerPersistenceTools(server: McpServer): void {
             message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
           });
         } else {
-          return toolJson({
-            success: false,
-            error: result.error,
-            message: `Failed to update chunk: ${result.error?.message || 'Unknown error'}`,
+          return toolError(`Failed to update chunk: ${result.error?.message || 'Unknown error'}`, {
+            type: 'database',
+            message: result.error?.message || 'Unknown error',
           });
         }
       } catch (error) {
@@ -336,9 +341,8 @@ export function registerPersistenceTools(server: McpServer): void {
           });
         }
 
-        return toolJson({
-          success: false,
-          error: result.error,
+        return toolError(result.error?.message || `Failed to delete chunk "${chunkId}"`, {
+          type: 'database',
           message: result.error?.message || `Failed to delete chunk "${chunkId}"`,
         });
       } catch (error) {
@@ -374,10 +378,9 @@ export function registerPersistenceTools(server: McpServer): void {
             message: `Successfully updated topic "${result.topic.title}"`,
           });
         } else {
-          return toolJson({
-            success: false,
-            error: result.error,
-            message: `Failed to update topic: ${result.error?.message || 'Unknown error'}`,
+          return toolError(`Failed to update topic: ${result.error?.message || 'Unknown error'}`, {
+            type: 'database',
+            message: result.error?.message || 'Unknown error',
           });
         }
       } catch (error) {
@@ -410,11 +413,13 @@ export function registerPersistenceTools(server: McpServer): void {
             message: `Successfully updated summary for topic "${result.topic.title}"`,
           });
         } else {
-          return toolJson({
-            success: false,
-            error: result.error,
-            message: `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,
-          });
+          return toolError(
+            `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,
+            {
+              type: 'database',
+              message: result.error?.message || 'Unknown error',
+            }
+          );
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
