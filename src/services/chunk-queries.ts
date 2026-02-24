@@ -7,6 +7,37 @@ import type {
   PaginatedLearningItemsResponse,
 } from '../types/recommendations.js';
 
+/**
+ * Shared column selection for chunk queries that join with topics (without content).
+ * Extend with CHUNK_CONTENT_COLUMNS when content fields are needed.
+ */
+export const CHUNK_COLUMNS_WITH_TOPIC = {
+  id: learningChunks.id,
+  topicId: learningChunks.topicId,
+  title: learningChunks.title,
+  subject: learningChunks.subject,
+  difficulty: learningChunks.difficulty,
+  nextReviewAt: learningChunks.nextReviewAt,
+  easeFactor: learningChunks.easeFactor,
+  repetitions: learningChunks.repetitions,
+  lastReviewedAt: learningChunks.lastReviewedAt,
+  estimatedDuration: learningChunks.estimatedDuration,
+  intervalDays: learningChunks.intervalDays,
+  chunkType: learningChunks.chunkType,
+  prerequisitesJson: learningChunks.prerequisitesJson,
+  tagsJson: learningChunks.tagsJson,
+  createdAt: learningChunks.createdAt,
+  updatedAt: learningChunks.updatedAt,
+  topicTitle: learningTopics.title,
+};
+
+/** Content fields to spread into CHUNK_COLUMNS_WITH_TOPIC when content is needed. */
+export const CHUNK_CONTENT_COLUMNS = {
+  content: learningChunks.content,
+  contentVersion: learningChunks.contentVersion,
+  contentUpdatedAt: learningChunks.contentUpdatedAt,
+};
+
 export type ListChunksFilter = {
   subject?: string;
   dueOnly?: boolean;
@@ -96,28 +127,7 @@ export async function listChunks(filter: ListChunksFilter = {}) {
   const whereClause = buildChunkWhereClause(filter);
 
   let query = db
-    .select({
-      id: learningChunks.id,
-      topicId: learningChunks.topicId,
-      title: learningChunks.title,
-      subject: learningChunks.subject,
-      difficulty: learningChunks.difficulty,
-      nextReviewAt: learningChunks.nextReviewAt,
-      easeFactor: learningChunks.easeFactor,
-      repetitions: learningChunks.repetitions,
-      lastReviewedAt: learningChunks.lastReviewedAt,
-      estimatedDuration: learningChunks.estimatedDuration,
-      intervalDays: learningChunks.intervalDays,
-      chunkType: learningChunks.chunkType,
-      prerequisitesJson: learningChunks.prerequisitesJson,
-      tagsJson: learningChunks.tagsJson,
-      content: learningChunks.content,
-      contentVersion: learningChunks.contentVersion,
-      contentUpdatedAt: learningChunks.contentUpdatedAt,
-      createdAt: learningChunks.createdAt,
-      updatedAt: learningChunks.updatedAt,
-      topicTitle: learningTopics.title,
-    })
+    .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
     .$dynamic();
@@ -154,32 +164,12 @@ export async function listChunksWithContent(
   const db = getSql();
   const whereClause = buildChunkWhereClause(filter);
 
-  // Build base query including all fields
+  // Only select content columns when explicitly requested
+  const columns = filter.includeContent
+    ? { ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS }
+    : CHUNK_COLUMNS_WITH_TOPIC;
   const baseQuery = db
-    .select({
-      id: learningChunks.id,
-      topicId: learningChunks.topicId,
-      title: learningChunks.title,
-      subject: learningChunks.subject,
-      difficulty: learningChunks.difficulty,
-      nextReviewAt: learningChunks.nextReviewAt,
-      easeFactor: learningChunks.easeFactor,
-      repetitions: learningChunks.repetitions,
-      lastReviewedAt: learningChunks.lastReviewedAt,
-      estimatedDuration: learningChunks.estimatedDuration,
-      intervalDays: learningChunks.intervalDays,
-      chunkType: learningChunks.chunkType,
-      prerequisitesJson: learningChunks.prerequisitesJson,
-      tagsJson: learningChunks.tagsJson,
-      ...(filter.includeContent && {
-        content: learningChunks.content,
-        contentVersion: learningChunks.contentVersion,
-        contentUpdatedAt: learningChunks.contentUpdatedAt,
-      }),
-      createdAt: learningChunks.createdAt,
-      updatedAt: learningChunks.updatedAt,
-      topicTitle: learningTopics.title,
-    })
+    .select(columns)
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
