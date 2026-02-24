@@ -1,7 +1,4 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { SessionInputSchema } from '../types/session.js';
-
-export const sessionToolInputSchema = SessionInputSchema.shape;
 
 // ---------------------------------------------------------------------------
 // MCP tool response helpers

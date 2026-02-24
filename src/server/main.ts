@@ -156,7 +156,6 @@ async function bootstrap(): Promise<void> {
     })
   );
 
-  // New: chunk prompts
   server.registerPrompt(
     'chunk_generation',
     {

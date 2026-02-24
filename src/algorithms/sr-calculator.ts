@@ -39,7 +39,7 @@ export function calculateNextReview(input: NextReviewInput): NextReviewOutput {
   let nextInterval = prevInterval;
 
   if (quality < 3) {
-    // Failure: reset reps to 0, interval to 0/1 day, penalize ease
+    // Failure: reset reps to 0, interval to 1 day, penalize ease
     nextRepetitions = 0;
     nextInterval = 1; // schedule retry tomorrow to avoid same-day churn
     nextEase = clampEaseFactor(prevEase + algorithmConfig.easePenaltyFailure);

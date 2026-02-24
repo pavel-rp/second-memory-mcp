@@ -23,13 +23,6 @@ function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 
-// Helper function to calculate days between dates (for future use)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function daysBetween(start: Date, end: Date): number {
-  const msPerDay = 24 * 60 * 60 * 1000;
-  return Math.floor((end.getTime() - start.getTime()) / msPerDay);
-}
-
 // Helper function to get all dates in a range
 function getDateRange(start: string, end: string): string[] {
   const startDate = parseDate(start);
