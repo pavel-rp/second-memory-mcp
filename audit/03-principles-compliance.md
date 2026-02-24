@@ -124,24 +124,18 @@ The codebase maintains a deliberate naming convention boundary that is **never d
 
 **MCP API layer** (types used in tool schemas): **snake_case**
 
-```typescript
+```text
 // src/types/session.ts, src/types/analytics.ts, src/types/spaced-repetition-tools.ts
-(ease_factor,
-  next_review_date,
-  time_spent_ms,
-  chunk_id,
-  session_id,
-  quality_scores,
-  reviews_completed,
-  average_quality,
-  consecutive_failures);
+ease_factor, next_review_date, time_spent_ms, chunk_id, session_id,
+quality_scores, reviews_completed, average_quality, consecutive_failures
 ```
 
 **Internal algorithm/service layer**: **camelCase**
 
-```typescript
+```text
 // src/types/sr.ts, src/services/sessions.ts
-(easeFactor, nextReviewDate, timeSpentMs, chunkId, sessionId, qualityScores, consecutiveFailures);
+easeFactor, nextReviewDate, timeSpentMs, chunkId, sessionId,
+qualityScores, consecutiveFailures
 ```
 
 The conversion happens in tool registration files (e.g., `spaced-repetition-tools.ts:63-75` maps `ease_factor` to `easeFactor`). This is architecturally reasonable but the convention should be documented in AGENTS.md since it affects every contributor.

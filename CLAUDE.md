@@ -300,11 +300,11 @@ pnpm run lint:fix
 
 **File Organization:**
 
-- Algorithm implementations in `src/algorithms/` (SR calculator, dependency resolver, prerequisite validator)
-- Tool handlers in `src/tools/`
+- Algorithm implementations in `src/algorithms/` (`sr-calculator`, `dependency-resolver`, `prerequisite-reference-validator`)
+- Domain logic in `src/tools/` (recommendation engine, session manager, analytics — no MCP dependencies)
 - Configuration in `src/config/`
 - Constants in `src/constants/`
-- MCP handlers in `src/server/`
+- MCP tool handlers and registration in `src/server/`
 - Type definitions in `src/types/`
 - Tests mirror source structure in `tests/`
 
