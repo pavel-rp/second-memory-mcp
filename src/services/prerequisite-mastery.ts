@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks, type LearningChunkRow } from '../db/schema.js';
 import { algorithmConfig } from '../config/algorithm.js';
 import type { MasteryCriteria, MasteryStatus } from '../types/prerequisite-validation.js';
@@ -27,10 +27,10 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID to check mastery for
    * @returns Detailed mastery status with metrics
    */
-  async checkItemMastery(itemId: string): Promise<MasteryStatus> {
+  async checkItemMastery(itemId: string, db: SqlDb = getSql()): Promise<MasteryStatus> {
     try {
       // Get chunk data from database
-      const chunk = await this.getChunkData(itemId);
+      const chunk = await this.getChunkData(itemId, db);
       if (!chunk) {
         return {
           itemId,
@@ -72,12 +72,15 @@ export class PrerequisiteMasteryService {
    * @param itemIds Array of chunk IDs to check
    * @returns Map of item ID to mastery status
    */
-  async checkMultipleItemsMastery(itemIds: string[]): Promise<Map<string, MasteryStatus>> {
+  async checkMultipleItemsMastery(
+    itemIds: string[],
+    db: SqlDb = getSql()
+  ): Promise<Map<string, MasteryStatus>> {
     const results = new Map<string, MasteryStatus>();
 
     // Process items in parallel for better performance
     const masteryPromises = itemIds.map(async itemId => {
-      const mastery = await this.checkItemMastery(itemId);
+      const mastery = await this.checkItemMastery(itemId, db);
       return [itemId, mastery] as [string, MasteryStatus];
     });
 
@@ -95,8 +98,10 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID
    * @returns Chunk data or null if not found
    */
-  private async getChunkData(itemId: string): Promise<LearningChunkRow | undefined> {
-    const db = getSql();
+  private async getChunkData(
+    itemId: string,
+    db: SqlDb = getSql()
+  ): Promise<LearningChunkRow | undefined> {
     const chunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
 
     return chunk;
@@ -205,7 +210,10 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID
    * @returns Detailed mastery breakdown
    */
-  async getMasteryBreakdown(itemId: string): Promise<{
+  async getMasteryBreakdown(
+    itemId: string,
+    db: SqlDb = getSql()
+  ): Promise<{
     itemId: string;
     metrics: {
       averageQuality: number;
@@ -222,7 +230,7 @@ export class PrerequisiteMasteryService {
     };
     isMastered: boolean;
   }> {
-    const chunk = await this.getChunkData(itemId);
+    const chunk = await this.getChunkData(itemId, db);
 
     if (!chunk) {
       const defaultMetrics = {

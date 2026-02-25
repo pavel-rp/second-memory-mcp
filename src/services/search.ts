@@ -1,5 +1,5 @@
 import { and, eq, or, sql, type SQL } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics } from '../db/schema.js';
 import {
   type SearchLearningContentInput,
@@ -144,9 +144,9 @@ function toChunkResult(row: ChunkRow, query: NormalizedQuery): SearchResultItem 
 }
 
 export async function searchLearningContent(
-  input: SearchLearningContentInput
+  input: SearchLearningContentInput,
+  db: SqlDb = getSql()
 ): Promise<SearchResultSet> {
-  const db = getSql();
   const limit = Math.min(Math.max(input.limit ?? 10, 1), 50);
   const fetchLimit = Math.max(limit * FETCH_MULTIPLIER, limit);
   const normalizedQuery = normalizeSearchQuery(input.query);

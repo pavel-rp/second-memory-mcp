@@ -1,5 +1,5 @@
 import { inArray } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks } from '../db/schema.js';
 import { PrerequisiteReferenceValidator } from '../algorithms/prerequisite-reference-validator.js';
 
@@ -7,8 +7,7 @@ import { PrerequisiteReferenceValidator } from '../algorithms/prerequisite-refer
  * Get existing chunk IDs that match a provided list.
  * Used for prerequisite reference validation.
  */
-export function getExistingChunkIdsByIds(ids: string[]): Set<string> {
-  const db = getSql();
+export function getExistingChunkIdsByIds(ids: string[], db: SqlDb = getSql()): Set<string> {
   const rows = db
     .select({ id: learningChunks.id })
     .from(learningChunks)
@@ -21,8 +20,7 @@ export function getExistingChunkIdsByIds(ids: string[]): Set<string> {
  * Get all chunk IDs from the database.
  * Used for comprehensive prerequisite validation.
  */
-export function getAllChunkIds(): Set<string> {
-  const db = getSql();
+export function getAllChunkIds(db: SqlDb = getSql()): Set<string> {
   const rows = db.select({ id: learningChunks.id }).from(learningChunks).all();
   return new Set(rows.map(r => r.id));
 }

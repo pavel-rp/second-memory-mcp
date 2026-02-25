@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, withTx, decodeJsonArray, encodeJsonArray } from '../db/operations.js';
+import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
@@ -33,8 +33,7 @@ export type CreateChunkInput = {
   contentUpdatedAt?: number;
 };
 
-export async function createChunk(input: CreateChunkInput): Promise<void> {
-  const db = getSql();
+export async function createChunk(input: CreateChunkInput, db: SqlDb = getSql()): Promise<void> {
   await db
     .insert(learningChunks)
     .values({
@@ -48,17 +47,16 @@ export async function createChunk(input: CreateChunkInput): Promise<void> {
     .run();
 }
 
-export async function getChunk(id: string) {
-  const db = getSql();
+export async function getChunk(id: string, db: SqlDb = getSql()) {
   const row = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
   return row;
 }
 
 export async function updateChunk(
   id: string,
-  changes: Partial<Omit<CreateChunkInput, 'id' | 'topicId' | 'createdAt'>>
+  changes: Partial<Omit<CreateChunkInput, 'id' | 'topicId' | 'createdAt'>>,
+  db: SqlDb = getSql()
 ): Promise<number> {
-  const db = getSql();
   const updatePayload: Record<string, unknown> = { ...changes };
 
   // Handle JSON fields - remove original fields to avoid conflicts
@@ -100,10 +98,9 @@ export type UpdateChunkContentResult = {
 
 export async function updateChunkContent(
   id: string,
-  input: UpdateChunkContentInput
+  input: UpdateChunkContentInput,
+  db: SqlDb = getSql()
 ): Promise<UpdateChunkContentResult> {
-  const db = getSql();
-
   try {
     // Get current chunk
     const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
@@ -187,10 +184,9 @@ export type UpdateChunkMetadataResult = {
 
 export async function updateChunkMetadata(
   id: string,
-  input: UpdateChunkMetadataInput
+  input: UpdateChunkMetadataInput,
+  db: SqlDb = getSql()
 ): Promise<UpdateChunkMetadataResult> {
-  const db = getSql();
-
   try {
     // Check if chunk exists
     const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
@@ -279,10 +275,9 @@ export type UpdateChunkWithProgressResetResult = {
 
 export async function updateChunkWithProgressReset(
   id: string,
-  input: UpdateChunkWithProgressResetInput
+  input: UpdateChunkWithProgressResetInput,
+  db: SqlDb = getSql()
 ): Promise<UpdateChunkWithProgressResetResult> {
-  const db = getSql();
-
   try {
     // Get current chunk
     const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
@@ -394,9 +389,7 @@ export type DeleteChunkResult = {
   };
 };
 
-export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
-  const db = getSql();
-
+export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<DeleteChunkResult> {
   try {
     const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
 
@@ -438,7 +431,7 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
         : dependentIds;
     const dependentRowMap = new Map(dependentRows.map(row => [row.id, row]));
 
-    const dependencyUpdates = withTx<ChunkDependencyCleanup[]>(tx => {
+    const dependencyUpdates = db.transaction<ChunkDependencyCleanup[]>(tx => {
       const updates: ChunkDependencyCleanup[] = [];
       const now = Date.now();
 
@@ -506,10 +499,9 @@ export async function deleteChunk(id: string): Promise<DeleteChunkResult> {
 
 // Enhanced createChunk with auto-topic creation
 export async function createChunkWithTopic(
-  input: CreateChunkInput & { topicTitle?: string }
+  input: CreateChunkInput & { topicTitle?: string },
+  db: SqlDb = getSql()
 ): Promise<LearningChunkRow> {
-  const db = getSql();
-
   // If topicTitle is provided but topicId is not, find existing topic or create a new one
   let finalTopicId = input.topicId;
   if (input.topicTitle && !finalTopicId) {
@@ -573,8 +565,10 @@ export type ChunkContentResult = {
   contentUpdatedAt: number | null;
 };
 
-export async function getChunkContent(id: string): Promise<ChunkContentResult | null> {
-  const db = getSql();
+export async function getChunkContent(
+  id: string,
+  db: SqlDb = getSql()
+): Promise<ChunkContentResult | null> {
   const result = db
     .select({
       content: learningChunks.content,
@@ -589,9 +583,9 @@ export async function getChunkContent(id: string): Promise<ChunkContentResult | 
 }
 
 export async function getChunkWithContent(
-  id: string
+  id: string,
+  db: SqlDb = getSql()
 ): Promise<(LearningChunkRow & { topicTitle?: string | null }) | null> {
-  const db = getSql();
   const result = db
     .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
     .from(learningChunks)

@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningTopics } from '../db/schema.js';
 
 export type CreateTopicInput = {
@@ -10,17 +10,15 @@ export type CreateTopicInput = {
   updatedAt: number;
 };
 
-export async function createTopic(input: CreateTopicInput): Promise<void> {
-  const db = getSql();
+export async function createTopic(input: CreateTopicInput, db: SqlDb = getSql()): Promise<void> {
   await db.insert(learningTopics).values(input).run();
 }
 
-export async function getTopicById(id: string) {
-  const db = getSql();
+export async function getTopicById(id: string, db: SqlDb = getSql()) {
   return db.select().from(learningTopics).where(eq(learningTopics.id, id)).get();
 }
 
-export async function listTopics(): Promise<
+export async function listTopics(db: SqlDb = getSql()): Promise<
   Array<{
     id: string;
     title: string;
@@ -29,12 +27,10 @@ export async function listTopics(): Promise<
     updatedAt: number;
   }>
 > {
-  const db = getSql();
   return db.select().from(learningTopics).all();
 }
 
-export async function getTopicSummaryById(topicId: string) {
-  const db = getSql();
+export async function getTopicSummaryById(topicId: string, db: SqlDb = getSql()) {
   return db
     .select({
       id: learningTopics.id,
@@ -53,15 +49,14 @@ export async function getTopicSummaryById(topicId: string) {
 
 export async function updateTopic(
   id: string,
-  changes: Partial<Pick<CreateTopicInput, 'title' | 'subject' | 'updatedAt'>>
+  changes: Partial<Pick<CreateTopicInput, 'title' | 'subject' | 'updatedAt'>>,
+  db: SqlDb = getSql()
 ): Promise<number> {
-  const db = getSql();
   const res = db.update(learningTopics).set(changes).where(eq(learningTopics.id, id)).run();
   return res.changes ?? 0;
 }
 
-export async function deleteTopic(id: string): Promise<number> {
-  const db = getSql();
+export async function deleteTopic(id: string, db: SqlDb = getSql()): Promise<number> {
   const res = db.delete(learningTopics).where(eq(learningTopics.id, id)).run();
   return res.changes ?? 0;
 }
@@ -75,12 +70,13 @@ export type TopicMinimalMetadata = {
   updatedAt: number;
 };
 
-export async function batchFetchTopicsMinimal(options?: {
-  subject?: string;
-  limit?: number;
-}): Promise<TopicMinimalMetadata[]> {
-  const db = getSql();
-
+export async function batchFetchTopicsMinimal(
+  options?: {
+    subject?: string;
+    limit?: number;
+  },
+  db: SqlDb = getSql()
+): Promise<TopicMinimalMetadata[]> {
   let query = db
     .select({
       id: learningTopics.id,
