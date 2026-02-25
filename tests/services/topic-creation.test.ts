@@ -30,7 +30,7 @@ if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
 
 import { getDb, resetDatabase } from '../../src/db/client.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
-import { updateTopic, updateTopicSummary } from '../../src/services/topic-updates.js';
+import { updateTopicMetadata, updateTopicSummary } from '../../src/services/topic-updates.js';
 import { TopicCreationInput, UserPreferences } from '../../src/types/topic-creation.js';
 
 function ensureSchema() {
@@ -390,7 +390,7 @@ function tmpDbPath() {
       const topicId = createResult.topic!.topicId;
 
       // Update the topic
-      const updateResult = await updateTopic(topicId, {
+      const updateResult = await updateTopicMetadata(topicId, {
         title: 'Updated Topic Title',
       });
 
@@ -401,7 +401,7 @@ function tmpDbPath() {
     });
 
     it('should return error for non-existent topic', async () => {
-      const result = await updateTopic('non-existent-id', {
+      const result = await updateTopicMetadata('non-existent-id', {
         title: 'New Title',
       });
 
@@ -434,7 +434,7 @@ function tmpDbPath() {
       const topicId = createResult.topic!.topicId;
 
       // Test empty title
-      const emptyResult = await updateTopic(topicId, {
+      const emptyResult = await updateTopicMetadata(topicId, {
         title: '',
       });
 
@@ -444,7 +444,7 @@ function tmpDbPath() {
 
       // Test overly long title
       const longTitle = 'a'.repeat(201); // Over MAX_TITLE_LENGTH
-      const longResult = await updateTopic(topicId, {
+      const longResult = await updateTopicMetadata(topicId, {
         title: longTitle,
       });
 

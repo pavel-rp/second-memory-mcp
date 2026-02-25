@@ -3,7 +3,7 @@ import { getSql } from '../db/operations.js';
 import { learningTopics, type LearningTopicRow } from '../db/schema.js';
 import { VALIDATION_CONSTANTS } from '../constants/validation.js';
 
-type TopicUpdateResult = {
+export type TopicUpdateResult = {
   success: boolean;
   topic?: LearningTopicRow;
   error?: {
@@ -16,7 +16,7 @@ type TopicUpdateResult = {
 /**
  * Update topic metadata (title only)
  */
-export async function updateTopic(
+export async function updateTopicMetadata(
   topicId: string,
   updates: { title?: string }
 ): Promise<TopicUpdateResult> {
