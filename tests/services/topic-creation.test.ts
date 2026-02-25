@@ -30,6 +30,7 @@ if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
 
 import { getDb, resetDatabase } from '../../src/db/client.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
+import { updateTopicMetadata, updateTopicSummary } from '../../src/services/topic-updates.js';
 import { TopicCreationInput, UserPreferences } from '../../src/types/topic-creation.js';
 
 function ensureSchema() {
@@ -389,7 +390,7 @@ function tmpDbPath() {
       const topicId = createResult.topic!.topicId;
 
       // Update the topic
-      const updateResult = await topicCreationService.updateTopic(topicId, {
+      const updateResult = await updateTopicMetadata(topicId, {
         title: 'Updated Topic Title',
       });
 
@@ -400,7 +401,7 @@ function tmpDbPath() {
     });
 
     it('should return error for non-existent topic', async () => {
-      const result = await topicCreationService.updateTopic('non-existent-id', {
+      const result = await updateTopicMetadata('non-existent-id', {
         title: 'New Title',
       });
 
@@ -433,7 +434,7 @@ function tmpDbPath() {
       const topicId = createResult.topic!.topicId;
 
       // Test empty title
-      const emptyResult = await topicCreationService.updateTopic(topicId, {
+      const emptyResult = await updateTopicMetadata(topicId, {
         title: '',
       });
 
@@ -443,7 +444,7 @@ function tmpDbPath() {
 
       // Test overly long title
       const longTitle = 'a'.repeat(201); // Over MAX_TITLE_LENGTH
-      const longResult = await topicCreationService.updateTopic(topicId, {
+      const longResult = await updateTopicMetadata(topicId, {
         title: longTitle,
       });
 
@@ -480,7 +481,7 @@ function tmpDbPath() {
       // Update the summary
       const newSummary =
         'This is an updated summary with more detailed information about the topic.';
-      const updateResult = await topicCreationService.updateTopicSummary(topicId, newSummary);
+      const updateResult = await updateTopicSummary(topicId, newSummary);
 
       expect(updateResult.success).toBe(true);
       expect(updateResult.topic).toBeDefined();
@@ -515,7 +516,7 @@ function tmpDbPath() {
       const topicId = createResult.topic!.topicId;
 
       // Test empty summary
-      const emptyResult = await topicCreationService.updateTopicSummary(topicId, '');
+      const emptyResult = await updateTopicSummary(topicId, '');
 
       expect(emptyResult.success).toBe(false);
       expect(emptyResult.error?.type).toBe('validation');
@@ -523,7 +524,7 @@ function tmpDbPath() {
 
       // Test overly long summary
       const longSummary = 'a'.repeat(5001); // Over MAX_SUMMARY_SIZE
-      const longResult = await topicCreationService.updateTopicSummary(topicId, longSummary);
+      const longResult = await updateTopicSummary(topicId, longSummary);
 
       expect(longResult.success).toBe(false);
       expect(longResult.error?.type).toBe('validation');
@@ -531,10 +532,7 @@ function tmpDbPath() {
     });
 
     it('should return error for summary update on non-existent topic', async () => {
-      const result = await topicCreationService.updateTopicSummary(
-        'non-existent-id',
-        'New summary'
-      );
+      const result = await updateTopicSummary('non-existent-id', 'New summary');
 
       expect(result.success).toBe(false);
       expect(result.error?.type).toBe('not_found');
@@ -566,18 +564,12 @@ function tmpDbPath() {
       const topicId = createResult.topic!.topicId;
 
       // First update
-      const firstUpdate = await topicCreationService.updateTopicSummary(
-        topicId,
-        'First updated summary'
-      );
+      const firstUpdate = await updateTopicSummary(topicId, 'First updated summary');
       expect(firstUpdate.success).toBe(true);
       expect(firstUpdate.topic?.summaryVersion).toBe(2);
 
       // Second update
-      const secondUpdate = await topicCreationService.updateTopicSummary(
-        topicId,
-        'Second updated summary'
-      );
+      const secondUpdate = await updateTopicSummary(topicId, 'Second updated summary');
       expect(secondUpdate.success).toBe(true);
       expect(secondUpdate.topic?.summaryVersion).toBe(3);
       expect(secondUpdate.topic?.summary).toBe('Second updated summary');
