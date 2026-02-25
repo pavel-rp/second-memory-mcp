@@ -308,9 +308,9 @@ pnpm run lint:fix
 
 The codebase uses a layered error handling approach:
 
-- **Algorithm layer** (`src/algorithms/`): Pure functions with defensive clamping. Never throws — returns computed values with safe defaults for edge cases.
+- **Algorithm layer** (`src/algorithms/`): Public APIs are pure functions with defensive clamping and never throw — they return computed values or Result objects with safe defaults for edge cases. Internal implementation may throw for control flow, but these exceptions are caught and converted before returning from the public API.
 - **Service layer** (`src/services/`): Mixed patterns exist historically. Services that perform multi-step operations with partial failure modes (e.g., `topicCreationService`, `deleteChunk`) return `{ success: boolean, error?: { type, message } }` Result objects. Services that perform single atomic operations (e.g., `createSession`, `createChunkWithTopic`) throw on failure. **Convention for new code:** prefer Result objects for operations that can fail in expected ways; use throw only for truly unexpected errors.
-- **Tool layer** (`src/server/*-tools.ts`): All handlers wrap service calls in try/catch. Use `toolError()` for all error responses, `toolOk()`/`toolJson()` for success. Service Result failures map to `toolError()`; caught exceptions also map to `toolError()`.
+- **Tool layer** (`src/server/*-tools.ts`): All handlers wrap service and domain-logic calls in try/catch. Use `toolOk()`/`toolJson()` for success responses. Service Result failures map to `toolJson()` with `success: false` and structured error details; caught exceptions (including those thrown from `src/tools/` helpers) map to `toolError()`.
 
 **Fail-open philosophy:** The MCP server logs errors via `src/utils/logger.ts` (stderr) and returns structured error responses to clients rather than crashing. Tool handlers always return a valid MCP response, never propagate unhandled exceptions.
 
