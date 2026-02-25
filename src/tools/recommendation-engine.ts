@@ -393,12 +393,6 @@ export class RecommendationEngine {
   }
 
   /**
-   * Resolve dependencies and automatically include missing prerequisites
-   * @param recommendations Current recommendations
-   * @param allAvailableItems All learning items available (for prerequisite lookup)
-   * @returns Recommendations with prerequisites included and ordered correctly
-   */
-  /**
    * BFS traversal to discover all transitive prerequisites for selected items
    */
   private async discoverPrerequisiteGraph(
