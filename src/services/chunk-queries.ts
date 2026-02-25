@@ -1,5 +1,5 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import { getSql, decodeJsonArray } from '../db/operations.js';
+import { getSql, decodeJsonArray, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import type {
   LearningItem,
@@ -122,8 +122,7 @@ export function mapChunkRowToLearningItem(
   return learningItem;
 }
 
-export async function listChunks(filter: ListChunksFilter = {}) {
-  const db = getSql();
+export async function listChunks(filter: ListChunksFilter = {}, db: SqlDb = getSql()) {
   const whereClause = buildChunkWhereClause(filter);
 
   let query = db
@@ -159,9 +158,9 @@ export type ListChunksWithContentFilter = ListChunksFilter & {
 };
 
 export async function listChunksWithContent(
-  filter: ListChunksWithContentFilter = { includeContent: false }
+  filter: ListChunksWithContentFilter = { includeContent: false },
+  db: SqlDb = getSql()
 ): Promise<PaginatedLearningItemsResponse> {
-  const db = getSql();
   const whereClause = buildChunkWhereClause(filter);
 
   // Only select content columns when explicitly requested
@@ -219,13 +218,15 @@ export type ChunkMinimalMetadata = {
   updatedAt: number;
 };
 
-export async function batchFetchChunksMinimal(options?: {
-  topicId?: string;
-  subject?: string;
-  dueOnly?: boolean;
-  limit?: number;
-}): Promise<ChunkMinimalMetadata[]> {
-  const db = getSql();
+export async function batchFetchChunksMinimal(
+  options?: {
+    topicId?: string;
+    subject?: string;
+    dueOnly?: boolean;
+    limit?: number;
+  },
+  db: SqlDb = getSql()
+): Promise<ChunkMinimalMetadata[]> {
   const whereClause = buildChunkWhereClause(options ?? {});
 
   let query = db

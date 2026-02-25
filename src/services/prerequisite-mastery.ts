@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks, type LearningChunkRow } from '../db/schema.js';
 import { algorithmConfig } from '../config/algorithm.js';
 import type { MasteryCriteria, MasteryStatus } from '../types/prerequisite-validation.js';
@@ -95,8 +95,10 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID
    * @returns Chunk data or null if not found
    */
-  private async getChunkData(itemId: string): Promise<LearningChunkRow | undefined> {
-    const db = getSql();
+  private async getChunkData(
+    itemId: string,
+    db: SqlDb = getSql()
+  ): Promise<LearningChunkRow | undefined> {
     const chunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
 
     return chunk;

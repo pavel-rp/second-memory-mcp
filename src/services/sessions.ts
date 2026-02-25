@@ -1,6 +1,6 @@
 import { eq, desc, inArray } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, withTx } from '../db/operations.js';
+import { getSql, withTx, type SqlDb } from '../db/operations.js';
 import {
   learningSessions,
   sessionChunks,
@@ -67,7 +67,10 @@ export type ChunkValidationResult = {
 };
 
 // Chunk validation function
-export async function validateChunkIds(chunkIds: string[]): Promise<ChunkValidationResult> {
+export async function validateChunkIds(
+  chunkIds: string[],
+  db: SqlDb = getSql()
+): Promise<ChunkValidationResult> {
   if (!chunkIds || chunkIds.length === 0) {
     return {
       isValid: true,
@@ -76,8 +79,6 @@ export async function validateChunkIds(chunkIds: string[]): Promise<ChunkValidat
       errors: [],
     };
   }
-
-  const db = getSql();
 
   try {
     // Query database for existing chunk IDs
@@ -120,9 +121,10 @@ export async function validateChunkIds(chunkIds: string[]): Promise<ChunkValidat
 }
 
 // Session service functions
-export async function createSession(input: CreateSessionInput): Promise<void> {
-  const db = getSql();
-
+export async function createSession(
+  input: CreateSessionInput,
+  db: SqlDb = getSql()
+): Promise<void> {
   // Check for existing active session
   const existingActive = await getActiveSession();
   if (existingActive) {
@@ -176,13 +178,14 @@ export async function createSession(input: CreateSessionInput): Promise<void> {
   }
 }
 
-export async function getSessionById(id: string): Promise<LearningSessionRow | null> {
-  const db = getSql();
+export async function getSessionById(
+  id: string,
+  db: SqlDb = getSql()
+): Promise<LearningSessionRow | null> {
   return db.select().from(learningSessions).where(eq(learningSessions.id, id)).get() || null;
 }
 
-export async function getActiveSession(): Promise<LearningSessionRow | null> {
-  const db = getSql();
+export async function getActiveSession(db: SqlDb = getSql()): Promise<LearningSessionRow | null> {
   return (
     db
       .select()
@@ -193,8 +196,11 @@ export async function getActiveSession(): Promise<LearningSessionRow | null> {
   );
 }
 
-export async function updateSession(id: string, changes: UpdateSessionInput): Promise<number> {
-  const db = getSql();
+export async function updateSession(
+  id: string,
+  changes: UpdateSessionInput,
+  db: SqlDb = getSql()
+): Promise<number> {
   const res = db.update(learningSessions).set(changes).where(eq(learningSessions.id, id)).run();
   return res.changes ?? 0;
 }
@@ -215,17 +221,16 @@ export async function completeSession(id: string, feedback?: string): Promise<nu
   return result;
 }
 
-export async function deleteSession(id: string): Promise<number> {
-  const db = getSql();
+export async function deleteSession(id: string, db: SqlDb = getSql()): Promise<number> {
   const res = db.delete(learningSessions).where(eq(learningSessions.id, id)).run();
   return res.changes ?? 0;
 }
 
 // Session chunk functions
 export async function createSessionChunk(
-  input: CreateSessionChunkInput
+  input: CreateSessionChunkInput,
+  db: SqlDb = getSql()
 ): Promise<NewSessionChunkRow> {
-  const db = getSql();
   const chunkData: NewSessionChunkRow = {
     id: input.id,
     sessionId: input.sessionId,
@@ -243,27 +248,30 @@ export async function createSessionChunk(
   return chunkData;
 }
 
-export async function getSessionChunks(sessionId: string): Promise<SessionChunkRow[]> {
-  const db = getSql();
+export async function getSessionChunks(
+  sessionId: string,
+  db: SqlDb = getSql()
+): Promise<SessionChunkRow[]> {
   return db.select().from(sessionChunks).where(eq(sessionChunks.sessionId, sessionId)).all();
 }
 
-export async function getSessionChunkById(id: string): Promise<SessionChunkRow | null> {
-  const db = getSql();
+export async function getSessionChunkById(
+  id: string,
+  db: SqlDb = getSql()
+): Promise<SessionChunkRow | null> {
   return db.select().from(sessionChunks).where(eq(sessionChunks.id, id)).get() || null;
 }
 
 export async function updateSessionChunk(
   id: string,
-  changes: UpdateSessionChunkInput
+  changes: UpdateSessionChunkInput,
+  db: SqlDb = getSql()
 ): Promise<number> {
-  const db = getSql();
   const res = db.update(sessionChunks).set(changes).where(eq(sessionChunks.id, id)).run();
   return res.changes ?? 0;
 }
 
-export async function deleteSessionChunk(id: string): Promise<number> {
-  const db = getSql();
+export async function deleteSessionChunk(id: string, db: SqlDb = getSql()): Promise<number> {
   const res = db.delete(sessionChunks).where(eq(sessionChunks.id, id)).run();
   return res.changes ?? 0;
 }
@@ -291,7 +299,8 @@ export async function convertSessionToSessionInput(
   options?: {
     includeHistoricalFeedback?: boolean;
     historicalFeedbackLimit?: number;
-  }
+  },
+  db: SqlDb = getSql()
 ): Promise<SessionInput | null> {
   const { session, chunks } = await getSessionWithChunks(sessionId);
 
@@ -303,7 +312,7 @@ export async function convertSessionToSessionInput(
   const chunkIds = chunks.map(c => c.chunkId);
   let chunkDetails: LearningChunkRow[] = [];
   if (chunkIds.length > 0) {
-    chunkDetails = await getSql()
+    chunkDetails = await db
       .select()
       .from(learningChunks)
       .where(inArray(learningChunks.id, chunkIds))
@@ -381,9 +390,10 @@ export async function convertSessionToSessionInput(
 }
 
 // Batch operations
-export async function batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void> {
-  const db = getSql();
-
+export async function batchCreateSessionChunks(
+  inputs: CreateSessionChunkInput[],
+  db: SqlDb = getSql()
+): Promise<void> {
   for (const input of inputs) {
     const chunkData: NewSessionChunkRow = {
       id: input.id,
@@ -403,12 +413,13 @@ export async function batchCreateSessionChunks(inputs: CreateSessionChunkInput[]
   logger.info(`Created ${inputs.length} session chunks for session ${inputs[0]?.sessionId}`);
 }
 
-export async function listSessions(options?: {
-  status?: 'active' | 'completed';
-  limit?: number;
-}): Promise<LearningSessionRow[]> {
-  const db = getSql();
-
+export async function listSessions(
+  options?: {
+    status?: 'active' | 'completed';
+    limit?: number;
+  },
+  db: SqlDb = getSql()
+): Promise<LearningSessionRow[]> {
   let query = db.select().from(learningSessions);
 
   if (options?.status) {
@@ -437,13 +448,12 @@ export async function getHistoricalFeedbackForChunks(
   options?: {
     limit?: number;
     excludeSessionId?: string; // Exclude current session from results
-  }
+  },
+  db: SqlDb = getSql()
 ): Promise<HistoricalFeedback[]> {
   if (!chunkIds || chunkIds.length === 0) {
     return [];
   }
-
-  const db = getSql();
 
   try {
     // Find completed sessions that have feedback and involved any of the specified chunks
