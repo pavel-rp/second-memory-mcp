@@ -67,8 +67,6 @@ export const sessionChunks = sqliteTable('session_chunks', {
   updatedAt: integer('updated_at', { mode: 'number' }).notNull(), // epoch ms
 });
 
-// Legacy tables (to be removed in migration)
-
 // Types
 export type LearningTopicRow = InferSelectModel<typeof learningTopics>;
 export type NewLearningTopicRow = InferInsertModel<typeof learningTopics>;
