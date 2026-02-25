@@ -126,7 +126,7 @@ export async function createSession(
   db: SqlDb = getSql()
 ): Promise<void> {
   // Check for existing active session
-  const existingActive = await getActiveSession();
+  const existingActive = await getActiveSession(db);
   if (existingActive) {
     throw new Error(
       'Active session already exists. Please complete the current session before creating a new one.'
@@ -135,7 +135,7 @@ export async function createSession(
 
   // Validate chunk IDs if provided
   if (input.chunkIds && input.chunkIds.length > 0) {
-    const validation = await validateChunkIds(input.chunkIds);
+    const validation = await validateChunkIds(input.chunkIds, db);
     if (!validation.isValid) {
       const errorMessage = `Invalid chunk IDs provided: ${validation.errors.join(', ')}. Please verify the chunk IDs or use list_chunks to see available chunks.`;
       throw new Error(errorMessage);
@@ -173,7 +173,7 @@ export async function createSession(
       updatedAt: input.updatedAt,
     }));
 
-    await batchCreateSessionChunks(sessionChunkInputs);
+    await batchCreateSessionChunks(sessionChunkInputs, db);
     logger.info(`Created ${sessionChunkInputs.length} session chunks for session ${input.id}`);
   }
 }
@@ -277,12 +277,15 @@ export async function deleteSessionChunk(id: string, db: SqlDb = getSql()): Prom
 }
 
 // Utility functions for session state management
-export async function getSessionWithChunks(sessionId: string): Promise<{
+export async function getSessionWithChunks(
+  sessionId: string,
+  db: SqlDb = getSql()
+): Promise<{
   session: LearningSessionRow | null;
   chunks: SessionChunkRow[];
 }> {
-  const session = await getSessionById(sessionId);
-  const chunks = await getSessionChunks(sessionId);
+  const session = await getSessionById(sessionId, db);
+  const chunks = await getSessionChunks(sessionId, db);
   return { session, chunks };
 }
 
@@ -302,7 +305,7 @@ export async function convertSessionToSessionInput(
   },
   db: SqlDb = getSql()
 ): Promise<SessionInput | null> {
-  const { session, chunks } = await getSessionWithChunks(sessionId);
+  const { session, chunks } = await getSessionWithChunks(sessionId, db);
 
   if (!session) {
     return null;
@@ -369,10 +372,14 @@ export async function convertSessionToSessionInput(
   // Fetch historical feedback for review/retrieval sessions if requested
   let historicalFeedback: HistoricalFeedback[] | undefined;
   if (options?.includeHistoricalFeedback && chunkIds.length > 0) {
-    historicalFeedback = await getHistoricalFeedbackForChunks(chunkIds, {
-      limit: options.historicalFeedbackLimit ?? 5,
-      excludeSessionId: sessionId,
-    });
+    historicalFeedback = await getHistoricalFeedbackForChunks(
+      chunkIds,
+      {
+        limit: options.historicalFeedbackLimit ?? 5,
+        excludeSessionId: sessionId,
+      },
+      db
+    );
     // Only include if there's actual feedback
     if (historicalFeedback.length === 0) {
       historicalFeedback = undefined;

@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, withTx, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/operations.js';
+import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
@@ -431,7 +431,7 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
         : dependentIds;
     const dependentRowMap = new Map(dependentRows.map(row => [row.id, row]));
 
-    const dependencyUpdates = withTx<ChunkDependencyCleanup[]>(tx => {
+    const dependencyUpdates = db.transaction<ChunkDependencyCleanup[]>(tx => {
       const updates: ChunkDependencyCleanup[] = [];
       const now = Date.now();
 

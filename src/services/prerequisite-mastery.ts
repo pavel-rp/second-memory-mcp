@@ -27,10 +27,10 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID to check mastery for
    * @returns Detailed mastery status with metrics
    */
-  async checkItemMastery(itemId: string): Promise<MasteryStatus> {
+  async checkItemMastery(itemId: string, db: SqlDb = getSql()): Promise<MasteryStatus> {
     try {
       // Get chunk data from database
-      const chunk = await this.getChunkData(itemId);
+      const chunk = await this.getChunkData(itemId, db);
       if (!chunk) {
         return {
           itemId,
@@ -72,12 +72,15 @@ export class PrerequisiteMasteryService {
    * @param itemIds Array of chunk IDs to check
    * @returns Map of item ID to mastery status
    */
-  async checkMultipleItemsMastery(itemIds: string[]): Promise<Map<string, MasteryStatus>> {
+  async checkMultipleItemsMastery(
+    itemIds: string[],
+    db: SqlDb = getSql()
+  ): Promise<Map<string, MasteryStatus>> {
     const results = new Map<string, MasteryStatus>();
 
     // Process items in parallel for better performance
     const masteryPromises = itemIds.map(async itemId => {
-      const mastery = await this.checkItemMastery(itemId);
+      const mastery = await this.checkItemMastery(itemId, db);
       return [itemId, mastery] as [string, MasteryStatus];
     });
 
@@ -207,7 +210,10 @@ export class PrerequisiteMasteryService {
    * @param itemId Chunk ID
    * @returns Detailed mastery breakdown
    */
-  async getMasteryBreakdown(itemId: string): Promise<{
+  async getMasteryBreakdown(
+    itemId: string,
+    db: SqlDb = getSql()
+  ): Promise<{
     itemId: string;
     metrics: {
       averageQuality: number;
@@ -224,7 +230,7 @@ export class PrerequisiteMasteryService {
     };
     isMastered: boolean;
   }> {
-    const chunk = await this.getChunkData(itemId);
+    const chunk = await this.getChunkData(itemId, db);
 
     if (!chunk) {
       const defaultMetrics = {
