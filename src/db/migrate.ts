@@ -14,13 +14,25 @@ import {
   NewSessionChunkRow,
 } from './schema.js';
 
-function checkColumnExists(
-  db: { prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> } },
-  tableName: string,
-  columnName: string
-): boolean {
+type MigrationDb = {
+  prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> };
+  exec(sql: string): void;
+};
+
+function checkColumnExists(db: MigrationDb, tableName: string, columnName: string): boolean {
   const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
   return result.some(col => col.name === columnName);
+}
+
+function addColumnIfMissing(
+  db: MigrationDb,
+  table: string,
+  column: string,
+  definition: string
+): void {
+  if (checkColumnExists(db, table, column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  logger.info(`Added ${column} column to ${table} table`);
 }
 
 /**
@@ -104,51 +116,14 @@ function createCoreTables(db: DbHandle): void {
 	`);
 }
 
-function addColumnIfMissing(db: DbHandle, table: string, column: string, ddl: string): void {
-  if (!checkColumnExists(db, table, column)) {
-    db.exec(ddl);
-    logger.info(`Added ${column} column to ${table} table`);
-  }
-}
-
 function migrateContentFields(db: DbHandle): void {
   try {
-    addColumnIfMissing(
-      db,
-      'learning_topics',
-      'summary',
-      'ALTER TABLE learning_topics ADD COLUMN summary TEXT'
-    );
-    addColumnIfMissing(
-      db,
-      'learning_topics',
-      'summary_version',
-      'ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1'
-    );
-    addColumnIfMissing(
-      db,
-      'learning_topics',
-      'summary_updated_at',
-      'ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER'
-    );
-    addColumnIfMissing(
-      db,
-      'learning_chunks',
-      'content',
-      'ALTER TABLE learning_chunks ADD COLUMN content TEXT'
-    );
-    addColumnIfMissing(
-      db,
-      'learning_chunks',
-      'content_version',
-      'ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1'
-    );
-    addColumnIfMissing(
-      db,
-      'learning_chunks',
-      'content_updated_at',
-      'ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER'
-    );
+    addColumnIfMissing(db, 'learning_topics', 'summary', 'TEXT');
+    addColumnIfMissing(db, 'learning_topics', 'summary_version', 'INTEGER DEFAULT 1');
+    addColumnIfMissing(db, 'learning_topics', 'summary_updated_at', 'INTEGER');
+    addColumnIfMissing(db, 'learning_chunks', 'content', 'TEXT');
+    addColumnIfMissing(db, 'learning_chunks', 'content_version', 'INTEGER DEFAULT 1');
+    addColumnIfMissing(db, 'learning_chunks', 'content_updated_at', 'INTEGER');
   } catch (error) {
     logger.error('Content fields migration failed:', error);
     throw new Error(
@@ -159,12 +134,7 @@ function migrateContentFields(db: DbHandle): void {
 
 function migrateIntervalDays(db: DbHandle): void {
   try {
-    addColumnIfMissing(
-      db,
-      'learning_chunks',
-      'interval_days',
-      'ALTER TABLE learning_chunks ADD COLUMN interval_days INTEGER'
-    );
+    addColumnIfMissing(db, 'learning_chunks', 'interval_days', 'INTEGER');
   } catch (error) {
     logger.error('interval_days migration failed:', error);
     throw new Error(

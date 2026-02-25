@@ -34,7 +34,7 @@ export async function processReviewResult(
     consecutiveFailures: options.consecutiveFailures || 0,
   });
 
-  // Update chunk with new SM-2 values (single source of truth — no separate review_schedule table)
+  // Update chunk with new SM-2 values
   const now = Date.now();
   const updateData = {
     easeFactor: sm2Result.easeFactor,

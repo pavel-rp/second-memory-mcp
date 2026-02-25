@@ -413,8 +413,8 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
     const dependentRowMap = new Map(dependentRows.map(row => [row.id, row]));
 
     const dependencyUpdates = db.transaction<ChunkDependencyCleanup[]>(tx => {
-      const updates: ChunkDependencyCleanup[] = [];
       const now = Date.now();
+      const updates: ChunkDependencyCleanup[] = [];
 
       for (const dependentId of orderedDependentIds) {
         const candidate = dependentRowMap.get(dependentId);
