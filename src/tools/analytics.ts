@@ -6,35 +6,6 @@ import type {
   AnalyticsOutput,
 } from '../types/analytics.js';
 
-type StatsBucket = { reviews: number; qualities: number[] };
-
-function accumulateStat(statsMap: Map<string, StatsBucket>, key: string, quality: number): void {
-  const existing = statsMap.get(key);
-  if (existing) {
-    existing.reviews++;
-    existing.qualities.push(quality);
-  } else {
-    statsMap.set(key, { reviews: 1, qualities: [quality] });
-  }
-}
-
-function statsToBreakdown(
-  statsMap: Map<string, StatsBucket>
-): Record<string, { reviews_completed: number; average_quality: number }> {
-  const result: Record<string, { reviews_completed: number; average_quality: number }> = {};
-  for (const [key, stats] of statsMap) {
-    const avgQuality =
-      stats.qualities.length > 0
-        ? stats.qualities.reduce((sum, q) => sum + q, 0) / stats.qualities.length
-        : 0;
-    result[key] = {
-      reviews_completed: stats.reviews,
-      average_quality: Math.round(avgQuality * 100) / 100,
-    };
-  }
-  return result;
-}
-
 // Helper function to clamp quality values to valid range
 function clampQuality(quality: number): number {
   if (!Number.isFinite(quality)) return 0;
@@ -160,6 +131,49 @@ export function computeDailyKpis(entries: ReviewEntry[]): DailyKpis {
   };
 }
 
+// Aggregate review stats grouped by a key extractor
+function aggregateReviewStats(
+  entries: ReviewEntry[],
+  keyExtractor: (entry: ReviewEntry) => string[]
+): Record<string, { reviews_completed: number; average_quality: number }> {
+  const stats = new Map<string, { reviews: number; qualities: number[] }>();
+  for (const entry of entries) {
+    for (const key of keyExtractor(entry)) {
+      const bucket = stats.get(key) ?? { reviews: 0, qualities: [] };
+      bucket.reviews++;
+      bucket.qualities.push(entry.quality || 0);
+      if (!stats.has(key)) stats.set(key, bucket);
+    }
+  }
+
+  const result: Record<string, { reviews_completed: number; average_quality: number }> = {};
+  for (const [key, stat] of stats) {
+    const avgQuality =
+      stat.qualities.length > 0
+        ? stat.qualities.reduce((sum, q) => sum + q, 0) / stat.qualities.length
+        : 0;
+    result[key] = {
+      reviews_completed: stat.reviews,
+      average_quality: Math.round(avgQuality * 100) / 100,
+    };
+  }
+  return result;
+}
+
+function computeBreakdowns(
+  entries: ReviewEntry[]
+): NonNullable<AnalyticsOutput['breakdowns']> | undefined {
+  const breakdowns: NonNullable<AnalyticsOutput['breakdowns']> = {};
+
+  const by_topic = aggregateReviewStats(entries, entry => (entry.topic ? [entry.topic] : []));
+  const by_tag = aggregateReviewStats(entries, entry => entry.tags || []);
+
+  if (Object.keys(by_topic).length > 0) breakdowns.by_topic = by_topic;
+  if (Object.keys(by_tag).length > 0) breakdowns.by_tag = by_tag;
+
+  return Object.keys(breakdowns).length > 0 ? breakdowns : undefined;
+}
+
 /**
  * Compute analytics for a window of dates with optional breakdowns
  */
@@ -174,37 +188,26 @@ export function computeWindowRollup(
   if (dateRange.length === 0) {
     return {
       days: [],
-      total: {
-        reviews_completed: 0,
-        average_quality: 0,
-        new_chunks_learned: 0,
-        streak_days: 0,
-      },
+      total: { reviews_completed: 0, average_quality: 0, new_chunks_learned: 0, streak_days: 0 },
     };
   }
 
-  // Group entries by date
   const entriesByDate = groupEntriesByDate(cleanedEntries);
 
-  // Calculate daily KPIs for each date in the window
   const dailyKpis: DailyKpis[] = dateRange.map(date => {
     const dayEntries = entriesByDate.get(date) || [];
     const kpis = computeDailyKpis(dayEntries);
     return { ...kpis, date };
   });
 
-  // Calculate streak for each day
   for (let i = 0; i < dailyKpis.length; i++) {
-    const dayKpis = dailyKpis.slice(0, i + 1);
-    dailyKpis[i].streak_days = calculateStreak(dayKpis);
+    dailyKpis[i].streak_days = calculateStreak(dailyKpis.slice(0, i + 1));
   }
 
-  // Calculate totals
   const totalReviews = dailyKpis.reduce((sum, day) => sum + day.reviews_completed, 0);
   const totalNewChunks = dailyKpis.reduce((sum, day) => sum + day.new_chunks_learned, 0);
   const totalStreak = dailyKpis.length > 0 ? dailyKpis[dailyKpis.length - 1].streak_days || 0 : 0;
 
-  // Calculate overall average quality
   const allQualityValues = cleanedEntries.map(entry => entry.quality || 0);
   const overallAverageQuality =
     allQualityValues.length > 0
@@ -221,40 +224,9 @@ export function computeWindowRollup(
     },
   };
 
-  // Add breakdowns if requested
   if (options.includeBreakdowns) {
-    const breakdowns: NonNullable<AnalyticsOutput['breakdowns']> = {};
-
-    // Topic breakdown
-    const topicStats = new Map<string, StatsBucket>();
-    for (const entry of cleanedEntries) {
-      if (entry.topic) {
-        accumulateStat(topicStats, entry.topic, entry.quality || 0);
-      }
-    }
-
-    // Tag breakdown
-    const tagStats = new Map<string, StatsBucket>();
-    for (const entry of cleanedEntries) {
-      for (const tag of entry.tags || []) {
-        accumulateStat(tagStats, tag, entry.quality || 0);
-      }
-    }
-
-    const by_topic = statsToBreakdown(topicStats);
-    const by_tag = statsToBreakdown(tagStats);
-
-    if (Object.keys(by_topic).length > 0) {
-      breakdowns.by_topic = by_topic;
-    }
-
-    if (Object.keys(by_tag).length > 0) {
-      breakdowns.by_tag = by_tag;
-    }
-
-    if (Object.keys(breakdowns).length > 0) {
-      result.breakdowns = breakdowns;
-    }
+    const breakdowns = computeBreakdowns(cleanedEntries);
+    if (breakdowns) result.breakdowns = breakdowns;
   }
 
   return result;

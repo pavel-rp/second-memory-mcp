@@ -143,24 +143,19 @@ function toChunkResult(row: ChunkRow, query: NormalizedQuery): SearchResultItem 
   };
 }
 
-export async function searchLearningContent(
-  input: SearchLearningContentInput,
-  db: SqlDb = getSql()
-): Promise<SearchResultSet> {
-  const limit = Math.min(Math.max(input.limit ?? 10, 1), 50);
-  const fetchLimit = Math.max(limit * FETCH_MULTIPLIER, limit);
-  const normalizedQuery = normalizeSearchQuery(input.query);
+function fetchTopics(
+  db: SqlDb,
+  query: NormalizedQuery,
+  subject: string | undefined,
+  fetchLimit: number
+): TopicRow[] {
+  const tokenCondition = combineTokenConditions(
+    buildTokenConditions(learningTopics.title, query.tokens)
+  );
+  const conditions: SQL[] = tokenCondition ? [tokenCondition] : [];
+  if (subject) conditions.push(eq(learningTopics.subject, subject));
 
-  const topicTokenConditions = buildTokenConditions(learningTopics.title, normalizedQuery.tokens);
-  const tokenCondition = combineTokenConditions(topicTokenConditions);
-  const topicConditions: SQL[] = tokenCondition ? [tokenCondition] : [];
-  if (input.subject) {
-    topicConditions.push(eq(learningTopics.subject, input.subject));
-  }
-
-  const topicCondition = combineConditions(topicConditions);
-
-  const topicQuery = db
+  const baseQuery = db
     .select({
       id: learningTopics.id,
       title: learningTopics.title,
@@ -170,20 +165,25 @@ export async function searchLearningContent(
     })
     .from(learningTopics);
 
-  const topics: TopicRow[] = topicCondition
-    ? topicQuery.where(topicCondition).limit(fetchLimit).all()
-    : topicQuery.limit(fetchLimit).all();
+  const combined = combineConditions(conditions);
+  return combined
+    ? baseQuery.where(combined).limit(fetchLimit).all()
+    : baseQuery.limit(fetchLimit).all();
+}
 
-  const chunkTokenConditions = buildTokenConditions(learningChunks.title, normalizedQuery.tokens);
-  const chunkTokenCondition = combineTokenConditions(chunkTokenConditions);
-  const chunkConditions: SQL[] = chunkTokenCondition ? [chunkTokenCondition] : [];
-  if (input.subject) {
-    chunkConditions.push(eq(learningChunks.subject, input.subject));
-  }
+function fetchChunks(
+  db: SqlDb,
+  query: NormalizedQuery,
+  subject: string | undefined,
+  fetchLimit: number
+): ChunkRow[] {
+  const tokenCondition = combineTokenConditions(
+    buildTokenConditions(learningChunks.title, query.tokens)
+  );
+  const conditions: SQL[] = tokenCondition ? [tokenCondition] : [];
+  if (subject) conditions.push(eq(learningChunks.subject, subject));
 
-  const chunkCondition = combineConditions(chunkConditions);
-
-  const chunkQuery = db
+  const baseQuery = db
     .select({
       id: learningChunks.id,
       topicId: learningChunks.topicId,
@@ -196,35 +196,42 @@ export async function searchLearningContent(
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id));
 
-  const chunks: ChunkRow[] = chunkCondition
-    ? chunkQuery.where(chunkCondition).limit(fetchLimit).all()
-    : chunkQuery.limit(fetchLimit).all();
+  const combined = combineConditions(conditions);
+  return combined
+    ? baseQuery.where(combined).limit(fetchLimit).all()
+    : baseQuery.limit(fetchLimit).all();
+}
+
+function rankAndSlice(results: SearchResultItem[], limit: number): SearchResultItem[] {
+  return [...results]
+    .sort((a, b) => {
+      if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+      if (a.resultType === b.resultType) return a.title.localeCompare(b.title);
+      return a.resultType === 'topic' ? -1 : 1;
+    })
+    .slice(0, limit);
+}
+
+export async function searchLearningContent(
+  input: SearchLearningContentInput,
+  db: SqlDb = getSql()
+): Promise<SearchResultSet> {
+  const limit = Math.min(Math.max(input.limit ?? 10, 1), 50);
+  const fetchLimit = Math.max(limit * FETCH_MULTIPLIER, limit);
+  const normalizedQuery = normalizeSearchQuery(input.query);
+
+  const topics = fetchTopics(db, normalizedQuery, input.subject, fetchLimit);
+  const chunks = fetchChunks(db, normalizedQuery, input.subject, fetchLimit);
 
   const topicResults = topics.map(row => toTopicResult(row, normalizedQuery));
   const chunkResults = chunks.map(row => toChunkResult(row, normalizedQuery));
-
-  const allResults = [...topicResults, ...chunkResults].sort((a, b) => {
-    if (b.matchScore !== a.matchScore) {
-      return b.matchScore - a.matchScore;
-    }
-
-    if (a.resultType === b.resultType) {
-      return a.title.localeCompare(b.title);
-    }
-
-    return a.resultType === 'topic' ? -1 : 1;
-  });
-
-  const limitedResults = allResults.slice(0, limit);
+  const limitedResults = rankAndSlice([...topicResults, ...chunkResults], limit);
 
   let limitedTopicCount = 0;
   let limitedChunkCount = 0;
   for (const result of limitedResults) {
-    if (result.resultType === 'topic') {
-      limitedTopicCount += 1;
-    } else if (result.resultType === 'chunk') {
-      limitedChunkCount += 1;
-    }
+    if (result.resultType === 'topic') limitedTopicCount++;
+    else if (result.resultType === 'chunk') limitedChunkCount++;
   }
 
   return {
@@ -233,11 +240,7 @@ export async function searchLearningContent(
     tokens: normalizedQuery.tokens,
     limit,
     filters: input.subject ? { subject: input.subject } : {},
-    counts: {
-      topics: limitedTopicCount,
-      chunks: limitedChunkCount,
-      total: limitedResults.length,
-    },
+    counts: { topics: limitedTopicCount, chunks: limitedChunkCount, total: limitedResults.length },
     results: limitedResults,
   };
 }

@@ -393,11 +393,76 @@ export class RecommendationEngine {
   }
 
   /**
-   * Resolve dependencies and automatically include missing prerequisites
-   * @param recommendations Current recommendations
-   * @param allAvailableItems All learning items available (for prerequisite lookup)
-   * @returns Recommendations with prerequisites included and ordered correctly
+   * BFS traversal to discover all transitive prerequisites for selected items
    */
+  private async discoverPrerequisiteGraph(
+    selectedIds: string[],
+    itemMap: Map<string, LearningItem>
+  ): Promise<Set<string>> {
+    const queue: string[] = [...selectedIds];
+    const visited = new Set<string>();
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!currentId || visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      let item = itemMap.get(currentId);
+      if (!item) {
+        item = await this.chunkLookupFn(currentId);
+        if (!item) {
+          logger.warn(`Prerequisite chunk ${currentId} not found in database`);
+          continue;
+        }
+        itemMap.set(currentId, item);
+      }
+
+      for (const prereqId of item.prerequisites || []) {
+        if (!visited.has(prereqId)) queue.push(prereqId);
+      }
+    }
+
+    return visited;
+  }
+
+  /**
+   * Build ordered recommendations from a resolved dependency chain
+   */
+  private buildOrderedRecommendations(
+    resolvedChain: string[],
+    selectedIdSet: Set<string>,
+    recommendationMap: Map<string, LearningRecommendation>,
+    itemMap: Map<string, LearningItem>
+  ): { recommendations: LearningRecommendation[]; includedIds: string[] } {
+    let order = 1;
+    const combined: LearningRecommendation[] = [];
+    const includedIds: string[] = [];
+
+    for (const itemId of resolvedChain) {
+      if (selectedIdSet.has(itemId)) {
+        const existing = recommendationMap.get(itemId);
+        if (existing) {
+          combined.push({ ...existing, order: order++ });
+          includedIds.push(itemId);
+        }
+        continue;
+      }
+
+      const item = itemMap.get(itemId);
+      if (!item) {
+        logger.warn(`Skipped item ${itemId} from dependency chain - not available after lookup`);
+        continue;
+      }
+
+      combined.push(
+        this.createRecommendation(item, order++, 'prerequisite - required for selected items')
+      );
+      includedIds.push(itemId);
+    }
+
+    return { recommendations: combined, includedIds };
+  }
+
   private async resolveAndIncludePrerequisites(
     recommendations: LearningRecommendation[],
     allAvailableItems: LearningItem[]
@@ -411,42 +476,11 @@ export class RecommendationEngine {
       const selectedIds = recommendations.map(r => r.item.id);
       const selectedIdSet = new Set(selectedIds);
 
-      // Build a cache of learning items reachable from the selected items
       const itemMap = new Map<string, LearningItem>();
-      for (const item of allAvailableItems) {
-        itemMap.set(item.id, item);
-      }
-      for (const rec of recommendations) {
-        itemMap.set(rec.item.id, rec.item);
-      }
+      for (const item of allAvailableItems) itemMap.set(item.id, item);
+      for (const rec of recommendations) itemMap.set(rec.item.id, rec.item);
 
-      const queue: string[] = [...selectedIds];
-      const visited = new Set<string>();
-
-      while (queue.length > 0) {
-        const currentId = queue.shift();
-        if (!currentId || visited.has(currentId)) {
-          continue;
-        }
-        visited.add(currentId);
-
-        const item = itemMap.get(currentId) ?? (await this.chunkLookupFn(currentId));
-        if (!item) {
-          logger.warn(`Prerequisite chunk ${currentId} not found in database`);
-          continue;
-        }
-        if (!itemMap.has(currentId)) {
-          itemMap.set(currentId, item);
-        }
-
-        const prerequisites = item.prerequisites || [];
-        for (const prereqId of prerequisites) {
-          if (!visited.has(prereqId)) {
-            queue.push(prereqId);
-          }
-        }
-      }
-
+      const visited = await this.discoverPrerequisiteGraph(selectedIds, itemMap);
       const relevantItems = Array.from(itemMap.entries())
         .filter(([id]) => visited.has(id))
         .map(([, item]) => item);
@@ -456,9 +490,7 @@ export class RecommendationEngine {
         return recommendations;
       }
 
-      // Resolve dependencies for selected items using the expanded item graph
       const resolution = await dependencyResolver.resolveDependencies(relevantItems, selectedIds);
-
       if (!resolution.isValid) {
         logger.warn('Dependency resolution failed:', resolution.errors.join(', '));
         this.lastDependencyResolution = null;
@@ -467,44 +499,19 @@ export class RecommendationEngine {
 
       const resolvedChain = resolution.resolvedChain.filter(id => visited.has(id));
       const recommendationMap = new Map(recommendations.map(r => [r.item.id, r]));
+      const { recommendations: combined, includedIds } = this.buildOrderedRecommendations(
+        resolvedChain,
+        selectedIdSet,
+        recommendationMap,
+        itemMap
+      );
 
-      let order = 1;
-      const combinedRecommendations: LearningRecommendation[] = [];
-      const includedIds: string[] = [];
-
-      for (const itemId of resolvedChain) {
-        if (selectedIdSet.has(itemId)) {
-          const existing = recommendationMap.get(itemId);
-          if (!existing) continue;
-          combinedRecommendations.push({ ...existing, order: order++ });
-          includedIds.push(itemId);
-          continue;
-        }
-
-        const item = itemMap.get(itemId);
-        if (!item) {
-          logger.warn(
-            `Skipped item ${itemId} from dependency resolution chain - not available after lookup`
-          );
-          continue;
-        }
-
-        const prereqRecommendation = this.createRecommendation(
-          item,
-          order++,
-          'prerequisite - required for selected items'
-        );
-        combinedRecommendations.push(prereqRecommendation);
-        includedIds.push(itemId);
-      }
-
-      const addedPrerequisites = includedIds.filter(id => !selectedIdSet.has(id));
       this.lastDependencyResolution = {
-        addedPrerequisites,
-        resolvedChain: combinedRecommendations.map(rec => rec.item.id),
+        addedPrerequisites: includedIds.filter(id => !selectedIdSet.has(id)),
+        resolvedChain: combined.map(rec => rec.item.id),
       };
 
-      return combinedRecommendations;
+      return combined;
     } catch (error) {
       logger.error('Error resolving dependencies:', error);
       this.lastDependencyResolution = null;

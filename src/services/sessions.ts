@@ -1,6 +1,6 @@
 import { eq, desc, inArray } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, withTx, type SqlDb, type SqlTx } from '../db/operations.js';
+import { getSql, withTx, type SqlDb } from '../db/operations.js';
 import {
   learningSessions,
   sessionChunks,
@@ -293,7 +293,16 @@ export async function getSessionWithChunks(
   return { session, chunks };
 }
 
-function parseSessionChunkData(
+/**
+ * Convert a session chunk database row to a SessionInput chunk entry.
+ *
+ * Parses any stored JSON fields (attempts, quality scores) and enriches the
+ * chunk with metadata from the provided learning chunk map.
+ *
+ * @param chunk - The session chunk row to convert
+ * @param chunkMap - Map of learning chunk IDs to their corresponding rows
+ */
+function convertSessionChunkRow(
   chunk: SessionChunkRow,
   chunkMap: Map<string, LearningChunkRow>
 ): SessionInput['chunks'][0] {
@@ -327,11 +336,9 @@ function parseSessionChunkData(
   }
 
   const chunkDetail = chunkMap.get(chunk.chunkId);
-  const title = chunkDetail?.title || `Chunk ${chunk.chunkId}`;
-
   return {
     chunk_id: chunk.chunkId,
-    title: title,
+    title: chunkDetail?.title || `Chunk ${chunk.chunkId}`,
     status: chunk.status as 'pending' | 'in_progress' | 'completed',
     attempts,
     quality_scores: qualityScores,
@@ -356,12 +363,8 @@ export async function convertSessionToSessionInput(
   db: SqlDb = getSql()
 ): Promise<SessionInput | null> {
   const { session, chunks } = await getSessionWithChunks(sessionId, db);
+  if (!session) return null;
 
-  if (!session) {
-    return null;
-  }
-
-  // Get chunk details for titles
   const chunkIds = chunks.map(c => c.chunkId);
   let chunkDetails: LearningChunkRow[] = [];
   if (chunkIds.length > 0) {
@@ -373,27 +376,16 @@ export async function convertSessionToSessionInput(
   }
 
   const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
+  const sessionChunksData = chunks.map(chunk => convertSessionChunkRow(chunk, chunkMap));
 
-  // Convert database chunks to SessionInput format
-  const sessionChunksData: SessionInput['chunks'] = chunks.map(chunk =>
-    parseSessionChunkData(chunk, chunkMap)
-  );
-
-  // Fetch historical feedback for review/retrieval sessions if requested
   let historicalFeedback: HistoricalFeedback[] | undefined;
   if (options?.includeHistoricalFeedback && chunkIds.length > 0) {
     historicalFeedback = await getHistoricalFeedbackForChunks(
       chunkIds,
-      {
-        limit: options.historicalFeedbackLimit ?? 5,
-        excludeSessionId: sessionId,
-      },
+      { limit: options.historicalFeedbackLimit ?? 5, excludeSessionId: sessionId },
       db
     );
-    // Only include if there's actual feedback
-    if (historicalFeedback.length === 0) {
-      historicalFeedback = undefined;
-    }
+    if (historicalFeedback.length === 0) historicalFeedback = undefined;
   }
 
   return {
@@ -535,51 +527,36 @@ export async function getHistoricalFeedbackForChunks(
 }
 
 /**
- * Persist batch session chunk operations within a single transaction.
- * Handles inserting new session chunks and updating existing ones.
+ * Create and persist a new session chunk row for a single batch operation.
  */
-type OperationResult = 'created' | 'updated' | 'unchanged';
-
-function applySessionChunkOperation(
-  tx: SqlTx,
-  op: BatchOperation,
-  current: SessionChunkRow | undefined,
+function createSessionChunkFromOp(
+  tx: Parameters<Parameters<typeof withTx>[0]>[0],
   sessionId: string,
+  op: BatchOperation,
   now: number
-): { result: OperationResult; row?: SessionChunkRow } {
-  if (!current) {
-    const newId = crypto.randomUUID();
-    const insert = tx
-      .insert(sessionChunks)
-      .values({
-        id: newId,
-        sessionId,
-        chunkId: op.chunkId,
-        status: op.status || 'pending',
-        attemptsJson: op.attempts ? JSON.stringify(op.attempts) : null,
-        qualityScoresJson: op.qualityScores ? JSON.stringify(op.qualityScores) : null,
-        timeSpentMs: op.timeSpentMs || 0,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
-    if (!insert.changes) {
-      return { result: 'unchanged' };
-    }
-    const createdRow: SessionChunkRow = {
-      id: newId,
-      sessionId,
-      chunkId: op.chunkId,
-      status: op.status || 'pending',
-      attemptsJson: op.attempts ? JSON.stringify(op.attempts) : null,
-      qualityScoresJson: op.qualityScores ? JSON.stringify(op.qualityScores) : null,
-      timeSpentMs: op.timeSpentMs || 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    return { result: 'created', row: createdRow };
-  }
+): { row: SessionChunkRow; didCreate: boolean } {
+  const newId = crypto.randomUUID();
+  const row: SessionChunkRow = {
+    id: newId,
+    sessionId,
+    chunkId: op.chunkId,
+    status: op.status || 'pending',
+    attemptsJson: op.attempts ? JSON.stringify(op.attempts) : null,
+    qualityScoresJson: op.qualityScores ? JSON.stringify(op.qualityScores) : null,
+    timeSpentMs: op.timeSpentMs || 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const insert = tx.insert(sessionChunks).values(row).run();
+  return { row, didCreate: (insert.changes ?? 0) > 0 };
+}
 
+function updateSessionChunkFromOp(
+  tx: Parameters<Parameters<typeof withTx>[0]>[0],
+  current: SessionChunkRow,
+  op: BatchOperation,
+  now: number
+): 'updated' | 'unchanged' {
   const next = {
     status: op.status ?? current.status,
     attemptsJson: op.attempts ? JSON.stringify(op.attempts) : current.attemptsJson,
@@ -589,24 +566,26 @@ function applySessionChunkOperation(
     timeSpentMs: op.timeSpentMs ?? current.timeSpentMs,
   };
 
-  const isUnchanged =
+  if (
     next.status === current.status &&
     next.attemptsJson === current.attemptsJson &&
     next.qualityScoresJson === current.qualityScoresJson &&
-    next.timeSpentMs === current.timeSpentMs;
-
-  if (isUnchanged) {
-    return { result: 'unchanged' };
+    next.timeSpentMs === current.timeSpentMs
+  ) {
+    return 'unchanged';
   }
 
-  const res = tx
-    .update(sessionChunks)
+  tx.update(sessionChunks)
     .set({ ...next, updatedAt: now })
     .where(eq(sessionChunks.id, current.id))
     .run();
-  return { result: res.changes ? 'updated' : 'unchanged' };
+  return 'updated';
 }
 
+/**
+ * Persist batch session chunk operations within a single transaction.
+ * Handles inserting new session chunks and updating existing ones.
+ */
 export function persistBatchSessionChunkOperations(args: {
   sessionId: string;
   operations: BatchOperation[];
@@ -624,19 +603,19 @@ export function persistBatchSessionChunkOperations(args: {
   withTx(tx => {
     for (const op of operations) {
       const current = existingByChunkId.get(op.chunkId);
-      const { result, row } = applySessionChunkOperation(tx, op, current, sessionId, now);
-
-      if (result === 'created') {
-        created += 1;
+      if (!current) {
+        const { row, didCreate } = createSessionChunkFromOp(tx, sessionId, op, now);
+        if (didCreate) created++;
         affectedChunkIds.push(op.chunkId);
-        if (row) {
-          existingByChunkId.set(op.chunkId, row);
-        }
-      } else if (result === 'updated') {
-        updated += 1;
-        affectedChunkIds.push(op.chunkId);
+        existingByChunkId.set(op.chunkId, row);
       } else {
-        unchanged += 1;
+        const result = updateSessionChunkFromOp(tx, current, op, now);
+        if (result === 'updated') {
+          updated++;
+          affectedChunkIds.push(op.chunkId);
+        } else {
+          unchanged++;
+        }
       }
     }
   });

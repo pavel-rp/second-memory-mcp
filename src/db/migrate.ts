@@ -42,9 +42,9 @@ export async function initializeDatabase(): Promise<void> {
   ensureSchema();
 }
 
-export function ensureSchema() {
-  const db = getDb();
-  // Minimal table creation matching schema definitions
+type DbHandle = ReturnType<typeof getDb>;
+
+function createCoreTables(db: DbHandle): void {
   db.exec(`
 	CREATE TABLE IF NOT EXISTS learning_topics (
 		id TEXT PRIMARY KEY NOT NULL,
@@ -105,7 +105,7 @@ export function ensureSchema() {
 		FOREIGN KEY(session_id) REFERENCES learning_sessions(id) ON DELETE CASCADE,
 		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
 	);
-	
+
 	-- Indexes for performance
 	CREATE INDEX IF NOT EXISTS idx_learning_chunks_next_review_at ON learning_chunks(next_review_at);
 	CREATE INDEX IF NOT EXISTS idx_learning_sessions_status ON learning_sessions(status);
@@ -114,8 +114,9 @@ export function ensureSchema() {
 	CREATE INDEX IF NOT EXISTS idx_session_chunks_session_id ON session_chunks(session_id);
 	CREATE INDEX IF NOT EXISTS idx_session_chunks_status ON session_chunks(status);
 	`);
+}
 
-  // Add content fields to existing tables if they don't exist (migration for content persistence)
+function migrateContentFields(db: DbHandle): void {
   try {
     addColumnIfMissing(db, 'learning_topics', 'summary', 'TEXT');
     addColumnIfMissing(db, 'learning_topics', 'summary_version', 'INTEGER DEFAULT 1');
@@ -129,8 +130,9 @@ export function ensureSchema() {
       `Content persistence migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
 
-  // Add interval_days column to learning_chunks (consolidation from review_schedule)
+function migrateIntervalDays(db: DbHandle): void {
   try {
     addColumnIfMissing(db, 'learning_chunks', 'interval_days', 'INTEGER');
   } catch (error) {
@@ -139,8 +141,9 @@ export function ensureSchema() {
       `interval_days migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
 
-  // Remove legacy tables (migration cleanup)
+function removeLegacyTables(db: DbHandle): void {
   try {
     db.exec(`
 		DROP TABLE IF EXISTS review_schedule;
@@ -157,6 +160,14 @@ export function ensureSchema() {
       `Legacy cleanup migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+export function ensureSchema() {
+  const db = getDb();
+  createCoreTables(db);
+  migrateContentFields(db);
+  migrateIntervalDays(db);
+  removeLegacyTables(db);
 }
 
 type RawLearningChunk = Omit<NewLearningChunkRow, 'prerequisitesJson' | 'tagsJson'> & {
