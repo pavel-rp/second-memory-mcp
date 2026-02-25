@@ -1,4 +1,10 @@
-import type { LearningItem } from '../types/recommendations.js';
+import type { ChunkType, LearningItem } from '../types/recommendations.js';
+
+const CHUNK_TYPE_MULTIPLIERS: Record<ChunkType, number> = {
+  new: 1.5, // New content requires more cognitive resources
+  remediation: 1.3, // Remediation requires focused attention
+  review: 0.8, // Review is typically easier
+};
 
 /**
  * Calculate cognitive load for a single learning item
@@ -8,17 +14,7 @@ export function calculateItemCognitiveLoad(item: LearningItem): number {
   let load = item.difficulty; // Base load from difficulty (1-10)
 
   // Type-based adjustments
-  switch (item.chunkType) {
-    case 'new':
-      load *= 1.5; // New content requires more cognitive resources
-      break;
-    case 'remediation':
-      load *= 1.3; // Remediation requires focused attention
-      break;
-    case 'review':
-      load *= 0.8; // Review is typically easier
-      break;
-  }
+  load *= CHUNK_TYPE_MULTIPLIERS[item.chunkType];
 
   // Ease factor adjustment (harder items = more load)
   if (item.easeFactor < 2.0) {
