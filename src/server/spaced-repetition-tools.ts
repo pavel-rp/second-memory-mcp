@@ -42,27 +42,35 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       inputSchema: CalculateNextReviewInputShape,
     },
     async (rawInput: unknown) => {
-      const { quality, repetitions, ease_factor, interval }: CalculateNextReviewInput =
-        CalculateNextReviewInputSchema.parse(rawInput);
-      const {
-        interval: outInterval,
-        repetitions: outReps,
-        easeFactor,
-        nextReview,
-      } = calculateNextReview({
-        quality,
-        repetitions,
-        easeFactor: ease_factor,
-        interval,
-      });
+      try {
+        const { quality, repetitions, ease_factor, interval }: CalculateNextReviewInput =
+          CalculateNextReviewInputSchema.parse(rawInput);
+        const {
+          interval: outInterval,
+          repetitions: outReps,
+          easeFactor,
+          nextReview,
+        } = calculateNextReview({
+          quality,
+          repetitions,
+          easeFactor: ease_factor,
+          interval,
+        });
 
-      const result = {
-        interval: outInterval,
-        repetitions: outReps,
-        ease_factor: Number(easeFactor.toFixed(3)),
-        next_review: nextReview,
-      };
-      return toolJson(result);
+        const result = {
+          interval: outInterval,
+          repetitions: outReps,
+          ease_factor: Number(easeFactor.toFixed(3)),
+          next_review: nextReview,
+        };
+        return toolJson(result);
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to calculate next review: ${msg}`, {
+          type: 'computation',
+          message: msg,
+        });
+      }
     }
   );
 
@@ -75,19 +83,27 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       inputSchema: CalculatePriorityScoreInputShape,
     },
     async (rawInput: unknown) => {
-      const {
-        next_review_date,
-        ease_factor,
-        repetitions,
-        difficulty,
-      }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(rawInput);
-      const { priority } = calculatePriorityScore({
-        nextReviewDate: next_review_date,
-        easeFactor: ease_factor,
-        repetitions,
-        difficulty,
-      });
-      return toolJson({ priority });
+      try {
+        const {
+          next_review_date,
+          ease_factor,
+          repetitions,
+          difficulty,
+        }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(rawInput);
+        const { priority } = calculatePriorityScore({
+          nextReviewDate: next_review_date,
+          easeFactor: ease_factor,
+          repetitions,
+          difficulty,
+        });
+        return toolJson({ priority });
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to calculate priority score: ${msg}`, {
+          type: 'computation',
+          message: msg,
+        });
+      }
     }
   );
 
@@ -99,23 +115,32 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       inputSchema: CalculateNextReviewAdvancedInputShape,
     },
     async (rawInput: unknown) => {
-      const {
-        quality,
-        repetitions,
-        ease_factor,
-        interval,
-        days_overdue,
-        consecutive_failures,
-      }: CalculateNextReviewAdvancedInput = CalculateNextReviewAdvancedInputSchema.parse(rawInput);
-      const out = calculateNextReviewAdvanced({
-        quality,
-        repetitions,
-        easeFactor: ease_factor,
-        interval,
-        daysOverdue: days_overdue,
-        consecutiveFailures: consecutive_failures,
-      });
-      return toolJson(out);
+      try {
+        const {
+          quality,
+          repetitions,
+          ease_factor,
+          interval,
+          days_overdue,
+          consecutive_failures,
+        }: CalculateNextReviewAdvancedInput =
+          CalculateNextReviewAdvancedInputSchema.parse(rawInput);
+        const out = calculateNextReviewAdvanced({
+          quality,
+          repetitions,
+          easeFactor: ease_factor,
+          interval,
+          daysOverdue: days_overdue,
+          consecutiveFailures: consecutive_failures,
+        });
+        return toolJson(out);
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to calculate advanced review: ${msg}`, {
+          type: 'computation',
+          message: msg,
+        });
+      }
     }
   );
 
@@ -127,21 +152,29 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       inputSchema: RankCandidatesInputShape,
     },
     async (rawInput: unknown) => {
-      const { candidates, timeboxMinutes }: RankCandidatesInput =
-        RankCandidatesInputSchema.parse(rawInput);
-      const mapped = candidates.map(c => ({
-        id: c.id,
-        nextReviewDate: c.next_review_date,
-        easeFactor: c.ease_factor,
-        repetitions: c.repetitions,
-        difficulty: c.difficulty,
-        tags: c.tags,
-      }));
-      const out = rankCandidatesWithConstraints({
-        candidates: mapped,
-        timeboxMinutes,
-      });
-      return toolJson(out);
+      try {
+        const { candidates, timeboxMinutes }: RankCandidatesInput =
+          RankCandidatesInputSchema.parse(rawInput);
+        const mapped = candidates.map(c => ({
+          id: c.id,
+          nextReviewDate: c.next_review_date,
+          easeFactor: c.ease_factor,
+          repetitions: c.repetitions,
+          difficulty: c.difficulty,
+          tags: c.tags,
+        }));
+        const out = rankCandidatesWithConstraints({
+          candidates: mapped,
+          timeboxMinutes,
+        });
+        return toolJson(out);
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to rank candidates: ${msg}`, {
+          type: 'computation',
+          message: msg,
+        });
+      }
     }
   );
 
@@ -201,8 +234,8 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
       inputSchema: RecordReviewResultInputShape,
     },
     async (rawInput: unknown) => {
-      const input: RecordReviewResultInput = RecordReviewResultInputSchema.parse(rawInput);
       try {
+        const input: RecordReviewResultInput = RecordReviewResultInputSchema.parse(rawInput);
         const result = await processReviewResult(input.itemId, input.quality, {
           timeSpentMs: input.timeSpentMs,
           consecutiveFailures: input.consecutiveFailures,
