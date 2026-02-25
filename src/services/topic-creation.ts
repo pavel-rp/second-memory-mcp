@@ -23,25 +23,48 @@ export class TopicCreationService {
   /**
    * Create a topic with multiple chunks in a single atomic transaction
    */
+  private toTopicWithChunks(
+    topic: LearningTopicRow,
+    chunks: LearningChunkRow[],
+    description?: string
+  ): TopicWithChunks {
+    return {
+      topicId: topic.id,
+      topicTitle: topic.title,
+      topicDescription: description || '',
+      subject: topic.subject,
+      chunks: chunks.map((chunk, index) => ({
+        id: chunk.id,
+        title: chunk.title,
+        content: chunk.content || '',
+        difficulty: chunk.difficulty,
+        prerequisites: decodeJsonArray(chunk.prerequisitesJson),
+        estimatedDuration: chunk.estimatedDuration,
+        order: index + 1,
+        tags: decodeJsonArray(chunk.tagsJson),
+        chunkType: chunk.chunkType as 'new' | 'review' | 'remediation',
+      })),
+      createdAt: topic.createdAt,
+      updatedAt: topic.updatedAt,
+      topicSummary: topic.summary || undefined,
+    };
+  }
+
   async createTopicWithChunks(input: TopicCreationInput): Promise<TopicCreationResult> {
     try {
-      // Validate input
       const validationResult = this.validateInput(input);
       if (!validationResult.valid) {
-        const errorMessage = validationResult.error ?? 'Invalid topic input';
         return {
           success: false,
           error: {
             type: 'validation',
-            message: errorMessage,
+            message: validationResult.error ?? 'Invalid topic input',
             retryable: false,
           },
         };
       }
 
-      // Create topic and chunks in transaction
       const result = withTx(tx => {
-        // Create topic
         const topicId = crypto.randomUUID();
         const now = Date.now();
 
@@ -55,20 +78,18 @@ export class TopicCreationService {
           createdAt: now,
           updatedAt: now,
         };
-
         tx.insert(learningTopics).values(topic).run();
 
-        // Create chunks
         const createdChunks: LearningChunkRow[] = [];
         for (const chunkDef of input.chunks) {
           const chunk: LearningChunkRow = {
             id: chunkDef.id,
-            topicId: topicId,
+            topicId,
             title: chunkDef.title,
             subject: input.subject,
             difficulty: chunkDef.difficulty,
-            nextReviewAt: now, // Review immediately for new chunks
-            easeFactor: 2.5, // Initial ease factor
+            nextReviewAt: now,
+            easeFactor: 2.5,
             repetitions: 0,
             lastReviewedAt: null,
             estimatedDuration: chunkDef.estimatedDuration,
@@ -82,43 +103,16 @@ export class TopicCreationService {
             createdAt: now,
             updatedAt: now,
           };
-
           tx.insert(learningChunks).values(chunk).run();
           createdChunks.push(chunk);
         }
 
-        return {
-          topic,
-          chunks: createdChunks,
-        };
+        return { topic, chunks: createdChunks };
       });
-
-      // Convert to response format
-      const topicWithChunks: TopicWithChunks = {
-        topicId: result.topic.id,
-        topicTitle: result.topic.title,
-        topicDescription: input.topicDescription || '',
-        subject: result.topic.subject,
-        chunks: result.chunks.map((chunk, index) => ({
-          id: chunk.id,
-          title: chunk.title,
-          content: chunk.content || '', // Persist actual content
-          difficulty: chunk.difficulty,
-          prerequisites: decodeJsonArray(chunk.prerequisitesJson),
-          estimatedDuration: chunk.estimatedDuration,
-          order: index + 1, // Set proper order based on array index
-          tags: decodeJsonArray(chunk.tagsJson),
-          chunkType: chunk.chunkType as 'new' | 'review' | 'remediation',
-        })),
-        createdAt: result.topic.createdAt,
-        updatedAt: result.topic.updatedAt,
-        // Include persisted summary content
-        topicSummary: result.topic.summary || undefined,
-      };
 
       return {
         success: true,
-        topic: topicWithChunks,
+        topic: this.toTopicWithChunks(result.topic, result.chunks, input.topicDescription),
       };
     } catch (error) {
       logger.error('Topic creation failed:', error);

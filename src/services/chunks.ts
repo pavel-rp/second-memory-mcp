@@ -273,92 +273,67 @@ export type UpdateChunkWithProgressResetResult = {
   };
 };
 
+function buildChunkUpdateData(
+  input: UpdateChunkWithProgressResetInput,
+  currentChunk: LearningChunkRow,
+  now: number,
+  shouldReset: boolean
+): Record<string, unknown> {
+  const data: Record<string, unknown> = { updatedAt: now };
+
+  if (input.content !== undefined) {
+    data.content = input.content;
+    data.contentVersion = (currentChunk.contentVersion || 1) + 1;
+    data.contentUpdatedAt = now;
+  }
+  if (input.title !== undefined) data.title = input.title;
+  if (input.difficulty !== undefined) data.difficulty = input.difficulty;
+  if (input.estimatedDuration !== undefined) data.estimatedDuration = input.estimatedDuration;
+  if (input.prerequisites !== undefined)
+    data.prerequisitesJson = encodeJsonArray(input.prerequisites);
+  if (input.tags !== undefined) data.tagsJson = encodeJsonArray(input.tags);
+
+  if (shouldReset) {
+    data.repetitions = 0;
+    data.easeFactor = 2.5;
+    data.nextReviewAt = now;
+    data.lastReviewedAt = null;
+  }
+
+  return data;
+}
+
 export async function updateChunkWithProgressReset(
   id: string,
   input: UpdateChunkWithProgressResetInput,
   db: SqlDb = getSql()
 ): Promise<UpdateChunkWithProgressResetResult> {
   try {
-    // Get current chunk
     const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
     if (!currentChunk) {
       return {
         success: false,
-        error: {
-          type: 'not_found',
-          message: `Chunk with id "${id}" not found`,
-        },
+        error: { type: 'not_found', message: `Chunk with id "${id}" not found` },
       };
     }
 
     const now = Date.now();
     let shouldResetProgress = input.forceReset || false;
-
-    // Check if content has changed significantly using similarity algorithm
     if (input.content && currentChunk.content) {
-      // Use Levenshtein distance-based similarity to detect significant content changes
-      // This properly detects when content is replaced with different text,
-      // even if the length remains similar
       if (hasSignificantContentChange(currentChunk.content, input.content, 0.5)) {
         shouldResetProgress = true;
       }
     }
 
-    // Prepare update data
-    const updateData: Record<string, unknown> = {
-      updatedAt: now,
-    };
-
-    // Update fields
-    if (input.content !== undefined) {
-      updateData.content = input.content;
-      updateData.contentVersion = (currentChunk.contentVersion || 1) + 1;
-      updateData.contentUpdatedAt = now;
-    }
-    if (input.title !== undefined) {
-      updateData.title = input.title;
-    }
-    if (input.difficulty !== undefined) {
-      updateData.difficulty = input.difficulty;
-    }
-    if (input.estimatedDuration !== undefined) {
-      updateData.estimatedDuration = input.estimatedDuration;
-    }
-    if (input.prerequisites !== undefined) {
-      updateData.prerequisitesJson = encodeJsonArray(input.prerequisites);
-    }
-    if (input.tags !== undefined) {
-      updateData.tagsJson = encodeJsonArray(input.tags);
-    }
-
-    // Reset progress if needed
-    if (shouldResetProgress) {
-      updateData.repetitions = 0;
-      updateData.easeFactor = 2.5;
-      updateData.nextReviewAt = now;
-      updateData.lastReviewedAt = null;
-    }
-
-    // Update chunk
+    const updateData = buildChunkUpdateData(input, currentChunk, now, shouldResetProgress);
     const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
 
     if (res.changes === 0) {
-      return {
-        success: false,
-        error: {
-          type: 'database',
-          message: 'Failed to update chunk',
-        },
-      };
+      return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
     }
 
-    // Return updated chunk
     const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
-    return {
-      success: true,
-      chunk: updatedChunk || undefined,
-      progressReset: shouldResetProgress,
-    };
+    return { success: true, chunk: updatedChunk || undefined, progressReset: shouldResetProgress };
   } catch (error) {
     return {
       success: false,
@@ -389,6 +364,38 @@ export type DeleteChunkResult = {
   };
 };
 
+function findDependentChunks(id: string, db: SqlDb) {
+  return db
+    .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
+    .from(learningChunks)
+    .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+    .where(
+      sql`
+        ${learningChunks.id} != ${id}
+        AND json_type(${learningChunks.prerequisitesJson}) = 'array'
+        AND EXISTS (
+          SELECT 1 FROM json_each(${learningChunks.prerequisitesJson}) WHERE value = ${id}
+        )
+      `
+    )
+    .all();
+}
+
+type DependentRow = ReturnType<typeof findDependentChunks>[number];
+
+async function resolveDeleteOrder(
+  dependentRows: DependentRow[],
+  dependentIds: string[]
+): Promise<string[]> {
+  if (dependentIds.length === 0) return dependentIds;
+
+  const dependentItems = dependentRows.map(row => mapChunkRowToLearningItem(row));
+  const resolution = await dependencyResolver.resolveDependencies(dependentItems, dependentIds);
+  return resolution.isValid && resolution.resolvedChain.length > 0
+    ? resolution.resolvedChain.filter(chunkId => dependentIds.includes(chunkId))
+    : dependentIds;
+}
+
 export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<DeleteChunkResult> {
   try {
     const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
@@ -396,39 +403,13 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
     if (!chunkToDelete) {
       return {
         success: false,
-        error: {
-          type: 'not_found',
-          message: `Chunk with id "${id}" not found`,
-          retryable: false,
-        },
+        error: { type: 'not_found', message: `Chunk with id "${id}" not found`, retryable: false },
       };
     }
 
-    const dependentRows = db
-      .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
-      .from(learningChunks)
-      .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
-      .where(
-        sql`
-                                ${learningChunks.id} != ${id}
-                                AND json_type(${learningChunks.prerequisitesJson}) = 'array'
-                                AND EXISTS (
-                                        SELECT 1 FROM json_each(${learningChunks.prerequisitesJson}) WHERE value = ${id}
-                                )
-                        `
-      )
-      .all();
-
-    const dependentItems = dependentRows.map(row => mapChunkRowToLearningItem(row));
-    const dependentIds = dependentItems.map(item => item.id);
-    const dependencyResolution =
-      dependentIds.length > 0
-        ? await dependencyResolver.resolveDependencies(dependentItems, dependentIds)
-        : undefined;
-    const orderedDependentIds =
-      dependencyResolution?.isValid && dependencyResolution.resolvedChain.length > 0
-        ? dependencyResolution.resolvedChain.filter(chunkId => dependentIds.includes(chunkId))
-        : dependentIds;
+    const dependentRows = findDependentChunks(id, db);
+    const dependentIds = dependentRows.map(row => row.id);
+    const orderedDependentIds = await resolveDeleteOrder(dependentRows, dependentIds);
     const dependentRowMap = new Map(dependentRows.map(row => [row.id, row]));
 
     const dependencyUpdates = db.transaction<ChunkDependencyCleanup[]>(tx => {
@@ -437,34 +418,23 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
 
       for (const dependentId of orderedDependentIds) {
         const candidate = dependentRowMap.get(dependentId);
-        if (!candidate) {
-          continue;
-        }
+        if (!candidate) continue;
 
         const prerequisites = decodeJsonArray(candidate.prerequisitesJson);
-        if (prerequisites.length === 0) {
-          continue;
-        }
+        if (prerequisites.length === 0) continue;
 
         const remaining = prerequisites.filter(prereqId => prereqId !== id);
-        if (remaining.length === prerequisites.length) {
-          continue;
-        }
-
-        const removedPrerequisites = prerequisites.filter(prereqId => prereqId === id);
+        if (remaining.length === prerequisites.length) continue;
 
         tx.update(learningChunks)
-          .set({
-            prerequisitesJson: encodeJsonArray(remaining),
-            updatedAt: now,
-          })
+          .set({ prerequisitesJson: encodeJsonArray(remaining), updatedAt: now })
           .where(eq(learningChunks.id, candidate.id))
           .run();
 
         updates.push({
           chunkId: candidate.id,
           chunkTitle: candidate.title,
-          removedPrerequisites,
+          removedPrerequisites: prerequisites.filter(prereqId => prereqId === id),
           previousPrerequisites: prerequisites,
           remainingPrerequisites: remaining,
         });
@@ -480,11 +450,7 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
 
     prerequisiteReferenceValidator.clearCache();
 
-    return {
-      success: true,
-      chunk: chunkToDelete,
-      removedDependencies: dependencyUpdates,
-    };
+    return { success: true, chunk: chunkToDelete, removedDependencies: dependencyUpdates };
   } catch (error) {
     return {
       success: false,

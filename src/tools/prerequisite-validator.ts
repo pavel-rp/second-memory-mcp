@@ -110,6 +110,71 @@ export class PrerequisiteValidator {
    * @param excludeIds Optional item IDs to exclude from filtering
    * @returns Filtered results with valid items and explanation
    */
+  private filterWithoutDatabase(items: LearningItem[], excludeIds?: string[]): FilteredResult {
+    const itemsWithoutPrereqs = items.filter(
+      item =>
+        !excludeIds?.includes(item.id) && (!item.prerequisites || item.prerequisites.length === 0)
+    );
+    const filteredCount = items.length - (excludeIds?.length || 0) - itemsWithoutPrereqs.length;
+
+    return {
+      validItems: itemsWithoutPrereqs,
+      filteredItems: [],
+      rationale: `Database services unavailable. Processed ${items.length} items: ${itemsWithoutPrereqs.length} items without prerequisites included, ${filteredCount} items with prerequisites skipped for safety. Prerequisite validation will resume when database services are available.`,
+    };
+  }
+
+  private partitionByPrerequisites(
+    items: LearningItem[],
+    excludeIds?: string[]
+  ): { withPrereqs: LearningItem[]; withoutPrereqs: LearningItem[]; totalProcessed: number } {
+    const withPrereqs: LearningItem[] = [];
+    const withoutPrereqs: LearningItem[] = [];
+    let totalProcessed = 0;
+
+    for (const item of items) {
+      if (excludeIds?.includes(item.id)) continue;
+      totalProcessed++;
+      if (!item.prerequisites || item.prerequisites.length === 0) {
+        withoutPrereqs.push(item);
+      } else {
+        withPrereqs.push(item);
+      }
+    }
+    return { withPrereqs, withoutPrereqs, totalProcessed };
+  }
+
+  private async validateSingleItem(
+    item: LearningItem
+  ): Promise<{ valid: true } | { valid: false; reason: string; missingPrerequisites: string[] }> {
+    const referenceValidation = this.referenceValidator.validateChunkPrerequisites(
+      item.id,
+      item.prerequisites || []
+    );
+
+    if (!referenceValidation.isValid) {
+      return {
+        valid: false,
+        reason: `Invalid prerequisite references: ${referenceValidation.invalidReferences.join(', ')}`,
+        missingPrerequisites: referenceValidation.invalidReferences,
+      };
+    }
+
+    const validation = await this.withTimeout(
+      this.validatePrerequisites(item.id, item.prerequisites || []),
+      this.VALIDATION_TIMEOUT
+    );
+
+    if (validation.isValid) return { valid: true };
+
+    const reason =
+      validation.missingPrerequisites.length === 1
+        ? `Prerequisite "${validation.missingPrerequisites[0]}" not yet mastered`
+        : `${validation.missingPrerequisites.length} prerequisites not yet mastered: ${validation.missingPrerequisites.slice(0, 3).join(', ')}${validation.missingPrerequisites.length > 3 ? '...' : ''}`;
+
+    return { valid: false, reason, missingPrerequisites: validation.missingPrerequisites };
+  }
+
   async filterByPrerequisites(
     items: LearningItem[],
     excludeIds?: string[]
@@ -122,100 +187,37 @@ export class PrerequisiteValidator {
       };
     }
 
-    // Check database availability first
     const databaseAvailable = await this.checkDatabaseAvailability();
-
     if (!databaseAvailable) {
-      // Fallback: only filter items without prerequisites, allow all others through
-      const itemsWithoutPrereqs = items.filter(
-        item =>
-          !excludeIds?.includes(item.id) && (!item.prerequisites || item.prerequisites.length === 0)
-      );
-
-      const filteredCount = items.length - (excludeIds?.length || 0) - itemsWithoutPrereqs.length;
-
-      return {
-        validItems: itemsWithoutPrereqs,
-        filteredItems: [],
-        rationale: `Database services unavailable. Processed ${items.length} items: ${itemsWithoutPrereqs.length} items without prerequisites included, ${filteredCount} items with prerequisites skipped for safety. Prerequisite validation will resume when database services are available.`,
-      };
+      return this.filterWithoutDatabase(items, excludeIds);
     }
 
-    const validItems: LearningItem[] = [];
+    const { withPrereqs, withoutPrereqs, totalProcessed } = this.partitionByPrerequisites(
+      items,
+      excludeIds
+    );
+    const validItems: LearningItem[] = [...withoutPrereqs];
     const filteredItems: Array<{
       item: LearningItem;
       reason: string;
       missingPrerequisites: string[];
     }> = [];
-
-    let totalProcessed = 0;
     let totalFiltered = 0;
 
-    // Performance optimization: batch items by prerequisite patterns
-    const itemsWithoutPrereqs: LearningItem[] = [];
-    const itemsWithPrereqs: LearningItem[] = [];
-
-    for (const item of items) {
-      // Skip excluded items
-      if (excludeIds?.includes(item.id)) {
-        continue;
-      }
-
-      totalProcessed++;
-
-      // Separate items by prerequisite presence for batch processing
-      if (!item.prerequisites || item.prerequisites.length === 0) {
-        itemsWithoutPrereqs.push(item);
-      } else {
-        itemsWithPrereqs.push(item);
-      }
-    }
-
-    // Add all items without prerequisites directly to valid items
-    validItems.push(...itemsWithoutPrereqs);
-
-    // Process items with prerequisites for validation
-    for (const item of itemsWithPrereqs) {
+    for (const item of withPrereqs) {
       try {
-        // Validate prerequisite references first with timeout
-        const referenceValidation = this.referenceValidator.validateChunkPrerequisites(
-          item.id,
-          item.prerequisites || []
-        );
-
-        if (!referenceValidation.isValid) {
-          filteredItems.push({
-            item,
-            reason: `Invalid prerequisite references: ${referenceValidation.invalidReferences.join(', ')}`,
-            missingPrerequisites: referenceValidation.invalidReferences,
-          });
-          totalFiltered++;
-          continue;
-        }
-
-        // Validate prerequisite mastery with timeout
-        const validation = await this.withTimeout(
-          this.validatePrerequisites(item.id, item.prerequisites || []),
-          this.VALIDATION_TIMEOUT
-        );
-
-        if (validation.isValid) {
+        const result = await this.validateSingleItem(item);
+        if (result.valid) {
           validItems.push(item);
         } else {
-          const reason =
-            validation.missingPrerequisites.length === 1
-              ? `Prerequisite "${validation.missingPrerequisites[0]}" not yet mastered`
-              : `${validation.missingPrerequisites.length} prerequisites not yet mastered: ${validation.missingPrerequisites.slice(0, 3).join(', ')}${validation.missingPrerequisites.length > 3 ? '...' : ''}`;
-
           filteredItems.push({
             item,
-            reason,
-            missingPrerequisites: validation.missingPrerequisites,
+            reason: result.reason,
+            missingPrerequisites: result.missingPrerequisites,
           });
           totalFiltered++;
         }
       } catch (error) {
-        // Handle validation errors gracefully
         const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
         filteredItems.push({
           item,
@@ -230,14 +232,9 @@ export class PrerequisiteValidator {
       totalProcessed,
       totalFiltered,
       filteredItems,
-      itemsWithoutPrereqs.length
+      withoutPrereqs.length
     );
-
-    return {
-      validItems,
-      filteredItems,
-      rationale,
-    };
+    return { validItems, filteredItems, rationale };
   }
 
   /**

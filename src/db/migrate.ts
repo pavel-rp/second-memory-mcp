@@ -30,9 +30,9 @@ export async function initializeDatabase(): Promise<void> {
   ensureSchema();
 }
 
-export function ensureSchema() {
-  const db = getDb();
-  // Minimal table creation matching schema definitions
+type DbHandle = ReturnType<typeof getDb>;
+
+function createCoreTables(db: DbHandle): void {
   db.exec(`
 	CREATE TABLE IF NOT EXISTS learning_topics (
 		id TEXT PRIMARY KEY NOT NULL,
@@ -93,7 +93,7 @@ export function ensureSchema() {
 		FOREIGN KEY(session_id) REFERENCES learning_sessions(id) ON DELETE CASCADE,
 		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
 	);
-	
+
 	-- Indexes for performance
 	CREATE INDEX IF NOT EXISTS idx_learning_chunks_next_review_at ON learning_chunks(next_review_at);
 	CREATE INDEX IF NOT EXISTS idx_learning_sessions_status ON learning_sessions(status);
@@ -102,57 +102,78 @@ export function ensureSchema() {
 	CREATE INDEX IF NOT EXISTS idx_session_chunks_session_id ON session_chunks(session_id);
 	CREATE INDEX IF NOT EXISTS idx_session_chunks_status ON session_chunks(status);
 	`);
+}
 
-  // Add content fields to existing tables if they don't exist (migration for content persistence)
+function addColumnIfMissing(db: DbHandle, table: string, column: string, ddl: string): void {
+  if (!checkColumnExists(db, table, column)) {
+    db.exec(ddl);
+    logger.info(`Added ${column} column to ${table} table`);
+  }
+}
+
+function migrateContentFields(db: DbHandle): void {
   try {
-    // Add content fields to learning_topics
-    if (!checkColumnExists(db, 'learning_topics', 'summary')) {
-      db.exec('ALTER TABLE learning_topics ADD COLUMN summary TEXT');
-      logger.info('Added summary column to learning_topics table');
-    }
-    if (!checkColumnExists(db, 'learning_topics', 'summary_version')) {
-      db.exec('ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1');
-      logger.info('Added summary_version column to learning_topics table');
-    }
-    if (!checkColumnExists(db, 'learning_topics', 'summary_updated_at')) {
-      db.exec('ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER');
-      logger.info('Added summary_updated_at column to learning_topics table');
-    }
-
-    // Add content fields to learning_chunks
-    if (!checkColumnExists(db, 'learning_chunks', 'content')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN content TEXT');
-      logger.info('Added content column to learning_chunks table');
-    }
-    if (!checkColumnExists(db, 'learning_chunks', 'content_version')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1');
-      logger.info('Added content_version column to learning_chunks table');
-    }
-    if (!checkColumnExists(db, 'learning_chunks', 'content_updated_at')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER');
-      logger.info('Added content_updated_at column to learning_chunks table');
-    }
+    addColumnIfMissing(
+      db,
+      'learning_topics',
+      'summary',
+      'ALTER TABLE learning_topics ADD COLUMN summary TEXT'
+    );
+    addColumnIfMissing(
+      db,
+      'learning_topics',
+      'summary_version',
+      'ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1'
+    );
+    addColumnIfMissing(
+      db,
+      'learning_topics',
+      'summary_updated_at',
+      'ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER'
+    );
+    addColumnIfMissing(
+      db,
+      'learning_chunks',
+      'content',
+      'ALTER TABLE learning_chunks ADD COLUMN content TEXT'
+    );
+    addColumnIfMissing(
+      db,
+      'learning_chunks',
+      'content_version',
+      'ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1'
+    );
+    addColumnIfMissing(
+      db,
+      'learning_chunks',
+      'content_updated_at',
+      'ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER'
+    );
   } catch (error) {
     logger.error('Content fields migration failed:', error);
     throw new Error(
       `Content persistence migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
 
-  // Add interval_days column to learning_chunks (consolidation from review_schedule)
+function migrateIntervalDays(db: DbHandle): void {
   try {
-    if (!checkColumnExists(db, 'learning_chunks', 'interval_days')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN interval_days INTEGER');
-      logger.info('Added interval_days column to learning_chunks table');
-    }
+    addColumnIfMissing(
+      db,
+      'learning_chunks',
+      'interval_days',
+      'ALTER TABLE learning_chunks ADD COLUMN interval_days INTEGER'
+    );
   } catch (error) {
     logger.error('interval_days migration failed:', error);
     throw new Error(
       `interval_days migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
 
-  // Remove legacy tables (migration cleanup)
+function removeLegacyTables(db: DbHandle): void {
   try {
     db.exec(`
 		DROP TABLE IF EXISTS review_schedule;
@@ -169,6 +190,14 @@ export function ensureSchema() {
       `Legacy cleanup migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
+}
+
+export function ensureSchema() {
+  const db = getDb();
+  createCoreTables(db);
+  migrateContentFields(db);
+  migrateIntervalDays(db);
+  removeLegacyTables(db);
 }
 
 type RawLearningChunk = Omit<NewLearningChunkRow, 'prerequisitesJson' | 'tagsJson'> & {
