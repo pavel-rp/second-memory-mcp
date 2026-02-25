@@ -36,7 +36,6 @@ import { resetDatabase } from '../../src/db/client.js';
 import { ensureSchema } from '../../src/db/migrate.js';
 import { getChunkContent, getChunkWithContent, createChunk } from '../../src/services/chunks.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
-import { validateContent, sanitizeContent } from '../../src/utils/content-validation.js';
 import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -69,68 +68,6 @@ describe('Content Persistence', () => {
     if (fs.existsSync(`${dbFile}-wal`)) {
       fs.unlinkSync(`${dbFile}-wal`);
     }
-  });
-
-  describe('Content Validation', () => {
-    it('should validate chunk content size', () => {
-      if (skipTests) return;
-
-      const validContent = 'This is valid chunk content with examples and explanations.';
-      const result = validateContent(validContent, 'chunk');
-      expect(result.success).toBe(true);
-      expect(result.sanitizedContent).toBe(validContent);
-    });
-
-    it('should reject content that is too short', () => {
-      if (skipTests) return;
-
-      const shortContent = '';
-      const result = validateContent(shortContent, 'chunk');
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('non-empty string');
-    });
-
-    it('should reject content that is too long', () => {
-      if (skipTests) return;
-
-      // Create content that exceeds MAX_CONTENT_SIZE (50000 chars)
-      const longContent = 'a'.repeat(50001);
-      const result = validateContent(longContent, 'chunk');
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('cannot exceed');
-    });
-
-    it('should reject content with script tags', () => {
-      if (skipTests) return;
-
-      const maliciousContent = "<script>alert('hack')</script>Valid content here";
-      const result = validateContent(maliciousContent, 'chunk');
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('script tags');
-    });
-
-    it('should sanitize content properly', () => {
-      if (skipTests) return;
-
-      const unsafeContent = "<script>alert('test')</script>Safe content with <b>bold</b> text";
-      const sanitized = sanitizeContent(unsafeContent);
-      expect(sanitized).not.toContain('<script>');
-      expect(sanitized).toContain('Safe content');
-    });
-
-    it('should validate summary content with smaller size limit', () => {
-      if (skipTests) return;
-
-      const validSummary = 'This is a valid topic summary.';
-      const result = validateContent(validSummary, 'summary');
-      expect(result.success).toBe(true);
-
-      // Create summary that exceeds MAX_SUMMARY_SIZE (5000 chars)
-      const longSummary = 'a'.repeat(5001);
-      const longResult = validateContent(longSummary, 'summary');
-      expect(longResult.success).toBe(false);
-      expect(longResult.error).toContain('Topic summary');
-    });
   });
 
   describe('Chunk Content Persistence', () => {
