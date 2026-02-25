@@ -60,23 +60,18 @@ export type PromptContext = {
  * PromptPack centralizes standardized prompt strings used by the MCP server.
  */
 export class PromptPack {
+  private readonly promptHandlers: Record<PromptName, (context: PromptContext) => string> = {
+    scaffolding: context => this.getScaffoldingPrompt(context),
+    learning: context => this.getLearningPrompt(context),
+    retrieval: context => this.getRetrievalPrompt(context),
+    review: context => this.getReviewPrompt(context),
+    workflow_guidance: () => this.getWorkflowGuidancePrompt(),
+    chunk_generation: context => this.getChunkGenerationPrompt(context),
+    chunk_management: context => this.getChunkManagementPrompt(context),
+  };
+
   getPrompt(name: PromptName, context: PromptContext = {}): string {
-    switch (name) {
-      case 'scaffolding':
-        return this.getScaffoldingPrompt(context);
-      case 'learning':
-        return this.getLearningPrompt(context);
-      case 'retrieval':
-        return this.getRetrievalPrompt(context);
-      case 'review':
-        return this.getReviewPrompt(context);
-      case 'workflow_guidance':
-        return this.getWorkflowGuidancePrompt();
-      case 'chunk_generation':
-        return this.getChunkGenerationPrompt(context);
-      case 'chunk_management':
-        return this.getChunkManagementPrompt(context);
-    }
+    return this.promptHandlers[name](context);
   }
 
   private getResearchPrefix(
