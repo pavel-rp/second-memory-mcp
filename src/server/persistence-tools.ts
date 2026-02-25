@@ -107,8 +107,9 @@ export function registerPersistenceTools(server: McpServer): void {
           return toolError(
             `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
             {
-              type: 'database',
+              type: result.error?.type || 'database',
               message: result.error?.message || 'Unknown error',
+              retryable: result.error?.retryable,
             }
           );
         }
@@ -203,7 +204,7 @@ export function registerPersistenceTools(server: McpServer): void {
           return toolError(
             `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
             {
-              type: 'database',
+              type: result.error?.type || 'database',
               message: result.error?.message || 'Unknown error',
             }
           );
@@ -248,7 +249,7 @@ export function registerPersistenceTools(server: McpServer): void {
           return toolError(
             `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
             {
-              type: 'database',
+              type: result.error?.type || 'database',
               message: result.error?.message || 'Unknown error',
             }
           );
@@ -294,7 +295,7 @@ export function registerPersistenceTools(server: McpServer): void {
           });
         } else {
           return toolError(`Failed to update chunk: ${result.error?.message || 'Unknown error'}`, {
-            type: 'database',
+            type: result.error?.type || 'database',
             message: result.error?.message || 'Unknown error',
           });
         }
@@ -342,8 +343,9 @@ export function registerPersistenceTools(server: McpServer): void {
         }
 
         return toolError(result.error?.message || `Failed to delete chunk "${chunkId}"`, {
-          type: 'database',
+          type: result.error?.type || 'database',
           message: result.error?.message || `Failed to delete chunk "${chunkId}"`,
+          retryable: result.error?.retryable,
         });
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -379,7 +381,7 @@ export function registerPersistenceTools(server: McpServer): void {
           });
         } else {
           return toolError(`Failed to update topic: ${result.error?.message || 'Unknown error'}`, {
-            type: 'database',
+            type: result.error?.type || 'database',
             message: result.error?.message || 'Unknown error',
           });
         }
@@ -416,7 +418,7 @@ export function registerPersistenceTools(server: McpServer): void {
           return toolError(
             `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,
             {
-              type: 'database',
+              type: result.error?.type || 'database',
               message: result.error?.message || 'Unknown error',
             }
           );
