@@ -205,7 +205,11 @@ export async function updateSession(
   return res.changes ?? 0;
 }
 
-export async function completeSession(id: string, feedback?: string): Promise<number> {
+export async function completeSession(
+  id: string,
+  feedback?: string,
+  db: SqlDb = getSql()
+): Promise<number> {
   const now = Date.now();
   const changes: UpdateSessionInput = {
     status: 'completed',
@@ -214,7 +218,7 @@ export async function completeSession(id: string, feedback?: string): Promise<nu
     updatedAt: now,
   };
 
-  const result = await updateSession(id, changes);
+  const result = await updateSession(id, changes, db);
   if (result > 0) {
     logger.info(`Completed session ${id} with feedback: ${feedback || 'none'}`);
   }
