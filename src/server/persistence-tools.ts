@@ -14,6 +14,7 @@ import {
 } from '../services/chunk-queries.js';
 import { batchFetchTopicsMinimal } from '../services/topics.js';
 import { topicCreationService } from '../services/topic-creation.js';
+import { updateTopic, updateTopicSummary } from '../services/topic-updates.js';
 import {
   BatchFetchChunksMinimalInputSchema,
   BatchFetchChunksMinimalInputShape,
@@ -369,7 +370,7 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicInput = UpdateTopicInputSchema.parse(rawInput);
       try {
-        const result = await topicCreationService.updateTopic(input.topicId, {
+        const result = await updateTopic(input.topicId, {
           title: input.title,
         });
 
@@ -406,7 +407,7 @@ export function registerPersistenceTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicSummaryInput = UpdateTopicSummaryInputSchema.parse(rawInput);
       try {
-        const result = await topicCreationService.updateTopicSummary(input.topicId, input.summary);
+        const result = await updateTopicSummary(input.topicId, input.summary);
 
         if (result.success && result.topic) {
           return toolJson({
