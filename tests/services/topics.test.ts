@@ -101,11 +101,11 @@ function tmpDbPath() {
     const list = await listTopics();
     expect(list.length).toBe(1);
 
-    const changed = await updateTopic('t1', { title: 'Linear Algebra', updatedAt: now + 1 });
-    expect(changed).toBe(1);
+    const changeResult = await updateTopic('t1', { title: 'Linear Algebra', updatedAt: now + 1 });
+    expect(changeResult.success).toBe(true);
 
-    const removed = await deleteTopic('t1');
-    expect(removed).toBe(1);
+    const removeResult = await deleteTopic('t1');
+    expect(removeResult.success).toBe(true);
 
     const empty = await listTopics();
     expect(empty.length).toBe(0);

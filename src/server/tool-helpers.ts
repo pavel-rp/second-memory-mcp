@@ -12,6 +12,7 @@ type ErrorType =
   | 'system'
   | 'validation'
   | 'not_found'
+  | 'conflict'
   | 'generation';
 
 interface ToolErrorOptions {
