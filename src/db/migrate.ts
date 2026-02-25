@@ -14,13 +14,25 @@ import {
   NewSessionChunkRow,
 } from './schema.js';
 
-function checkColumnExists(
-  db: { prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> } },
-  tableName: string,
-  columnName: string
-): boolean {
+type MigrationDb = {
+  prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> };
+  exec(sql: string): void;
+};
+
+function checkColumnExists(db: MigrationDb, tableName: string, columnName: string): boolean {
   const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
   return result.some(col => col.name === columnName);
+}
+
+function addColumnIfMissing(
+  db: MigrationDb,
+  table: string,
+  column: string,
+  definition: string
+): void {
+  if (checkColumnExists(db, table, column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  logger.info(`Added ${column} column to ${table} table`);
 }
 
 /**
@@ -105,33 +117,12 @@ export function ensureSchema() {
 
   // Add content fields to existing tables if they don't exist (migration for content persistence)
   try {
-    // Add content fields to learning_topics
-    if (!checkColumnExists(db, 'learning_topics', 'summary')) {
-      db.exec('ALTER TABLE learning_topics ADD COLUMN summary TEXT');
-      logger.info('Added summary column to learning_topics table');
-    }
-    if (!checkColumnExists(db, 'learning_topics', 'summary_version')) {
-      db.exec('ALTER TABLE learning_topics ADD COLUMN summary_version INTEGER DEFAULT 1');
-      logger.info('Added summary_version column to learning_topics table');
-    }
-    if (!checkColumnExists(db, 'learning_topics', 'summary_updated_at')) {
-      db.exec('ALTER TABLE learning_topics ADD COLUMN summary_updated_at INTEGER');
-      logger.info('Added summary_updated_at column to learning_topics table');
-    }
-
-    // Add content fields to learning_chunks
-    if (!checkColumnExists(db, 'learning_chunks', 'content')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN content TEXT');
-      logger.info('Added content column to learning_chunks table');
-    }
-    if (!checkColumnExists(db, 'learning_chunks', 'content_version')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN content_version INTEGER DEFAULT 1');
-      logger.info('Added content_version column to learning_chunks table');
-    }
-    if (!checkColumnExists(db, 'learning_chunks', 'content_updated_at')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN content_updated_at INTEGER');
-      logger.info('Added content_updated_at column to learning_chunks table');
-    }
+    addColumnIfMissing(db, 'learning_topics', 'summary', 'TEXT');
+    addColumnIfMissing(db, 'learning_topics', 'summary_version', 'INTEGER DEFAULT 1');
+    addColumnIfMissing(db, 'learning_topics', 'summary_updated_at', 'INTEGER');
+    addColumnIfMissing(db, 'learning_chunks', 'content', 'TEXT');
+    addColumnIfMissing(db, 'learning_chunks', 'content_version', 'INTEGER DEFAULT 1');
+    addColumnIfMissing(db, 'learning_chunks', 'content_updated_at', 'INTEGER');
   } catch (error) {
     logger.error('Content fields migration failed:', error);
     throw new Error(
@@ -141,10 +132,7 @@ export function ensureSchema() {
 
   // Add interval_days column to learning_chunks (consolidation from review_schedule)
   try {
-    if (!checkColumnExists(db, 'learning_chunks', 'interval_days')) {
-      db.exec('ALTER TABLE learning_chunks ADD COLUMN interval_days INTEGER');
-      logger.info('Added interval_days column to learning_chunks table');
-    }
+    addColumnIfMissing(db, 'learning_chunks', 'interval_days', 'INTEGER');
   } catch (error) {
     logger.error('interval_days migration failed:', error);
     throw new Error(

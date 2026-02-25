@@ -6,6 +6,35 @@ import type {
   AnalyticsOutput,
 } from '../types/analytics.js';
 
+type StatsBucket = { reviews: number; qualities: number[] };
+
+function accumulateStat(statsMap: Map<string, StatsBucket>, key: string, quality: number): void {
+  const existing = statsMap.get(key);
+  if (existing) {
+    existing.reviews++;
+    existing.qualities.push(quality);
+  } else {
+    statsMap.set(key, { reviews: 1, qualities: [quality] });
+  }
+}
+
+function statsToBreakdown(
+  statsMap: Map<string, StatsBucket>
+): Record<string, { reviews_completed: number; average_quality: number }> {
+  const result: Record<string, { reviews_completed: number; average_quality: number }> = {};
+  for (const [key, stats] of statsMap) {
+    const avgQuality =
+      stats.qualities.length > 0
+        ? stats.qualities.reduce((sum, q) => sum + q, 0) / stats.qualities.length
+        : 0;
+    result[key] = {
+      reviews_completed: stats.reviews,
+      average_quality: Math.round(avgQuality * 100) / 100,
+    };
+  }
+  return result;
+}
+
 // Helper function to clamp quality values to valid range
 function clampQuality(quality: number): number {
   if (!Number.isFinite(quality)) return 0;
@@ -197,56 +226,23 @@ export function computeWindowRollup(
     const breakdowns: NonNullable<AnalyticsOutput['breakdowns']> = {};
 
     // Topic breakdown
-    const topicStats = new Map<string, { reviews: number; qualities: number[] }>();
+    const topicStats = new Map<string, StatsBucket>();
     for (const entry of cleanedEntries) {
       if (entry.topic) {
-        const stats = topicStats.get(entry.topic);
-        const bucket = stats ?? { reviews: 0, qualities: [] };
-        bucket.reviews++;
-        bucket.qualities.push(entry.quality || 0);
-        if (!stats) {
-          topicStats.set(entry.topic, bucket);
-        }
+        accumulateStat(topicStats, entry.topic, entry.quality || 0);
       }
-    }
-
-    const by_topic: Record<string, { reviews_completed: number; average_quality: number }> = {};
-    for (const [topic, stats] of topicStats) {
-      const avgQuality =
-        stats.qualities.length > 0
-          ? stats.qualities.reduce((sum, q) => sum + q, 0) / stats.qualities.length
-          : 0;
-      by_topic[topic] = {
-        reviews_completed: stats.reviews,
-        average_quality: Math.round(avgQuality * 100) / 100,
-      };
     }
 
     // Tag breakdown
-    const tagStats = new Map<string, { reviews: number; qualities: number[] }>();
+    const tagStats = new Map<string, StatsBucket>();
     for (const entry of cleanedEntries) {
       for (const tag of entry.tags || []) {
-        const stats = tagStats.get(tag);
-        const bucket = stats ?? { reviews: 0, qualities: [] };
-        bucket.reviews++;
-        bucket.qualities.push(entry.quality || 0);
-        if (!stats) {
-          tagStats.set(tag, bucket);
-        }
+        accumulateStat(tagStats, tag, entry.quality || 0);
       }
     }
 
-    const by_tag: Record<string, { reviews_completed: number; average_quality: number }> = {};
-    for (const [tag, stats] of tagStats) {
-      const avgQuality =
-        stats.qualities.length > 0
-          ? stats.qualities.reduce((sum, q) => sum + q, 0) / stats.qualities.length
-          : 0;
-      by_tag[tag] = {
-        reviews_completed: stats.reviews,
-        average_quality: Math.round(avgQuality * 100) / 100,
-      };
-    }
+    const by_topic = statsToBreakdown(topicStats);
+    const by_tag = statsToBreakdown(tagStats);
 
     if (Object.keys(by_topic).length > 0) {
       breakdowns.by_topic = by_topic;

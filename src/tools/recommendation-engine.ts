@@ -430,13 +430,12 @@ export class RecommendationEngine {
         }
         visited.add(currentId);
 
-        let item = itemMap.get(currentId);
+        const item = itemMap.get(currentId) ?? (await this.chunkLookupFn(currentId));
         if (!item) {
-          item = await this.chunkLookupFn(currentId);
-          if (!item) {
-            logger.warn(`Prerequisite chunk ${currentId} not found in database`);
-            continue;
-          }
+          logger.warn(`Prerequisite chunk ${currentId} not found in database`);
+          continue;
+        }
+        if (!itemMap.has(currentId)) {
           itemMap.set(currentId, item);
         }
 
@@ -476,13 +475,9 @@ export class RecommendationEngine {
       for (const itemId of resolvedChain) {
         if (selectedIdSet.has(itemId)) {
           const existing = recommendationMap.get(itemId);
-          if (existing) {
-            combinedRecommendations.push({
-              ...existing,
-              order: order++,
-            });
-            includedIds.push(itemId);
-          }
+          if (!existing) continue;
+          combinedRecommendations.push({ ...existing, order: order++ });
+          includedIds.push(itemId);
           continue;
         }
 
