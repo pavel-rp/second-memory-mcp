@@ -294,12 +294,13 @@ export async function getSessionWithChunks(
 }
 
 /**
- * Convert a database session to SessionInput format.
+ * Convert a session chunk database row to a SessionInput chunk entry.
  *
- * @param sessionId - The session ID to convert
- * @param options - Optional configuration
- * @param options.includeHistoricalFeedback - Include feedback from past sessions on same chunks
- * @param options.historicalFeedbackLimit - Max number of historical feedback entries (default: 5)
+ * Parses any stored JSON fields (attempts, quality scores) and enriches the
+ * chunk with metadata from the provided learning chunk map.
+ *
+ * @param chunk - The session chunk row to convert
+ * @param chunkMap - Map of learning chunk IDs to their corresponding rows
  */
 function convertSessionChunkRow(
   chunk: SessionChunkRow,
@@ -345,6 +346,14 @@ function convertSessionChunkRow(
   };
 }
 
+/**
+ * Convert a database session to SessionInput format.
+ *
+ * @param sessionId - The session ID to convert
+ * @param options - Optional configuration
+ * @param options.includeHistoricalFeedback - Include feedback from past sessions on same chunks
+ * @param options.historicalFeedbackLimit - Max number of historical feedback entries (default: 5)
+ */
 export async function convertSessionToSessionInput(
   sessionId: string,
   options?: {
@@ -518,8 +527,7 @@ export async function getHistoricalFeedbackForChunks(
 }
 
 /**
- * Persist batch session chunk operations within a single transaction.
- * Handles inserting new session chunks and updating existing ones.
+ * Create and persist a new session chunk row for a single batch operation.
  */
 function createSessionChunkFromOp(
   tx: Parameters<Parameters<typeof withTx>[0]>[0],
@@ -574,6 +582,10 @@ function updateSessionChunkFromOp(
   return 'updated';
 }
 
+/**
+ * Persist batch session chunk operations within a single transaction.
+ * Handles inserting new session chunks and updating existing ones.
+ */
 export function persistBatchSessionChunkOperations(args: {
   sessionId: string;
   operations: BatchOperation[];
