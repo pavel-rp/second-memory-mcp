@@ -61,7 +61,7 @@ export function clearAllTables(): void {
   const db = getDb();
   // Clear tables in correct order to avoid foreign key violations
   db.exec(`
-		DELETE FROM session_chunks;
+  		DELETE FROM session_chunks;
 		DELETE FROM learning_sessions;
 		DELETE FROM learning_chunks;
 		DELETE FROM learning_topics;

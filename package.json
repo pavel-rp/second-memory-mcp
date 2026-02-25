@@ -19,7 +19,7 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "test:cleanup": "node scripts/cleanup-test-files.js",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": [
