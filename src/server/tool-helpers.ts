@@ -4,7 +4,15 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 // MCP tool response helpers
 // ---------------------------------------------------------------------------
 
-type ErrorType = 'database' | 'session' | 'computation' | 'recommendation' | 'system';
+type ErrorType =
+  | 'database'
+  | 'session'
+  | 'computation'
+  | 'recommendation'
+  | 'system'
+  | 'validation'
+  | 'not_found'
+  | 'generation';
 
 interface ToolErrorOptions {
   type: ErrorType;
