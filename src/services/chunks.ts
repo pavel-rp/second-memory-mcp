@@ -1,6 +1,12 @@
 import { and, eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/operations.js';
+import {
+  getSql,
+  decodeJsonArray,
+  encodeJsonArray,
+  type SqlDb,
+  type SqlTx,
+} from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
@@ -389,6 +395,53 @@ export type DeleteChunkResult = {
   };
 };
 
+function cleanupDependentPrerequisites(
+  tx: SqlTx,
+  orderedDependentIds: string[],
+  dependentRowMap: Map<string, (typeof learningChunks)['$inferSelect']>,
+  deletedChunkId: string,
+  now: number
+): ChunkDependencyCleanup[] {
+  const updates: ChunkDependencyCleanup[] = [];
+
+  for (const dependentId of orderedDependentIds) {
+    const candidate = dependentRowMap.get(dependentId);
+    if (!candidate) {
+      continue;
+    }
+
+    const prerequisites = decodeJsonArray(candidate.prerequisitesJson);
+    if (prerequisites.length === 0) {
+      continue;
+    }
+
+    const remaining = prerequisites.filter(prereqId => prereqId !== deletedChunkId);
+    if (remaining.length === prerequisites.length) {
+      continue;
+    }
+
+    const removedPrerequisites = prerequisites.filter(prereqId => prereqId === deletedChunkId);
+
+    tx.update(learningChunks)
+      .set({
+        prerequisitesJson: encodeJsonArray(remaining),
+        updatedAt: now,
+      })
+      .where(eq(learningChunks.id, candidate.id))
+      .run();
+
+    updates.push({
+      chunkId: candidate.id,
+      chunkTitle: candidate.title,
+      removedPrerequisites,
+      previousPrerequisites: prerequisites,
+      remainingPrerequisites: remaining,
+    });
+  }
+
+  return updates;
+}
+
 export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<DeleteChunkResult> {
   try {
     const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
@@ -432,43 +485,14 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
     const dependentRowMap = new Map(dependentRows.map(row => [row.id, row]));
 
     const dependencyUpdates = db.transaction<ChunkDependencyCleanup[]>(tx => {
-      const updates: ChunkDependencyCleanup[] = [];
       const now = Date.now();
-
-      for (const dependentId of orderedDependentIds) {
-        const candidate = dependentRowMap.get(dependentId);
-        if (!candidate) {
-          continue;
-        }
-
-        const prerequisites = decodeJsonArray(candidate.prerequisitesJson);
-        if (prerequisites.length === 0) {
-          continue;
-        }
-
-        const remaining = prerequisites.filter(prereqId => prereqId !== id);
-        if (remaining.length === prerequisites.length) {
-          continue;
-        }
-
-        const removedPrerequisites = prerequisites.filter(prereqId => prereqId === id);
-
-        tx.update(learningChunks)
-          .set({
-            prerequisitesJson: encodeJsonArray(remaining),
-            updatedAt: now,
-          })
-          .where(eq(learningChunks.id, candidate.id))
-          .run();
-
-        updates.push({
-          chunkId: candidate.id,
-          chunkTitle: candidate.title,
-          removedPrerequisites,
-          previousPrerequisites: prerequisites,
-          remainingPrerequisites: remaining,
-        });
-      }
+      const updates = cleanupDependentPrerequisites(
+        tx,
+        orderedDependentIds,
+        dependentRowMap,
+        id,
+        now
+      );
 
       const deleteResult = tx.delete(learningChunks).where(eq(learningChunks.id, id)).run();
       if ((deleteResult.changes ?? 0) === 0) {
