@@ -453,6 +453,109 @@ function tmpDbPath() {
       expect(longResult.error?.field).toBe('title');
     });
 
+    it('should update subject successfully', async () => {
+      const createInput: TopicCreationInput = {
+        topicTitle: 'Test Topic',
+        subject: 'Math',
+        chunks: [
+          {
+            id: crypto.randomUUID(),
+            title: 'Test Chunk',
+            content: 'Test content',
+            difficulty: 5,
+            prerequisites: [],
+            estimatedDuration: 15,
+            order: 1,
+            tags: [],
+            chunkType: 'new',
+          },
+        ],
+      };
+
+      const createResult = await topicCreationService.createTopicWithChunks(createInput);
+      const topicId = createResult.topic!.topicId;
+
+      const updateResult = await updateTopicMetadata(topicId, {
+        subject: 'Science',
+      });
+
+      expect(updateResult.success).toBe(true);
+      expect(updateResult.topic?.subject).toBe('Science');
+    });
+
+    it('should validate subject length constraints', async () => {
+      const createInput: TopicCreationInput = {
+        topicTitle: 'Test Topic',
+        subject: 'Math',
+        chunks: [
+          {
+            id: crypto.randomUUID(),
+            title: 'Test Chunk',
+            content: 'Test content',
+            difficulty: 5,
+            prerequisites: [],
+            estimatedDuration: 15,
+            order: 1,
+            tags: [],
+            chunkType: 'new',
+          },
+        ],
+      };
+
+      const createResult = await topicCreationService.createTopicWithChunks(createInput);
+      const topicId = createResult.topic!.topicId;
+
+      // Test empty subject
+      const emptyResult = await updateTopicMetadata(topicId, {
+        subject: '',
+      });
+
+      expect(emptyResult.success).toBe(false);
+      expect(emptyResult.error?.type).toBe('validation');
+      expect(emptyResult.error?.field).toBe('subject');
+
+      // Test overly long subject
+      const longSubject = 'a'.repeat(101); // Over MAX_SUBJECT_LENGTH (100)
+      const longResult = await updateTopicMetadata(topicId, {
+        subject: longSubject,
+      });
+
+      expect(longResult.success).toBe(false);
+      expect(longResult.error?.type).toBe('validation');
+      expect(longResult.error?.field).toBe('subject');
+    });
+
+    it('should preserve subject when only title is updated', async () => {
+      const createInput: TopicCreationInput = {
+        topicTitle: 'Test Topic',
+        subject: 'Math',
+        chunks: [
+          {
+            id: crypto.randomUUID(),
+            title: 'Test Chunk',
+            content: 'Test content',
+            difficulty: 5,
+            prerequisites: [],
+            estimatedDuration: 15,
+            order: 1,
+            tags: [],
+            chunkType: 'new',
+          },
+        ],
+      };
+
+      const createResult = await topicCreationService.createTopicWithChunks(createInput);
+      const topicId = createResult.topic!.topicId;
+
+      const updateResult = await updateTopicMetadata(topicId, {
+        title: 'Updated Title Only',
+      });
+
+      expect(updateResult.success).toBe(true);
+      expect(updateResult.topic?.title).toBe('Updated Title Only');
+      expect(updateResult.topic?.subject).toBe('Math');
+    });
+
     it('should update topic summary with versioning', async () => {
       // Create a topic first
       const createInput: TopicCreationInput = {
