@@ -8,7 +8,7 @@ import type {
 } from '../types/session.js';
 import { SessionInputSchema } from '../types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
-import { clamp } from '../utils/math.js';
+import { clamp, roundTo } from '../utils/math.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string): Date {
@@ -76,10 +76,10 @@ export function calculateSessionProgress(sessionData: SessionInput): SessionProg
 
   return {
     session_id: sessionData.session_id,
-    overall_progress: Math.round(overallProgress * 100) / 100, // Round to 2 decimal places
+    overall_progress: roundTo(overallProgress, 2),
     chunks_completed: chunksCompleted,
     total_chunks: totalChunks,
-    average_quality: Math.round(averageQuality * 100) / 100, // Round to 2 decimal places
+    average_quality: roundTo(averageQuality, 2),
     time_elapsed_ms: timeElapsedMs,
     estimated_time_remaining_ms: estimatedTimeRemainingMs,
   };

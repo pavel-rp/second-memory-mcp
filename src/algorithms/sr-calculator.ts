@@ -1,4 +1,5 @@
 import { algorithmConfig, clampEaseFactor } from '../config/algorithm.js';
+import { MS_PER_DAY } from '../constants/time.js';
 import type {
   NextReviewInput,
   NextReviewOutput,
@@ -78,7 +79,10 @@ export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
   const normalizedReview = isNaN(parsedReview.getTime()) ? now : parsedReview;
   const daysUntil = Math.max(
     -365,
-    Math.min(365, Math.floor((toStartOfDay(normalizedReview).getTime() - now.getTime()) / 86400000))
+    Math.min(
+      365,
+      Math.floor((toStartOfDay(normalizedReview).getTime() - now.getTime()) / MS_PER_DAY)
+    )
   );
 
   const ease = clampEaseFactor(input.easeFactor);

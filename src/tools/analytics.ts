@@ -5,6 +5,7 @@ import type {
   DailyKpis,
   AnalyticsOutput,
 } from '../types/analytics.js';
+import { roundTo } from '../utils/math.js';
 
 // Helper function to clamp quality values to valid range
 function clampQuality(quality: number): number {
@@ -126,7 +127,7 @@ export function computeDailyKpis(entries: ReviewEntry[]): DailyKpis {
   return {
     date,
     reviews_completed,
-    average_quality: Math.round(average_quality * 100) / 100, // Round to 2 decimal places
+    average_quality: roundTo(average_quality, 2), // Round to 2 decimal places
     new_chunks_learned,
   };
 }
@@ -154,7 +155,7 @@ function aggregateReviewStats(
         : 0;
     result[key] = {
       reviews_completed: stat.reviews,
-      average_quality: Math.round(avgQuality * 100) / 100,
+      average_quality: roundTo(avgQuality, 2),
     };
   }
   return result;
@@ -218,7 +219,7 @@ export function computeWindowRollup(
     days: dailyKpis,
     total: {
       reviews_completed: totalReviews,
-      average_quality: Math.round(overallAverageQuality * 100) / 100,
+      average_quality: roundTo(overallAverageQuality, 2),
       new_chunks_learned: totalNewChunks,
       streak_days: totalStreak,
     },

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc -w",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json -w",
     "start": "node dist/src/server/main.js",
     "start:pnpm": "pnpm run build && node dist/src/server/main.js",
     "start:stdio": "node --inspect=9229 dist/src/server/main.js",
