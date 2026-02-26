@@ -17,7 +17,9 @@ export type ServiceResult<T = void> =
 /**
  * Helper to create a successful result.
  */
-export function serviceOk<T>(data: T): ServiceResult<T> {
+export function serviceOk(): ServiceResult<void>;
+export function serviceOk<T>(data: T): ServiceResult<T>;
+export function serviceOk(data?: unknown): ServiceResult<unknown> {
   return { success: true, data };
 }
 

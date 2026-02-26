@@ -17,7 +17,7 @@ export async function createTopic(
 ): Promise<ServiceResult<void>> {
   try {
     await db.insert(learningTopics).values(input).run();
-    return serviceOk(undefined);
+    return serviceOk();
   } catch (error) {
     return serviceFail({
       type: 'database',
