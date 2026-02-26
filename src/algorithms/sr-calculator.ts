@@ -188,9 +188,12 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
 
   // Apply timebox truncation if requested
   if (input.timeboxMinutes != null && input.timeboxMinutes > 0) {
-    const hasDurations = capped.some(
-      s => input.candidates.find(c => c.id === s.id)?.estimatedDuration != null
-    );
+    if (capped.length === 0) {
+      return { orderedIds: [] };
+    }
+
+    const candidateMap = new Map(input.candidates.map(c => [c.id, c]));
+    const hasDurations = capped.some(s => candidateMap.get(s.id)?.estimatedDuration != null);
 
     if (!hasDurations) {
       return {
@@ -206,8 +209,7 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
     const truncated: string[] = [];
 
     for (const s of capped) {
-      const candidate = input.candidates.find(c => c.id === s.id);
-      const duration = candidate?.estimatedDuration ?? DEFAULT_DURATION;
+      const duration = candidateMap.get(s.id)?.estimatedDuration ?? DEFAULT_DURATION;
       if (accumulated + duration > budget && truncated.length > 0) break;
       accumulated += duration;
       truncated.push(s.id);
