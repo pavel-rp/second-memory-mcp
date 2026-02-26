@@ -18,7 +18,7 @@ export async function createTopic(
   try {
     await db.insert(learningTopics).values(input).run();
     return serviceOk();
-  } catch (error) {
+  } catch {
     return serviceFail({
       type: 'database',
       message: 'Failed to create topic',
@@ -93,7 +93,7 @@ export async function updateTopic(
     }
 
     return serviceOk({ changesApplied: count });
-  } catch (error) {
+  } catch {
     return serviceFail({
       type: 'database',
       message: 'Failed to update topic',
@@ -115,7 +115,7 @@ export async function deleteTopic(
       });
     }
     return serviceOk({ deleted: true });
-  } catch (error) {
+  } catch {
     return serviceFail({
       type: 'database',
       message: 'Failed to delete topic',

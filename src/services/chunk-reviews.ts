@@ -72,7 +72,7 @@ export async function processReviewResult(
       chunk: updatedChunk,
       isLeech: sm2Result.leech || false,
     });
-  } catch (error) {
+  } catch {
     return serviceFail({
       type: 'database',
       message: 'Failed to process review result',
