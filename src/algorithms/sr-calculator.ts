@@ -203,6 +203,8 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
       };
     }
 
+    // Fallback duration (in minutes) for candidates missing estimatedDuration when
+    // at least one candidate has an explicit duration set.
     const DEFAULT_DURATION = 10;
     const budget = input.timeboxMinutes;
     let accumulated = 0;

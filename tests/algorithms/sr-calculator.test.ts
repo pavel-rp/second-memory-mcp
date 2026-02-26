@@ -176,9 +176,9 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
       ],
       timeboxMinutes: 20,
     });
-    // Should include some but not all candidates
-    expect(result.orderedIds.length).toBeLessThan(4);
-    expect(result.orderedIds.length).toBeGreaterThan(0);
+    // Should select exactly 'a' and 'b' (5 + 10 = 15 minutes) within the 20-minute timebox
+    expect(result.orderedIds.length).toBe(2);
+    expect(result.orderedIds).toEqual(['a', 'b']);
     expect(result.warning).toBeUndefined();
   });
 
