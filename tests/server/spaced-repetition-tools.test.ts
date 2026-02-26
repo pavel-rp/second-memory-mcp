@@ -86,7 +86,11 @@ describe('spaced-repetition-tools', () => {
       });
       const parsed = parseResult(result);
       expect(parsed).toHaveProperty('interval');
-      expect(parsed).toHaveProperty('easeFactor');
+      expect(parsed).toHaveProperty('ease_factor');
+      expect(parsed).toHaveProperty('next_review');
+      expect(parsed).toHaveProperty('leech');
+      expect(parsed).not.toHaveProperty('easeFactor');
+      expect(parsed).not.toHaveProperty('nextReview');
     });
   });
 
