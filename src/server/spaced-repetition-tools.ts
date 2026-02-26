@@ -177,6 +177,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           repetitions: c.repetitions,
           difficulty: c.difficulty,
           tags: c.tags,
+          estimatedDuration: c.estimated_duration,
         }));
         const out = rankCandidatesWithConstraints({
           candidates: mapped,

@@ -43,6 +43,7 @@ export type InternalRankCandidate = {
   repetitions: number;
   difficulty: number; // 1..10
   tags?: string[];
+  estimatedDuration?: number; // minutes
 };
 
 export type RankInput = {
@@ -50,4 +51,4 @@ export type RankInput = {
   timeboxMinutes?: number;
 };
 
-export type RankOutput = { orderedIds: string[] };
+export type RankOutput = { orderedIds: string[]; warning?: string };

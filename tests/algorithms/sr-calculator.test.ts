@@ -102,6 +102,150 @@ describe('rankCandidatesWithConstraints', () => {
   });
 });
 
+describe('TF-5: overdue penalty skipped for new items', () => {
+  it('does not penalize ease for repetitions=0 even with large daysOverdue', () => {
+    const result = calculateNextReviewAdvanced({
+      quality: 5,
+      repetitions: 0,
+      easeFactor: 2.5,
+      interval: 0,
+      daysOverdue: 30,
+    });
+    // New item: overdue penalty should not apply, ease should be >= 2.5
+    expect(result.easeFactor).toBeGreaterThanOrEqual(2.5);
+  });
+
+  it('still penalizes ease for repetitions>0 with daysOverdue', () => {
+    const withoutOverdue = calculateNextReviewAdvanced({
+      quality: 4,
+      repetitions: 3,
+      easeFactor: 2.5,
+      interval: 10,
+      daysOverdue: 0,
+    });
+    const withOverdue = calculateNextReviewAdvanced({
+      quality: 4,
+      repetitions: 3,
+      easeFactor: 2.5,
+      interval: 10,
+      daysOverdue: 15,
+    });
+    // Overdue penalty should reduce ease for reviewed items
+    expect(withOverdue.easeFactor).toBeLessThan(withoutOverdue.easeFactor);
+  });
+});
+
+describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  it('truncates candidates when timeboxMinutes is exceeded', () => {
+    const result = rankCandidatesWithConstraints({
+      candidates: [
+        {
+          id: 'a',
+          nextReviewDate: today,
+          easeFactor: 1.5,
+          repetitions: 0,
+          difficulty: 8,
+          estimatedDuration: 5,
+        },
+        {
+          id: 'b',
+          nextReviewDate: today,
+          easeFactor: 1.5,
+          repetitions: 0,
+          difficulty: 7,
+          estimatedDuration: 10,
+        },
+        {
+          id: 'c',
+          nextReviewDate: today,
+          easeFactor: 2.5,
+          repetitions: 5,
+          difficulty: 3,
+          estimatedDuration: 15,
+        },
+        {
+          id: 'd',
+          nextReviewDate: today,
+          easeFactor: 2.5,
+          repetitions: 5,
+          difficulty: 2,
+          estimatedDuration: 20,
+        },
+      ],
+      timeboxMinutes: 20,
+    });
+    // Should select exactly 'a' and 'b' (5 + 10 = 15 minutes) within the 20-minute timebox
+    expect(result.orderedIds.length).toBe(2);
+    expect(result.orderedIds).toEqual(['a', 'b']);
+    expect(result.warning).toBeUndefined();
+  });
+
+  it('returns warning when timeboxMinutes set but no candidates have estimatedDuration', () => {
+    const result = rankCandidatesWithConstraints({
+      candidates: [
+        { id: 'a', nextReviewDate: today, easeFactor: 2.0, repetitions: 0, difficulty: 5 },
+        { id: 'b', nextReviewDate: today, easeFactor: 2.0, repetitions: 1, difficulty: 6 },
+      ],
+      timeboxMinutes: 15,
+    });
+    expect(result.warning).toBeDefined();
+    expect(result.orderedIds.length).toBe(2);
+  });
+
+  it('returns full list when timeboxMinutes is not set', () => {
+    const result = rankCandidatesWithConstraints({
+      candidates: [
+        {
+          id: 'a',
+          nextReviewDate: today,
+          easeFactor: 2.0,
+          repetitions: 0,
+          difficulty: 5,
+          estimatedDuration: 10,
+        },
+        {
+          id: 'b',
+          nextReviewDate: today,
+          easeFactor: 2.0,
+          repetitions: 1,
+          difficulty: 6,
+          estimatedDuration: 10,
+        },
+      ],
+    });
+    expect(result.orderedIds.length).toBe(2);
+    expect(result.warning).toBeUndefined();
+  });
+
+  it('includes first candidate even when it alone exceeds timeboxMinutes', () => {
+    const result = rankCandidatesWithConstraints({
+      timeboxMinutes: 5,
+      candidates: [
+        {
+          id: 'a',
+          nextReviewDate: today,
+          easeFactor: 2.0,
+          repetitions: 0,
+          difficulty: 5,
+          estimatedDuration: 10,
+        },
+        {
+          id: 'b',
+          nextReviewDate: today,
+          easeFactor: 2.0,
+          repetitions: 1,
+          difficulty: 6,
+          estimatedDuration: 10,
+        },
+      ],
+    });
+    expect(result.orderedIds.length).toBe(1);
+    expect(result.orderedIds[0]).toBe('a');
+  });
+});
+
 // Config-driven tests to validate leech penalty clamp and thresholds
 describe('advanced leech penalty clamp (config)', () => {
   const originalEnv = { ...process.env };

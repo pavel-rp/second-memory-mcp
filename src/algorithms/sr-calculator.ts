@@ -128,7 +128,7 @@ export function calculateNextReviewAdvanced(
   const overdue = Math.max(0, Math.floor(input.daysOverdue ?? 0));
   const consecutiveFailures = Math.max(0, Math.floor(input.consecutiveFailures ?? 0));
 
-  if (overdue > 0) {
+  if (overdue > 0 && input.repetitions > 0) {
     // Apply lapse penalty to ease
     ease = clampEaseFactor(ease + algorithmConfig.lapsePenalty);
     // Pull interval closer if heavily overdue
@@ -184,6 +184,41 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
 
   // Apply daily caps (simplified: assume all are reviews)
   const maxReviews = Math.max(0, Math.floor(algorithmConfig.dailyCaps.maxReviews));
-  const orderedIds = scored.slice(0, maxReviews > 0 ? maxReviews : scored.length).map(s => s.id);
-  return { orderedIds };
+  const capped = scored.slice(0, maxReviews > 0 ? maxReviews : scored.length);
+
+  // Apply timebox truncation if requested
+  if (input.timeboxMinutes != null && input.timeboxMinutes > 0) {
+    if (capped.length === 0) {
+      return { orderedIds: [] };
+    }
+
+    const candidateMap = new Map(input.candidates.map(c => [c.id, c]));
+    const hasDurations = capped.some(s => candidateMap.get(s.id)?.estimatedDuration != null);
+
+    if (!hasDurations) {
+      return {
+        orderedIds: capped.map(s => s.id),
+        warning:
+          'timeboxMinutes was set but no candidates have estimatedDuration — timebox not applied',
+      };
+    }
+
+    // Fallback duration (in minutes) for candidates missing estimatedDuration when
+    // at least one candidate has an explicit duration set.
+    const DEFAULT_DURATION = 10;
+    const budget = input.timeboxMinutes;
+    let accumulated = 0;
+    const truncated: string[] = [];
+
+    for (const s of capped) {
+      const duration = candidateMap.get(s.id)?.estimatedDuration ?? DEFAULT_DURATION;
+      if (accumulated + duration > budget && truncated.length > 0) break;
+      accumulated += duration;
+      truncated.push(s.id);
+    }
+
+    return { orderedIds: truncated };
+  }
+
+  return { orderedIds: capped.map(s => s.id) };
 }

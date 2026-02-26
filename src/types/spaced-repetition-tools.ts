@@ -54,6 +54,13 @@ export const RankCandidateShape = {
   repetitions: z.number().int().min(0).describe('Total number of successful repetitions'),
   difficulty: z.number().int().min(1).max(10).describe('Difficulty rating (1-10)'),
   tags: z.array(z.string()).optional().describe('Optional tag metadata for the item'),
+  estimated_duration: z
+    .number()
+    .int()
+    .min(1)
+    .max(120, 'Estimated duration cannot exceed 120 minutes')
+    .optional()
+    .describe('Estimated study duration in minutes'),
 } as const;
 
 export const RankCandidateSchema = z.object(RankCandidateShape);
