@@ -67,7 +67,7 @@ export function registerTopicTools(server: McpServer): void {
     {
       title: 'Update Topic',
       description:
-        'Update topic metadata (title only). Use update_topic_summary to update topic content.',
+        'Update topic metadata (title and subject). Use update_topic_summary to update topic content.',
       inputSchema: UpdateTopicInputShape,
     },
     async (rawInput: unknown) => {
@@ -75,6 +75,7 @@ export function registerTopicTools(server: McpServer): void {
       try {
         const result = await updateTopicMetadata(input.topicId, {
           title: input.title,
+          subject: input.subject,
         });
 
         if (result.success && result.topic) {

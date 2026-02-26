@@ -90,11 +90,11 @@ async function updateTopicFields(
 }
 
 /**
- * Update topic metadata (title only)
+ * Update topic metadata (title and subject)
  */
 export async function updateTopicMetadata(
   topicId: string,
-  updates: { title?: string }
+  updates: { title?: string; subject?: string }
 ): Promise<TopicUpdateResult> {
   return updateTopicFields(topicId, () => {
     if (updates.title !== undefined) {
@@ -109,9 +109,24 @@ export async function updateTopicMetadata(
       }
     }
 
+    if (updates.subject !== undefined) {
+      if (!updates.subject || updates.subject.length > VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH) {
+        return {
+          error: {
+            type: 'validation',
+            message: `Subject must be between 1 and ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`,
+            field: 'subject',
+          },
+        };
+      }
+    }
+
     const data: Record<string, unknown> = { updatedAt: Date.now() };
     if (updates.title !== undefined) {
       data.title = updates.title;
+    }
+    if (updates.subject !== undefined) {
+      data.subject = updates.subject;
     }
     return { data };
   });

@@ -309,6 +309,15 @@ export const UpdateTopicInputShape = {
     )
     .optional()
     .describe('New title for the topic'),
+  subject: z
+    .string()
+    .min(1, 'Subject cannot be empty')
+    .max(
+      VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH,
+      `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`
+    )
+    .optional()
+    .describe('New subject for the topic'),
 } as const;
 
 export const UpdateTopicInputSchema = z.object(UpdateTopicInputShape);
