@@ -498,6 +498,16 @@ export async function getHistoricalFeedbackForChunks(
         }
       }
 
+      // Fallback: when chunkIds is null, look up session_chunks table
+      if (sessionChunkIds.length === 0) {
+        const trackedChunks = db
+          .select({ chunkId: sessionChunks.chunkId })
+          .from(sessionChunks)
+          .where(eq(sessionChunks.sessionId, session.id))
+          .all();
+        sessionChunkIds = trackedChunks.map(c => c.chunkId);
+      }
+
       // Find overlapping chunks
       const overlappingChunks = sessionChunkIds.filter(id => chunkIdSet.has(id));
 
