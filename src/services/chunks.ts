@@ -4,12 +4,20 @@ import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/oper
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
+import { extractErrorMessage } from '../utils/errors.js';
 import { prerequisiteReferenceValidator } from './chunk-prerequisites.js';
 import {
   CHUNK_COLUMNS_WITH_TOPIC,
   CHUNK_CONTENT_COLUMNS,
   mapChunkRowToLearningItem,
 } from './chunk-queries.js';
+
+export type ChunkOperationError = {
+  type: 'validation' | 'not_found' | 'database';
+  message: string;
+  field?: string;
+  retryable?: boolean;
+};
 
 export type CreateChunkInput = {
   id: string;
@@ -89,80 +97,8 @@ export type UpdateChunkContentResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   progressReset?: boolean;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
-
-export async function updateChunkContent(
-  id: string,
-  input: UpdateChunkContentInput,
-  db: SqlDb = getSql()
-): Promise<UpdateChunkContentResult> {
-  try {
-    // Get current chunk
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
-    if (!currentChunk) {
-      return {
-        success: false,
-        error: {
-          type: 'not_found',
-          message: `Chunk with id "${id}" not found`,
-        },
-      };
-    }
-
-    const now = Date.now();
-    const newVersion = (currentChunk.contentVersion || 1) + 1;
-
-    // Prepare update data
-    const updateData: Record<string, unknown> = {
-      content: input.content,
-      contentVersion: newVersion,
-      contentUpdatedAt: now,
-      updatedAt: now,
-    };
-
-    // Handle progress reset if requested
-    if (input.resetProgress) {
-      updateData.repetitions = 0;
-      updateData.easeFactor = 2.5;
-      updateData.nextReviewAt = now;
-      updateData.lastReviewedAt = null;
-    }
-
-    // Update chunk
-    const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
-
-    if (res.changes === 0) {
-      return {
-        success: false,
-        error: {
-          type: 'database',
-          message: 'Failed to update chunk content',
-        },
-      };
-    }
-
-    // Return updated chunk
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
-    return {
-      success: true,
-      chunk: updatedChunk || undefined,
-      progressReset: input.resetProgress || false,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: {
-        type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
-      },
-    };
-  }
-}
 
 export type UpdateChunkMetadataInput = {
   title?: string;
@@ -175,82 +111,8 @@ export type UpdateChunkMetadataInput = {
 export type UpdateChunkMetadataResult = {
   success: boolean;
   chunk?: LearningChunkRow;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
-
-export async function updateChunkMetadata(
-  id: string,
-  input: UpdateChunkMetadataInput,
-  db: SqlDb = getSql()
-): Promise<UpdateChunkMetadataResult> {
-  try {
-    // Check if chunk exists
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
-    if (!currentChunk) {
-      return {
-        success: false,
-        error: {
-          type: 'not_found',
-          message: `Chunk with id "${id}" not found`,
-        },
-      };
-    }
-
-    // Prepare update data
-    const updateData: Record<string, unknown> = {
-      updatedAt: Date.now(),
-    };
-
-    // Update individual fields
-    if (input.title !== undefined) {
-      updateData.title = input.title;
-    }
-    if (input.difficulty !== undefined) {
-      updateData.difficulty = input.difficulty;
-    }
-    if (input.estimatedDuration !== undefined) {
-      updateData.estimatedDuration = input.estimatedDuration;
-    }
-    if (input.prerequisites !== undefined) {
-      updateData.prerequisitesJson = encodeJsonArray(input.prerequisites);
-    }
-    if (input.tags !== undefined) {
-      updateData.tagsJson = encodeJsonArray(input.tags);
-    }
-
-    // Update chunk
-    const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
-
-    if (res.changes === 0) {
-      return {
-        success: false,
-        error: {
-          type: 'database',
-          message: 'Failed to update chunk metadata',
-        },
-      };
-    }
-
-    // Return updated chunk
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
-    return {
-      success: true,
-      chunk: updatedChunk || undefined,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: {
-        type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
-      },
-    };
-  }
-}
 
 export type UpdateChunkWithProgressResetInput = {
   content?: string;
@@ -266,6 +128,15 @@ export type UpdateChunkWithProgressResetResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   progressReset?: boolean;
+  error?: ChunkOperationError;
+};
+
+// Shared fetch-validate-update-refetch helper for all chunk update functions
+
+type ChunkUpdateResult = {
+  success: boolean;
+  chunk?: LearningChunkRow;
+  progressReset?: boolean;
   error?: {
     type: 'validation' | 'not_found' | 'database';
     message: string;
@@ -273,43 +144,19 @@ export type UpdateChunkWithProgressResetResult = {
   };
 };
 
-function buildChunkUpdateData(
-  input: UpdateChunkWithProgressResetInput,
+type BuildFieldsFn = (
   currentChunk: LearningChunkRow,
-  now: number,
-  shouldReset: boolean
-): Record<string, unknown> {
-  const data: Record<string, unknown> = { updatedAt: now };
+  now: number
+) => { fields: Record<string, unknown>; progressReset?: boolean };
 
-  if (input.content !== undefined) {
-    data.content = input.content;
-    data.contentVersion = (currentChunk.contentVersion || 1) + 1;
-    data.contentUpdatedAt = now;
-  }
-  if (input.title !== undefined) data.title = input.title;
-  if (input.difficulty !== undefined) data.difficulty = input.difficulty;
-  if (input.estimatedDuration !== undefined) data.estimatedDuration = input.estimatedDuration;
-  if (input.prerequisites !== undefined)
-    data.prerequisitesJson = encodeJsonArray(input.prerequisites);
-  if (input.tags !== undefined) data.tagsJson = encodeJsonArray(input.tags);
-
-  if (shouldReset) {
-    data.repetitions = 0;
-    data.easeFactor = 2.5;
-    data.nextReviewAt = now;
-    data.lastReviewedAt = null;
-  }
-
-  return data;
-}
-
-export async function updateChunkWithProgressReset(
+async function updateChunkFields(
   id: string,
-  input: UpdateChunkWithProgressResetInput,
-  db: SqlDb = getSql()
-): Promise<UpdateChunkWithProgressResetResult> {
+  buildFields: BuildFieldsFn,
+  errorLabel: string,
+  db: SqlDb
+): Promise<ChunkUpdateResult> {
   try {
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const currentChunk = await getChunk(id, db);
     if (!currentChunk) {
       return {
         success: false,
@@ -318,31 +165,130 @@ export async function updateChunkWithProgressReset(
     }
 
     const now = Date.now();
-    let shouldResetProgress = input.forceReset || false;
-    if (input.content && currentChunk.content) {
-      if (hasSignificantContentChange(currentChunk.content, input.content, 0.5)) {
-        shouldResetProgress = true;
-      }
-    }
+    const { fields, progressReset } = buildFields(currentChunk, now);
 
-    const updateData = buildChunkUpdateData(input, currentChunk, now, shouldResetProgress);
-    const res = db.update(learningChunks).set(updateData).where(eq(learningChunks.id, id)).run();
-
+    const res = db.update(learningChunks).set(fields).where(eq(learningChunks.id, id)).run();
     if (res.changes === 0) {
-      return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
+      return {
+        success: false,
+        error: { type: 'database', message: `Failed to update chunk ${errorLabel}` },
+      };
     }
 
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
-    return { success: true, chunk: updatedChunk || undefined, progressReset: shouldResetProgress };
+    const updatedChunk = await getChunk(id, db);
+    return {
+      success: true,
+      chunk: updatedChunk || undefined,
+      progressReset,
+    };
   } catch (error) {
     return {
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }
+}
+
+function applyProgressReset(data: Record<string, unknown>, now: number): void {
+  data.repetitions = 0;
+  data.easeFactor = 2.5;
+  data.nextReviewAt = now;
+  data.lastReviewedAt = null;
+}
+
+function applyMetadataFields(
+  data: Record<string, unknown>,
+  input: {
+    title?: string;
+    difficulty?: number;
+    estimatedDuration?: number;
+    prerequisites?: string[];
+    tags?: string[];
+  }
+): void {
+  if (input.title !== undefined) data.title = input.title;
+  if (input.difficulty !== undefined) data.difficulty = input.difficulty;
+  if (input.estimatedDuration !== undefined) data.estimatedDuration = input.estimatedDuration;
+  if (input.prerequisites !== undefined)
+    data.prerequisitesJson = encodeJsonArray(input.prerequisites);
+  if (input.tags !== undefined) data.tagsJson = encodeJsonArray(input.tags);
+}
+
+function applyContentFields(
+  data: Record<string, unknown>,
+  content: string,
+  currentChunk: LearningChunkRow,
+  now: number
+): void {
+  data.content = content;
+  data.contentVersion = (currentChunk.contentVersion || 1) + 1;
+  data.contentUpdatedAt = now;
+}
+
+export async function updateChunkContent(
+  id: string,
+  input: UpdateChunkContentInput,
+  db: SqlDb = getSql()
+): Promise<UpdateChunkContentResult> {
+  return updateChunkFields(
+    id,
+    (currentChunk, now) => {
+      const fields: Record<string, unknown> = { updatedAt: now };
+      applyContentFields(fields, input.content, currentChunk, now);
+      const progressReset = input.resetProgress || false;
+      if (progressReset) applyProgressReset(fields, now);
+      return { fields, progressReset };
+    },
+    'content',
+    db
+  );
+}
+
+export async function updateChunkMetadata(
+  id: string,
+  input: UpdateChunkMetadataInput,
+  db: SqlDb = getSql()
+): Promise<UpdateChunkMetadataResult> {
+  return updateChunkFields(
+    id,
+    (_currentChunk, now) => {
+      const fields: Record<string, unknown> = { updatedAt: now };
+      applyMetadataFields(fields, input);
+      return { fields };
+    },
+    'metadata',
+    db
+  );
+}
+
+export async function updateChunkWithProgressReset(
+  id: string,
+  input: UpdateChunkWithProgressResetInput,
+  db: SqlDb = getSql()
+): Promise<UpdateChunkWithProgressResetResult> {
+  return updateChunkFields(
+    id,
+    (currentChunk, now) => {
+      const fields: Record<string, unknown> = { updatedAt: now };
+      if (input.content !== undefined) applyContentFields(fields, input.content, currentChunk, now);
+      applyMetadataFields(fields, input);
+
+      let shouldReset = input.forceReset || false;
+      if (input.content && currentChunk.content) {
+        if (hasSignificantContentChange(currentChunk.content, input.content, 0.5)) {
+          shouldReset = true;
+        }
+      }
+      if (shouldReset) applyProgressReset(fields, now);
+
+      return { fields, progressReset: shouldReset };
+    },
+    'with progress reset',
+    db
+  );
 }
 
 export type ChunkDependencyCleanup = {
@@ -357,11 +303,7 @@ export type DeleteChunkResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   removedDependencies?: ChunkDependencyCleanup[];
-  error?: {
-    type: 'not_found' | 'database';
-    message: string;
-    retryable?: boolean;
-  };
+  error?: ChunkOperationError;
 };
 
 function findDependentChunks(id: string, db: SqlDb) {
@@ -398,7 +340,7 @@ async function resolveDeleteOrder(
 
 export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<DeleteChunkResult> {
   try {
-    const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const chunkToDelete = await getChunk(id, db);
 
     if (!chunkToDelete) {
       return {
@@ -456,7 +398,7 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
         retryable: true,
       },
     };
@@ -511,11 +453,7 @@ export async function createChunkWithTopic(
     .run();
 
   // Return the created chunk
-  const createdChunk = db
-    .select()
-    .from(learningChunks)
-    .where(eq(learningChunks.id, input.id))
-    .get();
+  const createdChunk = await getChunk(input.id, db);
   if (!createdChunk) {
     throw new Error(`Failed to create chunk with id: ${input.id}`);
   }
