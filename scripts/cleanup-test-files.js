@@ -52,11 +52,14 @@ function cleanupTestFiles() {
     }
   } catch (error) {
     console.error('Error during cleanup:', error.message);
-    process.exit(1);
+    throw error;
   }
 }
 
-// Run cleanup when script is executed directly
-cleanupTestFiles();
-
 export { cleanupTestFiles };
+
+// Run cleanup when script is executed directly
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
+  cleanupTestFiles();
+}

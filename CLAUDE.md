@@ -343,11 +343,16 @@ Backticks and special characters in `gh api` `-f body=` break on Windows bash. U
    }
    ```
 
-   Save to a temp path like `$TEMP/reply.json` (`%TEMP%` on Windows, `$TMPDIR` on macOS/Linux).
+   Save to a temp path like `$TEMP/reply.json` on Windows or `$TMPDIR/reply.json` on macOS/Linux.
 
 2. Post the reply using `--input`:
+
    ```bash
+   # Windows (Git Bash)
    gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies --input "$TEMP/reply.json"
+
+   # macOS/Linux
+   gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies --input "$TMPDIR/reply.json"
    ```
 
 To delete a malformed comment:
