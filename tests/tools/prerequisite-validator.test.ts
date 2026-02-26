@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
 import { prerequisiteReferenceValidator } from '../../src/services/chunk-prerequisites.js';
 import { prerequisiteMasteryService } from '../../src/services/prerequisite-mastery.js';
@@ -25,15 +25,11 @@ describe('PrerequisiteValidator', () => {
   const mockMasteryService = vi.mocked(prerequisiteMasteryService);
 
   beforeEach(() => {
+    vi.resetAllMocks();
     validator = new PrerequisiteValidator({
       referenceValidator: mockReferenceValidator,
       masteryService: mockMasteryService,
     });
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
   });
 
   // Helper function to create test learning items
@@ -311,6 +307,10 @@ describe('PrerequisiteValidator', () => {
 });
 
 describe('PrerequisiteValidator Integration', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
   it('should work with realistic learning scenarios', async () => {
     // Mock realistic scenario
     const mockRefValidator = vi.mocked(prerequisiteReferenceValidator);
