@@ -31,7 +31,12 @@ export type AdvancedNextReviewOutput = NextReviewOutput & {
   leech?: boolean;
 };
 
-export type RankCandidate = {
+/**
+ * Internal camelCase representation of a rank candidate.
+ * The canonical Zod schema (snake_case) lives in spaced-repetition-tools.ts;
+ * conversion from snake_case to camelCase happens in the server tool layer.
+ */
+export type InternalRankCandidate = {
   id: string;
   nextReviewDate: string; // ISO date
   easeFactor: number;
@@ -41,7 +46,7 @@ export type RankCandidate = {
 };
 
 export type RankInput = {
-  candidates: RankCandidate[];
+  candidates: InternalRankCandidate[];
   timeboxMinutes?: number;
 };
 

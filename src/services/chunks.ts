@@ -12,6 +12,13 @@ import {
   mapChunkRowToLearningItem,
 } from './chunk-queries.js';
 
+export type ChunkOperationError = {
+  type: 'validation' | 'not_found' | 'database';
+  message: string;
+  field?: string;
+  retryable?: boolean;
+};
+
 export type CreateChunkInput = {
   id: string;
   topicId: string;
@@ -90,11 +97,7 @@ export type UpdateChunkContentResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   progressReset?: boolean;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
 
 export async function updateChunkContent(
@@ -176,11 +179,7 @@ export type UpdateChunkMetadataInput = {
 export type UpdateChunkMetadataResult = {
   success: boolean;
   chunk?: LearningChunkRow;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
 
 export async function updateChunkMetadata(
@@ -267,11 +266,7 @@ export type UpdateChunkWithProgressResetResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   progressReset?: boolean;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
 
 function buildChunkUpdateData(
@@ -358,11 +353,7 @@ export type DeleteChunkResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   removedDependencies?: ChunkDependencyCleanup[];
-  error?: {
-    type: 'not_found' | 'database';
-    message: string;
-    retryable?: boolean;
-  };
+  error?: ChunkOperationError;
 };
 
 function findDependentChunks(id: string, db: SqlDb) {
