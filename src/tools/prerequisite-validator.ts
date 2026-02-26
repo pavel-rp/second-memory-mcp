@@ -6,6 +6,7 @@ import type {
   MasteryStatus,
 } from '../types/prerequisite-validation.js';
 import type { LearningItem } from '../types/recommendations.js';
+import { extractErrorMessage } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -68,7 +69,7 @@ export class PrerequisiteValidator {
       this.databaseAvailable = true;
     } catch (error) {
       // Database is not available - check if we're in a test environment with mocks
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = extractErrorMessage(error);
 
       // In test environments with mocks, treat mock rejections as database available
       // This allows unit tests to properly test error handling scenarios
@@ -218,7 +219,7 @@ export class PrerequisiteValidator {
           totalFiltered++;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
+        const errorMessage = extractErrorMessage(error);
         filteredItems.push({
           item,
           reason: `Prerequisite validation failed: ${errorMessage}`,
@@ -266,7 +267,7 @@ export class PrerequisiteValidator {
           missingPrerequisites.push(prereqId);
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage = extractErrorMessage(error);
         validationErrors.push(`Error checking mastery for ${prereqId}: ${errorMessage}`);
         missingPrerequisites.push(prereqId); // Assume not mastered on error
       }

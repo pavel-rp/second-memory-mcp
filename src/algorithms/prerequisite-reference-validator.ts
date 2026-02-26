@@ -1,4 +1,5 @@
 import type { PrerequisiteReferenceValidationResult } from '../types/prerequisite-validation.js';
+import { extractErrorMessage } from '../utils/errors.js';
 
 export type ChunkIdLookupFn = (ids: string[]) => Set<string>;
 export type AllChunkIdsLookupFn = () => Set<string>;
@@ -62,7 +63,7 @@ export class PrerequisiteReferenceValidator {
         errors,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
+      const errorMessage = extractErrorMessage(error);
       return {
         isValid: false,
         validReferences: [],

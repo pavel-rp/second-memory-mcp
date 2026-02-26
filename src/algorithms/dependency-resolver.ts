@@ -1,5 +1,6 @@
 import { algorithmConfig } from '../config/algorithm.js';
 import type { LearningItem } from '../types/recommendations.js';
+import { extractErrorMessage } from '../utils/errors.js';
 
 /**
  * Result of dependency resolution
@@ -83,8 +84,7 @@ export class DependencyResolver {
         errors: [],
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown dependency resolution error';
+      const errorMessage = extractErrorMessage(error);
       return {
         resolvedChain: [],
         circularDependencies: [],
