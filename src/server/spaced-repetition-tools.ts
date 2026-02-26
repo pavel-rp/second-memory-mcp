@@ -125,7 +125,13 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           consecutive_failures,
         }: CalculateNextReviewAdvancedInput =
           CalculateNextReviewAdvancedInputSchema.parse(rawInput);
-        const out = calculateNextReviewAdvanced({
+        const {
+          interval: outInterval,
+          repetitions: outReps,
+          easeFactor,
+          nextReview,
+          leech,
+        } = calculateNextReviewAdvanced({
           quality,
           repetitions,
           easeFactor: ease_factor,
@@ -133,7 +139,15 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           daysOverdue: days_overdue,
           consecutiveFailures: consecutive_failures,
         });
-        return toolJson(out);
+
+        const result = {
+          interval: outInterval,
+          repetitions: outReps,
+          ease_factor: Number(easeFactor.toFixed(3)),
+          next_review: nextReview,
+          leech,
+        };
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to calculate advanced review: ${msg}`, {
