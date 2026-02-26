@@ -21,7 +21,7 @@ export async function createTopic(
   } catch (error) {
     return serviceFail({
       type: 'database',
-      message: error instanceof Error ? error.message : 'Failed to create topic',
+      message: 'Failed to create topic',
     });
   }
 }
@@ -96,7 +96,7 @@ export async function updateTopic(
   } catch (error) {
     return serviceFail({
       type: 'database',
-      message: error instanceof Error ? error.message : 'Failed to update topic',
+      message: 'Failed to update topic',
     });
   }
 }
@@ -118,7 +118,7 @@ export async function deleteTopic(
   } catch (error) {
     return serviceFail({
       type: 'database',
-      message: error instanceof Error ? error.message : 'Failed to delete topic',
+      message: 'Failed to delete topic',
     });
   }
 }

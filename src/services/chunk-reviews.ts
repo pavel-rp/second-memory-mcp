@@ -3,6 +3,7 @@ import { getSql } from '../db/operations.js';
 import { learningChunks, type LearningChunkRow } from '../db/schema.js';
 import { calculateNextReviewAdvanced } from '../algorithms/sr-calculator.js';
 import { type ServiceResult, serviceOk, serviceFail } from '../types/service-result.js';
+import { getChunk } from './chunks.js';
 
 export type ReviewResultData = {
   chunk: LearningChunkRow;
@@ -23,11 +24,7 @@ export async function processReviewResult(
     const db = getSql();
 
     // Get current chunk data
-    const currentChunk = db
-      .select()
-      .from(learningChunks)
-      .where(eq(learningChunks.id, itemId))
-      .get();
+    const currentChunk = await getChunk(itemId, db);
     if (!currentChunk) {
       return serviceFail({
         type: 'not_found',
@@ -63,11 +60,7 @@ export async function processReviewResult(
     await db.update(learningChunks).set(updateData).where(eq(learningChunks.id, itemId)).run();
 
     // Return updated chunk with leech information
-    const updatedChunk = db
-      .select()
-      .from(learningChunks)
-      .where(eq(learningChunks.id, itemId))
-      .get();
+    const updatedChunk = await getChunk(itemId, db);
     if (!updatedChunk) {
       return serviceFail({
         type: 'database',
@@ -82,7 +75,7 @@ export async function processReviewResult(
   } catch (error) {
     return serviceFail({
       type: 'database',
-      message: error instanceof Error ? error.message : 'Unknown database error',
+      message: 'Failed to process review result',
     });
   }
 }

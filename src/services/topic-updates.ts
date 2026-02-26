@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getSql } from '../db/operations.js';
 import { learningTopics, type LearningTopicRow } from '../db/schema.js';
 import { VALIDATION_CONSTANTS } from '../constants/validation.js';
+import { extractErrorMessage } from '../utils/errors.js';
 
 export type TopicUpdateResult = {
   success: boolean;
@@ -94,7 +95,7 @@ export async function updateTopicMetadata(
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }
@@ -189,7 +190,7 @@ export async function updateTopicSummary(
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }

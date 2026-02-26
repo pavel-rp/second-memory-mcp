@@ -113,13 +113,14 @@ function tmpDbPath() {
 
   it('updateTopic succeeds for no-op updates on existing topics', async () => {
     const now = Date.now();
-    await createTopic({
+    const setup = await createTopic({
       id: 't1',
       title: 'Algebra',
       subject: 'Math',
       createdAt: now,
       updatedAt: now,
     });
+    expect(setup.success).toBe(true);
 
     // Update with the same values — should succeed regardless of whether
     // SQLite reports 0 or 1 changes (behavior varies by engine)

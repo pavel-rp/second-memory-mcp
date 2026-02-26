@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc -w",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json -w",
     "start": "node dist/src/server/main.js",
     "start:pnpm": "pnpm run build && node dist/src/server/main.js",
     "start:stdio": "node --inspect=9229 dist/src/server/main.js",
@@ -16,6 +16,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
     "type-check": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "test:cleanup": "node scripts/cleanup-test-files.js",
