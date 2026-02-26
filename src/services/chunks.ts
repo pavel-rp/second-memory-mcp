@@ -4,12 +4,20 @@ import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/oper
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
+import { extractErrorMessage } from '../utils/errors.js';
 import { prerequisiteReferenceValidator } from './chunk-prerequisites.js';
 import {
   CHUNK_COLUMNS_WITH_TOPIC,
   CHUNK_CONTENT_COLUMNS,
   mapChunkRowToLearningItem,
 } from './chunk-queries.js';
+
+export type ChunkOperationError = {
+  type: 'validation' | 'not_found' | 'database';
+  message: string;
+  field?: string;
+  retryable?: boolean;
+};
 
 export type CreateChunkInput = {
   id: string;
@@ -89,11 +97,7 @@ export type UpdateChunkContentResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   progressReset?: boolean;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
 
 export type UpdateChunkMetadataInput = {
@@ -107,11 +111,7 @@ export type UpdateChunkMetadataInput = {
 export type UpdateChunkMetadataResult = {
   success: boolean;
   chunk?: LearningChunkRow;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
 
 export type UpdateChunkWithProgressResetInput = {
@@ -128,11 +128,7 @@ export type UpdateChunkWithProgressResetResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   progressReset?: boolean;
-  error?: {
-    type: 'validation' | 'not_found' | 'database';
-    message: string;
-    field?: string;
-  };
+  error?: ChunkOperationError;
 };
 
 // Shared fetch-validate-update-refetch helper for all chunk update functions
@@ -160,7 +156,7 @@ async function updateChunkFields(
   db: SqlDb
 ): Promise<ChunkUpdateResult> {
   try {
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const currentChunk = await getChunk(id, db);
     if (!currentChunk) {
       return {
         success: false,
@@ -190,7 +186,7 @@ async function updateChunkFields(
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }
@@ -307,11 +303,7 @@ export type DeleteChunkResult = {
   success: boolean;
   chunk?: LearningChunkRow;
   removedDependencies?: ChunkDependencyCleanup[];
-  error?: {
-    type: 'not_found' | 'database';
-    message: string;
-    retryable?: boolean;
-  };
+  error?: ChunkOperationError;
 };
 
 function findDependentChunks(id: string, db: SqlDb) {
@@ -348,7 +340,7 @@ async function resolveDeleteOrder(
 
 export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<DeleteChunkResult> {
   try {
-    const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const chunkToDelete = await getChunk(id, db);
 
     if (!chunkToDelete) {
       return {
@@ -406,7 +398,7 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
         retryable: true,
       },
     };
@@ -461,11 +453,7 @@ export async function createChunkWithTopic(
     .run();
 
   // Return the created chunk
-  const createdChunk = db
-    .select()
-    .from(learningChunks)
-    .where(eq(learningChunks.id, input.id))
-    .get();
+  const createdChunk = await getChunk(input.id, db);
   if (!createdChunk) {
     throw new Error(`Failed to create chunk with id: ${input.id}`);
   }

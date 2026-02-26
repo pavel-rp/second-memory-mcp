@@ -55,5 +55,6 @@ desktop.ini
 *.db-wal
 test-artifacts/
 .claude/settings.local.json
+.claude/worktrees/
 AUDIT.md
 /audit/plans/

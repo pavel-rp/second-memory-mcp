@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../db/operations.js';
 import { learningTopics } from '../db/schema.js';
+import { type ServiceResult, serviceOk, serviceFail } from '../types/service-result.js';
 
 export type CreateTopicInput = {
   id: string;
@@ -10,8 +11,19 @@ export type CreateTopicInput = {
   updatedAt: number;
 };
 
-export async function createTopic(input: CreateTopicInput, db: SqlDb = getSql()): Promise<void> {
-  await db.insert(learningTopics).values(input).run();
+export async function createTopic(
+  input: CreateTopicInput,
+  db: SqlDb = getSql()
+): Promise<ServiceResult<void>> {
+  try {
+    await db.insert(learningTopics).values(input).run();
+    return serviceOk();
+  } catch {
+    return serviceFail({
+      type: 'database',
+      message: 'Failed to create topic',
+    });
+  }
 }
 
 export async function getTopicById(id: string, db: SqlDb = getSql()) {
@@ -51,14 +63,64 @@ export async function updateTopic(
   id: string,
   changes: Partial<Pick<CreateTopicInput, 'title' | 'subject' | 'updatedAt'>>,
   db: SqlDb = getSql()
-): Promise<number> {
-  const res = db.update(learningTopics).set(changes).where(eq(learningTopics.id, id)).run();
-  return res.changes ?? 0;
+): Promise<ServiceResult<{ changesApplied: number }>> {
+  try {
+    if (Object.keys(changes).length === 0) {
+      return serviceFail({
+        type: 'validation',
+        message: 'No changes provided',
+      });
+    }
+
+    const res = db.update(learningTopics).set(changes).where(eq(learningTopics.id, id)).run();
+    const count = res.changes ?? 0;
+
+    if (count === 0) {
+      const exists = db
+        .select({ id: learningTopics.id })
+        .from(learningTopics)
+        .where(eq(learningTopics.id, id))
+        .get();
+
+      if (exists) {
+        return serviceOk({ changesApplied: 0 });
+      }
+
+      return serviceFail({
+        type: 'not_found',
+        message: `Topic with id "${id}" not found`,
+      });
+    }
+
+    return serviceOk({ changesApplied: count });
+  } catch {
+    return serviceFail({
+      type: 'database',
+      message: 'Failed to update topic',
+    });
+  }
 }
 
-export async function deleteTopic(id: string, db: SqlDb = getSql()): Promise<number> {
-  const res = db.delete(learningTopics).where(eq(learningTopics.id, id)).run();
-  return res.changes ?? 0;
+export async function deleteTopic(
+  id: string,
+  db: SqlDb = getSql()
+): Promise<ServiceResult<{ deleted: boolean }>> {
+  try {
+    const res = db.delete(learningTopics).where(eq(learningTopics.id, id)).run();
+    const count = res.changes ?? 0;
+    if (count === 0) {
+      return serviceFail({
+        type: 'not_found',
+        message: `Topic with id "${id}" not found`,
+      });
+    }
+    return serviceOk({ deleted: true });
+  } catch {
+    return serviceFail({
+      type: 'database',
+      message: 'Failed to delete topic',
+    });
+  }
 }
 
 // Batch fetch with minimal metadata

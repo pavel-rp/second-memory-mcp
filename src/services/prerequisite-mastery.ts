@@ -1,9 +1,10 @@
-import { eq } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../db/operations.js';
-import { learningChunks, type LearningChunkRow } from '../db/schema.js';
+import { type LearningChunkRow } from '../db/schema.js';
 import { algorithmConfig } from '../config/algorithm.js';
+import { MS_PER_DAY } from '../constants/time.js';
 import type { MasteryCriteria, MasteryStatus } from '../types/prerequisite-validation.js';
 import { logger } from '../utils/logger.js';
+import { getChunk } from './chunks.js';
 
 /**
  * Service for determining prerequisite mastery based on learning performance data
@@ -102,9 +103,7 @@ export class PrerequisiteMasteryService {
     itemId: string,
     db: SqlDb = getSql()
   ): Promise<LearningChunkRow | undefined> {
-    const chunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
-
-    return chunk;
+    return await getChunk(itemId, db);
   }
 
   /**
@@ -116,7 +115,7 @@ export class PrerequisiteMasteryService {
   private async calculateMasteryMetrics(itemId: string, chunk: LearningChunkRow) {
     // Calculate days since last review
     const daysSinceLastReview = chunk.lastReviewedAt
-      ? Math.floor((Date.now() - chunk.lastReviewedAt) / (24 * 60 * 60 * 1000))
+      ? Math.floor((Date.now() - chunk.lastReviewedAt) / MS_PER_DAY)
       : Infinity;
 
     // Calculate average quality based on repetitions and ease factor

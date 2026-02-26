@@ -65,21 +65,30 @@ describe('chunk-reviews service', () => {
   describe('processReviewResult', () => {
     it('updates chunk with good quality review', async () => {
       const result = await processReviewResult(chunkId, 4, {});
-      expect(result.chunk).toBeDefined();
-      expect(result.chunk.repetitions).toBeGreaterThan(1);
-      expect(result.isLeech).toBe(false);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.chunk).toBeDefined();
+        expect(result.data.chunk.repetitions).toBeGreaterThan(1);
+        expect(result.data.isLeech).toBe(false);
+      }
     });
 
     it('updates chunk with poor quality review', async () => {
       const result = await processReviewResult(chunkId, 1, {});
-      expect(result.chunk).toBeDefined();
-      expect(result.chunk.repetitions).toBe(0);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.chunk).toBeDefined();
+        expect(result.data.chunk.repetitions).toBe(0);
+      }
     });
 
-    it('throws for nonexistent chunk', async () => {
-      await expect(processReviewResult('nonexistent', 4, {})).rejects.toThrow(
-        'Learning item not found'
-      );
+    it('returns error for nonexistent chunk', async () => {
+      const result = await processReviewResult('nonexistent', 4, {});
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('not_found');
+        expect(result.error.message).toContain('Learning item not found');
+      }
     });
 
     it('accepts optional parameters', async () => {
@@ -88,7 +97,10 @@ describe('chunk-reviews service', () => {
         consecutiveFailures: 0,
         daysOverdue: 2,
       });
-      expect(result.chunk).toBeDefined();
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.chunk).toBeDefined();
+      }
     });
   });
 });

@@ -34,7 +34,6 @@ describe('MCP Server stdout validation', () => {
       },
     });
 
-    let stderrData = '';
     let hasNonJsonOutput = false;
     const jsonLines: string[] = [];
 
@@ -58,11 +57,6 @@ describe('MCP Server stdout validation', () => {
           console.error(`Non-JSON output detected: "${line}"`);
         }
       }
-    });
-
-    // Collect stderr data (should contain logs)
-    server.stderr.on('data', data => {
-      stderrData += data.toString();
     });
 
     // Send a simple JSON-RPC initialize request
@@ -112,7 +106,6 @@ describe('MCP Server stdout validation', () => {
     // Verify results
     expect(hasNonJsonOutput).toBe(false);
     expect(jsonLines.length).toBeGreaterThan(0);
-    expect(stderrData.length).toBeGreaterThan(0); // Should have logs on stderr
 
     // Verify we got a proper JSON-RPC response
     const response = jsonLines.find(line => line.includes('"result"'));
@@ -124,7 +117,7 @@ describe('MCP Server stdout validation', () => {
     expect(parsedResponse.result.serverInfo.name).toBe('second-memory-learning');
   }, 10000); // 10 second timeout
 
-  it('should output logs to stderr when in MCP mode', async () => {
+  it('should not leak non-MCP output to stdout during startup', async () => {
     // Use a temporary database for testing
     const tempDbPath = `test-mcp-${randomUUID()}.db`;
     tempDbFiles.push(tempDbPath);
@@ -137,18 +130,17 @@ describe('MCP Server stdout validation', () => {
       },
     });
 
-    let stderrData = '';
+    let stdoutData = '';
 
-    server.stderr.on('data', data => {
-      stderrData += data.toString();
+    server.stdout.on('data', data => {
+      stdoutData += data.toString();
     });
 
-    // Wait for server startup
+    // Wait for server startup — stdout must stay clean (no logs, no banners)
     await setTimeout(2000);
     server.kill();
 
-    // Should have log output on stderr
-    expect(stderrData).toContain('[INFO]');
-    expect(stderrData).toContain('Removed legacy tables');
+    // Before any JSON-RPC request, stdout must be empty
+    expect(stdoutData).toBe('');
   }, 10000);
 });

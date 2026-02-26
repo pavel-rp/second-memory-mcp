@@ -101,14 +101,55 @@ function tmpDbPath() {
     const list = await listTopics();
     expect(list.length).toBe(1);
 
-    const changed = await updateTopic('t1', { title: 'Linear Algebra', updatedAt: now + 1 });
-    expect(changed).toBe(1);
+    const changeResult = await updateTopic('t1', { title: 'Linear Algebra', updatedAt: now + 1 });
+    expect(changeResult.success).toBe(true);
 
-    const removed = await deleteTopic('t1');
-    expect(removed).toBe(1);
+    const removeResult = await deleteTopic('t1');
+    expect(removeResult.success).toBe(true);
 
     const empty = await listTopics();
     expect(empty.length).toBe(0);
+  });
+
+  it('updateTopic succeeds for no-op updates on existing topics', async () => {
+    const now = Date.now();
+    const setup = await createTopic({
+      id: 't1',
+      title: 'Algebra',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
+    expect(setup.success).toBe(true);
+
+    // Update with the same values — should succeed regardless of whether
+    // SQLite reports 0 or 1 changes (behavior varies by engine)
+    const result = await updateTopic('t1', { title: 'Algebra' });
+    expect(result.success).toBe(true);
+  });
+
+  it('updateTopic returns not_found for non-existent topic', async () => {
+    const result = await updateTopic('nonexistent', { title: 'New Title' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('not_found');
+    }
+  });
+
+  it('updateTopic returns validation error for empty changes', async () => {
+    const result = await updateTopic('t1', {});
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('validation');
+    }
+  });
+
+  it('deleteTopic returns not_found for non-existent topic', async () => {
+    const result = await deleteTopic('nonexistent');
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('not_found');
+    }
   });
 
   it('batch fetches topics with minimal metadata', async () => {
