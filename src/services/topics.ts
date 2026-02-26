@@ -65,14 +65,33 @@ export async function updateTopic(
   db: SqlDb = getSql()
 ): Promise<ServiceResult<{ changesApplied: number }>> {
   try {
+    if (Object.keys(changes).length === 0) {
+      return serviceFail({
+        type: 'validation',
+        message: 'No changes provided',
+      });
+    }
+
     const res = db.update(learningTopics).set(changes).where(eq(learningTopics.id, id)).run();
     const count = res.changes ?? 0;
+
     if (count === 0) {
+      const exists = db
+        .select({ id: learningTopics.id })
+        .from(learningTopics)
+        .where(eq(learningTopics.id, id))
+        .get();
+
+      if (exists) {
+        return serviceOk({ changesApplied: 0 });
+      }
+
       return serviceFail({
         type: 'not_found',
         message: `Topic with id "${id}" not found`,
       });
     }
+
     return serviceOk({ changesApplied: count });
   } catch (error) {
     return serviceFail({
