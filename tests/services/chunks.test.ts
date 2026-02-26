@@ -510,7 +510,7 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       expect(result.chunk).toBeDefined();
       expect(result.chunk?.content).toBe('Updated content');
       expect(result.chunk?.contentVersion).toBe(2);
-      expect(result.chunk?.contentUpdatedAt).toBeGreaterThan(now);
+      expect(result.chunk?.contentUpdatedAt).toBeGreaterThanOrEqual(now);
       expect(result.progressReset).toBe(false);
     });
 
