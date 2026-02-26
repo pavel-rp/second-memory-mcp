@@ -58,6 +58,7 @@ export const RankCandidateShape = {
     .number()
     .int()
     .min(1)
+    .max(120, 'Estimated duration cannot exceed 120 minutes')
     .optional()
     .describe('Estimated study duration in minutes'),
 } as const;
