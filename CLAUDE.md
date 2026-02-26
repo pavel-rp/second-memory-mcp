@@ -336,22 +336,28 @@ The codebase uses a layered error handling approach:
 Backticks and special characters in `gh api` `-f body=` break on Windows bash. Use this pattern instead:
 
 1. Write the reply body as a JSON file using the Write tool:
+
    ```json
-   {"body": "Fixed. Added `check()` constraints to schema. Drizzle Kit generated migration `0002`."}
+   {
+     "body": "Fixed. Added `check()` constraints to schema. Drizzle Kit generated migration `0002`."
+   }
    ```
-   Save to a temp path like `C:\Users\recky\AppData\Local\Temp\reply.json`.
+
+   Save to a temp path like `$TEMP/reply.json` (`%TEMP%` on Windows, `$TMPDIR` on macOS/Linux).
 
 2. Post the reply using `--input`:
    ```bash
-   gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies --input "C:/Users/recky/AppData/Local/Temp/reply.json"
+   gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies --input "$TEMP/reply.json"
    ```
 
 To delete a malformed comment:
+
 ```bash
 gh api repos/OWNER/REPO/pulls/comments/COMMENT_ID -X DELETE
 ```
 
 To list review comments on a PR:
+
 ```bash
 gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments --jq '.[] | {id: .id, path: .path, line: .line, body: .body}'
 ```
