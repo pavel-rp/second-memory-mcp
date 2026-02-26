@@ -34,7 +34,6 @@ describe('MCP Server stdout validation', () => {
       },
     });
 
-    let stderrData = '';
     let hasNonJsonOutput = false;
     const jsonLines: string[] = [];
 
@@ -58,11 +57,6 @@ describe('MCP Server stdout validation', () => {
           console.error(`Non-JSON output detected: "${line}"`);
         }
       }
-    });
-
-    // Collect stderr data (should contain logs)
-    server.stderr.on('data', data => {
-      stderrData += data.toString();
     });
 
     // Send a simple JSON-RPC initialize request
