@@ -330,3 +330,39 @@ The codebase uses a layered error handling approach:
 - Before starting work in the spec-workflow paradigm, checkout a feature branch if we're on develop, and don't have uncommitted or unsynced with remote changes.
 - If there are uncommitted or unsynced with remote changes, ask how to act.
 - Always run all builds, lints and tests before claiming a task is completed.
+
+**Replying to PR Review Comments (Windows/bash)**
+
+Backticks and special characters in `gh api` `-f body=` break on Windows bash. Use this pattern instead:
+
+1. Write the reply body as a JSON file using the Write tool:
+
+   ```json
+   {
+     "body": "Fixed. Added `check()` constraints to schema. Drizzle Kit generated migration `0002`."
+   }
+   ```
+
+   Save to a temp path like `$TEMP/reply.json` on Windows or `$TMPDIR/reply.json` on macOS/Linux.
+
+2. Post the reply using `--input`:
+
+   ```bash
+   # Windows (Git Bash)
+   gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies --input "$TEMP/reply.json"
+
+   # macOS/Linux
+   gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies --input "$TMPDIR/reply.json"
+   ```
+
+To delete a malformed comment:
+
+```bash
+gh api repos/OWNER/REPO/pulls/comments/COMMENT_ID -X DELETE
+```
+
+To list review comments on a PR:
+
+```bash
+gh api repos/OWNER/REPO/pulls/PR_NUMBER/comments --jq '.[] | {id: .id, path: .path, line: .line, body: .body}'
+```
