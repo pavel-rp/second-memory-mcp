@@ -42,6 +42,7 @@ import {
   deleteSessionChunk,
   convertSessionToSessionInput,
   validateChunkIds,
+  getHistoricalFeedbackForChunks,
   type CreateSessionInput,
   type CreateSessionChunkInput,
 } from '../../src/services/sessions.js';
@@ -804,6 +805,148 @@ function tmpDbPath() {
       expect(result.validChunkIds).toEqual(chunkIds);
       expect(result.invalidChunkIds).toEqual([]);
       expect(result.errors).toEqual([]);
+    });
+  });
+
+  describe('TF-2: getHistoricalFeedbackForChunks fallback', () => {
+    beforeEach(async () => {
+      await resetDatabase();
+      ensureSchema();
+    });
+
+    it('returns feedback when session has null chunkIds but session_chunks exist', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      // Create topic and chunks
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('t1', 'Topic', 'CS', now, now);
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('c1', 't1', 'Chunk 1', 'CS', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create session WITHOUT chunkIds (only topicId)
+      await createSession({
+        id: 's1',
+        topicId: 't1',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Add session chunk manually (simulates create_session_chunk tool)
+      await createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'c1',
+        status: 'completed',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Complete with feedback
+      await completeSession('s1', 'Found chunk 1 difficult');
+
+      // Query historical feedback — should find it via fallback
+      const feedback = await getHistoricalFeedbackForChunks(['c1']);
+      expect(feedback.length).toBe(1);
+      expect(feedback[0].feedback).toBe('Found chunk 1 difficult');
+      expect(feedback[0].chunk_ids).toContain('c1');
+    });
+
+    it('returns feedback via fast path when session has populated chunkIds', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('t1', 'Topic', 'CS', now, now);
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('c1', 't1', 'Chunk 1', 'CS', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      // Create session WITH chunkIds
+      await createSession({
+        id: 's1',
+        topicId: 't1',
+        chunkIds: ['c1'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await completeSession('s1', 'Good session');
+
+      const feedback = await getHistoricalFeedbackForChunks(['c1']);
+      expect(feedback.length).toBe(1);
+      expect(feedback[0].feedback).toBe('Good session');
+    });
+
+    it('returns empty when session has null chunkIds and no session_chunks', async () => {
+      const now = Date.now();
+
+      // Create session with no chunkIds and no session_chunks
+      await createSession({
+        id: 's1',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await completeSession('s1', 'Some feedback');
+
+      const feedback = await getHistoricalFeedbackForChunks(['c1']);
+      expect(feedback.length).toBe(0);
+    });
+
+    it('returns empty when chunks do not overlap with query', async () => {
+      const db = getDb();
+      const now = Date.now();
+
+      db.prepare(
+        `INSERT INTO learning_topics (id, title, subject, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`
+      ).run('t1', 'Topic', 'CS', now, now);
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('c1', 't1', 'Chunk 1', 'CS', 5, now, 2.5, 0, 10, 'new', now, now);
+      db.prepare(
+        `INSERT INTO learning_chunks (id, topic_id, title, subject, difficulty, next_review_at, ease_factor, repetitions, estimated_duration, chunk_type, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run('c2', 't1', 'Chunk 2', 'CS', 5, now, 2.5, 0, 10, 'new', now, now);
+
+      await createSession({
+        id: 's1',
+        topicId: 't1',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await createSessionChunk({
+        id: 'sc1',
+        sessionId: 's1',
+        chunkId: 'c1',
+        status: 'completed',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await completeSession('s1', 'Feedback about c1');
+
+      // Query for c2 which was NOT tracked in the session
+      const feedback = await getHistoricalFeedbackForChunks(['c2']);
+      expect(feedback.length).toBe(0);
     });
   });
 });
