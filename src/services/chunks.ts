@@ -4,6 +4,7 @@ import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/oper
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
+import { extractErrorMessage } from '../utils/errors.js';
 import { prerequisiteReferenceValidator } from './chunk-prerequisites.js';
 import {
   CHUNK_COLUMNS_WITH_TOPIC,
@@ -158,7 +159,7 @@ export async function updateChunkContent(
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }
@@ -246,7 +247,7 @@ export async function updateChunkMetadata(
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }
@@ -339,7 +340,7 @@ export async function updateChunkWithProgressReset(
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
       },
     };
   }
@@ -456,7 +457,7 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
       success: false,
       error: {
         type: 'database',
-        message: error instanceof Error ? error.message : 'Unknown database error',
+        message: extractErrorMessage(error),
         retryable: true,
       },
     };

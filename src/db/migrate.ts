@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getDb } from './client.js';
 import { getSql, bulkInsert, encodeJsonArray } from './operations.js';
+import { extractErrorMessage } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import {
   learningTopics,
@@ -126,9 +127,7 @@ function migrateContentFields(db: DbHandle): void {
     addColumnIfMissing(db, 'learning_chunks', 'content_updated_at', 'INTEGER');
   } catch (error) {
     logger.error('Content fields migration failed:', error);
-    throw new Error(
-      `Content persistence migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    throw new Error(`Content persistence migration failed: ${extractErrorMessage(error)}`);
   }
 }
 
@@ -137,9 +136,7 @@ function migrateIntervalDays(db: DbHandle): void {
     addColumnIfMissing(db, 'learning_chunks', 'interval_days', 'INTEGER');
   } catch (error) {
     logger.error('interval_days migration failed:', error);
-    throw new Error(
-      `interval_days migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    throw new Error(`interval_days migration failed: ${extractErrorMessage(error)}`);
   }
 }
 
@@ -156,9 +153,7 @@ function removeLegacyTables(db: DbHandle): void {
     );
   } catch (error) {
     logger.error('Legacy table cleanup failed:', error);
-    throw new Error(
-      `Legacy cleanup migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    throw new Error(`Legacy cleanup migration failed: ${extractErrorMessage(error)}`);
   }
 }
 
