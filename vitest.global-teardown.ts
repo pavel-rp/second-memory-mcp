@@ -9,7 +9,11 @@ function cleanTmpTestFiles() {
   } catch {
     return;
   }
-  const tmpFiles = entries.filter(e => e.startsWith('tmp-test-') && e.includes('.db'));
+  const tmpFiles = entries.filter(
+    (e) =>
+      e.startsWith('tmp-test-') &&
+      (e.endsWith('.db') || e.endsWith('.db-shm') || e.endsWith('.db-wal')),
+  );
   for (const entry of tmpFiles) {
     try {
       fs.unlinkSync(path.join(dir, entry));
@@ -19,6 +23,6 @@ function cleanTmpTestFiles() {
   }
 }
 
-export default function setup() {
-  return cleanTmpTestFiles;
+export default function teardown() {
+  cleanTmpTestFiles();
 }
