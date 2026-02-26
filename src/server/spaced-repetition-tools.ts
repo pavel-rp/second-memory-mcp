@@ -111,7 +111,8 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
     'calculate_next_review_advanced',
     {
       title: 'Calculate Next Review (Advanced)',
-      description: 'Advanced scheduler with lapses/leech handling',
+      description:
+        'Advanced scheduler with lapses/leech handling. Returns { interval, repetitions, ease_factor, next_review, leech }.',
       inputSchema: CalculateNextReviewAdvancedInputShape,
     },
     async (rawInput: unknown) => {
