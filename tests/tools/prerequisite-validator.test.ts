@@ -33,7 +33,7 @@ describe('PrerequisiteValidator', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.resetAllMocks();
   });
 
   // Helper function to create test learning items
