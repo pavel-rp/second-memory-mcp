@@ -290,7 +290,7 @@ export async function updateChunkWithProgressReset(
 
       return { fields, progressReset: shouldReset };
     },
-    '',
+    'with progress reset',
     db
   );
 }
