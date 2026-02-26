@@ -242,13 +242,21 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           daysOverdue: input.daysOverdue,
         });
 
-        const learningItem = mapChunkRowToLearningItem(result.chunk);
+        if (!result.success) {
+          return toolError(`Failed to record review result: ${result.error.message}`, {
+            type: result.error.type,
+            message: result.error.message,
+            retryable: result.error.type === 'database',
+          });
+        }
+
+        const learningItem = mapChunkRowToLearningItem(result.data.chunk);
 
         return toolJson({
           success: true,
           item: learningItem,
-          isLeech: result.isLeech,
-          message: result.isLeech
+          isLeech: result.data.isLeech,
+          message: result.data.isLeech
             ? 'Item marked as leech due to consecutive failures'
             : 'Review result recorded successfully',
         });
