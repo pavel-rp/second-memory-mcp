@@ -103,7 +103,7 @@ export async function updateChunkContent(
 ): Promise<UpdateChunkContentResult> {
   try {
     // Get current chunk
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const currentChunk = await getChunk(id, db);
     if (!currentChunk) {
       return {
         success: false,
@@ -147,7 +147,7 @@ export async function updateChunkContent(
     }
 
     // Return updated chunk
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const updatedChunk = await getChunk(id, db);
     return {
       success: true,
       chunk: updatedChunk || undefined,
@@ -189,7 +189,7 @@ export async function updateChunkMetadata(
 ): Promise<UpdateChunkMetadataResult> {
   try {
     // Check if chunk exists
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const currentChunk = await getChunk(id, db);
     if (!currentChunk) {
       return {
         success: false,
@@ -236,7 +236,7 @@ export async function updateChunkMetadata(
     }
 
     // Return updated chunk
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const updatedChunk = await getChunk(id, db);
     return {
       success: true,
       chunk: updatedChunk || undefined,
@@ -309,7 +309,7 @@ export async function updateChunkWithProgressReset(
   db: SqlDb = getSql()
 ): Promise<UpdateChunkWithProgressResetResult> {
   try {
-    const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const currentChunk = await getChunk(id, db);
     if (!currentChunk) {
       return {
         success: false,
@@ -332,7 +332,7 @@ export async function updateChunkWithProgressReset(
       return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
     }
 
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const updatedChunk = await getChunk(id, db);
     return { success: true, chunk: updatedChunk || undefined, progressReset: shouldResetProgress };
   } catch (error) {
     return {
@@ -398,7 +398,7 @@ async function resolveDeleteOrder(
 
 export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<DeleteChunkResult> {
   try {
-    const chunkToDelete = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const chunkToDelete = await getChunk(id, db);
 
     if (!chunkToDelete) {
       return {
@@ -511,11 +511,7 @@ export async function createChunkWithTopic(
     .run();
 
   // Return the created chunk
-  const createdChunk = db
-    .select()
-    .from(learningChunks)
-    .where(eq(learningChunks.id, input.id))
-    .get();
+  const createdChunk = await getChunk(input.id, db);
   if (!createdChunk) {
     throw new Error(`Failed to create chunk with id: ${input.id}`);
   }

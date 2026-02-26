@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getSql } from '../db/operations.js';
 import { learningChunks, type LearningChunkRow } from '../db/schema.js';
 import { calculateNextReviewAdvanced } from '../algorithms/sr-calculator.js';
+import { getChunk } from './chunks.js';
 
 // Process review result with SM-2 calculations
 export async function processReviewResult(
@@ -16,7 +17,7 @@ export async function processReviewResult(
   const db = getSql();
 
   // Get current chunk data
-  const currentChunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
+  const currentChunk = await getChunk(itemId, db);
   if (!currentChunk) {
     throw new Error(`Learning item not found: ${itemId}`);
   }
@@ -49,7 +50,7 @@ export async function processReviewResult(
   await db.update(learningChunks).set(updateData).where(eq(learningChunks.id, itemId)).run();
 
   // Return updated chunk with leech information
-  const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, itemId)).get();
+  const updatedChunk = await getChunk(itemId, db);
   if (!updatedChunk) {
     throw new Error(`Failed to update chunk: ${itemId}`);
   }
