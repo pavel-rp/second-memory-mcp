@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
-import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
+import { sqliteTable, text, integer, real, index, check } from 'drizzle-orm/sqlite-core';
+import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
 
 // Tables
 export const learningTopics = sqliteTable('learning_topics', {
@@ -38,7 +38,10 @@ export const learningChunks = sqliteTable(
     createdAt: integer('created_at', { mode: 'number' }).notNull(),
     updatedAt: integer('updated_at', { mode: 'number' }).notNull(),
   },
-  table => [index('idx_learning_chunks_next_review_at').on(table.nextReviewAt)]
+  table => [
+    index('idx_learning_chunks_next_review_at').on(table.nextReviewAt),
+    check('chk_chunk_type', sql`${table.chunkType} IN ('new', 'review', 'remediation')`),
+  ]
 );
 
 export const learningSessions = sqliteTable(
@@ -60,6 +63,11 @@ export const learningSessions = sqliteTable(
     index('idx_learning_sessions_status').on(table.status),
     index('idx_learning_sessions_topic_id').on(table.topicId),
     index('idx_learning_sessions_created_at').on(table.createdAt),
+    check(
+      'chk_session_mode',
+      sql`${table.mode} IN ('scaffolding', 'learning', 'retrieval', 'review')`
+    ),
+    check('chk_session_status', sql`${table.status} IN ('active', 'completed')`),
   ]
 );
 
@@ -83,6 +91,10 @@ export const sessionChunks = sqliteTable(
   table => [
     index('idx_session_chunks_session_id').on(table.sessionId),
     index('idx_session_chunks_status').on(table.status),
+    check(
+      'chk_session_chunk_status',
+      sql`${table.status} IN ('pending', 'in_progress', 'completed')`
+    ),
   ]
 );
 
