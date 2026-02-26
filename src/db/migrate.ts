@@ -1,8 +1,12 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import { getDb } from './client.js';
 import { getSql, bulkInsert, encodeJsonArray } from './operations.js';
-import { extractErrorMessage } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import {
   learningTopics,
@@ -15,154 +19,114 @@ import {
   NewSessionChunkRow,
 } from './schema.js';
 
-type MigrationDb = {
-  prepare(sql: string): { all(): Array<{ name: string; [key: string]: unknown }> };
-  exec(sql: string): void;
-};
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function checkColumnExists(db: MigrationDb, tableName: string, columnName: string): boolean {
-  const result = db.prepare(`PRAGMA table_info(${tableName})`).all();
-  return result.some(col => col.name === columnName);
-}
-
-function addColumnIfMissing(
-  db: MigrationDb,
-  table: string,
-  column: string,
-  definition: string
-): void {
-  if (checkColumnExists(db, table, column)) return;
-  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-  logger.info(`Added ${column} column to ${table} table`);
+/**
+ * Resolve the path to the drizzle migrations directory.
+ * In production the compiled entry point lives at dist/src/db/migrate.js,
+ * so we walk up to the project root and look for drizzle/.
+ */
+function resolveMigrationsDir(): string {
+  // Walk up from __dirname until we find a directory containing drizzle/
+  let dir = __dirname;
+  for (let i = 0; i < 5; i++) {
+    const candidate = path.join(dir, 'drizzle');
+    if (fs.existsSync(candidate)) return candidate;
+    dir = path.dirname(dir);
+  }
+  // Fallback: relative to project root (cwd)
+  const fallback = path.resolve('drizzle');
+  if (fs.existsSync(fallback)) {
+    logger.warn(`Migrations dir not found relative to module; falling back to cwd: ${fallback}`);
+    return fallback;
+  }
+  throw new Error(
+    `Could not find drizzle migrations directory. Searched up from ${__dirname} and cwd ${process.cwd()}`
+  );
 }
 
 /**
- * Public entry point for server bootstrap — wraps migration internals.
+ * Public entry point for server bootstrap — runs Drizzle Kit migrations.
  */
 export async function initializeDatabase(): Promise<void> {
   ensureSchema();
 }
 
-type DbHandle = ReturnType<typeof getDb>;
+/**
+ * The core tables that migration 0000 creates.
+ * If these exist without a Drizzle journal, the database predates Drizzle Kit.
+ */
+const CORE_TABLES = ['learning_topics', 'learning_chunks', 'learning_sessions', 'session_chunks'];
 
-function createCoreTables(db: DbHandle): void {
+/**
+ * Check if a SQLite table exists in the database.
+ */
+function tableExists(db: BetterSqlite3Database, name: string): boolean {
+  const row = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name) as
+    | { 1: number }
+    | undefined;
+  return row !== undefined;
+}
+
+/**
+ * For databases that predate Drizzle Kit: if core tables already exist but the
+ * __drizzle_migrations journal does not, create the journal and mark migration
+ * 0000 as already applied so Drizzle won't attempt to re-create existing tables.
+ */
+function seedJournalForExistingDatabase(db: BetterSqlite3Database, migrationsFolder: string): void {
+  const hasJournal = tableExists(db, '__drizzle_migrations');
+  if (hasJournal) return;
+
+  const hasCoreTable = CORE_TABLES.some(t => tableExists(db, t));
+  if (!hasCoreTable) return;
+
+  logger.info('Existing database detected without Drizzle journal — seeding migration history');
+
+  // Read the journal to find migration 0000 metadata
+  const journalPath = path.join(migrationsFolder, 'meta', '_journal.json');
+  const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8')) as {
+    entries: { idx: number; tag: string; when: number }[];
+  };
+  const firstEntry = journal.entries.find(e => e.idx === 0);
+  if (!firstEntry) {
+    throw new Error('Could not find migration 0000 in drizzle journal');
+  }
+
+  // Create the journal table with the same schema Drizzle uses internally
   db.exec(`
-	CREATE TABLE IF NOT EXISTS learning_topics (
-		id TEXT PRIMARY KEY NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		summary TEXT,
-		summary_version INTEGER DEFAULT 1,
-		summary_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
-	);
-	CREATE TABLE IF NOT EXISTS learning_chunks (
-		id TEXT PRIMARY KEY NOT NULL,
-		topic_id TEXT NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		difficulty INTEGER NOT NULL,
-		next_review_at INTEGER NOT NULL,
-		ease_factor REAL NOT NULL,
-		repetitions INTEGER NOT NULL,
-		last_reviewed_at INTEGER,
-		estimated_duration INTEGER NOT NULL,
-		chunk_type TEXT NOT NULL CHECK(chunk_type IN ('new', 'review', 'remediation')),
-		interval_days INTEGER,
-		prerequisites_json TEXT,
-		tags_json TEXT,
-		content TEXT,
-		content_version INTEGER DEFAULT 1,
-		content_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE CASCADE
-	);
-	CREATE TABLE IF NOT EXISTS learning_sessions (
-		id TEXT PRIMARY KEY NOT NULL,
-		topic_id TEXT,
-		chunk_ids TEXT,
-		mode TEXT NOT NULL CHECK(mode IN ('scaffolding', 'learning', 'retrieval', 'review')),
-		estimated_duration INTEGER,
-		status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'completed')),
-		start_time INTEGER NOT NULL,
-		end_time INTEGER,
-		feedback TEXT,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE SET NULL
-	);
-	CREATE TABLE IF NOT EXISTS session_chunks (
-		id TEXT PRIMARY KEY NOT NULL,
-		session_id TEXT NOT NULL,
-		chunk_id TEXT NOT NULL,
-		status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed')),
-		attempts_json TEXT,
-		quality_scores_json TEXT,
-		time_spent_ms INTEGER NOT NULL DEFAULT 0,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		FOREIGN KEY(session_id) REFERENCES learning_sessions(id) ON DELETE CASCADE,
-		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
-	);
-
-	-- Indexes for performance
-	CREATE INDEX IF NOT EXISTS idx_learning_chunks_next_review_at ON learning_chunks(next_review_at);
-	CREATE INDEX IF NOT EXISTS idx_learning_sessions_status ON learning_sessions(status);
-	CREATE INDEX IF NOT EXISTS idx_learning_sessions_topic_id ON learning_sessions(topic_id);
-	CREATE INDEX IF NOT EXISTS idx_learning_sessions_created_at ON learning_sessions(created_at DESC);
-	CREATE INDEX IF NOT EXISTS idx_session_chunks_session_id ON session_chunks(session_id);
-	CREATE INDEX IF NOT EXISTS idx_session_chunks_status ON session_chunks(status);
-	`);
-}
-
-function migrateContentFields(db: DbHandle): void {
-  try {
-    addColumnIfMissing(db, 'learning_topics', 'summary', 'TEXT');
-    addColumnIfMissing(db, 'learning_topics', 'summary_version', 'INTEGER DEFAULT 1');
-    addColumnIfMissing(db, 'learning_topics', 'summary_updated_at', 'INTEGER');
-    addColumnIfMissing(db, 'learning_chunks', 'content', 'TEXT');
-    addColumnIfMissing(db, 'learning_chunks', 'content_version', 'INTEGER DEFAULT 1');
-    addColumnIfMissing(db, 'learning_chunks', 'content_updated_at', 'INTEGER');
-  } catch (error) {
-    logger.error('Content fields migration failed:', error);
-    throw new Error(`Content persistence migration failed: ${extractErrorMessage(error)}`);
-  }
-}
-
-function migrateIntervalDays(db: DbHandle): void {
-  try {
-    addColumnIfMissing(db, 'learning_chunks', 'interval_days', 'INTEGER');
-  } catch (error) {
-    logger.error('interval_days migration failed:', error);
-    throw new Error(`interval_days migration failed: ${extractErrorMessage(error)}`);
-  }
-}
-
-function removeLegacyTables(db: DbHandle): void {
-  try {
-    db.exec(`
-		DROP TABLE IF EXISTS review_schedule;
-		DROP TABLE IF EXISTS session_logs;
-		DROP TABLE IF EXISTS performance_analytics;
-		DROP TABLE IF EXISTS friction_metrics;
-		`);
-    logger.info(
-      'Removed legacy tables: review_schedule, session_logs, performance_analytics, friction_metrics'
+    CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hash TEXT NOT NULL,
+      created_at INTEGER
     );
-  } catch (error) {
-    logger.error('Legacy table cleanup failed:', error);
-    throw new Error(`Legacy cleanup migration failed: ${extractErrorMessage(error)}`);
-  }
+  `);
+
+  // Read the migration SQL to compute the hash Drizzle expects
+  const migrationSql = fs.readFileSync(
+    path.join(migrationsFolder, `${firstEntry.tag}.sql`),
+    'utf-8'
+  );
+
+  // Drizzle uses sha256 of the migration SQL content as the hash
+  const hash = crypto.createHash('sha256').update(migrationSql).digest('hex');
+
+  db.prepare('INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES (?, ?)').run(
+    hash,
+    firstEntry.when
+  );
+
+  logger.info(`Marked migration 0000 (${firstEntry.tag}) as already applied`);
 }
 
-export function ensureSchema() {
+/**
+ * Apply all pending Drizzle Kit migrations.
+ */
+export function ensureSchema(): void {
   const db = getDb();
-  createCoreTables(db);
-  migrateContentFields(db);
-  migrateIntervalDays(db);
-  removeLegacyTables(db);
+  const drizzleDb = drizzle(db);
+  const migrationsFolder = resolveMigrationsDir();
+  seedJournalForExistingDatabase(db, migrationsFolder);
+  migrate(drizzleDb, { migrationsFolder });
 }
 
 type RawLearningChunk = Omit<NewLearningChunkRow, 'prerequisitesJson' | 'tagsJson'> & {
