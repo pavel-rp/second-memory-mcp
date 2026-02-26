@@ -175,7 +175,7 @@ async function updateChunkFields(
       };
     }
 
-    const updatedChunk = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+    const updatedChunk = await getChunk(id, db);
     return {
       success: true,
       chunk: updatedChunk || undefined,
