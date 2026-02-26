@@ -1,6 +1,6 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-export { extractErrorMessage } from '../utils/errors.js';
 import { extractErrorMessage } from '../utils/errors.js';
+export { extractErrorMessage };
 
 // ---------------------------------------------------------------------------
 // MCP tool response helpers
