@@ -195,8 +195,8 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
     opts: { warning?: string; timeboxApplied: boolean; totalDuration: number }
   ): RankOutput => {
     const ranked: RankedItem[] = selected.map((s, idx) => {
-      const candidate = candidateMap.get(s.id)!;
-      const duration = candidate.estimatedDuration ?? 0;
+      const candidate = candidateMap.get(s.id);
+      const duration = candidate?.estimatedDuration ?? 0;
       return {
         id: s.id,
         priority: s.score,
@@ -207,7 +207,7 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
               ? 'medium priority — approaching review date'
               : 'low priority — well ahead of schedule',
         order: idx + 1,
-        cognitiveLoad: Math.min(10, Math.ceil(candidate.difficulty * (duration / 10 || 1))),
+        cognitiveLoad: Math.min(10, Math.ceil((candidate?.difficulty ?? 5) * (duration / 10 || 1))),
       };
     });
 
