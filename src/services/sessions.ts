@@ -310,10 +310,10 @@ function convertSessionChunkRow(
   let qualityScores: number[] = [];
 
   try {
-    if (chunk.attemptsJson) {
-      const rawAttempts = chunk.attemptsJson as unknown as Array<{
+    if (Array.isArray(chunk.attemptsJson)) {
+      const rawAttempts = chunk.attemptsJson as Array<{
         timestamp: string | number;
-        quality: number;
+        quality?: number;
         timeSpentMs?: number;
         time_spent_ms?: number;
         completed: boolean;
@@ -328,8 +328,8 @@ function convertSessionChunkRow(
         completed: attempt.completed,
       }));
     }
-    if (chunk.qualityScoresJson) {
-      qualityScores = chunk.qualityScoresJson as unknown as number[];
+    if (Array.isArray(chunk.qualityScoresJson)) {
+      qualityScores = chunk.qualityScoresJson;
     }
   } catch (error) {
     logger.error(`Failed to parse JSON for session chunk ${chunk.id}:`, error);
@@ -487,8 +487,8 @@ export async function getHistoricalFeedbackForChunks(
 
       // Read session chunk IDs and check for overlap
       let sessionChunkIds: string[] = [];
-      if (session.chunkIds) {
-        sessionChunkIds = session.chunkIds as unknown as string[];
+      if (Array.isArray(session.chunkIds)) {
+        sessionChunkIds = session.chunkIds;
       }
 
       // Fallback: when chunkIds is null, look up session_chunks table
