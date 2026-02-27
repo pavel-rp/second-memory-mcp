@@ -51,4 +51,24 @@ export type RankInput = {
   timeboxMinutes?: number;
 };
 
-export type RankOutput = { orderedIds: string[]; warning?: string };
+export type RankedItem = {
+  id: string;
+  priority: number;
+  reason: string;
+  order: number;
+  cognitiveLoad: number;
+};
+
+export type RankSummary = {
+  totalCandidates: number;
+  selectedCount: number;
+  totalDuration: number;
+  timeboxApplied: boolean;
+};
+
+export type RankOutput = {
+  orderedIds: string[];
+  ranked: RankedItem[];
+  summary: RankSummary;
+  warning?: string;
+};

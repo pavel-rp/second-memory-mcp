@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { getSql } from '../db/operations.js';
-import { learningTopics, type LearningTopicRow } from '../db/schema.js';
+import { learningChunks, learningTopics, type LearningTopicRow } from '../db/schema.js';
 import { VALIDATION_CONSTANTS } from '../constants/validation.js';
 import { extractErrorMessage } from '../utils/errors.js';
 
@@ -93,7 +93,7 @@ export async function updateTopicMetadata(
   topicId: string,
   updates: { title?: string; subject?: string }
 ): Promise<TopicUpdateResult> {
-  return updateTopicFields(topicId, () => {
+  const result = await updateTopicFields(topicId, () => {
     if (updates.title !== undefined) {
       if (!updates.title || updates.title.length > VALIDATION_CONSTANTS.MAX_TITLE_LENGTH) {
         return {
@@ -127,6 +127,27 @@ export async function updateTopicMetadata(
     }
     return { data };
   });
+
+  // Cascade subject change to child chunks
+  if (result.success && updates.subject !== undefined) {
+    try {
+      const db = getSql();
+      await db
+        .update(learningChunks)
+        .set({ subject: updates.subject, updatedAt: Date.now() })
+        .where(eq(learningChunks.topicId, topicId));
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          type: 'database',
+          message: `Topic updated but failed to cascade subject to chunks: ${extractErrorMessage(error)}`,
+        },
+      };
+    }
+  }
+
+  return result;
 }
 
 /**

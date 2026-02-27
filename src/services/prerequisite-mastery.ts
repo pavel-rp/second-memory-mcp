@@ -172,8 +172,15 @@ export class PrerequisiteMasteryService {
       return false;
     }
 
-    // Check recency (if item was reviewed too long ago, not considered mastered)
-    if (metrics.daysSinceLastReview > criteria.recencyDays) {
+    // Solidly-learned override: items with enough attempts and high success rate
+    // are considered mastered regardless of recency. The recency check only
+    // applies to items that haven't been solidly established yet.
+    const solidlyLearned =
+      metrics.attemptCount >= criteria.requiredAttempts &&
+      metrics.successRate >= criteria.successRate;
+
+    // Check recency only for items not yet solidly learned
+    if (!solidlyLearned && metrics.daysSinceLastReview > criteria.recencyDays) {
       return false;
     }
 

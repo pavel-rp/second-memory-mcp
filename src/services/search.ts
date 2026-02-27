@@ -21,6 +21,7 @@ type ChunkRow = {
   topicId: string;
   title: string;
   subject: string;
+  content: string | null;
   createdAt: number;
   updatedAt: number;
   topicTitle: string | null;
@@ -58,7 +59,7 @@ function normalizeSearchQuery(query: string): NormalizedQuery {
 }
 
 function buildTokenConditions(
-  column: typeof learningTopics.title | typeof learningChunks.title,
+  column: typeof learningTopics.title | typeof learningChunks.title | typeof learningChunks.content,
   tokens: string[]
 ): SQL[] {
   return tokens.map(token => sql`lower(${column}) LIKE ${`%${token}%`}`);
@@ -127,14 +128,23 @@ function toTopicResult(row: TopicRow, query: NormalizedQuery): SearchResultItem 
 }
 
 function toChunkResult(row: ChunkRow, query: NormalizedQuery): SearchResultItem {
-  const highlightTerms = query.tokens.filter(token => row.title.toLowerCase().includes(token));
+  const titleLower = row.title.toLowerCase();
+  const contentLower = row.content?.toLowerCase() ?? '';
+  const highlightTerms = query.tokens.filter(
+    token => titleLower.includes(token) || contentLower.includes(token)
+  );
+
+  // Use best score from title or content, with a small boost for title matches
+  const titleScore = computeMatchScore(row.title, query);
+  const contentScore = row.content ? computeMatchScore(row.content, query) * 0.9 : 0;
+  const matchScore = Math.max(titleScore, contentScore);
 
   return {
     resultType: 'chunk',
     id: row.id,
     title: row.title,
     subject: row.subject,
-    matchScore: computeMatchScore(row.title, query),
+    matchScore,
     highlightTerms,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -177,9 +187,12 @@ async function fetchChunks(
   subject: string | undefined,
   fetchLimit: number
 ): Promise<ChunkRow[]> {
-  const tokenCondition = combineTokenConditions(
-    buildTokenConditions(learningChunks.title, query.tokens)
-  );
+  // Search both title and content columns
+  const titleConditions = buildTokenConditions(learningChunks.title, query.tokens);
+  const contentConditions = buildTokenConditions(learningChunks.content, query.tokens);
+  const allTokenConditions = [...titleConditions, ...contentConditions];
+  const tokenCondition = combineTokenConditions(allTokenConditions);
+
   const conditions: SQL[] = tokenCondition ? [tokenCondition] : [];
   if (subject) conditions.push(eq(learningChunks.subject, subject));
 
@@ -189,6 +202,7 @@ async function fetchChunks(
       topicId: learningChunks.topicId,
       title: learningChunks.title,
       subject: learningChunks.subject,
+      content: learningChunks.content,
       createdAt: learningChunks.createdAt,
       updatedAt: learningChunks.updatedAt,
       topicTitle: learningTopics.title,
