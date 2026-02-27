@@ -1,73 +1,49 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import {
   mapChunkRowToLearningItem,
   listChunksAsLearningItems,
   batchFetchChunksMinimal,
 } from '../../src/services/chunk-queries.js';
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 import crypto from 'node:crypto';
 
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
-
 describe('chunk-queries service', () => {
-  let dbFile: string;
+  beforeAll(setupTestDb);
+  beforeEach(cleanupTestDb);
+  afterAll(teardownTestDb);
 
-  beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase();
-    ensureSchema();
-  });
-
-  afterEach(async () => {
-    await resetDatabase();
-    for (const suffix of ['', '-shm', '-wal']) {
-      const f = `${dbFile}${suffix}`;
-      if (fs.existsSync(f)) fs.unlinkSync(f);
-    }
-  });
-
-  function seedData() {
+  async function seedData() {
     const db = getSql();
     const now = Date.now();
     const topicId = crypto.randomUUID();
 
-    db.insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Test Topic',
-        subject: 'Math',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: topicId,
+      title: 'Test Topic',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningChunks)
-      .values({
-        id: 'chunk-1',
-        topicId,
-        title: 'Chunk One',
-        subject: 'Math',
-        difficulty: 5,
-        nextReviewAt: now - 86400000,
-        easeFactor: 2.5,
-        repetitions: 3,
-        estimatedDuration: 15,
-        chunkType: 'review',
-        content: 'Test content',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: 'chunk-1',
+      topicId,
+      title: 'Chunk One',
+      subject: 'Math',
+      difficulty: 5,
+      nextReviewAt: now - 86400000,
+      easeFactor: 2.5,
+      repetitions: 3,
+      estimatedDuration: 15,
+      chunkType: 'review',
+      content: 'Test content',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     return { topicId };
   }
@@ -88,8 +64,8 @@ describe('chunk-queries service', () => {
         estimatedDuration: 15,
         intervalDays: 6,
         chunkType: 'review' as const,
-        prerequisitesJson: '["prereq-1"]',
-        tagsJson: '["math"]',
+        prerequisitesJson: ['prereq-1'],
+        tagsJson: ['math'],
         createdAt: now,
         updatedAt: now,
         topicTitle: 'My Topic',
@@ -173,14 +149,14 @@ describe('chunk-queries service', () => {
     });
 
     it('returns learning items from database', async () => {
-      seedData();
+      await seedData();
       const items = await listChunksAsLearningItems();
       expect(items.length).toBe(1);
       expect(items[0].title).toBe('Chunk One');
     });
 
     it('filters by subject', async () => {
-      seedData();
+      await seedData();
       const mathItems = await listChunksAsLearningItems({ subject: 'Math' });
       expect(mathItems.length).toBe(1);
 
@@ -196,7 +172,7 @@ describe('chunk-queries service', () => {
     });
 
     it('returns minimal metadata', async () => {
-      seedData();
+      await seedData();
       const chunks = await batchFetchChunksMinimal();
       expect(chunks.length).toBe(1);
       expect(chunks[0]).toHaveProperty('id');

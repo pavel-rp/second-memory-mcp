@@ -16,6 +16,7 @@ import {
   SessionMode,
   HistoricalFeedback,
   type BatchOperation,
+  type ChunkAttempt,
 } from '../types/session.js';
 import { logger } from '../utils/logger.js';
 
@@ -43,8 +44,8 @@ export type CreateSessionChunkInput = {
   sessionId: string;
   chunkId: string;
   status?: 'pending' | 'in_progress' | 'completed';
-  attemptsJson?: string; // JSON string of ChunkAttempt[]
-  qualityScoresJson?: string; // JSON string of number[]
+  attemptsJson?: ChunkAttempt[] | null;
+  qualityScoresJson?: number[] | null;
   timeSpentMs?: number;
   createdAt: number;
   updatedAt: number;
@@ -52,8 +53,8 @@ export type CreateSessionChunkInput = {
 
 export type UpdateSessionChunkInput = {
   status?: 'pending' | 'in_progress' | 'completed';
-  attemptsJson?: string;
-  qualityScoresJson?: string;
+  attemptsJson?: ChunkAttempt[] | null;
+  qualityScoresJson?: number[] | null;
   timeSpentMs?: number;
   updatedAt: number;
 };
@@ -85,8 +86,7 @@ export async function validateChunkIds(
     const existingChunks = await db
       .select({ id: learningChunks.id })
       .from(learningChunks)
-      .where(inArray(learningChunks.id, chunkIds))
-      .all();
+      .where(inArray(learningChunks.id, chunkIds));
 
     const existingIds = new Set(existingChunks.map(chunk => chunk.id));
     const validChunkIds: string[] = [];
@@ -145,7 +145,7 @@ export async function createSession(
   const sessionData: NewLearningSessionRow = {
     id: input.id,
     topicId: input.topicId || null,
-    chunkIds: input.chunkIds ? JSON.stringify(input.chunkIds) : null,
+    chunkIds: input.chunkIds ?? null,
     mode: input.mode,
     estimatedDuration: input.estimatedDuration || null,
     status: 'active',
@@ -156,7 +156,7 @@ export async function createSession(
     updatedAt: input.updatedAt,
   };
 
-  await db.insert(learningSessions).values(sessionData).run();
+  await db.insert(learningSessions).values(sessionData);
   logger.info(`Created session ${input.id} with mode ${input.mode}`);
 
   // Automatically create session chunks if chunkIds provided
@@ -182,18 +182,17 @@ export async function getSessionById(
   id: string,
   db: SqlDb = getSql()
 ): Promise<LearningSessionRow | null> {
-  return db.select().from(learningSessions).where(eq(learningSessions.id, id)).get() || null;
+  const [row] = await db.select().from(learningSessions).where(eq(learningSessions.id, id));
+  return row || null;
 }
 
 export async function getActiveSession(db: SqlDb = getSql()): Promise<LearningSessionRow | null> {
-  return (
-    db
-      .select()
-      .from(learningSessions)
-      .where(eq(learningSessions.status, 'active'))
-      .orderBy(desc(learningSessions.createdAt))
-      .get() || null
-  );
+  const [row] = await db
+    .select()
+    .from(learningSessions)
+    .where(eq(learningSessions.status, 'active'))
+    .orderBy(desc(learningSessions.createdAt));
+  return row || null;
 }
 
 export async function updateSession(
@@ -201,8 +200,8 @@ export async function updateSession(
   changes: UpdateSessionInput,
   db: SqlDb = getSql()
 ): Promise<number> {
-  const res = db.update(learningSessions).set(changes).where(eq(learningSessions.id, id)).run();
-  return res.changes ?? 0;
+  const res = await db.update(learningSessions).set(changes).where(eq(learningSessions.id, id));
+  return res.rowCount ?? 0;
 }
 
 export async function completeSession(
@@ -226,8 +225,8 @@ export async function completeSession(
 }
 
 export async function deleteSession(id: string, db: SqlDb = getSql()): Promise<number> {
-  const res = db.delete(learningSessions).where(eq(learningSessions.id, id)).run();
-  return res.changes ?? 0;
+  const res = await db.delete(learningSessions).where(eq(learningSessions.id, id));
+  return res.rowCount ?? 0;
 }
 
 // Session chunk functions
@@ -247,7 +246,7 @@ export async function createSessionChunk(
     updatedAt: input.updatedAt,
   };
 
-  await db.insert(sessionChunks).values(chunkData).run();
+  await db.insert(sessionChunks).values(chunkData);
   logger.info(`Created session chunk ${input.id} for session ${input.sessionId}`);
   return chunkData;
 }
@@ -256,14 +255,15 @@ export async function getSessionChunks(
   sessionId: string,
   db: SqlDb = getSql()
 ): Promise<SessionChunkRow[]> {
-  return db.select().from(sessionChunks).where(eq(sessionChunks.sessionId, sessionId)).all();
+  return await db.select().from(sessionChunks).where(eq(sessionChunks.sessionId, sessionId));
 }
 
 export async function getSessionChunkById(
   id: string,
   db: SqlDb = getSql()
 ): Promise<SessionChunkRow | null> {
-  return db.select().from(sessionChunks).where(eq(sessionChunks.id, id)).get() || null;
+  const [row] = await db.select().from(sessionChunks).where(eq(sessionChunks.id, id));
+  return row || null;
 }
 
 export async function updateSessionChunk(
@@ -271,13 +271,13 @@ export async function updateSessionChunk(
   changes: UpdateSessionChunkInput,
   db: SqlDb = getSql()
 ): Promise<number> {
-  const res = db.update(sessionChunks).set(changes).where(eq(sessionChunks.id, id)).run();
-  return res.changes ?? 0;
+  const res = await db.update(sessionChunks).set(changes).where(eq(sessionChunks.id, id));
+  return res.rowCount ?? 0;
 }
 
 export async function deleteSessionChunk(id: string, db: SqlDb = getSql()): Promise<number> {
-  const res = db.delete(sessionChunks).where(eq(sessionChunks.id, id)).run();
-  return res.changes ?? 0;
+  const res = await db.delete(sessionChunks).where(eq(sessionChunks.id, id));
+  return res.rowCount ?? 0;
 }
 
 // Utility functions for session state management
@@ -310,10 +310,10 @@ function convertSessionChunkRow(
   let qualityScores: number[] = [];
 
   try {
-    if (chunk.attemptsJson) {
-      const rawAttempts = JSON.parse(chunk.attemptsJson) as Array<{
+    if (Array.isArray(chunk.attemptsJson)) {
+      const rawAttempts = chunk.attemptsJson as Array<{
         timestamp: string | number;
-        quality: number;
+        quality?: number;
         timeSpentMs?: number;
         time_spent_ms?: number;
         completed: boolean;
@@ -328,8 +328,8 @@ function convertSessionChunkRow(
         completed: attempt.completed,
       }));
     }
-    if (chunk.qualityScoresJson) {
-      qualityScores = JSON.parse(chunk.qualityScoresJson);
+    if (Array.isArray(chunk.qualityScoresJson)) {
+      qualityScores = chunk.qualityScoresJson;
     }
   } catch (error) {
     logger.error(`Failed to parse JSON for session chunk ${chunk.id}:`, error);
@@ -371,8 +371,7 @@ export async function convertSessionToSessionInput(
     chunkDetails = await db
       .select()
       .from(learningChunks)
-      .where(inArray(learningChunks.id, chunkIds))
-      .all();
+      .where(inArray(learningChunks.id, chunkIds));
   }
 
   const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
@@ -403,21 +402,21 @@ export async function batchCreateSessionChunks(
   inputs: CreateSessionChunkInput[],
   db: SqlDb = getSql()
 ): Promise<void> {
-  for (const input of inputs) {
-    const chunkData: NewSessionChunkRow = {
-      id: input.id,
-      sessionId: input.sessionId,
-      chunkId: input.chunkId,
-      status: input.status || 'pending',
-      attemptsJson: input.attemptsJson || null,
-      qualityScoresJson: input.qualityScoresJson || null,
-      timeSpentMs: input.timeSpentMs || 0,
-      createdAt: input.createdAt,
-      updatedAt: input.updatedAt,
-    };
+  if (inputs.length === 0) return;
 
-    await db.insert(sessionChunks).values(chunkData).run();
-  }
+  const rows: NewSessionChunkRow[] = inputs.map(input => ({
+    id: input.id,
+    sessionId: input.sessionId,
+    chunkId: input.chunkId,
+    status: input.status || 'pending',
+    attemptsJson: input.attemptsJson || null,
+    qualityScoresJson: input.qualityScoresJson || null,
+    timeSpentMs: input.timeSpentMs || 0,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  }));
+
+  await db.insert(sessionChunks).values(rows);
 
   logger.info(`Created ${inputs.length} session chunks for session ${inputs[0]?.sessionId}`);
 }
@@ -438,10 +437,10 @@ export async function listSessions(
   query = query.orderBy(desc(learningSessions.createdAt)) as typeof query;
 
   if (options?.limit && options.limit > 0) {
-    return query.limit(options.limit).all();
+    return await query.limit(options.limit);
   }
 
-  return query.all();
+  return await query;
 }
 
 /**
@@ -470,8 +469,7 @@ export async function getHistoricalFeedbackForChunks(
       .select()
       .from(learningSessions)
       .where(eq(learningSessions.status, 'completed'))
-      .orderBy(desc(learningSessions.endTime))
-      .all();
+      .orderBy(desc(learningSessions.endTime));
 
     const feedbackEntries: HistoricalFeedback[] = [];
     const chunkIdSet = new Set(chunkIds);
@@ -487,24 +485,18 @@ export async function getHistoricalFeedbackForChunks(
         continue;
       }
 
-      // Parse session chunk IDs and check for overlap
+      // Read session chunk IDs and check for overlap
       let sessionChunkIds: string[] = [];
-      if (session.chunkIds) {
-        try {
-          sessionChunkIds = JSON.parse(session.chunkIds) as string[];
-        } catch {
-          logger.warn(`Failed to parse chunk IDs for session ${session.id}`);
-          continue;
-        }
+      if (Array.isArray(session.chunkIds)) {
+        sessionChunkIds = session.chunkIds;
       }
 
       // Fallback: when chunkIds is null, look up session_chunks table
       if (sessionChunkIds.length === 0) {
-        const trackedChunks = db
+        const trackedChunks = await db
           .select({ chunkId: sessionChunks.chunkId })
           .from(sessionChunks)
-          .where(eq(sessionChunks.sessionId, session.id))
-          .all();
+          .where(eq(sessionChunks.sessionId, session.id));
         sessionChunkIds = trackedChunks.map(c => c.chunkId);
       }
 
@@ -539,56 +531,54 @@ export async function getHistoricalFeedbackForChunks(
 /**
  * Create and persist a new session chunk row for a single batch operation.
  */
-function createSessionChunkFromOp(
+async function createSessionChunkFromOp(
   tx: Parameters<Parameters<typeof withTx>[0]>[0],
   sessionId: string,
   op: BatchOperation,
   now: number
-): { row: SessionChunkRow; didCreate: boolean } {
+): Promise<{ row: SessionChunkRow; didCreate: boolean }> {
   const newId = crypto.randomUUID();
   const row: SessionChunkRow = {
     id: newId,
     sessionId,
     chunkId: op.chunkId,
     status: op.status || 'pending',
-    attemptsJson: op.attempts ? JSON.stringify(op.attempts) : null,
-    qualityScoresJson: op.qualityScores ? JSON.stringify(op.qualityScores) : null,
+    attemptsJson: op.attempts ?? null,
+    qualityScoresJson: op.qualityScores ?? null,
     timeSpentMs: op.timeSpentMs || 0,
     createdAt: now,
     updatedAt: now,
   };
-  const insert = tx.insert(sessionChunks).values(row).run();
-  return { row, didCreate: (insert.changes ?? 0) > 0 };
+  const insert = await tx.insert(sessionChunks).values(row);
+  return { row, didCreate: (insert.rowCount ?? 0) > 0 };
 }
 
-function updateSessionChunkFromOp(
+async function updateSessionChunkFromOp(
   tx: Parameters<Parameters<typeof withTx>[0]>[0],
   current: SessionChunkRow,
   op: BatchOperation,
   now: number
-): 'updated' | 'unchanged' {
+): Promise<'updated' | 'unchanged'> {
   const next = {
     status: op.status ?? current.status,
-    attemptsJson: op.attempts ? JSON.stringify(op.attempts) : current.attemptsJson,
-    qualityScoresJson: op.qualityScores
-      ? JSON.stringify(op.qualityScores)
-      : current.qualityScoresJson,
+    attemptsJson: op.attempts ?? current.attemptsJson,
+    qualityScoresJson: op.qualityScores ?? current.qualityScoresJson,
     timeSpentMs: op.timeSpentMs ?? current.timeSpentMs,
   };
 
   if (
     next.status === current.status &&
-    next.attemptsJson === current.attemptsJson &&
-    next.qualityScoresJson === current.qualityScoresJson &&
+    JSON.stringify(next.attemptsJson) === JSON.stringify(current.attemptsJson) &&
+    JSON.stringify(next.qualityScoresJson) === JSON.stringify(current.qualityScoresJson) &&
     next.timeSpentMs === current.timeSpentMs
   ) {
     return 'unchanged';
   }
 
-  tx.update(sessionChunks)
+  await tx
+    .update(sessionChunks)
     .set({ ...next, updatedAt: now })
-    .where(eq(sessionChunks.id, current.id))
-    .run();
+    .where(eq(sessionChunks.id, current.id));
   return 'updated';
 }
 
@@ -596,11 +586,11 @@ function updateSessionChunkFromOp(
  * Persist batch session chunk operations within a single transaction.
  * Handles inserting new session chunks and updating existing ones.
  */
-export function persistBatchSessionChunkOperations(args: {
+export async function persistBatchSessionChunkOperations(args: {
   sessionId: string;
   operations: BatchOperation[];
   existingChunks: SessionChunkRow[];
-}): { created: number; updated: number; unchanged: number; affectedChunkIds: string[] } {
+}): Promise<{ created: number; updated: number; unchanged: number; affectedChunkIds: string[] }> {
   const { sessionId, operations, existingChunks } = args;
   const existingByChunkId = new Map(existingChunks.map(c => [c.chunkId, c]));
   const now = Date.now();
@@ -610,16 +600,16 @@ export function persistBatchSessionChunkOperations(args: {
   let unchanged = 0;
   const affectedChunkIds: string[] = [];
 
-  withTx(tx => {
+  await withTx(async tx => {
     for (const op of operations) {
       const current = existingByChunkId.get(op.chunkId);
       if (!current) {
-        const { row, didCreate } = createSessionChunkFromOp(tx, sessionId, op, now);
+        const { row, didCreate } = await createSessionChunkFromOp(tx, sessionId, op, now);
         if (didCreate) created++;
         affectedChunkIds.push(op.chunkId);
         existingByChunkId.set(op.chunkId, row);
       } else {
-        const result = updateSessionChunkFromOp(tx, current, op, now);
+        const result = await updateSessionChunkFromOp(tx, current, op, now);
         if (result === 'updated') {
           updated++;
           affectedChunkIds.push(op.chunkId);

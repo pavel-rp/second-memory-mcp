@@ -7,12 +7,14 @@ import { PrerequisiteReferenceValidator } from '../algorithms/prerequisite-refer
  * Get existing chunk IDs that match a provided list.
  * Used for prerequisite reference validation.
  */
-export function getExistingChunkIdsByIds(ids: string[], db: SqlDb = getSql()): Set<string> {
-  const rows = db
+export async function getExistingChunkIdsByIds(
+  ids: string[],
+  db: SqlDb = getSql()
+): Promise<Set<string>> {
+  const rows = await db
     .select({ id: learningChunks.id })
     .from(learningChunks)
-    .where(inArray(learningChunks.id, ids))
-    .all();
+    .where(inArray(learningChunks.id, ids));
   return new Set(rows.map(r => r.id));
 }
 
@@ -20,8 +22,8 @@ export function getExistingChunkIdsByIds(ids: string[], db: SqlDb = getSql()): S
  * Get all chunk IDs from the database.
  * Used for comprehensive prerequisite validation.
  */
-export function getAllChunkIds(db: SqlDb = getSql()): Set<string> {
-  const rows = db.select({ id: learningChunks.id }).from(learningChunks).all();
+export async function getAllChunkIds(db: SqlDb = getSql()): Promise<Set<string>> {
+  const rows = await db.select({ id: learningChunks.id }).from(learningChunks);
   return new Set(rows.map(r => r.id));
 }
 

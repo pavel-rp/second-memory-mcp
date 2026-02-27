@@ -10,7 +10,7 @@
     "start:pnpm": "pnpm run build && node dist/src/server/main.js",
     "start:stdio": "node --inspect=9229 dist/src/server/main.js",
     "test:prompts": "node scripts/test-prompts.mjs",
-    "test": "pnpm run build && vitest run --coverage && node scripts/cleanup-test-files.js",
+    "test": "pnpm run build && vitest run --coverage",
     "lint": "eslint src tests --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src tests --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
@@ -19,7 +19,6 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "test:cleanup": "node scripts/cleanup-test-files.js",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -40,14 +39,15 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "better-sqlite3": "^12.6.2",
+    "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.1",
+    "pg": "^8.13.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20.19.35",
+    "@types/pg": "^8.11.13",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",

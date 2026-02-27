@@ -1,83 +1,59 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import {
   getExistingChunkIdsByIds,
   getAllChunkIds,
   prerequisiteReferenceValidator,
 } from '../../src/services/chunk-prerequisites.js';
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 import crypto from 'node:crypto';
 
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
-
 describe('chunk-prerequisites service', () => {
-  let dbFile: string;
+  beforeAll(setupTestDb);
+  beforeEach(cleanupTestDb);
+  afterAll(teardownTestDb);
 
-  beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase();
-    ensureSchema();
-  });
-
-  afterEach(async () => {
-    await resetDatabase();
-    for (const suffix of ['', '-shm', '-wal']) {
-      const f = `${dbFile}${suffix}`;
-      if (fs.existsSync(f)) fs.unlinkSync(f);
-    }
-  });
-
-  function seedChunks(ids: string[]) {
+  async function seedChunks(ids: string[]) {
     const db = getSql();
     const now = Date.now();
     const topicId = crypto.randomUUID();
 
-    db.insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Test Topic',
-        subject: 'Math',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: topicId,
+      title: 'Test Topic',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
 
     for (const id of ids) {
-      db.insert(learningChunks)
-        .values({
-          id,
-          topicId,
-          title: `Chunk ${id}`,
-          subject: 'Math',
-          difficulty: 5,
-          nextReviewAt: now,
-          easeFactor: 2.5,
-          repetitions: 0,
-          estimatedDuration: 15,
-          chunkType: 'new',
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningChunks).values({
+        id,
+        topicId,
+        title: `Chunk ${id}`,
+        subject: 'Math',
+        difficulty: 5,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 15,
+        chunkType: 'new',
+        createdAt: now,
+        updatedAt: now,
+      });
     }
   }
 
   describe('getExistingChunkIdsByIds', () => {
-    it('returns empty set for empty input', () => {
-      const result = getExistingChunkIdsByIds([]);
+    it('returns empty set for empty input', async () => {
+      const result = await getExistingChunkIdsByIds([]);
       expect(result.size).toBe(0);
     });
 
-    it('returns matching chunk IDs', () => {
-      seedChunks(['c1', 'c2', 'c3']);
-      const result = getExistingChunkIdsByIds(['c1', 'c3', 'nonexistent']);
+    it('returns matching chunk IDs', async () => {
+      await seedChunks(['c1', 'c2', 'c3']);
+      const result = await getExistingChunkIdsByIds(['c1', 'c3', 'nonexistent']);
       expect(result.has('c1')).toBe(true);
       expect(result.has('c3')).toBe(true);
       expect(result.has('nonexistent')).toBe(false);
@@ -85,14 +61,14 @@ describe('chunk-prerequisites service', () => {
   });
 
   describe('getAllChunkIds', () => {
-    it('returns empty set when no chunks exist', () => {
-      const result = getAllChunkIds();
+    it('returns empty set when no chunks exist', async () => {
+      const result = await getAllChunkIds();
       expect(result.size).toBe(0);
     });
 
-    it('returns all chunk IDs', () => {
-      seedChunks(['a', 'b', 'c']);
-      const result = getAllChunkIds();
+    it('returns all chunk IDs', async () => {
+      await seedChunks(['a', 'b', 'c']);
+      const result = await getAllChunkIds();
       expect(result.size).toBe(3);
       expect(result.has('a')).toBe(true);
       expect(result.has('b')).toBe(true);
@@ -101,10 +77,10 @@ describe('chunk-prerequisites service', () => {
   });
 
   describe('prerequisiteReferenceValidator singleton', () => {
-    it('validates against real database', () => {
-      seedChunks(['real-chunk']);
+    it('validates against real database', async () => {
+      await seedChunks(['real-chunk']);
       prerequisiteReferenceValidator.clearCache();
-      const result = prerequisiteReferenceValidator.validatePrerequisiteReferences([
+      const result = await prerequisiteReferenceValidator.validatePrerequisiteReferences([
         'real-chunk',
         'fake-chunk',
       ]);

@@ -1,17 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { registerServerTools } from '../../src/server/tools.js';
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks, learningSessions } from '../../src/db/schema.js';
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -31,49 +24,29 @@ function parseToolResult(out: any): any {
 
 describe('Integration: Complete Session Lifecycle', () => {
   let server: CaptureServer;
-  let dbFile: string;
 
+  beforeAll(setupTestDb);
   beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase();
-    ensureSchema();
+    await cleanupTestDb();
 
     server = new CaptureServer() as any;
     registerServerTools(server as any);
   });
-
-  afterEach(async () => {
-    await resetDatabase();
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
-  });
+  afterAll(teardownTestDb);
 
   it('should complete full session lifecycle: create → track progress → complete', async () => {
-    // Setup: Create test data
     const now = Date.now();
     const topicId = crypto.randomUUID();
     const chunkId1 = crypto.randomUUID();
     const chunkId2 = crypto.randomUUID();
 
-    // Create topic and chunks
-    await getSql()
-      .insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Test Topic',
-        subject: 'Math',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await getSql().insert(learningTopics).values({
+      id: topicId,
+      title: 'Test Topic',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
 
     await getSql()
       .insert(learningChunks)
@@ -106,10 +79,8 @@ describe('Integration: Complete Session Lifecycle', () => {
           createdAt: now,
           updatedAt: now,
         },
-      ])
-      .run();
+      ]);
 
-    // Step 1: Create a new session
     const createSessionTool = server.tools.get('create_session');
     expect(createSessionTool).toBeDefined();
     if (!createSessionTool) throw new Error('create_session tool not found');
@@ -126,18 +97,15 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(createParsed.sessionId).toBeDefined();
     const sessionId = createParsed.sessionId;
 
-    // Verify session was created in database
-    const sessionInDb = await getSql()
+    const [sessionInDb] = await getSql()
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, sessionId))
-      .get();
+      .where(eq(learningSessions.id, sessionId));
     expect(sessionInDb).toBeDefined();
     expect(sessionInDb?.topicId).toBe(topicId);
     expect(sessionInDb?.mode).toBe('learning');
     expect(sessionInDb?.status).toBe('active');
 
-    // Step 2: Get the active session
     const getActiveSessionTool = server.tools.get('get_active_session');
     expect(getActiveSessionTool).toBeDefined();
     if (!getActiveSessionTool) throw new Error('get_active_session tool not found');
@@ -147,12 +115,10 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(getActiveParsed.status).toBe('found');
     expect(getActiveParsed.session.session_id).toBe(sessionId);
 
-    // Step 3: Create session chunks to simulate learning progress
     const createSessionChunkTool = server.tools.get('create_session_chunk');
     expect(createSessionChunkTool).toBeDefined();
     if (!createSessionChunkTool) throw new Error('create_session_chunk tool not found');
 
-    // Create session chunk for chunk 1 (completed)
     await createSessionChunkTool.handler({
       sessionId: sessionId,
       chunkId: chunkId1,
@@ -169,7 +135,6 @@ describe('Integration: Complete Session Lifecycle', () => {
       timeSpentMs: 5000,
     });
 
-    // Create session chunk for chunk 2 (in progress)
     await createSessionChunkTool.handler({
       sessionId: sessionId,
       chunkId: chunkId2,
@@ -184,7 +149,6 @@ describe('Integration: Complete Session Lifecycle', () => {
       timeSpentMs: 3000,
     });
 
-    // Step 4: Test session progress analysis
     const sessionProgressTool = server.tools.get('session_progress');
     expect(sessionProgressTool).toBeDefined();
     if (!sessionProgressTool) throw new Error('session_progress tool not found');
@@ -200,7 +164,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(progressParsed.average_quality).toBeDefined();
     expect(progressParsed.time_elapsed_ms).toBeDefined();
 
-    // Step 5: Test session workflow analysis
     const sessionWorkflowTool = server.tools.get('session_workflow');
     expect(sessionWorkflowTool).toBeDefined();
     if (!sessionWorkflowTool) throw new Error('session_workflow tool not found');
@@ -214,7 +177,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(workflowParsed.guidance).toBeDefined();
     expect(typeof workflowParsed.can_advance).toBe('boolean');
 
-    // Step 6: Complete the session
     const completeSessionTool = server.tools.get('complete_session');
     expect(completeSessionTool).toBeDefined();
     if (!completeSessionTool) throw new Error('complete_session tool not found');
@@ -227,23 +189,19 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(completeParsed.status).toBe('completed');
     expect(completeParsed.sessionId).toBe(sessionId);
 
-    // Verify session was completed in database
-    const completedSessionInDb = await getSql()
+    const [completedSessionInDb] = await getSql()
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, sessionId))
-      .get();
+      .where(eq(learningSessions.id, sessionId));
     expect(completedSessionInDb?.status).toBe('completed');
     expect(completedSessionInDb?.feedback).toBe('Great session! Learned a lot about the topic.');
     expect(completedSessionInDb?.endTime).toBeDefined();
 
-    // Step 7: Verify no active session exists after completion
     const getActiveAfterCompleteResult = await getActiveSessionTool.handler({});
     const getActiveAfterCompleteParsed = parseToolResult(getActiveAfterCompleteResult);
     expect(getActiveAfterCompleteParsed.status).toBe('not_found');
     expect(getActiveAfterCompleteParsed.session).toBeNull();
 
-    // Step 8: Test session completion analysis
     const sessionCompletionTool = server.tools.get('session_completion');
     expect(sessionCompletionTool).toBeDefined();
     if (!sessionCompletionTool) throw new Error('session_completion tool not found');
@@ -258,14 +216,12 @@ describe('Integration: Complete Session Lifecycle', () => {
   });
 
   it('should handle session lifecycle with multiple sessions', async () => {
-    // Setup: Create test data
     const now = Date.now();
     const topicId1 = crypto.randomUUID();
     const topicId2 = crypto.randomUUID();
     const chunkId1 = crypto.randomUUID();
     const chunkId2 = crypto.randomUUID();
 
-    // Create topics and chunks
     await getSql()
       .insert(learningTopics)
       .values([
@@ -283,8 +239,7 @@ describe('Integration: Complete Session Lifecycle', () => {
           createdAt: now,
           updatedAt: now,
         },
-      ])
-      .run();
+      ]);
 
     await getSql()
       .insert(learningChunks)
@@ -317,8 +272,7 @@ describe('Integration: Complete Session Lifecycle', () => {
           createdAt: now,
           updatedAt: now,
         },
-      ])
-      .run();
+      ]);
 
     const createSessionTool = server.tools.get('create_session');
     const getActiveSessionTool = server.tools.get('get_active_session');
@@ -332,7 +286,6 @@ describe('Integration: Complete Session Lifecycle', () => {
       throw new Error('Required tools not found');
     }
 
-    // Create first session
     const session1Result = await createSessionTool.handler({
       topicId: topicId1,
       chunkIds: [chunkId1],
@@ -341,13 +294,11 @@ describe('Integration: Complete Session Lifecycle', () => {
     });
     const session1Id = parseToolResult(session1Result).sessionId;
 
-    // Complete first session before creating second one
     await completeSessionTool.handler({
       sessionId: session1Id,
       feedback: 'Completed math learning',
     });
 
-    // Create second session (should be the active one)
     const session2Result = await createSessionTool.handler({
       topicId: topicId2,
       chunkIds: [chunkId2],
@@ -356,42 +307,34 @@ describe('Integration: Complete Session Lifecycle', () => {
     });
     const session2Id = parseToolResult(session2Result).sessionId;
 
-    // Verify second session is active
     const activeResult = await getActiveSessionTool.handler({});
     const activeParsed = parseToolResult(activeResult);
     expect(activeParsed.status).toBe('found');
     expect(activeParsed.session.session_id).toBe(session2Id);
 
-    // Complete second session
     await completeSessionTool.handler({
       sessionId: session2Id,
       feedback: 'Completed science review',
     });
 
-    // Verify no active sessions remain
     const activeAfterCompleteResult = await getActiveSessionTool.handler({});
     const activeAfterCompleteParsed = parseToolResult(activeAfterCompleteResult);
     expect(activeAfterCompleteParsed.status).toBe('not_found');
   });
 
   it('should verify automatic session chunk creation integration', async () => {
-    // Setup: Create test data
     const now = Date.now();
     const topicId = crypto.randomUUID();
     const chunkId1 = crypto.randomUUID();
     const chunkId2 = crypto.randomUUID();
 
-    // Create topic and chunks
-    await getSql()
-      .insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Test Topic',
-        subject: 'Math',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await getSql().insert(learningTopics).values({
+      id: topicId,
+      title: 'Test Topic',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
 
     await getSql()
       .insert(learningChunks)
@@ -424,10 +367,8 @@ describe('Integration: Complete Session Lifecycle', () => {
           createdAt: now,
           updatedAt: now,
         },
-      ])
-      .run();
+      ]);
 
-    // Create session with chunkIds - this should automatically create session chunks
     const createSessionTool = server.tools.get('create_session');
     expect(createSessionTool).toBeDefined();
     if (!createSessionTool) throw new Error('create_session tool not found');
@@ -444,7 +385,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(createParsed.message).toContain('2 chunks initialized');
     const sessionId = createParsed.sessionId;
 
-    // Verify session chunks were created automatically
     const getActiveSessionTool = server.tools.get('get_active_session');
     expect(getActiveSessionTool).toBeDefined();
     if (!getActiveSessionTool) throw new Error('get_active_session tool not found');
@@ -454,7 +394,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(getActiveParsed.status).toBe('found');
     expect(getActiveParsed.session.session_id).toBe(sessionId);
 
-    // Verify that session chunks were created automatically
     expect(getActiveParsed.session.chunks).toHaveLength(2);
     expect(getActiveParsed.session.chunks[0].chunk_id).toBe(chunkId1);
     expect(getActiveParsed.session.chunks[0].status).toBe('pending');
@@ -463,41 +402,33 @@ describe('Integration: Complete Session Lifecycle', () => {
   });
 
   it('should handle session lifecycle with backward compatibility (SessionInput)', async () => {
-    // Setup: Create test data
     const now = Date.now();
     const topicId = crypto.randomUUID();
     const chunkId = crypto.randomUUID();
 
-    await getSql()
-      .insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Test Topic',
-        subject: 'Math',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await getSql().insert(learningTopics).values({
+      id: topicId,
+      title: 'Test Topic',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    await getSql()
-      .insert(learningChunks)
-      .values({
-        id: chunkId,
-        topicId: topicId,
-        title: 'Test Chunk',
-        subject: 'Math',
-        difficulty: 5,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 0,
-        estimatedDuration: 10,
-        chunkType: 'new',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await getSql().insert(learningChunks).values({
+      id: chunkId,
+      topicId: topicId,
+      title: 'Test Chunk',
+      subject: 'Math',
+      difficulty: 5,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Create session
     const createSessionTool = server.tools.get('create_session');
     expect(createSessionTool).toBeDefined();
     if (!createSessionTool) throw new Error('create_session tool not found');
@@ -509,7 +440,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     });
     const sessionId = parseToolResult(createResult).sessionId;
 
-    // Create session chunk
     const createSessionChunkTool = server.tools.get('create_session_chunk');
     expect(createSessionChunkTool).toBeDefined();
     if (!createSessionChunkTool) throw new Error('create_session_chunk tool not found');
@@ -529,7 +459,6 @@ describe('Integration: Complete Session Lifecycle', () => {
       timeSpentMs: 5000,
     });
 
-    // Test session analysis tools with both sessionId and SessionInput
     const sessionProgressTool = server.tools.get('session_progress');
     const sessionWorkflowTool = server.tools.get('session_workflow');
     const sessionCompletionTool = server.tools.get('session_completion');
@@ -542,14 +471,12 @@ describe('Integration: Complete Session Lifecycle', () => {
       throw new Error('Required session analysis tools not found');
     }
 
-    // Test with sessionId
     const progressWithIdResult = await sessionProgressTool.handler({
       sessionId: sessionId,
     });
     const progressWithIdParsed = parseToolResult(progressWithIdResult);
     expect(progressWithIdParsed.session_id).toBe(sessionId);
 
-    // Test with SessionInput (backward compatibility)
     const sessionInput = {
       session_id: sessionId,
       mode: 'learning' as const,
@@ -581,7 +508,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     const progressWithInputParsed = parseToolResult(progressWithInputResult);
     expect(progressWithInputParsed.session_id).toBe(sessionId);
 
-    // Test workflow with SessionInput
     const workflowWithInputResult = await sessionWorkflowTool.handler({
       sessionData: sessionInput,
     });
@@ -591,7 +517,6 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(workflowWithInputParsed.guidance).toBeDefined();
     expect(typeof workflowWithInputParsed.can_advance).toBe('boolean');
 
-    // Test completion with SessionInput
     const completionWithInputResult = await sessionCompletionTool.handler({
       sessionData: sessionInput,
     });

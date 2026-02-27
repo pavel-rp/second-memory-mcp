@@ -57,7 +57,7 @@ export async function processReviewResult(
       chunkType: sm2Result.leech ? 'remediation' : 'review',
     };
 
-    await db.update(learningChunks).set(updateData).where(eq(learningChunks.id, itemId)).run();
+    await db.update(learningChunks).set(updateData).where(eq(learningChunks.id, itemId));
 
     // Return updated chunk with leech information
     const updatedChunk = await getChunk(itemId, db);

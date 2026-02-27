@@ -1,66 +1,44 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { processReviewResult } from '../../src/services/chunk-reviews.js';
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 describe('chunk-reviews service', () => {
-  let dbFile: string;
   const topicId = 'topic-1';
   const chunkId = 'chunk-1';
 
+  beforeAll(setupTestDb);
   beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase();
-    ensureSchema();
+    await cleanupTestDb();
 
     const db = getSql();
     const now = Date.now();
 
-    db.insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Test Topic',
-        subject: 'Math',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: topicId,
+      title: 'Test Topic',
+      subject: 'Math',
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningChunks)
-      .values({
-        id: chunkId,
-        topicId,
-        title: 'Test Chunk',
-        subject: 'Math',
-        difficulty: 5,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 1,
-        estimatedDuration: 15,
-        chunkType: 'review',
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: chunkId,
+      topicId,
+      title: 'Test Chunk',
+      subject: 'Math',
+      difficulty: 5,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 1,
+      estimatedDuration: 15,
+      chunkType: 'review',
+      createdAt: now,
+      updatedAt: now,
+    });
   });
-
-  afterEach(async () => {
-    await resetDatabase();
-    for (const suffix of ['', '-shm', '-wal']) {
-      const f = `${dbFile}${suffix}`;
-      if (fs.existsSync(f)) fs.unlinkSync(f);
-    }
-  });
+  afterAll(teardownTestDb);
 
   describe('processReviewResult', () => {
     it('updates chunk with good quality review', async () => {

@@ -1,16 +1,8 @@
-import { describe, it, beforeEach, afterEach, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
+import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { registerSearchTools } from '../../src/server/search-tools.js';
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -34,72 +26,52 @@ function parseToolResult(out: any): any {
 describe('search_learning_content tool', () => {
   let server: CaptureServer;
   let tool: { spec: any; handler: Function };
-  let dbFile: string;
 
+  beforeAll(setupTestDb);
   beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase();
-    ensureSchema();
-
+    await cleanupTestDb();
     server = new CaptureServer();
     registerSearchTools(server as any);
     tool = server.tools.get('search_learning_content')!;
     expect(tool).toBeDefined();
   });
-
-  afterEach(async () => {
-    await resetDatabase();
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
-  });
+  afterAll(teardownTestDb);
 
   it('returns matching results and metadata', async () => {
     const db = getSql();
     const now = Date.now();
 
-    db.insert(learningTopics)
-      .values({
-        id: 'topic-segment-tree',
-        title: 'Segment Tree Overview',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 'topic-segment-tree',
+      title: 'Segment Tree Overview',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningChunks)
-      .values({
-        id: 'chunk-segment-tree-build',
-        topicId: 'topic-segment-tree',
-        title: 'Segment Tree Build Routine',
-        subject: 'CS',
-        difficulty: 6,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 0,
-        lastReviewedAt: null,
-        estimatedDuration: 20,
-        chunkType: 'new',
-        prerequisitesJson: JSON.stringify([]),
-        tagsJson: JSON.stringify(['data-structures']),
-        content: 'Guide to building segment trees.',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: 'chunk-segment-tree-build',
+      topicId: 'topic-segment-tree',
+      title: 'Segment Tree Build Routine',
+      subject: 'CS',
+      difficulty: 6,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      lastReviewedAt: null,
+      estimatedDuration: 20,
+      chunkType: 'new',
+      prerequisitesJson: [],
+      tagsJson: ['data-structures'],
+      content: 'Guide to building segment trees.',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const result = await tool.handler({
       query: 'segment tree',

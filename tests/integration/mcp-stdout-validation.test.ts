@@ -1,36 +1,15 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { spawn } from 'child_process';
 import { setTimeout } from 'timers/promises';
-import { randomUUID } from 'crypto';
 
 describe('MCP Server stdout validation', () => {
-  const tempDbFiles: string[] = [];
-
-  afterEach(async () => {
-    // Clean up all temporary database files
-    for (const tempDbPath of tempDbFiles) {
-      try {
-        const fs = await import('fs');
-        if (fs.existsSync(tempDbPath)) {
-          fs.unlinkSync(tempDbPath);
-        }
-      } catch (error) {
-        // Ignore cleanup errors
-      }
-    }
-    tempDbFiles.length = 0; // Clear the array
-  });
   it('should not output any non-JSON content to stdout', async () => {
-    // Use a temporary database for testing
-    const tempDbPath = `test-mcp-${randomUUID()}.db`;
-    tempDbFiles.push(tempDbPath);
-
     // Spawn the MCP server with test database
     const server = spawn('node', ['dist/src/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        SM_DB_PATH: tempDbPath,
+        DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/second_memory_test',
       },
     });
 
@@ -118,15 +97,11 @@ describe('MCP Server stdout validation', () => {
   }, 10000); // 10 second timeout
 
   it('should not leak non-MCP output to stdout during startup', async () => {
-    // Use a temporary database for testing
-    const tempDbPath = `test-mcp-${randomUUID()}.db`;
-    tempDbFiles.push(tempDbPath);
-
     const server = spawn('node', ['dist/src/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        SM_DB_PATH: tempDbPath,
+        DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/second_memory_test',
       },
     });
 

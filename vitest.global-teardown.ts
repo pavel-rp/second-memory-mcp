@@ -1,5 +1,4 @@
-import { cleanupTestFiles } from './scripts/cleanup-test-files.js';
-
 export default function teardown() {
-  cleanupTestFiles();
+  // Pool cleanup is handled per-suite via teardownTestDb()
+  // No global cleanup needed for PostgreSQL
 }

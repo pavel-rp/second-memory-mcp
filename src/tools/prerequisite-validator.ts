@@ -17,7 +17,7 @@ export type ReferenceValidatorDep = {
   validateChunkPrerequisites: (
     chunkId: string,
     prerequisites: string[]
-  ) => { isValid: boolean; invalidReferences: string[] };
+  ) => Promise<{ isValid: boolean; invalidReferences: string[] }>;
 };
 
 export type MasteryServiceDep = {
@@ -65,7 +65,7 @@ export class PrerequisiteValidator {
 
     try {
       // Quick test of database connectivity - use minimal test for better performance
-      this.referenceValidator.validateChunkPrerequisites('test', []);
+      await this.referenceValidator.validateChunkPrerequisites('test', []);
       this.databaseAvailable = true;
     } catch (error) {
       // Database is not available - check if we're in a test environment with mocks
@@ -148,7 +148,7 @@ export class PrerequisiteValidator {
   private async validateSingleItem(
     item: LearningItem
   ): Promise<{ valid: true } | { valid: false; reason: string; missingPrerequisites: string[] }> {
-    const referenceValidation = this.referenceValidator.validateChunkPrerequisites(
+    const referenceValidation = await this.referenceValidator.validateChunkPrerequisites(
       item.id,
       item.prerequisites || []
     );

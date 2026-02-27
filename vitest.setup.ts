@@ -1,8 +1,11 @@
-import crypto from "node:crypto";
-import path from "node:path";
+import 'dotenv/config';
 
-// CRITICAL: Ensure tests NEVER use production database
-// Set SM_DB_PATH to a unique temp file for EVERY test run
-if (!process.env.SM_DB_PATH || process.env.SM_DB_PATH.includes("second-memory.db")) {
-	process.env.SM_DB_PATH = path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
+// CRITICAL: Ensure tests use a PostgreSQL test database
+process.env.NODE_ENV = 'test';
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    'DATABASE_URL must be set for tests. ' +
+      'Example: DATABASE_URL=postgresql://postgres:postgres@localhost:5432/second_memory_test'
+  );
 }

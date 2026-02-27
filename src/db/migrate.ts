@@ -1,12 +1,10 @@
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import type { Database as BetterSqlite3Database } from 'better-sqlite3';
-import { getDb } from './client.js';
-import { getSql, bulkInsert, encodeJsonArray } from './operations.js';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { getPool } from './client.js';
+import { getSql, bulkInsert } from './operations.js';
 import { logger } from '../utils/logger.js';
 import {
   learningTopics,
@@ -49,84 +47,17 @@ function resolveMigrationsDir(): string {
  * Public entry point for server bootstrap — runs Drizzle Kit migrations.
  */
 export async function initializeDatabase(): Promise<void> {
-  ensureSchema();
-}
-
-/**
- * The core tables that migration 0000 creates.
- * If these exist without a Drizzle journal, the database predates Drizzle Kit.
- */
-const CORE_TABLES = ['learning_topics', 'learning_chunks', 'learning_sessions', 'session_chunks'];
-
-/**
- * Check if a SQLite table exists in the database.
- */
-function tableExists(db: BetterSqlite3Database, name: string): boolean {
-  const row = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name) as
-    | { 1: number }
-    | undefined;
-  return row !== undefined;
-}
-
-/**
- * For databases that predate Drizzle Kit: if core tables already exist but the
- * __drizzle_migrations journal does not, create the journal and mark migration
- * 0000 as already applied so Drizzle won't attempt to re-create existing tables.
- */
-function seedJournalForExistingDatabase(db: BetterSqlite3Database, migrationsFolder: string): void {
-  const hasJournal = tableExists(db, '__drizzle_migrations');
-  if (hasJournal) return;
-
-  const hasCoreTable = CORE_TABLES.some(t => tableExists(db, t));
-  if (!hasCoreTable) return;
-
-  logger.info('Existing database detected without Drizzle journal — seeding migration history');
-
-  // Read the journal to find migration 0000 metadata
-  const journalPath = path.join(migrationsFolder, 'meta', '_journal.json');
-  const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8')) as {
-    entries: { idx: number; tag: string; when: number }[];
-  };
-  const firstEntry = journal.entries.find(e => e.idx === 0);
-  if (!firstEntry) {
-    throw new Error('Could not find migration 0000 in drizzle journal');
-  }
-
-  // Create the journal table with the same schema Drizzle uses internally
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      hash TEXT NOT NULL,
-      created_at INTEGER
-    );
-  `);
-
-  // Read the migration SQL to compute the hash Drizzle expects
-  const migrationSql = fs.readFileSync(
-    path.join(migrationsFolder, `${firstEntry.tag}.sql`),
-    'utf-8'
-  );
-
-  // Drizzle uses sha256 of the migration SQL content as the hash
-  const hash = crypto.createHash('sha256').update(migrationSql).digest('hex');
-
-  db.prepare('INSERT INTO "__drizzle_migrations" (hash, created_at) VALUES (?, ?)').run(
-    hash,
-    firstEntry.when
-  );
-
-  logger.info(`Marked migration 0000 (${firstEntry.tag}) as already applied`);
+  await ensureSchema();
 }
 
 /**
  * Apply all pending Drizzle Kit migrations.
  */
-export function ensureSchema(): void {
-  const db = getDb();
-  const drizzleDb = drizzle(db);
+export async function ensureSchema(): Promise<void> {
+  const pool = getPool();
+  const drizzleDb = drizzle(pool);
   const migrationsFolder = resolveMigrationsDir();
-  seedJournalForExistingDatabase(db, migrationsFolder);
-  migrate(drizzleDb, { migrationsFolder });
+  await migrate(drizzleDb, { migrationsFolder });
 }
 
 type RawLearningChunk = Omit<NewLearningChunkRow, 'prerequisitesJson' | 'tagsJson'> & {
@@ -156,8 +87,8 @@ async function importData(data: MigrationData) {
     sessionChunkCount = 0;
 
   if (Array.isArray(data.learning_topics)) {
-    await bulkInsert<NewLearningTopicRow>(data.learning_topics, chunk => {
-      return db.insert(learningTopics).values(chunk).run();
+    await bulkInsert<NewLearningTopicRow>(data.learning_topics, async chunk => {
+      await db.insert(learningTopics).values(chunk);
     });
     topics = data.learning_topics.length;
   }
@@ -167,27 +98,27 @@ async function importData(data: MigrationData) {
       const { prerequisites, tags, ...chunkWithoutLists } = chunk;
       return {
         ...chunkWithoutLists,
-        prerequisitesJson: encodeJsonArray(prerequisites ?? undefined),
-        tagsJson: encodeJsonArray(tags ?? undefined),
+        prerequisitesJson: prerequisites ?? null,
+        tagsJson: tags ?? null,
       };
     });
-    await bulkInsert<NewLearningChunkRow>(mapped, chunk =>
-      db.insert(learningChunks).values(chunk).run()
-    );
+    await bulkInsert<NewLearningChunkRow>(mapped, async chunk => {
+      await db.insert(learningChunks).values(chunk);
+    });
     chunks = mapped.length;
   }
 
   if (Array.isArray(data.learning_sessions)) {
-    await bulkInsert<NewLearningSessionRow>(data.learning_sessions, chunk =>
-      db.insert(learningSessions).values(chunk).run()
-    );
+    await bulkInsert<NewLearningSessionRow>(data.learning_sessions, async chunk => {
+      await db.insert(learningSessions).values(chunk);
+    });
     sessions = data.learning_sessions.length;
   }
 
   if (Array.isArray(data.session_chunks)) {
-    await bulkInsert<NewSessionChunkRow>(data.session_chunks, chunk =>
-      db.insert(sessionChunks).values(chunk).run()
-    );
+    await bulkInsert<NewSessionChunkRow>(data.session_chunks, async chunk => {
+      await db.insert(sessionChunks).values(chunk);
+    });
     sessionChunkCount = data.session_chunks.length;
   }
 
@@ -195,7 +126,7 @@ async function importData(data: MigrationData) {
 }
 
 async function main() {
-  ensureSchema();
+  await ensureSchema();
   const src = process.argv[2];
   const data = readJson(src);
   const summary = await importData(data);

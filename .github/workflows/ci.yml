@@ -10,6 +10,21 @@ jobs:
   build-test-lint:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: second_memory_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
         node-version: [20.x]
@@ -22,33 +37,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: latest
-          
-      - name: Install system dependencies for SQLite
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential python3 libsqlite3-dev
-          
-      - name: Rebuild better-sqlite3 (ensure native binding)
-        run: |
-          export npm_config_python=$(which python3)
-          export npm_config_build_from_source=true
-          pnpm rebuild better-sqlite3
-          
-      - name: Install dependencies (build native modules)
-        env:
-          npm_config_python: python3
-          npm_config_build_from_source: true
-        run: pnpm install --frozen-lockfile
 
-      - name: Verify SQLite bindings
-        run: |
-          node -e "console.log('SQLite bindings test:', require('better-sqlite3'))"
-          node -e "const Database = require('better-sqlite3'); const db = new Database(':memory:'); console.log('SQLite test DB created successfully'); db.close();"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Lint code
         run: pnpm run lint
@@ -62,7 +58,7 @@ jobs:
       - name: Run tests
         env:
           CI: true
-          FORCE_SQLITE_TESTS: true
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/second_memory_test
         run: pnpm run test
 
       - name: Upload coverage reports

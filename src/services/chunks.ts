@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, decodeJsonArray, encodeJsonArray, type SqlDb } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import { dependencyResolver } from '../algorithms/dependency-resolver.js';
 import { hasSignificantContentChange } from '../utils/content-similarity.js';
@@ -42,21 +42,18 @@ export type CreateChunkInput = {
 };
 
 export async function createChunk(input: CreateChunkInput, db: SqlDb = getSql()): Promise<void> {
-  await db
-    .insert(learningChunks)
-    .values({
-      ...input,
-      prerequisitesJson: encodeJsonArray(input.prerequisites),
-      tagsJson: encodeJsonArray(input.tags),
-      content: input.content || null,
-      contentVersion: input.content ? input.contentVersion || 1 : null,
-      contentUpdatedAt: input.content ? input.contentUpdatedAt || Date.now() : null,
-    })
-    .run();
+  await db.insert(learningChunks).values({
+    ...input,
+    prerequisitesJson: input.prerequisites ?? null,
+    tagsJson: input.tags ?? null,
+    content: input.content || null,
+    contentVersion: input.content ? input.contentVersion || 1 : null,
+    contentUpdatedAt: input.content ? input.contentUpdatedAt || Date.now() : null,
+  });
 }
 
 export async function getChunk(id: string, db: SqlDb = getSql()) {
-  const row = db.select().from(learningChunks).where(eq(learningChunks.id, id)).get();
+  const [row] = await db.select().from(learningChunks).where(eq(learningChunks.id, id));
   return row;
 }
 
@@ -68,12 +65,12 @@ export async function updateChunk(
   const updatePayload: Record<string, unknown> = { ...changes };
 
   // Handle JSON fields - remove original fields to avoid conflicts
-  if (changes.prerequisites) {
-    updatePayload.prerequisitesJson = encodeJsonArray(changes.prerequisites);
+  if (changes.prerequisites !== undefined) {
+    updatePayload.prerequisitesJson = changes.prerequisites;
     delete updatePayload.prerequisites;
   }
-  if (changes.tags) {
-    updatePayload.tagsJson = encodeJsonArray(changes.tags);
+  if (changes.tags !== undefined) {
+    updatePayload.tagsJson = changes.tags;
     delete updatePayload.tags;
   }
 
@@ -82,8 +79,8 @@ export async function updateChunk(
     updatePayload.lastReviewedAt = changes.lastReviewedAt;
   }
 
-  const res = db.update(learningChunks).set(updatePayload).where(eq(learningChunks.id, id)).run();
-  return res.changes ?? 0;
+  const res = await db.update(learningChunks).set(updatePayload).where(eq(learningChunks.id, id));
+  return res.rowCount ?? 0;
 }
 
 // Enhanced update functions for content and metadata management
@@ -167,8 +164,8 @@ async function updateChunkFields(
     const now = Date.now();
     const { fields, progressReset } = buildFields(currentChunk, now);
 
-    const res = db.update(learningChunks).set(fields).where(eq(learningChunks.id, id)).run();
-    if (res.changes === 0) {
+    const res = await db.update(learningChunks).set(fields).where(eq(learningChunks.id, id));
+    if (res.rowCount === 0) {
       return {
         success: false,
         error: { type: 'database', message: `Failed to update chunk ${errorLabel}` },
@@ -212,9 +209,8 @@ function applyMetadataFields(
   if (input.title !== undefined) data.title = input.title;
   if (input.difficulty !== undefined) data.difficulty = input.difficulty;
   if (input.estimatedDuration !== undefined) data.estimatedDuration = input.estimatedDuration;
-  if (input.prerequisites !== undefined)
-    data.prerequisitesJson = encodeJsonArray(input.prerequisites);
-  if (input.tags !== undefined) data.tagsJson = encodeJsonArray(input.tags);
+  if (input.prerequisites !== undefined) data.prerequisitesJson = input.prerequisites;
+  if (input.tags !== undefined) data.tagsJson = input.tags;
 }
 
 function applyContentFields(
@@ -306,24 +302,21 @@ export type DeleteChunkResult = {
   error?: ChunkOperationError;
 };
 
-function findDependentChunks(id: string, db: SqlDb) {
-  return db
+async function findDependentChunks(id: string, db: SqlDb) {
+  return await db
     .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
     .where(
       sql`
         ${learningChunks.id} != ${id}
-        AND json_type(${learningChunks.prerequisitesJson}) = 'array'
-        AND EXISTS (
-          SELECT 1 FROM json_each(${learningChunks.prerequisitesJson}) WHERE value = ${id}
-        )
+        AND ${learningChunks.prerequisitesJson} IS NOT NULL
+        AND ${learningChunks.prerequisitesJson}::jsonb @> to_jsonb(ARRAY[${id}]::text[])
       `
-    )
-    .all();
+    );
 }
 
-type DependentRow = ReturnType<typeof findDependentChunks>[number];
+type DependentRow = Awaited<ReturnType<typeof findDependentChunks>>[number];
 
 async function resolveDeleteOrder(
   dependentRows: DependentRow[],
@@ -349,12 +342,12 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
       };
     }
 
-    const dependentRows = findDependentChunks(id, db);
+    const dependentRows = await findDependentChunks(id, db);
     const dependentIds = dependentRows.map(row => row.id);
     const orderedDependentIds = await resolveDeleteOrder(dependentRows, dependentIds);
     const dependentRowMap = new Map(dependentRows.map(row => [row.id, row]));
 
-    const dependencyUpdates = db.transaction<ChunkDependencyCleanup[]>(tx => {
+    const dependencyUpdates = await db.transaction(async tx => {
       const now = Date.now();
       const updates: ChunkDependencyCleanup[] = [];
 
@@ -362,16 +355,16 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
         const candidate = dependentRowMap.get(dependentId);
         if (!candidate) continue;
 
-        const prerequisites = decodeJsonArray(candidate.prerequisitesJson);
+        const prerequisites = candidate.prerequisitesJson ?? [];
         if (prerequisites.length === 0) continue;
 
         const remaining = prerequisites.filter(prereqId => prereqId !== id);
         if (remaining.length === prerequisites.length) continue;
 
-        tx.update(learningChunks)
-          .set({ prerequisitesJson: encodeJsonArray(remaining), updatedAt: now })
-          .where(eq(learningChunks.id, candidate.id))
-          .run();
+        await tx
+          .update(learningChunks)
+          .set({ prerequisitesJson: remaining, updatedAt: now })
+          .where(eq(learningChunks.id, candidate.id));
 
         updates.push({
           chunkId: candidate.id,
@@ -382,8 +375,8 @@ export async function deleteChunk(id: string, db: SqlDb = getSql()): Promise<Del
         });
       }
 
-      const deleteResult = tx.delete(learningChunks).where(eq(learningChunks.id, id)).run();
-      if ((deleteResult.changes ?? 0) === 0) {
+      const deleteResult = await tx.delete(learningChunks).where(eq(learningChunks.id, id));
+      if ((deleteResult.rowCount ?? 0) === 0) {
         throw new Error('Failed to delete chunk from database');
       }
 
@@ -414,13 +407,12 @@ export async function createChunkWithTopic(
   let finalTopicId = input.topicId;
   if (input.topicTitle && !finalTopicId) {
     // Check if topic already exists with the same title and subject
-    const existingTopic = db
+    const [existingTopic] = await db
       .select()
       .from(learningTopics)
       .where(
         and(eq(learningTopics.title, input.topicTitle), eq(learningTopics.subject, input.subject))
-      )
-      .get();
+      );
 
     if (existingTopic) {
       finalTopicId = existingTopic.id;
@@ -428,29 +420,23 @@ export async function createChunkWithTopic(
       // Create new topic
       finalTopicId = crypto.randomUUID();
       const now = Date.now();
-      await db
-        .insert(learningTopics)
-        .values({
-          id: finalTopicId,
-          title: input.topicTitle,
-          subject: input.subject,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: finalTopicId,
+        title: input.topicTitle,
+        subject: input.subject,
+        createdAt: now,
+        updatedAt: now,
+      });
     }
   }
 
   // Create the chunk
-  await db
-    .insert(learningChunks)
-    .values({
-      ...input,
-      topicId: finalTopicId,
-      prerequisitesJson: encodeJsonArray(input.prerequisites),
-      tagsJson: encodeJsonArray(input.tags),
-    })
-    .run();
+  await db.insert(learningChunks).values({
+    ...input,
+    topicId: finalTopicId,
+    prerequisitesJson: input.prerequisites ?? null,
+    tagsJson: input.tags ?? null,
+  });
 
   // Return the created chunk
   const createdChunk = await getChunk(input.id, db);
@@ -473,15 +459,14 @@ export async function getChunkContent(
   id: string,
   db: SqlDb = getSql()
 ): Promise<ChunkContentResult | null> {
-  const result = db
+  const [result] = await db
     .select({
       content: learningChunks.content,
       contentVersion: learningChunks.contentVersion,
       contentUpdatedAt: learningChunks.contentUpdatedAt,
     })
     .from(learningChunks)
-    .where(eq(learningChunks.id, id))
-    .get();
+    .where(eq(learningChunks.id, id));
 
   return result || null;
 }
@@ -490,12 +475,11 @@ export async function getChunkWithContent(
   id: string,
   db: SqlDb = getSql()
 ): Promise<(LearningChunkRow & { topicTitle?: string | null }) | null> {
-  const result = db
+  const [result] = await db
     .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
     .from(learningChunks)
     .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
-    .where(eq(learningChunks.id, id))
-    .get();
+    .where(eq(learningChunks.id, id));
 
   return result || null;
 }

@@ -1,38 +1,5 @@
-import { describe, it, beforeEach, afterEach, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-
-let hasBinding = true;
-try {
-  const Database = require('better-sqlite3');
-  const testDb = new Database(':memory:');
-  testDb.close();
-} catch {
-  hasBinding = false;
-}
-
-// Force tests to run in CI environment only if bindings are actually available
-if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
-  try {
-    const Database = require('better-sqlite3');
-    const testDb = new Database(':memory:');
-    testDb.close();
-    hasBinding = true;
-  } catch {
-    hasBinding = false;
-    console.warn('CI environment detected but SQLite bindings not available');
-  }
-}
-
-// Force tests to run in CI environment
-if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
-  hasBinding = true;
-}
-
-import { getDb, resetDatabase } from '../../src/db/client.js';
+import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 import {
   createTopic,
   getTopicById,
@@ -42,46 +9,17 @@ import {
   batchFetchTopicsMinimal,
 } from '../../src/services/topics.js';
 
-function ensureSchema() {
-  const db = getDb();
-  db.exec(`
-	CREATE TABLE IF NOT EXISTS learning_topics (
-		id TEXT PRIMARY KEY NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		summary TEXT,
-		summary_version INTEGER,
-		summary_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
-	);
-	`);
-}
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
-
-(hasBinding ? describe : describe.skip)('topics service', () => {
-  let dbFile: string;
-
-  beforeEach(() => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    ensureSchema();
+describe('topics service', () => {
+  beforeAll(async () => {
+    await setupTestDb();
   });
 
-  afterEach(async () => {
-    await resetDatabase(); // Close database connection
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
+  beforeEach(async () => {
+    await cleanupTestDb();
+  });
+
+  afterAll(async () => {
+    await teardownTestDb();
   });
 
   it('creates, reads, lists, updates, and deletes a topic', async () => {
@@ -123,7 +61,7 @@ function tmpDbPath() {
     expect(setup.success).toBe(true);
 
     // Update with the same values — should succeed regardless of whether
-    // SQLite reports 0 or 1 changes (behavior varies by engine)
+    // the DB reports 0 or 1 changes (behavior varies by engine)
     const result = await updateTopic('t1', { title: 'Algebra' });
     expect(result.success).toBe(true);
   });

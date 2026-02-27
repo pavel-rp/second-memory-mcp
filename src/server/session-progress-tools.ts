@@ -30,17 +30,20 @@ export function registerSessionProgressTools(server: McpServer): void {
         const validatedInput = CreateSessionChunkToolInputSchema.parse(input);
         const now = Date.now();
 
+        const mappedAttempts = validatedInput.attempts?.map(a => ({
+          timestamp: new Date(a.timestamp).toISOString(),
+          quality: a.quality,
+          time_spent_ms: a.timeSpentMs,
+          completed: a.completed,
+        }));
+
         const createSessionChunkInput: CreateSessionChunkInput = {
           id: crypto.randomUUID(),
           sessionId: validatedInput.sessionId,
           chunkId: validatedInput.chunkId,
           status: validatedInput.status,
-          attemptsJson: validatedInput.attempts
-            ? JSON.stringify(validatedInput.attempts)
-            : undefined,
-          qualityScoresJson: validatedInput.qualityScores
-            ? JSON.stringify(validatedInput.qualityScores)
-            : undefined,
+          attemptsJson: mappedAttempts ?? undefined,
+          qualityScoresJson: validatedInput.qualityScores ?? undefined,
           timeSpentMs: validatedInput.timeSpentMs,
           createdAt: now,
           updatedAt: now,
@@ -92,7 +95,7 @@ export function registerSessionProgressTools(server: McpServer): void {
         // Fetch session and existing chunks
         const { session, chunks } = await getSessionWithChunks(validatedInput.sessionId);
 
-        const result = applyBatchSessionChunkOperations({
+        const result = await applyBatchSessionChunkOperations({
           sessionId: validatedInput.sessionId,
           operations: validatedInput.operations,
           activeSessionExists: session?.status === 'active',

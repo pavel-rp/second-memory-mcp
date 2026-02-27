@@ -143,12 +143,12 @@ function toChunkResult(row: ChunkRow, query: NormalizedQuery): SearchResultItem 
   };
 }
 
-function fetchTopics(
+async function fetchTopics(
   db: SqlDb,
   query: NormalizedQuery,
   subject: string | undefined,
   fetchLimit: number
-): TopicRow[] {
+): Promise<TopicRow[]> {
   const tokenCondition = combineTokenConditions(
     buildTokenConditions(learningTopics.title, query.tokens)
   );
@@ -167,16 +167,16 @@ function fetchTopics(
 
   const combined = combineConditions(conditions);
   return combined
-    ? baseQuery.where(combined).limit(fetchLimit).all()
-    : baseQuery.limit(fetchLimit).all();
+    ? await baseQuery.where(combined).limit(fetchLimit)
+    : await baseQuery.limit(fetchLimit);
 }
 
-function fetchChunks(
+async function fetchChunks(
   db: SqlDb,
   query: NormalizedQuery,
   subject: string | undefined,
   fetchLimit: number
-): ChunkRow[] {
+): Promise<ChunkRow[]> {
   const tokenCondition = combineTokenConditions(
     buildTokenConditions(learningChunks.title, query.tokens)
   );
@@ -198,8 +198,8 @@ function fetchChunks(
 
   const combined = combineConditions(conditions);
   return combined
-    ? baseQuery.where(combined).limit(fetchLimit).all()
-    : baseQuery.limit(fetchLimit).all();
+    ? await baseQuery.where(combined).limit(fetchLimit)
+    : await baseQuery.limit(fetchLimit);
 }
 
 function rankAndSlice(results: SearchResultItem[], limit: number): SearchResultItem[] {
@@ -220,8 +220,8 @@ export async function searchLearningContent(
   const fetchLimit = Math.max(limit * FETCH_MULTIPLIER, limit);
   const normalizedQuery = normalizeSearchQuery(input.query);
 
-  const topics = fetchTopics(db, normalizedQuery, input.subject, fetchLimit);
-  const chunks = fetchChunks(db, normalizedQuery, input.subject, fetchLimit);
+  const topics = await fetchTopics(db, normalizedQuery, input.subject, fetchLimit);
+  const chunks = await fetchChunks(db, normalizedQuery, input.subject, fetchLimit);
 
   const topicResults = topics.map(row => toTopicResult(row, normalizedQuery));
   const chunkResults = chunks.map(row => toChunkResult(row, normalizedQuery));

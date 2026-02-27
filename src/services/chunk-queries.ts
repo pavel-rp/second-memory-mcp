@@ -1,5 +1,5 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import { getSql, decodeJsonArray, type SqlDb } from '../db/operations.js';
+import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
 import type {
   LearningItem,
@@ -104,8 +104,8 @@ export function mapChunkRowToLearningItem(
     lastReviewed: row.lastReviewedAt ? toIsoDate(row.lastReviewedAt) : undefined,
     estimatedDuration: row.estimatedDuration,
     chunkType,
-    prerequisites: decodeJsonArray(row.prerequisitesJson),
-    tags: decodeJsonArray(row.tagsJson),
+    prerequisites: row.prerequisitesJson ?? [],
+    tags: row.tagsJson ?? [],
     topicId: topicTitle !== null ? row.topicId : undefined,
     topicTitle: topicTitle ?? undefined,
   };
@@ -134,7 +134,7 @@ export async function listChunks(filter: ListChunksFilter = {}, db: SqlDb = getS
   if (whereClause) query = query.where(whereClause);
   if (filter.limit && filter.limit > 0) query = query.limit(filter.limit);
 
-  return query.all();
+  return await query;
 }
 
 export async function listChunksAsLearningItems(
@@ -177,7 +177,8 @@ export async function listChunksWithContent(
     .select({ count: sql<number>`count(*)` })
     .from(learningChunks)
     .$dynamic();
-  const totalCount = (whereClause ? countQuery.where(whereClause) : countQuery).get()?.count || 0;
+  const [countRow] = whereClause ? await countQuery.where(whereClause) : await countQuery;
+  const totalCount = Number(countRow?.count) || 0;
 
   // Apply pagination and conditions
   const offset = filter.offset || 0;
@@ -185,7 +186,7 @@ export async function listChunksWithContent(
 
   let query = baseQuery.$dynamic();
   if (whereClause) query = query.where(whereClause);
-  const rows = query.offset(offset).limit(limit).all();
+  const rows = await query.offset(offset).limit(limit);
 
   const items = rows.map(row =>
     mapChunkRowToLearningItem(row as ChunkListRowWithContent, {
@@ -248,5 +249,5 @@ export async function batchFetchChunksMinimal(
   if (whereClause) query = query.where(whereClause);
   if (options?.limit && options.limit > 0) query = query.limit(options.limit);
 
-  return query.all();
+  return await query;
 }
