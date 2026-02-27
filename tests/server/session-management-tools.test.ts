@@ -1,8 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { registerSessionManagementTools } from '../../src/server/session-management-tools.js';
-import { resetDatabase, getDb } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
 import {
   learningTopics,
@@ -10,13 +8,7 @@ import {
   learningSessions,
   sessionChunks,
 } from '../../src/db/schema.js';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -41,13 +33,10 @@ describe('Integration: Session Management Tools', () => {
   let getSessionTool: { spec: any; handler: Function };
   let completeSessionTool: { spec: any; handler: Function };
   let batchUpdateChunksTool: { spec: any; handler: Function };
-  let dbFile: string;
 
+  beforeAll(setupTestDb);
   beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase(); // Reset singleton to pick up new path
-    ensureSchema();
+    await cleanupTestDb();
 
     server = new CaptureServer();
     registerSessionManagementTools(server as any);
@@ -64,85 +53,65 @@ describe('Integration: Session Management Tools', () => {
     expect(completeSessionTool).toBeDefined();
     expect(batchUpdateChunksTool).toBeDefined();
   });
-
-  afterEach(async () => {
-    await resetDatabase(); // Close database connection
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
-  });
+  afterAll(teardownTestDb);
 
   it('should create a session successfully', async () => {
     const now = Date.now();
     const db = getSql();
     const uniqueId = `topic-${now}-${Math.random()}`;
 
-    // Create a topic first
-    db.insert(learningTopics)
-      .values({
-        id: uniqueId,
-        title: 'Test Topic',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: uniqueId,
+      title: 'Test Topic',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Create the chunks that will be referenced
-    db.insert(learningChunks)
-      .values({
-        id: 'chunk1',
-        topicId: uniqueId,
-        title: 'Test Chunk 1',
-        subject: 'CS',
-        difficulty: 5,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 0,
-        lastReviewedAt: null,
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisitesJson: null,
-        tagsJson: null,
-        content: 'Test content 1',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: 'chunk1',
+      topicId: uniqueId,
+      title: 'Test Chunk 1',
+      subject: 'CS',
+      difficulty: 5,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      lastReviewedAt: null,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      prerequisitesJson: null,
+      tagsJson: null,
+      content: 'Test content 1',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningChunks)
-      .values({
-        id: 'chunk2',
-        topicId: uniqueId,
-        title: 'Test Chunk 2',
-        subject: 'CS',
-        difficulty: 5,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 0,
-        lastReviewedAt: null,
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisitesJson: null,
-        tagsJson: null,
-        content: 'Test content 2',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: 'chunk2',
+      topicId: uniqueId,
+      title: 'Test Chunk 2',
+      subject: 'CS',
+      difficulty: 5,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      lastReviewedAt: null,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      prerequisitesJson: null,
+      tagsJson: null,
+      content: 'Test content 2',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const result = await createSessionTool.handler({
       topicId: uniqueId,
@@ -156,12 +125,10 @@ describe('Integration: Session Management Tools', () => {
     expect(parsed.status).toBe('created');
     expect(parsed.message).toContain('Session created successfully');
 
-    // Verify session was created in database
-    const session = db
+    const [session] = await db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, parsed.sessionId))
-      .get();
+      .where(eq(learningSessions.id, parsed.sessionId));
     expect(session).toBeDefined();
     expect(session?.mode).toBe('learning');
     expect(session?.status).toBe('active');
@@ -172,23 +139,20 @@ describe('Integration: Session Management Tools', () => {
     const now = Date.now();
     const db = getSql();
 
-    // Create a session directly in database
     const sessionId = `session-${now}`;
-    db.insert(learningSessions)
-      .values({
-        id: sessionId,
-        topicId: null,
-        chunkIds: JSON.stringify(['chunk1']),
-        mode: 'learning',
-        estimatedDuration: 30,
-        status: 'active',
-        startTime: now,
-        endTime: null,
-        feedback: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningSessions).values({
+      id: sessionId,
+      topicId: null,
+      chunkIds: ['chunk1'],
+      mode: 'learning',
+      estimatedDuration: 30,
+      status: 'active',
+      startTime: now,
+      endTime: null,
+      feedback: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const result = await getActiveSessionTool.handler({});
 
@@ -211,23 +175,20 @@ describe('Integration: Session Management Tools', () => {
     const now = Date.now();
     const db = getSql();
 
-    // Create a session directly in database
     const sessionId = `session-${now}`;
-    db.insert(learningSessions)
-      .values({
-        id: sessionId,
-        topicId: null,
-        chunkIds: JSON.stringify(['chunk1']),
-        mode: 'review',
-        estimatedDuration: 20,
-        status: 'active',
-        startTime: now,
-        endTime: null,
-        feedback: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningSessions).values({
+      id: sessionId,
+      topicId: null,
+      chunkIds: ['chunk1'],
+      mode: 'review',
+      estimatedDuration: 20,
+      status: 'active',
+      startTime: now,
+      endTime: null,
+      feedback: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const result = await getSessionTool.handler({
       sessionId: sessionId,
@@ -254,25 +215,21 @@ describe('Integration: Session Management Tools', () => {
     const now = Date.now();
     const db = getSql();
 
-    // Create a session directly in database
     const sessionId = `session-${now}`;
-    db.insert(learningSessions)
-      .values({
-        id: sessionId,
-        topicId: null,
-        chunkIds: JSON.stringify(['chunk1']),
-        mode: 'learning',
-        estimatedDuration: 30,
-        status: 'active',
-        startTime: now,
-        endTime: null,
-        feedback: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningSessions).values({
+      id: sessionId,
+      topicId: null,
+      chunkIds: ['chunk1'],
+      mode: 'learning',
+      estimatedDuration: 30,
+      status: 'active',
+      startTime: now,
+      endTime: null,
+      feedback: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Add a small delay to ensure duration > 0
     await new Promise(resolve => setTimeout(resolve, 10));
 
     const result = await completeSessionTool.handler({
@@ -287,12 +244,10 @@ describe('Integration: Session Management Tools', () => {
     expect(parsed.finalMetrics).toBeDefined();
     expect(parsed.finalMetrics.duration).toBeGreaterThan(0);
 
-    // Verify session was updated in database
-    const session = db
+    const [session] = await db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, sessionId))
-      .get();
+      .where(eq(learningSessions.id, sessionId));
     expect(session?.status).toBe('completed');
     expect(session?.endTime).toBeDefined();
     expect(session?.feedback).toBe('Great session!');
@@ -302,25 +257,21 @@ describe('Integration: Session Management Tools', () => {
     const now = Date.now();
     const db = getSql();
 
-    // Create a session directly in database
     const sessionId = `session-${now}`;
-    db.insert(learningSessions)
-      .values({
-        id: sessionId,
-        topicId: null,
-        chunkIds: JSON.stringify(['chunk1']),
-        mode: 'learning',
-        estimatedDuration: 30,
-        status: 'active',
-        startTime: now,
-        endTime: null,
-        feedback: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningSessions).values({
+      id: sessionId,
+      topicId: null,
+      chunkIds: ['chunk1'],
+      mode: 'learning',
+      estimatedDuration: 30,
+      status: 'active',
+      startTime: now,
+      endTime: null,
+      feedback: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Add a small delay to ensure duration > 0
     await new Promise(resolve => setTimeout(resolve, 10));
 
     const result = await completeSessionTool.handler({
@@ -332,12 +283,10 @@ describe('Integration: Session Management Tools', () => {
     expect(parsed.status).toBe('completed');
     expect(parsed.message).toContain('Session completed successfully');
 
-    // Verify session was updated in database
-    const session = db
+    const [session] = await db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, sessionId))
-      .get();
+      .where(eq(learningSessions.id, sessionId));
     expect(session?.status).toBe('completed');
     expect(session?.endTime).toBeDefined();
     expect(session?.feedback).toBeNull();
@@ -354,7 +303,6 @@ describe('Integration: Session Management Tools', () => {
   });
 
   it('should handle invalid input gracefully', async () => {
-    // Test create_session with invalid mode
     const result1 = await createSessionTool.handler({
       mode: 'invalid_mode',
     });
@@ -362,37 +310,18 @@ describe('Integration: Session Management Tools', () => {
     const parsed1 = parseToolResult(result1);
     expect(parsed1.error).toBeDefined();
 
-    // Test create_session with invalid duration
     const result2 = await createSessionTool.handler({
       mode: 'learning',
-      estimatedDuration: 500, // Too long
+      estimatedDuration: 500,
     });
 
     const parsed2 = parseToolResult(result2);
     expect(parsed2.error).toBeDefined();
 
-    // Test complete_session without sessionId
     const result3 = await completeSessionTool.handler({});
 
     const parsed3 = parseToolResult(result3);
     expect(parsed3.error).toBeDefined();
-  });
-
-  it('should handle database errors gracefully', async () => {
-    // Reset database and drop tables to cause a real database error
-    await resetDatabase();
-
-    // Drop the learning_sessions table to cause a foreign key constraint error
-    const db = getDb();
-    db.exec('DROP TABLE IF EXISTS learning_sessions');
-
-    // This should cause a database error since the table doesn't exist
-    const result = await createSessionTool.handler({
-      mode: 'learning',
-    });
-
-    const parsed = parseToolResult(result);
-    expect(parsed.error).toBeDefined();
   });
 
   it('should work with session chunks', async () => {
@@ -400,45 +329,39 @@ describe('Integration: Session Management Tools', () => {
     const db = getSql();
     const uniqueId = `topic-${now}-${Math.random()}`;
 
-    // Create a topic and chunk first
-    db.insert(learningTopics)
-      .values({
-        id: uniqueId,
-        title: 'Test Topic',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: uniqueId,
+      title: 'Test Topic',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const chunkId = `chunk-${now}`;
-    db.insert(learningChunks)
-      .values({
-        id: chunkId,
-        topicId: uniqueId,
-        title: 'Test Chunk',
-        subject: 'CS',
-        difficulty: 5,
-        nextReviewAt: now + 86400000,
-        easeFactor: 2.5,
-        repetitions: 0,
-        lastReviewedAt: null,
-        estimatedDuration: 20,
-        chunkType: 'new',
-        prerequisitesJson: JSON.stringify([]),
-        tagsJson: JSON.stringify([]),
-        content: 'Test content',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: chunkId,
+      topicId: uniqueId,
+      title: 'Test Chunk',
+      subject: 'CS',
+      difficulty: 5,
+      nextReviewAt: now + 86400000,
+      easeFactor: 2.5,
+      repetitions: 0,
+      lastReviewedAt: null,
+      estimatedDuration: 20,
+      chunkType: 'new',
+      prerequisitesJson: [],
+      tagsJson: [],
+      content: 'Test content',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Create a session
     const createResult = await createSessionTool.handler({
       topicId: uniqueId,
       chunkIds: [chunkId],
@@ -449,29 +372,25 @@ describe('Integration: Session Management Tools', () => {
     const createParsed = parseToolResult(createResult);
     const sessionId = createParsed.sessionId;
 
-    // Add session chunks
-    db.insert(sessionChunks)
-      .values({
-        id: `session-chunk-${now}`,
-        sessionId: sessionId,
-        chunkId: chunkId,
-        status: 'completed',
-        attemptsJson: JSON.stringify([
-          {
-            timestamp: new Date(now).toISOString(),
-            quality: 5,
-            time_spent_ms: 3000,
-            completed: true,
-          },
-        ]),
-        qualityScoresJson: JSON.stringify([5]),
-        timeSpentMs: 3000,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(sessionChunks).values({
+      id: `session-chunk-${now}`,
+      sessionId: sessionId,
+      chunkId: chunkId,
+      status: 'completed',
+      attemptsJson: [
+        {
+          timestamp: new Date(now).toISOString(),
+          quality: 5,
+          time_spent_ms: 3000,
+          completed: true,
+        },
+      ],
+      qualityScoresJson: [5],
+      timeSpentMs: 3000,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Get the session and verify chunks are included
     const getResult = await getSessionTool.handler({
       sessionId: sessionId,
     });
@@ -479,7 +398,6 @@ describe('Integration: Session Management Tools', () => {
     const getParsed = parseToolResult(getResult);
     expect(getParsed.status).toBe('found');
     expect(getParsed.session.chunks).toHaveLength(2);
-    // Find the completed chunk (the one we manually added)
     const completedChunk = getParsed.session.chunks.find(
       (chunk: any) => chunk.status === 'completed'
     );
@@ -493,32 +411,27 @@ describe('Integration: Session Management Tools', () => {
     const now = Date.now();
     const db = getSql();
 
-    // Create first session
     const session1Id = `session-${now}`;
-    db.insert(learningSessions)
-      .values({
-        id: session1Id,
-        topicId: null,
-        chunkIds: null,
-        mode: 'learning',
-        estimatedDuration: 30,
-        status: 'active',
-        startTime: now,
-        endTime: null,
-        feedback: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningSessions).values({
+      id: session1Id,
+      topicId: null,
+      chunkIds: null,
+      mode: 'learning',
+      estimatedDuration: 30,
+      status: 'active',
+      startTime: now,
+      endTime: null,
+      feedback: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Should return the active session
     const result1 = await getActiveSessionTool.handler({});
     const parsed1 = parseToolResult(result1);
     expect(parsed1.status).toBe('found');
     expect(parsed1.session.session_id).toBe(session1Id);
     expect(parsed1.session.mode).toBe('learning');
 
-    // Complete the first session
     const completeResult = await completeSessionTool.handler({
       sessionId: session1Id,
       feedback: 'Great session!',
@@ -526,30 +439,25 @@ describe('Integration: Session Management Tools', () => {
     const completeParsed = parseToolResult(completeResult);
     expect(completeParsed.status).toBe('completed');
 
-    // Should return not_found when no active sessions
     const result2 = await getActiveSessionTool.handler({});
     const parsed2 = parseToolResult(result2);
     expect(parsed2.status).toBe('not_found');
 
-    // Now create second session
     const session2Id = `session-${now + 1000}`;
-    db.insert(learningSessions)
-      .values({
-        id: session2Id,
-        topicId: null,
-        chunkIds: null,
-        mode: 'review',
-        estimatedDuration: 20,
-        status: 'active',
-        startTime: now + 1000,
-        endTime: null,
-        feedback: null,
-        createdAt: now + 1000,
-        updatedAt: now + 1000,
-      })
-      .run();
+    await db.insert(learningSessions).values({
+      id: session2Id,
+      topicId: null,
+      chunkIds: null,
+      mode: 'review',
+      estimatedDuration: 20,
+      status: 'active',
+      startTime: now + 1000,
+      endTime: null,
+      feedback: null,
+      createdAt: now + 1000,
+      updatedAt: now + 1000,
+    });
 
-    // Should return the new active session
     const result3 = await getActiveSessionTool.handler({});
     const parsed3 = parseToolResult(result3);
     expect(parsed3.status).toBe('found');
@@ -562,67 +470,59 @@ describe('Integration: Session Management Tools', () => {
     const db = getSql();
     const topicId = `topic-${now}`;
 
-    // Create topic and two learning chunks
-    db.insert(learningTopics)
-      .values({
-        id: topicId,
-        title: 'Batch Topic',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: topicId,
+      title: 'Batch Topic',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningChunks)
-      .values({
-        id: 'bchunk1',
-        topicId,
-        title: 'Batch Chunk 1',
-        subject: 'CS',
-        difficulty: 3,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 0,
-        lastReviewedAt: null,
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisitesJson: null,
-        tagsJson: null,
-        content: 'c1',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: 'bchunk1',
+      topicId,
+      title: 'Batch Chunk 1',
+      subject: 'CS',
+      difficulty: 3,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      lastReviewedAt: null,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      prerequisitesJson: null,
+      tagsJson: null,
+      content: 'c1',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningChunks)
-      .values({
-        id: 'bchunk2',
-        topicId,
-        title: 'Batch Chunk 2',
-        subject: 'CS',
-        difficulty: 3,
-        nextReviewAt: now,
-        easeFactor: 2.5,
-        repetitions: 0,
-        lastReviewedAt: null,
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisitesJson: null,
-        tagsJson: null,
-        content: 'c2',
-        contentVersion: 1,
-        contentUpdatedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningChunks).values({
+      id: 'bchunk2',
+      topicId,
+      title: 'Batch Chunk 2',
+      subject: 'CS',
+      difficulty: 3,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      lastReviewedAt: null,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      prerequisitesJson: null,
+      tagsJson: null,
+      content: 'c2',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Create a session with one chunk auto-initialized
     const createOut = await createSessionTool.handler({
       topicId,
       chunkIds: ['bchunk1'],
@@ -632,7 +532,6 @@ describe('Integration: Session Management Tools', () => {
     const created = parseToolResult(createOut);
     const sessionId = created.sessionId;
 
-    // Batch: update existing bchunk1 to completed and create new bchunk2 pending
     const batchOut = await batchUpdateChunksTool.handler({
       sessionId,
       operations: [
@@ -667,19 +566,16 @@ describe('Integration: Session Management Tools', () => {
     expect(batchParsed.unchanged).toBe(0);
     expect(batchParsed.affectedChunkIds.sort()).toEqual(['bchunk1', 'bchunk2']);
 
-    // Verify DB state
-    const session = db
+    const [session] = await db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, sessionId))
-      .get();
+      .where(eq(learningSessions.id, sessionId));
     expect(session).toBeDefined();
 
-    const sChunks = db
+    const sChunks = await db
       .select()
       .from(sessionChunks)
-      .where(eq(sessionChunks.sessionId, sessionId))
-      .all();
+      .where(eq(sessionChunks.sessionId, sessionId));
     expect(sChunks.length).toBe(2);
 
     const c1 = sChunks.find(c => c.chunkId === 'bchunk1')!;
@@ -689,7 +585,6 @@ describe('Integration: Session Management Tools', () => {
   });
 
   it('should reject batch update with invalid chunk IDs', async () => {
-    // Create a session first
     const createOut = await createSessionTool.handler({
       mode: 'learning',
       estimatedDuration: 25,
@@ -697,7 +592,6 @@ describe('Integration: Session Management Tools', () => {
     const created = parseToolResult(createOut);
     const sessionId = created.sessionId;
 
-    // Attempt batch update with non-existent chunk IDs
     const batchOut = await batchUpdateChunksTool.handler({
       sessionId,
       operations: [{ chunkId: 'does-not-exist', status: 'pending' }],
@@ -708,12 +602,10 @@ describe('Integration: Session Management Tools', () => {
   });
 
   it('should reject creating second active session via MCP tool', async () => {
-    // Create first session
     const result1 = await createSessionTool.handler({ mode: 'learning', estimatedDuration: 30 });
     const parsed1 = parseToolResult(result1);
     expect(parsed1.status).toBe('created');
 
-    // Attempt second session should return error
     const result2 = await createSessionTool.handler({ mode: 'review', estimatedDuration: 30 });
     const parsed2 = parseToolResult(result2);
     expect(parsed2.message).toContain('Active session already exists');

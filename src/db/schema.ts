@@ -1,19 +1,20 @@
-import { sqliteTable, text, integer, real, index, check } from 'drizzle-orm/sqlite-core';
+import { pgTable, text, integer, bigint, real, jsonb, index, check } from 'drizzle-orm/pg-core';
 import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
+import type { ChunkAttempt } from '../types/session.js';
 
 // Tables
-export const learningTopics = sqliteTable('learning_topics', {
+export const learningTopics = pgTable('learning_topics', {
   id: text('id').primaryKey().notNull(),
   title: text('title').notNull(),
   subject: text('subject').notNull(),
   summary: text('summary'), // client-provided topic summary content
-  summaryVersion: integer('summary_version', { mode: 'number' }).default(1), // versioning for summary content
-  summaryUpdatedAt: integer('summary_updated_at', { mode: 'number' }), // epoch ms, when summary was last updated
-  createdAt: integer('created_at', { mode: 'number' }).notNull(), // epoch ms
-  updatedAt: integer('updated_at', { mode: 'number' }).notNull(), // epoch ms
+  summaryVersion: integer('summary_version').default(1), // versioning for summary content
+  summaryUpdatedAt: bigint('summary_updated_at', { mode: 'number' }), // epoch ms, when summary was last updated
+  createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
 });
 
-export const learningChunks = sqliteTable(
+export const learningChunks = pgTable(
   'learning_chunks',
   {
     id: text('id').primaryKey().notNull(),
@@ -22,21 +23,21 @@ export const learningChunks = sqliteTable(
       .references(() => learningTopics.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
     subject: text('subject').notNull(),
-    difficulty: integer('difficulty', { mode: 'number' }).notNull(),
-    nextReviewAt: integer('next_review_at', { mode: 'number' }).notNull(), // epoch ms
+    difficulty: integer('difficulty').notNull(),
+    nextReviewAt: bigint('next_review_at', { mode: 'number' }).notNull(), // epoch ms
     easeFactor: real('ease_factor').notNull(),
-    repetitions: integer('repetitions', { mode: 'number' }).notNull(),
-    lastReviewedAt: integer('last_reviewed_at', { mode: 'number' }), // epoch ms, optional
-    estimatedDuration: integer('estimated_duration', { mode: 'number' }).notNull(), // minutes
-    intervalDays: integer('interval_days', { mode: 'number' }), // days until next review (from last SM-2 calculation)
+    repetitions: integer('repetitions').notNull(),
+    lastReviewedAt: bigint('last_reviewed_at', { mode: 'number' }), // epoch ms, optional
+    estimatedDuration: integer('estimated_duration').notNull(), // minutes
+    intervalDays: integer('interval_days'), // days until next review (from last SM-2 calculation)
     chunkType: text('chunk_type').notNull(), // CHECK('new','review','remediation') — enforced at DB level
-    prerequisitesJson: text('prerequisites_json'), // JSON string array — see encodeJsonArray/decodeJsonArray in db/operations.ts
-    tagsJson: text('tags_json'), // JSON string array — see encodeJsonArray/decodeJsonArray in db/operations.ts
+    prerequisitesJson: jsonb('prerequisites_json').$type<string[]>(),
+    tagsJson: jsonb('tags_json').$type<string[]>(),
     content: text('content'), // client-provided chunk content
-    contentVersion: integer('content_version', { mode: 'number' }).default(1), // versioning for content
-    contentUpdatedAt: integer('content_updated_at', { mode: 'number' }), // epoch ms, when content was last updated
-    createdAt: integer('created_at', { mode: 'number' }).notNull(),
-    updatedAt: integer('updated_at', { mode: 'number' }).notNull(),
+    contentVersion: integer('content_version').default(1), // versioning for content
+    contentUpdatedAt: bigint('content_updated_at', { mode: 'number' }), // epoch ms, when content was last updated
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(),
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   },
   table => [
     index('idx_learning_chunks_next_review_at').on(table.nextReviewAt),
@@ -44,20 +45,20 @@ export const learningChunks = sqliteTable(
   ]
 );
 
-export const learningSessions = sqliteTable(
+export const learningSessions = pgTable(
   'learning_sessions',
   {
     id: text('id').primaryKey().notNull(),
     topicId: text('topic_id').references(() => learningTopics.id, { onDelete: 'set null' }),
-    chunkIds: text('chunk_ids'), // JSON array of chunk IDs — see encodeJsonArray/decodeJsonArray in db/operations.ts
+    chunkIds: jsonb('chunk_ids').$type<string[]>(),
     mode: text('mode').notNull(), // CHECK('scaffolding','learning','retrieval','review') — enforced at DB level
-    estimatedDuration: integer('estimated_duration', { mode: 'number' }), // minutes
+    estimatedDuration: integer('estimated_duration'), // minutes
     status: text('status').notNull().default('active'), // CHECK('active','completed') — enforced at DB level
-    startTime: integer('start_time', { mode: 'number' }).notNull(), // epoch ms
-    endTime: integer('end_time', { mode: 'number' }), // epoch ms, set on completion
+    startTime: bigint('start_time', { mode: 'number' }).notNull(), // epoch ms
+    endTime: bigint('end_time', { mode: 'number' }), // epoch ms, set on completion
     feedback: text('feedback'), // optional completion feedback
-    createdAt: integer('created_at', { mode: 'number' }).notNull(), // epoch ms
-    updatedAt: integer('updated_at', { mode: 'number' }).notNull(), // epoch ms
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
   },
   table => [
     index('idx_learning_sessions_status').on(table.status),
@@ -71,7 +72,7 @@ export const learningSessions = sqliteTable(
   ]
 );
 
-export const sessionChunks = sqliteTable(
+export const sessionChunks = pgTable(
   'session_chunks',
   {
     id: text('id').primaryKey().notNull(),
@@ -82,11 +83,11 @@ export const sessionChunks = sqliteTable(
       .notNull()
       .references(() => learningChunks.id, { onDelete: 'cascade' }),
     status: text('status').notNull().default('pending'), // CHECK('pending','in_progress','completed') — enforced at DB level
-    attemptsJson: text('attempts_json'), // JSON array of ChunkAttempt objects — see encodeJsonArray/decodeJsonArray in db/operations.ts
-    qualityScoresJson: text('quality_scores_json'), // JSON array of quality scores (0-5) — see encodeJsonArray/decodeJsonArray in db/operations.ts
-    timeSpentMs: integer('time_spent_ms', { mode: 'number' }).notNull().default(0),
-    createdAt: integer('created_at', { mode: 'number' }).notNull(), // epoch ms
-    updatedAt: integer('updated_at', { mode: 'number' }).notNull(), // epoch ms
+    attemptsJson: jsonb('attempts_json').$type<ChunkAttempt[]>(),
+    qualityScoresJson: jsonb('quality_scores_json').$type<number[]>(),
+    timeSpentMs: integer('time_spent_ms').notNull().default(0),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
   },
   table => [
     index('idx_session_chunks_session_id').on(table.sessionId),

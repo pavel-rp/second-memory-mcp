@@ -1,116 +1,23 @@
-import { describe, it, beforeEach, afterEach, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
+import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
-
-let hasBinding = true;
-try {
-  const Database = require('better-sqlite3');
-  const testDb = new Database(':memory:');
-  testDb.close();
-} catch {
-  hasBinding = false;
-}
-
-// Force tests to run in CI environment only if bindings are actually available
-if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
-  // Double-check that bindings actually work
-  try {
-    const Database = require('better-sqlite3');
-    const testDb = new Database(':memory:');
-    testDb.close();
-    hasBinding = true;
-  } catch {
-    hasBinding = false;
-    console.warn('CI environment detected but SQLite bindings not available');
-  }
-}
-
-import { getDb, resetDatabase } from '../../src/db/client.js';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
+import { getSql } from '../../src/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/db/schema.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
 import { updateTopicMetadata, updateTopicSummary } from '../../src/services/topic-updates.js';
 import { TopicCreationInput, UserPreferences } from '../../src/types/topic-creation.js';
 
-function ensureSchema() {
-  const db = getDb();
-  db.exec(`
-	CREATE TABLE IF NOT EXISTS learning_topics (
-		id TEXT PRIMARY KEY NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		summary TEXT,
-		summary_version INTEGER,
-		summary_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
-	);
-	CREATE TABLE IF NOT EXISTS learning_chunks (
-		id TEXT PRIMARY KEY NOT NULL,
-		topic_id TEXT NOT NULL,
-		title TEXT NOT NULL,
-		subject TEXT NOT NULL,
-		difficulty INTEGER NOT NULL,
-		next_review_at INTEGER NOT NULL,
-		ease_factor REAL NOT NULL,
-		repetitions INTEGER NOT NULL,
-		last_reviewed_at INTEGER,
-		estimated_duration INTEGER NOT NULL,
-		interval_days INTEGER,
-		chunk_type TEXT NOT NULL CHECK(chunk_type IN ('new', 'review', 'remediation')),
-		prerequisites_json TEXT,
-		tags_json TEXT,
-		content TEXT,
-		content_version INTEGER,
-		content_updated_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		FOREIGN KEY(topic_id) REFERENCES learning_topics(id) ON DELETE CASCADE
-	);
-	CREATE TABLE IF NOT EXISTS friction_metrics (
-		id TEXT PRIMARY KEY NOT NULL,
-		chunk_id TEXT NOT NULL,
-		user_id TEXT,
-		failed_attempts INTEGER NOT NULL DEFAULT 0,
-		average_time_spent INTEGER NOT NULL DEFAULT 0,
-		error_patterns_json TEXT,
-		last_struggle_date INTEGER NOT NULL,
-		friction_score REAL NOT NULL DEFAULT 0,
-		consecutive_failures INTEGER NOT NULL DEFAULT 0,
-		total_attempts INTEGER NOT NULL DEFAULT 0,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL,
-		FOREIGN KEY(chunk_id) REFERENCES learning_chunks(id) ON DELETE CASCADE
-	);
-	`);
-}
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
-
-(hasBinding ? describe : describe.skip)('topic creation service', () => {
-  let dbFile: string;
-
-  beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase(); // Reset singleton to pick up new path
-    ensureSchema();
+describe('topic creation service', () => {
+  beforeAll(async () => {
+    await setupTestDb();
   });
 
-  afterEach(async () => {
-    await resetDatabase(); // Close database connection
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
+  beforeEach(async () => {
+    await cleanupTestDb();
+  });
+
+  afterAll(async () => {
+    await teardownTestDb();
   });
 
   describe('topicCreationService.createTopicWithChunks', () => {
@@ -224,9 +131,9 @@ function tmpDbPath() {
       expect(result.error).toBeDefined();
 
       // Verify no data was persisted
-      const db = getDb();
-      const topics = db.prepare('SELECT * FROM learning_topics').all() as any[];
-      const chunks = db.prepare('SELECT * FROM learning_chunks').all() as any[];
+      const db = getSql();
+      const topics = await db.select().from(learningTopics);
+      const chunks = await db.select().from(learningChunks);
 
       expect(topics).toHaveLength(0);
       expect(chunks).toHaveLength(0);
@@ -295,13 +202,13 @@ function tmpDbPath() {
       expect(result.success).toBe(true);
 
       // Verify foreign key relationships
-      const db = getDb();
-      const chunks = db.prepare('SELECT * FROM learning_chunks').all() as any[];
-      const topics = db.prepare('SELECT * FROM learning_topics').all() as any[];
+      const db = getSql();
+      const chunks = await db.select().from(learningChunks);
+      const topics = await db.select().from(learningTopics);
 
       expect(topics).toHaveLength(1);
       expect(chunks).toHaveLength(1);
-      expect(chunks[0].topic_id).toBe(topics[0].id);
+      expect(chunks[0].topicId).toBe(topics[0].id);
     });
 
     it('should handle concurrent topic creation', async () => {
@@ -353,9 +260,9 @@ function tmpDbPath() {
       expect(results[1].success).toBe(true);
 
       // Verify both topics were created
-      const db = getDb();
-      const topics = db.prepare('SELECT * FROM learning_topics').all() as any[];
-      const chunks = db.prepare('SELECT * FROM learning_chunks').all() as any[];
+      const db = getSql();
+      const topics = await db.select().from(learningTopics);
+      const chunks = await db.select().from(learningChunks);
 
       expect(topics).toHaveLength(2);
       expect(chunks).toHaveLength(2);

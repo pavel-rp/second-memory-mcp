@@ -1,90 +1,45 @@
-import { describe, it, beforeEach, afterEach, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
+import { ensureSchema } from '../../src/db/migrate.js';
+import { clearAllTables } from '../../src/db/client.js';
+import { getSql } from '../../src/db/operations.js';
+import { learningTopics } from '../../src/db/schema.js';
 
-let hasBinding = true;
-try {
-  const Database = require('better-sqlite3');
-  new Database(':memory:');
-} catch {
-  hasBinding = false;
-}
-
-// Force tests to run in CI environment
-if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
-  hasBinding = true;
-}
-
-import { getDb, resetDatabase } from '../../src/db/client.js';
-import '../../src/db/migrate.js';
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
-
-(hasBinding ? describe : describe.skip)('migration script', () => {
-  let dbFile: string;
-  let jsonFile: string;
-
-  beforeEach(() => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    jsonFile = path.resolve(`./tmp-data-${crypto.randomUUID()}.json`);
-    const sample = {
-      learning_topics: [
-        { id: 't1', title: 'Algo', subject: 'CS', createdAt: Date.now(), updatedAt: Date.now() },
-      ],
-      learning_chunks: [],
-      session_logs: [],
-      performance_analytics: [],
-    };
-    fs.writeFileSync(jsonFile, JSON.stringify(sample), 'utf-8');
+describe('migration script', () => {
+  beforeAll(async () => {
+    await setupTestDb();
   });
 
-  afterEach(async () => {
-    await resetDatabase(); // Close database connection
-    try {
-      fs.unlinkSync(dbFile);
-    } catch {
-      /* Ignore cleanup errors */
-    }
-    try {
-      fs.unlinkSync(`${dbFile}-shm`);
-    } catch {
-      /* Ignore cleanup errors */
-    }
-    try {
-      fs.unlinkSync(`${dbFile}-wal`);
-    } catch {
-      /* Ignore cleanup errors */
-    }
-    try {
-      fs.unlinkSync(jsonFile);
-    } catch {
-      /* Ignore cleanup errors */
-    }
+  beforeEach(async () => {
+    await cleanupTestDb();
   });
 
-  it('imports topics from JSON', async () => {
-    const { default: child_process } = await import('node:child_process');
-    await new Promise<void>((resolve, reject) => {
-      const p = child_process.fork(
-        path.resolve('./dist/src/db/migrate.js'),
-        [joinIfRelative(jsonFile)],
-        { env: { ...process.env, SM_DB_PATH: dbFile } }
-      );
-      p.on('exit', code => (code === 0 ? resolve() : reject(new Error(String(code)))));
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  it('ensureSchema is idempotent', async () => {
+    // Running ensureSchema again should not throw
+    await ensureSchema();
+  });
+
+  it('clearAllTables truncates data', async () => {
+    const db = getSql();
+    const now = Date.now();
+    await db.insert(learningTopics).values({
+      id: 't1',
+      title: 'Algo',
+      subject: 'CS',
+      createdAt: now,
+      updatedAt: now,
     });
 
-    const db = getDb();
-    const row = db.prepare('SELECT COUNT(*) as cnt FROM learning_topics').get() as { cnt: number };
-    expect(row.cnt).toBe(1);
+    const before = await db.select().from(learningTopics);
+    expect(before.length).toBe(1);
+
+    await clearAllTables();
+
+    const after = await db.select().from(learningTopics);
+    expect(after.length).toBe(0);
   });
 });
-
-function joinIfRelative(p: string) {
-  return path.isAbsolute(p) ? p : path.resolve(p);
-}

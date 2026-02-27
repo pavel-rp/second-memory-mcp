@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { decodeJsonArray, encodeJsonArray, getSql, withTx } from '../db/operations.js';
+import { getSql, withTx } from '../db/operations.js';
 import {
   learningChunks,
   learningTopics,
@@ -39,10 +39,10 @@ export class TopicCreationService {
         title: chunk.title,
         content: chunk.content || '',
         difficulty: chunk.difficulty,
-        prerequisites: decodeJsonArray(chunk.prerequisitesJson),
+        prerequisites: chunk.prerequisitesJson ?? [],
         estimatedDuration: chunk.estimatedDuration,
         order: index + 1,
-        tags: decodeJsonArray(chunk.tagsJson),
+        tags: chunk.tagsJson ?? [],
         chunkType: chunk.chunkType as 'new' | 'review' | 'remediation',
       })),
       createdAt: topic.createdAt,
@@ -65,7 +65,7 @@ export class TopicCreationService {
         };
       }
 
-      const result = withTx(tx => {
+      const result = await withTx(async tx => {
         const topicId = crypto.randomUUID();
         const now = Date.now();
 
@@ -79,7 +79,7 @@ export class TopicCreationService {
           createdAt: now,
           updatedAt: now,
         };
-        tx.insert(learningTopics).values(topic).run();
+        await tx.insert(learningTopics).values(topic);
 
         const createdChunks: LearningChunkRow[] = [];
         for (const chunkDef of input.chunks) {
@@ -96,15 +96,15 @@ export class TopicCreationService {
             estimatedDuration: chunkDef.estimatedDuration,
             intervalDays: null,
             chunkType: chunkDef.chunkType,
-            prerequisitesJson: encodeJsonArray(chunkDef.prerequisites),
-            tagsJson: encodeJsonArray(chunkDef.tags),
+            prerequisitesJson: chunkDef.prerequisites ?? null,
+            tagsJson: chunkDef.tags ?? null,
             content: chunkDef.content || null,
             contentVersion: chunkDef.content ? 1 : null,
             contentUpdatedAt: chunkDef.content ? now : null,
             createdAt: now,
             updatedAt: now,
           };
-          tx.insert(learningChunks).values(chunk).run();
+          await tx.insert(learningChunks).values(chunk);
           createdChunks.push(chunk);
         }
 
@@ -136,18 +136,17 @@ export class TopicCreationService {
       const db = getSql();
 
       // Get topic
-      const topic = db.select().from(learningTopics).where(eq(learningTopics.id, topicId)).get();
+      const [topic] = await db.select().from(learningTopics).where(eq(learningTopics.id, topicId));
 
       if (!topic) {
         return null;
       }
 
       // Get chunks
-      const chunks = db
+      const chunks = await db
         .select()
         .from(learningChunks)
-        .where(eq(learningChunks.topicId, topicId))
-        .all();
+        .where(eq(learningChunks.topicId, topicId));
 
       return {
         topicId: topic.id,
@@ -159,10 +158,10 @@ export class TopicCreationService {
           title: chunk.title,
           content: chunk.content || '', // Content persisted in schema, but may be null for legacy chunks
           difficulty: chunk.difficulty,
-          prerequisites: decodeJsonArray(chunk.prerequisitesJson),
+          prerequisites: chunk.prerequisitesJson ?? [],
           estimatedDuration: chunk.estimatedDuration,
           order: 0, // Order inferred from creation sequence or array index
-          tags: decodeJsonArray(chunk.tagsJson),
+          tags: chunk.tagsJson ?? [],
           chunkType: chunk.chunkType as 'new' | 'review' | 'remediation',
         })),
         createdAt: topic.createdAt,

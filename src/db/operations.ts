@@ -1,12 +1,11 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { getDb } from './client.js';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { getPool } from './client.js';
 
 // Drizzle DB singleton
 let drizzleDb: ReturnType<typeof drizzle> | undefined;
 function getDrizzle() {
   if (!drizzleDb) {
-    // better-sqlite3 connection is created by client
-    drizzleDb = drizzle(getDb());
+    drizzleDb = drizzle(getPool());
   }
   return drizzleDb;
 }
@@ -17,13 +16,11 @@ export function resetDrizzle(): void {
 
 // Transaction helper
 export type SqlDb = ReturnType<typeof drizzle>;
-export type SqlTx = Parameters<SqlDb['transaction']>[0] extends (tx: infer P) => unknown
-  ? P
-  : never;
+export type SqlTx = Parameters<Parameters<SqlDb['transaction']>[0]>[0];
 
-export function withTx<T>(fn: (tx: SqlTx) => T): T {
+export async function withTx<T>(fn: (tx: SqlTx) => Promise<T>): Promise<T> {
   const db = getDrizzle();
-  return db.transaction(tx => fn(tx));
+  return db.transaction(async tx => fn(tx));
 }
 
 // Bulk insert helper (chunked)
@@ -35,22 +32,6 @@ export async function bulkInsert<Row>(
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
     await insertChunk(chunk);
-  }
-}
-
-// JSON helpers for array columns persisted as TEXT
-export function encodeJsonArray(values?: string[] | null): string | null {
-  if (!values || values.length === 0) return null;
-  return JSON.stringify(values);
-}
-
-export function decodeJsonArray<T = string>(json?: string | null): T[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
   }
 }
 

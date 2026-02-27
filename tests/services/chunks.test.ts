@@ -1,37 +1,7 @@
-import { describe, it, beforeEach, afterEach, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
+import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
 
-let hasBinding = true;
-try {
-  const Database = require('better-sqlite3');
-  const testDb = new Database(':memory:');
-  testDb.close();
-} catch {
-  hasBinding = false;
-}
-
-// Force tests to run in CI environment only if bindings are actually available
-if (process.env.CI && process.env.FORCE_SQLITE_TESTS) {
-  // Double-check that bindings actually work
-  try {
-    const Database = require('better-sqlite3');
-    const testDb = new Database(':memory:');
-    testDb.close();
-    hasBinding = true;
-  } catch {
-    hasBinding = false;
-    console.warn('CI environment detected but SQLite bindings not available');
-  }
-}
-
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
 import { getSql } from '../../src/db/operations.js';
-import { decodeJsonArray } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
 import { createChunk, deleteChunk } from '../../src/services/chunks.js';
 import {
@@ -40,50 +10,28 @@ import {
   batchFetchChunksMinimal,
 } from '../../src/services/chunk-queries.js';
 import { LearningItemSchema } from '../../src/types/recommendations.js';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
-
-(hasBinding ? describe : describe.skip)('chunks service', () => {
-  let dbFile: string;
-
-  beforeEach(() => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    ensureSchema();
-  });
-
-  afterEach(async () => {
-    await resetDatabase(); // Close database connection
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
-  });
+describe('chunks service', () => {
+  beforeAll(setupTestDb);
+  beforeEach(cleanupTestDb);
+  afterAll(teardownTestDb);
 
   it('creates and lists chunks, maps to LearningItem', async () => {
     const now = Date.now();
     const db = getSql();
 
     // Create a topic first
-    db.insert(learningTopics)
-      .values({
-        id: 't1',
-        title: 'Algorithm Fundamentals',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 't1',
+      title: 'Algorithm Fundamentals',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     await createChunk({
       id: 'c1',
@@ -116,21 +64,17 @@ function tmpDbPath() {
     const now = Date.now();
     const db = getSql();
 
-    // Create a topic first
-    db.insert(learningTopics)
-      .values({
-        id: 'topic-1',
-        title: 'Algorithm Fundamentals',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 'topic-1',
+      title: 'Algorithm Fundamentals',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Create chunk linked to the topic
     await createChunk({
       id: 'chunk-1',
       topicId: 'topic-1',
@@ -159,21 +103,17 @@ function tmpDbPath() {
     const now = Date.now();
     const db = getSql();
 
-    // Create a topic first (required by foreign key constraint)
-    db.insert(learningTopics)
-      .values({
-        id: 'orphan-topic',
-        title: 'Orphan Topic',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 'orphan-topic',
+      title: 'Orphan Topic',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    // Create chunk linked to the topic
     await createChunk({
       id: 'orphan-chunk',
       topicId: 'orphan-topic',
@@ -189,7 +129,6 @@ function tmpDbPath() {
       updatedAt: now,
     });
 
-    // Test that chunk exists and has topic info
     const items = await listChunksAsLearningItems();
     expect(items).toHaveLength(1);
     expect(items[0].id).toBe('orphan-chunk');
@@ -198,7 +137,6 @@ function tmpDbPath() {
   });
 
   it('validates topic fields with Zod schema', async () => {
-    // Test valid topicId (any non-empty string)
     const validItem = {
       id: 'test-chunk',
       title: 'Test Chunk',
@@ -209,21 +147,19 @@ function tmpDbPath() {
       repetitions: 1,
       estimatedDuration: 20,
       chunkType: 'new' as const,
-      topicId: 'topic-1', // Valid non-empty string
+      topicId: 'topic-1',
       topicTitle: 'Test Topic',
     };
 
     expect(() => LearningItemSchema.parse(validItem)).not.toThrow();
 
-    // Test invalid empty topicId
     const invalidItem = {
       ...validItem,
-      topicId: '', // Invalid empty string
+      topicId: '',
     };
 
     expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
 
-    // Test optional fields work
     const itemWithoutTopic = {
       ...validItem,
       topicId: undefined,
@@ -237,32 +173,27 @@ function tmpDbPath() {
     const now = Date.now();
     const db = getSql();
 
-    // Create topics first
-    db.insert(learningTopics)
-      .values({
-        id: 'topic-alpha',
-        title: 'Alpha Topic',
-        subject: 'Math',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 'topic-alpha',
+      title: 'Alpha Topic',
+      subject: 'Math',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningTopics)
-      .values({
-        id: 'topic-beta',
-        title: 'Beta Topic',
-        subject: 'Math',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 'topic-beta',
+      title: 'Beta Topic',
+      subject: 'Math',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     await createChunk({
       id: 'chunk-a',
@@ -315,7 +246,7 @@ function tmpDbPath() {
     if (!chunkB) {
       throw new Error('Expected chunk-b to remain after deleting chunk-a');
     }
-    const updatedPrereqs = decodeJsonArray(chunkB.prerequisitesJson);
+    const updatedPrereqs = chunkB.prerequisitesJson ?? [];
     expect(updatedPrereqs).toEqual(['chunk-c']);
   });
 
@@ -329,32 +260,27 @@ function tmpDbPath() {
     const now = Date.now();
     const db = getSql();
 
-    // Create topics first
-    db.insert(learningTopics)
-      .values({
-        id: 't1',
-        title: 'Topic 1',
-        subject: 'CS',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 't1',
+      title: 'Topic 1',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    db.insert(learningTopics)
-      .values({
-        id: 't2',
-        title: 'Topic 2',
-        subject: 'Math',
-        summary: null,
-        summaryVersion: null,
-        summaryUpdatedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run();
+    await db.insert(learningTopics).values({
+      id: 't2',
+      title: 'Topic 2',
+      subject: 'Math',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
 
     const chunks = [
       {
@@ -405,7 +331,6 @@ function tmpDbPath() {
       await createChunk(chunk);
     }
 
-    // Test: fetch all chunks
     const allChunks = await batchFetchChunksMinimal();
     expect(allChunks.length).toBe(3);
     expect(allChunks[0]).toHaveProperty('id');
@@ -418,70 +343,55 @@ function tmpDbPath() {
     expect(allChunks[0]).toHaveProperty('nextReviewAt');
     expect(allChunks[0]).toHaveProperty('createdAt');
     expect(allChunks[0]).toHaveProperty('updatedAt');
-    // Ensure no heavy fields are included
     expect(allChunks[0]).not.toHaveProperty('content');
     expect(allChunks[0]).not.toHaveProperty('prerequisitesJson');
     expect(allChunks[0]).not.toHaveProperty('tagsJson');
 
-    // Test: filter by topicId
     const topic1Chunks = await batchFetchChunksMinimal({ topicId: 't1' });
     expect(topic1Chunks.length).toBe(2);
     expect(topic1Chunks.every(c => c.topicId === 't1')).toBe(true);
 
-    // Test: filter by subject
     const csChunks = await batchFetchChunksMinimal({ subject: 'CS' });
     expect(csChunks.length).toBe(2);
     expect(csChunks.every(c => c.subject === 'CS')).toBe(true);
 
-    // Test: dueOnly filter
     const dueChunks = await batchFetchChunksMinimal({ dueOnly: true });
     expect(dueChunks.length).toBe(1);
     expect(dueChunks[0].id).toBe('c1');
 
-    // Test: limit results
     const limitedChunks = await batchFetchChunksMinimal({ limit: 2 });
     expect(limitedChunks.length).toBe(2);
 
-    // Test: combined filters
     const filteredChunks = await batchFetchChunksMinimal({ subject: 'CS', limit: 1 });
     expect(filteredChunks.length).toBe(1);
     expect(filteredChunks[0].subject).toBe('CS');
   });
 });
 
-describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
-  beforeEach(() => {
-    resetDatabase();
-    ensureSchema();
-  });
-
-  afterEach(() => {
-    resetDatabase();
-  });
+describe('Chunk Update Functions', () => {
+  beforeAll(setupTestDb);
+  beforeEach(cleanupTestDb);
+  afterAll(teardownTestDb);
 
   describe('updateChunkContent', () => {
     it('should update chunk content with versioning', async () => {
       const { updateChunkContent } = await import('../../src/services/chunks.js');
 
-      // Create a test chunk first
       const chunkId = crypto.randomUUID();
       const topicId = crypto.randomUUID();
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -501,7 +411,6 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
         updatedAt: now,
       });
 
-      // Update the content
       const result = await updateChunkContent(chunkId, {
         content: 'Updated content',
       });
@@ -522,19 +431,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -542,10 +448,10 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
         title: 'Test Chunk',
         subject: 'Test Subject',
         difficulty: 5,
-        nextReviewAt: now + 86400000, // 1 day later
+        nextReviewAt: now + 86400000,
         easeFactor: 3.0,
         repetitions: 5,
-        lastReviewedAt: now - 3600000, // 1 hour ago
+        lastReviewedAt: now - 3600000,
         estimatedDuration: 15,
         chunkType: 'review',
         content: 'Original content',
@@ -590,19 +496,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -645,19 +548,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -674,14 +574,13 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
         updatedAt: now,
       });
 
-      // Update only title
       const result = await updateChunkMetadata(chunkId, {
         title: 'Updated Title Only',
       });
 
       expect(result.success).toBe(true);
       expect(result.chunk?.title).toBe('Updated Title Only');
-      expect(result.chunk?.difficulty).toBe(3); // Should remain unchanged
+      expect(result.chunk?.difficulty).toBe(3);
     });
 
     it('should return error for non-existent chunk', async () => {
@@ -705,19 +604,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -738,7 +634,6 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
         updatedAt: now,
       });
 
-      // Update with significantly longer content (>50% change)
       const longContent =
         'This is a much longer content that represents a significant change from the original short content. '.repeat(
           10
@@ -763,19 +658,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -796,15 +688,14 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
         updatedAt: now,
       });
 
-      // Minor change - just fix a typo
       const result = await updateChunkWithProgressReset(chunkId, {
         content: 'Original content with some details fixed',
       });
 
       expect(result.success).toBe(true);
       expect(result.progressReset).toBe(false);
-      expect(result.chunk?.repetitions).toBe(5); // Should preserve
-      expect(result.chunk?.easeFactor).toBe(3.0); // Should preserve
+      expect(result.chunk?.repetitions).toBe(5);
+      expect(result.chunk?.easeFactor).toBe(3.0);
     });
 
     it('should reset progress for same-length but different content (issue fix)', async () => {
@@ -815,19 +706,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -848,15 +736,11 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
         updatedAt: now,
       });
 
-      // Replace with completely different content of the same length
-      // This is the core issue: old length-based detection would miss this
       const result = await updateChunkWithProgressReset(chunkId, {
         content: 'Study Python advanced topics',
       });
 
       expect(result.success).toBe(true);
-      // Progress should be reset because content is significantly different
-      // despite having the same length
       expect(result.progressReset).toBe(true);
       expect(result.chunk?.repetitions).toBe(0);
       expect(result.chunk?.easeFactor).toBe(2.5);
@@ -871,19 +755,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -923,19 +804,16 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
       const now = Date.now();
       const db = getSql();
 
-      // Create topic first
-      db.insert(learningTopics)
-        .values({
-          id: topicId,
-          title: 'Test Topic',
-          subject: 'Test Subject',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Test Topic',
+        subject: 'Test Subject',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       await createChunk({
         id: chunkId,
@@ -987,28 +865,10 @@ describe.skipIf(!hasBinding)('Chunk Update Functions', () => {
   });
 });
 
-describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
-  let dbFile: string;
-
-  beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase(); // Reset singleton to pick up new path
-    ensureSchema();
-  });
-
-  afterEach(async () => {
-    await resetDatabase(); // Close database connection
-    if (fs.existsSync(dbFile)) {
-      fs.unlinkSync(dbFile);
-    }
-    if (fs.existsSync(`${dbFile}-shm`)) {
-      fs.unlinkSync(`${dbFile}-shm`);
-    }
-    if (fs.existsSync(`${dbFile}-wal`)) {
-      fs.unlinkSync(`${dbFile}-wal`);
-    }
-  });
+describe('Content Inclusion Functions', () => {
+  beforeAll(setupTestDb);
+  beforeEach(cleanupTestDb);
+  afterAll(teardownTestDb);
 
   describe('mapChunkRowToLearningItem with includeContent', () => {
     it('should map chunk row with content fields', async () => {
@@ -1028,8 +888,8 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
         estimatedDuration: 20,
         intervalDays: null,
         chunkType: 'new',
-        prerequisitesJson: '["arrays"]',
-        tagsJson: '["test"]',
+        prerequisitesJson: ['arrays'],
+        tagsJson: ['test'],
         content: 'This is test content',
         contentVersion: 1,
         contentUpdatedAt: now,
@@ -1066,8 +926,8 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
         estimatedDuration: 20,
         intervalDays: null,
         chunkType: 'new',
-        prerequisitesJson: '[]',
-        tagsJson: '[]',
+        prerequisitesJson: [],
+        tagsJson: [],
         content: null,
         contentVersion: null,
         contentUpdatedAt: null,
@@ -1096,43 +956,37 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
       const db = getSql();
       const uniqueId = `topic-${now}-${Math.random()}`;
 
-      // Create a topic first
-      db.insert(learningTopics)
-        .values({
-          id: uniqueId,
-          title: 'Algorithm Fundamentals',
-          subject: 'CS',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: uniqueId,
+        title: 'Algorithm Fundamentals',
+        subject: 'CS',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-      // Create chunk with content
-      db.insert(learningChunks)
-        .values({
-          id: `chunk-${now}`,
-          topicId: uniqueId,
-          title: 'Two Sum Problem',
-          subject: 'CS',
-          difficulty: 5,
-          nextReviewAt: now + 86400000,
-          easeFactor: 2.5,
-          repetitions: 1,
-          lastReviewedAt: now,
-          estimatedDuration: 20,
-          chunkType: 'new',
-          prerequisitesJson: JSON.stringify(['arrays']),
-          tagsJson: JSON.stringify(['leetcode']),
-          content: 'This is the content for Two Sum problem',
-          contentVersion: 1,
-          contentUpdatedAt: now,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningChunks).values({
+        id: `chunk-${now}`,
+        topicId: uniqueId,
+        title: 'Two Sum Problem',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: now + 86400000,
+        easeFactor: 2.5,
+        repetitions: 1,
+        lastReviewedAt: now,
+        estimatedDuration: 20,
+        chunkType: 'new',
+        prerequisitesJson: ['arrays'],
+        tagsJson: ['leetcode'],
+        content: 'This is the content for Two Sum problem',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       const result = await listChunksWithContent({ includeContent: true });
 
@@ -1151,43 +1005,37 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
       const db = getSql();
       const uniqueId = `topic-${now}-${Math.random()}`;
 
-      // Create a topic first
-      db.insert(learningTopics)
-        .values({
-          id: uniqueId,
-          title: 'Algorithm Fundamentals',
-          subject: 'CS',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningTopics).values({
+        id: uniqueId,
+        title: 'Algorithm Fundamentals',
+        subject: 'CS',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-      // Create chunk with content
-      db.insert(learningChunks)
-        .values({
-          id: `chunk-${now}`,
-          topicId: uniqueId,
-          title: 'Two Sum Problem',
-          subject: 'CS',
-          difficulty: 5,
-          nextReviewAt: now + 86400000,
-          easeFactor: 2.5,
-          repetitions: 1,
-          lastReviewedAt: now,
-          estimatedDuration: 20,
-          chunkType: 'new',
-          prerequisitesJson: JSON.stringify(['arrays']),
-          tagsJson: JSON.stringify(['leetcode']),
-          content: 'This is the content for Two Sum problem',
-          contentVersion: 1,
-          contentUpdatedAt: now,
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
+      await db.insert(learningChunks).values({
+        id: `chunk-${now}`,
+        topicId: uniqueId,
+        title: 'Two Sum Problem',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: now + 86400000,
+        easeFactor: 2.5,
+        repetitions: 1,
+        lastReviewedAt: now,
+        estimatedDuration: 20,
+        chunkType: 'new',
+        prerequisitesJson: ['arrays'],
+        tagsJson: ['leetcode'],
+        content: 'This is the content for Two Sum problem',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       const result = await listChunksWithContent({ includeContent: false });
 
@@ -1206,47 +1054,40 @@ describe.skipIf(!hasBinding)('Content Inclusion Functions', () => {
       const db = getSql();
       const uniqueId = `topic-${now}-${Math.random()}`;
 
-      // Create a topic first
-      db.insert(learningTopics)
-        .values({
-          id: uniqueId,
-          title: 'Pagination Test Topic',
+      await db.insert(learningTopics).values({
+        id: uniqueId,
+        title: 'Pagination Test Topic',
+        subject: 'CS',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      for (let i = 1; i <= 5; i++) {
+        await db.insert(learningChunks).values({
+          id: `chunk-${now}-${i}`,
+          topicId: uniqueId,
+          title: `Chunk ${i}`,
           subject: 'CS',
-          summary: null,
-          summaryVersion: null,
-          summaryUpdatedAt: null,
+          difficulty: i,
+          nextReviewAt: now + 86400000,
+          easeFactor: 2.5,
+          repetitions: 0,
+          lastReviewedAt: null,
+          estimatedDuration: 20,
+          chunkType: 'new',
+          prerequisitesJson: [],
+          tagsJson: [],
+          content: `Content for chunk ${i}`,
+          contentVersion: 1,
+          contentUpdatedAt: now,
           createdAt: now,
           updatedAt: now,
-        })
-        .run();
-
-      // Create multiple chunks
-      for (let i = 1; i <= 5; i++) {
-        db.insert(learningChunks)
-          .values({
-            id: `chunk-${now}-${i}`,
-            topicId: uniqueId,
-            title: `Chunk ${i}`,
-            subject: 'CS',
-            difficulty: i,
-            nextReviewAt: now + 86400000,
-            easeFactor: 2.5,
-            repetitions: 0,
-            lastReviewedAt: null,
-            estimatedDuration: 20,
-            chunkType: 'new',
-            prerequisitesJson: JSON.stringify([]),
-            tagsJson: JSON.stringify([]),
-            content: `Content for chunk ${i}`,
-            contentVersion: 1,
-            contentUpdatedAt: now,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .run();
+        });
       }
 
-      // Test pagination
       const result1 = await listChunksWithContent({ includeContent: true, limit: 2, offset: 0 });
       expect(result1.items).toHaveLength(2);
       expect(result1.pagination.total).toBe(5);

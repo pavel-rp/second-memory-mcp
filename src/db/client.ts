@@ -1,69 +1,59 @@
-import Database from 'better-sqlite3';
-import type { Database as BetterSqlite3Database } from 'better-sqlite3';
-import path from 'node:path';
+import 'dotenv/config';
+import pg from 'pg';
+import { sql } from 'drizzle-orm';
+let poolInstance: pg.Pool | undefined;
 
-let dbInstance: BetterSqlite3Database | undefined;
-let initialized = false;
-
-function resolveDbPath(): string {
-  const envPath = process.env.SM_DB_PATH && String(process.env.SM_DB_PATH).trim();
-  const resolvedPath =
-    envPath && envPath.length > 0 ? path.resolve(envPath) : path.resolve('./second-memory.db');
+function getDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url || url.trim().length === 0) {
+    throw new Error(
+      'DATABASE_URL environment variable is required. ' +
+        'Example: DATABASE_URL=postgresql://user:pass@localhost:5432/second_memory'
+    );
+  }
 
   // CRITICAL SAFETY CHECK: Prevent tests from using production database
-  // Check if we're in a test environment (vitest sets NODE_ENV or process.argv contains vitest)
   const isTestEnv =
     process.env.NODE_ENV === 'test' ||
     process.argv.some(arg => arg.includes('vitest') || arg.includes('test'));
 
-  if (isTestEnv && resolvedPath.endsWith('second-memory.db')) {
-    throw new Error(
-      "FATAL: Tests attempted to use production database 'second-memory.db'. " +
-        'This is prevented to protect production data. ' +
-        'Tests must set SM_DB_PATH to a temporary database file.'
-    );
+  if (isTestEnv) {
+    // Extract database name from connection string
+    const dbName = new URL(url).pathname.replace('/', '');
+    if (!dbName.includes('_test')) {
+      throw new Error(
+        `FATAL: Tests attempted to use database '${dbName}' which does not contain '_test'. ` +
+          'This is prevented to protect production data. ' +
+          'Tests must use a database with "_test" in its name.'
+      );
+    }
   }
 
-  return resolvedPath;
+  return url;
 }
 
-function applyPragmas(db: BetterSqlite3Database): void {
-  // Minimal but effective SQLite config for single-user local DB
-  db.pragma('journal_mode = WAL');
-  db.pragma('synchronous = NORMAL');
-  db.pragma('foreign_keys = ON');
-}
-
-export function getDb(): BetterSqlite3Database {
-  if (!dbInstance) {
-    const filePath = resolveDbPath();
-    dbInstance = new Database(filePath, { fileMustExist: false });
+export function getPool(): pg.Pool {
+  if (!poolInstance) {
+    const connectionString = getDatabaseUrl();
+    poolInstance = new pg.Pool({ connectionString });
   }
-  if (!initialized) {
-    applyPragmas(dbInstance);
-    initialized = true;
-  }
-  return dbInstance;
+  return poolInstance;
 }
 
 export async function resetDatabase(): Promise<void> {
-  if (dbInstance) {
-    dbInstance.close();
-    dbInstance = undefined;
-    initialized = false;
+  if (poolInstance) {
+    await poolInstance.end();
+    poolInstance = undefined;
   }
   // Also reset drizzle singleton
   const { resetDrizzle } = await import('./operations.js');
   resetDrizzle();
 }
 
-export function clearAllTables(): void {
-  const db = getDb();
-  // Clear tables in correct order to avoid foreign key violations
-  db.exec(`
-  		DELETE FROM session_chunks;
-		DELETE FROM learning_sessions;
-		DELETE FROM learning_chunks;
-		DELETE FROM learning_topics;
-	`);
+export async function clearAllTables(): Promise<void> {
+  const { getSql } = await import('./operations.js');
+  const db = getSql();
+  await db.execute(
+    sql`TRUNCATE session_chunks, learning_sessions, learning_chunks, learning_topics CASCADE`
+  );
 }

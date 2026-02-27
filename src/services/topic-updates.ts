@@ -30,11 +30,10 @@ async function updateTopicFields(
     const db = getSql();
 
     // Check if topic exists
-    const currentTopic = db
+    const [currentTopic] = await db
       .select()
       .from(learningTopics)
-      .where(eq(learningTopics.id, topicId))
-      .get();
+      .where(eq(learningTopics.id, topicId));
     if (!currentTopic) {
       return {
         success: false,
@@ -52,13 +51,12 @@ async function updateTopicFields(
     }
 
     // Execute update
-    const res = db
+    const res = await db
       .update(learningTopics)
       .set(result.data)
-      .where(eq(learningTopics.id, topicId))
-      .run();
+      .where(eq(learningTopics.id, topicId));
 
-    if (res.changes === 0) {
+    if (res.rowCount === 0) {
       return {
         success: false,
         error: {
@@ -69,11 +67,10 @@ async function updateTopicFields(
     }
 
     // Re-fetch and return updated topic
-    const updatedTopic = db
+    const [updatedTopic] = await db
       .select()
       .from(learningTopics)
-      .where(eq(learningTopics.id, topicId))
-      .get();
+      .where(eq(learningTopics.id, topicId));
     return {
       success: true,
       topic: updatedTopic || undefined,

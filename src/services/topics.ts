@@ -16,7 +16,7 @@ export async function createTopic(
   db: SqlDb = getSql()
 ): Promise<ServiceResult<void>> {
   try {
-    await db.insert(learningTopics).values(input).run();
+    await db.insert(learningTopics).values(input);
     return serviceOk();
   } catch {
     return serviceFail({
@@ -27,7 +27,8 @@ export async function createTopic(
 }
 
 export async function getTopicById(id: string, db: SqlDb = getSql()) {
-  return db.select().from(learningTopics).where(eq(learningTopics.id, id)).get();
+  const [row] = await db.select().from(learningTopics).where(eq(learningTopics.id, id));
+  return row ?? undefined;
 }
 
 export async function listTopics(db: SqlDb = getSql()): Promise<
@@ -39,11 +40,11 @@ export async function listTopics(db: SqlDb = getSql()): Promise<
     updatedAt: number;
   }>
 > {
-  return db.select().from(learningTopics).all();
+  return db.select().from(learningTopics);
 }
 
 export async function getTopicSummaryById(topicId: string, db: SqlDb = getSql()) {
-  return db
+  const [row] = await db
     .select({
       id: learningTopics.id,
       title: learningTopics.title,
@@ -55,8 +56,8 @@ export async function getTopicSummaryById(topicId: string, db: SqlDb = getSql())
       updatedAt: learningTopics.updatedAt,
     })
     .from(learningTopics)
-    .where(eq(learningTopics.id, topicId))
-    .get();
+    .where(eq(learningTopics.id, topicId));
+  return row ?? undefined;
 }
 
 export async function updateTopic(
@@ -72,15 +73,14 @@ export async function updateTopic(
       });
     }
 
-    const res = db.update(learningTopics).set(changes).where(eq(learningTopics.id, id)).run();
-    const count = res.changes ?? 0;
+    const res = await db.update(learningTopics).set(changes).where(eq(learningTopics.id, id));
+    const count = res.rowCount ?? 0;
 
     if (count === 0) {
-      const exists = db
+      const [exists] = await db
         .select({ id: learningTopics.id })
         .from(learningTopics)
-        .where(eq(learningTopics.id, id))
-        .get();
+        .where(eq(learningTopics.id, id));
 
       if (exists) {
         return serviceOk({ changesApplied: 0 });
@@ -106,8 +106,8 @@ export async function deleteTopic(
   db: SqlDb = getSql()
 ): Promise<ServiceResult<{ deleted: boolean }>> {
   try {
-    const res = db.delete(learningTopics).where(eq(learningTopics.id, id)).run();
-    const count = res.changes ?? 0;
+    const res = await db.delete(learningTopics).where(eq(learningTopics.id, id));
+    const count = res.rowCount ?? 0;
     if (count === 0) {
       return serviceFail({
         type: 'not_found',
@@ -154,8 +154,8 @@ export async function batchFetchTopicsMinimal(
   }
 
   if (options?.limit && options.limit > 0) {
-    return query.limit(options.limit).all();
+    return query.limit(options.limit);
   }
 
-  return query.all();
+  return query;
 }

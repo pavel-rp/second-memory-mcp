@@ -2,6 +2,7 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    fileParallelism: false,
     setupFiles: ['./vitest.setup.ts'],
     globalTeardown: ['./vitest.global-teardown.ts'],
     exclude: [...configDefaults.exclude, '**/.claude/**'],

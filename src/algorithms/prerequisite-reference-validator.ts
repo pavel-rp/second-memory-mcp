@@ -1,8 +1,8 @@
 import type { PrerequisiteReferenceValidationResult } from '../types/prerequisite-validation.js';
 import { extractErrorMessage } from '../utils/errors.js';
 
-export type ChunkIdLookupFn = (ids: string[]) => Set<string>;
-export type AllChunkIdsLookupFn = () => Set<string>;
+export type ChunkIdLookupFn = (ids: string[]) => Promise<Set<string>>;
+export type AllChunkIdsLookupFn = () => Promise<Set<string>>;
 
 /**
  * Validates that prerequisite references point to existing chunk IDs.
@@ -25,7 +25,9 @@ export class PrerequisiteReferenceValidator {
    * @param prerequisiteIds Array of prerequisite chunk IDs to validate
    * @returns Validation result with valid/invalid references
    */
-  validatePrerequisiteReferences(prerequisiteIds: string[]): PrerequisiteReferenceValidationResult {
+  async validatePrerequisiteReferences(
+    prerequisiteIds: string[]
+  ): Promise<PrerequisiteReferenceValidationResult> {
     if (!prerequisiteIds || prerequisiteIds.length === 0) {
       return {
         isValid: true,
@@ -48,7 +50,7 @@ export class PrerequisiteReferenceValidator {
     }
 
     try {
-      const existingChunkIds = this.getExistingChunkIds(uniqueIds);
+      const existingChunkIds = await this.getExistingChunkIds(uniqueIds);
       const validReferences = uniqueIds.filter(id => existingChunkIds.has(id));
       const invalidReferences = uniqueIds.filter(id => !existingChunkIds.has(id));
 
@@ -79,11 +81,11 @@ export class PrerequisiteReferenceValidator {
    * @param prerequisites Array of prerequisite chunk IDs
    * @returns Validation result
    */
-  validateChunkPrerequisites(
+  async validateChunkPrerequisites(
     chunkId: string,
     prerequisites: string[]
-  ): PrerequisiteReferenceValidationResult {
-    const result = this.validatePrerequisiteReferences(prerequisites);
+  ): Promise<PrerequisiteReferenceValidationResult> {
+    const result = await this.validatePrerequisiteReferences(prerequisites);
 
     // Add context about which chunk has invalid prerequisites
     if (!result.isValid) {
@@ -99,7 +101,7 @@ export class PrerequisiteReferenceValidator {
    * @param idsToCheck List of chunk IDs to validate
    * @returns Set of existing chunk IDs
    */
-  private getExistingChunkIds(idsToCheck: string[]): Set<string> {
+  private async getExistingChunkIds(idsToCheck: string[]): Promise<Set<string>> {
     // Check if we have a fresh cache with all needed IDs
     if (this.chunkIdCache && Date.now() < this.cacheExpiry) {
       const cache = this.chunkIdCache;
@@ -110,7 +112,7 @@ export class PrerequisiteReferenceValidator {
     }
 
     // Use injected lookup function
-    const existingIds = this.lookupFn(idsToCheck);
+    const existingIds = await this.lookupFn(idsToCheck);
 
     // Update cache if we're checking a reasonable number of IDs
     if (idsToCheck.length <= 100) {
@@ -152,8 +154,8 @@ export class PrerequisiteReferenceValidator {
    * Useful for comprehensive validation scenarios
    * @returns Set of all existing chunk IDs
    */
-  getAllChunkIds(): Set<string> {
-    const allIds = this.lookupAllFn();
+  async getAllChunkIds(): Promise<Set<string>> {
+    const allIds = await this.lookupAllFn();
 
     // Update cache with all IDs
     this.chunkIdCache = allIds;

@@ -388,18 +388,18 @@ export function validateSessionContext(context: unknown): SessionInput {
  * Caller is responsible for validating chunk IDs, fetching session data,
  * and providing the persistence function.
  */
-export function applyBatchSessionChunkOperations(args: {
+export async function applyBatchSessionChunkOperations(args: {
   sessionId: string;
   operations: BatchOperation[];
   maxOps?: number;
   activeSessionExists: boolean;
-  persistFn: (args: { sessionId: string; operations: BatchOperation[] }) => {
+  persistFn: (args: { sessionId: string; operations: BatchOperation[] }) => Promise<{
     created: number;
     updated: number;
     unchanged: number;
     affectedChunkIds: string[];
-  };
-}): { created: number; updated: number; unchanged: number; affectedChunkIds: string[] } {
+  }>;
+}): Promise<{ created: number; updated: number; unchanged: number; affectedChunkIds: string[] }> {
   const { sessionId, operations, maxOps = 50, activeSessionExists, persistFn } = args;
 
   if (operations.length > maxOps) {
@@ -410,5 +410,5 @@ export function applyBatchSessionChunkOperations(args: {
     throw new Error('No active session found. Create a session first.');
   }
 
-  return persistFn({ sessionId, operations });
+  return await persistFn({ sessionId, operations });
 }

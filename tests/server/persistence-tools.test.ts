@@ -1,14 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerPersistenceTools } from '../../src/server/persistence-tools.js';
-import { resetDatabase } from '../../src/db/client.js';
-import { ensureSchema } from '../../src/db/migrate.js';
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
-
-function tmpDbPath() {
-  return path.resolve(`./tmp-test-${crypto.randomUUID()}.db`);
-}
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -23,25 +16,14 @@ function parseResult(out: any): any {
 
 describe('persistence-tools', () => {
   let server: CaptureServer;
-  let dbFile: string;
 
+  beforeAll(setupTestDb);
   beforeEach(async () => {
-    dbFile = tmpDbPath();
-    process.env.SM_DB_PATH = dbFile;
-    await resetDatabase();
-    ensureSchema();
-
+    await cleanupTestDb();
     server = new CaptureServer();
     registerPersistenceTools(server as any);
   });
-
-  afterEach(async () => {
-    await resetDatabase();
-    for (const suffix of ['', '-shm', '-wal']) {
-      const f = `${dbFile}${suffix}`;
-      if (fs.existsSync(f)) fs.unlinkSync(f);
-    }
-  });
+  afterAll(teardownTestDb);
 
   it('registers all persistence tools', () => {
     expect(server.tools.has('list_learning_items')).toBe(true);
