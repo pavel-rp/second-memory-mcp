@@ -15,7 +15,8 @@ function getDatabaseUrl(): string {
   // CRITICAL SAFETY CHECK: Prevent tests from using production database
   const isTestEnv =
     process.env.NODE_ENV === 'test' ||
-    process.argv.some(arg => arg.includes('vitest') || arg.includes('test'));
+    process.argv.some(arg => arg.includes('vitest')) ||
+    !!process.env.VITEST;
 
   if (isTestEnv) {
     // Extract database name from connection string

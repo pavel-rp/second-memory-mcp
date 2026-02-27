@@ -311,7 +311,7 @@ async function findDependentChunks(id: string, db: SqlDb) {
       sql`
         ${learningChunks.id} != ${id}
         AND ${learningChunks.prerequisitesJson} IS NOT NULL
-        AND ${learningChunks.prerequisitesJson}::jsonb @> to_jsonb(ARRAY[${id}])::jsonb
+        AND ${learningChunks.prerequisitesJson}::jsonb @> jsonb_build_array(${id})
       `
     );
 }
