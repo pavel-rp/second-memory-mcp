@@ -66,6 +66,7 @@ ALTER TABLE "learning_sessions" ADD CONSTRAINT "learning_sessions_topic_id_learn
 ALTER TABLE "session_chunks" ADD CONSTRAINT "session_chunks_session_id_learning_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."learning_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session_chunks" ADD CONSTRAINT "session_chunks_chunk_id_learning_chunks_id_fk" FOREIGN KEY ("chunk_id") REFERENCES "public"."learning_chunks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_learning_chunks_next_review_at" ON "learning_chunks" USING btree ("next_review_at");--> statement-breakpoint
+CREATE INDEX "idx_learning_chunks_prerequisites_json" ON "learning_chunks" USING gin ("prerequisites_json");--> statement-breakpoint
 CREATE INDEX "idx_learning_sessions_status" ON "learning_sessions" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "idx_learning_sessions_topic_id" ON "learning_sessions" USING btree ("topic_id");--> statement-breakpoint
 CREATE INDEX "idx_learning_sessions_created_at" ON "learning_sessions" USING btree ("created_at");--> statement-breakpoint

@@ -41,6 +41,7 @@ export const learningChunks = pgTable(
   },
   table => [
     index('idx_learning_chunks_next_review_at').on(table.nextReviewAt),
+    index('idx_learning_chunks_prerequisites_json').using('gin', table.prerequisitesJson),
     check('chk_chunk_type', sql`${table.chunkType} IN ('new', 'review', 'remediation')`),
   ]
 );

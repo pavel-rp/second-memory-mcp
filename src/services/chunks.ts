@@ -65,11 +65,11 @@ export async function updateChunk(
   const updatePayload: Record<string, unknown> = { ...changes };
 
   // Handle JSON fields - remove original fields to avoid conflicts
-  if (changes.prerequisites) {
+  if (changes.prerequisites !== undefined) {
     updatePayload.prerequisitesJson = changes.prerequisites;
     delete updatePayload.prerequisites;
   }
-  if (changes.tags) {
+  if (changes.tags !== undefined) {
     updatePayload.tagsJson = changes.tags;
     delete updatePayload.tags;
   }
@@ -311,7 +311,7 @@ async function findDependentChunks(id: string, db: SqlDb) {
       sql`
         ${learningChunks.id} != ${id}
         AND ${learningChunks.prerequisitesJson} IS NOT NULL
-        AND ${learningChunks.prerequisitesJson}::jsonb @> to_jsonb(ARRAY[${id}]::text[])::jsonb
+        AND ${learningChunks.prerequisitesJson}::jsonb @> to_jsonb(ARRAY[${id}]::text[])
       `
     );
 }

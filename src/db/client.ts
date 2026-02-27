@@ -52,6 +52,15 @@ export async function resetDatabase(): Promise<void> {
 }
 
 export async function clearAllTables(): Promise<void> {
+  const isTestEnv =
+    process.env.NODE_ENV === 'test' ||
+    process.argv.some(arg => arg.includes('vitest')) ||
+    !!process.env.VITEST;
+
+  if (!isTestEnv) {
+    throw new Error('clearAllTables can only be called in a test environment');
+  }
+
   const { getSql } = await import('./operations.js');
   const db = getSql();
   await db.execute(

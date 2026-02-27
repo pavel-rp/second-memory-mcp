@@ -402,21 +402,21 @@ export async function batchCreateSessionChunks(
   inputs: CreateSessionChunkInput[],
   db: SqlDb = getSql()
 ): Promise<void> {
-  for (const input of inputs) {
-    const chunkData: NewSessionChunkRow = {
-      id: input.id,
-      sessionId: input.sessionId,
-      chunkId: input.chunkId,
-      status: input.status || 'pending',
-      attemptsJson: input.attemptsJson || null,
-      qualityScoresJson: input.qualityScoresJson || null,
-      timeSpentMs: input.timeSpentMs || 0,
-      createdAt: input.createdAt,
-      updatedAt: input.updatedAt,
-    };
+  if (inputs.length === 0) return;
 
-    await db.insert(sessionChunks).values(chunkData);
-  }
+  const rows: NewSessionChunkRow[] = inputs.map(input => ({
+    id: input.id,
+    sessionId: input.sessionId,
+    chunkId: input.chunkId,
+    status: input.status || 'pending',
+    attemptsJson: input.attemptsJson || null,
+    qualityScoresJson: input.qualityScoresJson || null,
+    timeSpentMs: input.timeSpentMs || 0,
+    createdAt: input.createdAt,
+    updatedAt: input.updatedAt,
+  }));
+
+  await db.insert(sessionChunks).values(rows);
 
   logger.info(`Created ${inputs.length} session chunks for session ${inputs[0]?.sessionId}`);
 }

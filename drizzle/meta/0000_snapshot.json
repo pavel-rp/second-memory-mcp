@@ -139,6 +139,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "idx_learning_chunks_prerequisites_json": {
+          "name": "idx_learning_chunks_prerequisites_json",
+          "columns": [
+            {
+              "expression": "prerequisites_json",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
         }
       },
       "foreignKeys": {
