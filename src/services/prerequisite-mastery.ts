@@ -274,7 +274,7 @@ export class PrerequisiteMasteryService {
       metrics,
       criteria: this.masteryCriteria,
       evaluations,
-      isMastered: Object.values(evaluations).every(met => met),
+      isMastered: this.evaluateMastery(metrics),
     };
   }
 }

@@ -330,6 +330,10 @@ export class ConversationManager {
           if (sessionInput) {
             sessionState = {
               currentItemIndex: sessionInput.chunks.filter(c => c.status === 'completed').length,
+              // TODO: SessionChunk doesn't carry full chunk metadata (repetitions,
+              // easeFactor, subject, etc.). These hardcoded defaults may cause
+              // inaccurate downstream recommendation scoring. Thread actual chunk
+              // data through convertSessionToSessionInput in a follow-up.
               currentRecommendations: sessionInput.chunks.map((c, idx) => ({
                 item: {
                   id: c.chunk_id,
