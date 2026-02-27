@@ -41,7 +41,7 @@ export function registerContentTools(server: McpServer): void {
 
         if (!chunkContent) {
           return toolError(`No chunk found with ID: ${chunkId}`, {
-            type: 'database',
+            type: 'not_found',
             message: 'Chunk not found',
           });
         }

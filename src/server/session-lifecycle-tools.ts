@@ -237,6 +237,16 @@ export function registerSessionLifecycleTools(server: McpServer): void {
           throw new Error(`Session ${validatedInput.sessionId} not found`);
         }
 
+        if (session.status === 'completed') {
+          return toolJson({
+            success: false,
+            error: {
+              type: 'already_completed',
+              message: 'Session is already completed',
+            },
+          });
+        }
+
         // Complete the session
         const changes = await completeSession(validatedInput.sessionId, validatedInput.feedback);
 

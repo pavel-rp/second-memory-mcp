@@ -9,6 +9,7 @@ import type {
   AdvancedNextReviewOutput,
   RankInput,
   RankOutput,
+  RankedItem,
 } from '../types/sr.js';
 
 function toStartOfDay(date: Date): Date {
@@ -166,6 +167,8 @@ export function calculateNextReviewAdvanced(
 
 // Rank with tag weights and caps
 export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
+  const candidateMap = new Map(input.candidates.map(c => [c.id, c]));
+
   // Score each candidate using existing priority, then adjust by tag weights
   const nowIso = isoDate(toStartOfDay(new Date()));
   const scored = input.candidates.map(c => {
@@ -186,39 +189,84 @@ export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
   const maxReviews = Math.max(0, Math.floor(algorithmConfig.dailyCaps.maxReviews));
   const capped = scored.slice(0, maxReviews > 0 ? maxReviews : scored.length);
 
+  // Helper to build enriched output from a list of selected scored items
+  const buildOutput = (
+    selected: typeof capped,
+    opts: { warning?: string; timeboxApplied: boolean; totalDuration: number }
+  ): RankOutput => {
+    const ranked: RankedItem[] = selected.map((s, idx) => {
+      const candidate = candidateMap.get(s.id);
+      const duration = candidate?.estimatedDuration ?? 0;
+      return {
+        id: s.id,
+        priority: s.score,
+        reason:
+          s.score >= 70
+            ? 'high priority — overdue or low ease'
+            : s.score >= 40
+              ? 'medium priority — approaching review date'
+              : 'low priority — well ahead of schedule',
+        order: idx + 1,
+        cognitiveLoad: Math.min(10, Math.ceil((candidate?.difficulty ?? 5) * (duration / 10 || 1))),
+      };
+    });
+
+    return {
+      orderedIds: selected.map(s => s.id),
+      ranked,
+      summary: {
+        totalCandidates: input.candidates.length,
+        selectedCount: selected.length,
+        totalDuration: opts.totalDuration,
+        timeboxApplied: opts.timeboxApplied,
+      },
+      ...(opts.warning ? { warning: opts.warning } : {}),
+    };
+  };
+
   // Apply timebox truncation if requested
   if (input.timeboxMinutes != null && input.timeboxMinutes > 0) {
     if (capped.length === 0) {
-      return { orderedIds: [] };
+      return buildOutput([], { timeboxApplied: true, totalDuration: 0 });
     }
 
-    const candidateMap = new Map(input.candidates.map(c => [c.id, c]));
     const hasDurations = capped.some(s => candidateMap.get(s.id)?.estimatedDuration != null);
 
     if (!hasDurations) {
-      return {
-        orderedIds: capped.map(s => s.id),
+      const totalDuration = capped.reduce(
+        (sum, s) => sum + (candidateMap.get(s.id)?.estimatedDuration ?? 0),
+        0
+      );
+      return buildOutput(capped, {
         warning:
           'timeboxMinutes was set but no candidates have estimatedDuration — timebox not applied',
-      };
+        timeboxApplied: false,
+        totalDuration,
+      });
     }
 
     // Fallback duration (in minutes) for candidates missing estimatedDuration when
     // at least one candidate has an explicit duration set.
     const DEFAULT_DURATION = 10;
     const budget = input.timeboxMinutes;
+    // Slack tolerance: 10% of budget or 5 minutes, whichever is smaller
+    const slack = Math.min(budget * 0.1, 5);
     let accumulated = 0;
-    const truncated: string[] = [];
+    const truncated: typeof capped = [];
 
     for (const s of capped) {
       const duration = candidateMap.get(s.id)?.estimatedDuration ?? DEFAULT_DURATION;
-      if (accumulated + duration > budget && truncated.length > 0) break;
+      if (accumulated + duration > budget + slack && truncated.length > 0) break;
       accumulated += duration;
-      truncated.push(s.id);
+      truncated.push(s);
     }
 
-    return { orderedIds: truncated };
+    return buildOutput(truncated, { timeboxApplied: true, totalDuration: accumulated });
   }
 
-  return { orderedIds: capped.map(s => s.id) };
+  const totalDuration = capped.reduce(
+    (sum, s) => sum + (candidateMap.get(s.id)?.estimatedDuration ?? 0),
+    0
+  );
+  return buildOutput(capped, { timeboxApplied: false, totalDuration });
 }

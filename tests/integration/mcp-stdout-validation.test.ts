@@ -5,7 +5,7 @@ import { setTimeout } from 'timers/promises';
 describe('MCP Server stdout validation', () => {
   it('should not output any non-JSON content to stdout', async () => {
     // Spawn the MCP server with test database
-    const server = spawn('node', ['dist/src/server/main.js'], {
+    const server = spawn('node', ['dist/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
@@ -97,7 +97,7 @@ describe('MCP Server stdout validation', () => {
   }, 10000); // 10 second timeout
 
   it('should not leak non-MCP output to stdout during startup', async () => {
-    const server = spawn('node', ['dist/src/server/main.js'], {
+    const server = spawn('node', ['dist/server/main.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,

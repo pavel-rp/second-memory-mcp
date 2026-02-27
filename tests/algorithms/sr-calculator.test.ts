@@ -99,6 +99,11 @@ describe('rankCandidatesWithConstraints', () => {
     });
     expect(Array.isArray(out.orderedIds)).toBe(true);
     expect(out.orderedIds.length).toBeGreaterThan(0);
+    expect(Array.isArray(out.ranked)).toBe(true);
+    expect(out.ranked.length).toBe(out.orderedIds.length);
+    expect(out.summary).toBeDefined();
+    expect(out.summary.totalCandidates).toBe(2);
+    expect(out.summary.selectedCount).toBe(out.orderedIds.length);
   });
 });
 
@@ -243,6 +248,81 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
     });
     expect(result.orderedIds.length).toBe(1);
     expect(result.orderedIds[0]).toBe('a');
+  });
+
+  it('includes item within slack tolerance that would exceed bare budget', () => {
+    // budget=20, slack=min(2, 5)=2, so effective limit is 22
+    // item a: 18 min, accumulated=18; item b: 4 min, accumulated=22 <= 22 — included
+    const result = rankCandidatesWithConstraints({
+      timeboxMinutes: 20,
+      candidates: [
+        {
+          id: 'a',
+          nextReviewDate: today,
+          easeFactor: 1.5,
+          repetitions: 0,
+          difficulty: 8,
+          estimatedDuration: 18,
+        },
+        {
+          id: 'b',
+          nextReviewDate: today,
+          easeFactor: 1.5,
+          repetitions: 0,
+          difficulty: 7,
+          estimatedDuration: 4,
+        },
+      ],
+    });
+    // Both items fit: 18 + 4 = 22 <= 20 + 2 (slack)
+    expect(result.orderedIds.length).toBe(2);
+    expect(result.summary.timeboxApplied).toBe(true);
+    expect(result.summary.totalDuration).toBe(22);
+  });
+
+  it('returns ranked array with per-item details and summary', () => {
+    const result = rankCandidatesWithConstraints({
+      candidates: [
+        {
+          id: 'a',
+          nextReviewDate: today,
+          easeFactor: 2.0,
+          repetitions: 0,
+          difficulty: 5,
+          estimatedDuration: 10,
+        },
+        {
+          id: 'b',
+          nextReviewDate: today,
+          easeFactor: 2.0,
+          repetitions: 1,
+          difficulty: 6,
+          estimatedDuration: 15,
+        },
+      ],
+    });
+
+    // ranked array
+    expect(Array.isArray(result.ranked)).toBe(true);
+    expect(result.ranked.length).toBe(result.orderedIds.length);
+    for (const item of result.ranked) {
+      expect(item.id).toBeDefined();
+      expect(typeof item.priority).toBe('number');
+      expect(typeof item.reason).toBe('string');
+      expect(item.reason.length).toBeGreaterThan(0);
+      expect(typeof item.order).toBe('number');
+      expect(typeof item.cognitiveLoad).toBe('number');
+      expect(item.cognitiveLoad).toBeGreaterThan(0);
+      expect(item.cognitiveLoad).toBeLessThanOrEqual(10);
+    }
+    // order is sequential
+    expect(result.ranked.map(r => r.order)).toEqual([1, 2]);
+
+    // summary
+    expect(result.summary.totalCandidates).toBe(2);
+    expect(result.summary.selectedCount).toBe(2);
+    expect(result.summary.totalDuration).toBe(25);
+    expect(result.summary.timeboxApplied).toBe(false);
   });
 });
 

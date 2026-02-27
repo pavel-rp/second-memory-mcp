@@ -7,6 +7,8 @@ import type {
   SessionHistory,
   SessionContext,
 } from '../types/recommendations.js';
+import { listChunksAsLearningItems } from '../services/chunk-queries.js';
+import { getActiveSession, convertSessionToSessionInput } from '../services/sessions.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -38,7 +40,7 @@ export class ConversationManager {
       case 'start_learning':
         return await this.handleStartLearning(request);
       case 'continue_session':
-        return this.handleContinueSession(request);
+        return await this.handleContinueSession(request);
       case 'need_clarification':
         return this.handleClarification(request);
       case 'session_feedback':
@@ -247,12 +249,20 @@ export class ConversationManager {
   private async handleStartLearning(request: ConversationRequest): Promise<ConversationResponse> {
     const context = (request.context ?? {}) as Record<string, unknown>;
 
-    const learningItems = Array.isArray(context.learningItems)
+    let learningItems = Array.isArray(context.learningItems)
       ? (context.learningItems as LearningItem[])
       : [];
-    const hasLearningItems = learningItems.length > 0;
 
-    if (!hasLearningItems) {
+    // Fetch from database when no items are provided in context
+    if (learningItems.length === 0) {
+      try {
+        learningItems = await listChunksAsLearningItems({ dueOnly: true, limit: 50 });
+      } catch (error) {
+        logger.error('Failed to fetch learning items from database:', error);
+      }
+    }
+
+    if (learningItems.length === 0) {
       return {
         message:
           "I'd love to help you learn! However, I don't see any learning items available. Please make sure you have content set up in your learning system first.",
@@ -308,8 +318,46 @@ export class ConversationManager {
   /**
    * Handle session continuation
    */
-  private handleContinueSession(request: ConversationRequest): ConversationResponse {
-    const sessionState = request.sessionState;
+  private async handleContinueSession(request: ConversationRequest): Promise<ConversationResponse> {
+    let sessionState = request.sessionState;
+
+    // Hydrate session state from DB if not provided
+    if (!sessionState || !sessionState.currentRecommendations) {
+      try {
+        const activeSession = await getActiveSession();
+        if (activeSession) {
+          const sessionInput = await convertSessionToSessionInput(activeSession.id);
+          if (sessionInput) {
+            sessionState = {
+              currentItemIndex: sessionInput.chunks.filter(c => c.status === 'completed').length,
+              // TODO: SessionChunk doesn't carry full chunk metadata (repetitions,
+              // easeFactor, subject, etc.). These hardcoded defaults may cause
+              // inaccurate downstream recommendation scoring. Thread actual chunk
+              // data through convertSessionToSessionInput in a follow-up.
+              currentRecommendations: sessionInput.chunks.map((c, idx) => ({
+                item: {
+                  id: c.chunk_id,
+                  title: c.title,
+                  estimatedDuration: 10,
+                  difficulty: 5,
+                  repetitions: 0,
+                  easeFactor: 2.5,
+                  nextReviewDate: new Date().toISOString(),
+                  chunkType: 'review' as const,
+                  subject: '',
+                },
+                reason: 'Active session item',
+                priority: 50,
+                order: idx + 1,
+                cognitiveLoad: 5,
+              })),
+            };
+          }
+        }
+      } catch (error) {
+        logger.error('Failed to hydrate session from database:', error);
+      }
+    }
 
     if (!sessionState || !sessionState.currentRecommendations) {
       return {
