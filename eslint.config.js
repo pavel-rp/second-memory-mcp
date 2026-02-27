@@ -44,6 +44,8 @@ export default [
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/no-unsafe-function-type': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'warn',
+      '@typescript-eslint/no-wrapper-object-types': 'warn',
       'no-undef': 'off',
       'no-redeclare': 'off',
       'no-useless-assignment': 'off',
