@@ -3,6 +3,9 @@
 
 export type EmbeddingProvider = 'openai' | 'ollama';
 
+/** The vector column dimension defined in the database schema/migration. */
+export const SCHEMA_EMBEDDING_DIMENSIONS = 1536;
+
 export type EmbeddingConfig = {
   provider: EmbeddingProvider | null;
   dimensions: number;
@@ -15,7 +18,7 @@ const provider = parseProvider(process.env.EMBEDDING_PROVIDER);
 
 export const embeddingConfig: EmbeddingConfig = {
   provider,
-  dimensions: parseNumber(process.env.EMBEDDING_DIMENSIONS, provider === 'ollama' ? 768 : 1536),
+  dimensions: parseNumber(process.env.EMBEDDING_DIMENSIONS, SCHEMA_EMBEDDING_DIMENSIONS),
   model:
     process.env.EMBEDDING_MODEL ||
     (provider === 'ollama' ? 'nomic-embed-text' : 'text-embedding-3-small'),

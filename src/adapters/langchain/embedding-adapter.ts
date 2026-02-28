@@ -1,11 +1,14 @@
 import type { Embeddings } from '@langchain/core/embeddings';
 import type { EmbeddingPort } from '../../ports/embedding-port.js';
-import type { EmbeddingConfig } from '../../domain/config/embedding.js';
+import {
+  type EmbeddingConfig,
+  SCHEMA_EMBEDDING_DIMENSIONS,
+} from '../../domain/config/embedding.js';
 import { logger } from '../../shared/logger.js';
 
 export class LangChainEmbeddingAdapter implements EmbeddingPort {
   private embeddings: Embeddings | null = null;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private available = false;
 
   constructor(private config: EmbeddingConfig) {}
@@ -40,16 +43,27 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
 
   isAvailable(): boolean {
     // If not initialized yet, report available based on config (provider is set)
-    if (!this.initialized) return !!this.config.provider;
+    if (!this.initPromise) return !!this.config.provider;
     return this.available;
   }
 
-  private async ensureInitialized(): Promise<void> {
-    if (this.initialized) return;
-    this.initialized = true;
+  private ensureInitialized(): Promise<void> {
+    if (!this.initPromise) this.initPromise = this.doInitialize();
+    return this.initPromise;
+  }
 
+  private async doInitialize(): Promise<void> {
     if (!this.config.provider) {
       logger.info('No embedding provider configured — semantic search disabled');
+      return;
+    }
+
+    if (this.config.dimensions !== SCHEMA_EMBEDDING_DIMENSIONS) {
+      logger.error(
+        `Embedding dimensions mismatch: configured ${this.config.dimensions}, schema requires ${SCHEMA_EMBEDDING_DIMENSIONS}. ` +
+          `Set EMBEDDING_DIMENSIONS=${SCHEMA_EMBEDDING_DIMENSIONS} or use a model that produces ${SCHEMA_EMBEDDING_DIMENSIONS}-dim vectors. ` +
+          `Semantic search disabled.`
+      );
       return;
     }
 
@@ -60,7 +74,9 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
         await this.initOllama();
       }
       this.available = true;
-      logger.info(`Embedding provider initialized: ${this.config.provider} (${this.config.model})`);
+      logger.info(
+        `Embedding provider initialized: ${this.config.provider} (${this.config.model}, ${this.config.dimensions} dims)`
+      );
     } catch (err) {
       logger.warn(`Failed to initialize embedding provider "${this.config.provider}":`, err);
       this.available = false;
