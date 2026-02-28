@@ -1,18 +1,38 @@
-import { pgTable, text, integer, bigint, real, jsonb, index, check } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  integer,
+  bigint,
+  real,
+  jsonb,
+  index,
+  check,
+  vector,
+} from 'drizzle-orm/pg-core';
 import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
 import type { ChunkAttempt } from '../../domain/types/session.js';
 
 // Tables
-export const learningTopics = pgTable('learning_topics', {
-  id: text('id').primaryKey().notNull(),
-  title: text('title').notNull(),
-  subject: text('subject').notNull(),
-  summary: text('summary'), // client-provided topic summary content
-  summaryVersion: integer('summary_version').default(1), // versioning for summary content
-  summaryUpdatedAt: bigint('summary_updated_at', { mode: 'number' }), // epoch ms, when summary was last updated
-  createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
-  updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
-});
+export const learningTopics = pgTable(
+  'learning_topics',
+  {
+    id: text('id').primaryKey().notNull(),
+    title: text('title').notNull(),
+    subject: text('subject').notNull(),
+    summary: text('summary'), // client-provided topic summary content
+    summaryVersion: integer('summary_version').default(1), // versioning for summary content
+    summaryUpdatedAt: bigint('summary_updated_at', { mode: 'number' }), // epoch ms, when summary was last updated
+    summaryEmbedding: vector('summary_embedding', { dimensions: 1536 }), // pgvector: summary text embedding
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  table => [
+    index('idx_learning_topics_summary_embedding').using(
+      'hnsw',
+      table.summaryEmbedding.op('vector_cosine_ops')
+    ),
+  ]
+);
 
 export const learningChunks = pgTable(
   'learning_chunks',
@@ -36,12 +56,17 @@ export const learningChunks = pgTable(
     content: text('content'), // client-provided chunk content
     contentVersion: integer('content_version').default(1), // versioning for content
     contentUpdatedAt: bigint('content_updated_at', { mode: 'number' }), // epoch ms, when content was last updated
+    contentEmbedding: vector('content_embedding', { dimensions: 1536 }), // pgvector: content text embedding
     createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   },
   table => [
     index('idx_learning_chunks_next_review_at').on(table.nextReviewAt),
     index('idx_learning_chunks_prerequisites_json').using('gin', table.prerequisitesJson),
+    index('idx_learning_chunks_content_embedding').using(
+      'hnsw',
+      table.contentEmbedding.op('vector_cosine_ops')
+    ),
     check('chk_chunk_type', sql`${table.chunkType} IN ('new', 'review', 'remediation')`),
   ]
 );

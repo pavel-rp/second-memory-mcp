@@ -30,7 +30,13 @@ export interface TopicRepository {
     changes: Partial<
       Pick<
         NewLearningTopicRow,
-        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
+        | 'title'
+        | 'subject'
+        | 'summary'
+        | 'summaryVersion'
+        | 'summaryUpdatedAt'
+        | 'summaryEmbedding'
+        | 'updatedAt'
       >
     >
   ): Promise<ServiceResult<{ changesApplied: number }>>;

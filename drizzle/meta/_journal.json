@@ -8,6 +8,13 @@
       "when": 1772194979433,
       "tag": "0000_strong_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772313260401,
+      "tag": "0001_fantastic_blue_marvel",
+      "breakpoints": true
     }
   ]
 }

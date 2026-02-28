@@ -137,6 +137,7 @@ export async function createTopicWithChunks(
         summary: input.topicSummary || null,
         summaryVersion: input.topicSummary ? 1 : null,
         summaryUpdatedAt: input.topicSummary ? now : null,
+        summaryEmbedding: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -162,6 +163,7 @@ export async function createTopicWithChunks(
           content: chunkDef.content || null,
           contentVersion: chunkDef.content ? 1 : null,
           contentUpdatedAt: chunkDef.content ? now : null,
+          contentEmbedding: null,
           createdAt: now,
           updatedAt: now,
         };

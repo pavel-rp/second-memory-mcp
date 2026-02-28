@@ -33,6 +33,7 @@ export class InMemoryTopicRepository implements TopicRepository {
       summary: input.summary ?? null,
       summaryVersion: input.summaryVersion ?? null,
       summaryUpdatedAt: input.summaryUpdatedAt ?? null,
+      summaryEmbedding: input.summaryEmbedding ?? null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };

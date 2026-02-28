@@ -55,6 +55,7 @@ export class InMemoryChunkRepository implements ChunkRepository {
       content: input.content ?? null,
       contentVersion: input.contentVersion ?? null,
       contentUpdatedAt: input.contentUpdatedAt ?? null,
+      contentEmbedding: input.contentEmbedding ?? null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };

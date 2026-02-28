@@ -41,6 +41,7 @@ const CHUNK_CONTENT_COLUMNS = {
   content: learningChunks.content,
   contentVersion: learningChunks.contentVersion,
   contentUpdatedAt: learningChunks.contentUpdatedAt,
+  contentEmbedding: learningChunks.contentEmbedding,
 };
 
 type ChunkFilterOptions = {
