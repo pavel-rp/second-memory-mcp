@@ -1,5 +1,5 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { extractErrorMessage } from '../utils/errors.js';
+import { extractErrorMessage } from '../shared/errors.js';
 export { extractErrorMessage };
 
 // ---------------------------------------------------------------------------

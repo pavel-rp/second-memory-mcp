@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { listChunksWithContent } from '../../src/services/chunk-queries.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { createAppContext, type AppContext } from '../../src/composition-root.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 function generateLargeContent(sizeInKB: number): string {
@@ -18,8 +18,12 @@ function generateLargeContent(sizeInKB: number): string {
 }
 
 describe('Performance: Content Retrieval', () => {
+  let ctx: AppContext;
   beforeAll(setupTestDb);
-  beforeEach(cleanupTestDb);
+  beforeEach(async () => {
+    await cleanupTestDb();
+    ctx = createAppContext();
+  });
   afterAll(teardownTestDb);
 
   it('should handle 10+ items with content efficiently', async () => {
@@ -64,7 +68,7 @@ describe('Performance: Content Retrieval', () => {
     }
 
     const startTime = performance.now();
-    const result = await listChunksWithContent({ includeContent: true });
+    const result = await ctx.listChunksWithContent({ includeContent: true });
     const endTime = performance.now();
     const responseTime = endTime - startTime;
 
@@ -126,7 +130,7 @@ describe('Performance: Content Retrieval', () => {
     }
 
     const startTime = performance.now();
-    const result = await listChunksWithContent({ includeContent: true });
+    const result = await ctx.listChunksWithContent({ includeContent: true });
     const endTime = performance.now();
     const responseTime = endTime - startTime;
 
@@ -189,19 +193,19 @@ describe('Performance: Content Retrieval', () => {
 
     const startTime = performance.now();
 
-    const page1 = await listChunksWithContent({
+    const page1 = await ctx.listChunksWithContent({
       includeContent: true,
       limit: pageSize,
       offset: 0,
     });
 
-    const page3 = await listChunksWithContent({
+    const page3 = await ctx.listChunksWithContent({
       includeContent: true,
       limit: pageSize,
       offset: pageSize * 2,
     });
 
-    const lastPage = await listChunksWithContent({
+    const lastPage = await ctx.listChunksWithContent({
       includeContent: true,
       limit: pageSize,
       offset: pageSize * 4,
@@ -274,7 +278,7 @@ describe('Performance: Content Retrieval', () => {
     }
 
     const startTime = performance.now();
-    const result = await listChunksWithContent({ includeContent: true });
+    const result = await ctx.listChunksWithContent({ includeContent: true });
     const endTime = performance.now();
     const responseTime = endTime - startTime;
 

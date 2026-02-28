@@ -1,4 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import {
   GetChunkContentInputSchema,
   GetChunkContentInputShape,
@@ -9,17 +10,10 @@ import {
   ListItemsWithContentInputSchema,
   ListItemsWithContentInputShape,
   type ListItemsWithContentInput,
-} from '../types/content-tools.js';
-import { getChunkContent } from '../services/chunks.js';
-import {
-  listChunksWithContent,
-  type ListChunksWithContentFilter,
-} from '../services/chunk-queries.js';
-import { getTopicSummaryById } from '../services/topics.js';
+} from '../domain/types/content-tools.js';
 import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
 
-export function registerContentTools(server: McpServer): void {
-  // Tool for retrieving individual chunk content
+export function registerContentTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'get_chunk_content',
     {
@@ -37,7 +31,7 @@ export function registerContentTools(server: McpServer): void {
       const { chunkId } = input;
 
       try {
-        const chunkContent = await getChunkContent(chunkId);
+        const chunkContent = await ctx.getChunkContent(chunkId);
 
         if (!chunkContent) {
           return toolError(`No chunk found with ID: ${chunkId}`, {
@@ -66,7 +60,6 @@ export function registerContentTools(server: McpServer): void {
     }
   );
 
-  // Tool for retrieving topic summary
   server.registerTool(
     'get_topic_summary',
     {
@@ -83,7 +76,7 @@ export function registerContentTools(server: McpServer): void {
       const { topicId } = input;
 
       try {
-        const topicResult = await getTopicSummaryById(topicId);
+        const topicResult = await ctx.getTopicSummary(topicId);
 
         if (!topicResult) {
           return toolError(`No topic found with ID: ${topicId}`, {
@@ -116,7 +109,6 @@ export function registerContentTools(server: McpServer): void {
     }
   );
 
-  // Tool for batch content retrieval
   server.registerTool(
     'list_items_with_content',
     {
@@ -133,15 +125,13 @@ export function registerContentTools(server: McpServer): void {
       const resolvedLimit = limit ?? 100;
 
       try {
-        const filter: ListChunksWithContentFilter = {
-          subject: subjectFilter,
+        const result = await ctx.listChunksWithContent({
+          subjectFilter,
           dueOnly,
+          includeContent,
           limit: resolvedLimit,
           offset: resolvedOffset,
-          includeContent,
-        };
-
-        const result = await listChunksWithContent(filter);
+        });
 
         return toolOk(
           `Successfully retrieved ${result.items.length} learning items${
