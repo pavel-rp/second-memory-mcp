@@ -62,7 +62,7 @@ import {
   validateSessionContext,
   applyBatchSessionChunkOperations,
 } from './domain/services/session-analyzer.js';
-import { ConversationManager } from './tools/conversation-manager.js';
+import { ConversationManager } from './orchestration/conversation-manager.js';
 import { RecommendationEngine } from './domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from './domain/services/prerequisite-validator.js';
 
@@ -368,7 +368,15 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     checkSessionCompletion,
     validateSessionContext,
     applyBatchSessionChunkOperations,
-    createConversationManager: () => new ConversationManager(createRecommendationEngine()),
+    createConversationManager: () =>
+      new ConversationManager({
+        recommendationEngine: createRecommendationEngine(),
+        listChunksAsLearningItems: filter =>
+          queryWorkflows.listChunksAsLearningItems(filter, queryDeps),
+        getActiveSession: () => sessionWorkflows.getActiveSession(sessionDeps),
+        convertSessionToInput: (sessionId: string) =>
+          sessionWorkflows.convertSessionToSessionInput(sessionId, undefined, sessionDeps),
+      }),
   };
 
   return Object.freeze(ctx);

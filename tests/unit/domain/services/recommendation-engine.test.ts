@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RecommendationEngine } from '../../../../src/domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
-import * as chunksService from '../../../../src/services/chunks.js';
-import * as chunkQueriesService from '../../../../src/services/chunk-queries.js';
+import { mapChunkRowToLearningItem } from '../../../../src/shared/chunk-mapping.js';
+import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 
-function createTestEngine() {
+function createTestEngine(chunkLookupFn?: (id: string) => Promise<LearningItem | undefined>) {
   const mockValidator = new PrerequisiteValidator({
     referenceValidator: {
       validateChunkPrerequisites: vi.fn().mockReturnValue({ isValid: true, invalidReferences: [] }),
@@ -14,10 +14,7 @@ function createTestEngine() {
     },
   });
   return new RecommendationEngine({
-    chunkLookupFn: async (id: string) => {
-      const row = await chunksService.getChunk(id);
-      return row ? chunkQueriesService.mapChunkRowToLearningItem(row) : undefined;
-    },
+    chunkLookupFn: chunkLookupFn ?? (async () => undefined),
     prerequisiteValidator: mockValidator,
   });
 }
@@ -333,7 +330,14 @@ describe('RecommendationEngine', () => {
   });
 
   it('includes transitive prerequisites when only dependent item is provided', async () => {
-    const engine = createTestEngine();
+    const chunkRows: Record<string, any> = {
+      'item-a': makeChunkRow('item-a', []),
+    };
+
+    const engine = createTestEngine(async (id: string) => {
+      const row = chunkRows[id];
+      return row ? (mapChunkRowToLearningItem(row) as LearningItem) : undefined;
+    });
 
     const overdueDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     const items = [
@@ -354,12 +358,6 @@ describe('RecommendationEngine', () => {
         prerequisites: ['item-b'],
       }),
     ];
-
-    const chunkRows: Record<string, any> = {
-      'item-a': makeChunkRow('item-a', []),
-    };
-
-    vi.spyOn(chunksService, 'getChunk').mockImplementation(async id => chunkRows[id] ?? null);
 
     const result = await engine.generateRecommendations({
       mode: 'explicit',

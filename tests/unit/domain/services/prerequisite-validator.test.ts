@@ -1,29 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
-import { prerequisiteReferenceValidator } from '../../../../src/services/chunk-prerequisites.js';
-import { prerequisiteMasteryService } from '../../../../src/services/prerequisite-mastery.js';
 import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 import type { MasteryStatus } from '../../../../src/domain/types/prerequisite-validation.js';
 
-// Mock the dependencies
-vi.mock('../../../../src/services/chunk-prerequisites.js', async importOriginal => {
-  const orig =
-    await importOriginal<typeof import('../../../../src/services/chunk-prerequisites.js')>();
-  return {
-    ...orig,
-    prerequisiteReferenceValidator: {
-      validateChunkPrerequisites: vi.fn(),
-      validatePrerequisiteReferences: vi.fn(),
-      clearCache: vi.fn(),
-    },
-  };
-});
-vi.mock('../../../../src/services/prerequisite-mastery.js');
+const mockReferenceValidator = {
+  validateChunkPrerequisites: vi.fn(),
+  validatePrerequisiteReferences: vi.fn(),
+  clearCache: vi.fn(),
+};
+const mockMasteryService = {
+  checkItemMastery: vi.fn(),
+};
 
 describe('PrerequisiteValidator', () => {
   let validator: PrerequisiteValidator;
-  const mockReferenceValidator = vi.mocked(prerequisiteReferenceValidator);
-  const mockMasteryService = vi.mocked(prerequisiteMasteryService);
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -313,13 +303,16 @@ describe('PrerequisiteValidator Integration', () => {
   });
 
   it('should work with realistic learning scenarios', async () => {
-    // Mock realistic scenario
-    const mockRefValidator = vi.mocked(prerequisiteReferenceValidator);
-    const mockMasterySvc = vi.mocked(prerequisiteMasteryService);
+    const localRefValidator = {
+      validateChunkPrerequisites: vi.fn(),
+    };
+    const localMasterySvc = {
+      checkItemMastery: vi.fn(),
+    };
 
     const validator = new PrerequisiteValidator({
-      referenceValidator: mockRefValidator,
-      masteryService: mockMasterySvc,
+      referenceValidator: localRefValidator,
+      masteryService: localMasterySvc,
       customCriteria: {
         minimumQualityScore: 4.0,
         requiredAttempts: 2,
@@ -328,7 +321,7 @@ describe('PrerequisiteValidator Integration', () => {
       },
     });
 
-    mockRefValidator.validateChunkPrerequisites.mockResolvedValue({
+    localRefValidator.validateChunkPrerequisites.mockResolvedValue({
       isValid: true,
       validReferences: ['basic-concepts'],
       invalidReferences: [],
@@ -336,7 +329,7 @@ describe('PrerequisiteValidator Integration', () => {
     });
 
     // Prerequisite not sufficiently mastered
-    mockMasterySvc.checkItemMastery.mockResolvedValue({
+    localMasterySvc.checkItemMastery.mockResolvedValue({
       itemId: 'basic-concepts',
       isMastered: false,
       averageQuality: 3.5, // Below threshold
