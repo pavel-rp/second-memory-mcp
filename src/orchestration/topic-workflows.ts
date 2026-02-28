@@ -2,13 +2,10 @@ import crypto from 'node:crypto';
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
-import type {
-  LearningChunkRow,
-  LearningTopicRow,
-  NewLearningChunkRow,
-} from '../infrastructure/db/schema.js';
+import type { LearningChunkRow, LearningTopicRow } from '../infrastructure/db/schema.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
+import { extractErrorMessage } from '../shared/errors.js';
 import { logger } from '../shared/logger.js';
 
 export type TopicDeps = {
@@ -66,10 +63,6 @@ export type TopicCreationResult = {
   topic?: TopicWithChunks;
   error?: { type: 'validation' | 'database' | 'generation'; message: string; retryable: boolean };
 };
-
-function extractErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 // --- Topic creation ---
 
@@ -151,7 +144,7 @@ export async function createTopicWithChunks(
 
       const createdChunks: LearningChunkRow[] = [];
       for (const chunkDef of input.chunks) {
-        const chunkRow: NewLearningChunkRow = {
+        const chunkRow: LearningChunkRow = {
           id: chunkDef.id,
           topicId,
           title: chunkDef.title,
@@ -173,7 +166,7 @@ export async function createTopicWithChunks(
           updatedAt: now,
         };
         await ports.chunks.create(chunkRow);
-        createdChunks.push(chunkRow as LearningChunkRow);
+        createdChunks.push(chunkRow);
       }
 
       return { topic, chunks: createdChunks };
@@ -231,30 +224,28 @@ export async function updateTopicMetadata(
     if (updates.title !== undefined) data.title = updates.title;
     if (updates.subject !== undefined) data.subject = updates.subject;
 
-    const result = await deps.topics.update(
-      topicId,
-      data as Parameters<TopicRepository['update']>[1]
-    );
-    if (!result.success) return { success: false, error: result.error };
-
-    // Cascade subject change to child chunks
+    // Wrap topic update + subject cascade in a transaction for atomicity
     if (updates.subject !== undefined) {
-      try {
-        const allChunks = await deps.chunks.list({ subjectFilter: current.subject });
+      await deps.unitOfWork.execute(async ports => {
+        const result = await ports.topics.update(
+          topicId,
+          data as Parameters<TopicRepository['update']>[1]
+        );
+        if (!result.success) throw new Error(result.error?.message ?? 'Topic update failed');
+
+        const allChunks = await ports.chunks.list({ subjectFilter: current.subject });
         const topicChunks = allChunks.filter(c => c.topicId === topicId);
         const now = Date.now();
         for (const chunk of topicChunks) {
-          await deps.chunks.update(chunk.id, { subject: updates.subject, updatedAt: now });
+          await ports.chunks.update(chunk.id, { subject: updates.subject!, updatedAt: now });
         }
-      } catch (error) {
-        return {
-          success: false,
-          error: {
-            type: 'database',
-            message: `Topic updated but failed to cascade subject to chunks: ${extractErrorMessage(error)}`,
-          },
-        };
-      }
+      });
+    } else {
+      const result = await deps.topics.update(
+        topicId,
+        data as Parameters<TopicRepository['update']>[1]
+      );
+      if (!result.success) return { success: false, error: result.error };
     }
 
     const updated = await deps.topics.getById(topicId);

@@ -17,7 +17,7 @@ import { logger } from '../shared/logger.js';
 
 export type SessionDeps = {
   sessions: SessionRepository;
-  chunks?: ChunkRepository;
+  chunks: ChunkRepository;
 };
 
 export async function createSession(
@@ -180,7 +180,7 @@ export async function getSessionChunks(
 
 export async function resolveSessionChunkDependencies(
   chunkIds: string[],
-  deps: SessionDeps & { chunks: ChunkRepository }
+  deps: SessionDeps
 ): Promise<{
   resolvedChunkIds: string[];
   addedPrerequisites: string[];

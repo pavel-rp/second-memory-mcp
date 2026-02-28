@@ -6,6 +6,7 @@ import type { LearningChunkRow, NewLearningChunkRow } from '../infrastructure/db
 import type { ServiceResult, ServiceError } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { hasSignificantContentChange } from '../shared/content-similarity.js';
+import { extractErrorMessage } from '../shared/errors.js';
 import { dependencyResolver } from '../domain/algorithms/dependency-resolver.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import type { LearningItem } from '../domain/types/recommendations.js';
@@ -37,12 +38,6 @@ export type DeleteChunkResult = {
   removedDependencies?: ChunkDependencyCleanup[];
   error?: ServiceError;
 };
-
-// --- Internal helper ---
-
-function extractErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 async function updateChunkFields(
   id: string,

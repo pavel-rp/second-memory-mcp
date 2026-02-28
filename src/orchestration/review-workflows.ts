@@ -3,6 +3,7 @@ import type { ReviewResultData } from '../ports/review-persistence-port.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
+import { extractErrorMessage } from '../shared/errors.js';
 
 export type ReviewDeps = {
   reviewPersistence: ReviewPersistencePort;
@@ -76,7 +77,10 @@ export async function processReviewResult(
       consecutiveFailures: options.consecutiveFailures || 0,
       isLeech: sm2Result.leech || false,
     });
-  } catch {
-    return serviceFail({ type: 'database', message: 'Failed to process review result' });
+  } catch (error) {
+    return serviceFail({
+      type: 'database',
+      message: `Failed to process review result: ${extractErrorMessage(error)}`,
+    });
   }
 }

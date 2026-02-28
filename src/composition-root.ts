@@ -330,10 +330,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     validateChunkIds: chunkIds => sessionWorkflows.validateChunkIds(chunkIds, sessionDeps),
     getSessionChunks: sessionId => sessionWorkflows.getSessionChunks(sessionId, sessionDeps),
     resolveSessionChunkDependencies: chunkIds =>
-      sessionWorkflows.resolveSessionChunkDependencies(
-        chunkIds,
-        sessionDeps as sessionWorkflows.SessionDeps & { chunks: ChunkRepository }
-      ),
+      sessionWorkflows.resolveSessionChunkDependencies(chunkIds, sessionDeps),
 
     // Recommendation orchestration
     generateRecommendations: input =>
