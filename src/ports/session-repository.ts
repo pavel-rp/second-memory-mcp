@@ -24,6 +24,9 @@ export type CreateSessionChunkInput = {
   sessionId: string;
   chunkId: string;
   status?: string;
+  attemptsJson?: SessionChunkRow['attemptsJson'];
+  qualityScoresJson?: SessionChunkRow['qualityScoresJson'];
+  timeSpentMs?: number;
   createdAt: number;
   updatedAt: number;
 };

@@ -27,7 +27,12 @@ export interface TopicRepository {
   getSummaryById(topicId: string): Promise<TopicWithSummary | undefined>;
   update(
     id: string,
-    changes: Partial<Pick<NewLearningTopicRow, 'title' | 'subject' | 'updatedAt'>>
+    changes: Partial<
+      Pick<
+        NewLearningTopicRow,
+        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
+      >
+    >
   ): Promise<ServiceResult<{ changesApplied: number }>>;
   delete(id: string): Promise<ServiceResult<{ deleted: boolean }>>;
   list(): Promise<LearningTopicRow[]>;

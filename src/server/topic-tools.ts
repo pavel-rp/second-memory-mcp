@@ -1,6 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { topicCreationService } from '../services/topic-creation.js';
-import { updateTopicMetadata, updateTopicSummary } from '../services/topic-updates.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import {
   CreateTopicWithChunksInputSchema,
   CreateTopicWithChunksInputShape,
@@ -14,7 +13,7 @@ import {
 } from '../domain/types/persistence-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-export function registerTopicTools(server: McpServer): void {
+export function registerTopicTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'create_topic_with_chunks',
     {
@@ -26,13 +25,12 @@ export function registerTopicTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: CreateTopicWithChunksInput = CreateTopicWithChunksInputSchema.parse(rawInput);
       try {
-        const result = await topicCreationService.createTopicWithChunks({
+        const result = await ctx.createTopicWithChunks({
           topicTitle: input.topicTitle,
           topicDescription: input.topicDescription,
           subject: input.subject,
           topicSummary: input.topicSummary,
           chunks: input.chunks,
-          userPreferences: input.userPreferences,
         });
 
         if (result.success && result.topic) {
@@ -73,7 +71,7 @@ export function registerTopicTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicInput = UpdateTopicInputSchema.parse(rawInput);
       try {
-        const result = await updateTopicMetadata(input.topicId, {
+        const result = await ctx.updateTopicMetadata(input.topicId, {
           title: input.title,
           subject: input.subject,
         });
@@ -111,7 +109,7 @@ export function registerTopicTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicSummaryInput = UpdateTopicSummaryInputSchema.parse(rawInput);
       try {
-        const result = await updateTopicSummary(input.topicId, input.summary);
+        const result = await ctx.updateTopicSummary(input.topicId, input.summary);
 
         if (result.success && result.topic) {
           return toolJson({

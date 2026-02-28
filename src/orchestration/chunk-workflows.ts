@@ -159,6 +159,54 @@ export async function updateChunkMetadata(
   );
 }
 
+export async function updateChunkWithProgressReset(
+  id: string,
+  input: {
+    content?: string;
+    title?: string;
+    difficulty?: number;
+    prerequisites?: string[];
+    tags?: string[];
+    estimatedDuration?: number;
+    forceReset?: boolean;
+  },
+  deps: ChunkDeps
+): Promise<ChunkUpdateResult> {
+  return updateChunkFields(
+    id,
+    (current, now) => {
+      const fields: Record<string, unknown> = { updatedAt: now };
+      if (input.content !== undefined) {
+        fields.content = input.content;
+        fields.contentVersion = (current.contentVersion || 1) + 1;
+        fields.contentUpdatedAt = now;
+      }
+      if (input.title !== undefined) fields.title = input.title;
+      if (input.difficulty !== undefined) fields.difficulty = input.difficulty;
+      if (input.estimatedDuration !== undefined) fields.estimatedDuration = input.estimatedDuration;
+      if (input.prerequisites !== undefined) fields.prerequisitesJson = input.prerequisites;
+      if (input.tags !== undefined) fields.tagsJson = input.tags;
+
+      let shouldReset = input.forceReset || false;
+      if (
+        input.content &&
+        current.content &&
+        hasSignificantContentChange(current.content, input.content)
+      ) {
+        shouldReset = true;
+      }
+      if (shouldReset) {
+        fields.repetitions = 0;
+        fields.easeFactor = 2.5;
+        fields.nextReviewAt = now;
+        fields.lastReviewedAt = null;
+      }
+      return { fields, progressReset: shouldReset };
+    },
+    deps
+  );
+}
+
 export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteChunkResult> {
   try {
     const chunkToDelete = await deps.chunks.getById(id);

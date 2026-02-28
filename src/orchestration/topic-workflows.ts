@@ -296,15 +296,15 @@ export async function updateTopicSummary(
     }
 
     const now = Date.now();
+    const newVersion = (current.summaryVersion ?? 1) + 1;
     const result = await deps.topics.update(topicId, {
+      summary,
+      summaryVersion: newVersion,
+      summaryUpdatedAt: now,
       updatedAt: now,
-    } as Parameters<TopicRepository['update']>[1]);
+    });
 
     if (!result.success) return { success: false, error: result.error };
-
-    // Summary fields need to go through a separate update since port's update method
-    // only exposes title/subject/updatedAt. For now, use the full topic update path.
-    // TODO: Extend TopicRepository port to support summary updates directly.
 
     const updated = await deps.topics.getById(topicId);
     return { success: true, topic: updated };

@@ -1,12 +1,23 @@
 import crypto from 'node:crypto';
-import type { SessionRepository, CreateSessionInput } from '../ports/session-repository.js';
+import type {
+  SessionRepository,
+  CreateSessionInput,
+  CreateSessionChunkInput,
+  ChunkValidationResult,
+} from '../ports/session-repository.js';
+import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { SessionInput, HistoricalFeedback, BatchOperation } from '../domain/types/session.js';
+import type { LearningItem } from '../domain/types/recommendations.js';
 import type { LearningSessionRow, SessionChunkRow } from '../infrastructure/db/schema.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
+import { dependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
+import { logger } from '../shared/logger.js';
 
 export type SessionDeps = {
   sessions: SessionRepository;
+  chunks?: ChunkRepository;
 };
 
 export async function createSession(
@@ -132,5 +143,135 @@ export async function batchUpdateSessionChunks(
       type: 'database',
       message: error instanceof Error ? error.message : 'Failed to batch update session chunks',
     });
+  }
+}
+
+export async function getSessionById(
+  sessionId: string,
+  deps: SessionDeps
+): Promise<LearningSessionRow | null> {
+  return deps.sessions.getSessionById(sessionId);
+}
+
+export async function getActiveSession(deps: SessionDeps): Promise<LearningSessionRow | null> {
+  return deps.sessions.getActiveSession();
+}
+
+export async function createSessionChunk(
+  input: CreateSessionChunkInput,
+  deps: SessionDeps
+): Promise<SessionChunkRow> {
+  return deps.sessions.createSessionChunk(input);
+}
+
+export async function validateChunkIds(
+  chunkIds: string[],
+  deps: SessionDeps
+): Promise<ChunkValidationResult> {
+  return deps.sessions.validateChunkIds(chunkIds);
+}
+
+export async function getSessionChunks(
+  sessionId: string,
+  deps: SessionDeps
+): Promise<SessionChunkRow[]> {
+  return deps.sessions.getSessionChunks(sessionId);
+}
+
+export async function resolveSessionChunkDependencies(
+  chunkIds: string[],
+  deps: SessionDeps & { chunks: ChunkRepository }
+): Promise<{
+  resolvedChunkIds: string[];
+  addedPrerequisites: string[];
+  message: string;
+}> {
+  if (!chunkIds || chunkIds.length === 0) {
+    return { resolvedChunkIds: [], addedPrerequisites: [], message: '' };
+  }
+
+  const inputChunkSet = new Set(chunkIds);
+  const chunkMap = new Map<string, LearningItem>();
+  const missingPrerequisites: string[] = [];
+  const missingRequestedChunks: string[] = [];
+  const queue: string[] = [...chunkIds];
+  const visited = new Set<string>();
+
+  try {
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!currentId || visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      let item = chunkMap.get(currentId);
+      if (!item) {
+        const chunkRow = await deps.chunks.getById(currentId);
+        if (!chunkRow) {
+          if (inputChunkSet.has(currentId)) {
+            missingRequestedChunks.push(currentId);
+          } else {
+            missingPrerequisites.push(currentId);
+          }
+          logger.warn(
+            `Skipping chunk ${currentId} while resolving session dependencies - not found in database`
+          );
+          continue;
+        }
+        item = mapChunkRowToLearningItem(chunkRow) as LearningItem;
+        chunkMap.set(currentId, item);
+      }
+
+      const prerequisites = item.prerequisites || [];
+      for (const prereqId of prerequisites) {
+        if (!visited.has(prereqId)) queue.push(prereqId);
+      }
+    }
+
+    if (missingRequestedChunks.length > 0) {
+      logger.warn(
+        `Cannot resolve dependencies for missing requested chunks: ${missingRequestedChunks.join(', ')}`
+      );
+      return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+    }
+
+    const relevantItems = Array.from(chunkMap.entries())
+      .filter(([id]) => visited.has(id))
+      .map(([, item]) => item);
+
+    if (relevantItems.length === 0) {
+      return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+    }
+
+    const resolution = await dependencyResolver.resolveDependencies(relevantItems, chunkIds);
+
+    if (!resolution.isValid) {
+      logger.warn('Dependency resolution failed for session chunks:', resolution.errors.join(', '));
+      return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+    }
+
+    const existingResolvedChain = resolution.resolvedChain.filter((id: string) => chunkMap.has(id));
+    const chunkIdSet = new Set(chunkIds);
+    const addedPrerequisites = existingResolvedChain.filter((id: string) => !chunkIdSet.has(id));
+
+    const messageParts: string[] = [];
+    if (addedPrerequisites.length > 0) {
+      messageParts.push(
+        `Automatically included ${addedPrerequisites.length} prerequisite${addedPrerequisites.length > 1 ? 's' : ''} to ensure proper learning progression.`
+      );
+    }
+    if (missingPrerequisites.length > 0) {
+      messageParts.push(
+        `Skipped ${missingPrerequisites.length} missing prerequisite${missingPrerequisites.length > 1 ? 's' : ''}: ${missingPrerequisites.join(', ')}.`
+      );
+      logger.warn(
+        `Skipped missing prerequisite chunks during session dependency resolution: ${missingPrerequisites.join(', ')}`
+      );
+    }
+
+    const message = messageParts.length > 0 ? ` ${messageParts.join(' ')}` : '';
+    return { resolvedChunkIds: existingResolvedChain, addedPrerequisites, message };
+  } catch (error) {
+    logger.error('Error resolving session chunk dependencies:', error);
+    return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
   }
 }

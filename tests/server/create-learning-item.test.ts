@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../src/server/tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 class StubServer {
@@ -12,19 +13,19 @@ class StubServer {
 describe('MCP Write Endpoints', () => {
   it('should register the create_learning_item tool', () => {
     const stub = new StubServer();
-    registerServerTools(stub as unknown as McpServer);
+    registerServerTools(stub as unknown as McpServer, createAppContext());
     expect(stub.tools).toContain('create_learning_item');
   });
 
   it('should register the record_review_result tool', () => {
     const stub = new StubServer();
-    registerServerTools(stub as unknown as McpServer);
+    registerServerTools(stub as unknown as McpServer, createAppContext());
     expect(stub.tools).toContain('record_review_result');
   });
 
   it('should register the delete_chunk tool', () => {
     const stub = new StubServer();
-    registerServerTools(stub as unknown as McpServer);
+    registerServerTools(stub as unknown as McpServer, createAppContext());
     expect(stub.tools).toContain('delete_chunk');
   });
 });

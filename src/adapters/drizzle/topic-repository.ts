@@ -48,7 +48,12 @@ export class DrizzleTopicRepository implements TopicRepository {
 
   async update(
     id: string,
-    changes: Partial<Pick<NewLearningTopicRow, 'title' | 'subject' | 'updatedAt'>>
+    changes: Partial<
+      Pick<
+        NewLearningTopicRow,
+        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
+      >
+    >
   ): Promise<ServiceResult<{ changesApplied: number }>> {
     try {
       if (Object.keys(changes).length === 0) {

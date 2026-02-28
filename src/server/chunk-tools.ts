@@ -1,13 +1,7 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import crypto from 'node:crypto';
-import {
-  deleteChunk,
-  createChunkWithTopic,
-  updateChunkContent,
-  updateChunkMetadata,
-  updateChunkWithProgressReset,
-} from '../services/chunks.js';
-import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
+import type { NewLearningChunkRow } from '../infrastructure/db/schema.js';
 import {
   CreateLearningItemInputSchema,
   CreateLearningItemInputShape,
@@ -27,7 +21,7 @@ import {
 } from '../domain/types/persistence-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-export function registerChunkTools(server: McpServer): void {
+export function registerChunkTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'create_learning_item',
     {
@@ -42,7 +36,7 @@ export function registerChunkTools(server: McpServer): void {
         const now = Date.now();
         const chunkId = crypto.randomUUID();
 
-        const chunk = await createChunkWithTopic({
+        const result = await ctx.createChunkWithTopic({
           id: chunkId,
           topicId: '',
           title: input.title,
@@ -53,17 +47,27 @@ export function registerChunkTools(server: McpServer): void {
           repetitions: 0,
           estimatedDuration: input.estimatedDuration,
           chunkType: 'new' as const,
-          prerequisites: input.prerequisites,
-          tags: input.tags,
+          prerequisitesJson: input.prerequisites ?? null,
+          tagsJson: input.tags ?? null,
           content: input.content,
           contentVersion: 1,
           contentUpdatedAt: now,
           createdAt: now,
           updatedAt: now,
           topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
-        });
+        } as NewLearningChunkRow & { topicTitle?: string });
 
-        const learningItem = mapChunkRowToLearningItem(chunk);
+        if (!result.success) {
+          return toolError(
+            `Failed to create learning item "${input.title}": ${result.error.message}`,
+            {
+              type: result.error.type,
+              message: result.error.message,
+            }
+          );
+        }
+
+        const learningItem = ctx.mapChunkRowToLearningItem(result.data);
 
         return toolJson({
           success: true,
@@ -92,7 +96,7 @@ export function registerChunkTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkContentInput = UpdateChunkContentInputSchema.parse(rawInput);
       try {
-        const result = await updateChunkContent(input.chunkId, {
+        const result = await ctx.updateChunkContent(input.chunkId, {
           content: input.content,
           resetProgress: input.resetProgress,
         });
@@ -135,7 +139,7 @@ export function registerChunkTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkMetadataInput = UpdateChunkMetadataInputSchema.parse(rawInput);
       try {
-        const result = await updateChunkMetadata(input.chunkId, {
+        const result = await ctx.updateChunkMetadata(input.chunkId, {
           title: input.title,
           difficulty: input.difficulty,
           prerequisites: input.prerequisites,
@@ -180,7 +184,7 @@ export function registerChunkTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkInput = UpdateChunkInputSchema.parse(rawInput);
       try {
-        const result = await updateChunkWithProgressReset(input.chunkId, {
+        const result = await ctx.updateChunkWithProgressReset(input.chunkId, {
           content: input.content,
           title: input.title,
           difficulty: input.difficulty,
@@ -225,7 +229,7 @@ export function registerChunkTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const { chunkId }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
       try {
-        const result = await deleteChunk(chunkId);
+        const result = await ctx.deleteChunk(chunkId);
 
         if (result.success) {
           const removedCount = result.removedDependencies?.length ?? 0;

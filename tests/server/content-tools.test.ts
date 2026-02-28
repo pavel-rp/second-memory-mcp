@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerContentTools } from '../../src/server/content-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
@@ -28,7 +29,7 @@ describe('Integration: list_items_with_content', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerContentTools(server as any);
+    registerContentTools(server as any, createAppContext());
     tool = server.tools.get('list_items_with_content')!;
     expect(tool).toBeDefined();
   });

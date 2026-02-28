@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerSpacedRepetitionTools } from '../../src/server/spaced-repetition-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -17,7 +18,7 @@ describe('spaced-repetition-tools', () => {
 
   beforeEach(() => {
     server = new CaptureServer();
-    registerSpacedRepetitionTools(server as any);
+    registerSpacedRepetitionTools(server as any, createAppContext());
   });
 
   it('registers all spaced repetition tools', () => {

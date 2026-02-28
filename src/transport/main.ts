@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
-import { registerServerTools } from './tools.js';
+import { registerServerTools } from '../server/tools.js';
 import { initializeDatabase } from '../infrastructure/db/migrate.js';
 import { createAppContext } from '../composition-root.js';
 import { logger } from '../shared/logger.js';
@@ -24,7 +24,8 @@ async function bootstrap(): Promise<void> {
 
   const transport = new StdioServerTransport();
   const ctx = createAppContext();
-  // Register tools and tool-backed prompts
+
+  // Register tools with composed context
   registerServerTools(server, ctx);
 
   // Prompts
@@ -166,7 +167,7 @@ async function bootstrap(): Promise<void> {
       argsSchema: {
         topicTitle: z.string().describe('Topic title'),
         topicDescription: z.string().optional(),
-        existingChunkTitles: z.string().optional(), // comma-separated titles
+        existingChunkTitles: z.string().optional(),
       },
     },
     (args: ChunkGenerationPromptArgs) => ({

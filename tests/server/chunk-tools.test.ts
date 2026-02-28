@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerChunkTools } from '../../src/server/chunk-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
@@ -23,7 +24,7 @@ describe('chunk-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerChunkTools(server as any);
+    registerChunkTools(server as any, createAppContext());
   });
   afterAll(teardownTestDb);
 

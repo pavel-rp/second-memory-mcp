@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { registerServerTools } from '../../src/server/tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import {
   learningTopics,
@@ -34,7 +35,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     await cleanupTestDb();
 
     server = new CaptureServer() as any;
-    registerServerTools(server as any);
+    registerServerTools(server as any, createAppContext());
   });
   afterAll(teardownTestDb);
 

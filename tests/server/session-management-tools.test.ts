@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { registerSessionManagementTools } from '../../src/server/session-management-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import {
   learningTopics,
@@ -39,7 +40,7 @@ describe('Integration: Session Management Tools', () => {
     await cleanupTestDb();
 
     server = new CaptureServer();
-    registerSessionManagementTools(server as any);
+    registerSessionManagementTools(server as any, createAppContext());
 
     createSessionTool = server.tools.get('create_session')!;
     getActiveSessionTool = server.tools.get('get_active_session')!;

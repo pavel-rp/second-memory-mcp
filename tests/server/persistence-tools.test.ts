@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerPersistenceTools } from '../../src/server/persistence-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import crypto from 'node:crypto';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
@@ -21,7 +22,7 @@ describe('persistence-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerPersistenceTools(server as any);
+    registerPersistenceTools(server as any, createAppContext());
   });
   afterAll(teardownTestDb);
 

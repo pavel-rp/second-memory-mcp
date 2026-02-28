@@ -1,22 +1,13 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
 import crypto from 'node:crypto';
-import {
-  createSessionChunk,
-  getHistoricalFeedbackForChunks,
-  validateChunkIds,
-  getSessionWithChunks,
-  persistBatchSessionChunkOperations,
-  type CreateSessionChunkInput,
-} from '../services/sessions.js';
 import { BatchUpdateInputSchema } from '../domain/types/session.js';
 import { CreateSessionChunkToolInputSchema } from '../domain/types/session-management-tools.js';
 import { logger } from '../shared/logger.js';
-import { applyBatchSessionChunkOperations } from '../domain/services/session-analyzer.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-export function registerSessionProgressTools(server: McpServer): void {
-  // Create session chunk tool
+export function registerSessionProgressTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'create_session_chunk',
     {
@@ -37,7 +28,7 @@ export function registerSessionProgressTools(server: McpServer): void {
           completed: a.completed,
         }));
 
-        const createSessionChunkInput: CreateSessionChunkInput = {
+        const sessionChunk = await ctx.createSessionChunk({
           id: crypto.randomUUID(),
           sessionId: validatedInput.sessionId,
           chunkId: validatedInput.chunkId,
@@ -47,9 +38,7 @@ export function registerSessionProgressTools(server: McpServer): void {
           timeSpentMs: validatedInput.timeSpentMs,
           createdAt: now,
           updatedAt: now,
-        };
-
-        const sessionChunk = await createSessionChunk(createSessionChunkInput);
+        });
 
         const result = {
           sessionChunkId: sessionChunk.id,
@@ -73,7 +62,6 @@ export function registerSessionProgressTools(server: McpServer): void {
     }
   );
 
-  // Batch update session chunks tool
   server.registerTool(
     'batch_update_session_chunks',
     {
@@ -87,23 +75,32 @@ export function registerSessionProgressTools(server: McpServer): void {
 
         // Validate chunk IDs exist in learning content
         const opChunkIds = Array.from(new Set(validatedInput.operations.map(op => op.chunkId)));
-        const validation = await validateChunkIds(opChunkIds);
-        if (!validation.isValid) {
-          throw new Error(`Invalid chunk IDs provided: ${validation.errors.join(', ')}`);
+        const validation = await ctx.validateChunkIds(opChunkIds);
+        if (!validation.valid) {
+          throw new Error(`Invalid chunk IDs provided: ${validation.invalidIds.join(', ')}`);
         }
 
         // Fetch session and existing chunks
-        const { session, chunks } = await getSessionWithChunks(validatedInput.sessionId);
+        const { session } = await ctx.getSessionWithChunks(validatedInput.sessionId);
 
-        const result = await applyBatchSessionChunkOperations({
+        const result = await ctx.applyBatchSessionChunkOperations({
           sessionId: validatedInput.sessionId,
           operations: validatedInput.operations,
           activeSessionExists: session?.status === 'active',
-          persistFn: args =>
-            persistBatchSessionChunkOperations({
-              ...args,
-              existingChunks: chunks,
-            }),
+          persistFn: async args => {
+            // Use the batch update orchestration with the existing chunks
+            const batchResult = await ctx.batchUpdateSessionChunks(
+              validatedInput.sessionId,
+              args.operations
+            );
+            if (!batchResult.success) {
+              throw new Error(batchResult.error.message);
+            }
+            return {
+              ...batchResult.data,
+              affectedChunkIds: args.operations.map(op => op.chunkId),
+            };
+          },
         });
 
         const response = {
@@ -127,7 +124,6 @@ export function registerSessionProgressTools(server: McpServer): void {
     }
   );
 
-  // Historical feedback retrieval tool
   const GetHistoricalFeedbackInputSchema = z.object({
     chunkIds: z.array(z.string().min(1)).min(1).max(50),
     limit: z.number().min(1).max(20).default(5).optional(),
@@ -148,7 +144,7 @@ export function registerSessionProgressTools(server: McpServer): void {
       try {
         const validatedInput = GetHistoricalFeedbackInputSchema.parse(input);
 
-        const feedback = await getHistoricalFeedbackForChunks(validatedInput.chunkIds, {
+        const feedback = await ctx.getHistoricalFeedback(validatedInput.chunkIds, {
           limit: validatedInput.limit ?? 5,
         });
 

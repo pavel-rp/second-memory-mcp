@@ -13,6 +13,8 @@ export type ListChunksFilter = {
 /** Filter options for listing chunks with content (paginated). */
 export type ListChunksWithContentFilter = {
   subjectFilter?: string;
+  dueOnly?: boolean;
+  includeContent?: boolean;
   limit?: number;
   offset?: number;
 };

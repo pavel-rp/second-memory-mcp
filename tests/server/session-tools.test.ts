@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerSessionTools } from '../../src/server/session-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {
@@ -20,7 +21,7 @@ describe('session-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerSessionTools(server as any);
+    registerSessionTools(server as any, createAppContext());
   });
   afterAll(teardownTestDb);
 

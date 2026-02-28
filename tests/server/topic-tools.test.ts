@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerTopicTools } from '../../src/server/topic-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import { learningTopics } from '../../src/infrastructure/db/schema.js';
@@ -23,7 +24,7 @@ describe('topic-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerTopicTools(server as any);
+    registerTopicTools(server as any, createAppContext());
   });
   afterAll(teardownTestDb);
 

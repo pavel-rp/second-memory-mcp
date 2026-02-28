@@ -25,7 +25,15 @@ export async function listChunksAsLearningItems(
 }
 
 export async function listChunksWithContent(
-  filter: { subjectFilter?: string; limit?: number; offset?: number } | undefined,
+  filter:
+    | {
+        subjectFilter?: string;
+        dueOnly?: boolean;
+        includeContent?: boolean;
+        limit?: number;
+        offset?: number;
+      }
+    | undefined,
   deps: QueryDeps
 ): Promise<PaginatedLearningItemsResponse> {
   return deps.chunks.listWithContent(filter);
@@ -48,7 +56,7 @@ export async function getChunkWithContent(
 export async function batchFetchChunksMinimal(
   options: { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number } | undefined,
   deps: QueryDeps
-): Promise<ReturnType<ChunkRepository['batchFetchMinimal']>> {
+): Promise<Awaited<ReturnType<ChunkRepository['batchFetchMinimal']>>> {
   return deps.chunks.batchFetchMinimal(options);
 }
 
@@ -59,13 +67,13 @@ export async function listTopics(deps: QueryDeps): Promise<LearningTopicRow[]> {
 export async function batchFetchTopicsMinimal(
   options: { subject?: string; limit?: number } | undefined,
   deps: QueryDeps
-): Promise<ReturnType<TopicRepository['batchFetchMinimal']>> {
+): Promise<Awaited<ReturnType<TopicRepository['batchFetchMinimal']>>> {
   return deps.topics.batchFetchMinimal(options);
 }
 
 export async function getTopicSummary(
   topicId: string,
   deps: QueryDeps
-): Promise<ReturnType<TopicRepository['getSummaryById']>> {
+): Promise<Awaited<ReturnType<TopicRepository['getSummaryById']>>> {
   return deps.topics.getSummaryById(topicId);
 }

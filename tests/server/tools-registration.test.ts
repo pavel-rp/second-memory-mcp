@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../src/server/tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 
 class StubServer {
   public tools: string[] = [];
@@ -11,7 +12,7 @@ class StubServer {
 describe('registerServerTools', () => {
   it('registers calculators and prompt tools', () => {
     const stub = new StubServer() as any;
-    registerServerTools(stub);
+    registerServerTools(stub, createAppContext());
     expect(stub.tools).toContain('calculate_next_review');
     expect(stub.tools).toContain('calculate_priority_score');
     expect(stub.tools).toContain('calculate_next_review_advanced');

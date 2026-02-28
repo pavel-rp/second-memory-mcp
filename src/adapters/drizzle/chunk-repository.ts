@@ -129,7 +129,9 @@ export class DrizzleChunkRepository implements ChunkRepository {
     filter: ListChunksWithContentFilter = {}
   ): Promise<PaginatedLearningItemsResponse> {
     const whereClause = buildChunkWhereClause(filter);
-    const columns = CHUNK_COLUMNS_WITH_TOPIC;
+    const columns = filter.includeContent
+      ? { ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS }
+      : CHUNK_COLUMNS_WITH_TOPIC;
     const baseQuery = this.db
       .select(columns)
       .from(learningChunks)
@@ -149,7 +151,11 @@ export class DrizzleChunkRepository implements ChunkRepository {
     if (whereClause) query = query.where(whereClause);
     const rows = await query.offset(offset).limit(limit);
 
-    const items = rows.map(row => mapChunkRowToLearningItem(row as ChunkListRowWithContent));
+    const items = rows.map(row =>
+      mapChunkRowToLearningItem(row as ChunkListRowWithContent, {
+        includeContent: filter.includeContent,
+      })
+    );
 
     return {
       items,

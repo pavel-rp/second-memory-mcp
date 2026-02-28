@@ -1,19 +1,11 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import {
-  calculateNextReview,
-  calculatePriorityScore,
-  calculateNextReviewAdvanced,
-  rankCandidatesWithConstraints,
-} from '../domain/algorithms/sr-calculator.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
   type RecommendationInput,
 } from '../domain/types/recommendations.js';
-import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../services/chunk-queries.js';
-import { processReviewResult } from '../services/chunk-reviews.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
-import { createRecommendationEngine } from './shared-instances.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -32,7 +24,7 @@ import {
   type RecordReviewResultInput,
 } from '../domain/types/spaced-repetition-tools.js';
 
-export function registerSpacedRepetitionTools(server: McpServer): void {
+export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'calculate_next_review',
     {
@@ -50,7 +42,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           repetitions: outReps,
           easeFactor,
           nextReview,
-        } = calculateNextReview({
+        } = ctx.calculateNextReview({
           quality,
           repetitions,
           easeFactor: ease_factor,
@@ -90,7 +82,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           repetitions,
           difficulty,
         }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(rawInput);
-        const { priority } = calculatePriorityScore({
+        const { priority } = ctx.calculatePriorityScore({
           nextReviewDate: next_review_date,
           easeFactor: ease_factor,
           repetitions,
@@ -132,7 +124,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           easeFactor,
           nextReview,
           leech,
-        } = calculateNextReviewAdvanced({
+        } = ctx.calculateNextReviewAdvanced({
           quality,
           repetitions,
           easeFactor: ease_factor,
@@ -179,7 +171,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           tags: c.tags,
           estimatedDuration: c.estimated_duration,
         }));
-        const out = rankCandidatesWithConstraints({
+        const out = ctx.rankCandidates({
           candidates: mapped,
           timeboxMinutes,
         });
@@ -210,8 +202,8 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         let itemsToProcess = parsedInput.learningItems;
         if (parsedInput.fetchFromDatabase) {
           try {
-            itemsToProcess = await listChunksAsLearningItems({
-              subject: parsedInput.subjectFilter,
+            itemsToProcess = await ctx.listChunksAsLearningItems({
+              subjectFilter: parsedInput.subjectFilter,
               dueOnly: parsedInput.dueOnly,
               limit: parsedInput.limit,
             });
@@ -226,7 +218,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
         }
 
         // Generate recommendations with fetched or provided items
-        const result = await createRecommendationEngine().generateRecommendations({
+        const result = await ctx.generateRecommendations({
           ...parsedInput,
           learningItems: itemsToProcess ?? [],
         });
@@ -252,7 +244,7 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
     async (rawInput: unknown) => {
       try {
         const input: RecordReviewResultInput = RecordReviewResultInputSchema.parse(rawInput);
-        const result = await processReviewResult(input.itemId, input.quality, {
+        const result = await ctx.processReviewResult(input.itemId, input.quality, {
           timeSpentMs: input.timeSpentMs,
           consecutiveFailures: input.consecutiveFailures,
           daysOverdue: input.daysOverdue,
@@ -266,7 +258,9 @@ export function registerSpacedRepetitionTools(server: McpServer): void {
           });
         }
 
-        const learningItem = mapChunkRowToLearningItem(result.data.chunk);
+        // Fetch updated chunk to return as learning item
+        const updatedChunk = await ctx.getChunkWithContent(input.itemId);
+        const learningItem = updatedChunk ? ctx.mapChunkRowToLearningItem(updatedChunk) : undefined;
 
         return toolJson({
           success: true,

@@ -1,5 +1,6 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { registerSearchTools } from '../../src/server/search-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 import { getSql } from '../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
@@ -31,7 +32,7 @@ describe('search_learning_content tool', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerSearchTools(server as any);
+    registerSearchTools(server as any, createAppContext());
     tool = server.tools.get('search_learning_content')!;
     expect(tool).toBeDefined();
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerAnalyticsTools } from '../../src/server/analytics-tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -17,7 +18,7 @@ describe('analytics-tools', () => {
 
   beforeEach(() => {
     server = new CaptureServer();
-    registerAnalyticsTools(server as any);
+    registerAnalyticsTools(server as any, createAppContext());
   });
 
   it('registers analytics_daily and analytics_window tools', () => {
