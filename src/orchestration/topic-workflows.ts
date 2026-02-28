@@ -352,10 +352,10 @@ async function generateTopicEmbeddings(
   }
 
   // Batch-embed chunk contents
-  const chunksWithContent = chunks.filter(c => c.content);
+  const chunksWithContent = chunks.filter((c): c is typeof c & { content: string } => !!c.content);
   if (chunksWithContent.length === 0) return;
 
-  const texts = chunksWithContent.map(c => c.content!);
+  const texts = chunksWithContent.map(c => c.content);
   const vectors = await embedding.embedTexts(texts);
   const now = Date.now();
   for (let i = 0; i < chunksWithContent.length; i++) {

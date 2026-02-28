@@ -1,4 +1,6 @@
-CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
+-- pgvector extension must be enabled by a database superuser before running this migration:
+--   CREATE EXTENSION IF NOT EXISTS vector;
+-- On managed databases (Supabase, Neon, etc.), enable it via the dashboard.
 ALTER TABLE "learning_chunks" ADD COLUMN "content_embedding" vector(1536);--> statement-breakpoint
 ALTER TABLE "learning_topics" ADD COLUMN "summary_embedding" vector(1536);--> statement-breakpoint
 CREATE INDEX "idx_learning_chunks_content_embedding" ON "learning_chunks" USING hnsw ("content_embedding" vector_cosine_ops);--> statement-breakpoint
