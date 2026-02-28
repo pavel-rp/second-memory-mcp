@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, withTx } from '../db/operations.js';
+import { getSql, withTx } from '../infrastructure/db/operations.js';
 import {
   learningChunks,
   learningTopics,
   type LearningChunkRow,
   type LearningTopicRow,
-} from '../db/schema.js';
+} from '../infrastructure/db/schema.js';
 import type {
   TopicCreationInput,
   TopicCreationResult,

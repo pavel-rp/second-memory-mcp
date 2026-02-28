@@ -1,6 +1,6 @@
 import { eq, desc, inArray } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { getSql, withTx, type SqlDb } from '../db/operations.js';
+import { getSql, withTx, type SqlDb } from '../infrastructure/db/operations.js';
 import {
   learningSessions,
   sessionChunks,
@@ -10,7 +10,7 @@ import {
   type NewLearningSessionRow,
   type NewSessionChunkRow,
   type LearningChunkRow,
-} from '../db/schema.js';
+} from '../infrastructure/db/schema.js';
 import {
   type SessionInput,
   type SessionMode,

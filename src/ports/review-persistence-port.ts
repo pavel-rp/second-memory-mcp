@@ -1,4 +1,4 @@
-import type { LearningChunkRow } from '../db/schema.js';
+import type { LearningChunkRow } from '../infrastructure/db/schema.js';
 
 /** Data returned after persisting a review result. */
 export type ReviewResultData = {

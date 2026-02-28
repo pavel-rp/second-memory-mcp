@@ -1,6 +1,6 @@
 import { pgTable, text, integer, bigint, real, jsonb, index, check } from 'drizzle-orm/pg-core';
 import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
-import type { ChunkAttempt } from '../domain/types/session.js';
+import type { ChunkAttempt } from '../../domain/types/session.js';
 
 // Tables
 export const learningTopics = pgTable('learning_topics', {

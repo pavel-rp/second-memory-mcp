@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { getSql, resetDrizzle, withTx, bulkInsert } from '../../src/db/operations.js';
-import { learningTopics } from '../../src/db/schema.js';
+import {
+  getSql,
+  resetDrizzle,
+  withTx,
+  bulkInsert,
+} from '../../src/infrastructure/db/operations.js';
+import { learningTopics } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 describe('db/operations', () => {

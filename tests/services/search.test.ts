@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
-import { getSql } from '../../src/db/operations.js';
-import { learningChunks, learningTopics } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningChunks, learningTopics } from '../../src/infrastructure/db/schema.js';
 import { searchLearningContent } from '../../src/services/search.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 

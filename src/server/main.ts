@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { registerServerTools } from './tools.js';
-import { initializeDatabase } from '../db/migrate.js';
+import { initializeDatabase } from '../infrastructure/db/migrate.js';
 import { logger } from '../shared/logger.js';
 import type {
   LearningPromptArgs,

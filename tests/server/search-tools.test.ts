@@ -1,7 +1,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { registerSearchTools } from '../../src/server/search-tools.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {

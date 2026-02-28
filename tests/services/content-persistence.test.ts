@@ -4,8 +4,8 @@ import { eq } from 'drizzle-orm';
 
 import { getChunkContent, getChunkWithContent, createChunk } from '../../src/services/chunks.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 describe('Content Persistence', () => {

@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { registerServerTools } from '../../src/server/tools.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks, learningSessions } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import {
+  learningTopics,
+  learningChunks,
+  learningSessions,
+} from '../../src/infrastructure/db/schema.js';
 import crypto from 'node:crypto';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 

@@ -1,4 +1,4 @@
-import type { LearningChunkRow, NewLearningChunkRow } from '../db/schema.js';
+import type { LearningChunkRow, NewLearningChunkRow } from '../infrastructure/db/schema.js';
 import type { PaginatedLearningItemsResponse } from '../domain/types/recommendations.js';
 
 /** Filter options for listing chunks. */

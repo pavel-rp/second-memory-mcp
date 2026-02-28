@@ -1,6 +1,6 @@
 import { inArray } from 'drizzle-orm';
-import { getSql, type SqlDb } from '../db/operations.js';
-import { learningChunks } from '../db/schema.js';
+import { getSql, type SqlDb } from '../infrastructure/db/operations.js';
+import { learningChunks } from '../infrastructure/db/schema.js';
 import { PrerequisiteReferenceValidator } from '../domain/services/prerequisite-reference-validator.js';
 
 /**

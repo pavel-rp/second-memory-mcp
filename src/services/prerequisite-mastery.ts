@@ -1,5 +1,5 @@
-import { getSql, type SqlDb } from '../db/operations.js';
-import { type LearningChunkRow } from '../db/schema.js';
+import { getSql, type SqlDb } from '../infrastructure/db/operations.js';
+import { type LearningChunkRow } from '../infrastructure/db/schema.js';
 import { algorithmConfig } from '../domain/config/algorithm.js';
 import { MS_PER_DAY } from '../shared/constants/time.js';
 import type { MasteryCriteria, MasteryStatus } from '../domain/types/prerequisite-validation.js';

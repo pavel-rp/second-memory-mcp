@@ -4,8 +4,8 @@ import {
   getAllChunkIds,
   prerequisiteReferenceValidator,
 } from '../../src/services/chunk-prerequisites.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 import crypto from 'node:crypto';
 

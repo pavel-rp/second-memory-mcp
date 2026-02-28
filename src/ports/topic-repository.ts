@@ -1,4 +1,4 @@
-import type { LearningTopicRow, NewLearningTopicRow } from '../db/schema.js';
+import type { LearningTopicRow, NewLearningTopicRow } from '../infrastructure/db/schema.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 
 /** Minimal topic metadata for batch fetch. */

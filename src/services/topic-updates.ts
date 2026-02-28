@@ -1,6 +1,10 @@
 import { eq } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
-import { learningChunks, learningTopics, type LearningTopicRow } from '../db/schema.js';
+import { getSql } from '../infrastructure/db/operations.js';
+import {
+  learningChunks,
+  learningTopics,
+  type LearningTopicRow,
+} from '../infrastructure/db/schema.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
 

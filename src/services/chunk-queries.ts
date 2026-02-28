@@ -1,6 +1,10 @@
 import { and, eq, lte, sql } from 'drizzle-orm';
-import { getSql, type SqlDb } from '../db/operations.js';
-import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
+import { getSql, type SqlDb } from '../infrastructure/db/operations.js';
+import {
+  learningChunks,
+  learningTopics,
+  type LearningChunkRow,
+} from '../infrastructure/db/schema.js';
 import type {
   LearningItem,
   LearningItemWithContent,

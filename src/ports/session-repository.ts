@@ -1,4 +1,4 @@
-import type { LearningSessionRow, SessionChunkRow } from '../db/schema.js';
+import type { LearningSessionRow, SessionChunkRow } from '../infrastructure/db/schema.js';
 import type { SessionInput, HistoricalFeedback, BatchOperation } from '../domain/types/session.js';
 
 /** Input for creating a session. */

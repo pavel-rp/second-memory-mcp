@@ -1,8 +1,8 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import crypto from 'node:crypto';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
 import { updateTopicMetadata, updateTopicSummary } from '../../src/services/topic-updates.js';
 import type { TopicCreationInput, UserPreferences } from '../../src/domain/types/topic-creation.js';

@@ -1,9 +1,9 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
-import { ensureSchema } from '../../src/db/migrate.js';
-import { clearAllTables } from '../../src/db/client.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics } from '../../src/db/schema.js';
+import { ensureSchema } from '../../src/infrastructure/db/migrate.js';
+import { clearAllTables } from '../../src/infrastructure/db/client.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics } from '../../src/infrastructure/db/schema.js';
 
 describe('migration script', () => {
   beforeAll(async () => {

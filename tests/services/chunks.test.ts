@@ -1,8 +1,8 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import crypto from 'node:crypto';
 
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 import { createChunk, deleteChunk } from '../../src/services/chunks.js';
 import {
   listChunks,

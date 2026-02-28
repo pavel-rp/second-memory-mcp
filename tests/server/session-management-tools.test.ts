@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { registerSessionManagementTools } from '../../src/server/session-management-tools.js';
-import { getSql } from '../../src/db/operations.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
 import {
   learningTopics,
   learningChunks,
   learningSessions,
   sessionChunks,
-} from '../../src/db/schema.js';
+} from '../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 class CaptureServer {

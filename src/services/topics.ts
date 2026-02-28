@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { getSql, type SqlDb } from '../db/operations.js';
-import { learningTopics } from '../db/schema.js';
+import { getSql, type SqlDb } from '../infrastructure/db/operations.js';
+import { learningTopics } from '../infrastructure/db/schema.js';
 import { type ServiceResult, serviceOk, serviceFail } from '../domain/types/service-result.js';
 
 export type CreateTopicInput = {

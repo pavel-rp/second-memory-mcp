@@ -1,12 +1,12 @@
 import { and, eq, or, sql, type SQL } from 'drizzle-orm';
-import { getSql, type SqlDb } from '../db/operations.js';
-import { learningChunks, learningTopics } from '../db/schema.js';
+import { getSql, type SqlDb } from '../infrastructure/db/operations.js';
+import { learningChunks, learningTopics } from '../infrastructure/db/schema.js';
 import {
   type SearchLearningContentInput,
   type SearchResultItem,
   type SearchResultSet,
 } from '../domain/types/search-tools.js';
-import { calculateSimilarityRatio } from '../domain/algorithms/content-similarity.js';
+import { calculateSimilarityRatio } from '../shared/content-similarity.js';
 
 type TopicRow = {
   id: string;

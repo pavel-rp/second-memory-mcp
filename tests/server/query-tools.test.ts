@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerQueryTools } from '../../src/server/query-tools.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
-import { getSql } from '../../src/db/operations.js';
-import { learningTopics, learningChunks } from '../../src/db/schema.js';
+import { getSql } from '../../src/infrastructure/db/operations.js';
+import { learningTopics, learningChunks } from '../../src/infrastructure/db/schema.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();

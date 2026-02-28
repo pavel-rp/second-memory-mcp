@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { getSql } from '../db/operations.js';
-import { learningChunks, type LearningChunkRow } from '../db/schema.js';
+import { getSql } from '../infrastructure/db/operations.js';
+import { learningChunks, type LearningChunkRow } from '../infrastructure/db/schema.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
 import { type ServiceResult, serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { getChunk } from './chunks.js';

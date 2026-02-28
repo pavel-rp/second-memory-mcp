@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi, afterEach } from 'vitest';
-import { getPool, resetDatabase, clearAllTables } from '../../src/db/client.js';
+import { getPool, resetDatabase, clearAllTables } from '../../src/infrastructure/db/client.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 describe('db/client', () => {
@@ -54,7 +54,7 @@ describe('db/client', () => {
     it('throws when DATABASE_URL is missing', async () => {
       delete process.env.DATABASE_URL;
       vi.resetModules();
-      const mod = await import('../../src/db/client.js');
+      const mod = await import('../../src/infrastructure/db/client.js');
       // Reset the pool so it tries to create a new one with no URL
       await mod.resetDatabase();
       expect(() => mod.getPool()).toThrow('DATABASE_URL environment variable is required');
@@ -63,7 +63,7 @@ describe('db/client', () => {
     it('throws when DATABASE_URL is empty string', async () => {
       process.env.DATABASE_URL = '';
       vi.resetModules();
-      const mod = await import('../../src/db/client.js');
+      const mod = await import('../../src/infrastructure/db/client.js');
       await mod.resetDatabase();
       expect(() => mod.getPool()).toThrow('DATABASE_URL environment variable is required');
     });
@@ -71,7 +71,7 @@ describe('db/client', () => {
     it('throws when DATABASE_URL is whitespace only', async () => {
       process.env.DATABASE_URL = '   ';
       vi.resetModules();
-      const mod = await import('../../src/db/client.js');
+      const mod = await import('../../src/infrastructure/db/client.js');
       await mod.resetDatabase();
       expect(() => mod.getPool()).toThrow('DATABASE_URL environment variable is required');
     });
@@ -80,7 +80,7 @@ describe('db/client', () => {
       process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/production_db';
       process.env.NODE_ENV = 'test';
       vi.resetModules();
-      const mod = await import('../../src/db/client.js');
+      const mod = await import('../../src/infrastructure/db/client.js');
       await mod.resetDatabase();
       expect(() => mod.getPool()).toThrow("does not contain '_test'");
     });
