@@ -57,3 +57,7 @@ AUDIT.md
 /audit/plans/
 docs/pg-migration/draft
 audit/TESTER-REPORT.md
+docs/feature-dev/
+
+docs/testing/DOMAIN_EXPERT_ASSESSMENT.md
+docs/testing/MCP_MANUAL_TEST_SUITE.md
