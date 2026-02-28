@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
+import type { EmbeddingPort } from '../ports/embedding-port.js';
 import type { LearningChunkRow, LearningTopicRow } from '../infrastructure/db/schema.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
@@ -12,6 +13,7 @@ export type TopicDeps = {
   topics: TopicRepository;
   chunks: ChunkRepository;
   unitOfWork: UnitOfWorkPort;
+  embedding?: EmbeddingPort;
 };
 
 export type TopicUpdateResult = {
@@ -174,6 +176,15 @@ export async function createTopicWithChunks(
       return { topic, chunks: createdChunks };
     });
 
+    // Fire-and-forget embedding generation — failures don't break writes
+    if (deps.embedding?.isAvailable()) {
+      try {
+        await generateTopicEmbeddings(result.topic, result.chunks, deps);
+      } catch (err) {
+        logger.warn('Embedding generation failed for new topic:', err);
+      }
+    }
+
     return {
       success: true,
       topic: toTopicWithChunks(result.topic, result.chunks, input.topicDescription),
@@ -291,10 +302,22 @@ export async function updateTopicSummary(
 
     const now = Date.now();
     const newVersion = (current.summaryVersion ?? 1) + 1;
+
+    // Embed the new summary if embedding is available
+    let summaryEmbedding: number[] | null = null;
+    if (deps.embedding?.isAvailable()) {
+      try {
+        summaryEmbedding = await deps.embedding.embedText(summary);
+      } catch (err) {
+        logger.warn('Embedding generation failed for topic summary:', err);
+      }
+    }
+
     const result = await deps.topics.update(topicId, {
       summary,
       summaryVersion: newVersion,
       summaryUpdatedAt: now,
+      summaryEmbedding: summaryEmbedding,
       updatedAt: now,
     });
 
@@ -304,5 +327,43 @@ export async function updateTopicSummary(
     return { success: true, topic: updated };
   } catch (error) {
     return { success: false, error: { type: 'database', message: extractErrorMessage(error) } };
+  }
+}
+
+// --- Embedding helpers ---
+
+async function generateTopicEmbeddings(
+  topic: LearningTopicRow,
+  chunks: LearningChunkRow[],
+  deps: TopicDeps
+): Promise<void> {
+  const embedding = deps.embedding;
+  if (!embedding?.isAvailable()) return;
+
+  // Embed topic summary
+  if (topic.summary) {
+    const summaryVector = await embedding.embedText(topic.summary);
+    if (summaryVector) {
+      await deps.topics.update(topic.id, {
+        summaryEmbedding: summaryVector,
+        updatedAt: Date.now(),
+      });
+    }
+  }
+
+  // Batch-embed chunk contents
+  const chunksWithContent = chunks.filter(c => c.content);
+  if (chunksWithContent.length === 0) return;
+
+  const texts = chunksWithContent.map(c => c.content!);
+  const vectors = await embedding.embedTexts(texts);
+  const now = Date.now();
+  for (let i = 0; i < chunksWithContent.length; i++) {
+    if (vectors[i]) {
+      await deps.chunks.update(chunksWithContent[i].id, {
+        contentEmbedding: vectors[i],
+        updatedAt: now,
+      });
+    }
   }
 }

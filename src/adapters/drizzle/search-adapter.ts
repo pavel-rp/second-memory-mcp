@@ -1,4 +1,5 @@
-import { and, eq, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, gt, isNotNull, or, sql, desc, type SQL } from 'drizzle-orm';
+import { cosineDistance } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { learningChunks, learningTopics } from '../../infrastructure/db/schema.js';
 import type {
@@ -135,18 +136,59 @@ export class DrizzleSearchAdapter implements SearchPort {
   }
 
   async searchByVector(
-    _vector: number[],
-    _options?: { limit?: number; subject?: string }
+    vector: number[],
+    options?: { limit?: number; subject?: string }
   ): Promise<SearchResultSet> {
-    const limit = _options?.limit || 10;
+    const limit = options?.limit || 10;
+    const fetchLimit = limit * 2;
+
+    const [topics, chunks] = await Promise.all([
+      this.fetchTopicsByVector(vector, options?.subject, fetchLimit),
+      this.fetchChunksByVector(vector, options?.subject, fetchLimit),
+    ]);
+
+    const topicResults: SearchResultItem[] = topics.map(row => ({
+      resultType: 'topic' as const,
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      matchScore: row.similarity,
+      similarityScore: row.similarity,
+      highlightTerms: [],
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    const chunkResults: SearchResultItem[] = chunks.map(row => ({
+      resultType: 'chunk' as const,
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      matchScore: row.similarity,
+      similarityScore: row.similarity,
+      highlightTerms: [],
+      topicId: row.topicId,
+      topicTitle: row.topicTitle ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    const all = [...topicResults, ...chunkResults];
+    all.sort((a, b) => b.matchScore - a.matchScore);
+    const results = all.slice(0, limit);
+
     return {
       query: '',
       normalizedQuery: '',
       tokens: [],
       limit,
-      filters: { subject: _options?.subject },
-      counts: { topics: 0, chunks: 0, total: 0 },
-      results: [],
+      filters: { subject: options?.subject },
+      counts: {
+        topics: topicResults.length,
+        chunks: chunkResults.length,
+        total: all.length,
+      },
+      results,
     };
   }
 
@@ -224,5 +266,57 @@ export class DrizzleSearchAdapter implements SearchPort {
     return combined
       ? await baseQuery.where(combined).limit(fetchLimit)
       : await baseQuery.limit(fetchLimit);
+  }
+
+  private async fetchTopicsByVector(
+    vector: number[],
+    subject: string | undefined,
+    fetchLimit: number
+  ): Promise<(TopicRow & { similarity: number })[]> {
+    const similarity = sql<number>`1 - (${cosineDistance(learningTopics.summaryEmbedding, vector)})`;
+    const conditions: SQL[] = [isNotNull(learningTopics.summaryEmbedding), gt(similarity, 0.3)];
+    if (subject) conditions.push(eq(learningTopics.subject, subject));
+
+    return this.db
+      .select({
+        id: learningTopics.id,
+        title: learningTopics.title,
+        subject: learningTopics.subject,
+        createdAt: learningTopics.createdAt,
+        updatedAt: learningTopics.updatedAt,
+        similarity,
+      })
+      .from(learningTopics)
+      .where(combineConditions(conditions))
+      .orderBy(desc(similarity))
+      .limit(fetchLimit);
+  }
+
+  private async fetchChunksByVector(
+    vector: number[],
+    subject: string | undefined,
+    fetchLimit: number
+  ): Promise<(ChunkRow & { similarity: number })[]> {
+    const similarity = sql<number>`1 - (${cosineDistance(learningChunks.contentEmbedding, vector)})`;
+    const conditions: SQL[] = [isNotNull(learningChunks.contentEmbedding), gt(similarity, 0.3)];
+    if (subject) conditions.push(eq(learningChunks.subject, subject));
+
+    return this.db
+      .select({
+        id: learningChunks.id,
+        topicId: learningChunks.topicId,
+        title: learningChunks.title,
+        subject: learningChunks.subject,
+        content: learningChunks.content,
+        createdAt: learningChunks.createdAt,
+        updatedAt: learningChunks.updatedAt,
+        topicTitle: learningTopics.title,
+        similarity,
+      })
+      .from(learningChunks)
+      .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+      .where(combineConditions(conditions))
+      .orderBy(desc(similarity))
+      .limit(fetchLimit);
   }
 }

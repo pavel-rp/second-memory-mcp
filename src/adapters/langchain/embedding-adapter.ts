@@ -5,11 +5,49 @@ import { logger } from '../../shared/logger.js';
 
 export class LangChainEmbeddingAdapter implements EmbeddingPort {
   private embeddings: Embeddings | null = null;
+  private initialized = false;
   private available = false;
 
   constructor(private config: EmbeddingConfig) {}
 
-  async initialize(): Promise<void> {
+  async embedText(text: string): Promise<number[] | null> {
+    await this.ensureInitialized();
+    if (!this.available || !this.embeddings) return null;
+    try {
+      const [vector] = await this.embeddings.embedDocuments([text]);
+      return vector ?? null;
+    } catch (err) {
+      logger.warn('Embedding failed for single text:', err);
+      return null;
+    }
+  }
+
+  async embedTexts(texts: string[]): Promise<(number[] | null)[]> {
+    await this.ensureInitialized();
+    if (!this.available || !this.embeddings) return texts.map(() => null);
+    try {
+      const vectors = await this.embeddings.embedDocuments(texts);
+      return vectors.map(v => v ?? null);
+    } catch (err) {
+      logger.warn('Batch embedding failed:', err);
+      return texts.map(() => null);
+    }
+  }
+
+  getDimensions(): number {
+    return this.config.dimensions;
+  }
+
+  isAvailable(): boolean {
+    // If not initialized yet, report available based on config (provider is set)
+    if (!this.initialized) return !!this.config.provider;
+    return this.available;
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    this.initialized = true;
+
     if (!this.config.provider) {
       logger.info('No embedding provider configured — semantic search disabled');
       return;
@@ -27,36 +65,6 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
       logger.warn(`Failed to initialize embedding provider "${this.config.provider}":`, err);
       this.available = false;
     }
-  }
-
-  async embedText(text: string): Promise<number[] | null> {
-    if (!this.available || !this.embeddings) return null;
-    try {
-      const [vector] = await this.embeddings.embedDocuments([text]);
-      return vector ?? null;
-    } catch (err) {
-      logger.warn('Embedding failed for single text:', err);
-      return null;
-    }
-  }
-
-  async embedTexts(texts: string[]): Promise<(number[] | null)[]> {
-    if (!this.available || !this.embeddings) return texts.map(() => null);
-    try {
-      const vectors = await this.embeddings.embedDocuments(texts);
-      return vectors.map(v => v ?? null);
-    } catch (err) {
-      logger.warn('Batch embedding failed:', err);
-      return texts.map(() => null);
-    }
-  }
-
-  getDimensions(): number {
-    return this.config.dimensions;
-  }
-
-  isAvailable(): boolean {
-    return this.available;
   }
 
   private async initOpenAI(): Promise<void> {

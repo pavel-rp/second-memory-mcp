@@ -13,7 +13,10 @@ export function registerSearchTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Search Learning Content',
       description:
-        'Search existing learning topics and chunks by title to find content for review or avoid duplicates. ' +
+        'Search existing learning topics and chunks. Supports three modes: ' +
+        '"keyword" (default) — title/content text matching; ' +
+        '"semantic" — cosine similarity on embeddings (requires configured embedding provider); ' +
+        '"hybrid" — weighted combination of keyword + semantic. ' +
         'IMPORTANT: For recall, review, or retrieval practice, you MUST create a session using create_session ' +
         'with the chunk IDs before proceeding. This enables tracking of historical feedback about what the ' +
         'learner found difficult in previous sessions.',

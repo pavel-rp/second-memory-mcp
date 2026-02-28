@@ -21,6 +21,12 @@ export const SearchLearningContentInputShape = {
     .max(50, 'Limit cannot exceed 50')
     .optional()
     .describe('Maximum number of results to return (1-50)'),
+  mode: z
+    .enum(['keyword', 'semantic', 'hybrid'])
+    .optional()
+    .describe(
+      'Search mode: "keyword" (default) — title/content text matching; "semantic" — cosine similarity on embeddings; "hybrid" — weighted combination of both'
+    ),
 } as const;
 
 export const SearchLearningContentInputSchema = z.object(SearchLearningContentInputShape);
@@ -34,6 +40,7 @@ export type SearchResultItem = {
   title: string;
   subject: string;
   matchScore: number;
+  similarityScore?: number;
   highlightTerms: string[];
   createdAt: number;
   updatedAt: number;
