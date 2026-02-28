@@ -1,5 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { computeDailyKpis, computeWindowRollup } from '../tools/analytics.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import {
   AnalyticsDailyInputSchema,
   AnalyticsDailyInputShape,
@@ -7,10 +7,10 @@ import {
   AnalyticsWindowInputSchema,
   AnalyticsWindowInputShape,
   type AnalyticsWindowInput,
-} from '../types/analytics.js';
+} from '../domain/types/analytics.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-export function registerAnalyticsTools(server: McpServer): void {
+export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'analytics_daily',
     {
@@ -21,7 +21,7 @@ export function registerAnalyticsTools(server: McpServer): void {
     async (rawInput: unknown) => {
       const { entries }: AnalyticsDailyInput = AnalyticsDailyInputSchema.parse(rawInput);
       try {
-        const result = computeDailyKpis(entries);
+        const result = ctx.computeDailyKpis(entries);
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -44,7 +44,7 @@ export function registerAnalyticsTools(server: McpServer): void {
       const { entries, window, includeBreakdowns }: AnalyticsWindowInput =
         AnalyticsWindowInputSchema.parse(rawInput);
       try {
-        const result = computeWindowRollup({ entries }, window, { includeBreakdowns });
+        const result = ctx.computeWindowRollup({ entries }, window, { includeBreakdowns });
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);

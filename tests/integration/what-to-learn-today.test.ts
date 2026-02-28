@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../src/server/tools.js';
+import { createAppContext } from '../../src/composition-root.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -38,7 +39,7 @@ function parseToolResult(out: any): any {
 describe('Integration: what_to_learn_today', () => {
   it('generates explicit recommendations honoring constraints', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
@@ -69,7 +70,7 @@ describe('Integration: what_to_learn_today', () => {
 
   it('guided mode works with minimal inputs and produces guidance', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
@@ -102,7 +103,7 @@ describe('Integration: what_to_learn_today', () => {
 describe('Integration: guided_learning_conversation', () => {
   it('starts a session and returns user-facing guidance', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('guided_learning_conversation');
     expect(tool).toBeDefined();
 

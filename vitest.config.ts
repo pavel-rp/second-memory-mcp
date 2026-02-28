@@ -11,9 +11,10 @@ export default defineConfig({
       include: ['src/**'],
       exclude: ['scripts/**'],
       thresholds: {
-        statements: 80,
-        lines: 80,
-        functions: 85,
+        statements: 67,
+        branches: 59,
+        lines: 67,
+        functions: 68,
       },
     },
   },

@@ -4,11 +4,11 @@ Second Memory Learning is a Model Context Protocol (MCP) server that delivers an
 
 ## Key Capabilities
 
-- **Evidence-based scheduling** – Enhanced SM-2 algorithms with lapse handling, cognitive load caps, and candidate ranking (`src/server/spaced-repetition-tools.ts`, `src/tools/sr-calculator.ts`).
-- **Guided recommendations** – `what_to_learn_today` can fetch items directly from SQLite, balance new vs. review work, and produce conversational guidance for the learner (`src/tools/recommendation-engine.ts`).
-- **Session management** – Create, track, and complete structured learning sessions with automatic session chunk creation (`src/server/session-management-tools.ts`, `src/services/sessions.ts`).
-- **Content operations** – Topic and chunk creation helpers with validation and transactional persistence (`src/server/persistence-tools.ts`, `src/services/topic-creation.ts`).
-- **Prompt pack integration** – First-class MCP prompts for scaffolding, learning, retrieval, review, and workflow guidance (`src/prompts/prompt-pack.ts`).
+- **Evidence-based scheduling** – Enhanced SM-2 algorithms with lapse handling, cognitive load caps, and candidate ranking (`src/domain/algorithms/sr-calculator.ts`).
+- **Guided recommendations** – `what_to_learn_today` can fetch items directly from SQLite, balance new vs. review work, and produce conversational guidance for the learner (`src/domain/services/recommendation-engine.ts`).
+- **Session management** – Create, track, and complete structured learning sessions with automatic session chunk creation (`src/orchestration/session-workflows.ts`).
+- **Content operations** – Topic and chunk creation helpers with validation and transactional persistence (`src/orchestration/topic-workflows.ts`, `src/orchestration/chunk-workflows.ts`).
+- **Prompt pack integration** – First-class MCP prompts for scaffolding, learning, retrieval, review, and workflow guidance (`src/shared/prompts/prompt-pack.ts`).
 
 ## Getting Started
 
@@ -127,22 +127,45 @@ if (completion.shouldComplete) {
 
 ## Architecture Overview
 
+The codebase follows a **ports-and-adapters (hexagonal) architecture** with strict layer dependencies:
+
 ```
 src/
-├── server/             # MCP server registration (tools, prompts, analytics)
-├── services/           # Business logic with transactional persistence
-├── tools/              # Pure calculation engines (SM-2, recommendation, analytics)
-├── db/                 # SQLite setup (Drizzle schema, migrations, operations)
-├── prompts/            # Prompt pack definitions
-├── types/              # Zod schemas and shared types for tool inputs/outputs
-└── utils/              # Logger and helper utilities
+├── transport/          # MCP SDK bootstrap, STDIO transport (process lifecycle only)
+├── server/             # MCP tool registration — parse → delegate → format
+├── orchestration/      # Use-case workflows composing domain logic + port calls
+├── domain/             # Pure computation — zero I/O
+│   ├── algorithms/     # SR calculator, dependency resolver, content similarity
+│   ├── services/       # Recommendation engine, prerequisite validator, analytics
+│   ├── types/          # Shared type definitions
+│   └── config/         # Algorithm configuration
+├── ports/              # Interface definitions (8 port interfaces)
+├── adapters/drizzle/   # Concrete Drizzle/PostgreSQL implementations of ports
+├── infrastructure/     # Database client, schema, migrations, logger
+├── shared/             # Cross-cutting utilities, constants, prompts
+└── composition-root.ts # Wires adapters → ports → orchestration → server
 ```
+
+**Layer dependency rule:** Each layer depends only on layers below it. Domain has zero I/O imports. Orchestration depends on ports (interfaces), never adapters. Only the composition root imports concrete adapter classes.
 
 Key entry points:
 
-- `src/server/main.ts` – Boots the MCP server, registers prompts, and ensures the database schema exists.
-- `src/server/tools.ts` – Wires up all tool registrars.
-- `src/db/migrate.ts` – Creates tables, performs lightweight migrations, and can import seed data from JSON.
+- `src/transport/main.ts` – Boots the MCP server, initializes the database, and invokes the composition root.
+- `src/composition-root.ts` – The sole module importing concrete adapter classes; assembles the full dependency graph.
+- `src/server/tools.ts` – Wires up all tool registrars with the pre-wired AppContext.
+
+```
+tests/
+├── unit/
+│   ├── domain/         # Pure function tests — no mocks, no I/O
+│   ├── orchestration/  # In-memory port substitutes, no DB
+│   └── server/         # Verify parse → delegate → format
+├── integration/
+│   ├── db/             # Database client, schema, migration tests
+│   └── workflows/      # Full stack with _test DB
+├── helpers/            # In-memory adapters, fixtures, DB setup
+└── performance/        # Performance benchmarks
+```
 
 ## Database Schema Summary
 
@@ -197,8 +220,10 @@ Vitest integration tests exercise recommendation workflows, prerequisite mastery
 
 ### Project Structure
 
-- Algorithm logic lives in `src/tools/` — keep functions pure and configurable.
-- Business logic with persistence goes in `src/services/`.
-- MCP registration and wiring belongs in `src/server/`.
-- Shared types and Zod schemas are defined in `src/types/` — import, don't duplicate.
-- Tests mirror the source structure under `tests/`.
+- Pure domain logic (algorithms, services) lives in `src/domain/` — zero I/O imports allowed.
+- Orchestration workflows (composing domain logic + port calls) go in `src/orchestration/`.
+- Port interfaces are defined in `src/ports/` — adapters implement them in `src/adapters/`.
+- MCP tool registration and wiring belongs in `src/server/` — handlers follow parse → delegate → format.
+- Shared types and Zod schemas are defined in `src/domain/types/` — import, don't duplicate.
+- The composition root (`src/composition-root.ts`) is the only place that imports concrete adapter classes.
+- Tests are organized by layer: `tests/unit/` for pure logic, `tests/integration/` for DB-backed tests.

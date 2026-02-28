@@ -1,5 +1,5 @@
-import { ensureSchema } from '../../src/db/migrate.js';
-import { clearAllTables, resetDatabase } from '../../src/db/client.js';
+import { ensureSchema } from '../../src/infrastructure/db/migrate.js';
+import { clearAllTables, resetDatabase } from '../../src/infrastructure/db/client.js';
 
 let schemaInitialized = false;
 

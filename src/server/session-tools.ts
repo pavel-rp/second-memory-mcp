@@ -1,22 +1,14 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
 import {
-  calculateSessionProgress,
-  determineNextPhase,
-  checkSessionCompletion,
-  validateSessionContext,
-} from '../tools/session-manager.js';
-import { ConversationManager } from '../tools/conversation-manager.js';
-import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
-import {
-  ConversationRequestInput,
+  type ConversationRequestInput,
   ConversationRequestSchema,
   ConversationRequestShape,
-} from '../types/recommendations.js';
-import { SessionInputSchema } from '../types/session.js';
-import { logger } from '../utils/logger.js';
+} from '../domain/types/recommendations.js';
+import { SessionInputSchema } from '../domain/types/session.js';
+import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
-import { createRecommendationEngine } from './shared-instances.js';
 
 // Plain shape for MCP tool registration
 const SessionAnalysisInputShape = {
@@ -31,7 +23,7 @@ const SessionAnalysisInputSchema = z
     message: 'Either sessionId or sessionData must be provided',
   });
 
-export function registerSessionTools(server: McpServer): void {
+export function registerSessionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'session_progress',
     {
@@ -46,33 +38,29 @@ export function registerSessionTools(server: McpServer): void {
         let sessionData: unknown;
 
         if (validatedInput.sessionId) {
-          // Retrieve session from database
-          const session = await getSessionById(validatedInput.sessionId);
+          const session = await ctx.getSessionById(validatedInput.sessionId);
           if (!session) {
             throw new Error(`Session ${validatedInput.sessionId} not found`);
           }
-
-          const sessionInput = await convertSessionToSessionInput(session.id);
+          const sessionInput = await ctx.convertSessionToInput(session.id);
           if (!sessionInput) {
             throw new Error(
               `Failed to convert session ${validatedInput.sessionId} to SessionInput format`
             );
           }
-
           sessionData = sessionInput;
           logger.info(
             `Retrieved session ${validatedInput.sessionId} from database for progress calculation`
           );
         } else if (validatedInput.sessionData) {
-          // Use provided session data directly
           sessionData = validatedInput.sessionData;
           logger.info('Using provided session data for progress calculation');
         } else {
           throw new Error('Either sessionId or sessionData must be provided');
         }
 
-        const validatedSession = validateSessionContext(sessionData);
-        const result = calculateSessionProgress(validatedSession);
+        const validatedSession = ctx.validateSessionContext(sessionData);
+        const result = ctx.calculateSessionProgress(validatedSession);
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -99,33 +87,29 @@ export function registerSessionTools(server: McpServer): void {
         let sessionData: unknown;
 
         if (validatedInput.sessionId) {
-          // Retrieve session from database
-          const session = await getSessionById(validatedInput.sessionId);
+          const session = await ctx.getSessionById(validatedInput.sessionId);
           if (!session) {
             throw new Error(`Session ${validatedInput.sessionId} not found`);
           }
-
-          const sessionInput = await convertSessionToSessionInput(session.id);
+          const sessionInput = await ctx.convertSessionToInput(session.id);
           if (!sessionInput) {
             throw new Error(
               `Failed to convert session ${validatedInput.sessionId} to SessionInput format`
             );
           }
-
           sessionData = sessionInput;
           logger.info(
             `Retrieved session ${validatedInput.sessionId} from database for workflow analysis`
           );
         } else if (validatedInput.sessionData) {
-          // Use provided session data directly
           sessionData = validatedInput.sessionData;
           logger.info('Using provided session data for workflow analysis');
         } else {
           throw new Error('Either sessionId or sessionData must be provided');
         }
 
-        const validatedSession = validateSessionContext(sessionData);
-        const result = determineNextPhase(validatedSession);
+        const validatedSession = ctx.validateSessionContext(sessionData);
+        const result = ctx.determineNextPhase(validatedSession);
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -152,33 +136,29 @@ export function registerSessionTools(server: McpServer): void {
         let sessionData: unknown;
 
         if (validatedInput.sessionId) {
-          // Retrieve session from database
-          const session = await getSessionById(validatedInput.sessionId);
+          const session = await ctx.getSessionById(validatedInput.sessionId);
           if (!session) {
             throw new Error(`Session ${validatedInput.sessionId} not found`);
           }
-
-          const sessionInput = await convertSessionToSessionInput(session.id);
+          const sessionInput = await ctx.convertSessionToInput(session.id);
           if (!sessionInput) {
             throw new Error(
               `Failed to convert session ${validatedInput.sessionId} to SessionInput format`
             );
           }
-
           sessionData = sessionInput;
           logger.info(
             `Retrieved session ${validatedInput.sessionId} from database for completion analysis`
           );
         } else if (validatedInput.sessionData) {
-          // Use provided session data directly
           sessionData = validatedInput.sessionData;
           logger.info('Using provided session data for completion analysis');
         } else {
           throw new Error('Either sessionId or sessionData must be provided');
         }
 
-        const validatedSession = validateSessionContext(sessionData);
-        const result = checkSessionCompletion(validatedSession);
+        const validatedSession = ctx.validateSessionContext(sessionData);
+        const result = ctx.checkSessionCompletion(validatedSession);
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -202,7 +182,7 @@ export function registerSessionTools(server: McpServer): void {
     async (input: unknown) => {
       try {
         const parsedInput: ConversationRequestInput = ConversationRequestSchema.parse(input);
-        const conversationManager = new ConversationManager(createRecommendationEngine());
+        const conversationManager = ctx.createConversationManager();
         const result = await conversationManager.conductLearningSession(parsedInput);
         return toolJson(result);
       } catch (error) {

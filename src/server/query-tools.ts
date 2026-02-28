@@ -1,6 +1,5 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { listChunksAsLearningItems, batchFetchChunksMinimal } from '../services/chunk-queries.js';
-import { batchFetchTopicsMinimal } from '../services/topics.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import {
   ListLearningItemsInputSchema,
   ListLearningItemsInputShape,
@@ -11,10 +10,10 @@ import {
   BatchFetchChunksMinimalInputSchema,
   BatchFetchChunksMinimalInputShape,
   type BatchFetchChunksMinimalInput,
-} from '../types/persistence-tools.js';
+} from '../domain/types/persistence-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-export function registerQueryTools(server: McpServer): void {
+export function registerQueryTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'list_learning_items',
     {
@@ -27,7 +26,11 @@ export function registerQueryTools(server: McpServer): void {
       const { subjectFilter, dueOnly, limit }: ListLearningItemsInput =
         ListLearningItemsInputSchema.parse(rawInput);
       try {
-        const items = await listChunksAsLearningItems({ subject: subjectFilter, dueOnly, limit });
+        const items = await ctx.listChunksAsLearningItems({
+          subjectFilter: subjectFilter,
+          dueOnly,
+          limit,
+        });
         return toolJson(items);
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -52,7 +55,7 @@ export function registerQueryTools(server: McpServer): void {
       const { subjectFilter, limit }: BatchFetchTopicsMinimalInput =
         BatchFetchTopicsMinimalInputSchema.parse(rawInput);
       try {
-        const topics = await batchFetchTopicsMinimal({ subject: subjectFilter, limit });
+        const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
         return toolJson({
           success: true,
           topics,
@@ -85,7 +88,7 @@ export function registerQueryTools(server: McpServer): void {
       const { topicId, subjectFilter, dueOnly, limit }: BatchFetchChunksMinimalInput =
         BatchFetchChunksMinimalInputSchema.parse(rawInput);
       try {
-        const chunks = await batchFetchChunksMinimal({
+        const chunks = await ctx.batchFetchChunksMinimal({
           topicId,
           subject: subjectFilter,
           dueOnly,
@@ -97,7 +100,6 @@ export function registerQueryTools(server: McpServer): void {
           chunks,
           count: chunks.length,
           message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
-          // Enforcement hint for recall/review workflows
           workflowHint:
             chunks.length > 0
               ? {

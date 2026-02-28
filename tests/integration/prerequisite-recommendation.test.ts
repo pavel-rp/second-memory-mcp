@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../src/server/tools.js';
-import type { LearningItem } from '../../src/types/recommendations.js';
+import { createAppContext } from '../../src/composition-root.js';
+import type { LearningItem } from '../../src/domain/types/recommendations.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();
@@ -37,7 +38,7 @@ function parseToolResult(out: any): any {
 describe('Integration: Prerequisite Recommendation Workflow', () => {
   it('should handle items without prerequisites in recommendations', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
@@ -73,7 +74,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
   it('should handle items with prerequisites gracefully', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('what_to_learn_today');
 
     const items = [
@@ -112,7 +113,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
   it('should process tool registration successfully', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('what_to_learn_today');
 
     expect(tool).toBeDefined();
@@ -123,7 +124,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
   it('should handle prerequisite processing without database', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server);
+    registerServerTools(server, createAppContext());
     const tool = server.tools.get('what_to_learn_today');
 
     const items = [

@@ -1,13 +1,13 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { AppContext } from '../composition-root.js';
 import {
   SearchLearningContentInputSchema,
   SearchLearningContentInputShape,
   type SearchLearningContentInput,
-} from '../types/search-tools.js';
-import { searchLearningContent } from '../services/search.js';
+} from '../domain/types/search-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-export function registerSearchTools(server: McpServer): void {
+export function registerSearchTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'search_learning_content',
     {
@@ -22,9 +22,8 @@ export function registerSearchTools(server: McpServer): void {
     async (rawInput: unknown) => {
       try {
         const input: SearchLearningContentInput = SearchLearningContentInputSchema.parse(rawInput);
-        const result = await searchLearningContent(input);
+        const result = await ctx.searchLearningContent(input);
 
-        // Extract chunk IDs from results (results contain both topics and chunks)
         const chunkResults = result.results.filter(item => item.resultType === 'chunk');
         const hasChunks = chunkResults.length > 0;
         const chunkIds = chunkResults.map(c => c.id);
@@ -36,7 +35,6 @@ export function registerSearchTools(server: McpServer): void {
               ? `Found ${result.counts.total} matching items.`
               : 'No matching topics or chunks were found.',
           ...result,
-          // Enforcement hint for recall/review workflows
           workflowHint: hasChunks
             ? {
                 action: 'REQUIRED_FOR_RECALL',
