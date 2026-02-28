@@ -3,6 +3,17 @@ import { ConversationManager } from '../../src/tools/conversation-manager.js';
 import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
 import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
 
+// Prevent fallback DB queries when learningItems is empty
+vi.mock('../../src/services/chunk-queries.js', () => ({
+  listChunksAsLearningItems: vi.fn().mockResolvedValue([]),
+}));
+
+// Prevent session hydration from DB
+vi.mock('../../src/services/sessions.js', () => ({
+  getActiveSession: vi.fn().mockResolvedValue(null),
+  convertSessionToSessionInput: vi.fn().mockResolvedValue(null),
+}));
+
 function createTestConversationManager() {
   const validator = new PrerequisiteValidator({
     referenceValidator: {
