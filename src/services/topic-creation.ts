@@ -12,9 +12,9 @@ import type {
   TopicCreationResult,
   TopicWithChunks,
 } from '../domain/types/topic-creation.js';
-import { VALIDATION_CONSTANTS } from '../constants/validation.js';
-import { extractErrorMessage } from '../utils/errors.js';
-import { logger } from '../utils/logger.js';
+import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
+import { extractErrorMessage } from '../shared/errors.js';
+import { logger } from '../shared/logger.js';
 
 /**
  * Topic Creation Service

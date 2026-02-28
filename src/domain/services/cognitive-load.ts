@@ -1,4 +1,4 @@
-import type { ChunkType, LearningItem } from '../domain/types/recommendations.js';
+import type { ChunkType, LearningItem } from '../types/recommendations.js';
 
 const CHUNK_TYPE_MULTIPLIERS: Record<ChunkType, number> = {
   new: 1.5, // New content requires more cognitive resources

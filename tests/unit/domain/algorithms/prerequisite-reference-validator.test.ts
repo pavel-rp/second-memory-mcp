@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PrerequisiteReferenceValidator } from '../../src/algorithms/prerequisite-reference-validator.js';
+import { PrerequisiteReferenceValidator } from '../../../../src/domain/services/prerequisite-reference-validator.js';
 
 describe('PrerequisiteReferenceValidator', () => {
   let validator: PrerequisiteReferenceValidator;

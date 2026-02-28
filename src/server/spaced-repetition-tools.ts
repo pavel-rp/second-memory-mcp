@@ -4,7 +4,7 @@ import {
   calculatePriorityScore,
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
-} from '../algorithms/sr-calculator.js';
+} from '../domain/algorithms/sr-calculator.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,

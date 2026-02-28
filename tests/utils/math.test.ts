@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clamp, roundTo } from '../../src/utils/math.js';
+import { clamp, roundTo } from '../../src/shared/math.js';
 
 describe('clamp', () => {
   it('returns min when value is below range', () => {

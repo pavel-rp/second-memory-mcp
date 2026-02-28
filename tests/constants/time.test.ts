@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MS_PER_DAY } from '../../src/constants/time.js';
+import { MS_PER_DAY } from '../../src/shared/constants/time.js';
 
 describe('MS_PER_DAY', () => {
   it('equals 24 * 60 * 60 * 1000', () => {

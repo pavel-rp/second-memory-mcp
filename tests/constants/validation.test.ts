@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VALIDATION_CONSTANTS } from '../../src/constants/validation.js';
+import { VALIDATION_CONSTANTS } from '../../src/shared/constants/validation.js';
 
 describe('VALIDATION_CONSTANTS', () => {
   it('exports expected constant keys', () => {

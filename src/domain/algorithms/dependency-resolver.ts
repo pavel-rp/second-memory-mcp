@@ -1,6 +1,6 @@
 import { algorithmConfig } from '../config/algorithm.js';
-import type { LearningItem } from '../domain/types/recommendations.js';
-import { extractErrorMessage } from '../utils/errors.js';
+import type { LearningItem } from '../types/recommendations.js';
+import { extractErrorMessage } from '../../shared/errors.js';
 
 /**
  * Result of dependency resolution

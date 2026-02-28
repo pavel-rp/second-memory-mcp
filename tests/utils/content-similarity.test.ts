@@ -3,7 +3,7 @@ import {
   calculateLevenshteinDistance,
   calculateSimilarityRatio,
   hasSignificantContentChange,
-} from '../../src/utils/content-similarity.js';
+} from '../../src/domain/algorithms/content-similarity.js';
 
 describe('content-similarity', () => {
   describe('calculateLevenshteinDistance', () => {

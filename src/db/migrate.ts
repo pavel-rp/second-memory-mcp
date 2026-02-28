@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { getPool } from './client.js';
 import { getSql, bulkInsert } from './operations.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/logger.js';
 import {
   learningTopics,
   learningChunks,

@@ -2,9 +2,9 @@ import { and, eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningChunkRow } from '../db/schema.js';
-import { dependencyResolver } from '../algorithms/dependency-resolver.js';
-import { hasSignificantContentChange } from '../utils/content-similarity.js';
-import { extractErrorMessage } from '../utils/errors.js';
+import { dependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { hasSignificantContentChange } from '../domain/algorithms/content-similarity.js';
+import { extractErrorMessage } from '../shared/errors.js';
 import { prerequisiteReferenceValidator } from './chunk-prerequisites.js';
 import {
   CHUNK_COLUMNS_WITH_TOPIC,

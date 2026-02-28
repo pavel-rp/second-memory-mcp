@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { computeDailyKpis, computeWindowRollup } from '../../src/tools/analytics.js';
-import type { ReviewEntry, AnalyticsInput, WindowSpec } from '../../src/domain/types/analytics.js';
+import {
+  computeDailyKpis,
+  computeWindowRollup,
+} from '../../../../src/domain/services/analytics-calculator.js';
+import type {
+  ReviewEntry,
+  AnalyticsInput,
+  WindowSpec,
+} from '../../../../src/domain/types/analytics.js';
 
 describe('computeDailyKpis', () => {
   it('returns empty day for no entries', () => {

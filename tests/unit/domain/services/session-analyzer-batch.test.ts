@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { applyBatchSessionChunkOperations } from '../../src/tools/session-manager.js';
+import { applyBatchSessionChunkOperations } from '../../../../src/domain/services/session-analyzer.js';
 import {
   persistBatchSessionChunkOperations,
   getSessionWithChunks,
-} from '../../src/services/sessions.js';
-import { getSql } from '../../src/db/operations.js';
+} from '../../../../src/services/sessions.js';
+import { getSql } from '../../../../src/db/operations.js';
 import {
   learningTopics,
   learningChunks,
   learningSessions,
   sessionChunks,
-} from '../../src/db/schema.js';
-import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
+} from '../../../../src/db/schema.js';
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../../helpers/db-setup.js';
 
 describe('Service: applyBatchSessionChunkOperations', () => {
   beforeAll(setupTestDb);

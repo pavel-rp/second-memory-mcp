@@ -5,10 +5,10 @@ import type {
   WorkflowPhase,
   CompletionStatus,
   BatchOperation,
-} from '../domain/types/session.js';
-import { SessionInputSchema } from '../domain/types/session.js';
+} from '../types/session.js';
+import { SessionInputSchema } from '../types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
-import { clamp, roundTo } from '../utils/math.js';
+import { clamp, roundTo } from '../../shared/math.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string): Date {

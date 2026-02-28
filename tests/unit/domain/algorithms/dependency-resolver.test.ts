@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DependencyResolver } from '../../src/algorithms/dependency-resolver.js';
-import type { LearningItem } from '../../src/domain/types/recommendations.js';
+import { DependencyResolver } from '../../../../src/domain/algorithms/dependency-resolver.js';
+import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 
 describe('DependencyResolver', () => {
   let resolver: DependencyResolver;

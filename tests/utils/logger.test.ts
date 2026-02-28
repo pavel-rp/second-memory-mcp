@@ -23,7 +23,7 @@ describe('logger', () => {
   });
 
   async function loadLogger() {
-    const mod = await import('../../src/utils/logger.js');
+    const mod = await import('../../src/shared/logger.js');
     return mod.logger;
   }
 

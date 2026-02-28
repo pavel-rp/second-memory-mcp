@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VALIDATION_CONSTANTS } from '../../constants/validation.js';
+import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
 
 export const ListLearningItemsInputShape = {
   subjectFilter: z.string().optional().describe('Optional subject filter for learning items'),

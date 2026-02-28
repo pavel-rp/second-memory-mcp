@@ -12,8 +12,8 @@ import type {
   SessionConstraints,
   LearningPatterns,
   SubjectPreference,
-} from '../domain/types/recommendations.js';
-import { logger } from '../utils/logger.js';
+} from '../types/recommendations.js';
+import { logger } from '../../shared/logger.js';
 
 /**
  * Core recommendation engine that generates intelligent learning recommendations

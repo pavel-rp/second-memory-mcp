@@ -5,7 +5,7 @@ import {
   determineNextPhase,
   checkSessionCompletion,
   validateSessionContext,
-} from '../tools/session-manager.js';
+} from '../domain/services/session-analyzer.js';
 import { ConversationManager } from '../tools/conversation-manager.js';
 import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
 import {
@@ -14,7 +14,7 @@ import {
   ConversationRequestShape,
 } from '../domain/types/recommendations.js';
 import { SessionInputSchema } from '../domain/types/session.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import { createRecommendationEngine } from './shared-instances.js';
 

@@ -1,4 +1,4 @@
-import { RecommendationEngine } from './recommendation-engine.js';
+import { RecommendationEngine } from '../domain/services/recommendation-engine.js';
 import type {
   ConversationRequest,
   ConversationResponse,
@@ -9,7 +9,7 @@ import type {
 } from '../domain/types/recommendations.js';
 import { listChunksAsLearningItems } from '../services/chunk-queries.js';
 import { getActiveSession, convertSessionToSessionInput } from '../services/sessions.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/logger.js';
 
 /**
  * Manages conversational "teach me" workflows with zero friction

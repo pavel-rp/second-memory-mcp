@@ -21,7 +21,7 @@ describe('algorithm config env overrides', () => {
   it('applies overrides on import', async () => {
     // reset module cache so env is read fresh on import
     vi.resetModules();
-    const mod = await import('../../src/config/algorithm.js');
+    const mod = await import('../../../../src/domain/config/algorithm.js');
     expect(mod.algorithmConfig.minimumEaseFactor).toBeGreaterThanOrEqual(1.5);
     expect(mod.algorithmConfig.initialIntervalDays).toBe(2);
     expect(mod.algorithmConfig.secondIntervalDays).toBe(7);

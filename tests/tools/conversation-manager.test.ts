@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ConversationManager } from '../../src/tools/conversation-manager.js';
-import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
-import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
+import { RecommendationEngine } from '../../src/domain/services/recommendation-engine.js';
+import { PrerequisiteValidator } from '../../src/domain/services/prerequisite-validator.js';
 
 // Prevent fallback DB queries when learningItems is empty
 vi.mock('../../src/services/chunk-queries.js', () => ({

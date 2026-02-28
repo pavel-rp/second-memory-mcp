@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../db/operations.js';
 import { learningChunks } from '../db/schema.js';
-import { PrerequisiteReferenceValidator } from '../algorithms/prerequisite-reference-validator.js';
+import { PrerequisiteReferenceValidator } from '../domain/services/prerequisite-reference-validator.js';
 
 /**
  * Get existing chunk IDs that match a provided list.

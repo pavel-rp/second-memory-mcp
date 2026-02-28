@@ -4,7 +4,7 @@ import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
 import { eq } from 'drizzle-orm';
 import { updateTopicMetadata, updateTopicSummary } from '../../src/services/topic-updates.js';
-import { VALIDATION_CONSTANTS } from '../../src/constants/validation.js';
+import { VALIDATION_CONSTANTS } from '../../src/shared/constants/validation.js';
 
 describe('services/topic-updates', () => {
   beforeAll(setupTestDb);

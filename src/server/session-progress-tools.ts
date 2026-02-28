@@ -11,8 +11,8 @@ import {
 } from '../services/sessions.js';
 import { BatchUpdateInputSchema } from '../domain/types/session.js';
 import { CreateSessionChunkToolInputSchema } from '../domain/types/session-management-tools.js';
-import { logger } from '../utils/logger.js';
-import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
+import { logger } from '../shared/logger.js';
+import { applyBatchSessionChunkOperations } from '../domain/services/session-analyzer.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerSessionProgressTools(server: McpServer): void {

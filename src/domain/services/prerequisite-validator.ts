@@ -4,10 +4,10 @@ import type {
   ValidationResult,
   FilteredResult,
   MasteryStatus,
-} from '../domain/types/prerequisite-validation.js';
-import type { LearningItem } from '../domain/types/recommendations.js';
-import { extractErrorMessage } from '../utils/errors.js';
-import { logger } from '../utils/logger.js';
+} from '../types/prerequisite-validation.js';
+import type { LearningItem } from '../types/recommendations.js';
+import { extractErrorMessage } from '../../shared/errors.js';
+import { logger } from '../../shared/logger.js';
 
 /**
  * Core prerequisite validation service that filters learning items based on prerequisite mastery

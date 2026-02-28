@@ -1,5 +1,5 @@
-import { RecommendationEngine } from '../tools/recommendation-engine.js';
-import { PrerequisiteValidator } from '../tools/prerequisite-validator.js';
+import { RecommendationEngine } from '../domain/services/recommendation-engine.js';
+import { PrerequisiteValidator } from '../domain/services/prerequisite-validator.js';
 import { getChunk } from '../services/chunks.js';
 import { mapChunkRowToLearningItem } from '../services/chunk-queries.js';
 import { prerequisiteReferenceValidator } from '../services/chunk-prerequisites.js';

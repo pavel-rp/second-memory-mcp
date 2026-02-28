@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 import { getSql } from '../db/operations.js';
 import { learningChunks, learningTopics, type LearningTopicRow } from '../db/schema.js';
-import { VALIDATION_CONSTANTS } from '../constants/validation.js';
-import { extractErrorMessage } from '../utils/errors.js';
+import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
+import { extractErrorMessage } from '../shared/errors.js';
 
 export type TopicUpdateResult = {
   success: boolean;

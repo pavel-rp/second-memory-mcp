@@ -6,7 +6,7 @@ import {
   type SearchResultItem,
   type SearchResultSet,
 } from '../domain/types/search-tools.js';
-import { calculateSimilarityRatio } from '../utils/content-similarity.js';
+import { calculateSimilarityRatio } from '../domain/algorithms/content-similarity.js';
 
 type TopicRow = {
   id: string;

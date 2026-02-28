@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { promptPack } from '../../src/prompts/prompt-pack.js';
+import { promptPack } from '../../src/shared/prompts/prompt-pack.js';
 
 describe('promptPack', () => {
   it('returns workflow guidance with tool names', () => {

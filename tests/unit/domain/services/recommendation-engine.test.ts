@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RecommendationEngine } from '../../src/tools/recommendation-engine.js';
-import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
-import * as chunksService from '../../src/services/chunks.js';
-import * as chunkQueriesService from '../../src/services/chunk-queries.js';
+import { RecommendationEngine } from '../../../../src/domain/services/recommendation-engine.js';
+import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
+import * as chunksService from '../../../../src/services/chunks.js';
+import * as chunkQueriesService from '../../../../src/services/chunk-queries.js';
 
 function createTestEngine() {
   const mockValidator = new PrerequisiteValidator({

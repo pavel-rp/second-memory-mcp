@@ -1,5 +1,5 @@
-import type { PrerequisiteReferenceValidationResult } from '../domain/types/prerequisite-validation.js';
-import { extractErrorMessage } from '../utils/errors.js';
+import type { PrerequisiteReferenceValidationResult } from '../types/prerequisite-validation.js';
+import { extractErrorMessage } from '../../shared/errors.js';
 
 export type ChunkIdLookupFn = (ids: string[]) => Promise<Set<string>>;
 export type AllChunkIdsLookupFn = () => Promise<Set<string>>;

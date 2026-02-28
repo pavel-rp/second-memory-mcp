@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
-import { prerequisiteReferenceValidator } from '../../src/services/chunk-prerequisites.js';
-import { prerequisiteMasteryService } from '../../src/services/prerequisite-mastery.js';
-import type { LearningItem } from '../../src/domain/types/recommendations.js';
-import type { MasteryStatus } from '../../src/domain/types/prerequisite-validation.js';
+import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
+import { prerequisiteReferenceValidator } from '../../../../src/services/chunk-prerequisites.js';
+import { prerequisiteMasteryService } from '../../../../src/services/prerequisite-mastery.js';
+import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
+import type { MasteryStatus } from '../../../../src/domain/types/prerequisite-validation.js';
 
 // Mock the dependencies
-vi.mock('../../src/services/chunk-prerequisites.js', async importOriginal => {
-  const orig = await importOriginal<typeof import('../../src/services/chunk-prerequisites.js')>();
+vi.mock('../../../../src/services/chunk-prerequisites.js', async importOriginal => {
+  const orig =
+    await importOriginal<typeof import('../../../../src/services/chunk-prerequisites.js')>();
   return {
     ...orig,
     prerequisiteReferenceValidator: {
@@ -17,7 +18,7 @@ vi.mock('../../src/services/chunk-prerequisites.js', async importOriginal => {
     },
   };
 });
-vi.mock('../../src/services/prerequisite-mastery.js');
+vi.mock('../../../../src/services/prerequisite-mastery.js');
 
 describe('PrerequisiteValidator', () => {
   let validator: PrerequisiteValidator;

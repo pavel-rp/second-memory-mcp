@@ -1,7 +1,7 @@
 // Configuration for spaced repetition algorithms
 // Simple typed config with environment overrides (no secrets)
 
-import { clamp } from '../utils/math.js';
+import { clamp } from '../../shared/math.js';
 
 export type AlgorithmConfig = {
   minimumEaseFactor: number; // floor for ease factor (>= 1.3)

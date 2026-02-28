@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorMessage } from '../../src/utils/errors.js';
+import { extractErrorMessage } from '../../src/shared/errors.js';
 
 describe('extractErrorMessage', () => {
   it('extracts message from Error instance', () => {

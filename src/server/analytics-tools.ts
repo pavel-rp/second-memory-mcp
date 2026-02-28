@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { computeDailyKpis, computeWindowRollup } from '../tools/analytics.js';
+import { computeDailyKpis, computeWindowRollup } from '../domain/services/analytics-calculator.js';
 import {
   AnalyticsDailyInputSchema,
   AnalyticsDailyInputShape,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateItemCognitiveLoad } from '../../src/tools/cognitive-load.js';
-import type { LearningItem } from '../../src/domain/types/recommendations.js';
+import { calculateItemCognitiveLoad } from '../../../../src/domain/services/cognitive-load.js';
+import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 
 function makeItem(overrides: Partial<LearningItem> = {}): LearningItem {
   return {

@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { promptPack } from '../prompts/prompt-pack.js';
+import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { registerServerTools } from './tools.js';
 import { initializeDatabase } from '../db/migrate.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/logger.js';
 import type {
   LearningPromptArgs,
   RetrievalPromptArgs,

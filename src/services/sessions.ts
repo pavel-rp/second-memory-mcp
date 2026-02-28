@@ -18,7 +18,7 @@ import {
   type BatchOperation,
   type ChunkAttempt,
 } from '../domain/types/session.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../shared/logger.js';
 
 // Input types for session operations
 export type CreateSessionInput = {

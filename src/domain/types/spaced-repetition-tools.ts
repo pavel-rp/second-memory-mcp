@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VALIDATION_CONSTANTS } from '../../constants/validation.js';
+import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
 
 export const CalculateNextReviewInputShape = {
   quality: z.number().min(0).max(5).describe('Quality score from the latest review (0-5)'),

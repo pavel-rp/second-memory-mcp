@@ -1,5 +1,5 @@
 import { algorithmConfig, clampEaseFactor } from '../config/algorithm.js';
-import { MS_PER_DAY } from '../constants/time.js';
+import { MS_PER_DAY } from '../../shared/constants/time.js';
 import type {
   NextReviewInput,
   NextReviewOutput,
@@ -10,7 +10,7 @@ import type {
   RankInput,
   RankOutput,
   RankedItem,
-} from '../domain/types/sr.js';
+} from '../types/sr.js';
 
 function toStartOfDay(date: Date): Date {
   const normalized = new Date(date);
