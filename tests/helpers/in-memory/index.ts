@@ -6,3 +6,4 @@ export { InMemoryReviewPersistence } from './review-persistence.js';
 export { InMemoryChunkIdLookup } from './chunk-id-lookup.js';
 export { InMemoryPrerequisiteMastery } from './prerequisite-mastery.js';
 export { InMemoryUnitOfWork } from './unit-of-work.js';
+export { InMemoryEmbeddingAdapter } from './embedding-adapter.js';

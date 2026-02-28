@@ -40,6 +40,9 @@
     "node": ">=20.19.0"
   },
   "dependencies": {
+    "@langchain/core": "^1.1.29",
+    "@langchain/ollama": "^1.2.5",
+    "@langchain/openai": "^1.2.11",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.1",
