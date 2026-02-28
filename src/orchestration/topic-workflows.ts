@@ -304,22 +304,22 @@ export async function updateTopicSummary(
     const newVersion = (current.summaryVersion ?? 1) + 1;
 
     // Embed the new summary if embedding is available
-    let summaryEmbedding: number[] | null = null;
+    const updateData: Parameters<TopicRepository['update']>[1] = {
+      summary,
+      summaryVersion: newVersion,
+      summaryUpdatedAt: now,
+      updatedAt: now,
+    };
     if (deps.embedding?.isAvailable()) {
       try {
-        summaryEmbedding = await deps.embedding.embedText(summary);
+        const vector = await deps.embedding.embedText(summary);
+        if (vector) updateData.summaryEmbedding = vector;
       } catch (err) {
         logger.warn('Embedding generation failed for topic summary:', err);
       }
     }
 
-    const result = await deps.topics.update(topicId, {
-      summary,
-      summaryVersion: newVersion,
-      summaryUpdatedAt: now,
-      summaryEmbedding: summaryEmbedding,
-      updatedAt: now,
-    });
+    const result = await deps.topics.update(topicId, updateData);
 
     if (!result.success) return { success: false, error: result.error };
 

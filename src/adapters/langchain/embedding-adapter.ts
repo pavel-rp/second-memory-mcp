@@ -18,7 +18,8 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     if (!this.available || !this.embeddings) return null;
     try {
       const [vector] = await this.embeddings.embedDocuments([text]);
-      return vector ?? null;
+      if (!vector) return null;
+      return this.validateDimensions(vector);
     } catch (err) {
       logger.warn('Embedding failed for single text:', err);
       return null;
@@ -30,7 +31,7 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     if (!this.available || !this.embeddings) return texts.map(() => null);
     try {
       const vectors = await this.embeddings.embedDocuments(texts);
-      return vectors.map(v => v ?? null);
+      return vectors.map(v => (v ? this.validateDimensions(v) : null));
     } catch (err) {
       logger.warn('Batch embedding failed:', err);
       return texts.map(() => null);
@@ -93,6 +94,20 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
       modelName: this.config.model,
       dimensions: this.config.dimensions,
     });
+  }
+
+  private validateDimensions(vector: number[]): number[] | null {
+    if (vector.length !== SCHEMA_EMBEDDING_DIMENSIONS) {
+      if (this.available) {
+        logger.error(
+          `Embedding dimension mismatch: model produced ${vector.length}-dim vector, schema requires ${SCHEMA_EMBEDDING_DIMENSIONS}. ` +
+            `Set EMBEDDING_DIMENSIONS=${SCHEMA_EMBEDDING_DIMENSIONS} and use a compatible model. Disabling semantic search.`
+        );
+        this.available = false;
+      }
+      return null;
+    }
+    return vector;
   }
 
   private async initOllama(): Promise<void> {
