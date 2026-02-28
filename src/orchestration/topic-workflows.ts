@@ -226,6 +226,7 @@ export async function updateTopicMetadata(
 
     // Wrap topic update + subject cascade in a transaction for atomicity
     if (updates.subject !== undefined) {
+      const newSubject = updates.subject;
       await deps.unitOfWork.execute(async ports => {
         const result = await ports.topics.update(
           topicId,
@@ -237,7 +238,7 @@ export async function updateTopicMetadata(
         const topicChunks = allChunks.filter(c => c.topicId === topicId);
         const now = Date.now();
         for (const chunk of topicChunks) {
-          await ports.chunks.update(chunk.id, { subject: updates.subject!, updatedAt: now });
+          await ports.chunks.update(chunk.id, { subject: newSubject, updatedAt: now });
         }
       });
     } else {
