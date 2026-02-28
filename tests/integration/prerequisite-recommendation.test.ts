@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../src/server/tools.js';
-import type { LearningItem } from '../../src/types/recommendations.js';
+import type { LearningItem } from '../../src/domain/types/recommendations.js';
 
 class CaptureServer {
   public tools = new Map<string, { spec: any; handler: Function }>();

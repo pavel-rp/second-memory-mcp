@@ -9,7 +9,7 @@ import {
   listChunksAsLearningItems,
   batchFetchChunksMinimal,
 } from '../../src/services/chunk-queries.js';
-import { LearningItemSchema } from '../../src/types/recommendations.js';
+import { LearningItemSchema } from '../../src/domain/types/recommendations.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
 
 describe('chunks service', () => {

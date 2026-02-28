@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RecommendationInputSchema } from '../../src/types/recommendations.js';
+import { RecommendationInputSchema } from '../../src/domain/types/recommendations.js';
 
 describe('RecommendationInputSchema - self-fetch parameters', () => {
   it('validates fetchFromDatabase defaults to false when omitted', () => {

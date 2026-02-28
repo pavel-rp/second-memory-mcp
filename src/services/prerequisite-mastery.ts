@@ -2,7 +2,7 @@ import { getSql, type SqlDb } from '../db/operations.js';
 import { type LearningChunkRow } from '../db/schema.js';
 import { algorithmConfig } from '../config/algorithm.js';
 import { MS_PER_DAY } from '../constants/time.js';
-import type { MasteryCriteria, MasteryStatus } from '../types/prerequisite-validation.js';
+import type { MasteryCriteria, MasteryStatus } from '../domain/types/prerequisite-validation.js';
 import { logger } from '../utils/logger.js';
 import { getChunk } from './chunks.js';
 

@@ -9,7 +9,8 @@
     "types": ["node"],
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "verbatimModuleSyntax": true
   },
   "include": ["src", "tests", "drizzle.config.ts"]
 }

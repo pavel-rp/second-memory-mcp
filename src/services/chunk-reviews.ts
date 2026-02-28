@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getSql } from '../db/operations.js';
 import { learningChunks, type LearningChunkRow } from '../db/schema.js';
 import { calculateNextReviewAdvanced } from '../algorithms/sr-calculator.js';
-import { type ServiceResult, serviceOk, serviceFail } from '../types/service-result.js';
+import { type ServiceResult, serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { getChunk } from './chunks.js';
 
 export type ReviewResultData = {

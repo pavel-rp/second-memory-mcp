@@ -9,7 +9,7 @@ import {
   RecommendationInputSchema,
   RecommendationInputShape,
   type RecommendationInput,
-} from '../types/recommendations.js';
+} from '../domain/types/recommendations.js';
 import { mapChunkRowToLearningItem, listChunksAsLearningItems } from '../services/chunk-queries.js';
 import { processReviewResult } from '../services/chunk-reviews.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
@@ -30,7 +30,7 @@ import {
   RecordReviewResultInputSchema,
   RecordReviewResultInputShape,
   type RecordReviewResultInput,
-} from '../types/spaced-repetition-tools.js';
+} from '../domain/types/spaced-repetition-tools.js';
 
 export function registerSpacedRepetitionTools(server: McpServer): void {
   server.registerTool(

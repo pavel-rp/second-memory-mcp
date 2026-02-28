@@ -11,7 +11,7 @@ import type {
   TopicCreationInput,
   TopicCreationResult,
   TopicWithChunks,
-} from '../types/topic-creation.js';
+} from '../domain/types/topic-creation.js';
 import { VALIDATION_CONSTANTS } from '../constants/validation.js';
 import { extractErrorMessage } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';

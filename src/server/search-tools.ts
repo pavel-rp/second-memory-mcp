@@ -3,7 +3,7 @@ import {
   SearchLearningContentInputSchema,
   SearchLearningContentInputShape,
   type SearchLearningContentInput,
-} from '../types/search-tools.js';
+} from '../domain/types/search-tools.js';
 import { searchLearningContent } from '../services/search.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 

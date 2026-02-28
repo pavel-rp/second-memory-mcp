@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrerequisiteValidator } from '../../src/tools/prerequisite-validator.js';
 import { prerequisiteReferenceValidator } from '../../src/services/chunk-prerequisites.js';
 import { prerequisiteMasteryService } from '../../src/services/prerequisite-mastery.js';
-import type { LearningItem } from '../../src/types/recommendations.js';
-import type { MasteryStatus } from '../../src/types/prerequisite-validation.js';
+import type { LearningItem } from '../../src/domain/types/recommendations.js';
+import type { MasteryStatus } from '../../src/domain/types/prerequisite-validation.js';
 
 // Mock the dependencies
 vi.mock('../../src/services/chunk-prerequisites.js', async importOriginal => {

@@ -9,7 +9,7 @@ import {
   ListItemsWithContentInputSchema,
   ListItemsWithContentInputShape,
   type ListItemsWithContentInput,
-} from '../types/content-tools.js';
+} from '../domain/types/content-tools.js';
 import { getChunkContent } from '../services/chunks.js';
 import {
   listChunksWithContent,

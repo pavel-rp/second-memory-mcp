@@ -9,11 +9,11 @@ import {
 import { ConversationManager } from '../tools/conversation-manager.js';
 import { getSessionById, convertSessionToSessionInput } from '../services/sessions.js';
 import {
-  ConversationRequestInput,
+  type ConversationRequestInput,
   ConversationRequestSchema,
   ConversationRequestShape,
-} from '../types/recommendations.js';
-import { SessionInputSchema } from '../types/session.js';
+} from '../domain/types/recommendations.js';
+import { SessionInputSchema } from '../domain/types/session.js';
 import { logger } from '../utils/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import { createRecommendationEngine } from './shared-instances.js';

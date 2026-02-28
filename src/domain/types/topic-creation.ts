@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { VALIDATION_CONSTANTS } from '../constants/validation.js';
+import { VALIDATION_CONSTANTS } from '../../constants/validation.js';
 import type { ChunkType } from './recommendations.js';
 
 // Topic creation request types

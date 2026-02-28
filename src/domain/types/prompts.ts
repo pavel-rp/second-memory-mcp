@@ -1,4 +1,4 @@
-import type { DrillFormat } from '../prompts/prompt-pack.js';
+import type { DrillFormat } from '../../prompts/prompt-pack.js';
 
 export type LearningPromptArgs = {
   chunkNumber?: string;

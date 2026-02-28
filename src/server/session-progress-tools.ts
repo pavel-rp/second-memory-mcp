@@ -9,8 +9,8 @@ import {
   persistBatchSessionChunkOperations,
   type CreateSessionChunkInput,
 } from '../services/sessions.js';
-import { BatchUpdateInputSchema } from '../types/session.js';
-import { CreateSessionChunkToolInputSchema } from '../types/session-management-tools.js';
+import { BatchUpdateInputSchema } from '../domain/types/session.js';
+import { CreateSessionChunkToolInputSchema } from '../domain/types/session-management-tools.js';
 import { logger } from '../utils/logger.js';
 import { applyBatchSessionChunkOperations } from '../tools/session-manager.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';

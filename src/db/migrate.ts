@@ -11,10 +11,10 @@ import {
   learningChunks,
   learningSessions,
   sessionChunks,
-  NewLearningTopicRow,
-  NewLearningChunkRow,
-  NewLearningSessionRow,
-  NewSessionChunkRow,
+  type NewLearningTopicRow,
+  type NewLearningChunkRow,
+  type NewLearningSessionRow,
+  type NewSessionChunkRow,
 } from './schema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

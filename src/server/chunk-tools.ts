@@ -24,7 +24,7 @@ import {
   DeleteChunkInputSchema,
   DeleteChunkInputShape,
   type DeleteChunkInput,
-} from '../types/persistence-tools.js';
+} from '../domain/types/persistence-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerChunkTools(server: McpServer): void {

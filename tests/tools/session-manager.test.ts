@@ -5,7 +5,7 @@ import {
   checkSessionCompletion,
   validateSessionContext,
 } from '../../src/tools/session-manager.js';
-import type { SessionInput } from '../../src/types/session.js';
+import type { SessionInput } from '../../src/domain/types/session.js';
 
 describe('Session Manager', () => {
   const mockSessionInput: SessionInput = {

@@ -10,7 +10,7 @@ import type {
   RankInput,
   RankOutput,
   RankedItem,
-} from '../types/sr.js';
+} from '../domain/types/sr.js';
 
 function toStartOfDay(date: Date): Date {
   const normalized = new Date(date);

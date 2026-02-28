@@ -4,8 +4,8 @@ import type {
   ValidationResult,
   FilteredResult,
   MasteryStatus,
-} from '../types/prerequisite-validation.js';
-import type { LearningItem } from '../types/recommendations.js';
+} from '../domain/types/prerequisite-validation.js';
+import type { LearningItem } from '../domain/types/recommendations.js';
 import { extractErrorMessage } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 

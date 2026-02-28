@@ -11,7 +11,7 @@ import {
   UpdateTopicSummaryInputSchema,
   UpdateTopicSummaryInputShape,
   type UpdateTopicSummaryInput,
-} from '../types/persistence-tools.js';
+} from '../domain/types/persistence-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerTopicTools(server: McpServer): void {

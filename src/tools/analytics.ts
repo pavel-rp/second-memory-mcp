@@ -4,7 +4,7 @@ import type {
   WindowSpec,
   DailyKpis,
   AnalyticsOutput,
-} from '../types/analytics.js';
+} from '../domain/types/analytics.js';
 import { roundTo } from '../utils/math.js';
 
 // Helper function to clamp quality values to valid range

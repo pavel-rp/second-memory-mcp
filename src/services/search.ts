@@ -5,7 +5,7 @@ import {
   type SearchLearningContentInput,
   type SearchResultItem,
   type SearchResultSet,
-} from '../types/search-tools.js';
+} from '../domain/types/search-tools.js';
 import { calculateSimilarityRatio } from '../utils/content-similarity.js';
 
 type TopicRow = {

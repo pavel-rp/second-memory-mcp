@@ -5,7 +5,7 @@ import { getSql } from '../../src/db/operations.js';
 import { learningTopics, learningChunks } from '../../src/db/schema.js';
 import { topicCreationService } from '../../src/services/topic-creation.js';
 import { updateTopicMetadata, updateTopicSummary } from '../../src/services/topic-updates.js';
-import { TopicCreationInput, UserPreferences } from '../../src/types/topic-creation.js';
+import type { TopicCreationInput, UserPreferences } from '../../src/domain/types/topic-creation.js';
 
 describe('topic creation service', () => {
   beforeAll(async () => {

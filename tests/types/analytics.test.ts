@@ -5,7 +5,7 @@ import {
   WindowSpecSchema,
   DailyKpisSchema,
   AnalyticsOutputSchema,
-} from '../../src/types/analytics.js';
+} from '../../src/domain/types/analytics.js';
 
 describe('ReviewEntrySchema', () => {
   it('validates valid review entry', () => {

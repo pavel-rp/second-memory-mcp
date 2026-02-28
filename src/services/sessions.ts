@@ -12,12 +12,12 @@ import {
   type LearningChunkRow,
 } from '../db/schema.js';
 import {
-  SessionInput,
-  SessionMode,
-  HistoricalFeedback,
+  type SessionInput,
+  type SessionMode,
+  type HistoricalFeedback,
   type BatchOperation,
   type ChunkAttempt,
-} from '../types/session.js';
+} from '../domain/types/session.js';
 import { logger } from '../utils/logger.js';
 
 // Input types for session operations

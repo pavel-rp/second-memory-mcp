@@ -11,7 +11,7 @@ import type {
   ReviewPromptArgs,
   ChunkGenerationPromptArgs,
   ChunkManagementPromptArgs,
-} from '../types/prompts.js';
+} from '../domain/types/prompts.js';
 
 async function bootstrap(): Promise<void> {
   await initializeDatabase();

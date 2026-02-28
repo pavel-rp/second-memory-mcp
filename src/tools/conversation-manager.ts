@@ -6,7 +6,7 @@ import type {
   LearningItem,
   SessionHistory,
   SessionContext,
-} from '../types/recommendations.js';
+} from '../domain/types/recommendations.js';
 import { listChunksAsLearningItems } from '../services/chunk-queries.js';
 import { getActiveSession, convertSessionToSessionInput } from '../services/sessions.js';
 import { logger } from '../utils/logger.js';

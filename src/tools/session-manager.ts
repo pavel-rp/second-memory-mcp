@@ -5,8 +5,8 @@ import type {
   WorkflowPhase,
   CompletionStatus,
   BatchOperation,
-} from '../types/session.js';
-import { SessionInputSchema } from '../types/session.js';
+} from '../domain/types/session.js';
+import { SessionInputSchema } from '../domain/types/session.js';
 import { algorithmConfig } from '../config/algorithm.js';
 import { clamp, roundTo } from '../utils/math.js';
 

@@ -16,7 +16,7 @@ import {
   CreateSessionResultSchema,
   GetActiveSessionResultSchema,
   CompleteSessionResultSchema,
-} from '../types/session-management-tools.js';
+} from '../domain/types/session-management-tools.js';
 import { logger } from '../utils/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import { resolveSessionChunkDependencies } from './session-dependency-resolver.js';

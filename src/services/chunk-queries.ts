@@ -5,7 +5,7 @@ import type {
   LearningItem,
   LearningItemWithContent,
   PaginatedLearningItemsResponse,
-} from '../types/recommendations.js';
+} from '../domain/types/recommendations.js';
 
 /**
  * Shared column selection for chunk queries that join with topics (without content).

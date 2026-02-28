@@ -12,7 +12,7 @@ import type {
   SessionConstraints,
   LearningPatterns,
   SubjectPreference,
-} from '../types/recommendations.js';
+} from '../domain/types/recommendations.js';
 import { logger } from '../utils/logger.js';
 
 /**

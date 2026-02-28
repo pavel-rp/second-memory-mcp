@@ -11,7 +11,7 @@ import {
   BatchFetchChunksMinimalInputSchema,
   BatchFetchChunksMinimalInputShape,
   type BatchFetchChunksMinimalInput,
-} from '../types/persistence-tools.js';
+} from '../domain/types/persistence-tools.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerQueryTools(server: McpServer): void {

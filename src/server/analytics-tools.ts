@@ -7,7 +7,7 @@ import {
   AnalyticsWindowInputSchema,
   AnalyticsWindowInputShape,
   type AnalyticsWindowInput,
-} from '../types/analytics.js';
+} from '../domain/types/analytics.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerAnalyticsTools(server: McpServer): void {
