@@ -176,7 +176,9 @@ export async function createTopicWithChunks(
       return { topic, chunks: createdChunks };
     });
 
-    // Fire-and-forget embedding generation — failures don't break writes
+    // Fire-and-forget embedding generation — runs outside the transaction intentionally.
+    // Embedding is best-effort: a failed or partial embedding update does not invalidate
+    // the topic/chunk data. Embeddings will be regenerated on the next content update.
     if (deps.embedding?.isAvailable()) {
       try {
         await generateTopicEmbeddings(result.topic, result.chunks, deps);
@@ -358,12 +360,11 @@ async function generateTopicEmbeddings(
   const texts = chunksWithContent.map(c => c.content);
   const vectors = await embedding.embedTexts(texts);
   const now = Date.now();
-  for (let i = 0; i < chunksWithContent.length; i++) {
-    if (vectors[i]) {
-      await deps.chunks.update(chunksWithContent[i].id, {
-        contentEmbedding: vectors[i],
-        updatedAt: now,
-      });
-    }
-  }
+  await Promise.all(
+    chunksWithContent.map((chunk, i) =>
+      vectors[i]
+        ? deps.chunks.update(chunk.id, { contentEmbedding: vectors[i], updatedAt: now })
+        : Promise.resolve()
+    )
+  );
 }

@@ -5,6 +5,7 @@ import type {
   SearchResultItem,
   SearchResultSet,
 } from '../domain/types/search-tools.js';
+import { HYBRID_KEYWORD_WEIGHT, HYBRID_SEMANTIC_WEIGHT } from '../domain/config/embedding.js';
 import { logger } from '../shared/logger.js';
 
 export type SearchDeps = {
@@ -78,9 +79,6 @@ async function searchHybrid(
   return mergeHybridResults(keywordResults, semanticResults, input.limit ?? 10);
 }
 
-const KEYWORD_WEIGHT = 0.4;
-const SEMANTIC_WEIGHT = 0.6;
-
 function mergeHybridResults(
   keyword: SearchResultSet,
   semantic: SearchResultSet,
@@ -112,7 +110,7 @@ function mergeHybridResults(
 
   const merged = Array.from(scoreMap.values()).map(({ item, keywordScore, semanticScore }) => ({
     ...item,
-    matchScore: KEYWORD_WEIGHT * keywordScore + SEMANTIC_WEIGHT * semanticScore,
+    matchScore: HYBRID_KEYWORD_WEIGHT * keywordScore + HYBRID_SEMANTIC_WEIGHT * semanticScore,
     similarityScore: semanticScore > 0 ? semanticScore : undefined,
   }));
 

@@ -17,7 +17,7 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     await this.ensureInitialized();
     if (!this.available || !this.embeddings) return null;
     try {
-      const [vector] = await this.embeddings.embedDocuments([text]);
+      const vector = await this.embeddings.embedQuery(text);
       if (!vector) return null;
       return this.validateDimensions(vector);
     } catch (err) {
@@ -43,7 +43,10 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
   }
 
   isAvailable(): boolean {
-    // If not initialized yet, report available based on config (provider is set)
+    // Before lazy init, optimistically report based on config.
+    // After init, report actual availability. Note: callers on the write path
+    // should call embedText() directly (which triggers init) rather than gating
+    // on isAvailable(), since this may be inaccurate before the first embed call.
     if (!this.initPromise) return !!this.config.provider;
     return this.available;
   }

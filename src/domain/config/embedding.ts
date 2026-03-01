@@ -6,6 +6,21 @@ export type EmbeddingProvider = 'openai' | 'ollama';
 /** The vector column dimension defined in the database schema/migration. */
 export const SCHEMA_EMBEDDING_DIMENSIONS = 1536;
 
+/** Minimum cosine similarity threshold for vector search results. */
+export const VECTOR_SIMILARITY_THRESHOLD = parseNumber(
+  process.env.EMBEDDING_SIMILARITY_THRESHOLD,
+  0.3
+);
+
+/** Weight given to keyword scores in hybrid search (0-1). */
+export const HYBRID_KEYWORD_WEIGHT = parseNumber(process.env.EMBEDDING_HYBRID_KEYWORD_WEIGHT, 0.4);
+
+/** Weight given to semantic scores in hybrid search (0-1). */
+export const HYBRID_SEMANTIC_WEIGHT = parseNumber(
+  process.env.EMBEDDING_HYBRID_SEMANTIC_WEIGHT,
+  0.6
+);
+
 export type EmbeddingConfig = {
   provider: EmbeddingProvider | null;
   dimensions: number;
