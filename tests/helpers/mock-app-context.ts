@@ -18,10 +18,6 @@ import {
   applyBatchSessionChunkOperations,
 } from '../../src/domain/services/session-analyzer.js';
 
-const notAvailable = () => {
-  throw new Error('Not available in unit tests — use integration tier');
-};
-
 /**
  * Builds a mock AppContext that provides all pure domain functions
  * without requiring DATABASE_URL or any external services.
@@ -52,7 +48,11 @@ export function createMockAppContext(): AppContext {
       if (prop in target) {
         return Reflect.get(target, prop, receiver);
       }
-      return notAvailable;
+      return () => {
+        throw new Error(
+          `AppContext.${String(prop)} not available in unit tests — use integration tier`
+        );
+      };
     },
   });
 }
