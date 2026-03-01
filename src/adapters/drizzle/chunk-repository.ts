@@ -41,7 +41,6 @@ const CHUNK_CONTENT_COLUMNS = {
   content: learningChunks.content,
   contentVersion: learningChunks.contentVersion,
   contentUpdatedAt: learningChunks.contentUpdatedAt,
-  contentEmbedding: learningChunks.contentEmbedding,
 };
 
 type ChunkFilterOptions = {
@@ -60,7 +59,8 @@ function buildChunkWhereClause(options: ChunkFilterOptions) {
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
-type ChunkListRowWithContent = LearningChunkRow & {
+type ChunkListRowWithContent = Omit<LearningChunkRow, 'contentEmbedding'> & {
+  contentEmbedding?: number[] | null;
   topicTitle?: string | null;
   content?: string | null;
   contentVersion?: number | null;
@@ -199,7 +199,8 @@ export class DrizzleChunkRepository implements ChunkRepository {
 
   async findDependents(chunkId: string): Promise<
     Array<
-      LearningChunkRow & {
+      Omit<LearningChunkRow, 'contentEmbedding'> & {
+        contentEmbedding?: number[] | null;
         topicTitle?: string | null;
         content?: string | null;
         contentVersion?: number | null;

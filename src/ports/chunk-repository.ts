@@ -46,8 +46,9 @@ export type ChunkContentResult = {
   contentUpdatedAt: number | null;
 };
 
-/** Extended chunk row with topic title. */
-export type ChunkWithTopicTitle = LearningChunkRow & {
+/** Extended chunk row with topic title. Excludes contentEmbedding by default (large vector). */
+export type ChunkWithTopicTitle = Omit<LearningChunkRow, 'contentEmbedding'> & {
+  contentEmbedding?: number[] | null;
   topicTitle?: string | null;
 };
 
@@ -75,7 +76,8 @@ export interface ChunkRepository {
   }): Promise<ChunkMinimalMetadata[]>;
   findDependents(chunkId: string): Promise<
     Array<
-      LearningChunkRow & {
+      Omit<LearningChunkRow, 'contentEmbedding'> & {
+        contentEmbedding?: number[] | null;
         topicTitle?: string | null;
         content?: string | null;
         contentVersion?: number | null;
