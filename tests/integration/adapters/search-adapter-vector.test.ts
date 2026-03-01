@@ -2,21 +2,24 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { DrizzleSearchAdapter } from '../../../src/adapters/drizzle/search-adapter.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningChunks, learningTopics } from '../../../src/infrastructure/db/schema.js';
-import { VECTOR_SIMILARITY_THRESHOLD } from '../../../src/domain/config/embedding.js';
+import {
+  VECTOR_SIMILARITY_THRESHOLD,
+  SCHEMA_EMBEDDING_DIMENSIONS,
+} from '../../../src/domain/config/embedding.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 
 // --- Helpers ---
 
-/** Create a 1536-dim vector with value at a given index, rest zeros. */
+/** Create a schema-dimension vector with value at a given index, rest zeros. */
 function sparseVector(index: number, value = 1): number[] {
-  const v = new Array(1536).fill(0);
+  const v = new Array(SCHEMA_EMBEDDING_DIMENSIONS).fill(0);
   v[index] = value;
   return v;
 }
 
-/** Create a 1536-dim vector with values at multiple indices. */
+/** Create a schema-dimension vector with values at multiple indices. */
 function multiSparseVector(entries: Array<[index: number, value: number]>): number[] {
-  const v = new Array(1536).fill(0);
+  const v = new Array(SCHEMA_EMBEDDING_DIMENSIONS).fill(0);
   for (const [i, val] of entries) v[i] = val;
   return v;
 }

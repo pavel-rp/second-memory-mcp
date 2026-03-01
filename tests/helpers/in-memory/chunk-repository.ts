@@ -179,6 +179,9 @@ export class InMemoryChunkRepository implements ChunkRepository {
   > {
     return [...this.chunks.values()]
       .filter(r => r.prerequisitesJson?.includes(chunkId))
-      .map(r => ({ ...r, topicTitle: this.topicTitles.get(r.topicId) ?? null }));
+      .map(r => {
+        const { contentEmbedding: _, ...rest } = r;
+        return { ...rest, topicTitle: this.topicTitles.get(r.topicId) ?? null };
+      });
   }
 }
