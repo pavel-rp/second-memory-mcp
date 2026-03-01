@@ -1,7 +1,8 @@
 import type { LearningChunkRow } from '../infrastructure/db/schema.js';
 import type { LearningItem, LearningItemWithContent } from '../domain/types/recommendations.js';
 
-type ChunkListRowWithContent = LearningChunkRow & {
+type ChunkListRowWithContent = Omit<LearningChunkRow, 'contentEmbedding'> & {
+  contentEmbedding?: number[] | null;
   topicTitle?: string | null;
   content?: string | null;
   contentVersion?: number | null;

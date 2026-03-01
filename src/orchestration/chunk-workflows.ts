@@ -317,6 +317,7 @@ export async function createChunkWithTopic(
     }
 
     // Generate embedding for chunk content (best-effort, outside transaction)
+    let returnChunk = created;
     if (created.content && deps.embedding) {
       try {
         const vector = await deps.embedding.embedText(created.content);
@@ -326,6 +327,8 @@ export async function createChunkWithTopic(
           } as Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>);
           if (rowCount === 0) {
             logger.warn(`Failed to save content embedding for chunk ${created.id}`);
+          } else {
+            returnChunk = { ...created, contentEmbedding: vector };
           }
         }
       } catch (err) {
@@ -333,7 +336,7 @@ export async function createChunkWithTopic(
       }
     }
 
-    return serviceOk(created);
+    return serviceOk(returnChunk);
   } catch (error) {
     return serviceFail({ type: 'database', message: extractErrorMessage(error) });
   }

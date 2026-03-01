@@ -2,13 +2,14 @@ import type {
   ChunkRepository,
   ListChunksFilter,
   ChunkContentResult,
+  ChunkWithTopicTitle,
 } from '../ports/chunk-repository.js';
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type {
   LearningItem,
   PaginatedLearningItemsResponse,
 } from '../domain/types/recommendations.js';
-import type { LearningChunkRow, LearningTopicRow } from '../infrastructure/db/schema.js';
+import type { LearningTopicRow } from '../infrastructure/db/schema.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 
 export type QueryDeps = {
@@ -49,7 +50,7 @@ export async function getChunkContent(
 export async function getChunkWithContent(
   id: string,
   deps: QueryDeps
-): Promise<(LearningChunkRow & { topicTitle?: string | null }) | null> {
+): Promise<ChunkWithTopicTitle | null> {
   return deps.chunks.getWithContent(id);
 }
 

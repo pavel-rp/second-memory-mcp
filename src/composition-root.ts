@@ -15,6 +15,7 @@ import type {
   ChunkRepository,
   ListChunksFilter,
   ChunkContentResult,
+  ChunkWithTopicTitle,
 } from './ports/chunk-repository.js';
 import type { TopicRepository } from './ports/topic-repository.js';
 import type {
@@ -191,9 +192,7 @@ export interface AppContext {
     offset?: number;
   }) => Promise<PaginatedLearningItemsResponse>;
   getChunkContent: (id: string) => Promise<ChunkContentResult | null>;
-  getChunkWithContent: (
-    id: string
-  ) => Promise<(LearningChunkRow & { topicTitle?: string | null }) | null>;
+  getChunkWithContent: (id: string) => Promise<ChunkWithTopicTitle | null>;
   batchFetchTopicsMinimal: (options?: {
     subject?: string;
     limit?: number;

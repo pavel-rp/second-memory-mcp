@@ -46,9 +46,17 @@ export type ChunkContentResult = {
   contentUpdatedAt: number | null;
 };
 
-/** Extended chunk row with topic title. */
-export type ChunkWithTopicTitle = LearningChunkRow & {
+/** Extended chunk row with topic title. Excludes contentEmbedding by default (large vector). */
+export type ChunkWithTopicTitle = Omit<LearningChunkRow, 'contentEmbedding'> & {
+  contentEmbedding?: number[] | null;
   topicTitle?: string | null;
+};
+
+/** Chunk dependent row: includes topic title and content fields for dependency resolution. */
+export type ChunkDependentRow = ChunkWithTopicTitle & {
+  content?: string | null;
+  contentVersion?: number | null;
+  contentUpdatedAt?: number | null;
 };
 
 /**
@@ -73,14 +81,5 @@ export interface ChunkRepository {
     dueOnly?: boolean;
     limit?: number;
   }): Promise<ChunkMinimalMetadata[]>;
-  findDependents(chunkId: string): Promise<
-    Array<
-      LearningChunkRow & {
-        topicTitle?: string | null;
-        content?: string | null;
-        contentVersion?: number | null;
-        contentUpdatedAt?: number | null;
-      }
-    >
-  >;
+  findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
 }
