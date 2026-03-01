@@ -18,6 +18,7 @@ describe.skipIf(!process.env.EMBEDDING_PROVIDER)(
 
     it('performs semantic search on embedded chunks', async () => {
       const db = getSql();
+      const now = Date.now();
 
       // Seed a topic and chunk with content
       const topicId = 'emb-search-topic-1';
@@ -25,26 +26,26 @@ describe.skipIf(!process.env.EMBEDDING_PROVIDER)(
       await db.insert(learningTopics).values({
         id: topicId,
         title: 'TypeScript Generics',
-        description: 'Advanced TypeScript type parameters',
+        summary: 'Advanced TypeScript type parameters',
         subject: 'Programming',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
       });
       await db.insert(learningChunks).values({
         id: chunkId,
         topicId,
         title: 'Generic Constraints',
+        subject: 'Programming',
         content:
           'Generic constraints in TypeScript allow you to restrict type parameters using extends keyword',
         difficulty: 5,
-        orderIndex: 0,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        nextReviewAt: Date.now(),
+        estimatedDuration: 10,
+        chunkType: 'new',
+        nextReviewAt: now,
         easeFactor: 2.5,
-        interval: 1,
         repetitions: 0,
-        consecutiveFailures: 0,
+        createdAt: now,
+        updatedAt: now,
       });
 
       const results = await ctx.searchLearningContent({
