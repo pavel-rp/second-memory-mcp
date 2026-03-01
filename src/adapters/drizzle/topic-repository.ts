@@ -38,6 +38,7 @@ export class DrizzleTopicRepository implements TopicRepository {
         summary: learningTopics.summary,
         summaryVersion: learningTopics.summaryVersion,
         summaryUpdatedAt: learningTopics.summaryUpdatedAt,
+        summaryEmbedding: learningTopics.summaryEmbedding,
         createdAt: learningTopics.createdAt,
         updatedAt: learningTopics.updatedAt,
       })
@@ -51,7 +52,13 @@ export class DrizzleTopicRepository implements TopicRepository {
     changes: Partial<
       Pick<
         NewLearningTopicRow,
-        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
+        | 'title'
+        | 'subject'
+        | 'summary'
+        | 'summaryVersion'
+        | 'summaryUpdatedAt'
+        | 'summaryEmbedding'
+        | 'updatedAt'
       >
     >
   ): Promise<ServiceResult<{ changesApplied: number }>> {

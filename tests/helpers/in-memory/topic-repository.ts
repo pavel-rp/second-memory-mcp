@@ -33,6 +33,7 @@ export class InMemoryTopicRepository implements TopicRepository {
       summary: input.summary ?? null,
       summaryVersion: input.summaryVersion ?? null,
       summaryUpdatedAt: input.summaryUpdatedAt ?? null,
+      summaryEmbedding: input.summaryEmbedding ?? null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };
@@ -52,7 +53,18 @@ export class InMemoryTopicRepository implements TopicRepository {
 
   async update(
     id: string,
-    changes: Partial<Pick<NewLearningTopicRow, 'title' | 'subject' | 'updatedAt'>>
+    changes: Partial<
+      Pick<
+        NewLearningTopicRow,
+        | 'title'
+        | 'subject'
+        | 'summary'
+        | 'summaryVersion'
+        | 'summaryUpdatedAt'
+        | 'summaryEmbedding'
+        | 'updatedAt'
+      >
+    >
   ): Promise<ServiceResult<{ changesApplied: number }>> {
     const existing = this.topics.get(id);
     if (!existing) return serviceFail({ type: 'not_found', message: `Topic ${id} not found` });

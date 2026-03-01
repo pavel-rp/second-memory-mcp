@@ -7,7 +7,10 @@ import { DrizzleChunkIdLookupAdapter } from './adapters/drizzle/chunk-id-lookup-
 import { DrizzlePrerequisiteMasteryAdapter } from './adapters/drizzle/prerequisite-mastery-adapter.js';
 import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persistence-adapter.js';
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
+import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
+import { embeddingConfig } from './domain/config/embedding.js';
 
+import type { EmbeddingPort } from './ports/embedding-port.js';
 import type {
   ChunkRepository,
   ListChunksFilter,
@@ -76,6 +79,7 @@ export interface AppPorts {
   prerequisiteMastery: PrerequisiteMasteryPort;
   reviewPersistence: ReviewPersistencePort;
   unitOfWork: UnitOfWorkPort;
+  embedding?: EmbeddingPort;
 }
 
 /** Pre-wired orchestration functions grouped by concern */
@@ -245,15 +249,23 @@ function createProductionPorts(): AppPorts {
 export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const ports: AppPorts = { ...createProductionPorts(), ...overrides };
 
+  // Create embedding adapter if not overridden and provider is configured.
+  // Initialization is lazy — happens on first embedText call.
+  if (!overrides?.embedding && embeddingConfig.provider) {
+    ports.embedding = new LangChainEmbeddingAdapter(embeddingConfig);
+  }
+
   const chunkDeps: chunkWorkflows.ChunkDeps = {
     chunks: ports.chunks,
     topics: ports.topics,
     unitOfWork: ports.unitOfWork,
+    embedding: ports.embedding,
   };
   const topicDeps: topicWorkflows.TopicDeps = {
     topics: ports.topics,
     chunks: ports.chunks,
     unitOfWork: ports.unitOfWork,
+    embedding: ports.embedding,
   };
   const reviewDeps: reviewWorkflows.ReviewDeps = {
     reviewPersistence: ports.reviewPersistence,
@@ -338,7 +350,10 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
     // Search orchestration
     searchLearningContent: input =>
-      searchWorkflows.searchLearningContent(input, { search: ports.search }),
+      searchWorkflows.searchLearningContent(input, {
+        search: ports.search,
+        embedding: ports.embedding,
+      }),
 
     // Query orchestration
     listChunksAsLearningItems: filter =>

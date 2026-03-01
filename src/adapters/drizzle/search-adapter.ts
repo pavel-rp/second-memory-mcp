@@ -1,4 +1,5 @@
-import { and, eq, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNotNull, or, sql, type SQL } from 'drizzle-orm';
+import { cosineDistance } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { learningChunks, learningTopics } from '../../infrastructure/db/schema.js';
 import type {
@@ -8,6 +9,7 @@ import type {
 } from '../../domain/types/search-tools.js';
 import type { SearchPort } from '../../ports/search-port.js';
 import { calculateSimilarityRatio } from '../../shared/content-similarity.js';
+import { VECTOR_SIMILARITY_THRESHOLD } from '../../domain/config/embedding.js';
 
 type NormalizedQuery = { original: string; normalized: string; tokens: string[] };
 
@@ -24,7 +26,10 @@ function buildTokenConditions(
   column: typeof learningTopics.title | typeof learningChunks.title | typeof learningChunks.content,
   tokens: string[]
 ): SQL[] {
-  return tokens.map(token => sql`lower(${column}) LIKE ${`%${token}%`}`);
+  return tokens.map(token => {
+    const escaped = token.replace(/[%_\\]/g, '\\$&');
+    return sql`lower(${column}) LIKE ${`%${escaped}%`}`;
+  });
 }
 
 function combineTokenConditions(conditions: SQL[]): SQL | undefined {
@@ -80,6 +85,8 @@ export class DrizzleSearchAdapter implements SearchPort {
       return this.emptyResult(input.query, query, limit, input.subject);
     }
 
+    // Keyword search over-fetches 3x because title+content OR-matching produces
+    // more duplicates than vector search, which naturally deduplicates via distance.
     const fetchLimit = limit * 3;
     const [topics, chunks] = await Promise.all([
       this.fetchTopics(query, input.subject, fetchLimit),
@@ -126,27 +133,70 @@ export class DrizzleSearchAdapter implements SearchPort {
       limit,
       filters: { subject: input.subject },
       counts: {
-        topics: topicResults.length,
-        chunks: chunkResults.length,
-        total: all.length,
+        topics: results.filter(r => r.resultType === 'topic').length,
+        chunks: results.filter(r => r.resultType === 'chunk').length,
+        total: results.length,
       },
       results,
     };
   }
 
   async searchByVector(
-    _vector: number[],
-    _options?: { limit?: number; subject?: string }
+    vector: number[],
+    options?: { limit?: number; subject?: string }
   ): Promise<SearchResultSet> {
-    const limit = _options?.limit || 10;
+    const limit = options?.limit || 10;
+    // Vector search uses 2x over-fetch (vs 3x for keyword) because cosine distance
+    // produces fewer false positives than LIKE-based token matching.
+    const fetchLimit = limit * 2;
+
+    const [topics, chunks] = await Promise.all([
+      this.fetchTopicsByVector(vector, options?.subject, fetchLimit),
+      this.fetchChunksByVector(vector, options?.subject, fetchLimit),
+    ]);
+
+    const topicResults: SearchResultItem[] = topics.map(row => ({
+      resultType: 'topic' as const,
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      matchScore: row.similarity,
+      similarityScore: row.similarity,
+      highlightTerms: [],
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    const chunkResults: SearchResultItem[] = chunks.map(row => ({
+      resultType: 'chunk' as const,
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      matchScore: row.similarity,
+      similarityScore: row.similarity,
+      highlightTerms: [],
+      topicId: row.topicId,
+      topicTitle: row.topicTitle ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    const all = [...topicResults, ...chunkResults];
+    all.sort((a, b) => b.matchScore - a.matchScore);
+    const results = all.slice(0, limit);
+
     return {
       query: '',
       normalizedQuery: '',
       tokens: [],
       limit,
-      filters: { subject: _options?.subject },
-      counts: { topics: 0, chunks: 0, total: 0 },
-      results: [],
+      filters: { subject: options?.subject },
+      counts: {
+        topics: results.filter(r => r.resultType === 'topic').length,
+        chunks: results.filter(r => r.resultType === 'chunk').length,
+        total: results.length,
+      },
+      results,
     };
   }
 
@@ -224,5 +274,73 @@ export class DrizzleSearchAdapter implements SearchPort {
     return combined
       ? await baseQuery.where(combined).limit(fetchLimit)
       : await baseQuery.limit(fetchLimit);
+  }
+
+  private async fetchTopicsByVector(
+    vector: number[],
+    subject: string | undefined,
+    fetchLimit: number
+  ): Promise<(TopicRow & { similarity: number })[]> {
+    // Use raw cosineDistance for filtering/ordering so pgvector HNSW index is used.
+    // Translate to similarity (1 - distance) only in the SELECT for display.
+    const distance = cosineDistance(learningTopics.summaryEmbedding, vector);
+    const similarity = sql<number>`1 - (${distance})`;
+    const distanceThreshold = 1 - VECTOR_SIMILARITY_THRESHOLD;
+
+    const conditions: SQL[] = [
+      isNotNull(learningTopics.summaryEmbedding),
+      sql`${distance} < ${distanceThreshold}`,
+    ];
+    if (subject) conditions.push(eq(learningTopics.subject, subject));
+
+    return this.db
+      .select({
+        id: learningTopics.id,
+        title: learningTopics.title,
+        subject: learningTopics.subject,
+        createdAt: learningTopics.createdAt,
+        updatedAt: learningTopics.updatedAt,
+        similarity,
+      })
+      .from(learningTopics)
+      .where(combineConditions(conditions))
+      .orderBy(distance)
+      .limit(fetchLimit);
+  }
+
+  private async fetchChunksByVector(
+    vector: number[],
+    subject: string | undefined,
+    fetchLimit: number
+  ): Promise<(ChunkRow & { similarity: number })[]> {
+    // Use raw cosineDistance for filtering/ordering so pgvector HNSW index is used.
+    // Translate to similarity (1 - distance) only in the SELECT for display.
+    const distance = cosineDistance(learningChunks.contentEmbedding, vector);
+    const similarity = sql<number>`1 - (${distance})`;
+    const distanceThreshold = 1 - VECTOR_SIMILARITY_THRESHOLD;
+
+    const conditions: SQL[] = [
+      isNotNull(learningChunks.contentEmbedding),
+      sql`${distance} < ${distanceThreshold}`,
+    ];
+    if (subject) conditions.push(eq(learningChunks.subject, subject));
+
+    return this.db
+      .select({
+        id: learningChunks.id,
+        topicId: learningChunks.topicId,
+        title: learningChunks.title,
+        subject: learningChunks.subject,
+        content: learningChunks.content,
+        createdAt: learningChunks.createdAt,
+        updatedAt: learningChunks.updatedAt,
+        topicTitle: learningTopics.title,
+        similarity,
+      })
+      .from(learningChunks)
+      .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+      .where(combineConditions(conditions))
+      .orderBy(distance)
+      .limit(fetchLimit);
   }
 }

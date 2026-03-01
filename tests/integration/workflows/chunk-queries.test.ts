@@ -73,6 +73,7 @@ describe('chunk-queries service', () => {
         content: null,
         contentVersion: null,
         contentUpdatedAt: null,
+        contentEmbedding: null,
       };
 
       const item = ctx.mapChunkRowToLearningItem(row);
@@ -106,6 +107,7 @@ describe('chunk-queries service', () => {
         content: null,
         contentVersion: null,
         contentUpdatedAt: null,
+        contentEmbedding: null,
       };
 
       const item = ctx.mapChunkRowToLearningItem(row);
@@ -135,6 +137,7 @@ describe('chunk-queries service', () => {
         content: 'My content',
         contentVersion: 2,
         contentUpdatedAt: now,
+        contentEmbedding: null,
       };
 
       const item = ctx.mapChunkRowToLearningItem(row, { includeContent: true }) as any;

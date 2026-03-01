@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
+import type { EmbeddingPort } from '../ports/embedding-port.js';
 import type { LearningChunkRow, LearningTopicRow } from '../infrastructure/db/schema.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
@@ -12,6 +13,7 @@ export type TopicDeps = {
   topics: TopicRepository;
   chunks: ChunkRepository;
   unitOfWork: UnitOfWorkPort;
+  embedding?: EmbeddingPort;
 };
 
 export type TopicUpdateResult = {
@@ -137,6 +139,7 @@ export async function createTopicWithChunks(
         summary: input.topicSummary || null,
         summaryVersion: input.topicSummary ? 1 : null,
         summaryUpdatedAt: input.topicSummary ? now : null,
+        summaryEmbedding: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -162,6 +165,7 @@ export async function createTopicWithChunks(
           content: chunkDef.content || null,
           contentVersion: chunkDef.content ? 1 : null,
           contentUpdatedAt: chunkDef.content ? now : null,
+          contentEmbedding: null,
           createdAt: now,
           updatedAt: now,
         };
@@ -171,6 +175,18 @@ export async function createTopicWithChunks(
 
       return { topic, chunks: createdChunks };
     });
+
+    // Best-effort embedding generation — runs outside the transaction intentionally.
+    // Awaited so embeddings are ready before returning, but failures are caught and
+    // do not invalidate the topic/chunk data. Embeddings will be regenerated on the
+    // next content update.
+    if (deps.embedding) {
+      try {
+        await generateTopicEmbeddings(result.topic, result.chunks, deps);
+      } catch (err) {
+        logger.warn('Embedding generation failed for new topic:', err);
+      }
+    }
 
     return {
       success: true,
@@ -289,12 +305,26 @@ export async function updateTopicSummary(
 
     const now = Date.now();
     const newVersion = (current.summaryVersion ?? 1) + 1;
-    const result = await deps.topics.update(topicId, {
+
+    // Clear stale embedding first — if re-embedding fails, we prefer no embedding
+    // over a misleading one from old summary content.
+    const updateData: Parameters<TopicRepository['update']>[1] = {
       summary,
       summaryVersion: newVersion,
       summaryUpdatedAt: now,
+      summaryEmbedding: null,
       updatedAt: now,
-    });
+    };
+    if (deps.embedding) {
+      try {
+        const vector = await deps.embedding.embedText(summary);
+        if (vector) updateData.summaryEmbedding = vector;
+      } catch (err) {
+        logger.warn('Embedding generation failed for topic summary:', err);
+      }
+    }
+
+    const result = await deps.topics.update(topicId, updateData);
 
     if (!result.success) return { success: false, error: result.error };
 
@@ -303,4 +333,47 @@ export async function updateTopicSummary(
   } catch (error) {
     return { success: false, error: { type: 'database', message: extractErrorMessage(error) } };
   }
+}
+
+// --- Embedding helpers ---
+
+async function generateTopicEmbeddings(
+  topic: LearningTopicRow,
+  chunks: LearningChunkRow[],
+  deps: TopicDeps
+): Promise<void> {
+  const embedding = deps.embedding;
+  if (!embedding) return;
+
+  // Embed topic summary
+  if (topic.summary) {
+    const summaryVector = await embedding.embedText(topic.summary);
+    if (summaryVector) {
+      // Don't bump updatedAt for embedding-only updates — the caller already set
+      // updatedAt during the content write, and changing it here would make the
+      // returned object's updatedAt stale relative to the DB row.
+      const result = await deps.topics.update(topic.id, {
+        summaryEmbedding: summaryVector,
+      });
+      if (!result.success) {
+        logger.warn(`Failed to save summary embedding for topic ${topic.id}:`, result.error);
+      }
+    }
+  }
+
+  // Batch-embed chunk contents
+  const chunksWithContent = chunks.filter((c): c is typeof c & { content: string } => !!c.content);
+  if (chunksWithContent.length === 0) return;
+
+  const texts = chunksWithContent.map(c => c.content);
+  const vectors = await embedding.embedTexts(texts);
+  await Promise.all(
+    chunksWithContent.map(async (chunk, i) => {
+      if (!vectors[i]) return;
+      const result = await deps.chunks.update(chunk.id, { contentEmbedding: vectors[i] });
+      if (result === 0) {
+        logger.warn(`Failed to save content embedding for chunk ${chunk.id}`);
+      }
+    })
+  );
 }
