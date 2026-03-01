@@ -52,12 +52,8 @@ export type ChunkWithTopicTitle = Omit<LearningChunkRow, 'contentEmbedding'> & {
   topicTitle?: string | null;
 };
 
-/** Chunk dependent row: includes topic title and content fields for dependency resolution. */
-export type ChunkDependentRow = ChunkWithTopicTitle & {
-  content?: string | null;
-  contentVersion?: number | null;
-  contentUpdatedAt?: number | null;
-};
+/** Chunk dependent row: alias for ChunkWithTopicTitle (LearningChunkRow already includes content fields). */
+export type ChunkDependentRow = ChunkWithTopicTitle;
 
 /**
  * Port interface for chunk data access.

@@ -4,7 +4,7 @@ import type {
   ListChunksWithContentFilter,
   ChunkContentResult,
   ChunkMinimalMetadata,
-  ChunkWithTopicTitle,
+  ChunkDependentRow,
 } from '../../../src/ports/chunk-repository.js';
 import type {
   LearningItem,
@@ -169,7 +169,7 @@ export class InMemoryChunkRepository implements ChunkRepository {
     }));
   }
 
-  async findDependents(chunkId: string): Promise<ChunkWithTopicTitle[]> {
+  async findDependents(chunkId: string): Promise<ChunkDependentRow[]> {
     return [...this.chunks.values()]
       .filter(r => r.prerequisitesJson?.includes(chunkId))
       .map(r => {
