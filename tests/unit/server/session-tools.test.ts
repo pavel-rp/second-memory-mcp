@@ -3,16 +3,7 @@ import { registerSessionTools } from '../../../src/server/session-tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 
-class CaptureServer {
-  public tools = new Map<string, { spec: any; handler: Function }>();
-  registerTool(name: string, spec: any, handler: Function) {
-    this.tools.set(name, { spec, handler });
-  }
-}
-
-function parseResult(out: any): any {
-  return JSON.parse(out?.content?.[0]?.text);
-}
+import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 
 describe('session-tools', () => {
   let server: CaptureServer;

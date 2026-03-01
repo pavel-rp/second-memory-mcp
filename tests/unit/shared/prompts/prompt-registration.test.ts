@@ -1,12 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { promptPack } from '../../../src/shared/prompts/prompt-pack.js';
+import { promptPack } from '../../../../src/shared/prompts/prompt-pack.js';
 
-/**
- * Tests for the main.ts bootstrap logic.
- * We cannot test the full bootstrap() (it connects to stdio transport),
- * but we test the prompt generation logic that main.ts delegates to.
- */
-describe('main.ts prompt registrations', () => {
+describe('prompt-pack prompt registrations', () => {
   describe('scaffolding prompt', () => {
     it('generates scaffolding prompt text', () => {
       const text = promptPack.getPrompt('scaffolding', { problem: 'Learn algebra' });
