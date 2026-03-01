@@ -26,7 +26,10 @@ function buildTokenConditions(
   column: typeof learningTopics.title | typeof learningChunks.title | typeof learningChunks.content,
   tokens: string[]
 ): SQL[] {
-  return tokens.map(token => sql`lower(${column}) LIKE ${`%${token}%`}`);
+  return tokens.map(token => {
+    const escaped = token.replace(/[%_\\]/g, '\\$&');
+    return sql`lower(${column}) LIKE ${`%${escaped}%`}`;
+  });
 }
 
 function combineTokenConditions(conditions: SQL[]): SQL | undefined {
@@ -82,6 +85,8 @@ export class DrizzleSearchAdapter implements SearchPort {
       return this.emptyResult(input.query, query, limit, input.subject);
     }
 
+    // Keyword search over-fetches 3x because title+content OR-matching produces
+    // more duplicates than vector search, which naturally deduplicates via distance.
     const fetchLimit = limit * 3;
     const [topics, chunks] = await Promise.all([
       this.fetchTopics(query, input.subject, fetchLimit),
@@ -141,6 +146,8 @@ export class DrizzleSearchAdapter implements SearchPort {
     options?: { limit?: number; subject?: string }
   ): Promise<SearchResultSet> {
     const limit = options?.limit || 10;
+    // Vector search uses 2x over-fetch (vs 3x for keyword) because cosine distance
+    // produces fewer false positives than LIKE-based token matching.
     const fetchLimit = limit * 2;
 
     const [topics, chunks] = await Promise.all([

@@ -52,7 +52,15 @@ async function searchSemantic(
   });
 
   // Preserve original query metadata — searchByVector returns empty query fields
-  return { ...result, query: input.query };
+  const normalizedQuery = input.query.trim().toLowerCase();
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+  return {
+    ...result,
+    query: input.query,
+    normalizedQuery,
+    tokens,
+  };
 }
 
 async function searchHybrid(

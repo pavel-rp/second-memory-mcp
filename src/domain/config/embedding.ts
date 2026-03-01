@@ -24,13 +24,15 @@ export const HYBRID_SEMANTIC_WEIGHT = parseNumber(
 // Warn if hybrid weights don't sum to approximately 1.0
 const weightSum = HYBRID_KEYWORD_WEIGHT + HYBRID_SEMANTIC_WEIGHT;
 if (Math.abs(weightSum - 1.0) > 0.01) {
-  import('../../shared/logger.js').then(({ logger }) =>
-    logger.warn(
-      `Hybrid search weights sum to ${weightSum.toFixed(2)} (expected ~1.0). ` +
-        `EMBEDDING_HYBRID_KEYWORD_WEIGHT=${HYBRID_KEYWORD_WEIGHT}, EMBEDDING_HYBRID_SEMANTIC_WEIGHT=${HYBRID_SEMANTIC_WEIGHT}. ` +
-        `This may produce unexpected ranking behavior.`
+  import('../../shared/logger.js')
+    .then(({ logger }) =>
+      logger.warn(
+        `Hybrid search weights sum to ${weightSum.toFixed(2)} (expected ~1.0). ` +
+          `EMBEDDING_HYBRID_KEYWORD_WEIGHT=${HYBRID_KEYWORD_WEIGHT}, EMBEDDING_HYBRID_SEMANTIC_WEIGHT=${HYBRID_SEMANTIC_WEIGHT}. ` +
+          `This may produce unexpected ranking behavior.`
+      )
     )
-  );
+    .catch(() => {});
 }
 
 export type EmbeddingConfig = {
