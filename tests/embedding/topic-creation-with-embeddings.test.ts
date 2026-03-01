@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { createAppContext, type AppContext } from '../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
@@ -26,7 +27,7 @@ describe.skipIf(!process.env.EMBEDDING_PROVIDER)(
             content: 'A perceptron is the simplest form of a neural network',
             difficulty: 4,
             estimatedDuration: 10,
-            chunkType: 'concept',
+            chunkType: 'new',
           },
           {
             id: crypto.randomUUID(),
@@ -34,7 +35,7 @@ describe.skipIf(!process.env.EMBEDDING_PROVIDER)(
             content: 'Backpropagation computes gradients of the loss with respect to weights',
             difficulty: 7,
             estimatedDuration: 15,
-            chunkType: 'concept',
+            chunkType: 'new',
           },
         ],
       });

@@ -1,4 +1,4 @@
-// Quarantine tracking: https://github.com/nicobailey/second-memory/issues/0
+// Quarantine tracking: TODO — replace with link to a real GitHub issue when a test is quarantined.
 // Reason: Example quarantined test demonstrating the quarantine convention.
 // Remove this file once real quarantine tests exist.
 
