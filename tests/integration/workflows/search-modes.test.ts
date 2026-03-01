@@ -198,22 +198,23 @@ describe('searchHybrid', () => {
 
     const result = await searchLearningContent({ query: 'tree', mode: 'hybrid' }, deps);
 
-    // t1 appears in both: 0.4*0.9 + 0.6*0.8 = 0.84
+    // Scores are normalized to [0,1] before weighting (maxKeyword=0.9, maxSemantic=0.85)
+    // t1 appears in both: 0.4*(0.9/0.9) + 0.6*(0.8/0.85) ≈ 0.96471
     const t1 = result.results.find(r => r.id === 't1');
     expect(t1).toBeDefined();
-    expect(t1!.matchScore).toBeCloseTo(0.84, 5);
+    expect(t1!.matchScore).toBeCloseTo(0.4 + 0.6 * (0.8 / 0.85), 5);
     expect(t1!.similarityScore).toBe(0.8);
 
-    // c1 only in keyword: 0.4*0.7 + 0.6*0 = 0.28
+    // c1 only in keyword: 0.4*(0.7/0.9) + 0.6*0 ≈ 0.31111
     const c1 = result.results.find(r => r.id === 'c1');
     expect(c1).toBeDefined();
-    expect(c1!.matchScore).toBeCloseTo(0.28, 5);
+    expect(c1!.matchScore).toBeCloseTo(0.4 * (0.7 / 0.9), 5);
     expect(c1!.similarityScore).toBeUndefined();
 
-    // c2 only in semantic: 0.4*0 + 0.6*0.85 = 0.51
+    // c2 only in semantic: 0.4*0 + 0.6*(0.85/0.85) = 0.6
     const c2 = result.results.find(r => r.id === 'c2');
     expect(c2).toBeDefined();
-    expect(c2!.matchScore).toBeCloseTo(0.51, 5);
+    expect(c2!.matchScore).toBeCloseTo(0.6, 5);
     expect(c2!.similarityScore).toBe(0.85);
 
     // Sorted by matchScore descending

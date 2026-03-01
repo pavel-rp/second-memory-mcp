@@ -1,4 +1,4 @@
-import { and, eq, gt, isNotNull, or, sql, desc, type SQL } from 'drizzle-orm';
+import { and, eq, isNotNull, or, sql, type SQL } from 'drizzle-orm';
 import { cosineDistance } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { learningChunks, learningTopics } from '../../infrastructure/db/schema.js';
@@ -281,10 +281,15 @@ export class DrizzleSearchAdapter implements SearchPort {
     subject: string | undefined,
     fetchLimit: number
   ): Promise<(TopicRow & { similarity: number })[]> {
-    const similarity = sql<number>`1 - (${cosineDistance(learningTopics.summaryEmbedding, vector)})`;
+    // Use raw cosineDistance for filtering/ordering so pgvector HNSW index is used.
+    // Translate to similarity (1 - distance) only in the SELECT for display.
+    const distance = cosineDistance(learningTopics.summaryEmbedding, vector);
+    const similarity = sql<number>`1 - (${distance})`;
+    const distanceThreshold = 1 - VECTOR_SIMILARITY_THRESHOLD;
+
     const conditions: SQL[] = [
       isNotNull(learningTopics.summaryEmbedding),
-      gt(similarity, VECTOR_SIMILARITY_THRESHOLD),
+      sql`${distance} < ${distanceThreshold}`,
     ];
     if (subject) conditions.push(eq(learningTopics.subject, subject));
 
@@ -299,7 +304,7 @@ export class DrizzleSearchAdapter implements SearchPort {
       })
       .from(learningTopics)
       .where(combineConditions(conditions))
-      .orderBy(desc(similarity))
+      .orderBy(distance)
       .limit(fetchLimit);
   }
 
@@ -308,10 +313,15 @@ export class DrizzleSearchAdapter implements SearchPort {
     subject: string | undefined,
     fetchLimit: number
   ): Promise<(ChunkRow & { similarity: number })[]> {
-    const similarity = sql<number>`1 - (${cosineDistance(learningChunks.contentEmbedding, vector)})`;
+    // Use raw cosineDistance for filtering/ordering so pgvector HNSW index is used.
+    // Translate to similarity (1 - distance) only in the SELECT for display.
+    const distance = cosineDistance(learningChunks.contentEmbedding, vector);
+    const similarity = sql<number>`1 - (${distance})`;
+    const distanceThreshold = 1 - VECTOR_SIMILARITY_THRESHOLD;
+
     const conditions: SQL[] = [
       isNotNull(learningChunks.contentEmbedding),
-      gt(similarity, VECTOR_SIMILARITY_THRESHOLD),
+      sql`${distance} < ${distanceThreshold}`,
     ];
     if (subject) conditions.push(eq(learningChunks.subject, subject));
 
@@ -330,7 +340,7 @@ export class DrizzleSearchAdapter implements SearchPort {
       .from(learningChunks)
       .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
       .where(combineConditions(conditions))
-      .orderBy(desc(similarity))
+      .orderBy(distance)
       .limit(fetchLimit);
   }
 }

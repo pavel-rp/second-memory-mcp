@@ -56,7 +56,8 @@ export const embeddingConfig: EmbeddingConfig = {
 };
 
 function parseProvider(value: string | undefined): EmbeddingProvider | null {
-  if (value === 'openai' || value === 'ollama') return value;
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'openai' || normalized === 'ollama') return normalized;
   return null;
 }
 

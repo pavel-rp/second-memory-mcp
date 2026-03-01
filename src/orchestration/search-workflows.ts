@@ -119,11 +119,26 @@ function mergeHybridResults(
     }
   }
 
-  const merged = Array.from(scoreMap.values()).map(({ item, keywordScore, semanticScore }) => ({
-    ...item,
-    matchScore: HYBRID_KEYWORD_WEIGHT * keywordScore + HYBRID_SEMANTIC_WEIGHT * semanticScore,
-    similarityScore: semanticScore > 0 ? semanticScore : undefined,
-  }));
+  // Normalize scores to [0, 1] before weighting — keyword matchScore can exceed 1.0
+  // (exact match + substring + token hits + similarity ratio) while semantic scores
+  // are already in [0, 1] after cosine similarity thresholding.
+  let maxKeywordScore = 0;
+  let maxSemanticScore = 0;
+  for (const { keywordScore, semanticScore } of scoreMap.values()) {
+    if (keywordScore > maxKeywordScore) maxKeywordScore = keywordScore;
+    if (semanticScore > maxSemanticScore) maxSemanticScore = semanticScore;
+  }
+
+  const merged = Array.from(scoreMap.values()).map(({ item, keywordScore, semanticScore }) => {
+    const normalizedKeyword = maxKeywordScore > 0 ? keywordScore / maxKeywordScore : 0;
+    const normalizedSemantic = maxSemanticScore > 0 ? semanticScore / maxSemanticScore : 0;
+    return {
+      ...item,
+      matchScore:
+        HYBRID_KEYWORD_WEIGHT * normalizedKeyword + HYBRID_SEMANTIC_WEIGHT * normalizedSemantic,
+      similarityScore: semanticScore > 0 ? semanticScore : undefined,
+    };
+  });
 
   merged.sort((a, b) => b.matchScore - a.matchScore);
   const results = merged.slice(0, limit);

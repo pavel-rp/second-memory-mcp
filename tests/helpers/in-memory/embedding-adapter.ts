@@ -3,8 +3,9 @@ import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 /**
  * Deterministic in-memory embedding adapter for testing.
  * Produces fixed-dimension vectors derived from a simple hash of the input text,
- * so identical inputs always produce identical vectors and similar inputs produce
- * somewhat similar vectors. No API calls needed.
+ * so identical inputs always produce identical vectors. This is a pseudo-random
+ * hashing scheme for stable test embeddings and does not preserve semantic similarity.
+ * No external API calls are made.
  */
 export class InMemoryEmbeddingAdapter implements EmbeddingPort {
   constructor(private dimensions: number = 1536) {}
