@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerSpacedRepetitionTools } from '../../../src/server/spaced-repetition-tools.js';
-import { createAppContext } from '../../../src/composition-root.js';
+import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 
 describe('spaced-repetition-tools', () => {
@@ -8,7 +8,7 @@ describe('spaced-repetition-tools', () => {
 
   beforeEach(() => {
     server = new CaptureServer();
-    registerSpacedRepetitionTools(server as any, createAppContext());
+    registerSpacedRepetitionTools(server as any, createMockAppContext());
   });
 
   it('registers all spaced repetition tools', () => {

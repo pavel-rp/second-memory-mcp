@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { registerAnalyticsTools } from '../../../src/server/analytics-tools.js';
-import { createAppContext } from '../../../src/composition-root.js';
+import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 
 describe('analytics-tools', () => {
@@ -8,7 +8,7 @@ describe('analytics-tools', () => {
 
   beforeEach(() => {
     server = new CaptureServer();
-    registerAnalyticsTools(server as any, createAppContext());
+    registerAnalyticsTools(server as any, createMockAppContext());
   });
 
   it('registers analytics_daily and analytics_window tools', () => {
