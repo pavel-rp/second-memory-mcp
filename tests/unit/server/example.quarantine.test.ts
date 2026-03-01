@@ -2,10 +2,8 @@
 // Reason: Example quarantined test demonstrating the quarantine convention.
 // Remove this file once real quarantine tests exist.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 
 describe('quarantine example', () => {
-  it('demonstrates the .quarantine.test.ts naming convention', () => {
-    expect(true).toBe(true);
-  });
+  it.todo('replace this placeholder with a real quarantined test');
 });

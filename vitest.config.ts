@@ -1,5 +1,7 @@
 import { configDefaults, defineConfig } from 'vitest/config';
 
+// Workspace root — composes unit + integration for `test:ci` with merged coverage.
+// Standalone per-tier configs (vitest.{unit,integration,embedding}.config.ts) must stay in sync.
 export default defineConfig({
   test: {
     projects: [

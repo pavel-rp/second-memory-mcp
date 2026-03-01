@@ -1,5 +1,7 @@
 import { configDefaults, defineConfig } from 'vitest/config';
 
+// Standalone integration-tier config for `test:integration` script.
+// Source of truth: the 'integration' project in vitest.config.ts — keep in sync.
 export default defineConfig({
   test: {
     name: 'integration',

@@ -25,55 +25,11 @@ const notAvailable = () => {
 /**
  * Builds a mock AppContext that provides all pure domain functions
  * without requiring DATABASE_URL or any external services.
- * DB-dependent methods throw if called.
+ * Uses a Proxy so any new AppContext methods automatically throw
+ * instead of silently being undefined.
  */
 export function createMockAppContext(): AppContext {
-  return {
-    // Chunk orchestration — stubs
-    createChunkWithTopic: notAvailable,
-    updateChunkContent: notAvailable,
-    updateChunkContentWithAutoReset: notAvailable,
-    updateChunkMetadata: notAvailable,
-    updateChunkWithProgressReset: notAvailable,
-    deleteChunk: notAvailable,
-
-    // Topic orchestration — stubs
-    createTopicWithChunks: notAvailable,
-    updateTopicMetadata: notAvailable,
-    updateTopicSummary: notAvailable,
-
-    // Review orchestration — stubs
-    processReviewResult: notAvailable,
-
-    // Session orchestration — stubs
-    createSession: notAvailable,
-    completeSession: notAvailable,
-    getSessionById: notAvailable,
-    getActiveSession: notAvailable,
-    getSessionWithChunks: notAvailable,
-    convertSessionToInput: notAvailable,
-    getHistoricalFeedback: notAvailable,
-    batchUpdateSessionChunks: notAvailable,
-    createSessionChunk: notAvailable,
-    validateChunkIds: notAvailable,
-    getSessionChunks: notAvailable,
-    resolveSessionChunkDependencies: notAvailable,
-
-    // Recommendation orchestration — stub
-    generateRecommendations: notAvailable,
-
-    // Search orchestration — stub
-    searchLearningContent: notAvailable,
-
-    // Query orchestration — stubs
-    listChunksAsLearningItems: notAvailable,
-    listChunksWithContent: notAvailable,
-    getChunkContent: notAvailable,
-    getChunkWithContent: notAvailable,
-    batchFetchTopicsMinimal: notAvailable,
-    batchFetchChunksMinimal: notAvailable,
-    getTopicSummary: notAvailable,
-
+  const pureFunctions: Partial<AppContext> = {
     // Shared utilities
     mapChunkRowToLearningItem,
 
@@ -89,6 +45,14 @@ export function createMockAppContext(): AppContext {
     checkSessionCompletion,
     validateSessionContext,
     applyBatchSessionChunkOperations,
-    createConversationManager: notAvailable,
-  } as AppContext;
+  };
+
+  return new Proxy(pureFunctions as AppContext, {
+    get(target, prop, receiver) {
+      if (prop in target) {
+        return Reflect.get(target, prop, receiver);
+      }
+      return notAvailable;
+    },
+  });
 }
