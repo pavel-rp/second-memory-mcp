@@ -5,16 +5,7 @@ import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-set
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics } from '../../../src/infrastructure/db/schema.js';
 
-class CaptureServer {
-  public tools = new Map<string, { spec: any; handler: Function }>();
-  registerTool(name: string, spec: any, handler: Function) {
-    this.tools.set(name, { spec, handler });
-  }
-}
-
-function parseResult(out: any): any {
-  return JSON.parse(out?.content?.[0]?.text);
-}
+import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 
 describe('topic-tools', () => {
   let server: CaptureServer;

@@ -5,24 +5,7 @@ import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 
-class CaptureServer {
-  public tools = new Map<string, { spec: any; handler: Function }>();
-  registerTool(name: string, spec: any, handler: Function) {
-    this.tools.set(name, { spec, handler });
-  }
-}
-
-function parseToolResult(out: any): any {
-  const text = out?.content?.[0]?.text;
-  if (!text) {
-    return out;
-  }
-  try {
-    return JSON.parse(text);
-  } catch {
-    return out;
-  }
-}
+import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
 describe('search_learning_content tool', () => {
   let server: CaptureServer;

@@ -1,14 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { registerServerTools } from '../../src/server/tools.js';
-import { createAppContext } from '../../src/composition-root.js';
-import type { LearningItem } from '../../src/domain/types/recommendations.js';
-
-class CaptureServer {
-  public tools = new Map<string, { spec: any; handler: Function }>();
-  registerTool(name: string, spec: any, handler: Function) {
-    this.tools.set(name, { spec, handler });
-  }
-}
+import { registerServerTools } from '../../../src/server/tools.js';
+import { createAppContext } from '../../../src/composition-root.js';
+import type { LearningItem } from '../../../src/domain/types/recommendations.js';
+import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
 function createTestItem(id: string, overrides: Partial<LearningItem> = {}): LearningItem {
   return {
@@ -24,15 +18,6 @@ function createTestItem(id: string, overrides: Partial<LearningItem> = {}): Lear
     prerequisites: overrides.prerequisites ?? [],
     tags: overrides.tags ?? [],
   };
-}
-
-function parseToolResult(out: any): any {
-  const text = out?.content?.[0]?.text;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return out;
-  }
 }
 
 describe('Integration: Prerequisite Recommendation Workflow', () => {

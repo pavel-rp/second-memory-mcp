@@ -1,13 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { registerServerTools } from '../../src/server/tools.js';
-import { createAppContext } from '../../src/composition-root.js';
-
-class CaptureServer {
-  public tools = new Map<string, { spec: any; handler: Function }>();
-  registerTool(name: string, spec: any, handler: Function) {
-    this.tools.set(name, { spec, handler });
-  }
-}
+import { registerServerTools } from '../../../src/server/tools.js';
+import { createAppContext } from '../../../src/composition-root.js';
+import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
 function makeItem(overrides: Partial<any> = {}): any {
   return {
@@ -25,15 +19,6 @@ function makeItem(overrides: Partial<any> = {}): any {
     prerequisites: overrides.prerequisites,
     tags: overrides.tags,
   };
-}
-
-function parseToolResult(out: any): any {
-  const text = out?.content?.[0]?.text;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return out;
-  }
 }
 
 describe('Integration: what_to_learn_today', () => {

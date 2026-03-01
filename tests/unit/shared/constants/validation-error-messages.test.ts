@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { VALIDATION_CONSTANTS } from '../../../src/shared/constants/validation.js';
+import { VALIDATION_CONSTANTS } from '../../../../src/shared/constants/validation.js';
 
 describe('Validation Error Messages', () => {
   it('should provide clear error messages for title validation', () => {

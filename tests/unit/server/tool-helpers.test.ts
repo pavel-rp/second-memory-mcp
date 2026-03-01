@@ -5,10 +5,7 @@ import {
   toolOk,
   toolJson,
 } from '../../../src/server/tool-helpers.js';
-
-function parseResult(result: any) {
-  return JSON.parse(result.content[0].text);
-}
+import { parseResult } from '../../helpers/capture-server.js';
 
 describe('tool-helpers', () => {
   describe('extractErrorMessage', () => {

@@ -1,31 +1,16 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { registerServerTools } from '../../src/server/tools.js';
-import { createAppContext } from '../../src/composition-root.js';
-import { getSql } from '../../src/infrastructure/db/operations.js';
+import { registerServerTools } from '../../../src/server/tools.js';
+import { createAppContext } from '../../../src/composition-root.js';
+import { getSql } from '../../../src/infrastructure/db/operations.js';
 import {
   learningTopics,
   learningChunks,
   learningSessions,
-} from '../../src/infrastructure/db/schema.js';
+} from '../../../src/infrastructure/db/schema.js';
 import crypto from 'node:crypto';
-import { setupTestDb, cleanupTestDb, teardownTestDb } from '../helpers/db-setup.js';
-
-class CaptureServer {
-  public tools = new Map<string, { spec: any; handler: Function }>();
-  registerTool(name: string, spec: any, handler: Function) {
-    this.tools.set(name, { spec, handler });
-  }
-}
-
-function parseToolResult(out: any): any {
-  const text = out?.content?.[0]?.text;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return out;
-  }
-}
+import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
 describe('Integration: Complete Session Lifecycle', () => {
   let server: CaptureServer;

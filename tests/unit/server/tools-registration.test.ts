@@ -1,13 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../../src/server/tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
-
-class StubServer {
-  public tools: string[] = [];
-  registerTool(name: string, _spec: unknown, _handler: unknown) {
-    this.tools.push(name);
-  }
-}
+import { StubServer } from '../../helpers/stub-server.js';
 
 describe('registerServerTools', () => {
   it('registers calculators and prompt tools', () => {
@@ -26,8 +20,11 @@ describe('registerServerTools', () => {
     expect(stub.tools).toContain('session_progress');
     expect(stub.tools).toContain('session_workflow');
     expect(stub.tools).toContain('session_completion');
-    // New chunk tools
+    // Chunk tools
+    expect(stub.tools).toContain('create_learning_item');
     expect(stub.tools).toContain('delete_chunk');
+    // Write tools
+    expect(stub.tools).toContain('record_review_result');
     // Learning recommendation tools
     expect(stub.tools).toContain('what_to_learn_today');
     expect(stub.tools).toContain('guided_learning_conversation');
