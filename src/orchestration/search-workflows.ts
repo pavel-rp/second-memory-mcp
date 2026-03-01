@@ -33,7 +33,7 @@ async function searchSemantic(
   input: SearchLearningContentInput,
   deps: SearchDeps
 ): Promise<SearchResultSet> {
-  if (!deps.embedding?.isAvailable()) {
+  if (!deps.embedding) {
     logger.warn(
       'Semantic search requested but no embedding provider configured — falling back to keyword'
     );
@@ -67,16 +67,19 @@ async function searchHybrid(
   input: SearchLearningContentInput,
   deps: SearchDeps
 ): Promise<SearchResultSet> {
-  const keywordResults = await deps.search.searchByQuery(input);
-
-  if (!deps.embedding?.isAvailable()) {
+  if (!deps.embedding) {
     logger.warn(
       'Hybrid search requested but no embedding provider — returning keyword results only'
     );
-    return keywordResults;
+    return deps.search.searchByQuery(input);
   }
 
-  const queryVector = await deps.embedding.embedText(input.query);
+  // Run keyword search and query embedding in parallel — they are independent
+  const [keywordResults, queryVector] = await Promise.all([
+    deps.search.searchByQuery(input),
+    deps.embedding.embedText(input.query),
+  ]);
+
   if (!queryVector) {
     logger.warn('Failed to embed search query — returning keyword results only');
     return keywordResults;

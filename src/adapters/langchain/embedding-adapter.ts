@@ -45,15 +45,6 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     return this.config.dimensions;
   }
 
-  isAvailable(): boolean {
-    // Before lazy init, optimistically report based on config.
-    // After init, report actual availability. Note: callers on the write path
-    // should call embedText() directly (which triggers init) rather than gating
-    // on isAvailable(), since this may be inaccurate before the first embed call.
-    if (!this.initPromise) return !!this.config.provider;
-    return this.available;
-  }
-
   private ensureInitialized(): Promise<void> {
     if (!this.initPromise) this.initPromise = this.doInitialize();
     return this.initPromise;
@@ -102,6 +93,9 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     });
   }
 
+  // Permanently disables the adapter on dimension mismatch. This is intentional:
+  // a misconfigured model will never produce correct vectors, so continuing to
+  // call the API would waste resources. A process restart is required to recover.
   private validateDimensions(vector: number[]): number[] | null {
     if (vector.length !== SCHEMA_EMBEDDING_DIMENSIONS) {
       if (this.available) {

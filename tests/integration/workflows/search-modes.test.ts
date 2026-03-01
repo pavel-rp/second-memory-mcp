@@ -6,6 +6,10 @@ import {
 import type { SearchPort } from '../../../src/ports/search-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { SearchResultSet } from '../../../src/domain/types/search-tools.js';
+import {
+  HYBRID_KEYWORD_WEIGHT,
+  HYBRID_SEMANTIC_WEIGHT,
+} from '../../../src/domain/config/embedding.js';
 
 // --- Helpers ---
 
@@ -62,7 +66,6 @@ function makeEmbeddingPort(overrides?: Partial<EmbeddingPort>): EmbeddingPort {
       .fn()
       .mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3]))),
     getDimensions: vi.fn().mockReturnValue(1536),
-    isAvailable: vi.fn().mockReturnValue(true),
     ...overrides,
   } as EmbeddingPort;
 }
@@ -121,15 +124,14 @@ describe('searchSemantic', () => {
     expect(result.results[0].id).toBe('c1');
   });
 
-  it('falls back to keyword when embedding is unavailable', async () => {
+  it('falls back to keyword when no embedding port provided', async () => {
     const keywordResult = makeResult({
       results: [{ resultType: 'topic', id: 't1', title: 'Recursion', matchScore: 0.8 }],
     });
     const search = makeSearchPort({
       searchByQuery: vi.fn().mockResolvedValue(keywordResult),
     });
-    const embedding = makeEmbeddingPort({ isAvailable: vi.fn().mockReturnValue(false) });
-    const deps: SearchDeps = { search, embedding };
+    const deps: SearchDeps = { search };
 
     const result = await searchLearningContent({ query: 'recursion', mode: 'semantic' }, deps);
 
@@ -149,15 +151,6 @@ describe('searchSemantic', () => {
 
     expect(search.searchByQuery).toHaveBeenCalled();
     expect(search.searchByVector).not.toHaveBeenCalled();
-  });
-
-  it('falls back to keyword when no embedding port provided', async () => {
-    const search = makeSearchPort();
-    const deps: SearchDeps = { search };
-
-    await searchLearningContent({ query: 'recursion', mode: 'semantic' }, deps);
-
-    expect(search.searchByQuery).toHaveBeenCalled();
   });
 });
 
@@ -199,22 +192,26 @@ describe('searchHybrid', () => {
     const result = await searchLearningContent({ query: 'tree', mode: 'hybrid' }, deps);
 
     // Scores are normalized to [0,1] before weighting (maxKeyword=0.9, maxSemantic=0.85)
-    // t1 appears in both: 0.4*(0.9/0.9) + 0.6*(0.8/0.85) ≈ 0.96471
+    // Uses imported weight constants so test stays correct if env overrides them.
+    const KW = HYBRID_KEYWORD_WEIGHT;
+    const SM = HYBRID_SEMANTIC_WEIGHT;
+
+    // t1 appears in both: KW*(0.9/0.9) + SM*(0.8/0.85)
     const t1 = result.results.find(r => r.id === 't1');
     expect(t1).toBeDefined();
-    expect(t1!.matchScore).toBeCloseTo(0.4 + 0.6 * (0.8 / 0.85), 5);
+    expect(t1!.matchScore).toBeCloseTo(KW + SM * (0.8 / 0.85), 5);
     expect(t1!.similarityScore).toBe(0.8);
 
-    // c1 only in keyword: 0.4*(0.7/0.9) + 0.6*0 ≈ 0.31111
+    // c1 only in keyword: KW*(0.7/0.9) + SM*0
     const c1 = result.results.find(r => r.id === 'c1');
     expect(c1).toBeDefined();
-    expect(c1!.matchScore).toBeCloseTo(0.4 * (0.7 / 0.9), 5);
+    expect(c1!.matchScore).toBeCloseTo(KW * (0.7 / 0.9), 5);
     expect(c1!.similarityScore).toBeUndefined();
 
-    // c2 only in semantic: 0.4*0 + 0.6*(0.85/0.85) = 0.6
+    // c2 only in semantic: KW*0 + SM*(0.85/0.85) = SM
     const c2 = result.results.find(r => r.id === 'c2');
     expect(c2).toBeDefined();
-    expect(c2!.matchScore).toBeCloseTo(0.6, 5);
+    expect(c2!.matchScore).toBeCloseTo(SM, 5);
     expect(c2!.similarityScore).toBe(0.85);
 
     // Sorted by matchScore descending

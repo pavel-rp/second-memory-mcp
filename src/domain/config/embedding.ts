@@ -32,7 +32,14 @@ if (Math.abs(weightSum - 1.0) > 0.01) {
           `This may produce unexpected ranking behavior.`
       )
     )
-    .catch(() => {});
+    .catch(() => {
+      // Fallback if logger fails to load (circular dependency, missing module)
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Hybrid search weights sum to ${weightSum.toFixed(2)} (expected ~1.0). ` +
+          `EMBEDDING_HYBRID_KEYWORD_WEIGHT=${HYBRID_KEYWORD_WEIGHT}, EMBEDDING_HYBRID_SEMANTIC_WEIGHT=${HYBRID_SEMANTIC_WEIGHT}.`
+      );
+    });
 }
 
 export type EmbeddingConfig = {

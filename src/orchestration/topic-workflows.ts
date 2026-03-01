@@ -180,7 +180,7 @@ export async function createTopicWithChunks(
     // Awaited so embeddings are ready before returning, but failures are caught and
     // do not invalidate the topic/chunk data. Embeddings will be regenerated on the
     // next content update.
-    if (deps.embedding?.isAvailable()) {
+    if (deps.embedding) {
       try {
         await generateTopicEmbeddings(result.topic, result.chunks, deps);
       } catch (err) {
@@ -315,7 +315,7 @@ export async function updateTopicSummary(
       summaryEmbedding: null,
       updatedAt: now,
     };
-    if (deps.embedding?.isAvailable()) {
+    if (deps.embedding) {
       try {
         const vector = await deps.embedding.embedText(summary);
         if (vector) updateData.summaryEmbedding = vector;
@@ -343,15 +343,17 @@ async function generateTopicEmbeddings(
   deps: TopicDeps
 ): Promise<void> {
   const embedding = deps.embedding;
-  if (!embedding?.isAvailable()) return;
+  if (!embedding) return;
 
   // Embed topic summary
   if (topic.summary) {
     const summaryVector = await embedding.embedText(topic.summary);
     if (summaryVector) {
+      // Don't bump updatedAt for embedding-only updates — the caller already set
+      // updatedAt during the content write, and changing it here would make the
+      // returned object's updatedAt stale relative to the DB row.
       const result = await deps.topics.update(topic.id, {
         summaryEmbedding: summaryVector,
-        updatedAt: Date.now(),
       });
       if (!result.success) {
         logger.warn(`Failed to save summary embedding for topic ${topic.id}:`, result.error);
@@ -365,12 +367,13 @@ async function generateTopicEmbeddings(
 
   const texts = chunksWithContent.map(c => c.content);
   const vectors = await embedding.embedTexts(texts);
-  const now = Date.now();
   await Promise.all(
-    chunksWithContent.map((chunk, i) =>
-      vectors[i]
-        ? deps.chunks.update(chunk.id, { contentEmbedding: vectors[i], updatedAt: now })
-        : Promise.resolve()
-    )
+    chunksWithContent.map(async (chunk, i) => {
+      if (!vectors[i]) return;
+      const result = await deps.chunks.update(chunk.id, { contentEmbedding: vectors[i] });
+      if (result === 0) {
+        logger.warn(`Failed to save content embedding for chunk ${chunk.id}`);
+      }
+    })
   );
 }

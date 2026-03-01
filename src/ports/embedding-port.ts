@@ -1,9 +1,14 @@
 /**
  * Port interface for text embedding operations.
  *
- * Embedding is optional — when no provider is configured, isAvailable()
- * returns false and embed methods return null. Write operations proceed
- * normally; only semantic search requires embeddings.
+ * Embedding is optional — the composition root only injects an EmbeddingPort
+ * when a provider is configured. Callers check `deps.embedding` presence to
+ * know if embedding is configured, and handle null returns from embed methods
+ * for runtime failures (bad API key, dimension mismatch, network errors).
+ *
+ * This two-level contract (presence = configured, null = runtime failure)
+ * avoids the need for an `isAvailable()` method that would be unreliable
+ * with lazy initialization.
  */
 export interface EmbeddingPort {
   /** Embed a single text string. Returns null on failure or if unavailable. */
@@ -14,7 +19,4 @@ export interface EmbeddingPort {
 
   /** Return the dimension count of the configured embedding model. */
   getDimensions(): number;
-
-  /** Whether the embedding provider is configured and operational. */
-  isAvailable(): boolean;
 }

@@ -22,10 +22,6 @@ export class InMemoryEmbeddingAdapter implements EmbeddingPort {
     return this.dimensions;
   }
 
-  isAvailable(): boolean {
-    return true;
-  }
-
   private hashToVector(text: string): number[] {
     const vector: number[] = new Array(this.dimensions);
     let hash = 0;

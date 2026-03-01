@@ -65,7 +65,7 @@ async function updateChunkFields(
     // we prefer no embedding over a misleading one from old content.
     if (typeof fields.content === 'string') {
       fields.contentEmbedding = null;
-      if (deps.embedding?.isAvailable()) {
+      if (deps.embedding) {
         try {
           const vector = await deps.embedding.embedText(fields.content as string);
           if (vector) fields.contentEmbedding = vector;
@@ -317,14 +317,16 @@ export async function createChunkWithTopic(
     }
 
     // Generate embedding for chunk content (best-effort, outside transaction)
-    if (created.content && deps.embedding?.isAvailable()) {
+    if (created.content && deps.embedding) {
       try {
         const vector = await deps.embedding.embedText(created.content);
         if (vector) {
-          await deps.chunks.update(created.id, {
+          const rowCount = await deps.chunks.update(created.id, {
             contentEmbedding: vector,
-            updatedAt: Date.now(),
           } as Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>);
+          if (rowCount === 0) {
+            logger.warn(`Failed to save content embedding for chunk ${created.id}`);
+          }
         }
       } catch (err) {
         logger.warn('Embedding generation failed for new chunk:', err);
