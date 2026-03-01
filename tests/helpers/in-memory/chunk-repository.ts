@@ -169,14 +169,7 @@ export class InMemoryChunkRepository implements ChunkRepository {
     }));
   }
 
-  async findDependents(chunkId: string): Promise<
-    Array<
-      Omit<LearningChunkRow, 'contentEmbedding'> & {
-        contentEmbedding?: number[] | null;
-        topicTitle?: string | null;
-      }
-    >
-  > {
+  async findDependents(chunkId: string): Promise<ChunkWithTopicTitle[]> {
     return [...this.chunks.values()]
       .filter(r => r.prerequisitesJson?.includes(chunkId))
       .map(r => {

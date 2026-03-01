@@ -10,6 +10,7 @@ import type {
   ChunkRepository,
   ChunkContentResult,
   ChunkMinimalMetadata,
+  ChunkDependentRow,
   ChunkWithTopicTitle,
   ListChunksFilter,
   ListChunksWithContentFilter,
@@ -197,17 +198,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
     return await query;
   }
 
-  async findDependents(chunkId: string): Promise<
-    Array<
-      Omit<LearningChunkRow, 'contentEmbedding'> & {
-        contentEmbedding?: number[] | null;
-        topicTitle?: string | null;
-        content?: string | null;
-        contentVersion?: number | null;
-        contentUpdatedAt?: number | null;
-      }
-    >
-  > {
+  async findDependents(chunkId: string): Promise<ChunkDependentRow[]> {
     return await this.db
       .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
       .from(learningChunks)

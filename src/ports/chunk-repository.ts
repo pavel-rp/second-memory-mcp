@@ -52,6 +52,13 @@ export type ChunkWithTopicTitle = Omit<LearningChunkRow, 'contentEmbedding'> & {
   topicTitle?: string | null;
 };
 
+/** Chunk dependent row: includes topic title and content fields for dependency resolution. */
+export type ChunkDependentRow = ChunkWithTopicTitle & {
+  content?: string | null;
+  contentVersion?: number | null;
+  contentUpdatedAt?: number | null;
+};
+
 /**
  * Port interface for chunk data access.
  * Adapters implement this to provide CRUD and query operations on learning chunks.
@@ -74,15 +81,5 @@ export interface ChunkRepository {
     dueOnly?: boolean;
     limit?: number;
   }): Promise<ChunkMinimalMetadata[]>;
-  findDependents(chunkId: string): Promise<
-    Array<
-      Omit<LearningChunkRow, 'contentEmbedding'> & {
-        contentEmbedding?: number[] | null;
-        topicTitle?: string | null;
-        content?: string | null;
-        contentVersion?: number | null;
-        contentUpdatedAt?: number | null;
-      }
-    >
-  >;
+  findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
 }
