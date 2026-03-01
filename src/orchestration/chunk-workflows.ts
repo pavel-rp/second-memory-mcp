@@ -61,13 +61,17 @@ async function updateChunkFields(
     const now = Date.now();
     const { fields, progressReset } = buildFields(current, now);
 
-    // Generate embedding for content updates
-    if (typeof fields.content === 'string' && deps.embedding?.isAvailable()) {
-      try {
-        const vector = await deps.embedding.embedText(fields.content as string);
-        if (vector) fields.contentEmbedding = vector;
-      } catch (err) {
-        logger.warn('Embedding generation failed for chunk content:', err);
+    // When content changes, clear stale embedding first — if re-embedding fails,
+    // we prefer no embedding over a misleading one from old content.
+    if (typeof fields.content === 'string') {
+      fields.contentEmbedding = null;
+      if (deps.embedding?.isAvailable()) {
+        try {
+          const vector = await deps.embedding.embedText(fields.content as string);
+          if (vector) fields.contentEmbedding = vector;
+        } catch (err) {
+          logger.warn('Embedding generation failed for chunk content:', err);
+        }
       }
     }
 
@@ -311,6 +315,22 @@ export async function createChunkWithTopic(
         message: `Failed to create chunk with id: ${input.id}`,
       });
     }
+
+    // Generate embedding for chunk content (best-effort, outside transaction)
+    if (created.content && deps.embedding?.isAvailable()) {
+      try {
+        const vector = await deps.embedding.embedText(created.content);
+        if (vector) {
+          await deps.chunks.update(created.id, {
+            contentEmbedding: vector,
+            updatedAt: Date.now(),
+          } as Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>);
+        }
+      } catch (err) {
+        logger.warn('Embedding generation failed for new chunk:', err);
+      }
+    }
+
     return serviceOk(created);
   } catch (error) {
     return serviceFail({ type: 'database', message: extractErrorMessage(error) });

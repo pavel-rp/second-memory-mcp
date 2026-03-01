@@ -176,9 +176,10 @@ export async function createTopicWithChunks(
       return { topic, chunks: createdChunks };
     });
 
-    // Fire-and-forget embedding generation — runs outside the transaction intentionally.
-    // Embedding is best-effort: a failed or partial embedding update does not invalidate
-    // the topic/chunk data. Embeddings will be regenerated on the next content update.
+    // Best-effort embedding generation — runs outside the transaction intentionally.
+    // Awaited so embeddings are ready before returning, but failures are caught and
+    // do not invalidate the topic/chunk data. Embeddings will be regenerated on the
+    // next content update.
     if (deps.embedding?.isAvailable()) {
       try {
         await generateTopicEmbeddings(result.topic, result.chunks, deps);
@@ -305,11 +306,13 @@ export async function updateTopicSummary(
     const now = Date.now();
     const newVersion = (current.summaryVersion ?? 1) + 1;
 
-    // Embed the new summary if embedding is available
+    // Clear stale embedding first — if re-embedding fails, we prefer no embedding
+    // over a misleading one from old summary content.
     const updateData: Parameters<TopicRepository['update']>[1] = {
       summary,
       summaryVersion: newVersion,
       summaryUpdatedAt: now,
+      summaryEmbedding: null,
       updatedAt: now,
     };
     if (deps.embedding?.isAvailable()) {
@@ -346,10 +349,13 @@ async function generateTopicEmbeddings(
   if (topic.summary) {
     const summaryVector = await embedding.embedText(topic.summary);
     if (summaryVector) {
-      await deps.topics.update(topic.id, {
+      const result = await deps.topics.update(topic.id, {
         summaryEmbedding: summaryVector,
         updatedAt: Date.now(),
       });
+      if (!result.success) {
+        logger.warn(`Failed to save summary embedding for topic ${topic.id}:`, result.error);
+      }
     }
   }
 

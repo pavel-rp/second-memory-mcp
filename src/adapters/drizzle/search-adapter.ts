@@ -128,9 +128,9 @@ export class DrizzleSearchAdapter implements SearchPort {
       limit,
       filters: { subject: input.subject },
       counts: {
-        topics: topicResults.length,
-        chunks: chunkResults.length,
-        total: all.length,
+        topics: results.filter(r => r.resultType === 'topic').length,
+        chunks: results.filter(r => r.resultType === 'chunk').length,
+        total: results.length,
       },
       results,
     };

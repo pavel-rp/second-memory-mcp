@@ -46,10 +46,13 @@ async function searchSemantic(
     return deps.search.searchByQuery(input);
   }
 
-  return deps.search.searchByVector(queryVector, {
+  const result = await deps.search.searchByVector(queryVector, {
     limit: input.limit,
     subject: input.subject,
   });
+
+  // Preserve original query metadata — searchByVector returns empty query fields
+  return { ...result, query: input.query };
 }
 
 async function searchHybrid(

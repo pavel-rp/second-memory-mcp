@@ -26,6 +26,9 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     }
   }
 
+  // Note: LangChain's embedDocuments is all-or-nothing — if any text in the batch
+  // fails, the entire call throws and all items return null. The per-item nullable
+  // return type reflects dimension validation failures, not individual embed failures.
   async embedTexts(texts: string[]): Promise<(number[] | null)[]> {
     await this.ensureInitialized();
     if (!this.available || !this.embeddings) return texts.map(() => null);
