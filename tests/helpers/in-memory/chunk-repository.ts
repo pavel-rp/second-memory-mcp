@@ -4,6 +4,7 @@ import type {
   ListChunksWithContentFilter,
   ChunkContentResult,
   ChunkMinimalMetadata,
+  ChunkWithTopicTitle,
   ChunkDependentRow,
 } from '../../../src/ports/chunk-repository.js';
 import type {
