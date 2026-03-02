@@ -72,22 +72,11 @@ export class PrerequisiteValidator {
       await this.referenceValidator.validateChunkPrerequisites('test', []);
       this.databaseAvailable = true;
     } catch (error) {
-      // Database is not available - check if we're in a test environment with mocks
-      const errorMessage = extractErrorMessage(error);
-
-      // In test environments with mocks, treat mock rejections as database available
-      // This allows unit tests to properly test error handling scenarios
-      if (
-        errorMessage.includes('mock') ||
-        errorMessage.includes('vi.') ||
-        process.env.NODE_ENV === 'test' ||
-        process.env.VITEST
-      ) {
-        this.databaseAvailable = true;
-      } else {
-        this.databaseAvailable = false;
-        logger.warn('Database services unavailable for prerequisite validation:', errorMessage);
-      }
+      this.databaseAvailable = false;
+      logger.warn(
+        'Database services unavailable for prerequisite validation:',
+        extractErrorMessage(error)
+      );
     }
 
     this.lastDbCheck = now;

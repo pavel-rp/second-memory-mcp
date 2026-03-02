@@ -174,9 +174,16 @@ describe('PrerequisiteValidator', () => {
     it('should handle validation errors gracefully', async () => {
       const item = createTestItem('item1', ['prereq1']);
 
-      mockReferenceValidator.validateChunkPrerequisites.mockRejectedValue(
-        new Error('Database connection failed')
-      );
+      // First call is the DB connectivity probe — let it succeed
+      // Subsequent calls (per-item validation) reject
+      mockReferenceValidator.validateChunkPrerequisites
+        .mockResolvedValueOnce({
+          isValid: true,
+          validReferences: [],
+          invalidReferences: [],
+          errors: [],
+        })
+        .mockRejectedValue(new Error('Database connection failed'));
 
       const result = await validator.filterByPrerequisites([item]);
 
@@ -274,8 +281,14 @@ describe('PrerequisiteValidator', () => {
         createTestItem('item3', ['prereq2']), // will pass
       ];
 
-      // Setup mocks
+      // Setup mocks — first call is DB connectivity probe, then per-item validation
       mockReferenceValidator.validateChunkPrerequisites
+        .mockResolvedValueOnce({
+          isValid: true,
+          validReferences: [],
+          invalidReferences: [],
+          errors: [],
+        })
         .mockResolvedValueOnce({
           isValid: true,
           validReferences: ['prereq1'],
