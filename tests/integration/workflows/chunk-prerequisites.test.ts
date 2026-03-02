@@ -6,6 +6,8 @@ import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-set
 import { PrerequisiteReferenceValidator } from '../../../src/domain/services/prerequisite-reference-validator.js';
 import crypto from 'node:crypto';
 
+const NOW_MS = new Date('2025-06-15T12:00:00Z').getTime();
+
 describe('chunk-prerequisites service', () => {
   let chunkIdLookup: DrizzleChunkIdLookupAdapter;
   let validator: PrerequisiteReferenceValidator;
@@ -16,7 +18,7 @@ describe('chunk-prerequisites service', () => {
     validator = new PrerequisiteReferenceValidator(
       (ids: string[]) => chunkIdLookup.getExistingIdsByIds(ids),
       () => chunkIdLookup.getAllIds(),
-      () => Date.now()
+      () => NOW_MS
     );
   });
   beforeEach(cleanupTestDb);

@@ -22,7 +22,7 @@ export type RecommendationDeps = {
 export async function generateRecommendations(
   input: RecommendationInput,
   deps: RecommendationDeps,
-  now: Date = new Date()
+  now: Date
 ): Promise<RecommendationOutput> {
   let items = input.learningItems;
   if (!items || items.length === 0) {
