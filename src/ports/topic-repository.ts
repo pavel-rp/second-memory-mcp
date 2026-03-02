@@ -10,12 +10,8 @@ export type TopicMinimalMetadata = {
   updatedAt: number;
 };
 
-/** Topic row with optional summary fields. */
-export type TopicWithSummary = LearningTopic & {
-  summary?: string | null;
-  summaryVersion?: number | null;
-  summaryUpdatedAt?: number | null;
-};
+/** Topic with summary fields (LearningTopic already includes them). */
+export type TopicWithSummary = LearningTopic;
 
 /**
  * Port interface for topic data access.

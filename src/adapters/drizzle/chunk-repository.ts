@@ -88,6 +88,14 @@ export class DrizzleChunkRepository implements ChunkRepository {
     return res.rowCount ?? 0;
   }
 
+  async saveContentEmbedding(chunkId: string, vector: number[] | null): Promise<number> {
+    const res = await this.db
+      .update(learningChunks)
+      .set({ contentEmbedding: vector })
+      .where(eq(learningChunks.id, chunkId));
+    return res.rowCount ?? 0;
+  }
+
   async delete(id: string): Promise<number> {
     const res = await this.db.delete(learningChunks).where(eq(learningChunks.id, id));
     return res.rowCount ?? 0;

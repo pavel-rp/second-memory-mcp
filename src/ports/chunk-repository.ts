@@ -66,6 +66,8 @@ export interface ChunkRepository {
     id: string,
     changes: Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
   ): Promise<number>;
+  /** Persist or clear a chunk's content embedding (infrastructure-only column). */
+  saveContentEmbedding(chunkId: string, vector: number[] | null): Promise<number>;
   delete(id: string): Promise<number>;
   getContent(id: string): Promise<ChunkContentResult | null>;
   getWithContent(id: string): Promise<ChunkWithTopicTitle | null>;

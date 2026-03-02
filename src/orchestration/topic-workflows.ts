@@ -368,10 +368,9 @@ async function generateTopicEmbeddings(
   const vectors = await embedding.embedTexts(texts);
   await Promise.all(
     chunksWithContent.map(async (chunk, i) => {
-      if (!vectors[i]) return;
-      // contentEmbedding is infrastructure-only (not on domain type), cast required
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await deps.chunks.update(chunk.id, { contentEmbedding: vectors[i] } as any);
+      const vector = vectors[i];
+      if (!vector) return;
+      const result = await deps.chunks.saveContentEmbedding(chunk.id, vector);
       if (result === 0) {
         logger.warn(`Failed to save content embedding for chunk ${chunk.id}`);
       }

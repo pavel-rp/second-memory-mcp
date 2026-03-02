@@ -73,6 +73,11 @@ export class InMemoryChunkRepository implements ChunkRepository {
     return 1;
   }
 
+  async saveContentEmbedding(chunkId: string, _vector: number[] | null): Promise<number> {
+    // In-memory store does not track embeddings; just confirm the chunk exists.
+    return this.chunks.has(chunkId) ? 1 : 0;
+  }
+
   async delete(id: string): Promise<number> {
     return this.chunks.delete(id) ? 1 : 0;
   }

@@ -61,24 +61,24 @@ async function updateChunkFields(
     const now = Date.now();
     const { fields, progressReset } = buildFields(current, now);
 
-    // When content changes, clear stale embedding first — if re-embedding fails,
-    // we prefer no embedding over a misleading one from old content.
-    if (typeof fields.content === 'string') {
-      fields.contentEmbedding = null;
-      if (deps.embedding) {
-        try {
-          const vector = await deps.embedding.embedText(fields.content as string);
-          if (vector) fields.contentEmbedding = vector;
-        } catch (err) {
-          logger.warn('Embedding generation failed for chunk content:', err);
-        }
-      }
-    }
-
     const rowCount = await deps.chunks.update(
       id,
       fields as Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
     );
+
+    // When content changes, clear stale embedding first — if re-embedding fails,
+    // we prefer no embedding over a misleading one from old content.
+    if (typeof fields.content === 'string') {
+      let vector: number[] | null = null;
+      if (deps.embedding) {
+        try {
+          vector = await deps.embedding.embedText(fields.content as string);
+        } catch (err) {
+          logger.warn('Embedding generation failed for chunk content:', err);
+        }
+      }
+      await deps.chunks.saveContentEmbedding(id, vector);
+    }
     if (rowCount === 0) {
       return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
     }
@@ -307,7 +307,9 @@ export async function createChunkWithTopic(
       }
     }
 
-    await deps.chunks.create({ ...input, topicId });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { topicTitle: _topicTitle, ...chunkInput } = input;
+    await deps.chunks.create({ ...chunkInput, topicId });
     const created = await deps.chunks.getById(input.id);
     if (!created) {
       return serviceFail({
@@ -322,12 +324,7 @@ export async function createChunkWithTopic(
       try {
         const vector = await deps.embedding.embedText(created.content);
         if (vector) {
-          // contentEmbedding is infrastructure-only (not on domain type), cast required
-          const rowCount = await deps.chunks.update(
-            created.id,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { contentEmbedding: vector } as any
-          );
+          const rowCount = await deps.chunks.saveContentEmbedding(created.id, vector);
           if (rowCount === 0) {
             logger.warn(`Failed to save content embedding for chunk ${created.id}`);
           }

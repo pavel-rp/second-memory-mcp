@@ -1,7 +1,10 @@
 import type { LearningChunk } from '../domain/types/entities.js';
 import type { LearningItem, LearningItemWithContent } from '../domain/types/recommendations.js';
 
-type ChunkListRowWithContent = LearningChunk & {
+type ChunkListRowWithContent = Omit<
+  LearningChunk,
+  'content' | 'contentVersion' | 'contentUpdatedAt'
+> & {
   contentEmbedding?: number[] | null;
   topicTitle?: string | null;
   content?: string | null;
