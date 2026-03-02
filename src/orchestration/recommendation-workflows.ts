@@ -21,7 +21,8 @@ export type RecommendationDeps = {
 
 export async function generateRecommendations(
   input: RecommendationInput,
-  deps: RecommendationDeps
+  deps: RecommendationDeps,
+  now: Date
 ): Promise<RecommendationOutput> {
   let items = input.learningItems;
   if (!items || items.length === 0) {
@@ -50,6 +51,7 @@ export async function generateRecommendations(
       checkItemMastery: (id: string) => deps.mastery.checkItemMastery(id),
     },
     algorithmConfig: deps.algorithmConfig,
+    clock: () => now.getTime(),
   });
 
   const dependencyResolver = new DependencyResolver(
@@ -61,8 +63,11 @@ export async function generateRecommendations(
     dependencyResolver,
     algorithmConfig: deps.algorithmConfig,
   });
-  return engine.generateRecommendations({
-    ...input,
-    learningItems: items,
-  });
+  return engine.generateRecommendations(
+    {
+      ...input,
+      learningItems: items,
+    },
+    now
+  );
 }

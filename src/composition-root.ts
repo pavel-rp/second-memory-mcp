@@ -229,7 +229,7 @@ export interface AppContext {
   calculateSessionProgress: (sessionData: SessionInput) => SessionProgress;
   determineNextPhase: (sessionData: SessionInput) => WorkflowPhase;
   checkSessionCompletion: (sessionData: SessionInput) => CompletionStatus;
-  validateSessionContext: typeof validateSessionContext;
+  validateSessionContext: (context: unknown) => SessionInput;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
   createConversationManager: () => ConversationManager;
 }
@@ -320,6 +320,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
       checkItemMastery: (id: string) => ports.prerequisiteMastery.checkItemMastery(id),
     },
     algorithmConfig,
+    clock: () => Date.now(),
   });
   const depResolver = new DependencyResolver(
     algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth
@@ -374,7 +375,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
     // Recommendation orchestration
     generateRecommendations: input =>
-      recommendationWorkflows.generateRecommendations(input, recommendationDeps),
+      recommendationWorkflows.generateRecommendations(input, recommendationDeps, new Date()),
 
     // Search orchestration
     searchLearningContent: input =>
@@ -399,16 +400,18 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     mapChunkRowToLearningItem,
 
     // Domain — pure functions (config pre-bound)
-    calculateNextReview: input => calculateNextReview(input, algorithmConfig),
-    calculatePriorityScore: input => calculatePriorityScore(input, algorithmConfig),
-    calculateNextReviewAdvanced: input => calculateNextReviewAdvanced(input, algorithmConfig),
-    rankCandidates: input => rankCandidatesWithConstraints(input, algorithmConfig),
+    calculateNextReview: input => calculateNextReview(input, algorithmConfig, new Date()),
+    calculatePriorityScore: input => calculatePriorityScore(input, algorithmConfig, new Date()),
+    calculateNextReviewAdvanced: input =>
+      calculateNextReviewAdvanced(input, algorithmConfig, new Date()),
+    rankCandidates: input => rankCandidatesWithConstraints(input, algorithmConfig, new Date()),
     computeDailyKpis,
     computeWindowRollup,
-    calculateSessionProgress,
-    determineNextPhase,
-    checkSessionCompletion: sessionData => checkSessionCompletion(sessionData, algorithmConfig),
-    validateSessionContext,
+    calculateSessionProgress: sessionData => calculateSessionProgress(sessionData, new Date()),
+    determineNextPhase: sessionData => determineNextPhase(sessionData, new Date()),
+    checkSessionCompletion: sessionData =>
+      checkSessionCompletion(sessionData, algorithmConfig, new Date()),
+    validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
     createConversationManager: () =>
       new ConversationManager({

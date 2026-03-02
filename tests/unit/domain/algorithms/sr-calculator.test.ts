@@ -8,11 +8,15 @@ import {
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import { resolveAlgorithmConfig } from '../../../../src/config/resolve-algorithm-config.js';
 
+const NOW = new Date('2025-06-15T12:00:00.000Z');
+const TODAY = NOW.toISOString().slice(0, 10);
+
 describe('calculateNextReview', () => {
   it('floors ease at 1.3 and resets on failure (quality<3)', () => {
     const out = calculateNextReview(
       { quality: 1, repetitions: 5, easeFactor: 1.31, interval: 10 },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(out.repetitions).toBe(0);
     expect(out.interval).toBe(1);
@@ -22,7 +26,8 @@ describe('calculateNextReview', () => {
   it('uses initial and second intervals, then multiplies by EF', () => {
     const first = calculateNextReview(
       { quality: 5, repetitions: 0, easeFactor: 2.5, interval: 0 },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(first.repetitions).toBe(1);
     expect(first.interval).toBeGreaterThanOrEqual(1);
@@ -34,7 +39,8 @@ describe('calculateNextReview', () => {
         easeFactor: first.easeFactor,
         interval: first.interval,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(second.repetitions).toBe(2);
     expect(second.interval).toBeGreaterThanOrEqual(1);
@@ -46,7 +52,8 @@ describe('calculateNextReview', () => {
         easeFactor: second.easeFactor,
         interval: second.interval,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(third.repetitions).toBe(3);
     expect(third.interval).toBeGreaterThanOrEqual(1);
@@ -55,7 +62,8 @@ describe('calculateNextReview', () => {
   it('treats quality=3 as hard and clamps EF', () => {
     const out = calculateNextReview(
       { quality: 3, repetitions: 3, easeFactor: 1.31, interval: 6 },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(out.easeFactor).toBeGreaterThanOrEqual(1.3);
     expect(out.interval).toBeGreaterThanOrEqual(1);
@@ -66,12 +74,13 @@ describe('calculatePriorityScore', () => {
   it('returns number 0..100', () => {
     const out = calculatePriorityScore(
       {
-        nextReviewDate: new Date().toISOString().slice(0, 10),
+        nextReviewDate: TODAY,
         easeFactor: 2,
         repetitions: 0,
         difficulty: 5,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(out.priority).toBeGreaterThanOrEqual(0);
     expect(out.priority).toBeLessThanOrEqual(100);
@@ -89,7 +98,8 @@ describe('calculateNextReviewAdvanced', () => {
         daysOverdue: 5,
         consecutiveFailures: 4,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(base.interval).toBeGreaterThanOrEqual(1);
     expect(base.easeFactor).toBeGreaterThanOrEqual(1.3);
@@ -104,7 +114,7 @@ describe('rankCandidatesWithConstraints', () => {
         candidates: [
           {
             id: 'a',
-            nextReviewDate: new Date().toISOString().slice(0, 10),
+            nextReviewDate: TODAY,
             easeFactor: 2,
             repetitions: 0,
             difficulty: 5,
@@ -112,7 +122,7 @@ describe('rankCandidatesWithConstraints', () => {
           },
           {
             id: 'b',
-            nextReviewDate: new Date().toISOString().slice(0, 10),
+            nextReviewDate: TODAY,
             easeFactor: 1.5,
             repetitions: 1,
             difficulty: 6,
@@ -121,7 +131,8 @@ describe('rankCandidatesWithConstraints', () => {
         ],
         timeboxMinutes: 20,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(Array.isArray(out.orderedIds)).toBe(true);
     expect(out.orderedIds.length).toBeGreaterThan(0);
@@ -143,7 +154,8 @@ describe('TF-5: overdue penalty skipped for new items', () => {
         interval: 0,
         daysOverdue: 30,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     // New item: overdue penalty should not apply, ease should be >= 2.5
     expect(result.easeFactor).toBeGreaterThanOrEqual(2.5);
@@ -158,7 +170,8 @@ describe('TF-5: overdue penalty skipped for new items', () => {
         interval: 10,
         daysOverdue: 0,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     const withOverdue = calculateNextReviewAdvanced(
       {
@@ -168,7 +181,8 @@ describe('TF-5: overdue penalty skipped for new items', () => {
         interval: 10,
         daysOverdue: 15,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     // Overdue penalty should reduce ease for reviewed items
     expect(withOverdue.easeFactor).toBeLessThan(withoutOverdue.easeFactor);
@@ -176,7 +190,7 @@ describe('TF-5: overdue penalty skipped for new items', () => {
 });
 
 describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = TODAY;
 
   it('truncates candidates when timeboxMinutes is exceeded', () => {
     const result = rankCandidatesWithConstraints(
@@ -217,7 +231,8 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
         ],
         timeboxMinutes: 20,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     // Should select exactly 'a' and 'b' (5 + 10 = 15 minutes) within the 20-minute timebox
     expect(result.orderedIds.length).toBe(2);
@@ -234,7 +249,8 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
         ],
         timeboxMinutes: 15,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(result.warning).toBeDefined();
     expect(result.orderedIds.length).toBe(2);
@@ -262,7 +278,8 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
           },
         ],
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(result.orderedIds.length).toBe(2);
     expect(result.warning).toBeUndefined();
@@ -291,7 +308,8 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
           },
         ],
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     expect(result.orderedIds.length).toBe(1);
     expect(result.orderedIds[0]).toBe('a');
@@ -322,7 +340,8 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
           },
         ],
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
     // Both items fit: 18 + 4 = 22 <= 20 + 2 (slack)
     expect(result.orderedIds.length).toBe(2);
@@ -352,7 +371,8 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
           },
         ],
       },
-      DEFAULT_ALGORITHM_CONFIG
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
     );
 
     // ranked array
@@ -397,7 +417,8 @@ describe('advanced leech penalty clamp (config)', () => {
         interval: 10,
         consecutiveFailures: 1,
       },
-      config
+      config,
+      NOW
     );
     const leech = calculateNextReviewAdvanced(
       {
@@ -407,7 +428,8 @@ describe('advanced leech penalty clamp (config)', () => {
         interval: 10,
         consecutiveFailures: 2,
       },
-      config
+      config,
+      NOW
     );
     expect(leech.leech).toBe(true);
     const delta = Number((leech.easeFactor - noLeech.easeFactor).toFixed(3));
@@ -429,7 +451,8 @@ describe('advanced leech penalty clamp (config)', () => {
         interval: 10,
         consecutiveFailures: 1,
       },
-      clampConfig
+      clampConfig,
+      NOW
     );
     const leech = calculateNextReviewAdvanced(
       {
@@ -439,7 +462,8 @@ describe('advanced leech penalty clamp (config)', () => {
         interval: 10,
         consecutiveFailures: 2,
       },
-      clampConfig
+      clampConfig,
+      NOW
     );
     const delta = Number((leech.easeFactor - noLeech.easeFactor).toFixed(3));
     expect(delta).toBeCloseTo(-0.2, 3);
@@ -454,7 +478,8 @@ describe('advanced leech penalty clamp (config)', () => {
         interval: 10,
         consecutiveFailures: 1,
       },
-      config
+      config,
+      NOW
     );
     const at = calculateNextReviewAdvanced(
       {
@@ -464,7 +489,8 @@ describe('advanced leech penalty clamp (config)', () => {
         interval: 10,
         consecutiveFailures: 2,
       },
-      config
+      config,
+      NOW
     );
     expect(below.leech).toBeFalsy();
     expect(at.leech).toBeTruthy();

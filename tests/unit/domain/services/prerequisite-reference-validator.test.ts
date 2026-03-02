@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { PrerequisiteReferenceValidator } from '../../../../src/domain/services/prerequisite-reference-validator.js';
 
+const NOW_MS = new Date('2025-06-15T12:00:00Z').getTime();
+
 describe('PrerequisiteReferenceValidator', () => {
   let validator: PrerequisiteReferenceValidator;
   const existingIds = new Set(['chunk-1', 'chunk-2', 'chunk-3']);
@@ -9,7 +11,7 @@ describe('PrerequisiteReferenceValidator', () => {
   const lookupAllFn = async () => new Set(existingIds);
 
   beforeEach(() => {
-    validator = new PrerequisiteReferenceValidator(lookupFn, lookupAllFn);
+    validator = new PrerequisiteReferenceValidator(lookupFn, lookupAllFn, () => NOW_MS);
   });
 
   describe('validatePrerequisiteReferences', () => {
@@ -60,7 +62,8 @@ describe('PrerequisiteReferenceValidator', () => {
         async () => {
           throw new Error('DB down');
         },
-        async () => new Set<string>()
+        async () => new Set<string>(),
+        () => NOW_MS
       );
       const result = await failValidator.validatePrerequisiteReferences(['chunk-1']);
       expect(result.isValid).toBe(false);

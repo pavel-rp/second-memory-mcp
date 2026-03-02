@@ -31,7 +31,8 @@ function isoDate(date: Date): string {
 
 export function calculateNextReview(
   input: NextReviewInput,
-  config: AlgorithmConfig
+  config: AlgorithmConfig,
+  now: Date
 ): NextReviewOutput {
   const quality = Math.max(0, Math.min(5, Math.floor(input.quality)));
   const prevRepetitions = Math.max(0, Math.floor(input.repetitions));
@@ -69,7 +70,7 @@ export function calculateNextReview(
     }
   }
 
-  const today = toStartOfDay(new Date());
+  const today = toStartOfDay(now);
   const nextDate = addDays(today, nextInterval);
   return {
     interval: nextInterval,
@@ -81,16 +82,17 @@ export function calculateNextReview(
 
 export function calculatePriorityScore(
   input: PriorityInput,
-  config: AlgorithmConfig
+  config: AlgorithmConfig,
+  now: Date
 ): PriorityOutput {
-  const now = toStartOfDay(new Date());
+  const normalizedNow = toStartOfDay(now);
   const parsedReview = new Date(input.nextReviewDate);
-  const normalizedReview = isNaN(parsedReview.getTime()) ? now : parsedReview;
+  const normalizedReview = isNaN(parsedReview.getTime()) ? normalizedNow : parsedReview;
   const daysUntil = Math.max(
     -365,
     Math.min(
       365,
-      Math.floor((toStartOfDay(normalizedReview).getTime() - now.getTime()) / MS_PER_DAY)
+      Math.floor((toStartOfDay(normalizedReview).getTime() - normalizedNow.getTime()) / MS_PER_DAY)
     )
   );
 
@@ -127,9 +129,10 @@ export function calculatePriorityScore(
 // Advanced next review with lapses/leech handling
 export function calculateNextReviewAdvanced(
   input: AdvancedNextReviewInput,
-  config: AlgorithmConfig
+  config: AlgorithmConfig,
+  now: Date
 ): AdvancedNextReviewOutput {
-  const base = calculateNextReview(input, config);
+  const base = calculateNextReview(input, config, now);
   let ease = base.easeFactor;
   let interval = base.interval;
   let reps = base.repetitions;
@@ -164,7 +167,7 @@ export function calculateNextReviewAdvanced(
     );
   }
 
-  const next = addDays(toStartOfDay(new Date()), interval);
+  const next = addDays(toStartOfDay(now), interval);
   return {
     ...base,
     repetitions: reps,
@@ -178,12 +181,13 @@ export function calculateNextReviewAdvanced(
 // Rank with tag weights and caps
 export function rankCandidatesWithConstraints(
   input: RankInput,
-  config: AlgorithmConfig
+  config: AlgorithmConfig,
+  now: Date
 ): RankOutput {
   const candidateMap = new Map(input.candidates.map(c => [c.id, c]));
 
   // Score each candidate using existing priority, then adjust by tag weights
-  const nowIso = isoDate(toStartOfDay(new Date()));
+  const nowIso = isoDate(toStartOfDay(now));
   const scored = input.candidates.map(c => {
     const { priority } = calculatePriorityScore(
       {
@@ -192,7 +196,8 @@ export function rankCandidatesWithConstraints(
         repetitions: c.repetitions,
         difficulty: c.difficulty,
       },
-      config
+      config,
+      now
     );
     const tags = Array.isArray(c.tags) ? c.tags : [];
     const weight = tags.length ? Math.max(...tags.map(t => config.tagWeights[t] ?? 1)) : 1;

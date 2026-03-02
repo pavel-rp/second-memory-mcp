@@ -32,15 +32,18 @@ export class PrerequisiteValidator {
   private readonly VALIDATION_TIMEOUT = 5000; // 5 second timeout for validation operations
   private referenceValidator: ReferenceValidatorDep;
   private masteryService: MasteryServiceDep;
+  private clock: () => number;
 
   constructor(deps: {
     referenceValidator: ReferenceValidatorDep;
     masteryService: MasteryServiceDep;
     algorithmConfig: AlgorithmConfig;
     customCriteria?: Partial<MasteryCriteria>;
+    clock: () => number;
   }) {
     this.referenceValidator = deps.referenceValidator;
     this.masteryService = deps.masteryService;
+    this.clock = deps.clock;
     // Use custom criteria or fall back to algorithm configuration
     const config = deps.algorithmConfig.prerequisiteConfig.mastery;
     this.masteryCriteria = {
@@ -57,7 +60,7 @@ export class PrerequisiteValidator {
    * @returns Promise<boolean> indicating database availability
    */
   private async checkDatabaseAvailability(): Promise<boolean> {
-    const now = Date.now();
+    const now = this.clock();
 
     // Use cached result if recent
     if (this.databaseAvailable !== null && now - this.lastDbCheck < this.DB_CHECK_INTERVAL) {

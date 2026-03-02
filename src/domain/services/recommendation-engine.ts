@@ -46,23 +46,28 @@ export class RecommendationEngine {
   /**
    * Generate personalized learning recommendations
    */
-  async generateRecommendations(input: RecommendationInput): Promise<RecommendationOutput> {
+  async generateRecommendations(
+    input: RecommendationInput,
+    now: Date
+  ): Promise<RecommendationOutput> {
     // Apply intelligent defaults for guided mode
     const processedInput = this.applyIntelligentDefaults(input);
 
     // Filter and prioritize learning items
     const candidates = await this.filterAndPrioritizeCandidates(
       processedInput.learningItems,
-      processedInput.constraints
+      processedInput.constraints,
+      now
     );
 
     // Compose balanced session
-    let recommendations = this.composeBalancedSession(candidates, processedInput);
+    let recommendations = this.composeBalancedSession(candidates, processedInput, now);
 
     // Resolve dependencies and include missing prerequisites
     recommendations = await this.resolveAndIncludePrerequisites(
       recommendations,
-      processedInput.learningItems || []
+      processedInput.learningItems || [],
+      now
     );
 
     // Generate session summary
@@ -78,7 +83,7 @@ export class RecommendationEngine {
     const rationale = this.generateRationale(recommendations, processedInput);
 
     // Generate alternatives
-    const alternatives = this.generateAlternatives(candidates, recommendations);
+    const alternatives = this.generateAlternatives(candidates, recommendations, now);
 
     // Add orchestration hint if no learning items provided
     const orchestrationHint =
@@ -176,8 +181,9 @@ export class RecommendationEngine {
    * Filter and prioritize learning items using existing algorithms
    */
   private async filterAndPrioritizeCandidates(
-    items?: LearningItem[],
-    constraints?: SessionConstraints
+    items: LearningItem[] | undefined,
+    constraints: SessionConstraints | undefined,
+    now: Date
   ): Promise<LearningItem[]> {
     let filtered = items ? [...items] : [];
 
@@ -228,7 +234,7 @@ export class RecommendationEngine {
         difficulty: item.difficulty,
       };
 
-      const { priority } = calculatePriorityScore(priorityInput, this.algorithmConfig);
+      const { priority } = calculatePriorityScore(priorityInput, this.algorithmConfig, now);
       return { ...item, calculatedPriority: priority };
     });
 
@@ -243,7 +249,8 @@ export class RecommendationEngine {
    */
   private composeBalancedSession(
     candidates: LearningItem[],
-    input: RecommendationInput
+    input: RecommendationInput,
+    now: Date
   ): LearningRecommendation[] {
     const constraints = input.constraints ?? this.generateIntelligentConstraints(input);
     const recommendations: LearningRecommendation[] = [];
@@ -252,9 +259,9 @@ export class RecommendationEngine {
     let newItemCount = 0;
 
     // Separate items by type for balanced selection
-    const overdueItems = candidates.filter(item => new Date(item.nextReviewDate) <= new Date());
+    const overdueItems = candidates.filter(item => new Date(item.nextReviewDate) <= now);
     const reviewItems = candidates.filter(
-      item => new Date(item.nextReviewDate) > new Date() && item.chunkType === 'review'
+      item => new Date(item.nextReviewDate) > now && item.chunkType === 'review'
     );
     const newItems = candidates.filter(item => item.chunkType === 'new');
 
@@ -264,7 +271,8 @@ export class RecommendationEngine {
         const recommendation = this.createRecommendation(
           item,
           recommendations.length + 1,
-          'overdue - needs immediate attention'
+          'overdue - needs immediate attention',
+          now
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
@@ -278,7 +286,8 @@ export class RecommendationEngine {
         const recommendation = this.createRecommendation(
           item,
           recommendations.length + 1,
-          'optimal review timing'
+          'optimal review timing',
+          now
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
@@ -293,7 +302,8 @@ export class RecommendationEngine {
         const recommendation = this.createRecommendation(
           item,
           recommendations.length + 1,
-          'new content - expanding knowledge'
+          'new content - expanding knowledge',
+          now
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
@@ -341,7 +351,8 @@ export class RecommendationEngine {
   private createRecommendation(
     item: LearningItem,
     order: number,
-    reason: string
+    reason: string,
+    now: Date
   ): LearningRecommendation {
     const priorityInput = {
       nextReviewDate: item.nextReviewDate,
@@ -350,7 +361,7 @@ export class RecommendationEngine {
       difficulty: item.difficulty,
     };
 
-    const { priority } = calculatePriorityScore(priorityInput, this.algorithmConfig);
+    const { priority } = calculatePriorityScore(priorityInput, this.algorithmConfig, now);
 
     return {
       item,
@@ -439,7 +450,8 @@ export class RecommendationEngine {
     resolvedChain: string[],
     selectedIdSet: Set<string>,
     recommendationMap: Map<string, LearningRecommendation>,
-    itemMap: Map<string, LearningItem>
+    itemMap: Map<string, LearningItem>,
+    now: Date
   ): { recommendations: LearningRecommendation[]; includedIds: string[] } {
     let order = 1;
     const combined: LearningRecommendation[] = [];
@@ -462,7 +474,7 @@ export class RecommendationEngine {
       }
 
       combined.push(
-        this.createRecommendation(item, order++, 'prerequisite - required for selected items')
+        this.createRecommendation(item, order++, 'prerequisite - required for selected items', now)
       );
       includedIds.push(itemId);
     }
@@ -472,7 +484,8 @@ export class RecommendationEngine {
 
   private async resolveAndIncludePrerequisites(
     recommendations: LearningRecommendation[],
-    allAvailableItems: LearningItem[]
+    allAvailableItems: LearningItem[],
+    now: Date
   ): Promise<LearningRecommendation[]> {
     if (recommendations.length === 0) {
       this.lastDependencyResolution = null;
@@ -513,7 +526,8 @@ export class RecommendationEngine {
         resolvedChain,
         selectedIdSet,
         recommendationMap,
-        itemMap
+        itemMap,
+        now
       );
 
       this.lastDependencyResolution = {
@@ -674,13 +688,14 @@ export class RecommendationEngine {
    */
   private generateAlternatives(
     candidates: LearningItem[],
-    selected: LearningRecommendation[]
+    selected: LearningRecommendation[],
+    now: Date
   ): LearningRecommendation[] {
     const selectedIds = new Set(selected.map(r => r.item.id));
     const alternatives = candidates
       .filter(item => !selectedIds.has(item.id))
       .slice(0, 3) // Up to 3 alternatives
-      .map((item, index) => this.createRecommendation(item, index + 1, 'alternative option'));
+      .map((item, index) => this.createRecommendation(item, index + 1, 'alternative option', now));
 
     return alternatives;
   }

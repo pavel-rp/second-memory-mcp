@@ -4,6 +4,8 @@ import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorith
 import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 import type { MasteryStatus } from '../../../../src/domain/types/prerequisite-validation.js';
 
+const NOW_MS = new Date('2025-06-15T12:00:00Z').getTime();
+
 const mockReferenceValidator = {
   validateChunkPrerequisites: vi.fn(),
   validatePrerequisiteReferences: vi.fn(),
@@ -22,6 +24,7 @@ describe('PrerequisiteValidator', () => {
       referenceValidator: mockReferenceValidator,
       masteryService: mockMasteryService,
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      clock: () => NOW_MS,
     });
   });
 
@@ -316,6 +319,7 @@ describe('PrerequisiteValidator Integration', () => {
       referenceValidator: localRefValidator,
       masteryService: localMasterySvc,
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      clock: () => NOW_MS,
       customCriteria: {
         minimumQualityScore: 4.0,
         requiredAttempts: 2,

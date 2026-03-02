@@ -6,6 +6,9 @@ import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorith
 import { mapChunkRowToLearningItem } from '../../../../src/shared/chunk-mapping.js';
 import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 
+const NOW = new Date('2025-06-15T12:00:00.000Z');
+const TODAY = NOW.toISOString().slice(0, 10);
+
 function createTestEngine(chunkLookupFn?: (id: string) => Promise<LearningItem | undefined>) {
   const mockValidator = new PrerequisiteValidator({
     referenceValidator: {
@@ -15,6 +18,7 @@ function createTestEngine(chunkLookupFn?: (id: string) => Promise<LearningItem |
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
     },
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    clock: () => NOW.getTime(),
   });
   const dependencyResolver = new DependencyResolver(
     DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
@@ -33,7 +37,7 @@ function makeItem(overrides: Partial<any> = {}): any {
     title: overrides.title ?? 'Item',
     subject: overrides.subject ?? 'CS',
     difficulty: overrides.difficulty ?? 5,
-    nextReviewDate: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
+    nextReviewDate: overrides.nextReviewDate ?? TODAY,
     easeFactor: overrides.easeFactor ?? 2.5,
     repetitions: overrides.repetitions ?? 2,
     estimatedDuration: overrides.estimatedDuration ?? 10,
@@ -81,12 +85,15 @@ describe('RecommendationEngine', () => {
 
   it('returns empty when no items match constraints', async () => {
     const engine = createTestEngine();
-    const out = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: [makeItem({ id: 'a', subject: 'Math' })],
-      constraints: { subjectFilter: 'CS', maxDuration: 5 },
-      timeAvailable: 5,
-    } as any);
+    const out = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: [makeItem({ id: 'a', subject: 'Math' })],
+        constraints: { subjectFilter: 'CS', maxDuration: 5 },
+        timeAvailable: 5,
+      } as any,
+      NOW
+    );
 
     expect(out.recommendations.length).toBe(0);
     expect(out.estimatedDuration).toBe(0);
@@ -99,25 +106,28 @@ describe('RecommendationEngine', () => {
         id: 'r1',
         chunkType: 'review',
         estimatedDuration: 10,
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        nextReviewDate: '2025-06-14',
       }),
       makeItem({ id: 'n1', chunkType: 'new', estimatedDuration: 10 }),
     ];
 
-    const out = await engine.generateRecommendations({
-      mode: 'guided',
-      learningItems: items,
-      userHistory: {
-        recentSessions: [],
-        patterns: {
-          averageSessionDuration: 25,
-          preferredDifficulty: 5,
-          successRate: 0.75,
-          fatigueThreshold: 18,
-          subjectPreferences: { CS: 1 },
+    const out = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        userHistory: {
+          recentSessions: [],
+          patterns: {
+            averageSessionDuration: 25,
+            preferredDifficulty: 5,
+            successRate: 0.75,
+            fatigueThreshold: 18,
+            subjectPreferences: { CS: 1 },
+          },
         },
-      },
-    } as any);
+      } as any,
+      NOW
+    );
 
     expect(out.recommendations.length).toBeGreaterThan(0);
     expect(out.sessionSummary.totalItems).toBe(out.recommendations.length);
@@ -132,7 +142,7 @@ describe('RecommendationEngine', () => {
       makeItem({
         id: 'o1',
         chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10),
+        nextReviewDate: '2025-06-13',
         estimatedDuration: 10,
         difficulty: 6,
         easeFactor: 1.8,
@@ -140,7 +150,7 @@ describe('RecommendationEngine', () => {
       makeItem({
         id: 'o2',
         chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 1 * 86400000).toISOString().slice(0, 10),
+        nextReviewDate: '2025-06-14',
         estimatedDuration: 10,
         difficulty: 6,
       }),
@@ -156,12 +166,15 @@ describe('RecommendationEngine', () => {
       makeItem({ id: 'n3', chunkType: 'new', estimatedDuration: 10, difficulty: 7 }),
     ];
 
-    const out = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 30,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 25, maxNewItems: 2 },
-    } as any);
+    const out = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 30,
+        constraints: { maxDuration: 30, maxCognitiveLoad: 25, maxNewItems: 2 },
+      } as any,
+      NOW
+    );
 
     const newCount = out.recommendations.filter(r => r.item.chunkType === 'new').length;
     expect(newCount).toBeLessThanOrEqual(2);
@@ -180,12 +193,15 @@ describe('RecommendationEngine', () => {
       makeItem({ id: 'h2', difficulty: 9, estimatedDuration: 5, easeFactor: 1.6 }),
     ];
 
-    const out = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 40,
-      constraints: { maxDuration: 40, maxCognitiveLoad: 100, maxNewItems: 6 },
-    } as any);
+    const out = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 40,
+        constraints: { maxDuration: 40, maxCognitiveLoad: 100, maxNewItems: 6 },
+      } as any,
+      NOW
+    );
 
     expect(out.recommendations.length).toBeGreaterThanOrEqual(4);
     // Orders should be strictly increasing starting at 1
@@ -202,12 +218,15 @@ describe('RecommendationEngine', () => {
       makeItem({ id: `id-${i}`, estimatedDuration: 5 + (i % 3), difficulty: 4 + (i % 5) })
     );
 
-    const out = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 20,
-      constraints: { maxDuration: 20, maxCognitiveLoad: 40, maxNewItems: 2 },
-    } as any);
+    const out = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 20,
+        constraints: { maxDuration: 20, maxCognitiveLoad: 40, maxNewItems: 2 },
+      } as any,
+      NOW
+    );
 
     if (out.alternatives && out.alternatives.length > 0) {
       const selectedIds = new Set(out.recommendations.map(r => r.item.id));
@@ -219,11 +238,14 @@ describe('RecommendationEngine', () => {
 
   it('returns orchestrationHint when learningItems array is empty', async () => {
     const engine = createTestEngine();
-    const result = await engine.generateRecommendations({
-      mode: 'guided',
-      learningItems: [],
-      timeAvailable: 30,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: [],
+        timeAvailable: 30,
+      },
+      NOW
+    );
 
     expect(result.orchestrationHint).toBeDefined();
     expect(result.orchestrationHint).toContain('No learning items provided');
@@ -235,22 +257,28 @@ describe('RecommendationEngine', () => {
     const engine = createTestEngine();
     const items = [makeItem({ id: 'test-item', estimatedDuration: 10 })];
 
-    const result = await engine.generateRecommendations({
-      mode: 'guided',
-      learningItems: items,
-      timeAvailable: 30,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        timeAvailable: 30,
+      },
+      NOW
+    );
 
     expect(result.orchestrationHint).toBeUndefined();
   });
 
   it('handles empty learningItems in explicit mode', async () => {
     const engine = createTestEngine();
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: [],
-      timeAvailable: 30,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: [],
+        timeAvailable: 30,
+      },
+      NOW
+    );
 
     expect(result.orchestrationHint).toBeDefined();
     expect(result.recommendations).toHaveLength(0);
@@ -261,11 +289,14 @@ describe('RecommendationEngine', () => {
     const engine = createTestEngine();
     const items = [makeItem({ id: 'test-item', estimatedDuration: 10 })];
 
-    const result = await engine.generateRecommendations({
-      mode: 'guided',
-      learningItems: items,
-      timeAvailable: 30,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        timeAvailable: 30,
+      },
+      NOW
+    );
 
     // Should have all required fields
     expect(result).toHaveProperty('recommendations');
@@ -303,16 +334,19 @@ describe('RecommendationEngine', () => {
         title: 'Main Item C',
         estimatedDuration: 10,
         chunkType: 'new',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Overdue
+        nextReviewDate: '2025-06-14', // Overdue
         prerequisites: ['item-b'],
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 60,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
 
     // Should include all items with prerequisites ordered correctly
     expect(result.recommendations.length).toBeGreaterThanOrEqual(1);
@@ -345,7 +379,7 @@ describe('RecommendationEngine', () => {
       return row ? (mapChunkRowToLearningItem(row) as LearningItem) : undefined;
     });
 
-    const overdueDate = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const overdueDate = '2025-06-14';
     const items = [
       makeItem({
         id: 'item-b',
@@ -365,11 +399,14 @@ describe('RecommendationEngine', () => {
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 60,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
 
     const orderedIds = result.recommendations.map(r => r.item.id);
     expect(orderedIds).toEqual(['item-a', 'item-b', 'item-c']);
@@ -402,16 +439,19 @@ describe('RecommendationEngine', () => {
         title: 'Advanced',
         estimatedDuration: 10,
         chunkType: 'new',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Make it high priority
+        nextReviewDate: '2025-06-14', // Make it high priority
         prerequisites: ['item-b'],
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 60,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
 
     // If prerequisites were included, they should come before dependent items
     if (result.recommendations.length > 1) {
@@ -448,11 +488,14 @@ describe('RecommendationEngine', () => {
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 30,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 30,
+      },
+      NOW
+    );
 
     // Should work normally without dependency resolution
     expect(result.recommendations.length).toBeGreaterThan(0);
@@ -479,16 +522,19 @@ describe('RecommendationEngine', () => {
         title: 'Main Item',
         estimatedDuration: 10,
         chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Overdue
+        nextReviewDate: '2025-06-14', // Overdue
         prerequisites: ['prereq'],
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 60,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
 
     // Type check: ensure dependencyResolution field exists in type
     expect(result).toHaveProperty('recommendations');
@@ -520,16 +566,19 @@ describe('RecommendationEngine', () => {
         title: 'Main Item',
         estimatedDuration: 10,
         chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        nextReviewDate: '2025-06-14',
         prerequisites: ['existing-prereq'],
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 60,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
 
     // Verify that dependencyResolution is consistent with recommendations
     if (result.dependencyResolution && result.dependencyResolution.resolvedOrder.length > 0) {
@@ -556,7 +605,7 @@ describe('RecommendationEngine', () => {
         title: 'Existing Item',
         estimatedDuration: 10,
         chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        nextReviewDate: '2025-06-14',
         prerequisites: [], // No prerequisites, so will pass validation
       }),
       makeItem({
@@ -564,16 +613,19 @@ describe('RecommendationEngine', () => {
         title: 'Dependent Item',
         estimatedDuration: 10,
         chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        nextReviewDate: '2025-06-14',
         prerequisites: [], // No prerequisites to avoid validation filtering
       }),
     ];
 
-    const result = await engine.generateRecommendations({
-      mode: 'explicit',
-      learningItems: items,
-      timeAvailable: 60,
-    });
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
 
     // Should return recommendations for items without prerequisite issues
     expect(result.recommendations.length).toBeGreaterThan(0);
