@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { ConversationManager } from '../../../src/orchestration/conversation-manager.js';
 import { RecommendationEngine } from '../../../src/domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from '../../../src/domain/services/prerequisite-validator.js';
+import { DependencyResolver } from '../../../src/domain/algorithms/dependency-resolver.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
 function createTestConversationManager() {
   const validator = new PrerequisiteValidator({
@@ -11,10 +13,16 @@ function createTestConversationManager() {
     masteryService: {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
     },
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   });
+  const dependencyResolver = new DependencyResolver(
+    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+  );
   const engine = new RecommendationEngine({
     chunkLookupFn: async () => undefined,
     prerequisiteValidator: validator,
+    dependencyResolver,
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   });
   return new ConversationManager({
     recommendationEngine: engine,

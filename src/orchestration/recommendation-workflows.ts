@@ -8,6 +8,8 @@ import type {
 } from '../domain/types/recommendations.js';
 import { RecommendationEngine } from '../domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from '../domain/services/prerequisite-validator.js';
+import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 
 export type RecommendationDeps = {
@@ -46,9 +48,18 @@ export async function generateRecommendations(
     masteryService: {
       checkItemMastery: (id: string) => deps.mastery.checkItemMastery(id),
     },
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   });
 
-  const engine = new RecommendationEngine({ chunkLookupFn, prerequisiteValidator });
+  const dependencyResolver = new DependencyResolver(
+    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+  );
+  const engine = new RecommendationEngine({
+    chunkLookupFn,
+    prerequisiteValidator,
+    dependencyResolver,
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+  });
   return engine.generateRecommendations({
     ...input,
     learningItems: items,

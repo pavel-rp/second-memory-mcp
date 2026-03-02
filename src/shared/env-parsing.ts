@@ -1,0 +1,46 @@
+// Environment variable parsing helpers
+// Used by config resolution functions in the composition root layer
+
+export function parseNumber(envValue: string | undefined, fallback: number): number {
+  if (envValue == null || envValue.trim() === '') return fallback;
+  const parsed = Number(envValue);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function parseRecord(envValue: string | undefined): Record<string, number> {
+  // Expect JSON like {"tagA":1.2,"tagB":0.8}
+  if (!envValue) return {};
+  try {
+    const raw: unknown = JSON.parse(envValue);
+    if (typeof raw !== 'object' || raw === null) return {};
+    const obj = raw as Record<string, unknown>;
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      let n: number | undefined;
+      if (typeof v === 'number') {
+        n = v;
+      } else if (typeof v === 'string') {
+        const parsed = Number(v);
+        if (Number.isFinite(parsed)) n = parsed;
+      }
+      if (n !== undefined && Number.isFinite(n)) out[k] = n;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function parseBoolean(envValue: string | undefined, fallback: boolean): boolean {
+  if (envValue == null || envValue.trim() === '') return fallback;
+  const v = envValue.trim().toLowerCase();
+  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true;
+  if (v === '0' || v === 'false' || v === 'no' || v === 'off') return false;
+  return fallback;
+}
+
+export function parseEmbeddingProvider(value: string | undefined): 'openai' | 'ollama' | null {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'openai' || normalized === 'ollama') return normalized;
+  return null;
+}

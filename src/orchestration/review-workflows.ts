@@ -3,6 +3,7 @@ import type { ReviewResultData } from '../ports/review-persistence-port.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { extractErrorMessage } from '../shared/errors.js';
 
 export type ReviewDeps = {
@@ -24,14 +25,17 @@ export async function processReviewResult(
     const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
     const intervalDays = Math.floor((Date.now() - lastReviewedAt) / (1000 * 60 * 60 * 24)) || 1;
 
-    const sm2Result = calculateNextReviewAdvanced({
-      quality,
-      repetitions: currentChunk.repetitions,
-      easeFactor: currentChunk.easeFactor,
-      interval: intervalDays,
-      daysOverdue: options.daysOverdue || 0,
-      consecutiveFailures: options.consecutiveFailures || 0,
-    });
+    const sm2Result = calculateNextReviewAdvanced(
+      {
+        quality,
+        repetitions: currentChunk.repetitions,
+        easeFactor: currentChunk.easeFactor,
+        interval: intervalDays,
+        daysOverdue: options.daysOverdue || 0,
+        consecutiveFailures: options.consecutiveFailures || 0,
+      },
+      DEFAULT_ALGORITHM_CONFIG
+    );
 
     const now = Date.now();
     const updateData = {

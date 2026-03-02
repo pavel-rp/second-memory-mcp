@@ -9,7 +9,6 @@ import type {
 } from '../../domain/types/search-tools.js';
 import type { SearchPort } from '../../ports/search-port.js';
 import { calculateSimilarityRatio } from '../../shared/content-similarity.js';
-import { VECTOR_SIMILARITY_THRESHOLD } from '../../domain/config/embedding.js';
 
 type NormalizedQuery = { original: string; normalized: string; tokens: string[] };
 
@@ -76,7 +75,14 @@ type ChunkRow = {
 };
 
 export class DrizzleSearchAdapter implements SearchPort {
-  constructor(private db: SqlDb = getSql()) {}
+  private vectorSimilarityThreshold: number;
+
+  constructor(
+    private db: SqlDb = getSql(),
+    vectorSimilarityThreshold?: number
+  ) {
+    this.vectorSimilarityThreshold = vectorSimilarityThreshold ?? 0.3;
+  }
 
   async searchByQuery(input: SearchLearningContentInput): Promise<SearchResultSet> {
     const query = normalizeSearchQuery(input.query);
@@ -285,7 +291,7 @@ export class DrizzleSearchAdapter implements SearchPort {
     // Translate to similarity (1 - distance) only in the SELECT for display.
     const distance = cosineDistance(learningTopics.summaryEmbedding, vector);
     const similarity = sql<number>`1 - (${distance})`;
-    const distanceThreshold = 1 - VECTOR_SIMILARITY_THRESHOLD;
+    const distanceThreshold = 1 - this.vectorSimilarityThreshold;
 
     const conditions: SQL[] = [
       isNotNull(learningTopics.summaryEmbedding),
@@ -317,7 +323,7 @@ export class DrizzleSearchAdapter implements SearchPort {
     // Translate to similarity (1 - distance) only in the SELECT for display.
     const distance = cosineDistance(learningChunks.contentEmbedding, vector);
     const similarity = sql<number>`1 - (${distance})`;
-    const distanceThreshold = 1 - VECTOR_SIMILARITY_THRESHOLD;
+    const distanceThreshold = 1 - this.vectorSimilarityThreshold;
 
     const conditions: SQL[] = [
       isNotNull(learningChunks.contentEmbedding),

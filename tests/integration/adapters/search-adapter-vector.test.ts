@@ -2,10 +2,8 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { DrizzleSearchAdapter } from '../../../src/adapters/drizzle/search-adapter.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningChunks, learningTopics } from '../../../src/infrastructure/db/schema.js';
-import {
-  VECTOR_SIMILARITY_THRESHOLD,
-  SCHEMA_EMBEDDING_DIMENSIONS,
-} from '../../../src/domain/config/embedding.js';
+import { SCHEMA_EMBEDDING_DIMENSIONS } from '../../../src/domain/config/embedding.js';
+import { DEFAULT_VECTOR_SIMILARITY_THRESHOLD } from '../../../src/domain/config/embedding-defaults.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 
 // --- Helpers ---
@@ -115,7 +113,7 @@ describe('DrizzleSearchAdapter — searchByVector (integration)', () => {
     expect(chunkResults[0].similarityScore!).toBeGreaterThan(chunkResults[1].similarityScore!);
   });
 
-  it('excludes results below VECTOR_SIMILARITY_THRESHOLD', async () => {
+  it('excludes results below DEFAULT_VECTOR_SIMILARITY_THRESHOLD', async () => {
     const db = getSql();
     const queryVector = sparseVector(0); // [1, 0, 0, ...]
 
@@ -131,9 +129,9 @@ describe('DrizzleSearchAdapter — searchByVector (integration)', () => {
 
     const chunkResults = result.results.filter(r => r.resultType === 'chunk');
     // Cosine similarity of orthogonal vectors is 0, which is below any reasonable threshold
-    expect(chunkResults.every(r => (r.similarityScore ?? 0) >= VECTOR_SIMILARITY_THRESHOLD)).toBe(
-      true
-    );
+    expect(
+      chunkResults.every(r => (r.similarityScore ?? 0) >= DEFAULT_VECTOR_SIMILARITY_THRESHOLD)
+    ).toBe(true);
     expect(chunkResults.find(r => r.id === 'chunk-ortho')).toBeUndefined();
   });
 
@@ -217,7 +215,7 @@ describe('DrizzleSearchAdapter — searchByVector (integration)', () => {
     const topicResults = result.results.filter(r => r.resultType === 'topic');
     expect(topicResults).toHaveLength(1);
     expect(topicResults[0].id).toBe('t-emb');
-    expect(topicResults[0].similarityScore).toBeGreaterThan(VECTOR_SIMILARITY_THRESHOLD);
+    expect(topicResults[0].similarityScore).toBeGreaterThan(DEFAULT_VECTOR_SIMILARITY_THRESHOLD);
   });
 
   it('respects limit parameter', async () => {

@@ -8,7 +8,8 @@ import type { ServiceResult, ServiceError } from '../domain/types/service-result
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { hasSignificantContentChange } from '../shared/content-similarity.js';
 import { extractErrorMessage } from '../shared/errors.js';
-import { dependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import type { LearningItem } from '../domain/types/recommendations.js';
 import { logger } from '../shared/logger.js';
@@ -18,6 +19,7 @@ export type ChunkDeps = {
   topics: TopicRepository;
   unitOfWork: UnitOfWorkPort;
   embedding?: EmbeddingPort;
+  maxDependencyDepth?: number;
 };
 
 export type ChunkUpdateResult = {
@@ -241,7 +243,11 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
     let orderedIds = dependentIds;
     if (dependentRows.length > 0) {
       const items = dependentRows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
-      const resolution = await dependencyResolver.resolveDependencies(items, dependentIds);
+      const resolver = new DependencyResolver(
+        deps.maxDependencyDepth ??
+          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const resolution = await resolver.resolveDependencies(items, dependentIds);
       if (resolution.isValid && resolution.resolvedChain.length > 0) {
         orderedIds = resolution.resolvedChain.filter((cid: string) => dependentIds.includes(cid));
       }

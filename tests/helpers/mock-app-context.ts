@@ -6,6 +6,7 @@ import {
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
 } from '../../src/domain/algorithms/sr-calculator.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../src/domain/config/algorithm-defaults.js';
 import {
   computeDailyKpis,
   computeWindowRollup,
@@ -29,16 +30,17 @@ export function createMockAppContext(): AppContext {
     // Shared utilities
     mapChunkRowToLearningItem,
 
-    // Domain — pure functions (the real implementations)
-    calculateNextReview,
-    calculatePriorityScore,
-    calculateNextReviewAdvanced,
-    rankCandidates: rankCandidatesWithConstraints,
+    // Domain — pure functions (config pre-bound via closures)
+    calculateNextReview: input => calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG),
+    calculatePriorityScore: input => calculatePriorityScore(input, DEFAULT_ALGORITHM_CONFIG),
+    calculateNextReviewAdvanced: input =>
+      calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG),
+    rankCandidates: input => rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG),
     computeDailyKpis,
     computeWindowRollup,
     calculateSessionProgress,
     determineNextPhase,
-    checkSessionCompletion,
+    checkSessionCompletion: data => checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG),
     validateSessionContext,
     applyBatchSessionChunkOperations,
   };

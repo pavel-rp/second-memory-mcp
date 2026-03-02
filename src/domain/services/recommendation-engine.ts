@@ -1,7 +1,8 @@
 import { calculatePriorityScore } from '../algorithms/sr-calculator.js';
 import { calculateItemCognitiveLoad } from './cognitive-load.js';
 import type { PrerequisiteValidator } from './prerequisite-validator.js';
-import { dependencyResolver } from '../algorithms/dependency-resolver.js';
+import type { DependencyResolver } from '../algorithms/dependency-resolver.js';
+import type { AlgorithmConfig } from '../config/algorithm.js';
 import type {
   RecommendationInput,
   RecommendationOutput,
@@ -27,13 +28,19 @@ export class RecommendationEngine {
   } | null = null;
   private chunkLookupFn: (id: string) => Promise<LearningItem | undefined>;
   private prerequisiteValidator: PrerequisiteValidator;
+  private dependencyResolver: DependencyResolver;
+  private algorithmConfig: AlgorithmConfig;
 
   constructor(deps: {
     chunkLookupFn: (id: string) => Promise<LearningItem | undefined>;
     prerequisiteValidator: PrerequisiteValidator;
+    dependencyResolver: DependencyResolver;
+    algorithmConfig: AlgorithmConfig;
   }) {
     this.chunkLookupFn = deps.chunkLookupFn;
     this.prerequisiteValidator = deps.prerequisiteValidator;
+    this.dependencyResolver = deps.dependencyResolver;
+    this.algorithmConfig = deps.algorithmConfig;
   }
 
   /**
@@ -221,7 +228,7 @@ export class RecommendationEngine {
         difficulty: item.difficulty,
       };
 
-      const { priority } = calculatePriorityScore(priorityInput);
+      const { priority } = calculatePriorityScore(priorityInput, this.algorithmConfig);
       return { ...item, calculatedPriority: priority };
     });
 
@@ -343,7 +350,7 @@ export class RecommendationEngine {
       difficulty: item.difficulty,
     };
 
-    const { priority } = calculatePriorityScore(priorityInput);
+    const { priority } = calculatePriorityScore(priorityInput, this.algorithmConfig);
 
     return {
       item,
@@ -490,7 +497,10 @@ export class RecommendationEngine {
         return recommendations;
       }
 
-      const resolution = await dependencyResolver.resolveDependencies(relevantItems, selectedIds);
+      const resolution = await this.dependencyResolver.resolveDependencies(
+        relevantItems,
+        selectedIds
+      );
       if (!resolution.isValid) {
         logger.warn('Dependency resolution failed:', resolution.errors.join(', '));
         this.lastDependencyResolution = null;

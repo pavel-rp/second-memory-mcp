@@ -1,4 +1,4 @@
-import { algorithmConfig } from '../config/algorithm.js';
+import type { AlgorithmConfig } from '../config/algorithm.js';
 import type {
   MasteryCriteria,
   ValidationResult,
@@ -36,12 +36,13 @@ export class PrerequisiteValidator {
   constructor(deps: {
     referenceValidator: ReferenceValidatorDep;
     masteryService: MasteryServiceDep;
+    algorithmConfig: AlgorithmConfig;
     customCriteria?: Partial<MasteryCriteria>;
   }) {
     this.referenceValidator = deps.referenceValidator;
     this.masteryService = deps.masteryService;
     // Use custom criteria or fall back to algorithm configuration
-    const config = algorithmConfig.prerequisiteConfig.mastery;
+    const config = deps.algorithmConfig.prerequisiteConfig.mastery;
     this.masteryCriteria = {
       minimumQualityScore: deps.customCriteria?.minimumQualityScore ?? config.minimumQualityScore,
       requiredAttempts: deps.customCriteria?.requiredAttempts ?? config.requiredAttempts,

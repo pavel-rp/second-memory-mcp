@@ -11,13 +11,15 @@ import type { LearningItem } from '../domain/types/recommendations.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
-import { dependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import { logger } from '../shared/logger.js';
 
 export type SessionDeps = {
   sessions: SessionRepository;
   chunks: ChunkRepository;
+  maxDependencyDepth?: number;
 };
 
 export async function createSession(
@@ -242,7 +244,11 @@ export async function resolveSessionChunkDependencies(
       return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
     }
 
-    const resolution = await dependencyResolver.resolveDependencies(relevantItems, chunkIds);
+    const resolver = new DependencyResolver(
+      deps.maxDependencyDepth ??
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+    );
+    const resolution = await resolver.resolveDependencies(relevantItems, chunkIds);
 
     if (!resolution.isValid) {
       logger.warn('Dependency resolution failed for session chunks:', resolution.errors.join(', '));

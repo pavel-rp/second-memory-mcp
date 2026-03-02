@@ -5,6 +5,7 @@ import {
   checkSessionCompletion,
   validateSessionContext,
 } from '../../../../src/domain/services/session-analyzer.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import type { SessionInput } from '../../../../src/domain/types/session.js';
 
 describe('Session Manager', () => {
@@ -188,7 +189,7 @@ describe('Session Manager', () => {
         })),
       };
 
-      const result = checkSessionCompletion(highQualitySession);
+      const result = checkSessionCompletion(highQualitySession, DEFAULT_ALGORITHM_CONFIG);
       expect(result.is_complete).toBe(true);
       expect(result.quality_threshold_met).toBe(true);
       expect(result.chunk_threshold_met).toBe(true);
@@ -202,7 +203,7 @@ describe('Session Manager', () => {
         current_time: '2024-01-01T10:30:00.000Z',
       };
 
-      const result = checkSessionCompletion(longSession);
+      const result = checkSessionCompletion(longSession, DEFAULT_ALGORITHM_CONFIG);
       expect(result.is_complete).toBe(true);
       expect(result.recommendation).toBe('break');
       expect(result.completion_reason).toContain('Maximum session time');
@@ -219,7 +220,7 @@ describe('Session Manager', () => {
         })),
       };
 
-      const result = checkSessionCompletion(shortSession);
+      const result = checkSessionCompletion(shortSession, DEFAULT_ALGORITHM_CONFIG);
       expect(result.is_complete).toBe(false);
       expect(result.recommendation).toBe('continue');
     });
@@ -231,7 +232,7 @@ describe('Session Manager', () => {
       };
 
       // Should not throw an error even with invalid data
-      expect(() => checkSessionCompletion(edgeCaseSession)).not.toThrow();
+      expect(() => checkSessionCompletion(edgeCaseSession, DEFAULT_ALGORITHM_CONFIG)).not.toThrow();
     });
   });
 
