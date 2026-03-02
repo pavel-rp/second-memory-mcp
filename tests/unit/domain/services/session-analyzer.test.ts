@@ -8,6 +8,8 @@ import {
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import type { SessionInput } from '../../../../src/domain/types/session.js';
 
+const NOW = new Date('2024-01-01T10:30:00.000Z');
+
 describe('Session Manager', () => {
   const mockSessionInput: SessionInput = {
     session_id: 'test-session-123',
@@ -59,7 +61,7 @@ describe('Session Manager', () => {
 
   describe('calculateSessionProgress', () => {
     it('should calculate basic progress metrics correctly', () => {
-      const result = calculateSessionProgress(mockSessionInput);
+      const result = calculateSessionProgress(mockSessionInput, NOW);
 
       expect(result.session_id).toBe('test-session-123');
       expect(result.total_chunks).toBe(3);
@@ -75,11 +77,11 @@ describe('Session Manager', () => {
         chunks: [],
       };
 
-      expect(() => calculateSessionProgress(emptySession)).not.toThrow();
+      expect(() => calculateSessionProgress(emptySession, NOW)).not.toThrow();
     });
 
     it('should calculate estimated time remaining when applicable', () => {
-      const result = calculateSessionProgress(mockSessionInput);
+      const result = calculateSessionProgress(mockSessionInput, NOW);
       expect(result.estimated_time_remaining_ms).toBeDefined();
       expect(result.estimated_time_remaining_ms).toBeGreaterThan(0);
     });
@@ -93,7 +95,7 @@ describe('Session Manager', () => {
         })),
       };
 
-      const result = calculateSessionProgress(noCompletedSession);
+      const result = calculateSessionProgress(noCompletedSession, NOW);
       expect(result.chunks_completed).toBe(0);
       expect(result.overall_progress).toBe(0);
       expect(result.estimated_time_remaining_ms).toBeUndefined();
@@ -121,7 +123,7 @@ describe('Session Manager', () => {
         ],
       };
 
-      const result = calculateSessionProgress(invalidQualitySession);
+      const result = calculateSessionProgress(invalidQualitySession, NOW);
       expect(result.average_quality).toBeLessThanOrEqual(5);
       expect(result.average_quality).toBeGreaterThanOrEqual(0);
     });
@@ -134,7 +136,7 @@ describe('Session Manager', () => {
         mode: 'scaffolding',
       };
 
-      const result = determineNextPhase(scaffoldingSession);
+      const result = determineNextPhase(scaffoldingSession, NOW);
       expect(result.current_phase).toBe('chunk_planning');
       expect(result.next_phase).toBe('chunk_validation');
       expect(result.guidance).toContain('chunk');
@@ -142,7 +144,7 @@ describe('Session Manager', () => {
     });
 
     it('should determine learning phases correctly', () => {
-      const result = determineNextPhase(mockSessionInput); // mode: "learning"
+      const result = determineNextPhase(mockSessionInput, NOW); // mode: "learning"
       expect(result.current_phase).toBe('content_presentation');
       expect(result.next_phase).toBe('comprehension_check');
       expect(result.guidance).toContain('learning');
@@ -154,7 +156,7 @@ describe('Session Manager', () => {
         mode: 'retrieval',
       };
 
-      const result = determineNextPhase(retrievalSession);
+      const result = determineNextPhase(retrievalSession, NOW);
       expect(result.current_phase).toBe('first_attempt');
       expect(result.next_phase).toBe('second_attempt');
       expect(result.can_advance).toBe(true);
@@ -166,13 +168,13 @@ describe('Session Manager', () => {
         mode: 'review',
       };
 
-      const result = determineNextPhase(reviewSession);
+      const result = determineNextPhase(reviewSession, NOW);
       expect(result.current_phase).toBe('spaced_review');
       expect(result.next_phase).toBe('consolidation');
     });
 
     it('should clamp phase progress between 0 and 1', () => {
-      const result = determineNextPhase(mockSessionInput);
+      const result = determineNextPhase(mockSessionInput, NOW);
       expect(result.phase_progress).toBeGreaterThanOrEqual(0);
       expect(result.phase_progress).toBeLessThanOrEqual(1);
     });
@@ -189,7 +191,7 @@ describe('Session Manager', () => {
         })),
       };
 
-      const result = checkSessionCompletion(highQualitySession, DEFAULT_ALGORITHM_CONFIG);
+      const result = checkSessionCompletion(highQualitySession, DEFAULT_ALGORITHM_CONFIG, NOW);
       expect(result.is_complete).toBe(true);
       expect(result.quality_threshold_met).toBe(true);
       expect(result.chunk_threshold_met).toBe(true);
@@ -203,7 +205,7 @@ describe('Session Manager', () => {
         current_time: '2024-01-01T10:30:00.000Z',
       };
 
-      const result = checkSessionCompletion(longSession, DEFAULT_ALGORITHM_CONFIG);
+      const result = checkSessionCompletion(longSession, DEFAULT_ALGORITHM_CONFIG, NOW);
       expect(result.is_complete).toBe(true);
       expect(result.recommendation).toBe('break');
       expect(result.completion_reason).toContain('Maximum session time');
@@ -220,7 +222,7 @@ describe('Session Manager', () => {
         })),
       };
 
-      const result = checkSessionCompletion(shortSession, DEFAULT_ALGORITHM_CONFIG);
+      const result = checkSessionCompletion(shortSession, DEFAULT_ALGORITHM_CONFIG, NOW);
       expect(result.is_complete).toBe(false);
       expect(result.recommendation).toBe('continue');
     });
@@ -232,13 +234,15 @@ describe('Session Manager', () => {
       };
 
       // Should not throw an error even with invalid data
-      expect(() => checkSessionCompletion(edgeCaseSession, DEFAULT_ALGORITHM_CONFIG)).not.toThrow();
+      expect(() =>
+        checkSessionCompletion(edgeCaseSession, DEFAULT_ALGORITHM_CONFIG, NOW)
+      ).not.toThrow();
     });
   });
 
   describe('validateSessionContext', () => {
     it('should validate correct session data', () => {
-      const result = validateSessionContext(mockSessionInput);
+      const result = validateSessionContext(mockSessionInput, NOW);
       expect(result).toEqual(
         expect.objectContaining({
           session_id: 'test-session-123',
@@ -255,7 +259,7 @@ describe('Session Manager', () => {
         chunks: [],
       };
 
-      expect(() => validateSessionContext(invalidSession)).toThrow('Invalid session context');
+      expect(() => validateSessionContext(invalidSession, NOW)).toThrow('Invalid session context');
     });
 
     it('should reject sessions with empty chunks array', () => {
@@ -264,7 +268,7 @@ describe('Session Manager', () => {
         chunks: [],
       };
 
-      expect(() => validateSessionContext(noChunksSession)).toThrow(
+      expect(() => validateSessionContext(noChunksSession, NOW)).toThrow(
         'Session must contain at least one chunk'
       );
     });
@@ -276,7 +280,7 @@ describe('Session Manager', () => {
         current_time: '2024-01-01T10:00:00.000Z', // Before start time
       };
 
-      expect(() => validateSessionContext(timeInconsistentSession)).toThrow(
+      expect(() => validateSessionContext(timeInconsistentSession, NOW)).toThrow(
         'Current time cannot be before start time'
       );
     });
@@ -287,7 +291,7 @@ describe('Session Manager', () => {
         current_time: undefined,
       };
 
-      const result = validateSessionContext(sessionWithoutCurrentTime);
+      const result = validateSessionContext(sessionWithoutCurrentTime, NOW);
       expect(result.current_time).toBeDefined();
       expect(new Date(result.current_time!).getTime()).toBeGreaterThan(
         new Date(mockSessionInput.start_time).getTime()
@@ -316,7 +320,9 @@ describe('Session Manager', () => {
         ],
       };
 
-      expect(() => validateSessionContext(sessionWithBadData)).toThrow('Invalid session context');
+      expect(() => validateSessionContext(sessionWithBadData, NOW)).toThrow(
+        'Invalid session context'
+      );
     });
 
     it('should clean chunk data when using calculate functions directly', () => {
@@ -343,7 +349,7 @@ describe('Session Manager', () => {
       };
 
       // This should work without errors
-      const result = calculateSessionProgress(sessionWithValidData);
+      const result = calculateSessionProgress(sessionWithValidData, NOW);
       expect(result).toBeDefined();
       expect(result.average_quality).toBe(4.5);
     });

@@ -11,9 +11,9 @@ import type { AlgorithmConfig } from '../config/algorithm.js';
 import { clamp, roundTo } from '../../shared/math.js';
 
 // Helper function to parse ISO timestamp
-function parseTimestamp(timestamp: string): Date {
+function parseTimestamp(timestamp: string, fallback: Date): Date {
   const parsed = new Date(timestamp);
-  return isNaN(parsed.getTime()) ? new Date() : parsed;
+  return isNaN(parsed.getTime()) ? fallback : parsed;
 }
 
 // Helper function to clamp quality values to valid range
@@ -23,9 +23,9 @@ function clampQuality(quality: number): number {
 }
 
 // Helper function to calculate time elapsed between timestamps
-function calculateTimeElapsed(startTime: string, currentTime?: string): number {
-  const start = parseTimestamp(startTime);
-  const current = currentTime ? parseTimestamp(currentTime) : new Date();
+function calculateTimeElapsed(startTime: string, now: Date, currentTime?: string): number {
+  const start = parseTimestamp(startTime, now);
+  const current = currentTime ? parseTimestamp(currentTime, now) : now;
   return Math.max(0, current.getTime() - start.getTime());
 }
 
@@ -46,7 +46,7 @@ function cleanSessionChunks(chunks: SessionChunk[]): SessionChunk[] {
 /**
  * Calculate session progress metrics from session input data
  */
-export function calculateSessionProgress(sessionData: SessionInput): SessionProgress {
+export function calculateSessionProgress(sessionData: SessionInput, now: Date): SessionProgress {
   const cleanedChunks = cleanSessionChunks(sessionData.chunks);
 
   // Basic counts
@@ -64,7 +64,7 @@ export function calculateSessionProgress(sessionData: SessionInput): SessionProg
       : 0;
 
   // Calculate time elapsed
-  const timeElapsedMs = calculateTimeElapsed(sessionData.start_time, sessionData.current_time);
+  const timeElapsedMs = calculateTimeElapsed(sessionData.start_time, now, sessionData.current_time);
 
   // Estimate remaining time based on current pace
   let estimatedTimeRemainingMs: number | undefined;
@@ -233,8 +233,8 @@ function getPhaseForMode(mode: string, progress: SessionProgress): PhaseInfo {
 /**
  * Determine the next workflow phase and provide guidance
  */
-export function determineNextPhase(sessionData: SessionInput): WorkflowPhase {
-  const progress = calculateSessionProgress(sessionData);
+export function determineNextPhase(sessionData: SessionInput, now: Date): WorkflowPhase {
+  const progress = calculateSessionProgress(sessionData, now);
   const phase = getPhaseForMode(sessionData.mode, progress);
 
   return {
@@ -317,10 +317,11 @@ function evaluateCompletionCriteria(
  */
 export function checkSessionCompletion(
   sessionData: SessionInput,
-  algorithmConfig: AlgorithmConfig
+  algorithmConfig: AlgorithmConfig,
+  now: Date
 ): CompletionStatus {
-  const progress = calculateSessionProgress(sessionData);
-  const workflow = determineNextPhase(sessionData);
+  const progress = calculateSessionProgress(sessionData, now);
+  const workflow = determineNextPhase(sessionData, now);
   const config = algorithmConfig.sessionConfig;
 
   const qualityThresholdMet = progress.average_quality >= config.qualityThreshold;
@@ -347,7 +348,7 @@ export function checkSessionCompletion(
 /**
  * Validate and normalize session context data
  */
-export function validateSessionContext(context: unknown): SessionInput {
+export function validateSessionContext(context: unknown, now: Date): SessionInput {
   // Use Zod to validate and parse the input
   const result = SessionInputSchema.safeParse(context);
 
@@ -365,7 +366,7 @@ export function validateSessionContext(context: unknown): SessionInput {
   // Apply defaults and normalization
   const normalizedData: SessionInput = {
     ...validatedData,
-    current_time: validatedData.current_time || new Date().toISOString(),
+    current_time: validatedData.current_time || now.toISOString(),
     chunks: cleanSessionChunks(validatedData.chunks),
     context: validatedData.context || {},
   };
@@ -376,8 +377,8 @@ export function validateSessionContext(context: unknown): SessionInput {
   }
 
   // Validate time consistency
-  const startTime = parseTimestamp(normalizedData.start_time);
-  const currentTime = parseTimestamp(normalizedData.current_time || '');
+  const startTime = parseTimestamp(normalizedData.start_time, now);
+  const currentTime = parseTimestamp(normalizedData.current_time || '', now);
 
   if (currentTime < startTime) {
     throw new Error('Current time cannot be before start time');

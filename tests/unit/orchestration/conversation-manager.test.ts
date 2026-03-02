@@ -14,6 +14,7 @@ function createTestConversationManager() {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
     },
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    clock: () => Date.now(),
   });
   const dependencyResolver = new DependencyResolver(
     DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth

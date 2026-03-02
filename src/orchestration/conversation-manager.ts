@@ -295,8 +295,10 @@ export class ConversationManager {
         sessionContext: context.sessionContext as SessionContext | undefined,
       };
 
-      const recommendations =
-        await this.recommendationEngine.generateRecommendations(recommendationInput);
+      const recommendations = await this.recommendationEngine.generateRecommendations(
+        recommendationInput,
+        new Date()
+      );
 
       if (recommendations.recommendations.length === 0) {
         return {

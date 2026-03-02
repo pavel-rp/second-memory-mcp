@@ -14,10 +14,12 @@ export class PrerequisiteReferenceValidator {
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
   private readonly lookupFn: ChunkIdLookupFn;
   private readonly lookupAllFn: AllChunkIdsLookupFn;
+  private readonly clock: () => number;
 
-  constructor(lookupFn: ChunkIdLookupFn, lookupAllFn: AllChunkIdsLookupFn) {
+  constructor(lookupFn: ChunkIdLookupFn, lookupAllFn: AllChunkIdsLookupFn, clock: () => number) {
     this.lookupFn = lookupFn;
     this.lookupAllFn = lookupAllFn;
+    this.clock = clock;
   }
 
   /**
@@ -103,7 +105,7 @@ export class PrerequisiteReferenceValidator {
    */
   private async getExistingChunkIds(idsToCheck: string[]): Promise<Set<string>> {
     // Check if we have a fresh cache with all needed IDs
-    if (this.chunkIdCache && Date.now() < this.cacheExpiry) {
+    if (this.chunkIdCache && this.clock() < this.cacheExpiry) {
       const cache = this.chunkIdCache;
       const cachedResults = idsToCheck.filter(id => cache.has(id));
       if (cachedResults.length === idsToCheck.length) {
@@ -137,7 +139,7 @@ export class PrerequisiteReferenceValidator {
     newIds.forEach(id => cache.add(id));
 
     // Set cache expiry
-    this.cacheExpiry = Date.now() + this.CACHE_DURATION_MS;
+    this.cacheExpiry = this.clock() + this.CACHE_DURATION_MS;
   }
 
   /**
@@ -159,7 +161,7 @@ export class PrerequisiteReferenceValidator {
 
     // Update cache with all IDs
     this.chunkIdCache = allIds;
-    this.cacheExpiry = Date.now() + this.CACHE_DURATION_MS;
+    this.cacheExpiry = this.clock() + this.CACHE_DURATION_MS;
 
     return allIds;
   }

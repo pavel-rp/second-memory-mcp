@@ -9,7 +9,7 @@ describe('PrerequisiteReferenceValidator', () => {
   const lookupAllFn = async () => new Set(existingIds);
 
   beforeEach(() => {
-    validator = new PrerequisiteReferenceValidator(lookupFn, lookupAllFn);
+    validator = new PrerequisiteReferenceValidator(lookupFn, lookupAllFn, () => Date.now());
   });
 
   describe('validatePrerequisiteReferences', () => {
@@ -60,7 +60,8 @@ describe('PrerequisiteReferenceValidator', () => {
         async () => {
           throw new Error('DB down');
         },
-        async () => new Set<string>()
+        async () => new Set<string>(),
+        () => Date.now()
       );
       const result = await failValidator.validatePrerequisiteReferences(['chunk-1']);
       expect(result.isValid).toBe(false);

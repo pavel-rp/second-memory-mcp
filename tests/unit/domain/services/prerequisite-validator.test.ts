@@ -22,6 +22,7 @@ describe('PrerequisiteValidator', () => {
       referenceValidator: mockReferenceValidator,
       masteryService: mockMasteryService,
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      clock: () => Date.now(),
     });
   });
 
@@ -316,6 +317,7 @@ describe('PrerequisiteValidator Integration', () => {
       referenceValidator: localRefValidator,
       masteryService: localMasterySvc,
       algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      clock: () => Date.now(),
       customCriteria: {
         minimumQualityScore: 4.0,
         requiredAttempts: 2,

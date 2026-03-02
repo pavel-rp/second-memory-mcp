@@ -31,17 +31,20 @@ export function createMockAppContext(): AppContext {
     mapChunkRowToLearningItem,
 
     // Domain — pure functions (config pre-bound via closures)
-    calculateNextReview: input => calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG),
-    calculatePriorityScore: input => calculatePriorityScore(input, DEFAULT_ALGORITHM_CONFIG),
+    calculateNextReview: input => calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
+    calculatePriorityScore: input =>
+      calculatePriorityScore(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
     calculateNextReviewAdvanced: input =>
-      calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG),
-    rankCandidates: input => rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG),
+      calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
+    rankCandidates: input =>
+      rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
     computeDailyKpis,
     computeWindowRollup,
-    calculateSessionProgress,
-    determineNextPhase,
-    checkSessionCompletion: data => checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG),
-    validateSessionContext,
+    calculateSessionProgress: data => calculateSessionProgress(data, new Date()),
+    determineNextPhase: data => determineNextPhase(data, new Date()),
+    checkSessionCompletion: data =>
+      checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG, new Date()),
+    validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
   };
 

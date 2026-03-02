@@ -35,7 +35,8 @@ export async function processReviewResult(
         daysOverdue: options.daysOverdue || 0,
         consecutiveFailures: options.consecutiveFailures || 0,
       },
-      deps.algorithmConfig
+      deps.algorithmConfig,
+      new Date()
     );
 
     const now = Date.now();

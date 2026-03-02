@@ -15,7 +15,8 @@ describe('chunk-prerequisites service', () => {
     chunkIdLookup = new DrizzleChunkIdLookupAdapter(getSql());
     validator = new PrerequisiteReferenceValidator(
       (ids: string[]) => chunkIdLookup.getExistingIdsByIds(ids),
-      () => chunkIdLookup.getAllIds()
+      () => chunkIdLookup.getAllIds(),
+      () => Date.now()
     );
   });
   beforeEach(cleanupTestDb);
