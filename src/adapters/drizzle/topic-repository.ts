@@ -1,21 +1,14 @@
 import { eq } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
-import {
-  learningTopics,
-  type LearningTopicRow,
-  type NewLearningTopicRow,
-} from '../../infrastructure/db/schema.js';
+import { learningTopics } from '../../infrastructure/db/schema.js';
+import type { LearningTopic, NewLearningTopic } from '../../domain/types/entities.js';
 import { serviceOk, serviceFail, type ServiceResult } from '../../domain/types/service-result.js';
-import type {
-  TopicRepository,
-  TopicMinimalMetadata,
-  TopicWithSummary,
-} from '../../ports/topic-repository.js';
+import type { TopicRepository, TopicMinimalMetadata } from '../../ports/topic-repository.js';
 
 export class DrizzleTopicRepository implements TopicRepository {
   constructor(private db: SqlDb = getSql()) {}
 
-  async create(input: NewLearningTopicRow): Promise<ServiceResult<void>> {
+  async create(input: NewLearningTopic): Promise<ServiceResult<void>> {
     try {
       await this.db.insert(learningTopics).values(input);
       return serviceOk();
@@ -24,12 +17,12 @@ export class DrizzleTopicRepository implements TopicRepository {
     }
   }
 
-  async getById(id: string): Promise<LearningTopicRow | undefined> {
+  async getById(id: string): Promise<LearningTopic | undefined> {
     const [row] = await this.db.select().from(learningTopics).where(eq(learningTopics.id, id));
     return row ?? undefined;
   }
 
-  async getSummaryById(topicId: string): Promise<TopicWithSummary | undefined> {
+  async getSummaryById(topicId: string): Promise<LearningTopic | undefined> {
     const [row] = await this.db
       .select({
         id: learningTopics.id,
@@ -38,7 +31,6 @@ export class DrizzleTopicRepository implements TopicRepository {
         summary: learningTopics.summary,
         summaryVersion: learningTopics.summaryVersion,
         summaryUpdatedAt: learningTopics.summaryUpdatedAt,
-        summaryEmbedding: learningTopics.summaryEmbedding,
         createdAt: learningTopics.createdAt,
         updatedAt: learningTopics.updatedAt,
       })
@@ -51,14 +43,8 @@ export class DrizzleTopicRepository implements TopicRepository {
     id: string,
     changes: Partial<
       Pick<
-        NewLearningTopicRow,
-        | 'title'
-        | 'subject'
-        | 'summary'
-        | 'summaryVersion'
-        | 'summaryUpdatedAt'
-        | 'summaryEmbedding'
-        | 'updatedAt'
+        NewLearningTopic,
+        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
       >
     >
   ): Promise<ServiceResult<{ changesApplied: number }>> {
@@ -85,6 +71,14 @@ export class DrizzleTopicRepository implements TopicRepository {
     }
   }
 
+  async saveSummaryEmbedding(topicId: string, vector: number[] | null): Promise<number> {
+    const res = await this.db
+      .update(learningTopics)
+      .set({ summaryEmbedding: vector })
+      .where(eq(learningTopics.id, topicId));
+    return res.rowCount ?? 0;
+  }
+
   async delete(id: string): Promise<ServiceResult<{ deleted: boolean }>> {
     try {
       const res = await this.db.delete(learningTopics).where(eq(learningTopics.id, id));
@@ -98,7 +92,7 @@ export class DrizzleTopicRepository implements TopicRepository {
     }
   }
 
-  async list(): Promise<LearningTopicRow[]> {
+  async list(): Promise<LearningTopic[]> {
     return this.db.select().from(learningTopics);
   }
 

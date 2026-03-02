@@ -1,4 +1,4 @@
-import type { LearningChunkRow, NewLearningChunkRow } from '../infrastructure/db/schema.js';
+import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.js';
 import type { PaginatedLearningItemsResponse } from '../domain/types/recommendations.js';
 
 /** Filter options for listing chunks. */
@@ -46,13 +46,13 @@ export type ChunkContentResult = {
   contentUpdatedAt: number | null;
 };
 
-/** Extended chunk row with topic title. Excludes contentEmbedding by default (large vector). */
-export type ChunkWithTopicTitle = Omit<LearningChunkRow, 'contentEmbedding'> & {
+/** Extended chunk with topic title. Optionally includes contentEmbedding (large vector, excluded by default). */
+export type ChunkWithTopicTitle = LearningChunk & {
   contentEmbedding?: number[] | null;
   topicTitle?: string | null;
 };
 
-/** Chunk dependent row: alias for ChunkWithTopicTitle (LearningChunkRow already includes content fields). */
+/** Chunk dependent row: alias for ChunkWithTopicTitle (LearningChunk already includes content fields). */
 export type ChunkDependentRow = ChunkWithTopicTitle;
 
 /**
@@ -60,12 +60,14 @@ export type ChunkDependentRow = ChunkWithTopicTitle;
  * Adapters implement this to provide CRUD and query operations on learning chunks.
  */
 export interface ChunkRepository {
-  create(input: NewLearningChunkRow): Promise<void>;
-  getById(id: string): Promise<LearningChunkRow | undefined>;
+  create(input: NewLearningChunk): Promise<void>;
+  getById(id: string): Promise<LearningChunk | undefined>;
   update(
     id: string,
-    changes: Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>
+    changes: Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
   ): Promise<number>;
+  /** Persist or clear a chunk's content embedding (infrastructure-only column). */
+  saveContentEmbedding(chunkId: string, vector: number[] | null): Promise<number>;
   delete(id: string): Promise<number>;
   getContent(id: string): Promise<ChunkContentResult | null>;
   getWithContent(id: string): Promise<ChunkWithTopicTitle | null>;

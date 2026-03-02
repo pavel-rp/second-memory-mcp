@@ -3,7 +3,7 @@ import type { TopicRepository } from '../ports/topic-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
-import type { LearningChunkRow, LearningTopicRow } from '../infrastructure/db/schema.js';
+import type { LearningChunk, LearningTopic } from '../domain/types/entities.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
@@ -18,7 +18,7 @@ export type TopicDeps = {
 
 export type TopicUpdateResult = {
   success: boolean;
-  topic?: LearningTopicRow;
+  topic?: LearningTopic;
   error?: ServiceError;
 };
 
@@ -90,8 +90,8 @@ function validateTopicCreationInput(
 }
 
 function toTopicWithChunks(
-  topic: LearningTopicRow,
-  chunks: LearningChunkRow[],
+  topic: LearningTopic,
+  chunks: LearningChunk[],
   description?: string
 ): TopicWithChunks {
   return {
@@ -132,22 +132,21 @@ export async function createTopicWithChunks(
     const result = await deps.unitOfWork.execute(async ports => {
       const topicId = crypto.randomUUID();
       const now = Date.now();
-      const topic: LearningTopicRow = {
+      const topic: LearningTopic = {
         id: topicId,
         title: input.topicTitle,
         subject: input.subject,
         summary: input.topicSummary || null,
         summaryVersion: input.topicSummary ? 1 : null,
         summaryUpdatedAt: input.topicSummary ? now : null,
-        summaryEmbedding: null,
         createdAt: now,
         updatedAt: now,
       };
       await ports.topics.create(topic);
 
-      const createdChunks: LearningChunkRow[] = [];
+      const createdChunks: LearningChunk[] = [];
       for (const chunkDef of input.chunks) {
-        const chunkRow: LearningChunkRow = {
+        const chunkRow: LearningChunk = {
           id: chunkDef.id,
           topicId,
           title: chunkDef.title,
@@ -165,7 +164,6 @@ export async function createTopicWithChunks(
           content: chunkDef.content || null,
           contentVersion: chunkDef.content ? 1 : null,
           contentUpdatedAt: chunkDef.content ? now : null,
-          contentEmbedding: null,
           createdAt: now,
           updatedAt: now,
         };
@@ -306,25 +304,28 @@ export async function updateTopicSummary(
     const now = Date.now();
     const newVersion = (current.summaryVersion ?? 1) + 1;
 
-    // Clear stale embedding first — if re-embedding fails, we prefer no embedding
-    // over a misleading one from old summary content.
-    const updateData: Parameters<TopicRepository['update']>[1] = {
+    // Clear stale embedding before updating summary — if re-embedding fails,
+    // we prefer no embedding over a misleading one from old summary content.
+    await deps.topics.saveSummaryEmbedding(topicId, null);
+
+    const result = await deps.topics.update(topicId, {
       summary,
       summaryVersion: newVersion,
       summaryUpdatedAt: now,
-      summaryEmbedding: null,
       updatedAt: now,
-    };
+    });
+
+    // Best-effort re-embedding after summary update
     if (deps.embedding) {
       try {
         const vector = await deps.embedding.embedText(summary);
-        if (vector) updateData.summaryEmbedding = vector;
+        if (vector) {
+          await deps.topics.saveSummaryEmbedding(topicId, vector);
+        }
       } catch (err) {
         logger.warn('Embedding generation failed for topic summary:', err);
       }
     }
-
-    const result = await deps.topics.update(topicId, updateData);
 
     if (!result.success) return { success: false, error: result.error };
 
@@ -338,8 +339,8 @@ export async function updateTopicSummary(
 // --- Embedding helpers ---
 
 async function generateTopicEmbeddings(
-  topic: LearningTopicRow,
-  chunks: LearningChunkRow[],
+  topic: LearningTopic,
+  chunks: LearningChunk[],
   deps: TopicDeps
 ): Promise<void> {
   const embedding = deps.embedding;
@@ -349,14 +350,9 @@ async function generateTopicEmbeddings(
   if (topic.summary) {
     const summaryVector = await embedding.embedText(topic.summary);
     if (summaryVector) {
-      // Don't bump updatedAt for embedding-only updates — the caller already set
-      // updatedAt during the content write, and changing it here would make the
-      // returned object's updatedAt stale relative to the DB row.
-      const result = await deps.topics.update(topic.id, {
-        summaryEmbedding: summaryVector,
-      });
-      if (!result.success) {
-        logger.warn(`Failed to save summary embedding for topic ${topic.id}:`, result.error);
+      const rowCount = await deps.topics.saveSummaryEmbedding(topic.id, summaryVector);
+      if (rowCount === 0) {
+        logger.warn(`Failed to save summary embedding for topic ${topic.id}`);
       }
     }
   }
@@ -369,8 +365,9 @@ async function generateTopicEmbeddings(
   const vectors = await embedding.embedTexts(texts);
   await Promise.all(
     chunksWithContent.map(async (chunk, i) => {
-      if (!vectors[i]) return;
-      const result = await deps.chunks.update(chunk.id, { contentEmbedding: vectors[i] });
+      const vector = vectors[i];
+      if (!vector) return;
+      const result = await deps.chunks.saveContentEmbedding(chunk.id, vector);
       if (result === 0) {
         logger.warn(`Failed to save content embedding for chunk ${chunk.id}`);
       }

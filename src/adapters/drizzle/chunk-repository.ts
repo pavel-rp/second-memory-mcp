@@ -4,8 +4,8 @@ import {
   learningChunks,
   learningTopics,
   type LearningChunkRow,
-  type NewLearningChunkRow,
 } from '../../infrastructure/db/schema.js';
+import type { LearningChunk, NewLearningChunk } from '../../domain/types/entities.js';
 import type {
   ChunkRepository,
   ChunkContentResult,
@@ -71,20 +71,28 @@ type ChunkListRowWithContent = Omit<LearningChunkRow, 'contentEmbedding'> & {
 export class DrizzleChunkRepository implements ChunkRepository {
   constructor(private db: SqlDb = getSql()) {}
 
-  async create(input: NewLearningChunkRow): Promise<void> {
+  async create(input: NewLearningChunk): Promise<void> {
     await this.db.insert(learningChunks).values(input);
   }
 
-  async getById(id: string): Promise<LearningChunkRow | undefined> {
+  async getById(id: string): Promise<LearningChunk | undefined> {
     const [row] = await this.db.select().from(learningChunks).where(eq(learningChunks.id, id));
     return row;
   }
 
   async update(
     id: string,
-    changes: Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>
+    changes: Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
   ): Promise<number> {
     const res = await this.db.update(learningChunks).set(changes).where(eq(learningChunks.id, id));
+    return res.rowCount ?? 0;
+  }
+
+  async saveContentEmbedding(chunkId: string, vector: number[] | null): Promise<number> {
+    const res = await this.db
+      .update(learningChunks)
+      .set({ contentEmbedding: vector })
+      .where(eq(learningChunks.id, chunkId));
     return res.rowCount ?? 0;
   }
 

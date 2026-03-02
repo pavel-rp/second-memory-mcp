@@ -1,4 +1,4 @@
-import type { LearningSessionRow, SessionChunkRow } from '../infrastructure/db/schema.js';
+import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type { SessionInput, HistoricalFeedback, BatchOperation } from '../domain/types/session.js';
 
 /** Input for creating a session. */
@@ -15,7 +15,7 @@ export type CreateSessionInput = {
 
 /** Input for updating a session. */
 export type UpdateSessionInput = Partial<
-  Pick<LearningSessionRow, 'status' | 'endTime' | 'feedback' | 'updatedAt'>
+  Pick<LearningSession, 'status' | 'endTime' | 'feedback' | 'updatedAt'>
 >;
 
 /** Input for creating a session chunk. */
@@ -24,8 +24,8 @@ export type CreateSessionChunkInput = {
   sessionId: string;
   chunkId: string;
   status?: string;
-  attemptsJson?: SessionChunkRow['attemptsJson'];
-  qualityScoresJson?: SessionChunkRow['qualityScoresJson'];
+  attemptsJson?: SessionChunk['attemptsJson'];
+  qualityScoresJson?: SessionChunk['qualityScoresJson'];
   timeSpentMs?: number;
   createdAt: number;
   updatedAt: number;
@@ -33,10 +33,7 @@ export type CreateSessionChunkInput = {
 
 /** Input for updating a session chunk. */
 export type UpdateSessionChunkInput = Partial<
-  Pick<
-    SessionChunkRow,
-    'status' | 'attemptsJson' | 'qualityScoresJson' | 'timeSpentMs' | 'updatedAt'
-  >
+  Pick<SessionChunk, 'status' | 'attemptsJson' | 'qualityScoresJson' | 'timeSpentMs' | 'updatedAt'>
 >;
 
 /** Result of chunk ID validation. */
@@ -60,26 +57,26 @@ export type BatchSessionChunkResult = {
  */
 export interface SessionRepository {
   createSession(input: CreateSessionInput): Promise<void>;
-  getSessionById(id: string): Promise<LearningSessionRow | null>;
-  getActiveSession(): Promise<LearningSessionRow | null>;
+  getSessionById(id: string): Promise<LearningSession | null>;
+  getActiveSession(): Promise<LearningSession | null>;
   updateSession(id: string, changes: UpdateSessionInput): Promise<number>;
   completeSession(id: string, feedback?: string): Promise<number>;
   deleteSession(id: string): Promise<number>;
   listSessions(options?: {
     status?: 'active' | 'completed';
     limit?: number;
-  }): Promise<LearningSessionRow[]>;
+  }): Promise<LearningSession[]>;
 
-  createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunkRow>;
-  getSessionChunks(sessionId: string): Promise<SessionChunkRow[]>;
-  getSessionChunkById(id: string): Promise<SessionChunkRow | null>;
+  createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunk>;
+  getSessionChunks(sessionId: string): Promise<SessionChunk[]>;
+  getSessionChunkById(id: string): Promise<SessionChunk | null>;
   updateSessionChunk(id: string, changes: UpdateSessionChunkInput): Promise<number>;
   deleteSessionChunk(id: string): Promise<number>;
   batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void>;
 
   getSessionWithChunks(sessionId: string): Promise<{
-    session: LearningSessionRow | null;
-    chunks: SessionChunkRow[];
+    session: LearningSession | null;
+    chunks: SessionChunk[];
   }>;
   convertSessionToSessionInput(
     sessionId: string,
@@ -95,7 +92,7 @@ export interface SessionRepository {
   persistBatchSessionChunkOperations(args: {
     sessionId: string;
     operations: BatchOperation[];
-    existingChunks: SessionChunkRow[];
+    existingChunks: SessionChunk[];
   }): Promise<BatchSessionChunkResult>;
   validateChunkIds(chunkIds: string[]): Promise<ChunkValidationResult>;
 }

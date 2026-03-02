@@ -1,12 +1,13 @@
 import { eq } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
-import { learningChunks, type LearningChunkRow } from '../../infrastructure/db/schema.js';
+import { learningChunks } from '../../infrastructure/db/schema.js';
+import type { LearningChunk } from '../../domain/types/entities.js';
 import type { ReviewPersistencePort } from '../../ports/review-persistence-port.js';
 
 export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
   constructor(private db: SqlDb = getSql()) {}
 
-  async getChunk(id: string): Promise<LearningChunkRow | undefined> {
+  async getChunk(id: string): Promise<LearningChunk | undefined> {
     const [row] = await this.db.select().from(learningChunks).where(eq(learningChunks.id, id));
     return row;
   }
@@ -15,7 +16,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
     chunkId: string,
     updates: Partial<
       Pick<
-        LearningChunkRow,
+        LearningChunk,
         | 'easeFactor'
         | 'repetitions'
         | 'intervalDays'
