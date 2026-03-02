@@ -3,21 +3,18 @@ import type {
   TopicMinimalMetadata,
   TopicWithSummary,
 } from '../../../src/ports/topic-repository.js';
-import type {
-  LearningTopicRow,
-  NewLearningTopicRow,
-} from '../../../src/infrastructure/db/schema.js';
+import type { LearningTopic, NewLearningTopic } from '../../../src/domain/types/entities.js';
 import type { ServiceResult } from '../../../src/domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../../../src/domain/types/service-result.js';
 
 export class InMemoryTopicRepository implements TopicRepository {
-  private topics = new Map<string, LearningTopicRow>();
+  private topics = new Map<string, LearningTopic>();
 
-  seed(row: LearningTopicRow): void {
+  seed(row: LearningTopic): void {
     this.topics.set(row.id, row);
   }
 
-  getStore(): Map<string, LearningTopicRow> {
+  getStore(): Map<string, LearningTopic> {
     return this.topics;
   }
 
@@ -25,8 +22,8 @@ export class InMemoryTopicRepository implements TopicRepository {
     this.topics.clear();
   }
 
-  async create(input: NewLearningTopicRow): Promise<ServiceResult<void>> {
-    const row: LearningTopicRow = {
+  async create(input: NewLearningTopic): Promise<ServiceResult<void>> {
+    const row: LearningTopic = {
       id: input.id,
       title: input.title,
       subject: input.subject,
@@ -41,7 +38,7 @@ export class InMemoryTopicRepository implements TopicRepository {
     return serviceOk(undefined);
   }
 
-  async getById(id: string): Promise<LearningTopicRow | undefined> {
+  async getById(id: string): Promise<LearningTopic | undefined> {
     return this.topics.get(id);
   }
 
@@ -55,7 +52,7 @@ export class InMemoryTopicRepository implements TopicRepository {
     id: string,
     changes: Partial<
       Pick<
-        NewLearningTopicRow,
+        NewLearningTopic,
         | 'title'
         | 'subject'
         | 'summary'
@@ -68,7 +65,7 @@ export class InMemoryTopicRepository implements TopicRepository {
   ): Promise<ServiceResult<{ changesApplied: number }>> {
     const existing = this.topics.get(id);
     if (!existing) return serviceFail({ type: 'not_found', message: `Topic ${id} not found` });
-    this.topics.set(id, { ...existing, ...changes } as LearningTopicRow);
+    this.topics.set(id, { ...existing, ...changes } as LearningTopic);
     return serviceOk({ changesApplied: 1 });
   }
 
@@ -77,7 +74,7 @@ export class InMemoryTopicRepository implements TopicRepository {
     return serviceOk({ deleted });
   }
 
-  async list(): Promise<LearningTopicRow[]> {
+  async list(): Promise<LearningTopic[]> {
     return [...this.topics.values()];
   }
 

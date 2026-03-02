@@ -3,7 +3,7 @@ import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
-import type { LearningChunkRow, NewLearningChunkRow } from '../infrastructure/db/schema.js';
+import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.js';
 import type { ServiceResult, ServiceError } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { hasSignificantContentChange } from '../shared/content-similarity.js';
@@ -22,7 +22,7 @@ export type ChunkDeps = {
 
 export type ChunkUpdateResult = {
   success: boolean;
-  chunk?: LearningChunkRow;
+  chunk?: LearningChunk;
   progressReset?: boolean;
   error?: ServiceError;
 };
@@ -37,7 +37,7 @@ export type ChunkDependencyCleanup = {
 
 export type DeleteChunkResult = {
   success: boolean;
-  chunk?: LearningChunkRow;
+  chunk?: LearningChunk;
   removedDependencies?: ChunkDependencyCleanup[];
   error?: ServiceError;
 };
@@ -45,7 +45,7 @@ export type DeleteChunkResult = {
 async function updateChunkFields(
   id: string,
   buildFields: (
-    current: LearningChunkRow,
+    current: LearningChunk,
     now: number
   ) => { fields: Record<string, unknown>; progressReset?: boolean },
   deps: { chunks: ChunkRepository; embedding?: EmbeddingPort }
@@ -77,7 +77,7 @@ async function updateChunkFields(
 
     const rowCount = await deps.chunks.update(
       id,
-      fields as Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>
+      fields as Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
     );
     if (rowCount === 0) {
       return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
@@ -257,7 +257,7 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
         await ports.chunks.update(depId, {
           prerequisitesJson: remaining,
           updatedAt: now,
-        } as Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>);
+        } as Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>);
         cleanups.push({
           chunkId: depId,
           chunkTitle: dep.title,
@@ -280,9 +280,9 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
 }
 
 export async function createChunkWithTopic(
-  input: NewLearningChunkRow & { topicTitle?: string },
+  input: NewLearningChunk & { topicTitle?: string },
   deps: ChunkDeps
-): Promise<ServiceResult<LearningChunkRow>> {
+): Promise<ServiceResult<LearningChunk>> {
   try {
     let topicId = input.topicId;
 
@@ -317,18 +317,19 @@ export async function createChunkWithTopic(
     }
 
     // Generate embedding for chunk content (best-effort, outside transaction)
-    let returnChunk = created;
+    const returnChunk = created;
     if (created.content && deps.embedding) {
       try {
         const vector = await deps.embedding.embedText(created.content);
         if (vector) {
-          const rowCount = await deps.chunks.update(created.id, {
-            contentEmbedding: vector,
-          } as Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>);
+          // contentEmbedding is infrastructure-only (not on domain type), cast required
+          const rowCount = await deps.chunks.update(
+            created.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            { contentEmbedding: vector } as any
+          );
           if (rowCount === 0) {
             logger.warn(`Failed to save content embedding for chunk ${created.id}`);
-          } else {
-            returnChunk = { ...created, contentEmbedding: vector };
           }
         }
       } catch (err) {

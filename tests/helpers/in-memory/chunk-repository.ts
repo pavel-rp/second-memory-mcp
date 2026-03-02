@@ -12,23 +12,20 @@ import type {
   LearningItemWithContent,
   PaginatedLearningItemsResponse,
 } from '../../../src/domain/types/recommendations.js';
-import type {
-  LearningChunkRow,
-  NewLearningChunkRow,
-} from '../../../src/infrastructure/db/schema.js';
+import type { LearningChunk, NewLearningChunk } from '../../../src/domain/types/entities.js';
 
 export class InMemoryChunkRepository implements ChunkRepository {
-  private chunks = new Map<string, LearningChunkRow>();
+  private chunks = new Map<string, LearningChunk>();
   private topicTitles = new Map<string, string>(); // topicId → title
 
   /** Seed a chunk for testing. */
-  seed(row: LearningChunkRow, topicTitle?: string): void {
+  seed(row: LearningChunk, topicTitle?: string): void {
     this.chunks.set(row.id, row);
     if (topicTitle) this.topicTitles.set(row.topicId, topicTitle);
   }
 
   /** Get raw store for assertions. */
-  getStore(): Map<string, LearningChunkRow> {
+  getStore(): Map<string, LearningChunk> {
     return this.chunks;
   }
 
@@ -37,8 +34,8 @@ export class InMemoryChunkRepository implements ChunkRepository {
     this.topicTitles.clear();
   }
 
-  async create(input: NewLearningChunkRow): Promise<void> {
-    const row: LearningChunkRow = {
+  async create(input: NewLearningChunk): Promise<void> {
+    const row: LearningChunk = {
       id: input.id,
       topicId: input.topicId,
       title: input.title,
@@ -56,24 +53,23 @@ export class InMemoryChunkRepository implements ChunkRepository {
       content: input.content ?? null,
       contentVersion: input.contentVersion ?? null,
       contentUpdatedAt: input.contentUpdatedAt ?? null,
-      contentEmbedding: input.contentEmbedding ?? null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };
     this.chunks.set(row.id, row);
   }
 
-  async getById(id: string): Promise<LearningChunkRow | undefined> {
+  async getById(id: string): Promise<LearningChunk | undefined> {
     return this.chunks.get(id);
   }
 
   async update(
     id: string,
-    changes: Partial<Omit<NewLearningChunkRow, 'id' | 'topicId' | 'createdAt'>>
+    changes: Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
   ): Promise<number> {
     const existing = this.chunks.get(id);
     if (!existing) return 0;
-    this.chunks.set(id, { ...existing, ...changes } as LearningChunkRow);
+    this.chunks.set(id, { ...existing, ...changes } as LearningChunk);
     return 1;
   }
 
@@ -173,9 +169,6 @@ export class InMemoryChunkRepository implements ChunkRepository {
   async findDependents(chunkId: string): Promise<ChunkDependentRow[]> {
     return [...this.chunks.values()]
       .filter(r => r.prerequisitesJson?.includes(chunkId))
-      .map(r => {
-        const { contentEmbedding: _, ...rest } = r;
-        return { ...rest, topicTitle: this.topicTitles.get(r.topicId) ?? null };
-      });
+      .map(r => ({ ...r, topicTitle: this.topicTitles.get(r.topicId) ?? null }));
   }
 }

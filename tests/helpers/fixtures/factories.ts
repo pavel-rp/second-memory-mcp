@@ -1,4 +1,4 @@
-import type { LearningChunkRow, LearningTopicRow } from '../../../src/infrastructure/db/schema.js';
+import type { LearningChunk, LearningTopic } from '../../../src/domain/types/entities.js';
 
 let counter = 0;
 function nextId(prefix = 'test'): string {
@@ -10,7 +10,7 @@ export function resetFactoryCounter(): void {
   counter = 0;
 }
 
-export function buildTopic(overrides?: Partial<LearningTopicRow>): LearningTopicRow {
+export function buildTopic(overrides?: Partial<LearningTopic>): LearningTopic {
   const now = Date.now();
   return {
     id: nextId('topic'),
@@ -26,10 +26,7 @@ export function buildTopic(overrides?: Partial<LearningTopicRow>): LearningTopic
   };
 }
 
-export function buildChunk(
-  topicId: string,
-  overrides?: Partial<LearningChunkRow>
-): LearningChunkRow {
+export function buildChunk(topicId: string, overrides?: Partial<LearningChunk>): LearningChunk {
   const now = Date.now();
   return {
     id: nextId('chunk'),
@@ -49,7 +46,6 @@ export function buildChunk(
     content: 'Test content',
     contentVersion: 1,
     contentUpdatedAt: now,
-    contentEmbedding: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -59,9 +55,9 @@ export function buildChunk(
 /** Create a topic with N chunks, all seeded in the provided repos. */
 export function buildTopicWithChunks(
   chunkCount: number,
-  topicOverrides?: Partial<LearningTopicRow>,
-  chunkOverrides?: Partial<LearningChunkRow>
-): { topic: LearningTopicRow; chunks: LearningChunkRow[] } {
+  topicOverrides?: Partial<LearningTopic>,
+  chunkOverrides?: Partial<LearningChunk>
+): { topic: LearningTopic; chunks: LearningChunk[] } {
   const topic = buildTopic(topicOverrides);
   const chunks = Array.from({ length: chunkCount }, (_, i) =>
     buildChunk(topic.id, {

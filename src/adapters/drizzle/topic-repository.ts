@@ -1,10 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
-import {
-  learningTopics,
-  type LearningTopicRow,
-  type NewLearningTopicRow,
-} from '../../infrastructure/db/schema.js';
+import { learningTopics } from '../../infrastructure/db/schema.js';
+import type { LearningTopic, NewLearningTopic } from '../../domain/types/entities.js';
 import { serviceOk, serviceFail, type ServiceResult } from '../../domain/types/service-result.js';
 import type {
   TopicRepository,
@@ -15,7 +12,7 @@ import type {
 export class DrizzleTopicRepository implements TopicRepository {
   constructor(private db: SqlDb = getSql()) {}
 
-  async create(input: NewLearningTopicRow): Promise<ServiceResult<void>> {
+  async create(input: NewLearningTopic): Promise<ServiceResult<void>> {
     try {
       await this.db.insert(learningTopics).values(input);
       return serviceOk();
@@ -24,7 +21,7 @@ export class DrizzleTopicRepository implements TopicRepository {
     }
   }
 
-  async getById(id: string): Promise<LearningTopicRow | undefined> {
+  async getById(id: string): Promise<LearningTopic | undefined> {
     const [row] = await this.db.select().from(learningTopics).where(eq(learningTopics.id, id));
     return row ?? undefined;
   }
@@ -51,7 +48,7 @@ export class DrizzleTopicRepository implements TopicRepository {
     id: string,
     changes: Partial<
       Pick<
-        NewLearningTopicRow,
+        NewLearningTopic,
         | 'title'
         | 'subject'
         | 'summary'
@@ -98,7 +95,7 @@ export class DrizzleTopicRepository implements TopicRepository {
     }
   }
 
-  async list(): Promise<LearningTopicRow[]> {
+  async list(): Promise<LearningTopic[]> {
     return this.db.select().from(learningTopics);
   }
 

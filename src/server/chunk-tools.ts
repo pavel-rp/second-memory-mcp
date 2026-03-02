@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import crypto from 'node:crypto';
-import type { NewLearningChunkRow } from '../infrastructure/db/schema.js';
+import type { NewLearningChunk } from '../domain/types/entities.js';
 import {
   CreateLearningItemInputSchema,
   CreateLearningItemInputShape,
@@ -55,7 +55,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           createdAt: now,
           updatedAt: now,
           topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
-        } as NewLearningChunkRow & { topicTitle?: string });
+        } as NewLearningChunk & { topicTitle?: string });
 
         if (!result.success) {
           return toolError(

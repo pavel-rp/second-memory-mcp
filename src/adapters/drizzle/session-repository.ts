@@ -5,11 +5,10 @@ import {
   learningSessions,
   sessionChunks,
   learningChunks,
-  type LearningSessionRow,
-  type SessionChunkRow,
   type NewLearningSessionRow,
   type NewSessionChunkRow,
 } from '../../infrastructure/db/schema.js';
+import type { LearningSession, SessionChunk } from '../../domain/types/entities.js';
 import type {
   SessionRepository,
   CreateSessionInput,
@@ -61,12 +60,12 @@ export class DrizzleSessionRepository implements SessionRepository {
     }
   }
 
-  async getSessionById(id: string): Promise<LearningSessionRow | null> {
+  async getSessionById(id: string): Promise<LearningSession | null> {
     const [row] = await this.db.select().from(learningSessions).where(eq(learningSessions.id, id));
     return row || null;
   }
 
-  async getActiveSession(): Promise<LearningSessionRow | null> {
+  async getActiveSession(): Promise<LearningSession | null> {
     const [row] = await this.db
       .select()
       .from(learningSessions)
@@ -101,7 +100,7 @@ export class DrizzleSessionRepository implements SessionRepository {
   async listSessions(options?: {
     status?: 'active' | 'completed';
     limit?: number;
-  }): Promise<LearningSessionRow[]> {
+  }): Promise<LearningSession[]> {
     let query = this.db.select().from(learningSessions);
     if (options?.status) {
       query = query.where(eq(learningSessions.status, options.status)) as typeof query;
@@ -113,7 +112,7 @@ export class DrizzleSessionRepository implements SessionRepository {
     return await query;
   }
 
-  async createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunkRow> {
+  async createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunk> {
     const chunkData: NewSessionChunkRow = {
       id: input.id,
       sessionId: input.sessionId,
@@ -127,14 +126,14 @@ export class DrizzleSessionRepository implements SessionRepository {
     };
     await this.db.insert(sessionChunks).values(chunkData);
     logger.info(`Created session chunk ${input.id} for session ${input.sessionId}`);
-    return chunkData as SessionChunkRow;
+    return chunkData as SessionChunk;
   }
 
-  async getSessionChunks(sessionId: string): Promise<SessionChunkRow[]> {
+  async getSessionChunks(sessionId: string): Promise<SessionChunk[]> {
     return await this.db.select().from(sessionChunks).where(eq(sessionChunks.sessionId, sessionId));
   }
 
-  async getSessionChunkById(id: string): Promise<SessionChunkRow | null> {
+  async getSessionChunkById(id: string): Promise<SessionChunk | null> {
     const [row] = await this.db.select().from(sessionChunks).where(eq(sessionChunks.id, id));
     return row || null;
   }
@@ -168,7 +167,7 @@ export class DrizzleSessionRepository implements SessionRepository {
 
   async getSessionWithChunks(
     sessionId: string
-  ): Promise<{ session: LearningSessionRow | null; chunks: SessionChunkRow[] }> {
+  ): Promise<{ session: LearningSession | null; chunks: SessionChunk[] }> {
     const session = await this.getSessionById(sessionId);
     const chunks = session ? await this.getSessionChunks(sessionId) : [];
     return { session, chunks };
@@ -257,7 +256,7 @@ export class DrizzleSessionRepository implements SessionRepository {
   async persistBatchSessionChunkOperations(args: {
     sessionId: string;
     operations: BatchOperation[];
-    existingChunks: SessionChunkRow[];
+    existingChunks: SessionChunk[];
   }): Promise<BatchSessionChunkResult> {
     const { sessionId, operations, existingChunks } = args;
     const existingMap = new Map(existingChunks.map(c => [c.chunkId, c]));
@@ -272,7 +271,7 @@ export class DrizzleSessionRepository implements SessionRepository {
         const existing = existingMap.get(op.chunkId);
         if (existing) {
           // Update existing
-          const changes: Partial<SessionChunkRow> = { updatedAt: now };
+          const changes: Partial<SessionChunk> = { updatedAt: now };
           let hasChanges = false;
           if (op.status && op.status !== existing.status) {
             changes.status = op.status;

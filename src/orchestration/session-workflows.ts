@@ -8,7 +8,7 @@ import type {
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { SessionInput, HistoricalFeedback, BatchOperation } from '../domain/types/session.js';
 import type { LearningItem } from '../domain/types/recommendations.js';
-import type { LearningSessionRow, SessionChunkRow } from '../infrastructure/db/schema.js';
+import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { dependencyResolver } from '../domain/algorithms/dependency-resolver.js';
@@ -95,7 +95,7 @@ export async function completeSession(
 export async function getSessionWithChunks(
   sessionId: string,
   deps: SessionDeps
-): Promise<{ session: LearningSessionRow | null; chunks: SessionChunkRow[] }> {
+): Promise<{ session: LearningSession | null; chunks: SessionChunk[] }> {
   return deps.sessions.getSessionWithChunks(sessionId);
 }
 
@@ -149,18 +149,18 @@ export async function batchUpdateSessionChunks(
 export async function getSessionById(
   sessionId: string,
   deps: SessionDeps
-): Promise<LearningSessionRow | null> {
+): Promise<LearningSession | null> {
   return deps.sessions.getSessionById(sessionId);
 }
 
-export async function getActiveSession(deps: SessionDeps): Promise<LearningSessionRow | null> {
+export async function getActiveSession(deps: SessionDeps): Promise<LearningSession | null> {
   return deps.sessions.getActiveSession();
 }
 
 export async function createSessionChunk(
   input: CreateSessionChunkInput,
   deps: SessionDeps
-): Promise<SessionChunkRow> {
+): Promise<SessionChunk> {
   return deps.sessions.createSessionChunk(input);
 }
 
@@ -174,7 +174,7 @@ export async function validateChunkIds(
 export async function getSessionChunks(
   sessionId: string,
   deps: SessionDeps
-): Promise<SessionChunkRow[]> {
+): Promise<SessionChunk[]> {
   return deps.sessions.getSessionChunks(sessionId);
 }
 

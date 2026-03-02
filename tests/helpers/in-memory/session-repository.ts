@@ -8,7 +8,7 @@ import type {
   ChunkValidationResult,
   BatchSessionChunkResult,
 } from '../../../src/ports/session-repository.js';
-import type { LearningSessionRow, SessionChunkRow } from '../../../src/infrastructure/db/schema.js';
+import type { LearningSession, SessionChunk } from '../../../src/domain/types/entities.js';
 import type {
   SessionInput,
   HistoricalFeedback,
@@ -18,27 +18,27 @@ import type {
 import { InMemoryChunkRepository } from './chunk-repository.js';
 
 export class InMemorySessionRepository implements SessionRepository {
-  private sessions = new Map<string, LearningSessionRow>();
-  private sessionChunks = new Map<string, SessionChunkRow>();
+  private sessions = new Map<string, LearningSession>();
+  private sessionChunks = new Map<string, SessionChunk>();
   private chunkRepo?: InMemoryChunkRepository;
 
   constructor(chunkRepo?: InMemoryChunkRepository) {
     this.chunkRepo = chunkRepo;
   }
 
-  seed(session: LearningSessionRow): void {
+  seed(session: LearningSession): void {
     this.sessions.set(session.id, session);
   }
 
-  seedSessionChunk(sc: SessionChunkRow): void {
+  seedSessionChunk(sc: SessionChunk): void {
     this.sessionChunks.set(sc.id, sc);
   }
 
-  getSessionStore(): Map<string, LearningSessionRow> {
+  getSessionStore(): Map<string, LearningSession> {
     return this.sessions;
   }
 
-  getSessionChunkStore(): Map<string, SessionChunkRow> {
+  getSessionChunkStore(): Map<string, SessionChunk> {
     return this.sessionChunks;
   }
 
@@ -48,7 +48,7 @@ export class InMemorySessionRepository implements SessionRepository {
   }
 
   async createSession(input: CreateSessionInput): Promise<void> {
-    const row: LearningSessionRow = {
+    const row: LearningSession = {
       id: input.id,
       topicId: input.topicId || null,
       chunkIds: input.chunkIds || null,
@@ -65,7 +65,7 @@ export class InMemorySessionRepository implements SessionRepository {
 
     if (input.chunkIds && input.chunkIds.length > 0) {
       for (const chunkId of input.chunkIds) {
-        const sc: SessionChunkRow = {
+        const sc: SessionChunk = {
           id: crypto.randomUUID(),
           sessionId: input.id,
           chunkId,
@@ -81,11 +81,11 @@ export class InMemorySessionRepository implements SessionRepository {
     }
   }
 
-  async getSessionById(id: string): Promise<LearningSessionRow | null> {
+  async getSessionById(id: string): Promise<LearningSession | null> {
     return this.sessions.get(id) || null;
   }
 
-  async getActiveSession(): Promise<LearningSessionRow | null> {
+  async getActiveSession(): Promise<LearningSession | null> {
     const active = [...this.sessions.values()]
       .filter(s => s.status === 'active')
       .sort((a, b) => b.createdAt - a.createdAt);
@@ -95,7 +95,7 @@ export class InMemorySessionRepository implements SessionRepository {
   async updateSession(id: string, changes: UpdateSessionInput): Promise<number> {
     const existing = this.sessions.get(id);
     if (!existing) return 0;
-    this.sessions.set(id, { ...existing, ...changes } as LearningSessionRow);
+    this.sessions.set(id, { ...existing, ...changes } as LearningSession);
     return 1;
   }
 
@@ -116,7 +116,7 @@ export class InMemorySessionRepository implements SessionRepository {
   async listSessions(options?: {
     status?: 'active' | 'completed';
     limit?: number;
-  }): Promise<LearningSessionRow[]> {
+  }): Promise<LearningSession[]> {
     let rows = [...this.sessions.values()];
     if (options?.status) rows = rows.filter(r => r.status === options.status);
     rows.sort((a, b) => b.createdAt - a.createdAt);
@@ -124,8 +124,8 @@ export class InMemorySessionRepository implements SessionRepository {
     return rows;
   }
 
-  async createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunkRow> {
-    const row: SessionChunkRow = {
+  async createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunk> {
+    const row: SessionChunk = {
       id: input.id,
       sessionId: input.sessionId,
       chunkId: input.chunkId,
@@ -140,18 +140,18 @@ export class InMemorySessionRepository implements SessionRepository {
     return row;
   }
 
-  async getSessionChunks(sessionId: string): Promise<SessionChunkRow[]> {
+  async getSessionChunks(sessionId: string): Promise<SessionChunk[]> {
     return [...this.sessionChunks.values()].filter(sc => sc.sessionId === sessionId);
   }
 
-  async getSessionChunkById(id: string): Promise<SessionChunkRow | null> {
+  async getSessionChunkById(id: string): Promise<SessionChunk | null> {
     return this.sessionChunks.get(id) || null;
   }
 
   async updateSessionChunk(id: string, changes: UpdateSessionChunkInput): Promise<number> {
     const existing = this.sessionChunks.get(id);
     if (!existing) return 0;
-    this.sessionChunks.set(id, { ...existing, ...changes } as SessionChunkRow);
+    this.sessionChunks.set(id, { ...existing, ...changes } as SessionChunk);
     return 1;
   }
 
@@ -167,7 +167,7 @@ export class InMemorySessionRepository implements SessionRepository {
 
   async getSessionWithChunks(
     sessionId: string
-  ): Promise<{ session: LearningSessionRow | null; chunks: SessionChunkRow[] }> {
+  ): Promise<{ session: LearningSession | null; chunks: SessionChunk[] }> {
     const session = await this.getSessionById(sessionId);
     const chunks = session ? await this.getSessionChunks(sessionId) : [];
     return { session, chunks };
@@ -247,7 +247,7 @@ export class InMemorySessionRepository implements SessionRepository {
   async persistBatchSessionChunkOperations(args: {
     sessionId: string;
     operations: BatchOperation[];
-    existingChunks: SessionChunkRow[];
+    existingChunks: SessionChunk[];
   }): Promise<BatchSessionChunkResult> {
     const { sessionId, operations, existingChunks } = args;
     const existingMap = new Map(existingChunks.map(c => [c.chunkId, c]));
@@ -261,7 +261,7 @@ export class InMemorySessionRepository implements SessionRepository {
       const existing = existingMap.get(op.chunkId);
       if (existing) {
         let hasChanges = false;
-        const changes: Partial<SessionChunkRow> = { updatedAt: now };
+        const changes: Partial<SessionChunk> = { updatedAt: now };
         if (op.status && op.status !== existing.status) {
           changes.status = op.status;
           hasChanges = true;
@@ -279,14 +279,14 @@ export class InMemorySessionRepository implements SessionRepository {
           hasChanges = true;
         }
         if (hasChanges) {
-          this.sessionChunks.set(existing.id, { ...existing, ...changes } as SessionChunkRow);
+          this.sessionChunks.set(existing.id, { ...existing, ...changes } as SessionChunk);
           updated++;
           affectedChunkIds.push(op.chunkId);
         } else {
           unchanged++;
         }
       } else {
-        const sc: SessionChunkRow = {
+        const sc: SessionChunk = {
           id: crypto.randomUUID(),
           sessionId,
           chunkId: op.chunkId,

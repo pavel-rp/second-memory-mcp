@@ -1,4 +1,4 @@
-import type { LearningChunkRow } from '../infrastructure/db/schema.js';
+import type { LearningChunk } from '../domain/types/entities.js';
 
 /** Data returned after persisting a review result. */
 export type ReviewResultData = {
@@ -28,12 +28,12 @@ export type ReviewResultData = {
  * Decouples the processReviewResult orchestration from Drizzle.
  */
 export interface ReviewPersistencePort {
-  getChunk(id: string): Promise<LearningChunkRow | undefined>;
+  getChunk(id: string): Promise<LearningChunk | undefined>;
   persistReviewUpdate(
     chunkId: string,
     updates: Partial<
       Pick<
-        LearningChunkRow,
+        LearningChunk,
         | 'easeFactor'
         | 'repetitions'
         | 'intervalDays'

@@ -1,11 +1,11 @@
 import type { ReviewPersistencePort } from '../../../src/ports/review-persistence-port.js';
-import type { LearningChunkRow } from '../../../src/infrastructure/db/schema.js';
+import type { LearningChunk } from '../../../src/domain/types/entities.js';
 import { InMemoryChunkRepository } from './chunk-repository.js';
 
 export class InMemoryReviewPersistence implements ReviewPersistencePort {
   constructor(private chunkRepo: InMemoryChunkRepository) {}
 
-  async getChunk(id: string): Promise<LearningChunkRow | undefined> {
+  async getChunk(id: string): Promise<LearningChunk | undefined> {
     return this.chunkRepo.getById(id);
   }
 
@@ -13,7 +13,7 @@ export class InMemoryReviewPersistence implements ReviewPersistencePort {
     chunkId: string,
     updates: Partial<
       Pick<
-        LearningChunkRow,
+        LearningChunk,
         | 'easeFactor'
         | 'repetitions'
         | 'intervalDays'

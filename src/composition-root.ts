@@ -37,11 +37,7 @@ import type {
 import type { SessionInput, HistoricalFeedback, BatchOperation } from './domain/types/session.js';
 import type { SearchLearningContentInput, SearchResultSet } from './domain/types/search-tools.js';
 import type { ServiceResult } from './domain/types/service-result.js';
-import type {
-  LearningChunkRow,
-  LearningSessionRow,
-  SessionChunkRow,
-} from './infrastructure/db/schema.js';
+import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
 import * as topicWorkflows from './orchestration/topic-workflows.js';
@@ -88,7 +84,7 @@ export interface AppContext {
   // Chunk orchestration
   createChunkWithTopic: (
     input: Parameters<typeof chunkWorkflows.createChunkWithTopic>[0]
-  ) => Promise<ServiceResult<LearningChunkRow>>;
+  ) => Promise<ServiceResult<LearningChunk>>;
   updateChunkContent: (
     id: string,
     input: { content: string; resetProgress?: boolean }
@@ -152,11 +148,11 @@ export interface AppContext {
     sessionId: string,
     feedback: string | undefined
   ) => Promise<ServiceResult<void>>;
-  getSessionById: (sessionId: string) => Promise<LearningSessionRow | null>;
-  getActiveSession: () => Promise<LearningSessionRow | null>;
+  getSessionById: (sessionId: string) => Promise<LearningSession | null>;
+  getActiveSession: () => Promise<LearningSession | null>;
   getSessionWithChunks: (
     sessionId: string
-  ) => Promise<{ session: LearningSessionRow | null; chunks: SessionChunkRow[] }>;
+  ) => Promise<{ session: LearningSession | null; chunks: SessionChunk[] }>;
   convertSessionToInput: (
     sessionId: string,
     options?: { includeHistoricalFeedback?: boolean; historicalFeedbackLimit?: number }
@@ -169,9 +165,9 @@ export interface AppContext {
     sessionId: string,
     operations: BatchOperation[]
   ) => Promise<ServiceResult<{ created: number; updated: number; unchanged: number }>>;
-  createSessionChunk: (input: CreateSessionChunkInput) => Promise<SessionChunkRow>;
+  createSessionChunk: (input: CreateSessionChunkInput) => Promise<SessionChunk>;
   validateChunkIds: (chunkIds: string[]) => Promise<ChunkValidationResult>;
-  getSessionChunks: (sessionId: string) => Promise<SessionChunkRow[]>;
+  getSessionChunks: (sessionId: string) => Promise<SessionChunk[]>;
   resolveSessionChunkDependencies: (
     chunkIds: string[]
   ) => Promise<{ resolvedChunkIds: string[]; addedPrerequisites: string[]; message: string }>;
