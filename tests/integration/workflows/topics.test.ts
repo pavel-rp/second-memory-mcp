@@ -10,7 +10,7 @@ describe('topics service', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
     topicRepo = new DrizzleTopicRepository(getSql());
   });
 

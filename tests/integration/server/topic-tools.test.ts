@@ -15,7 +15,7 @@ describe('topic-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerTopicTools(server as any, createAppContext());
+    registerTopicTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

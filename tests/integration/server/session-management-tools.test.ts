@@ -26,7 +26,7 @@ describe('Integration: Session Management Tools', () => {
     await cleanupTestDb();
 
     server = new CaptureServer();
-    registerSessionManagementTools(server as any, createAppContext());
+    registerSessionManagementTools(server as any, createAppContext({ embedding: undefined }));
 
     createSessionTool = server.tools.get('create_session')!;
     getActiveSessionTool = server.tools.get('get_active_session')!;

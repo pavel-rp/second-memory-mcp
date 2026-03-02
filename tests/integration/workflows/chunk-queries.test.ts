@@ -10,7 +10,7 @@ describe('chunk-queries service', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
   });
   beforeEach(cleanupTestDb);
   afterAll(teardownTestDb);

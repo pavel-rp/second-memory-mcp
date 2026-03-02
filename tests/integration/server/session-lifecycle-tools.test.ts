@@ -15,7 +15,7 @@ describe('session-lifecycle-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerSessionLifecycleTools(server as any, createAppContext());
+    registerSessionLifecycleTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

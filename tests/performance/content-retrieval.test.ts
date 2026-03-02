@@ -22,7 +22,7 @@ describe('Performance: Content Retrieval', () => {
   beforeAll(setupTestDb);
   beforeEach(async () => {
     await cleanupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
   });
   afterAll(teardownTestDb);
 

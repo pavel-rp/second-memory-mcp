@@ -15,7 +15,7 @@ describe('query-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerQueryTools(server as any, createAppContext());
+    registerQueryTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

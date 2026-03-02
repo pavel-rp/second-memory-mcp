@@ -14,7 +14,7 @@ describe('chunks service', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
     chunkRepo = new DrizzleChunkRepository(getSql());
   });
   beforeEach(cleanupTestDb);
@@ -419,7 +419,7 @@ describe('Chunk Update Functions', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
   });
   beforeEach(cleanupTestDb);
   afterAll(teardownTestDb);
@@ -940,7 +940,7 @@ describe('Content Inclusion Functions', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
   });
   beforeEach(cleanupTestDb);
   afterAll(teardownTestDb);

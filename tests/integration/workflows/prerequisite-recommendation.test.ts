@@ -23,7 +23,7 @@ function createTestItem(id: string, overrides: Partial<LearningItem> = {}): Lear
 describe('Integration: Prerequisite Recommendation Workflow', () => {
   it('should handle items without prerequisites in recommendations', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
@@ -59,7 +59,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
   it('should handle items with prerequisites gracefully', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
     const items = [
@@ -98,7 +98,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
   it('should process tool registration successfully', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
     expect(tool).toBeDefined();
@@ -109,7 +109,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
   it('should handle prerequisite processing without database', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
     const items = [

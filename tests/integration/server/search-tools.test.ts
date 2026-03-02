@@ -15,7 +15,7 @@ describe('search_learning_content tool', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerSearchTools(server as any, createAppContext());
+    registerSearchTools(server as any, createAppContext({ embedding: undefined }));
     tool = server.tools.get('search_learning_content')!;
     expect(tool).toBeDefined();
   });

@@ -11,7 +11,7 @@ describe('topic creation service', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
   });
 
   beforeEach(async () => {
