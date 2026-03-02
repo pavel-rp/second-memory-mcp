@@ -3,8 +3,8 @@
 
 import type { EmbeddingConfig } from '../domain/config/embedding.js';
 import { SCHEMA_EMBEDDING_DIMENSIONS } from '../domain/config/embedding.js';
-import { DEFAULT_EMBEDDING_CONFIG } from '../domain/config/embedding-defaults.js';
 import {
+  DEFAULT_EMBEDDING_CONFIG,
   DEFAULT_VECTOR_SIMILARITY_THRESHOLD,
   DEFAULT_HYBRID_KEYWORD_WEIGHT,
   DEFAULT_HYBRID_SEMANTIC_WEIGHT,

@@ -1,8 +1,7 @@
 // Hardcoded default values for embedding configuration
 // No I/O, no process.env reads
 
-import type { EmbeddingConfig } from './embedding.js';
-import { SCHEMA_EMBEDDING_DIMENSIONS } from './embedding.js';
+import { type EmbeddingConfig, SCHEMA_EMBEDDING_DIMENSIONS } from './embedding.js';
 
 export const DEFAULT_EMBEDDING_CONFIG: EmbeddingConfig = {
   provider: null,
