@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 import type { MasteryStatus } from '../../../../src/domain/types/prerequisite-validation.js';
 
@@ -20,6 +21,7 @@ describe('PrerequisiteValidator', () => {
     validator = new PrerequisiteValidator({
       referenceValidator: mockReferenceValidator,
       masteryService: mockMasteryService,
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
     });
   });
 
@@ -313,6 +315,7 @@ describe('PrerequisiteValidator Integration', () => {
     const validator = new PrerequisiteValidator({
       referenceValidator: localRefValidator,
       masteryService: localMasterySvc,
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       customCriteria: {
         minimumQualityScore: 4.0,
         requiredAttempts: 2,

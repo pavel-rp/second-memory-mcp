@@ -7,7 +7,7 @@ import type {
   BatchOperation,
 } from '../types/session.js';
 import { SessionInputSchema } from '../types/session.js';
-import { algorithmConfig } from '../config/algorithm.js';
+import type { AlgorithmConfig } from '../config/algorithm.js';
 import { clamp, roundTo } from '../../shared/math.js';
 
 // Helper function to parse ISO timestamp
@@ -315,7 +315,10 @@ function evaluateCompletionCriteria(
 /**
  * Check if session should be completed based on multiple criteria
  */
-export function checkSessionCompletion(sessionData: SessionInput): CompletionStatus {
+export function checkSessionCompletion(
+  sessionData: SessionInput,
+  algorithmConfig: AlgorithmConfig
+): CompletionStatus {
   const progress = calculateSessionProgress(sessionData);
   const workflow = determineNextPhase(sessionData);
   const config = algorithmConfig.sessionConfig;

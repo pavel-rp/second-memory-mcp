@@ -5,12 +5,17 @@ import type {
   SearchResultItem,
   SearchResultSet,
 } from '../domain/types/search-tools.js';
-import { HYBRID_KEYWORD_WEIGHT, HYBRID_SEMANTIC_WEIGHT } from '../domain/config/embedding.js';
+import {
+  DEFAULT_HYBRID_KEYWORD_WEIGHT,
+  DEFAULT_HYBRID_SEMANTIC_WEIGHT,
+} from '../domain/config/embedding-defaults.js';
 import { logger } from '../shared/logger.js';
 
 export type SearchDeps = {
   search: SearchPort;
   embedding?: EmbeddingPort;
+  hybridKeywordWeight?: number;
+  hybridSemanticWeight?: number;
 };
 
 export async function searchLearningContent(
@@ -90,13 +95,17 @@ async function searchHybrid(
     subject: input.subject,
   });
 
-  return mergeHybridResults(keywordResults, semanticResults, input.limit ?? 10);
+  return mergeHybridResults(keywordResults, semanticResults, input.limit ?? 10, {
+    keywordWeight: deps.hybridKeywordWeight ?? DEFAULT_HYBRID_KEYWORD_WEIGHT,
+    semanticWeight: deps.hybridSemanticWeight ?? DEFAULT_HYBRID_SEMANTIC_WEIGHT,
+  });
 }
 
 function mergeHybridResults(
   keyword: SearchResultSet,
   semantic: SearchResultSet,
-  limit: number
+  limit: number,
+  weights: { keywordWeight: number; semanticWeight: number }
 ): SearchResultSet {
   const scoreMap = new Map<
     string,
@@ -138,7 +147,7 @@ function mergeHybridResults(
     return {
       ...item,
       matchScore:
-        HYBRID_KEYWORD_WEIGHT * normalizedKeyword + HYBRID_SEMANTIC_WEIGHT * normalizedSemantic,
+        weights.keywordWeight * normalizedKeyword + weights.semanticWeight * normalizedSemantic,
       similarityScore: semanticScore > 0 ? semanticScore : undefined,
     };
   });

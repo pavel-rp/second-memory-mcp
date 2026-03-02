@@ -1,4 +1,5 @@
-import { algorithmConfig, clampEaseFactor } from '../config/algorithm.js';
+import type { AlgorithmConfig } from '../config/algorithm.js';
+import { clampEaseFactor } from '../config/algorithm.js';
 import { MS_PER_DAY } from '../../shared/constants/time.js';
 import type {
   NextReviewInput,
@@ -28,11 +29,15 @@ function isoDate(date: Date): string {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 }
 
-export function calculateNextReview(input: NextReviewInput): NextReviewOutput {
+export function calculateNextReview(
+  input: NextReviewInput,
+  config: AlgorithmConfig
+): NextReviewOutput {
   const quality = Math.max(0, Math.min(5, Math.floor(input.quality)));
   const prevRepetitions = Math.max(0, Math.floor(input.repetitions));
   const prevEase = clampEaseFactor(
-    Number.isFinite(input.easeFactor) ? input.easeFactor : algorithmConfig.minimumEaseFactor
+    Number.isFinite(input.easeFactor) ? input.easeFactor : config.minimumEaseFactor,
+    config.minimumEaseFactor
   );
   const prevInterval = Math.max(0, Math.floor(input.interval));
 
@@ -44,23 +49,23 @@ export function calculateNextReview(input: NextReviewInput): NextReviewOutput {
     // Failure: reset reps to 0, interval to 1 day, penalize ease
     nextRepetitions = 0;
     nextInterval = 1; // schedule retry tomorrow to avoid same-day churn
-    nextEase = clampEaseFactor(prevEase + algorithmConfig.easePenaltyFailure);
+    nextEase = clampEaseFactor(prevEase + config.easePenaltyFailure, config.minimumEaseFactor);
   } else {
     // Success path
     nextRepetitions = prevRepetitions + 1;
     if (nextRepetitions === 1) {
-      nextInterval = Math.max(1, Math.floor(algorithmConfig.initialIntervalDays));
+      nextInterval = Math.max(1, Math.floor(config.initialIntervalDays));
     } else if (nextRepetitions === 2) {
-      nextInterval = Math.max(1, Math.floor(algorithmConfig.secondIntervalDays));
+      nextInterval = Math.max(1, Math.floor(config.secondIntervalDays));
     } else {
       nextInterval = Math.max(1, Math.floor(prevInterval * nextEase));
     }
 
     if (quality >= 4) {
-      nextEase = clampEaseFactor(prevEase + algorithmConfig.easeDeltaGood);
+      nextEase = clampEaseFactor(prevEase + config.easeDeltaGood, config.minimumEaseFactor);
     } else {
       // quality === 3 treated as hard
-      nextEase = clampEaseFactor(prevEase + algorithmConfig.easeDeltaHard);
+      nextEase = clampEaseFactor(prevEase + config.easeDeltaHard, config.minimumEaseFactor);
     }
   }
 
@@ -74,7 +79,10 @@ export function calculateNextReview(input: NextReviewInput): NextReviewOutput {
   };
 }
 
-export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
+export function calculatePriorityScore(
+  input: PriorityInput,
+  config: AlgorithmConfig
+): PriorityOutput {
   const now = toStartOfDay(new Date());
   const parsedReview = new Date(input.nextReviewDate);
   const normalizedReview = isNaN(parsedReview.getTime()) ? now : parsedReview;
@@ -86,7 +94,7 @@ export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
     )
   );
 
-  const ease = clampEaseFactor(input.easeFactor);
+  const ease = clampEaseFactor(input.easeFactor, config.minimumEaseFactor);
   const reps = Math.max(0, Math.floor(input.repetitions));
   const difficulty = Math.max(1, Math.min(10, Math.floor(input.difficulty)));
 
@@ -103,7 +111,7 @@ export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
   // Difficulty scale to [0.1, 1]
   const difficultyNorm = 0.1 + (difficulty - 1) * (0.9 / 9);
 
-  const w = algorithmConfig.priorityWeights;
+  const w = config.priorityWeights;
   let score =
     w.urgency * urgency +
     w.ease * inverseEase +
@@ -118,9 +126,10 @@ export function calculatePriorityScore(input: PriorityInput): PriorityOutput {
 
 // Advanced next review with lapses/leech handling
 export function calculateNextReviewAdvanced(
-  input: AdvancedNextReviewInput
+  input: AdvancedNextReviewInput,
+  config: AlgorithmConfig
 ): AdvancedNextReviewOutput {
-  const base = calculateNextReview(input);
+  const base = calculateNextReview(input, config);
   let ease = base.easeFactor;
   let interval = base.interval;
   let reps = base.repetitions;
@@ -131,26 +140,27 @@ export function calculateNextReviewAdvanced(
 
   if (overdue > 0 && input.repetitions > 0) {
     // Apply lapse penalty to ease
-    ease = clampEaseFactor(ease + algorithmConfig.lapsePenalty);
+    ease = clampEaseFactor(ease + config.lapsePenalty, config.minimumEaseFactor);
     // Pull interval closer if heavily overdue
     interval = Math.max(1, Math.floor(interval * (1 - Math.min(0.5, overdue / 30))));
   }
 
-  if (consecutiveFailures >= algorithmConfig.maxConsecutiveLapses) {
+  if (consecutiveFailures >= config.maxConsecutiveLapses) {
     // Harsher reset: reduce repetitions to 0 and shorten interval
     reps = 0;
     interval = Math.max(1, Math.floor(interval * 0.5));
   }
 
-  if (consecutiveFailures >= algorithmConfig.leechConsecutiveFailures) {
+  if (consecutiveFailures >= config.leechConsecutiveFailures) {
     leech = true;
     // stronger ease penalty for leeches using configured adjustments
     ease = clampEaseFactor(
       ease +
         Math.max(
-          algorithmConfig.lapsePenalty + algorithmConfig.leechEasePenaltyAdjustment,
-          algorithmConfig.minLeechEasePenalty
-        )
+          config.lapsePenalty + config.leechEasePenaltyAdjustment,
+          config.minLeechEasePenalty
+        ),
+      config.minimumEaseFactor
     );
   }
 
@@ -166,27 +176,33 @@ export function calculateNextReviewAdvanced(
 }
 
 // Rank with tag weights and caps
-export function rankCandidatesWithConstraints(input: RankInput): RankOutput {
+export function rankCandidatesWithConstraints(
+  input: RankInput,
+  config: AlgorithmConfig
+): RankOutput {
   const candidateMap = new Map(input.candidates.map(c => [c.id, c]));
 
   // Score each candidate using existing priority, then adjust by tag weights
   const nowIso = isoDate(toStartOfDay(new Date()));
   const scored = input.candidates.map(c => {
-    const { priority } = calculatePriorityScore({
-      nextReviewDate: c.nextReviewDate || nowIso,
-      easeFactor: c.easeFactor,
-      repetitions: c.repetitions,
-      difficulty: c.difficulty,
-    });
+    const { priority } = calculatePriorityScore(
+      {
+        nextReviewDate: c.nextReviewDate || nowIso,
+        easeFactor: c.easeFactor,
+        repetitions: c.repetitions,
+        difficulty: c.difficulty,
+      },
+      config
+    );
     const tags = Array.isArray(c.tags) ? c.tags : [];
-    const weight = tags.length ? Math.max(...tags.map(t => algorithmConfig.tagWeights[t] ?? 1)) : 1;
+    const weight = tags.length ? Math.max(...tags.map(t => config.tagWeights[t] ?? 1)) : 1;
     return { id: c.id, score: priority * weight, tags };
   });
 
   scored.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
 
   // Apply daily caps (simplified: assume all are reviews)
-  const maxReviews = Math.max(0, Math.floor(algorithmConfig.dailyCaps.maxReviews));
+  const maxReviews = Math.max(0, Math.floor(config.dailyCaps.maxReviews));
   const capped = scored.slice(0, maxReviews > 0 ? maxReviews : scored.length);
 
   // Helper to build enriched output from a list of selected scored items

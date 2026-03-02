@@ -1,4 +1,3 @@
-import { algorithmConfig } from '../config/algorithm.js';
 import type { LearningItem } from '../types/recommendations.js';
 import { extractErrorMessage } from '../../shared/errors.js';
 
@@ -25,8 +24,8 @@ export type DependencyResolutionResult = {
 export class DependencyResolver {
   private maxDepth: number;
 
-  constructor(maxDepth?: number) {
-    this.maxDepth = maxDepth ?? algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth;
+  constructor(maxDepth: number) {
+    this.maxDepth = maxDepth;
   }
 
   /**
@@ -337,6 +336,3 @@ export class DependencyResolver {
     return maxDepth;
   }
 }
-
-// Export singleton instance
-export const dependencyResolver = new DependencyResolver();

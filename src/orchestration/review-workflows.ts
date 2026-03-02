@@ -1,3 +1,4 @@
+import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
 import type { ReviewResultData } from '../ports/review-persistence-port.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
@@ -7,6 +8,7 @@ import { extractErrorMessage } from '../shared/errors.js';
 
 export type ReviewDeps = {
   reviewPersistence: ReviewPersistencePort;
+  algorithmConfig: AlgorithmConfig;
 };
 
 export async function processReviewResult(
@@ -24,14 +26,17 @@ export async function processReviewResult(
     const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
     const intervalDays = Math.floor((Date.now() - lastReviewedAt) / (1000 * 60 * 60 * 24)) || 1;
 
-    const sm2Result = calculateNextReviewAdvanced({
-      quality,
-      repetitions: currentChunk.repetitions,
-      easeFactor: currentChunk.easeFactor,
-      interval: intervalDays,
-      daysOverdue: options.daysOverdue || 0,
-      consecutiveFailures: options.consecutiveFailures || 0,
-    });
+    const sm2Result = calculateNextReviewAdvanced(
+      {
+        quality,
+        repetitions: currentChunk.repetitions,
+        easeFactor: currentChunk.easeFactor,
+        interval: intervalDays,
+        daysOverdue: options.daysOverdue || 0,
+        consecutiveFailures: options.consecutiveFailures || 0,
+      },
+      deps.algorithmConfig
+    );
 
     const now = Date.now();
     const updateData = {

@@ -8,7 +8,8 @@ import { DrizzlePrerequisiteMasteryAdapter } from './adapters/drizzle/prerequisi
 import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persistence-adapter.js';
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
-import { embeddingConfig } from './domain/config/embedding.js';
+import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
+import { resolveEmbeddingConfig } from './config/resolve-embedding-config.js';
 
 import type { EmbeddingPort } from './ports/embedding-port.js';
 import type {
@@ -65,6 +66,18 @@ import {
 import { ConversationManager } from './orchestration/conversation-manager.js';
 import { RecommendationEngine } from './domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from './domain/services/prerequisite-validator.js';
+import { DependencyResolver } from './domain/algorithms/dependency-resolver.js';
+import type {
+  NextReviewInput,
+  NextReviewOutput,
+  PriorityInput,
+  PriorityOutput,
+  AdvancedNextReviewInput,
+  AdvancedNextReviewOutput,
+  RankInput,
+  RankOutput,
+} from './domain/types/sr.js';
+import type { SessionProgress, WorkflowPhase, CompletionStatus } from './domain/types/session.js';
 
 /** Ports — injectable for testing */
 export interface AppPorts {
@@ -206,29 +219,29 @@ export interface AppContext {
   // Shared utilities
   mapChunkRowToLearningItem: typeof mapChunkRowToLearningItem;
 
-  // Domain — pure functions, no I/O
-  calculateNextReview: typeof calculateNextReview;
-  calculatePriorityScore: typeof calculatePriorityScore;
-  calculateNextReviewAdvanced: typeof calculateNextReviewAdvanced;
-  rankCandidates: typeof rankCandidatesWithConstraints;
+  // Domain — pure functions, no I/O (config pre-bound via closures)
+  calculateNextReview: (input: NextReviewInput) => NextReviewOutput;
+  calculatePriorityScore: (input: PriorityInput) => PriorityOutput;
+  calculateNextReviewAdvanced: (input: AdvancedNextReviewInput) => AdvancedNextReviewOutput;
+  rankCandidates: (input: RankInput) => RankOutput;
   computeDailyKpis: typeof computeDailyKpis;
   computeWindowRollup: typeof computeWindowRollup;
-  calculateSessionProgress: typeof calculateSessionProgress;
-  determineNextPhase: typeof determineNextPhase;
-  checkSessionCompletion: typeof checkSessionCompletion;
+  calculateSessionProgress: (sessionData: SessionInput) => SessionProgress;
+  determineNextPhase: (sessionData: SessionInput) => WorkflowPhase;
+  checkSessionCompletion: (sessionData: SessionInput) => CompletionStatus;
   validateSessionContext: typeof validateSessionContext;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
   createConversationManager: () => ConversationManager;
 }
 
 /** Create the default production ports wired to the Drizzle/PostgreSQL adapters. */
-function createProductionPorts(): AppPorts {
+function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
   const db = getSql();
   return {
     chunks: new DrizzleChunkRepository(db),
     topics: new DrizzleTopicRepository(db),
     sessions: new DrizzleSessionRepository(db),
-    search: new DrizzleSearchAdapter(db),
+    search: new DrizzleSearchAdapter(db, vectorSimilarityThreshold),
     chunkIdLookup: new DrizzleChunkIdLookupAdapter(db),
     prerequisiteMastery: new DrizzlePrerequisiteMasteryAdapter(db),
     reviewPersistence: new DrizzleReviewPersistenceAdapter(db),
@@ -242,13 +255,19 @@ function createProductionPorts(): AppPorts {
  * Invoked exactly once at startup by the transport layer.
  */
 export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
-  const ports: AppPorts = { ...createProductionPorts(), ...overrides };
+  const algorithmConfig = resolveAlgorithmConfig();
+  const resolvedEmbedding = resolveEmbeddingConfig();
+
+  const ports: AppPorts = {
+    ...createProductionPorts(resolvedEmbedding.vectorSimilarityThreshold),
+    ...overrides,
+  };
 
   // Create embedding adapter if not overridden and provider is configured.
   // Initialization is lazy — happens on first embedText call.
   // Using 'in' check so that { embedding: undefined } explicitly opts out.
-  if (!('embedding' in (overrides ?? {})) && embeddingConfig.provider) {
-    ports.embedding = new LangChainEmbeddingAdapter(embeddingConfig);
+  if (!('embedding' in (overrides ?? {})) && resolvedEmbedding.embedding.provider) {
+    ports.embedding = new LangChainEmbeddingAdapter(resolvedEmbedding.embedding);
   }
 
   const chunkDeps: chunkWorkflows.ChunkDeps = {
@@ -256,6 +275,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     topics: ports.topics,
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
+    maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
   };
   const topicDeps: topicWorkflows.TopicDeps = {
     topics: ports.topics,
@@ -265,15 +285,18 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   };
   const reviewDeps: reviewWorkflows.ReviewDeps = {
     reviewPersistence: ports.reviewPersistence,
+    algorithmConfig,
   };
   const sessionDeps: sessionWorkflows.SessionDeps = {
     sessions: ports.sessions,
     chunks: ports.chunks,
+    maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
   };
   const recommendationDeps: recommendationWorkflows.RecommendationDeps = {
     chunks: ports.chunks,
     mastery: ports.prerequisiteMastery,
     chunkIdLookup: ports.chunkIdLookup,
+    algorithmConfig,
   };
   const queryDeps: queryWorkflows.QueryDeps = {
     chunks: ports.chunks,
@@ -296,9 +319,18 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     masteryService: {
       checkItemMastery: (id: string) => ports.prerequisiteMastery.checkItemMastery(id),
     },
+    algorithmConfig,
   });
+  const depResolver = new DependencyResolver(
+    algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth
+  );
   const createRecommendationEngine = () =>
-    new RecommendationEngine({ chunkLookupFn, prerequisiteValidator });
+    new RecommendationEngine({
+      chunkLookupFn,
+      prerequisiteValidator,
+      dependencyResolver: depResolver,
+      algorithmConfig,
+    });
 
   const ctx: AppContext = {
     // Chunk orchestration
@@ -349,6 +381,8 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
       searchWorkflows.searchLearningContent(input, {
         search: ports.search,
         embedding: ports.embedding,
+        hybridKeywordWeight: resolvedEmbedding.hybridKeywordWeight,
+        hybridSemanticWeight: resolvedEmbedding.hybridSemanticWeight,
       }),
 
     // Query orchestration
@@ -364,16 +398,16 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     // Shared utilities
     mapChunkRowToLearningItem,
 
-    // Domain — pure functions
-    calculateNextReview,
-    calculatePriorityScore,
-    calculateNextReviewAdvanced,
-    rankCandidates: rankCandidatesWithConstraints,
+    // Domain — pure functions (config pre-bound)
+    calculateNextReview: input => calculateNextReview(input, algorithmConfig),
+    calculatePriorityScore: input => calculatePriorityScore(input, algorithmConfig),
+    calculateNextReviewAdvanced: input => calculateNextReviewAdvanced(input, algorithmConfig),
+    rankCandidates: input => rankCandidatesWithConstraints(input, algorithmConfig),
     computeDailyKpis,
     computeWindowRollup,
     calculateSessionProgress,
     determineNextPhase,
-    checkSessionCompletion,
+    checkSessionCompletion: sessionData => checkSessionCompletion(sessionData, algorithmConfig),
     validateSessionContext,
     applyBatchSessionChunkOperations,
     createConversationManager: () =>

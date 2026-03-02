@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { RecommendationEngine } from '../../../../src/domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
+import { DependencyResolver } from '../../../../src/domain/algorithms/dependency-resolver.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import { mapChunkRowToLearningItem } from '../../../../src/shared/chunk-mapping.js';
 import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 
@@ -12,10 +14,16 @@ function createTestEngine(chunkLookupFn?: (id: string) => Promise<LearningItem |
     masteryService: {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
     },
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   });
+  const dependencyResolver = new DependencyResolver(
+    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+  );
   return new RecommendationEngine({
     chunkLookupFn: chunkLookupFn ?? (async () => undefined),
     prerequisiteValidator: mockValidator,
+    dependencyResolver,
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   });
 }
 
@@ -64,13 +72,11 @@ function makeChunkRow(
 }
 
 describe('RecommendationEngine', () => {
-  const originalEnv = { ...process.env };
   beforeEach(() => {
     vi.resetModules();
   });
   afterEach(() => {
     vi.restoreAllMocks();
-    process.env = { ...originalEnv };
   });
 
   it('returns empty when no items match constraints', async () => {

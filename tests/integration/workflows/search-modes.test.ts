@@ -7,9 +7,9 @@ import type { SearchPort } from '../../../src/ports/search-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { SearchResultSet } from '../../../src/domain/types/search-tools.js';
 import {
-  HYBRID_KEYWORD_WEIGHT,
-  HYBRID_SEMANTIC_WEIGHT,
-} from '../../../src/domain/config/embedding.js';
+  DEFAULT_HYBRID_KEYWORD_WEIGHT,
+  DEFAULT_HYBRID_SEMANTIC_WEIGHT,
+} from '../../../src/domain/config/embedding-defaults.js';
 
 // --- Helpers ---
 
@@ -192,9 +192,9 @@ describe('searchHybrid', () => {
     const result = await searchLearningContent({ query: 'tree', mode: 'hybrid' }, deps);
 
     // Scores are normalized to [0,1] before weighting (maxKeyword=0.9, maxSemantic=0.85)
-    // Uses imported weight constants so test stays correct if env overrides them.
-    const KW = HYBRID_KEYWORD_WEIGHT;
-    const SM = HYBRID_SEMANTIC_WEIGHT;
+    // Uses the default hybrid weight constants from embedding-defaults for deterministic expectations.
+    const KW = DEFAULT_HYBRID_KEYWORD_WEIGHT;
+    const SM = DEFAULT_HYBRID_SEMANTIC_WEIGHT;
 
     // t1 appears in both: KW*(0.9/0.9) + SM*(0.8/0.85)
     const t1 = result.results.find(r => r.id === 't1');
