@@ -139,7 +139,6 @@ export async function createTopicWithChunks(
         summary: input.topicSummary || null,
         summaryVersion: input.topicSummary ? 1 : null,
         summaryUpdatedAt: input.topicSummary ? now : null,
-        summaryEmbedding: null,
         createdAt: now,
         updatedAt: now,
       };
@@ -305,25 +304,28 @@ export async function updateTopicSummary(
     const now = Date.now();
     const newVersion = (current.summaryVersion ?? 1) + 1;
 
-    // Clear stale embedding first — if re-embedding fails, we prefer no embedding
-    // over a misleading one from old summary content.
-    const updateData: Parameters<TopicRepository['update']>[1] = {
+    // Clear stale embedding before updating summary — if re-embedding fails,
+    // we prefer no embedding over a misleading one from old summary content.
+    await deps.topics.saveSummaryEmbedding(topicId, null);
+
+    const result = await deps.topics.update(topicId, {
       summary,
       summaryVersion: newVersion,
       summaryUpdatedAt: now,
-      summaryEmbedding: null,
       updatedAt: now,
-    };
+    });
+
+    // Best-effort re-embedding after summary update
     if (deps.embedding) {
       try {
         const vector = await deps.embedding.embedText(summary);
-        if (vector) updateData.summaryEmbedding = vector;
+        if (vector) {
+          await deps.topics.saveSummaryEmbedding(topicId, vector);
+        }
       } catch (err) {
         logger.warn('Embedding generation failed for topic summary:', err);
       }
     }
-
-    const result = await deps.topics.update(topicId, updateData);
 
     if (!result.success) return { success: false, error: result.error };
 
@@ -348,14 +350,9 @@ async function generateTopicEmbeddings(
   if (topic.summary) {
     const summaryVector = await embedding.embedText(topic.summary);
     if (summaryVector) {
-      // Don't bump updatedAt for embedding-only updates — the caller already set
-      // updatedAt during the content write, and changing it here would make the
-      // returned object's updatedAt stale relative to the DB row.
-      const result = await deps.topics.update(topic.id, {
-        summaryEmbedding: summaryVector,
-      });
-      if (!result.success) {
-        logger.warn(`Failed to save summary embedding for topic ${topic.id}:`, result.error);
+      const rowCount = await deps.topics.saveSummaryEmbedding(topic.id, summaryVector);
+      if (rowCount === 0) {
+        logger.warn(`Failed to save summary embedding for topic ${topic.id}`);
       }
     }
   }

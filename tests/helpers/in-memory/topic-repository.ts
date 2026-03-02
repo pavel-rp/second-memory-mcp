@@ -1,8 +1,4 @@
-import type {
-  TopicRepository,
-  TopicMinimalMetadata,
-  TopicWithSummary,
-} from '../../../src/ports/topic-repository.js';
+import type { TopicRepository, TopicMinimalMetadata } from '../../../src/ports/topic-repository.js';
 import type { LearningTopic, NewLearningTopic } from '../../../src/domain/types/entities.js';
 import type { ServiceResult } from '../../../src/domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../../../src/domain/types/service-result.js';
@@ -30,7 +26,6 @@ export class InMemoryTopicRepository implements TopicRepository {
       summary: input.summary ?? null,
       summaryVersion: input.summaryVersion ?? null,
       summaryUpdatedAt: input.summaryUpdatedAt ?? null,
-      summaryEmbedding: input.summaryEmbedding ?? null,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };
@@ -42,10 +37,8 @@ export class InMemoryTopicRepository implements TopicRepository {
     return this.topics.get(id);
   }
 
-  async getSummaryById(topicId: string): Promise<TopicWithSummary | undefined> {
-    const row = this.topics.get(topicId);
-    if (!row) return undefined;
-    return row as TopicWithSummary;
+  async getSummaryById(topicId: string): Promise<LearningTopic | undefined> {
+    return this.topics.get(topicId);
   }
 
   async update(
@@ -53,13 +46,7 @@ export class InMemoryTopicRepository implements TopicRepository {
     changes: Partial<
       Pick<
         NewLearningTopic,
-        | 'title'
-        | 'subject'
-        | 'summary'
-        | 'summaryVersion'
-        | 'summaryUpdatedAt'
-        | 'summaryEmbedding'
-        | 'updatedAt'
+        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
       >
     >
   ): Promise<ServiceResult<{ changesApplied: number }>> {
@@ -67,6 +54,11 @@ export class InMemoryTopicRepository implements TopicRepository {
     if (!existing) return serviceFail({ type: 'not_found', message: `Topic ${id} not found` });
     this.topics.set(id, { ...existing, ...changes } as LearningTopic);
     return serviceOk({ changesApplied: 1 });
+  }
+
+  async saveSummaryEmbedding(_topicId: string, _vector: number[] | null): Promise<number> {
+    // In-memory store does not track embeddings; just confirm the topic exists.
+    return this.topics.has(_topicId) ? 1 : 0;
   }
 
   async delete(id: string): Promise<ServiceResult<{ deleted: boolean }>> {

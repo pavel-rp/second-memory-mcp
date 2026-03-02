@@ -9,7 +9,8 @@ export type LearningTopic = {
   summary: string | null;
   summaryVersion: number | null;
   summaryUpdatedAt: number | null;
-  summaryEmbedding: number[] | null;
+  // summaryEmbedding is omitted: it is an infrastructure concern
+  // managed exclusively by adapters (symmetric with contentEmbedding on chunks).
   createdAt: number;
   updatedAt: number;
 };
@@ -21,7 +22,6 @@ export type NewLearningTopic = {
   summary?: string | null;
   summaryVersion?: number | null;
   summaryUpdatedAt?: number | null;
-  summaryEmbedding?: number[] | null;
   createdAt: number;
   updatedAt: number;
 };

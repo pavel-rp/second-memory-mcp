@@ -19,7 +19,6 @@ export function buildTopic(overrides?: Partial<LearningTopic>): LearningTopic {
     summary: null,
     summaryVersion: null,
     summaryUpdatedAt: null,
-    summaryEmbedding: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,

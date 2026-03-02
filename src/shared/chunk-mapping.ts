@@ -1,15 +1,9 @@
 import type { LearningChunk } from '../domain/types/entities.js';
 import type { LearningItem, LearningItemWithContent } from '../domain/types/recommendations.js';
 
-type ChunkListRowWithContent = Omit<
-  LearningChunk,
-  'content' | 'contentVersion' | 'contentUpdatedAt'
-> & {
+type ChunkListRowWithContent = LearningChunk & {
   contentEmbedding?: number[] | null;
   topicTitle?: string | null;
-  content?: string | null;
-  contentVersion?: number | null;
-  contentUpdatedAt?: number | null;
 };
 
 function toIsoDate(epochMs: number): string {

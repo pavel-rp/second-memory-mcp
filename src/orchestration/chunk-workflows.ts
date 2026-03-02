@@ -61,23 +61,27 @@ async function updateChunkFields(
     const now = Date.now();
     const { fields, progressReset } = buildFields(current, now);
 
+    // When content changes, clear stale embedding before updating content —
+    // if re-embedding fails, we prefer no embedding over a misleading one.
+    if (typeof fields.content === 'string') {
+      await deps.chunks.saveContentEmbedding(id, null);
+    }
+
     const rowCount = await deps.chunks.update(
       id,
       fields as Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>
     );
 
-    // When content changes, clear stale embedding first — if re-embedding fails,
-    // we prefer no embedding over a misleading one from old content.
-    if (typeof fields.content === 'string') {
-      let vector: number[] | null = null;
-      if (deps.embedding) {
-        try {
-          vector = await deps.embedding.embedText(fields.content as string);
-        } catch (err) {
-          logger.warn('Embedding generation failed for chunk content:', err);
+    // Best-effort re-embedding after content update
+    if (typeof fields.content === 'string' && deps.embedding) {
+      try {
+        const vector = await deps.embedding.embedText(fields.content as string);
+        if (vector) {
+          await deps.chunks.saveContentEmbedding(id, vector);
         }
+      } catch (err) {
+        logger.warn('Embedding generation failed for chunk content:', err);
       }
-      await deps.chunks.saveContentEmbedding(id, vector);
     }
     if (rowCount === 0) {
       return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
@@ -307,8 +311,8 @@ export async function createChunkWithTopic(
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { topicTitle: _topicTitle, ...chunkInput } = input;
+    const { topicTitle: _tt, ...chunkInput } = input;
+    void _tt; // stripped before persistence — topicTitle is a helper-only field
     await deps.chunks.create({ ...chunkInput, topicId });
     const created = await deps.chunks.getById(input.id);
     if (!created) {

@@ -3,11 +3,7 @@ import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { learningTopics } from '../../infrastructure/db/schema.js';
 import type { LearningTopic, NewLearningTopic } from '../../domain/types/entities.js';
 import { serviceOk, serviceFail, type ServiceResult } from '../../domain/types/service-result.js';
-import type {
-  TopicRepository,
-  TopicMinimalMetadata,
-  TopicWithSummary,
-} from '../../ports/topic-repository.js';
+import type { TopicRepository, TopicMinimalMetadata } from '../../ports/topic-repository.js';
 
 export class DrizzleTopicRepository implements TopicRepository {
   constructor(private db: SqlDb = getSql()) {}
@@ -26,7 +22,7 @@ export class DrizzleTopicRepository implements TopicRepository {
     return row ?? undefined;
   }
 
-  async getSummaryById(topicId: string): Promise<TopicWithSummary | undefined> {
+  async getSummaryById(topicId: string): Promise<LearningTopic | undefined> {
     const [row] = await this.db
       .select({
         id: learningTopics.id,
@@ -35,7 +31,6 @@ export class DrizzleTopicRepository implements TopicRepository {
         summary: learningTopics.summary,
         summaryVersion: learningTopics.summaryVersion,
         summaryUpdatedAt: learningTopics.summaryUpdatedAt,
-        summaryEmbedding: learningTopics.summaryEmbedding,
         createdAt: learningTopics.createdAt,
         updatedAt: learningTopics.updatedAt,
       })
@@ -49,13 +44,7 @@ export class DrizzleTopicRepository implements TopicRepository {
     changes: Partial<
       Pick<
         NewLearningTopic,
-        | 'title'
-        | 'subject'
-        | 'summary'
-        | 'summaryVersion'
-        | 'summaryUpdatedAt'
-        | 'summaryEmbedding'
-        | 'updatedAt'
+        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
       >
     >
   ): Promise<ServiceResult<{ changesApplied: number }>> {
@@ -80,6 +69,14 @@ export class DrizzleTopicRepository implements TopicRepository {
     } catch {
       return serviceFail({ type: 'database', message: 'Failed to update topic' });
     }
+  }
+
+  async saveSummaryEmbedding(topicId: string, vector: number[] | null): Promise<number> {
+    const res = await this.db
+      .update(learningTopics)
+      .set({ summaryEmbedding: vector })
+      .where(eq(learningTopics.id, topicId));
+    return res.rowCount ?? 0;
   }
 
   async delete(id: string): Promise<ServiceResult<{ deleted: boolean }>> {

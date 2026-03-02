@@ -10,9 +10,6 @@ export type TopicMinimalMetadata = {
   updatedAt: number;
 };
 
-/** Topic with summary fields (LearningTopic already includes them). */
-export type TopicWithSummary = LearningTopic;
-
 /**
  * Port interface for topic data access.
  * Adapters implement this to provide CRUD and query operations on learning topics.
@@ -20,22 +17,18 @@ export type TopicWithSummary = LearningTopic;
 export interface TopicRepository {
   create(input: NewLearningTopic): Promise<ServiceResult<void>>;
   getById(id: string): Promise<LearningTopic | undefined>;
-  getSummaryById(topicId: string): Promise<TopicWithSummary | undefined>;
+  getSummaryById(topicId: string): Promise<LearningTopic | undefined>;
   update(
     id: string,
     changes: Partial<
       Pick<
         NewLearningTopic,
-        | 'title'
-        | 'subject'
-        | 'summary'
-        | 'summaryVersion'
-        | 'summaryUpdatedAt'
-        | 'summaryEmbedding'
-        | 'updatedAt'
+        'title' | 'subject' | 'summary' | 'summaryVersion' | 'summaryUpdatedAt' | 'updatedAt'
       >
     >
   ): Promise<ServiceResult<{ changesApplied: number }>>;
+  /** Persist or clear a topic's summary embedding (infrastructure-only column). */
+  saveSummaryEmbedding(topicId: string, vector: number[] | null): Promise<number>;
   delete(id: string): Promise<ServiceResult<{ deleted: boolean }>>;
   list(): Promise<LearningTopic[]>;
   batchFetchMinimal(options?: {
