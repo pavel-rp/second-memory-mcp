@@ -192,7 +192,7 @@ describe('searchHybrid', () => {
     const result = await searchLearningContent({ query: 'tree', mode: 'hybrid' }, deps);
 
     // Scores are normalized to [0,1] before weighting (maxKeyword=0.9, maxSemantic=0.85)
-    // Uses imported weight constants so test stays correct if env overrides them.
+    // Uses the default hybrid weight constants from embedding-defaults for deterministic expectations.
     const KW = DEFAULT_HYBRID_KEYWORD_WEIGHT;
     const SM = DEFAULT_HYBRID_SEMANTIC_WEIGHT;
 

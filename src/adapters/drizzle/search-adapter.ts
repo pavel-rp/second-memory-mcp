@@ -9,6 +9,7 @@ import type {
 } from '../../domain/types/search-tools.js';
 import type { SearchPort } from '../../ports/search-port.js';
 import { calculateSimilarityRatio } from '../../shared/content-similarity.js';
+import { DEFAULT_VECTOR_SIMILARITY_THRESHOLD } from '../../domain/config/embedding-defaults.js';
 
 type NormalizedQuery = { original: string; normalized: string; tokens: string[] };
 
@@ -81,7 +82,8 @@ export class DrizzleSearchAdapter implements SearchPort {
     private db: SqlDb = getSql(),
     vectorSimilarityThreshold?: number
   ) {
-    this.vectorSimilarityThreshold = vectorSimilarityThreshold ?? 0.3;
+    this.vectorSimilarityThreshold =
+      vectorSimilarityThreshold ?? DEFAULT_VECTOR_SIMILARITY_THRESHOLD;
   }
 
   async searchByQuery(input: SearchLearningContentInput): Promise<SearchResultSet> {

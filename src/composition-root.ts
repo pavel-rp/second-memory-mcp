@@ -285,6 +285,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   };
   const reviewDeps: reviewWorkflows.ReviewDeps = {
     reviewPersistence: ports.reviewPersistence,
+    algorithmConfig,
   };
   const sessionDeps: sessionWorkflows.SessionDeps = {
     sessions: ports.sessions,
@@ -295,6 +296,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     chunks: ports.chunks,
     mastery: ports.prerequisiteMastery,
     chunkIdLookup: ports.chunkIdLookup,
+    algorithmConfig,
   };
   const queryDeps: queryWorkflows.QueryDeps = {
     chunks: ports.chunks,

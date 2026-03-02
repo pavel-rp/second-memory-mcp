@@ -1,3 +1,4 @@
+import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
 import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
@@ -9,13 +10,13 @@ import type {
 import { RecommendationEngine } from '../domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from '../domain/services/prerequisite-validator.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
-import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 
 export type RecommendationDeps = {
   chunks: ChunkRepository;
   mastery: PrerequisiteMasteryPort;
   chunkIdLookup: ChunkIdLookupPort;
+  algorithmConfig: AlgorithmConfig;
 };
 
 export async function generateRecommendations(
@@ -48,17 +49,17 @@ export async function generateRecommendations(
     masteryService: {
       checkItemMastery: (id: string) => deps.mastery.checkItemMastery(id),
     },
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    algorithmConfig: deps.algorithmConfig,
   });
 
   const dependencyResolver = new DependencyResolver(
-    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+    deps.algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth
   );
   const engine = new RecommendationEngine({
     chunkLookupFn,
     prerequisiteValidator,
     dependencyResolver,
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    algorithmConfig: deps.algorithmConfig,
   });
   return engine.generateRecommendations({
     ...input,

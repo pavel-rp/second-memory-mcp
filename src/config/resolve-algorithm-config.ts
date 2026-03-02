@@ -8,7 +8,10 @@ import { parseNumber, parseBoolean, parseRecord } from '../shared/env-parsing.js
 export function resolveAlgorithmConfig(
   env: Record<string, string | undefined> = process.env
 ): AlgorithmConfig {
-  const minimumEaseFactor = Math.max(parseNumber(env.SM_MIN_EASE_FACTOR, 1.3), 1.3);
+  const minimumEaseFactor = Math.max(
+    parseNumber(env.SM_MIN_EASE_FACTOR, DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor),
+    DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor
+  );
 
   return {
     minimumEaseFactor,

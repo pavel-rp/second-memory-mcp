@@ -1,13 +1,14 @@
+import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
 import type { ReviewResultData } from '../ports/review-persistence-port.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
-import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { extractErrorMessage } from '../shared/errors.js';
 
 export type ReviewDeps = {
   reviewPersistence: ReviewPersistencePort;
+  algorithmConfig: AlgorithmConfig;
 };
 
 export async function processReviewResult(
@@ -34,7 +35,7 @@ export async function processReviewResult(
         daysOverdue: options.daysOverdue || 0,
         consecutiveFailures: options.consecutiveFailures || 0,
       },
-      DEFAULT_ALGORITHM_CONFIG
+      deps.algorithmConfig
     );
 
     const now = Date.now();
