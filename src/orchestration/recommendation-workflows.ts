@@ -51,7 +51,7 @@ export async function generateRecommendations(
       checkItemMastery: (id: string) => deps.mastery.checkItemMastery(id),
     },
     algorithmConfig: deps.algorithmConfig,
-    clock: () => Date.now(),
+    clock: () => now.getTime(),
   });
 
   const dependencyResolver = new DependencyResolver(

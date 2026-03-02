@@ -24,8 +24,9 @@ export async function processReviewResult(
     }
 
     const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
-    const intervalDays = Math.floor((Date.now() - lastReviewedAt) / (1000 * 60 * 60 * 24)) || 1;
-
+    const now = new Date();
+    const nowMs = now.getTime();
+    const intervalDays = Math.floor((nowMs - lastReviewedAt) / (1000 * 60 * 60 * 24)) || 1;
     const sm2Result = calculateNextReviewAdvanced(
       {
         quality,
@@ -36,17 +37,16 @@ export async function processReviewResult(
         consecutiveFailures: options.consecutiveFailures || 0,
       },
       deps.algorithmConfig,
-      new Date()
+      now
     );
 
-    const now = Date.now();
     const updateData = {
       easeFactor: sm2Result.easeFactor,
       repetitions: sm2Result.repetitions,
       intervalDays: sm2Result.interval,
       nextReviewAt: new Date(sm2Result.nextReview).getTime(),
-      lastReviewedAt: now,
-      updatedAt: now,
+      lastReviewedAt: nowMs,
+      updatedAt: nowMs,
       chunkType: sm2Result.leech ? 'remediation' : 'review',
     };
 
@@ -76,7 +76,7 @@ export async function processReviewResult(
         intervalDays: updateData.intervalDays,
         nextReviewAt: updateData.nextReviewAt,
         chunkType: updateData.chunkType,
-        lastReviewedAt: now,
+        lastReviewedAt: nowMs,
       },
       quality,
       isLapse: quality < 3,

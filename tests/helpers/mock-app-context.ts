@@ -25,26 +25,23 @@ import {
  * Uses a Proxy so any new AppContext methods automatically throw
  * instead of silently being undefined.
  */
-export function createMockAppContext(): AppContext {
+export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z')): AppContext {
   const pureFunctions: Partial<AppContext> = {
     // Shared utilities
     mapChunkRowToLearningItem,
 
     // Domain — pure functions (config pre-bound via closures)
-    calculateNextReview: input => calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
-    calculatePriorityScore: input =>
-      calculatePriorityScore(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
+    calculateNextReview: input => calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG, now),
+    calculatePriorityScore: input => calculatePriorityScore(input, DEFAULT_ALGORITHM_CONFIG, now),
     calculateNextReviewAdvanced: input =>
-      calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
-    rankCandidates: input =>
-      rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG, new Date()),
+      calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, now),
+    rankCandidates: input => rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG, now),
     computeDailyKpis,
     computeWindowRollup,
-    calculateSessionProgress: data => calculateSessionProgress(data, new Date()),
-    determineNextPhase: data => determineNextPhase(data, new Date()),
-    checkSessionCompletion: data =>
-      checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG, new Date()),
-    validateSessionContext: context => validateSessionContext(context, new Date()),
+    calculateSessionProgress: data => calculateSessionProgress(data, now),
+    determineNextPhase: data => determineNextPhase(data, now),
+    checkSessionCompletion: data => checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG, now),
+    validateSessionContext: context => validateSessionContext(context, now),
     applyBatchSessionChunkOperations,
   };
 

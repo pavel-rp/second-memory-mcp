@@ -5,6 +5,8 @@ import { PrerequisiteValidator } from '../../../src/domain/services/prerequisite
 import { DependencyResolver } from '../../../src/domain/algorithms/dependency-resolver.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
+const TEST_NOW = new Date('2025-06-15T12:00:00Z');
+
 function createTestConversationManager() {
   const validator = new PrerequisiteValidator({
     referenceValidator: {
@@ -14,7 +16,7 @@ function createTestConversationManager() {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
     },
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-    clock: () => Date.now(),
+    clock: () => TEST_NOW.getTime(),
   });
   const dependencyResolver = new DependencyResolver(
     DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
