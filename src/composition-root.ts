@@ -250,7 +250,8 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
   // Create embedding adapter if not overridden and provider is configured.
   // Initialization is lazy — happens on first embedText call.
-  if (!overrides?.embedding && embeddingConfig.provider) {
+  // Using 'in' check so that { embedding: undefined } explicitly opts out.
+  if (!('embedding' in (overrides ?? {})) && embeddingConfig.provider) {
     ports.embedding = new LangChainEmbeddingAdapter(embeddingConfig);
   }
 
