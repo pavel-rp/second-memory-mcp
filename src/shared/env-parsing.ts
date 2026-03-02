@@ -39,6 +39,17 @@ export function parseBoolean(envValue: string | undefined, fallback: boolean): b
   return fallback;
 }
 
+export function parseEnum<T extends string>(
+  envValue: string | undefined,
+  allowed: readonly T[],
+  fallback: T
+): T {
+  if (envValue == null || envValue.trim() === '') return fallback;
+  const normalized = envValue.trim().toLowerCase();
+  const match = allowed.find(v => v.toLowerCase() === normalized);
+  return match ?? fallback;
+}
+
 export function parseEmbeddingProvider(value: string | undefined): 'openai' | 'ollama' | null {
   const normalized = value?.trim().toLowerCase();
   if (normalized === 'openai' || normalized === 'ollama') return normalized;

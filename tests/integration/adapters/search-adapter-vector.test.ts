@@ -113,7 +113,7 @@ describe('DrizzleSearchAdapter — searchByVector (integration)', () => {
     expect(chunkResults[0].similarityScore!).toBeGreaterThan(chunkResults[1].similarityScore!);
   });
 
-  it('excludes results below DEFAULT_VECTOR_SIMILARITY_THRESHOLD', async () => {
+  it('excludes results below the similarity threshold', async () => {
     const db = getSql();
     const queryVector = sparseVector(0); // [1, 0, 0, ...]
 

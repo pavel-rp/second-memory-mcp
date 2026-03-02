@@ -3,7 +3,7 @@
 
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
-import { parseNumber, parseBoolean, parseRecord } from '../shared/env-parsing.js';
+import { parseNumber, parseBoolean, parseRecord, parseEnum } from '../shared/env-parsing.js';
 
 export function resolveAlgorithmConfig(
   env: Record<string, string | undefined> = process.env
@@ -131,9 +131,11 @@ export function resolveAlgorithmConfig(
           env.SM_REC_MAX_NEW_LONG,
           DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.maxNewLong
         ),
-        interleaveStrategy:
-          (env.SM_REC_INTERLEAVE_STRATEGY as 'easy-medium-hard' | 'balanced') ||
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.interleaveStrategy,
+        interleaveStrategy: parseEnum(
+          env.SM_REC_INTERLEAVE_STRATEGY,
+          ['easy-medium-hard', 'balanced'] as const,
+          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.interleaveStrategy
+        ),
       },
       conversation: {
         enableEncouragement: parseBoolean(
@@ -144,9 +146,11 @@ export function resolveAlgorithmConfig(
           env.SM_REC_CONVO_PROGRESS,
           DEFAULT_ALGORITHM_CONFIG.recommendationConfig.conversation.enableProgressUpdates
         ),
-        verbosity:
-          (env.SM_REC_CONVO_VERBOSITY as 'low' | 'medium' | 'high') ||
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.conversation.verbosity,
+        verbosity: parseEnum(
+          env.SM_REC_CONVO_VERBOSITY,
+          ['low', 'medium', 'high'] as const,
+          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.conversation.verbosity
+        ),
       },
     },
     prerequisiteConfig: {
