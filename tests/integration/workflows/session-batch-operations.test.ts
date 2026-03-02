@@ -15,7 +15,7 @@ describe('Integration: batch session chunk operations', () => {
   afterAll(teardownTestDb);
 
   it('creates and updates chunks with correct counts via AppContext', async () => {
-    const ctx = createAppContext();
+    const ctx = createAppContext({ embedding: undefined });
     const now = Date.now();
     const db = getSql();
     const topicId = `topic-${now}`;
@@ -134,7 +134,7 @@ describe('Integration: batch session chunk operations', () => {
   });
 
   it('returns error when session does not exist', async () => {
-    const ctx = createAppContext();
+    const ctx = createAppContext({ embedding: undefined });
     const result = await ctx.batchUpdateSessionChunks('nonexistent', [
       { chunkId: 'c1', status: 'pending' },
     ]);

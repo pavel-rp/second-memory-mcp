@@ -15,7 +15,7 @@ describe('chunk-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerChunkTools(server as any, createAppContext());
+    registerChunkTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

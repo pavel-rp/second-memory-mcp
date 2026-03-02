@@ -24,7 +24,7 @@ function makeItem(overrides: Partial<any> = {}): any {
 describe('Integration: what_to_learn_today', () => {
   it('generates explicit recommendations honoring constraints', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
@@ -55,7 +55,7 @@ describe('Integration: what_to_learn_today', () => {
 
   it('guided mode works with minimal inputs and produces guidance', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
     expect(tool).toBeDefined();
 
@@ -88,7 +88,7 @@ describe('Integration: what_to_learn_today', () => {
 describe('Integration: guided_learning_conversation', () => {
   it('starts a session and returns user-facing guidance', async () => {
     const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext());
+    registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('guided_learning_conversation');
     expect(tool).toBeDefined();
 

@@ -20,7 +20,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     await cleanupTestDb();
 
     server = new CaptureServer() as any;
-    registerServerTools(server as any, createAppContext());
+    registerServerTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

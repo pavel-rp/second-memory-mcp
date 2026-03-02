@@ -11,7 +11,7 @@ describe('chunk-reviews service', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
   });
   beforeEach(async () => {
     await cleanupTestDb();

@@ -14,7 +14,7 @@ describe('Content Persistence', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
     chunkRepo = new DrizzleChunkRepository(getSql());
   });
   beforeEach(cleanupTestDb);

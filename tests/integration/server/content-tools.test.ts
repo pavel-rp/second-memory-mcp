@@ -15,7 +15,7 @@ describe('Integration: list_items_with_content', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerContentTools(server as any, createAppContext());
+    registerContentTools(server as any, createAppContext({ embedding: undefined }));
     tool = server.tools.get('list_items_with_content')!;
     expect(tool).toBeDefined();
   });

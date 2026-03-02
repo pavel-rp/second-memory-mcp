@@ -13,7 +13,7 @@ describe('persistence-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerPersistenceTools(server as any, createAppContext());
+    registerPersistenceTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

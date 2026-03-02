@@ -12,7 +12,7 @@ describe('session-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerSessionTools(server as any, createAppContext());
+    registerSessionTools(server as any, createAppContext({ embedding: undefined }));
   });
   afterAll(teardownTestDb);
 

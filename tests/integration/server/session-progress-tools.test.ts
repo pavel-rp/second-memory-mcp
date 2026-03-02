@@ -16,7 +16,7 @@ describe('session-progress-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    const ctx = createAppContext();
+    const ctx = createAppContext({ embedding: undefined });
     registerSessionLifecycleTools(server as any, ctx);
     registerSessionProgressTools(server as any, ctx);
   });

@@ -11,7 +11,7 @@ describe('sessions service', () => {
 
   beforeAll(async () => {
     await setupTestDb();
-    ctx = createAppContext();
+    ctx = createAppContext({ embedding: undefined });
     sessionRepo = new DrizzleSessionRepository(getSql());
   });
   beforeEach(cleanupTestDb);
