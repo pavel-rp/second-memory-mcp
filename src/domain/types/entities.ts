@@ -90,20 +90,6 @@ export type LearningSession = {
   updatedAt: number;
 };
 
-export type NewLearningSession = {
-  id: string;
-  topicId?: string | null;
-  chunkIds?: string[] | null;
-  mode: string;
-  estimatedDuration?: number | null;
-  status?: string;
-  startTime: number;
-  endTime?: number | null;
-  feedback?: string | null;
-  createdAt: number;
-  updatedAt: number;
-};
-
 // ── Session Chunks ───────────────────────────────────────────────
 
 export type SessionChunk = {
@@ -114,18 +100,6 @@ export type SessionChunk = {
   attemptsJson: ChunkAttempt[] | null;
   qualityScoresJson: number[] | null;
   timeSpentMs: number;
-  createdAt: number;
-  updatedAt: number;
-};
-
-export type NewSessionChunk = {
-  id: string;
-  sessionId: string;
-  chunkId: string;
-  status?: string;
-  attemptsJson?: ChunkAttempt[] | null;
-  qualityScoresJson?: number[] | null;
-  timeSpentMs?: number;
   createdAt: number;
   updatedAt: number;
 };

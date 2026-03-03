@@ -11,7 +11,6 @@ export const CreateSessionToolInputShape = {
 } as const;
 
 export const CreateSessionToolInputSchema = z.object(CreateSessionToolInputShape);
-export type CreateSessionToolInput = z.infer<typeof CreateSessionToolInputSchema>;
 
 export const CompleteSessionInputShape = {
   sessionId: z.string().min(1),
@@ -19,14 +18,12 @@ export const CompleteSessionInputShape = {
 } as const;
 
 export const CompleteSessionInputSchema = z.object(CompleteSessionInputShape);
-export type CompleteSessionInput = z.infer<typeof CompleteSessionInputSchema>;
 
 export const GetSessionInputShape = {
   sessionId: z.string().min(1).optional(), // Optional for get_active_session
 } as const;
 
 export const GetSessionInputSchema = z.object(GetSessionInputShape);
-export type GetSessionInput = z.infer<typeof GetSessionInputSchema>;
 
 export const CreateSessionChunkToolInputShape = {
   sessionId: z.string().min(1),
@@ -47,7 +44,6 @@ export const CreateSessionChunkToolInputShape = {
 } as const;
 
 export const CreateSessionChunkToolInputSchema = z.object(CreateSessionChunkToolInputShape);
-export type CreateSessionChunkToolInput = z.infer<typeof CreateSessionChunkToolInputSchema>;
 
 // Result schemas for session management tools
 

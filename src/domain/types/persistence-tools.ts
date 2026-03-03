@@ -67,7 +67,6 @@ const TopicChunkShape = {
 } as const;
 
 export const TopicChunkSchema = z.object(TopicChunkShape);
-export type TopicChunkInput = z.infer<typeof TopicChunkSchema>;
 
 export const TopicUserPreferencesSchema = z
   .object({
