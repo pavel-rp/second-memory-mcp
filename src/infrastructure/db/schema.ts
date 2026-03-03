@@ -126,15 +126,11 @@ export const sessionChunks = pgTable(
 );
 
 // Types
-export type LearningTopicRow = InferSelectModel<typeof learningTopics>;
 export type NewLearningTopicRow = InferInsertModel<typeof learningTopics>;
 
 export type LearningChunkRow = InferSelectModel<typeof learningChunks>;
 export type NewLearningChunkRow = InferInsertModel<typeof learningChunks>;
 
-// New session management types
-export type LearningSessionRow = InferSelectModel<typeof learningSessions>;
 export type NewLearningSessionRow = InferInsertModel<typeof learningSessions>;
 
-export type SessionChunkRow = InferSelectModel<typeof sessionChunks>;
 export type NewSessionChunkRow = InferInsertModel<typeof sessionChunks>;
