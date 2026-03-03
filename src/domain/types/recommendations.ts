@@ -187,17 +187,15 @@ export const LearningItemWithContentSchema = LearningItemSchema.extend({
   contentUpdatedAt: z.number().int().min(0).optional(),
 });
 
-export const PaginatedLearningItemsResponseSchema = z.object({
-  items: z.array(LearningItemWithContentSchema),
-  pagination: z.object({
-    total: z.number().int().min(0),
-    limit: z.number().int().min(1),
-    offset: z.number().int().min(0),
-    hasMore: z.boolean(),
-  }),
-});
-
-export type PaginatedLearningItemsResponse = z.infer<typeof PaginatedLearningItemsResponseSchema>;
+export type PaginatedLearningItemsResponse = {
+  items: LearningItemWithContent[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+};
 
 export const SessionConstraintsSchema = z.object({
   maxDuration: z.number().min(0).optional(),
@@ -295,22 +293,6 @@ export const RecommendationInputSchema = z
     }
   });
 
-export const RecommendationOutputSchema = z.object({
-  recommendations: z.array(LearningRecommendationSchema),
-  sessionSummary: SessionSummarySchema,
-  conversationGuidance: ConversationGuidanceSchema.optional(),
-  estimatedDuration: z.number().min(0),
-  rationale: z.string().min(1),
-  alternatives: z.array(LearningRecommendationSchema).optional(),
-  nextActions: z.array(z.string()).optional(),
-  dependencyResolution: z
-    .object({
-      addedPrerequisites: z.array(z.string()),
-      resolvedOrder: z.array(z.string()),
-    })
-    .optional(),
-});
-
 export const ConversationRequestShape = {
   intent: z.string().min(1).describe('User intent driving the guided learning conversation'),
   context: z
@@ -326,11 +308,3 @@ export const ConversationRequestShape = {
 
 export const ConversationRequestSchema = z.object(ConversationRequestShape);
 export type ConversationRequestInput = z.infer<typeof ConversationRequestSchema>;
-
-export const ConversationResponseSchema = z.object({
-  message: z.string().min(1),
-  recommendations: RecommendationOutputSchema.optional(),
-  needsInput: z.boolean(),
-  suggestedInputs: z.array(z.string()).optional(),
-  sessionUpdated: z.boolean().optional(),
-});

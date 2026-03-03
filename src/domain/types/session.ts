@@ -132,33 +132,6 @@ export const SessionInputSchema = z.object({
   historical_feedback: z.array(HistoricalFeedbackSchema).optional(),
 });
 
-export const SessionProgressSchema = z.object({
-  session_id: z.string().min(1),
-  overall_progress: z.number().min(0).max(1),
-  chunks_completed: z.number().min(0),
-  total_chunks: z.number().min(0),
-  average_quality: z.number().min(0).max(5),
-  time_elapsed_ms: z.number().min(0),
-  estimated_time_remaining_ms: z.number().min(0).optional(),
-});
-
-export const WorkflowPhaseSchema = z.object({
-  current_phase: z.string().min(1),
-  next_phase: z.string().min(1).optional(),
-  phase_progress: z.number().min(0).max(1),
-  guidance: z.string().min(1),
-  can_advance: z.boolean(),
-});
-
-export const CompletionStatusSchema = z.object({
-  is_complete: z.boolean(),
-  completion_reason: z.string().min(1),
-  quality_threshold_met: z.boolean(),
-  time_threshold_met: z.boolean(),
-  chunk_threshold_met: z.boolean(),
-  recommendation: z.enum(['continue', 'complete', 'break']),
-});
-
 // Batch update types and schemas
 
 export type BatchOperation = {
@@ -168,11 +141,6 @@ export type BatchOperation = {
   attempts?: ChunkAttempt[];
   qualityScores?: number[];
   timeSpentMs?: number;
-};
-
-export type BatchUpdateInput = {
-  sessionId: string;
-  operations: BatchOperation[];
 };
 
 export const BatchOperationSchema = z.object({

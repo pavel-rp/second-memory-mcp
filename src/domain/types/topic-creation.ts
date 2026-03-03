@@ -2,15 +2,6 @@ import { z } from 'zod';
 import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
 import type { ChunkType } from './recommendations.js';
 
-// Topic creation request types
-export type TopicCreationRequest = {
-  topicTitle: string;
-  topicDescription?: string;
-  subject: string;
-  userPreferences?: UserPreferences;
-  timeAvailable?: number; // minutes
-};
-
 export type UserPreferences = {
   preferredDifficulty?: number; // 1-10
   learningStyle?: 'visual' | 'auditory' | 'kinesthetic' | 'reading';
@@ -96,50 +87,4 @@ export const ChunkDefinitionSchema = z.object({
   order: z.number().int().min(1),
   tags: z.array(z.string()),
   chunkType: z.enum(['new', 'review', 'remediation']),
-});
-
-export const TopicCreationRequestSchema = z.object({
-  topicTitle: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH),
-  topicDescription: z.string().max(1000).optional(),
-  subject: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH),
-  userPreferences: UserPreferencesSchema.optional(),
-  timeAvailable: z.number().min(1).max(480).optional(), // 1-480 minutes (8 hours)
-});
-
-export const TopicWithChunksSchema = z.object({
-  topicId: z.string().min(1),
-  topicTitle: z.string().min(1),
-  topicDescription: z.string(),
-  subject: z.string().min(1),
-  chunks: z.array(ChunkDefinitionSchema),
-  createdAt: z.number().int().min(0),
-  updatedAt: z.number().int().min(0),
-  // Content persistence validation
-  topicSummary: z.string().optional(),
-});
-
-export const TopicCreationInputSchema = z.object({
-  topicTitle: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_TITLE_LENGTH),
-  topicDescription: z.string().max(1000).optional(),
-  subject: z.string().min(1).max(VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH),
-  chunks: z.array(ChunkDefinitionSchema).min(1).max(20), // 1-20 chunks per topic
-  userPreferences: UserPreferencesSchema.optional(),
-  // Content persistence validation
-  topicSummary: z
-    .string()
-    .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH)
-    .max(VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE)
-    .optional(),
-});
-
-export const TopicCreationResultSchema = z.object({
-  success: z.boolean(),
-  topic: TopicWithChunksSchema.optional(),
-  error: z
-    .object({
-      type: z.enum(['validation', 'database', 'generation']),
-      message: z.string(),
-      retryable: z.boolean(),
-    })
-    .optional(),
 });
