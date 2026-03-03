@@ -23,12 +23,12 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: ListLearningItemsInputShape,
     },
     async (rawInput: unknown) => {
-      const { subjectFilter, dueOnly, limit }: ListLearningItemsInput =
+      const { subject_filter, due_only, limit }: ListLearningItemsInput =
         ListLearningItemsInputSchema.parse(rawInput);
       try {
         const items = await ctx.listChunksAsLearningItems({
-          subjectFilter: subjectFilter,
-          dueOnly,
+          subjectFilter: subject_filter,
+          dueOnly: due_only,
           limit,
         });
         return toolJson(items);
@@ -52,10 +52,10 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchTopicsMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { subjectFilter, limit }: BatchFetchTopicsMinimalInput =
+      const { subject_filter, limit }: BatchFetchTopicsMinimalInput =
         BatchFetchTopicsMinimalInputSchema.parse(rawInput);
       try {
-        const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
+        const topics = await ctx.batchFetchTopicsMinimal({ subject: subject_filter, limit });
         return toolJson({
           success: true,
           topics,
@@ -85,13 +85,13 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { topicId, subjectFilter, dueOnly, limit }: BatchFetchChunksMinimalInput =
+      const { topic_id, subject_filter, due_only, limit }: BatchFetchChunksMinimalInput =
         BatchFetchChunksMinimalInputSchema.parse(rawInput);
       try {
         const chunks = await ctx.batchFetchChunksMinimal({
-          topicId,
-          subject: subjectFilter,
-          dueOnly,
+          topicId: topic_id,
+          subject: subject_filter,
+          dueOnly: due_only,
           limit,
         });
         const chunkIds = chunks.map((c: { id: string }) => c.id);

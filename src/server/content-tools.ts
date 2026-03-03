@@ -28,7 +28,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
     },
     async (rawInput: unknown) => {
       const input: GetChunkContentInput = GetChunkContentInputSchema.parse(rawInput);
-      const { chunkId } = input;
+      const chunkId = input.chunk_id;
 
       try {
         const chunkContent = await ctx.getChunkContent(chunkId);
@@ -73,7 +73,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
     },
     async (rawInput: unknown) => {
       const input: GetTopicSummaryInput = GetTopicSummaryInputSchema.parse(rawInput);
-      const { topicId } = input;
+      const topicId = input.topic_id;
 
       try {
         const topicResult = await ctx.getTopicSummary(topicId);
@@ -119,32 +119,32 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
     },
     async (rawInput: unknown) => {
       const input: ListItemsWithContentInput = ListItemsWithContentInputSchema.parse(rawInput);
-      const { subjectFilter, dueOnly, limit, offset, includeContent } = input;
+      const { subject_filter, due_only, limit, offset, include_content } = input;
 
       const resolvedOffset = offset ?? 0;
       const resolvedLimit = limit ?? 100;
 
       try {
         const result = await ctx.listChunksWithContent({
-          subjectFilter,
-          dueOnly,
-          includeContent,
+          subjectFilter: subject_filter,
+          dueOnly: due_only,
+          includeContent: include_content,
           limit: resolvedLimit,
           offset: resolvedOffset,
         });
 
         return toolOk(
           `Successfully retrieved ${result.items.length} learning items${
-            includeContent ? ' with content' : ''
+            include_content ? ' with content' : ''
           }`,
           {
             items: result.items,
             count: result.items.length,
             pagination: result.pagination,
-            contentIncluded: includeContent,
+            contentIncluded: include_content,
             filter: {
-              subject: subjectFilter ?? null,
-              dueOnly: dueOnly ?? false,
+              subject: subject_filter ?? null,
+              dueOnly: due_only ?? false,
               limit: resolvedLimit,
               offset: resolvedOffset,
             },

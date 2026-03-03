@@ -188,28 +188,28 @@ describe('chunks service', () => {
       title: 'Test Chunk',
       subject: 'CS',
       difficulty: 5,
-      nextReviewDate: '2024-01-01',
-      easeFactor: 2.5,
+      next_review_date: '2024-01-01',
+      ease_factor: 2.5,
       repetitions: 1,
-      estimatedDuration: 20,
-      chunkType: 'new' as const,
-      topicId: 'topic-1',
-      topicTitle: 'Test Topic',
+      estimated_duration: 20,
+      chunk_type: 'new' as const,
+      topic_id: 'topic-1',
+      topic_title: 'Test Topic',
     };
 
     expect(() => LearningItemSchema.parse(validItem)).not.toThrow();
 
     const invalidItem = {
       ...validItem,
-      topicId: '',
+      topic_id: '',
     };
 
     expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
 
     const itemWithoutTopic = {
       ...validItem,
-      topicId: undefined,
-      topicTitle: undefined,
+      topic_id: undefined,
+      topic_title: undefined,
     };
 
     expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();

@@ -31,7 +31,7 @@ describe('session-lifecycle-tools', () => {
       const handler = server.tools.get('create_session')!.handler;
       const result = await handler({ mode: 'learning' });
       const parsed = parseResult(result);
-      expect(parsed.sessionId).toBeDefined();
+      expect(parsed.session_id).toBeDefined();
       expect(parsed.status).toBe('created');
       expect(parsed.message).toContain('learning');
     });
@@ -63,11 +63,11 @@ describe('session-lifecycle-tools', () => {
       const handler = server.tools.get('create_session')!.handler;
       const result = await handler({
         mode: 'retrieval',
-        chunkIds: ['chunk-s1'],
-        topicId: 'topic-s',
+        chunk_ids: ['chunk-s1'],
+        topic_id: 'topic-s',
       });
       const parsed = parseResult(result);
-      expect(parsed.sessionId).toBeDefined();
+      expect(parsed.session_id).toBeDefined();
       expect(parsed.status).toBe('created');
     });
   });
@@ -96,7 +96,7 @@ describe('session-lifecycle-tools', () => {
   describe('get_session', () => {
     it('returns not_found for nonexistent session', async () => {
       const handler = server.tools.get('get_session')!.handler;
-      const result = await handler({ sessionId: 'nonexistent' });
+      const result = await handler({ session_id: 'nonexistent' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('not_found');
     });
@@ -104,10 +104,10 @@ describe('session-lifecycle-tools', () => {
     it('returns session by ID', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
       const createResult = await createHandler({ mode: 'learning' });
-      const sessionId = parseResult(createResult).sessionId;
+      const sessionId = parseResult(createResult).session_id;
 
       const handler = server.tools.get('get_session')!.handler;
-      const result = await handler({ sessionId });
+      const result = await handler({ session_id: sessionId });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('found');
       expect(parsed.session).toBeDefined();
@@ -118,12 +118,12 @@ describe('session-lifecycle-tools', () => {
     it('completes an active session', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
       const createResult = await createHandler({ mode: 'learning' });
-      const sessionId = parseResult(createResult).sessionId;
+      const sessionId = parseResult(createResult).session_id;
 
       const handler = server.tools.get('complete_session')!.handler;
-      const result = await handler({ sessionId, feedback: 'Great session!' });
+      const result = await handler({ session_id: sessionId, feedback: 'Great session!' });
       const parsed = parseResult(result);
-      expect(parsed.sessionId).toBe(sessionId);
+      expect(parsed.session_id).toBe(sessionId);
       expect(parsed.status).toBe('completed');
       expect(parsed.message).toContain('with feedback');
     });
@@ -131,19 +131,19 @@ describe('session-lifecycle-tools', () => {
     it('returns error for already completed session', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
       const createResult = await createHandler({ mode: 'learning' });
-      const sessionId = parseResult(createResult).sessionId;
+      const sessionId = parseResult(createResult).session_id;
 
       const completeHandler = server.tools.get('complete_session')!.handler;
-      await completeHandler({ sessionId });
+      await completeHandler({ session_id: sessionId });
 
-      const result = await completeHandler({ sessionId });
+      const result = await completeHandler({ session_id: sessionId });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });
 
     it('returns error for nonexistent session', async () => {
       const handler = server.tools.get('complete_session')!.handler;
-      const result = await handler({ sessionId: 'nonexistent' });
+      const result = await handler({ session_id: 'nonexistent' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });

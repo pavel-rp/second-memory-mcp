@@ -35,7 +35,7 @@ describe('chunk-tools', () => {
         subject: 'Math',
         content: 'Learn about test items',
         difficulty: 5,
-        estimatedDuration: 15,
+        estimated_duration: 15,
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -50,9 +50,9 @@ describe('chunk-tools', () => {
         subject: 'Science',
         content: 'Some content here',
         difficulty: 3,
-        estimatedDuration: 20,
+        estimated_duration: 20,
         tags: ['tag1', 'tag2'],
-        topicTitle: 'Custom Topic',
+        topic_title: 'Custom Topic',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -64,7 +64,7 @@ describe('chunk-tools', () => {
     it('returns error for nonexistent chunk', async () => {
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
-        chunkId: 'nonexistent',
+        chunk_id: 'nonexistent',
         content: 'New content',
       });
       const parsed = parseResult(result);
@@ -79,14 +79,14 @@ describe('chunk-tools', () => {
         subject: 'Math',
         content: 'Original content',
         difficulty: 3,
-        estimatedDuration: 10,
+        estimated_duration: 10,
       });
       const created = parseResult(createResult);
       const chunkId = created.item.id;
 
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
-        chunkId,
+        chunk_id: chunkId,
         content: 'Updated content',
       });
       const parsed = parseResult(result);
@@ -99,7 +99,7 @@ describe('chunk-tools', () => {
     it('returns error for nonexistent chunk', async () => {
       const handler = server.tools.get('update_chunk_metadata')!.handler;
       const result = await handler({
-        chunkId: 'nonexistent',
+        chunk_id: 'nonexistent',
         title: 'New Title',
       });
       const parsed = parseResult(result);
@@ -113,14 +113,14 @@ describe('chunk-tools', () => {
         subject: 'Math',
         content: 'Original content',
         difficulty: 3,
-        estimatedDuration: 10,
+        estimated_duration: 10,
       });
       const created = parseResult(createResult);
       const chunkId = created.item.id;
 
       const handler = server.tools.get('update_chunk_metadata')!.handler;
       const result = await handler({
-        chunkId,
+        chunk_id: chunkId,
         title: 'Updated Title',
         difficulty: 7,
       });
@@ -134,7 +134,7 @@ describe('chunk-tools', () => {
     it('returns error for nonexistent chunk', async () => {
       const handler = server.tools.get('update_chunk')!.handler;
       const result = await handler({
-        chunkId: 'nonexistent',
+        chunk_id: 'nonexistent',
         content: 'New content',
       });
       const parsed = parseResult(result);
@@ -148,16 +148,16 @@ describe('chunk-tools', () => {
         subject: 'Math',
         content: 'Original',
         difficulty: 5,
-        estimatedDuration: 15,
+        estimated_duration: 15,
       });
       const created = parseResult(createResult);
       const chunkId = created.item.id;
 
       const handler = server.tools.get('update_chunk')!.handler;
       const result = await handler({
-        chunkId,
+        chunk_id: chunkId,
         content: 'Completely new content',
-        forceReset: true,
+        force_reset: true,
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -167,7 +167,7 @@ describe('chunk-tools', () => {
   describe('delete_chunk', () => {
     it('returns error for nonexistent chunk', async () => {
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunkId: 'nonexistent' });
+      const result = await handler({ chunk_id: 'nonexistent' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });
@@ -179,13 +179,13 @@ describe('chunk-tools', () => {
         subject: 'Math',
         content: 'Content to delete',
         difficulty: 3,
-        estimatedDuration: 10,
+        estimated_duration: 10,
       });
       const created = parseResult(createResult);
       const chunkId = created.item.id;
 
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunkId });
+      const result = await handler({ chunk_id: chunkId });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.message).toContain('Successfully deleted');
@@ -232,7 +232,7 @@ describe('chunk-tools', () => {
       });
 
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunkId: 'chunk-prereq' });
+      const result = await handler({ chunk_id: 'chunk-prereq' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.removedDependencies.length).toBeGreaterThanOrEqual(0);

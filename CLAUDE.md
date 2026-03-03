@@ -25,9 +25,9 @@ Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/help
 
 ## Naming Conventions
 
-- **MCP tool schemas** (`src/domain/types/spaced-repetition-tools.ts`): snake_case (`ease_factor`, `next_review_date`). Other tool schemas use camelCase — follow existing style per schema.
-- **Internal types/logic** (`src/domain/types/sr.ts`, `src/domain/algorithms/`): camelCase.
-- **Conversion** in `src/server/spaced-repetition-tools.ts`: maps snake_case ↔ camelCase at the boundary.
+- **MCP tool schemas** (`src/domain/types/*-tools.ts`, `recommendations.ts`, `session.ts`, `analytics.ts`): snake_case for all field names (`ease_factor`, `next_review_date`, `chunk_id`, `time_spent_ms`).
+- **Internal types/logic** (`src/domain/types/` hand-written types, `src/domain/algorithms/`): camelCase.
+- **Conversion** in `src/server/*-tools.ts`: maps snake_case ↔ camelCase at the boundary.
 
 ## Error Handling
 

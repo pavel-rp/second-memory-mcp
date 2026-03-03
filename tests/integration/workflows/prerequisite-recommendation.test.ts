@@ -4,17 +4,20 @@ import { createAppContext } from '../../../src/composition-root.js';
 import type { LearningItem } from '../../../src/domain/types/recommendations.js';
 import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
-function createTestItem(id: string, overrides: Partial<LearningItem> = {}): LearningItem {
+function createTestItem(
+  id: string,
+  overrides: Partial<LearningItem> = {}
+): Record<string, unknown> {
   return {
     id,
     title: overrides.title ?? `Test Item ${id}`,
     subject: overrides.subject ?? 'CS',
     difficulty: overrides.difficulty ?? 5,
-    nextReviewDate: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
-    easeFactor: overrides.easeFactor ?? 2.5,
+    next_review_date: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
+    ease_factor: overrides.easeFactor ?? 2.5,
     repetitions: overrides.repetitions ?? 2,
-    estimatedDuration: overrides.estimatedDuration ?? 10,
-    chunkType: overrides.chunkType ?? 'review',
+    estimated_duration: overrides.estimatedDuration ?? 10,
+    chunk_type: overrides.chunkType ?? 'review',
     prerequisites: overrides.prerequisites ?? [],
     tags: overrides.tags ?? [],
   };
@@ -42,10 +45,10 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
 
     const result = parseToolResult(out);
@@ -77,10 +80,10 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
 
     const result = parseToolResult(out);
@@ -122,10 +125,10 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
 
     const result = parseToolResult(out);

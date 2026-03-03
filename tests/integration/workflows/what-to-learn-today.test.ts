@@ -9,13 +9,11 @@ function makeItem(overrides: Partial<any> = {}): any {
     title: overrides.title ?? 'Item',
     subject: overrides.subject ?? 'CS',
     difficulty: overrides.difficulty ?? 5,
-    next_review_date: undefined, // not used here
-    nextReviewDate: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
-    ease_factor: undefined, // not used here
-    easeFactor: overrides.easeFactor ?? 2.5,
+    next_review_date: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
+    ease_factor: overrides.easeFactor ?? 2.5,
     repetitions: overrides.repetitions ?? 2,
-    estimatedDuration: overrides.estimatedDuration ?? 10,
-    chunkType: overrides.chunkType ?? 'review',
+    estimated_duration: overrides.estimatedDuration ?? 10,
+    chunk_type: overrides.chunkType ?? 'review',
     prerequisites: overrides.prerequisites,
     tags: overrides.tags,
   };
@@ -41,10 +39,10 @@ describe('Integration: what_to_learn_today', () => {
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40, maxNewItems: 1 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40, max_new_items: 1 },
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);
@@ -66,15 +64,15 @@ describe('Integration: what_to_learn_today', () => {
 
     const out = await tool.handler({
       mode: 'guided',
-      learningItems: items,
-      userHistory: {
-        recentSessions: [],
+      learning_items: items,
+      user_history: {
+        recent_sessions: [],
         patterns: {
-          averageSessionDuration: 20,
-          preferredDifficulty: 5,
-          successRate: 0.7,
-          fatigueThreshold: 15,
-          subjectPreferences: { CS: 1 },
+          average_session_duration: 20,
+          preferred_difficulty: 5,
+          success_rate: 0.7,
+          fatigue_threshold: 15,
+          subject_preferences: { CS: 1 },
         },
       },
     });
@@ -92,10 +90,23 @@ describe('Integration: guided_learning_conversation', () => {
     const tool = server.tools.get('guided_learning_conversation');
     expect(tool).toBeDefined();
 
+    // Context is an opaque record consumed by internal code expecting camelCase LearningItem objects
     const out = await tool.handler({
       intent: 'start_learning',
       context: {
-        learningItems: [makeItem({ id: 'a' })],
+        learningItems: [
+          {
+            id: 'a',
+            title: 'Item',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewDate: new Date().toISOString().slice(0, 10),
+            easeFactor: 2.5,
+            repetitions: 2,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+        ],
       },
     });
     const result = parseToolResult(out);

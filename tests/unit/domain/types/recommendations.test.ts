@@ -2,64 +2,64 @@ import { describe, it, expect } from 'vitest';
 import { RecommendationInputSchema } from '../../../../src/domain/types/recommendations.js';
 
 describe('RecommendationInputSchema - self-fetch parameters', () => {
-  it('validates fetchFromDatabase defaults to false when omitted', () => {
+  it('validates fetch_from_database defaults to false when omitted', () => {
     const input = {
-      learningItems: [],
+      learning_items: [],
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetchFromDatabase).toBe(false);
+    expect(result.fetch_from_database).toBe(false);
   });
 
-  it('validates fetchFromDatabase: true with filters', () => {
+  it('validates fetch_from_database: true with filters', () => {
     const input = {
-      learningItems: [],
-      fetchFromDatabase: true,
-      subjectFilter: 'Math',
-      dueOnly: true,
+      learning_items: [],
+      fetch_from_database: true,
+      subject_filter: 'Math',
+      due_only: true,
       limit: 10,
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetchFromDatabase).toBe(true);
-    expect(result.subjectFilter).toBe('Math');
-    expect(result.dueOnly).toBe(true);
+    expect(result.fetch_from_database).toBe(true);
+    expect(result.subject_filter).toBe('Math');
+    expect(result.due_only).toBe(true);
     expect(result.limit).toBe(10);
   });
 
-  it('validates fetchFromDatabase: false (legacy mode)', () => {
+  it('validates fetch_from_database: false (legacy mode)', () => {
     const input = {
-      learningItems: [],
-      fetchFromDatabase: false,
+      learning_items: [],
+      fetch_from_database: false,
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetchFromDatabase).toBe(false);
+    expect(result.fetch_from_database).toBe(false);
   });
 
   it('validates subject filter is optional', () => {
     const input = {
-      learningItems: [],
-      subjectFilter: 'CS',
+      learning_items: [],
+      subject_filter: 'CS',
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.subjectFilter).toBe('CS');
+    expect(result.subject_filter).toBe('CS');
   });
 
-  it('validates dueOnly filter is optional', () => {
+  it('validates due_only filter is optional', () => {
     const input = {
-      learningItems: [],
-      dueOnly: true,
+      learning_items: [],
+      due_only: true,
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.dueOnly).toBe(true);
+    expect(result.due_only).toBe(true);
   });
 
   it('validates limit filter is optional and must be positive integer', () => {
     const input = {
-      learningItems: [],
+      learning_items: [],
       limit: 5,
     };
 
@@ -69,7 +69,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
 
   it('rejects limit as zero', () => {
     const input = {
-      learningItems: [],
+      learning_items: [],
       limit: 0,
     };
 
@@ -78,7 +78,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
 
   it('rejects limit as negative', () => {
     const input = {
-      learningItems: [],
+      learning_items: [],
       limit: -5,
     };
 
@@ -87,7 +87,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
 
   it('rejects limit as non-integer', () => {
     const input = {
-      learningItems: [],
+      learning_items: [],
       limit: 5.5,
     };
 
@@ -96,47 +96,47 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
 
   it('validates all filters can be combined', () => {
     const input = {
-      learningItems: [],
-      fetchFromDatabase: true,
-      subjectFilter: 'SWE',
-      dueOnly: false,
+      learning_items: [],
+      fetch_from_database: true,
+      subject_filter: 'SWE',
+      due_only: false,
       limit: 20,
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetchFromDatabase).toBe(true);
-    expect(result.subjectFilter).toBe('SWE');
-    expect(result.dueOnly).toBe(false);
+    expect(result.fetch_from_database).toBe(true);
+    expect(result.subject_filter).toBe('SWE');
+    expect(result.due_only).toBe(false);
     expect(result.limit).toBe(20);
   });
 
-  it('validates filters can be omitted when fetchFromDatabase is true', () => {
+  it('validates filters can be omitted when fetch_from_database is true', () => {
     const input = {
-      learningItems: [],
-      fetchFromDatabase: true,
+      learning_items: [],
+      fetch_from_database: true,
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetchFromDatabase).toBe(true);
-    expect(result.subjectFilter).toBeUndefined();
-    expect(result.dueOnly).toBeUndefined();
+    expect(result.fetch_from_database).toBe(true);
+    expect(result.subject_filter).toBeUndefined();
+    expect(result.due_only).toBeUndefined();
     expect(result.limit).toBeUndefined();
   });
 
-  it('validates backward compatibility - filters can be provided without fetchFromDatabase', () => {
+  it('validates backward compatibility - filters can be provided without fetch_from_database', () => {
     const input = {
-      learningItems: [],
-      subjectFilter: 'Math',
-      dueOnly: true,
+      learning_items: [],
+      subject_filter: 'Math',
+      due_only: true,
       limit: 10,
     };
 
     const result = RecommendationInputSchema.parse(input);
-    // fetchFromDatabase should default to false
-    expect(result.fetchFromDatabase).toBe(false);
+    // fetch_from_database should default to false
+    expect(result.fetch_from_database).toBe(false);
     // But filters should still be present in the parsed result
-    expect(result.subjectFilter).toBe('Math');
-    expect(result.dueOnly).toBe(true);
+    expect(result.subject_filter).toBe('Math');
+    expect(result.due_only).toBe(true);
     expect(result.limit).toBe(10);
   });
 });

@@ -59,7 +59,7 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const result = await tool.handler({
-      includeContent: true,
+      include_content: true,
     });
 
     const parsed = parseToolResult(result);
@@ -111,7 +111,7 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const result = await tool.handler({
-      includeContent: false,
+      include_content: false,
     });
 
     const parsed = parseToolResult(result);
@@ -164,7 +164,7 @@ describe('Integration: list_items_with_content', () => {
     }
 
     const result1 = await tool.handler({
-      includeContent: true,
+      include_content: true,
       limit: 2,
       offset: 0,
     });
@@ -178,7 +178,7 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed1.pagination.limit).toBe(2);
 
     const result2 = await tool.handler({
-      includeContent: true,
+      include_content: true,
       limit: 2,
       offset: 2,
     });
@@ -190,7 +190,7 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed2.pagination.offset).toBe(2);
 
     const result3 = await tool.handler({
-      includeContent: true,
+      include_content: true,
       limit: 2,
       offset: 4,
     });
@@ -261,8 +261,8 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const result = await tool.handler({
-      includeContent: true,
-      subjectFilter: 'CS',
+      include_content: true,
+      subject_filter: 'CS',
     });
 
     const parsed = parseToolResult(result);
@@ -332,8 +332,8 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const result = await tool.handler({
-      includeContent: true,
-      dueOnly: true,
+      include_content: true,
+      due_only: true,
     });
 
     const parsed = parseToolResult(result);
@@ -345,7 +345,7 @@ describe('Integration: list_items_with_content', () => {
 
   it('should return empty results when no data exists', async () => {
     const result = await tool.handler({
-      includeContent: true,
+      include_content: true,
     });
 
     const parsed = parseToolResult(result);

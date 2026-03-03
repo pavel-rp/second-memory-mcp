@@ -45,7 +45,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           nextReviewAt: now,
           easeFactor: 2.5,
           repetitions: 0,
-          estimatedDuration: input.estimatedDuration,
+          estimatedDuration: input.estimated_duration,
           chunkType: 'new' as const,
           prerequisitesJson: input.prerequisites ?? null,
           tagsJson: input.tags ?? null,
@@ -54,7 +54,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           contentUpdatedAt: now,
           createdAt: now,
           updatedAt: now,
-          topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
+          topicTitle: input.topic_title || `Topic: ${input.subject} - ${input.title}`,
         } as NewLearningChunk & { topicTitle?: string });
 
         if (!result.success) {
@@ -96,9 +96,9 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkContentInput = UpdateChunkContentInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateChunkContent(input.chunkId, {
+        const result = await ctx.updateChunkContent(input.chunk_id, {
           content: input.content,
-          resetProgress: input.resetProgress,
+          resetProgress: input.reset_progress,
         });
 
         if (result.success && result.chunk) {
@@ -139,12 +139,12 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkMetadataInput = UpdateChunkMetadataInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateChunkMetadata(input.chunkId, {
+        const result = await ctx.updateChunkMetadata(input.chunk_id, {
           title: input.title,
           difficulty: input.difficulty,
           prerequisites: input.prerequisites,
           tags: input.tags,
-          estimatedDuration: input.estimatedDuration,
+          estimatedDuration: input.estimated_duration,
         });
 
         if (result.success && result.chunk) {
@@ -184,14 +184,14 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
     async (rawInput: unknown) => {
       const input: UpdateChunkInput = UpdateChunkInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateChunkWithProgressReset(input.chunkId, {
+        const result = await ctx.updateChunkWithProgressReset(input.chunk_id, {
           content: input.content,
           title: input.title,
           difficulty: input.difficulty,
           prerequisites: input.prerequisites,
           tags: input.tags,
-          estimatedDuration: input.estimatedDuration,
-          forceReset: input.forceReset,
+          estimatedDuration: input.estimated_duration,
+          forceReset: input.force_reset,
         });
 
         if (result.success && result.chunk) {
@@ -227,7 +227,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: DeleteChunkInputShape,
     },
     async (rawInput: unknown) => {
-      const { chunkId }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
+      const { chunk_id }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
+      const chunkId = chunk_id;
       try {
         const result = await ctx.deleteChunk(chunkId);
 

@@ -166,25 +166,25 @@ export const LearningItemSchema = z.object({
   title: z.string().min(1),
   subject: z.string().min(1),
   difficulty: z.number().int().min(1).max(10),
-  nextReviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
-  easeFactor: z.number().min(1.3),
+  next_review_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
+  ease_factor: z.number().min(1.3),
   repetitions: z.number().int().min(0),
-  lastReviewed: z
+  last_reviewed: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD')
     .optional(),
-  estimatedDuration: z.number().min(0),
-  chunkType: ChunkTypeSchema,
+  estimated_duration: z.number().min(0),
+  chunk_type: ChunkTypeSchema,
   prerequisites: z.array(z.string()).optional(),
   tags: z.array(z.string()).optional(),
-  topicId: z.string().min(1).optional(),
-  topicTitle: z.string().min(1).optional(),
+  topic_id: z.string().min(1).optional(),
+  topic_title: z.string().min(1).optional(),
 });
 
 export const LearningItemWithContentSchema = LearningItemSchema.extend({
   content: z.string().optional(),
-  contentVersion: z.number().int().min(1).optional(),
-  contentUpdatedAt: z.number().int().min(0).optional(),
+  content_version: z.number().int().min(1).optional(),
+  content_updated_at: z.number().int().min(0).optional(),
 });
 
 export type PaginatedLearningItemsResponse = {
@@ -198,11 +198,11 @@ export type PaginatedLearningItemsResponse = {
 };
 
 export const SessionConstraintsSchema = z.object({
-  maxDuration: z.number().min(0).optional(),
-  maxCognitiveLoad: z.number().min(0).optional(),
-  maxNewItems: z.number().int().min(0).optional(),
-  subjectFilter: z.string().optional(),
-  excludeIds: z.array(z.string()).optional(),
+  max_duration: z.number().min(0).optional(),
+  max_cognitive_load: z.number().min(0).optional(),
+  max_new_items: z.number().int().min(0).optional(),
+  subject_filter: z.string().optional(),
+  exclude_ids: z.array(z.string()).optional(),
 });
 
 export const LearningRecommendationSchema = z.object({
@@ -210,85 +210,85 @@ export const LearningRecommendationSchema = z.object({
   priority: z.number(),
   reason: z.string().min(1),
   order: z.number().int().min(1),
-  cognitiveLoad: z.number().min(0),
+  cognitive_load: z.number().min(0),
 });
 
 export const SessionSummarySchema = z.object({
-  totalItems: z.number().int().min(0),
-  totalDuration: z.number().min(0),
-  totalCognitiveLoad: z.number().min(0),
-  newItems: z.number().int().min(0),
-  reviewItems: z.number().int().min(0),
-  remediationItems: z.number().int().min(0),
+  total_items: z.number().int().min(0),
+  total_duration: z.number().min(0),
+  total_cognitive_load: z.number().min(0),
+  new_items: z.number().int().min(0),
+  review_items: z.number().int().min(0),
+  remediation_items: z.number().int().min(0),
   subjects: z.array(z.string()),
 });
 
 export const ConversationGuidanceSchema = z.object({
-  nextAction: z.string().min(1),
-  clarifyingQuestions: z.array(z.string()).optional(),
+  next_action: z.string().min(1),
+  clarifying_questions: z.array(z.string()).optional(),
   encouragement: z.string().optional(),
-  progressUpdate: z.string().optional(),
+  progress_update: z.string().optional(),
 });
 
 export const LearningPatternsSchema = z.object({
-  averageSessionDuration: z.number().min(0),
-  preferredDifficulty: z.number().min(1).max(10),
-  successRate: z.number().min(0).max(1),
-  fatigueThreshold: z.number().min(0),
-  subjectPreferences: z.record(z.number()),
-  optimalSessionTime: z.string().optional(),
+  average_session_duration: z.number().min(0),
+  preferred_difficulty: z.number().min(1).max(10),
+  success_rate: z.number().min(0).max(1),
+  fatigue_threshold: z.number().min(0),
+  subject_preferences: z.record(z.number()),
+  optimal_session_time: z.string().optional(),
 });
 
 export const SessionHistorySchema = z.object({
-  recentSessions: z.array(
+  recent_sessions: z.array(
     z.object({
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
       duration: z.number().min(0),
-      itemsCompleted: z.number().int().min(0),
-      averageQuality: z.number().min(0).max(5),
-      cognitiveLoad: z.number().min(0),
+      items_completed: z.number().int().min(0),
+      average_quality: z.number().min(0).max(5),
+      cognitive_load: z.number().min(0),
     })
   ),
   patterns: LearningPatternsSchema,
 });
 
 export const SessionContextSchema = z.object({
-  currentSessionId: z.string().optional(),
-  activeItems: z.array(z.string()).optional(),
-  sessionStartTime: z.number().optional(),
-  lastActivity: z.number().optional(),
-  userPreferences: z.record(z.unknown()).optional(),
-  currentRecommendations: z.array(LearningRecommendationSchema).optional(),
-  currentItemIndex: z.number().optional(),
+  current_session_id: z.string().optional(),
+  active_items: z.array(z.string()).optional(),
+  session_start_time: z.number().optional(),
+  last_activity: z.number().optional(),
+  user_preferences: z.record(z.unknown()).optional(),
+  current_recommendations: z.array(LearningRecommendationSchema).optional(),
+  current_item_index: z.number().optional(),
 });
 
 export const RecommendationInputShape = {
   mode: RecommendationModeSchema.optional(),
-  timeAvailable: z.number().min(0).optional(),
-  subjectPreference: SubjectPreferenceSchema.optional(),
-  learningItems: z.array(LearningItemSchema).optional(),
-  userHistory: SessionHistorySchema.optional(),
-  sessionContext: SessionContextSchema.optional(),
+  time_available: z.number().min(0).optional(),
+  subject_preference: SubjectPreferenceSchema.optional(),
+  learning_items: z.array(LearningItemSchema).optional(),
+  user_history: SessionHistorySchema.optional(),
+  session_context: SessionContextSchema.optional(),
   constraints: SessionConstraintsSchema.optional(),
-  fetchFromDatabase: z.boolean().optional().default(false),
-  subjectFilter: z.string().optional(),
-  dueOnly: z.boolean().optional(),
+  fetch_from_database: z.boolean().optional().default(false),
+  subject_filter: z.string().optional(),
+  due_only: z.boolean().optional(),
   limit: z.number().int().min(1).optional(),
 };
 
 export const RecommendationInputSchema = z
   .object(RecommendationInputShape)
   .superRefine((val, ctx) => {
-    if (val.fetchFromDatabase && (val.learningItems?.length ?? 0) > 0) {
+    if (val.fetch_from_database && (val.learning_items?.length ?? 0) > 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'Invalid input: provide either fetchFromDatabase: true or a non-empty learningItems array, not both.',
+          'Invalid input: provide either fetch_from_database: true or a non-empty learning_items array, not both.',
       });
-    } else if (!val.fetchFromDatabase && !val.learningItems) {
+    } else if (!val.fetch_from_database && !val.learning_items) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Provide learningItems when fetchFromDatabase is false.',
+        message: 'Provide learning_items when fetch_from_database is false.',
       });
     }
   });
@@ -299,8 +299,8 @@ export const ConversationRequestShape = {
     .record(z.unknown())
     .optional()
     .describe('Optional contextual metadata for the conversation'),
-  userInput: z.string().optional().describe('Raw user utterance or request'),
-  sessionState: z
+  user_input: z.string().optional().describe('Raw user utterance or request'),
+  session_state: z
     .record(z.unknown())
     .optional()
     .describe('Opaque session state blob from prior interactions'),

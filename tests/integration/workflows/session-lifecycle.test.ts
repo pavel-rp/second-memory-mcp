@@ -76,16 +76,16 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!createSessionTool) throw new Error('create_session tool not found');
 
     const createResult = await createSessionTool.handler({
-      topicId: topicId,
-      chunkIds: [chunkId1, chunkId2],
+      topic_id: topicId,
+      chunk_ids: [chunkId1, chunkId2],
       mode: 'learning',
-      estimatedDuration: 20,
+      estimated_duration: 20,
     });
 
     const createParsed = parseToolResult(createResult);
     expect(createParsed.status).toBe('created');
-    expect(createParsed.sessionId).toBeDefined();
-    const sessionId = createParsed.sessionId;
+    expect(createParsed.session_id).toBeDefined();
+    const sessionId = createParsed.session_id;
 
     const [sessionInDb] = await getSql()
       .select()
@@ -110,33 +110,33 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!createSessionChunkTool) throw new Error('create_session_chunk tool not found');
 
     await createSessionChunkTool.handler({
-      sessionId: sessionId,
-      chunkId: chunkId1,
+      session_id: sessionId,
+      chunk_id: chunkId1,
       status: 'completed',
       attempts: [
         {
           timestamp: now + 1000,
-          timeSpentMs: 5000,
+          time_spent_ms: 5000,
           completed: true,
           quality: 4,
         },
       ],
-      qualityScores: [4],
-      timeSpentMs: 5000,
+      quality_scores: [4],
+      time_spent_ms: 5000,
     });
 
     await createSessionChunkTool.handler({
-      sessionId: sessionId,
-      chunkId: chunkId2,
+      session_id: sessionId,
+      chunk_id: chunkId2,
       status: 'in_progress',
       attempts: [
         {
           timestamp: now + 2000,
-          timeSpentMs: 3000,
+          time_spent_ms: 3000,
           completed: false,
         },
       ],
-      timeSpentMs: 3000,
+      time_spent_ms: 3000,
     });
 
     const sessionProgressTool = server.tools.get('session_progress');
@@ -144,7 +144,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!sessionProgressTool) throw new Error('session_progress tool not found');
 
     const progressResult = await sessionProgressTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
     const progressParsed = parseToolResult(progressResult);
     expect(progressParsed.session_id).toBe(sessionId);
@@ -159,7 +159,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!sessionWorkflowTool) throw new Error('session_workflow tool not found');
 
     const workflowResult = await sessionWorkflowTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
     const workflowParsed = parseToolResult(workflowResult);
     expect(workflowParsed.current_phase).toBeDefined();
@@ -172,12 +172,12 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!completeSessionTool) throw new Error('complete_session tool not found');
 
     const completeResult = await completeSessionTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
       feedback: 'Great session! Learned a lot about the topic.',
     });
     const completeParsed = parseToolResult(completeResult);
     expect(completeParsed.status).toBe('completed');
-    expect(completeParsed.sessionId).toBe(sessionId);
+    expect(completeParsed.session_id).toBe(sessionId);
 
     const [completedSessionInDb] = await getSql()
       .select()
@@ -197,7 +197,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!sessionCompletionTool) throw new Error('session_completion tool not found');
 
     const completionResult = await sessionCompletionTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
     const completionParsed = parseToolResult(completionResult);
     expect(completionParsed.is_complete).toBeDefined();
@@ -277,25 +277,25 @@ describe('Integration: Complete Session Lifecycle', () => {
     }
 
     const session1Result = await createSessionTool.handler({
-      topicId: topicId1,
-      chunkIds: [chunkId1],
+      topic_id: topicId1,
+      chunk_ids: [chunkId1],
       mode: 'learning',
-      estimatedDuration: 15,
+      estimated_duration: 15,
     });
-    const session1Id = parseToolResult(session1Result).sessionId;
+    const session1Id = parseToolResult(session1Result).session_id;
 
     await completeSessionTool.handler({
-      sessionId: session1Id,
+      session_id: session1Id,
       feedback: 'Completed math learning',
     });
 
     const session2Result = await createSessionTool.handler({
-      topicId: topicId2,
-      chunkIds: [chunkId2],
+      topic_id: topicId2,
+      chunk_ids: [chunkId2],
       mode: 'review',
-      estimatedDuration: 20,
+      estimated_duration: 20,
     });
-    const session2Id = parseToolResult(session2Result).sessionId;
+    const session2Id = parseToolResult(session2Result).session_id;
 
     const activeResult = await getActiveSessionTool.handler({});
     const activeParsed = parseToolResult(activeResult);
@@ -303,7 +303,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(activeParsed.session.session_id).toBe(session2Id);
 
     await completeSessionTool.handler({
-      sessionId: session2Id,
+      session_id: session2Id,
       feedback: 'Completed science review',
     });
 
@@ -364,16 +364,16 @@ describe('Integration: Complete Session Lifecycle', () => {
     if (!createSessionTool) throw new Error('create_session tool not found');
 
     const createResult = await createSessionTool.handler({
-      topicId: topicId,
-      chunkIds: [chunkId1, chunkId2],
+      topic_id: topicId,
+      chunk_ids: [chunkId1, chunkId2],
       mode: 'learning',
-      estimatedDuration: 20,
+      estimated_duration: 20,
     });
 
     const createParsed = parseToolResult(createResult);
     expect(createParsed.status).toBe('created');
     expect(createParsed.message).toContain('2 chunks initialized');
-    const sessionId = createParsed.sessionId;
+    const sessionId = createParsed.session_id;
 
     const getActiveSessionTool = server.tools.get('get_active_session');
     expect(getActiveSessionTool).toBeDefined();
@@ -423,30 +423,30 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(createSessionTool).toBeDefined();
     if (!createSessionTool) throw new Error('create_session tool not found');
     const createResult = await createSessionTool.handler({
-      topicId: topicId,
-      chunkIds: [chunkId],
+      topic_id: topicId,
+      chunk_ids: [chunkId],
       mode: 'learning',
-      estimatedDuration: 15,
+      estimated_duration: 15,
     });
-    const sessionId = parseToolResult(createResult).sessionId;
+    const sessionId = parseToolResult(createResult).session_id;
 
     const createSessionChunkTool = server.tools.get('create_session_chunk');
     expect(createSessionChunkTool).toBeDefined();
     if (!createSessionChunkTool) throw new Error('create_session_chunk tool not found');
     await createSessionChunkTool.handler({
-      sessionId: sessionId,
-      chunkId: chunkId,
+      session_id: sessionId,
+      chunk_id: chunkId,
       status: 'completed',
       attempts: [
         {
           timestamp: now + 1000,
-          timeSpentMs: 5000,
+          time_spent_ms: 5000,
           completed: true,
           quality: 4,
         },
       ],
-      qualityScores: [4],
-      timeSpentMs: 5000,
+      quality_scores: [4],
+      time_spent_ms: 5000,
     });
 
     const sessionProgressTool = server.tools.get('session_progress');
@@ -462,7 +462,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     }
 
     const progressWithIdResult = await sessionProgressTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
     const progressWithIdParsed = parseToolResult(progressWithIdResult);
     expect(progressWithIdParsed.session_id).toBe(sessionId);
@@ -493,13 +493,13 @@ describe('Integration: Complete Session Lifecycle', () => {
     };
 
     const progressWithInputResult = await sessionProgressTool.handler({
-      sessionData: sessionInput,
+      session_data: sessionInput,
     });
     const progressWithInputParsed = parseToolResult(progressWithInputResult);
     expect(progressWithInputParsed.session_id).toBe(sessionId);
 
     const workflowWithInputResult = await sessionWorkflowTool.handler({
-      sessionData: sessionInput,
+      session_data: sessionInput,
     });
     const workflowWithInputParsed = parseToolResult(workflowWithInputResult);
     expect(workflowWithInputParsed.current_phase).toBeDefined();
@@ -508,7 +508,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(typeof workflowWithInputParsed.can_advance).toBe('boolean');
 
     const completionWithInputResult = await sessionCompletionTool.handler({
-      sessionData: sessionInput,
+      session_data: sessionInput,
     });
     const completionWithInputParsed = parseToolResult(completionWithInputResult);
     expect(completionWithInputParsed.is_complete).toBeDefined();

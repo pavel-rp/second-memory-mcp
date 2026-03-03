@@ -12,7 +12,7 @@ describe('ReviewEntrySchema', () => {
     const validEntry = {
       date: '2024-01-01',
       quality: 4,
-      isNew: true,
+      is_new: true,
       topic: 'mathematics',
       tags: ['algebra', 'basic'],
     };
@@ -33,7 +33,7 @@ describe('ReviewEntrySchema', () => {
       expect(result.data).toEqual({
         date: '2024-01-01',
         quality: 0,
-        isNew: false,
+        is_new: false,
         tags: [],
       });
     }
@@ -90,7 +90,7 @@ describe('AnalyticsInputSchema', () => {
     const validInput = {
       entries: [
         { date: '2024-01-01', quality: 3 },
-        { date: '2024-01-02', quality: 4, isNew: true },
+        { date: '2024-01-02', quality: 4, is_new: true },
       ],
     };
 

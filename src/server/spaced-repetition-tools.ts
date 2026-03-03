@@ -160,7 +160,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     },
     async (rawInput: unknown) => {
       try {
-        const { candidates, timeboxMinutes }: RankCandidatesInput =
+        const { candidates, timebox_minutes }: RankCandidatesInput =
           RankCandidatesInputSchema.parse(rawInput);
         const mapped = candidates.map(c => ({
           id: c.id,
@@ -173,7 +173,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         }));
         const out = ctx.rankCandidates({
           candidates: mapped,
-          timeboxMinutes,
+          timeboxMinutes: timebox_minutes,
         });
         return toolJson(out);
       } catch (error) {
@@ -191,12 +191,39 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     {
       title: 'Get Learning Recommendations',
       description:
-        "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and recommend in one call - this is the primary and most convenient pattern. FILTERS: subjectFilter, dueOnly, and limit apply only when fetchFromDatabase: true. EXAMPLES: (1) Single-call pattern: {fetchFromDatabase: true, subjectFilter: 'Math', dueOnly: true} fetches due Math items and generates recommendations. (2) Legacy pattern: {learningItems: [...]} uses pre-fetched items (filters are ignored in this mode). Supports both guided 'teach me' mode and explicit parameter mode. The tool provides fast, local-first recommendations without external dependencies.",
+        "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. RECOMMENDED: Use fetch_from_database: true to automatically fetch and recommend in one call - this is the primary and most convenient pattern. FILTERS: subject_filter, due_only, and limit apply only when fetch_from_database: true. EXAMPLES: (1) Single-call pattern: {fetch_from_database: true, subject_filter: 'Math', due_only: true} fetches due Math items and generates recommendations. (2) Legacy pattern: {learning_items: [...]} uses pre-fetched items (filters are ignored in this mode). Supports both guided 'teach me' mode and explicit parameter mode. The tool provides fast, local-first recommendations without external dependencies.",
       inputSchema: RecommendationInputShape,
     },
     async (input: unknown) => {
       try {
-        const parsedInput: RecommendationInput = RecommendationInputSchema.parse(input);
+        const parsed = RecommendationInputSchema.parse(input);
+
+        // Map snake_case MCP input to camelCase internal type
+        const parsedInput: RecommendationInput = {
+          mode: parsed.mode,
+          timeAvailable: parsed.time_available,
+          subjectPreference: parsed.subject_preference,
+          learningItems: parsed.learning_items?.map(item => ({
+            id: item.id,
+            title: item.title,
+            subject: item.subject,
+            difficulty: item.difficulty,
+            nextReviewDate: item.next_review_date,
+            easeFactor: item.ease_factor,
+            repetitions: item.repetitions,
+            lastReviewed: item.last_reviewed,
+            estimatedDuration: item.estimated_duration,
+            chunkType: item.chunk_type,
+            prerequisites: item.prerequisites,
+            tags: item.tags,
+            topicId: item.topic_id,
+            topicTitle: item.topic_title,
+          })),
+          fetchFromDatabase: parsed.fetch_from_database,
+          subjectFilter: parsed.subject_filter,
+          dueOnly: parsed.due_only,
+          limit: parsed.limit,
+        };
 
         // Self-fetch mode: fetch from database
         let itemsToProcess = parsedInput.learningItems;
@@ -244,10 +271,10 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     async (rawInput: unknown) => {
       try {
         const input: RecordReviewResultInput = RecordReviewResultInputSchema.parse(rawInput);
-        const result = await ctx.processReviewResult(input.itemId, input.quality, {
-          timeSpentMs: input.timeSpentMs,
-          consecutiveFailures: input.consecutiveFailures,
-          daysOverdue: input.daysOverdue,
+        const result = await ctx.processReviewResult(input.item_id, input.quality, {
+          timeSpentMs: input.time_spent_ms,
+          consecutiveFailures: input.consecutive_failures,
+          daysOverdue: input.days_overdue,
         });
 
         if (!result.success) {
@@ -259,7 +286,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         }
 
         // Fetch updated chunk to return as learning item
-        const updatedChunk = await ctx.getChunkWithContent(input.itemId);
+        const updatedChunk = await ctx.getChunkWithContent(input.item_id);
         const learningItem = updatedChunk ? ctx.mapChunkRowToLearningItem(updatedChunk) : undefined;
 
         return toolJson({

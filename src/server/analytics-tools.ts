@@ -41,10 +41,12 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       inputSchema: AnalyticsWindowInputShape,
     },
     async (rawInput: unknown) => {
-      const { entries, window, includeBreakdowns }: AnalyticsWindowInput =
+      const { entries, window, include_breakdowns }: AnalyticsWindowInput =
         AnalyticsWindowInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeWindowRollup({ entries }, window, { includeBreakdowns });
+        const result = ctx.computeWindowRollup({ entries }, window, {
+          includeBreakdowns: include_breakdowns,
+        });
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);

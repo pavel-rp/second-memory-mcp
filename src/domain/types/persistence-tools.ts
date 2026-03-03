@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
 
 export const ListLearningItemsInputShape = {
-  subjectFilter: z.string().optional().describe('Optional subject filter for learning items'),
-  dueOnly: z.boolean().optional().describe('Return only items due for review'),
+  subject_filter: z.string().optional().describe('Optional subject filter for learning items'),
+  due_only: z.boolean().optional().describe('Return only items due for review'),
   limit: z.number().int().optional().describe('Maximum number of learning items to return'),
 } as const;
 
@@ -44,7 +44,7 @@ const TopicChunkShape = {
     .array(z.string())
     .default([])
     .describe('Chunk identifiers that should be completed beforehand'),
-  estimatedDuration: z
+  estimated_duration: z
     .number()
     .int('Estimated duration must be an integer')
     .min(1, 'Estimated duration must be at least 1 minute')
@@ -56,7 +56,7 @@ const TopicChunkShape = {
     .min(1, 'Order must be at least 1')
     .describe('Sequence order for the chunk'),
   tags: z.array(z.string()).default([]).describe('Tags for the chunk'),
-  chunkType: z
+  chunk_type: z
     .enum(['new', 'review', 'remediation'], {
       errorMap: () => ({
         message: 'Chunk type must be one of: new, review, remediation',
@@ -70,25 +70,25 @@ export const TopicChunkSchema = z.object(TopicChunkShape);
 
 export const TopicUserPreferencesSchema = z
   .object({
-    preferredDifficulty: z
+    preferred_difficulty: z
       .number()
       .int()
       .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
       .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
       .optional()
       .describe('Preferred difficulty level'),
-    learningStyle: z
+    learning_style: z
       .enum(['visual', 'auditory', 'kinesthetic', 'reading'])
       .optional()
       .describe('Preferred learning style'),
-    maxChunkDuration: z
+    max_chunk_duration: z
       .number()
       .int()
       .min(1)
       .max(120)
       .optional()
       .describe('Maximum chunk duration in minutes'),
-    includePrerequisites: z
+    include_prerequisites: z
       .boolean()
       .optional()
       .describe('Whether to include prerequisite content'),
@@ -96,7 +96,7 @@ export const TopicUserPreferencesSchema = z
   .describe('Optional user preference overrides');
 
 export const CreateTopicWithChunksInputShape = {
-  topicTitle: z
+  topic_title: z
     .string()
     .min(1, 'Topic title cannot be empty')
     .max(
@@ -104,7 +104,7 @@ export const CreateTopicWithChunksInputShape = {
       `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
     )
     .describe('Title of the learning topic'),
-  topicDescription: z
+  topic_description: z
     .string()
     .max(1000, 'Topic description cannot exceed 1000 characters')
     .optional()
@@ -117,7 +117,7 @@ export const CreateTopicWithChunksInputShape = {
       `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`
     )
     .describe('Subject or category for the topic'),
-  topicSummary: z
+  topic_summary: z
     .string()
     .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Topic summary cannot be empty if provided')
     .max(
@@ -131,7 +131,7 @@ export const CreateTopicWithChunksInputShape = {
     .min(1, 'At least one chunk is required')
     .max(20, 'Maximum 20 chunks per topic')
     .describe('Array of chunk definitions'),
-  userPreferences: TopicUserPreferencesSchema.optional(),
+  user_preferences: TopicUserPreferencesSchema.optional(),
 } as const;
 
 export const CreateTopicWithChunksInputSchema = z.object(CreateTopicWithChunksInputShape);
@@ -174,7 +174,7 @@ export const CreateLearningItemInputShape = {
       `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`
     )
     .describe('Difficulty level from 1-10'),
-  estimatedDuration: z
+  estimated_duration: z
     .number()
     .int('Estimated duration must be an integer')
     .min(1, 'Estimated duration must be at least 1 minute')
@@ -182,14 +182,14 @@ export const CreateLearningItemInputShape = {
     .describe('Estimated study duration in minutes'),
   prerequisites: z.array(z.string()).default([]).describe('Prerequisites for this learning item'),
   tags: z.array(z.string()).default([]).describe('Tags for categorization'),
-  topicTitle: z.string().optional().describe('Optional topic title; creates a topic if missing'),
+  topic_title: z.string().optional().describe('Optional topic title; creates a topic if missing'),
 } as const;
 
 export const CreateLearningItemInputSchema = z.object(CreateLearningItemInputShape);
 export type CreateLearningItemInput = z.infer<typeof CreateLearningItemInputSchema>;
 
 export const UpdateChunkContentInputShape = {
-  chunkId: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
+  chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
   content: z
     .string()
     .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Content cannot be empty')
@@ -198,14 +198,14 @@ export const UpdateChunkContentInputShape = {
       `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
     )
     .describe('New content for the chunk'),
-  resetProgress: z.boolean().optional().describe('Whether to reset spaced repetition progress'),
+  reset_progress: z.boolean().optional().describe('Whether to reset spaced repetition progress'),
 } as const;
 
 export const UpdateChunkContentInputSchema = z.object(UpdateChunkContentInputShape);
 export type UpdateChunkContentInput = z.infer<typeof UpdateChunkContentInputSchema>;
 
 export const UpdateChunkMetadataInputShape = {
-  chunkId: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
+  chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
   title: z
     .string()
     .min(1, 'Title cannot be empty')
@@ -230,7 +230,7 @@ export const UpdateChunkMetadataInputShape = {
     .describe('Updated difficulty level'),
   prerequisites: z.array(z.string()).optional().describe('Updated prerequisites array'),
   tags: z.array(z.string()).optional().describe('Updated tag list'),
-  estimatedDuration: z
+  estimated_duration: z
     .number()
     .int('Estimated duration must be an integer')
     .min(1, 'Estimated duration must be at least 1 minute')
@@ -243,7 +243,7 @@ export const UpdateChunkMetadataInputSchema = z.object(UpdateChunkMetadataInputS
 export type UpdateChunkMetadataInput = z.infer<typeof UpdateChunkMetadataInputSchema>;
 
 export const UpdateChunkInputShape = {
-  chunkId: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
+  chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
   content: z
     .string()
     .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Content cannot be empty')
@@ -277,28 +277,28 @@ export const UpdateChunkInputShape = {
     .describe('Updated difficulty level'),
   prerequisites: z.array(z.string()).optional().describe('Updated prerequisites array'),
   tags: z.array(z.string()).optional().describe('Updated tags array'),
-  estimatedDuration: z
+  estimated_duration: z
     .number()
     .int('Estimated duration must be an integer')
     .min(1, 'Estimated duration must be at least 1 minute')
     .max(120, 'Estimated duration cannot exceed 120 minutes')
     .optional()
     .describe('Updated estimated study duration'),
-  forceReset: z.boolean().optional().describe('Force reset of spaced repetition progress'),
+  force_reset: z.boolean().optional().describe('Force reset of spaced repetition progress'),
 } as const;
 
 export const UpdateChunkInputSchema = z.object(UpdateChunkInputShape);
 export type UpdateChunkInput = z.infer<typeof UpdateChunkInputSchema>;
 
 export const DeleteChunkInputShape = {
-  chunkId: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to delete'),
+  chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to delete'),
 } as const;
 
 export const DeleteChunkInputSchema = z.object(DeleteChunkInputShape);
 export type DeleteChunkInput = z.infer<typeof DeleteChunkInputSchema>;
 
 export const UpdateTopicInputShape = {
-  topicId: z.string().min(1, 'Topic ID cannot be empty').describe('ID of the topic to update'),
+  topic_id: z.string().min(1, 'Topic ID cannot be empty').describe('ID of the topic to update'),
   title: z
     .string()
     .min(1, 'Title cannot be empty')
@@ -323,7 +323,7 @@ export const UpdateTopicInputSchema = z.object(UpdateTopicInputShape);
 export type UpdateTopicInput = z.infer<typeof UpdateTopicInputSchema>;
 
 export const UpdateTopicSummaryInputShape = {
-  topicId: z.string().min(1, 'Topic ID cannot be empty').describe('ID of the topic to update'),
+  topic_id: z.string().min(1, 'Topic ID cannot be empty').describe('ID of the topic to update'),
   summary: z
     .string()
     .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Summary cannot be empty')
@@ -338,7 +338,7 @@ export const UpdateTopicSummaryInputSchema = z.object(UpdateTopicSummaryInputSha
 export type UpdateTopicSummaryInput = z.infer<typeof UpdateTopicSummaryInputSchema>;
 
 export const BatchFetchTopicsMinimalInputShape = {
-  subjectFilter: z.string().optional().describe('Filter topics by subject'),
+  subject_filter: z.string().optional().describe('Filter topics by subject'),
   limit: z.number().int().positive().optional().describe('Maximum number of topics to return'),
 } as const;
 
@@ -346,9 +346,9 @@ export const BatchFetchTopicsMinimalInputSchema = z.object(BatchFetchTopicsMinim
 export type BatchFetchTopicsMinimalInput = z.infer<typeof BatchFetchTopicsMinimalInputSchema>;
 
 export const BatchFetchChunksMinimalInputShape = {
-  topicId: z.string().optional().describe('Filter chunks by topic ID'),
-  subjectFilter: z.string().optional().describe('Filter chunks by subject'),
-  dueOnly: z.boolean().optional().describe('Return only chunks due for review'),
+  topic_id: z.string().optional().describe('Filter chunks by topic ID'),
+  subject_filter: z.string().optional().describe('Filter chunks by subject'),
+  due_only: z.boolean().optional().describe('Return only chunks due for review'),
   limit: z.number().int().positive().optional().describe('Maximum number of chunks to return'),
 } as const;
 
