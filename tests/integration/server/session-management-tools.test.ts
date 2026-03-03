@@ -551,7 +551,7 @@ describe('Integration: Session Management Tools', () => {
     expect(batchParsed.created).toBe(1);
     expect(batchParsed.updated).toBe(1);
     expect(batchParsed.unchanged).toBe(0);
-    expect(batchParsed.affectedChunkIds.sort()).toEqual(['bchunk1', 'bchunk2']);
+    expect(batchParsed.affected_chunk_ids.sort()).toEqual(['bchunk1', 'bchunk2']);
 
     const [session] = await db
       .select()

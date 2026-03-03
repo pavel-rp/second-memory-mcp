@@ -110,9 +110,11 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           },
         });
 
+        const { affectedChunkIds, ...rest } = result;
         const response = {
           status: 'ok' as const,
-          ...result,
+          ...rest,
+          affected_chunk_ids: affectedChunkIds,
         };
 
         logger.info(
