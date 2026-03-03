@@ -56,7 +56,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           sessionData = validatedInput.session_data;
           logger.info('Using provided session data for progress calculation');
         } else {
-          throw new Error('Either sessionId or sessionData must be provided');
+          throw new Error('Either session_id or session_data must be provided');
         }
 
         const validatedSession = ctx.validateSessionContext(sessionData);
@@ -105,7 +105,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           sessionData = validatedInput.session_data;
           logger.info('Using provided session data for workflow analysis');
         } else {
-          throw new Error('Either sessionId or sessionData must be provided');
+          throw new Error('Either session_id or session_data must be provided');
         }
 
         const validatedSession = ctx.validateSessionContext(sessionData);
@@ -154,7 +154,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           sessionData = validatedInput.session_data;
           logger.info('Using provided session data for completion analysis');
         } else {
-          throw new Error('Either sessionId or sessionData must be provided');
+          throw new Error('Either session_id or session_data must be provided');
         }
 
         const validatedSession = ctx.validateSessionContext(sessionData);

@@ -223,6 +223,66 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
           subjectFilter: parsed.subject_filter,
           dueOnly: parsed.due_only,
           limit: parsed.limit,
+          constraints: parsed.constraints
+            ? {
+                maxDuration: parsed.constraints.max_duration,
+                maxCognitiveLoad: parsed.constraints.max_cognitive_load,
+                maxNewItems: parsed.constraints.max_new_items,
+                subjectFilter: parsed.constraints.subject_filter,
+                excludeIds: parsed.constraints.exclude_ids,
+              }
+            : undefined,
+          userHistory: parsed.user_history
+            ? {
+                recentSessions: parsed.user_history.recent_sessions.map(s => ({
+                  date: s.date,
+                  duration: s.duration,
+                  itemsCompleted: s.items_completed,
+                  averageQuality: s.average_quality,
+                  cognitiveLoad: s.cognitive_load,
+                })),
+                patterns: {
+                  averageSessionDuration: parsed.user_history.patterns.average_session_duration,
+                  preferredDifficulty: parsed.user_history.patterns.preferred_difficulty,
+                  successRate: parsed.user_history.patterns.success_rate,
+                  fatigueThreshold: parsed.user_history.patterns.fatigue_threshold,
+                  subjectPreferences: parsed.user_history.patterns.subject_preferences,
+                  optimalSessionTime: parsed.user_history.patterns.optimal_session_time,
+                },
+              }
+            : undefined,
+          sessionContext: parsed.session_context
+            ? {
+                currentSessionId: parsed.session_context.current_session_id,
+                activeItems: parsed.session_context.active_items,
+                sessionStartTime: parsed.session_context.session_start_time,
+                lastActivity: parsed.session_context.last_activity,
+                userPreferences: parsed.session_context.user_preferences,
+                currentRecommendations: parsed.session_context.current_recommendations?.map(r => ({
+                  item: {
+                    id: r.item.id,
+                    title: r.item.title,
+                    subject: r.item.subject,
+                    difficulty: r.item.difficulty,
+                    nextReviewDate: r.item.next_review_date,
+                    easeFactor: r.item.ease_factor,
+                    repetitions: r.item.repetitions,
+                    lastReviewed: r.item.last_reviewed,
+                    estimatedDuration: r.item.estimated_duration,
+                    chunkType: r.item.chunk_type,
+                    prerequisites: r.item.prerequisites,
+                    tags: r.item.tags,
+                    topicId: r.item.topic_id,
+                    topicTitle: r.item.topic_title,
+                  },
+                  priority: r.priority,
+                  reason: r.reason,
+                  order: r.order,
+                  cognitiveLoad: r.cognitive_load,
+                })),
+                currentItemIndex: parsed.session_context.current_item_index,
+              }
+            : undefined,
         };
 
         // Self-fetch mode: fetch from database
