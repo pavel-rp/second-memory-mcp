@@ -352,7 +352,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         return toolJson({
           success: true,
           item: learningItem,
-          isLeech: result.data.isLeech,
+          is_leech: result.data.isLeech,
           message: result.data.isLeech
             ? 'Item marked as leech due to consecutive failures'
             : 'Review result recorded successfully',

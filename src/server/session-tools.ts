@@ -29,7 +29,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Calculate Session Progress',
       description:
-        'Compute session progress metrics including completion percentages and quality averages. Accepts either sessionId (string) or sessionData (SessionInput object) for backward compatibility.',
+        'Compute session progress metrics including completion percentages and quality averages. Accepts either session_id (string) or session_data (SessionInput object) for backward compatibility.',
       inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {
@@ -78,7 +78,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Determine Session Workflow Phase',
       description:
-        'Analyze session state and provide workflow guidance for next learning phase. Accepts either sessionId (string) or sessionData (SessionInput object) for backward compatibility.',
+        'Analyze session state and provide workflow guidance for next learning phase. Accepts either session_id (string) or session_data (SessionInput object) for backward compatibility.',
       inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {
@@ -127,7 +127,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Check Session Completion',
       description:
-        'Analyze session metrics to determine if session should be completed. Accepts either sessionId (string) or sessionData (SessionInput object) for backward compatibility.',
+        'Analyze session metrics to determine if session should be completed. Accepts either session_id (string) or session_data (SessionInput object) for backward compatibility.',
       inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {

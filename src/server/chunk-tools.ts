@@ -105,7 +105,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson({
             success: true,
             chunk: result.chunk,
-            progressReset: result.progressReset,
+            progress_reset: result.progressReset,
             message: `Successfully updated content for chunk "${result.chunk.title}"`,
           });
         } else {
@@ -198,7 +198,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson({
             success: true,
             chunk: result.chunk,
-            progressReset: result.progressReset,
+            progress_reset: result.progressReset,
             message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
           });
         } else {
@@ -246,7 +246,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson({
             success: true,
             chunk: result.chunk,
-            removedDependencies: result.removedDependencies ?? [],
+            removed_dependencies: result.removedDependencies ?? [],
             message: messageParts.join(' '),
           });
         }

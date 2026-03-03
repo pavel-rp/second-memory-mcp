@@ -20,7 +20,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       title: 'Create Learning Session',
       description:
         'Create a new learning session with specific parameters for structured learning. ' +
-        'REQUIRED for recall/review/retrieval practice - you MUST create a session before teaching. ' +
+        'REQUIRED for recall/review/retrieval practice — you MUST create a session before teaching. ' +
         'Use mode "retrieval" for recall practice, "review" for spaced review sessions. ' +
         'After creation, call get_active_session to retrieve historical feedback from past sessions ' +
         'showing what the learner found difficult previously.',
