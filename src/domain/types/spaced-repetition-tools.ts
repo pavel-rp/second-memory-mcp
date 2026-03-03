@@ -64,7 +64,6 @@ export const RankCandidateShape = {
 } as const;
 
 export const RankCandidateSchema = z.object(RankCandidateShape);
-export type RankCandidate = z.infer<typeof RankCandidateSchema>;
 
 export const RankCandidatesInputShape = {
   candidates: z.array(RankCandidateSchema).describe('Learning items to rank for review priority'),

@@ -46,7 +46,7 @@ export type AnalyticsOutput = {
 
 // Zod schemas for runtime validation
 
-export const ReviewEntryShape = {
+const ReviewEntryShape = {
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
@@ -72,16 +72,14 @@ export const ReviewEntryShape = {
 } as const;
 
 export const ReviewEntrySchema = z.object(ReviewEntryShape);
-export type ReviewEntryInput = z.infer<typeof ReviewEntrySchema>;
 
-export const AnalyticsInputShape = {
+const AnalyticsInputShape = {
   entries: z.array(ReviewEntrySchema).describe('Review entries used to compute analytics'),
 } as const;
 
 export const AnalyticsInputSchema = z.object(AnalyticsInputShape);
-export type AnalyticsInputZod = z.infer<typeof AnalyticsInputSchema>;
 
-export const WindowSpecShape = {
+const WindowSpecShape = {
   start: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be in YYYY-MM-DD format')
@@ -93,7 +91,6 @@ export const WindowSpecShape = {
 } as const;
 
 export const WindowSpecSchema = z.object(WindowSpecShape);
-export type WindowSpecInput = z.infer<typeof WindowSpecSchema>;
 
 export const AnalyticsDailyInputShape = {
   entries: z.array(ReviewEntrySchema).describe('Review entries for a single day'),
