@@ -1,3 +1,6 @@
+[![CI](https://github.com/pavel-rp/second-memory-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pavel-rp/second-memory-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 # Second Memory Learning
 
 Second Memory Learning is a Model Context Protocol (MCP) server that delivers an AI-powered spaced repetition experience backed by a Postgres database. The server exposes rich tool and prompt surfaces so Claude Desktop can orchestrate complete learning sessions without relying on any external SaaS integrations.
@@ -21,7 +24,7 @@ Second Memory Learning is a Model Context Protocol (MCP) server that delivers an
 
 ```bash
 # Clone and install dependencies
-git clone <repository-url>
+git clone https://github.com/pavel-rp/second-memory-mcp.git
 cd second-memory-mcp
 pnpm install
 
@@ -44,26 +47,50 @@ pnpm run start:stdio
 
 ### Database Setup
 
-The server requires a Postgres database. Set the connection string and run the migration script to ensure the schema and optional seed data are applied:
+The server requires a Postgres database with the [pgvector](https://github.com/pgvector/pgvector) extension. The easiest way to get one running locally is with Docker Compose:
 
 ```bash
-# Set the connection string
-export DATABASE_URL=postgresql://user:pass@localhost:5432/second_memory
+# Start Postgres (pgvector/pgvector:pg16, matches CI)
+docker compose up -d
 
 # Apply schema migrations and optional seed import
 pnpm run db:migrate
 ```
 
-Configuration is driven by environment variables:
+If you prefer to manage Postgres yourself, set the connection string manually:
 
-- `DATABASE_URL` – Postgres connection string (required). Example: `postgresql://user:pass@localhost:5432/second_memory`.
-- `MIGRATE_SOURCE` – Path to a JSON import file consumed by `pnpm run db:migrate` when seeding data.
+```bash
+export DATABASE_URL=postgresql://user:pass@localhost:5432/second_memory
+pnpm run db:migrate
+```
+
+See [`.env.example`](.env.example) for the full list of configurable environment variables with documented defaults.
 
 To inspect the database visually, start Drizzle Studio:
 
 ```bash
 pnpm run db:studio
 ```
+
+### Claude Desktop Integration
+
+Add the following to your `claude_desktop_config.json` to register the MCP server:
+
+```json
+{
+  "mcpServers": {
+    "second-memory": {
+      "command": "node",
+      "args": ["<path-to-project>/dist/transport/main.js"],
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/second_memory"
+      }
+    }
+  }
+}
+```
+
+Replace `<path-to-project>` with the absolute path to your cloned repository. Build with `pnpm run build` before first use.
 
 ## Using the MCP Tools
 
@@ -194,39 +221,3 @@ pnpm run format
 ```
 
 Vitest integration tests exercise recommendation workflows, prerequisite mastery, and session management to ensure parity with the live MCP behavior. Refer to the `tests/` directory for concrete examples of tool invocations.
-
-## Contributing
-
-### Getting Started
-
-1. Fork the repository and clone your fork.
-2. Install dependencies with `pnpm install`.
-3. Run `pnpm test` to verify everything builds and passes.
-
-### Development Workflow
-
-1. Create a feature branch from `develop`.
-2. Make your changes following the conventions below.
-3. Run the full quality gate before opening a pull request:
-   ```bash
-   pnpm run type-check && pnpm run lint && pnpm test
-   ```
-4. Open a pull request with a clear description of the change and its motivation.
-
-### Code Conventions
-
-- **TypeScript style** – 2-space indentation, single quotes, trailing commas (enforced by Prettier).
-- **Formatting** – Pre-commit hooks auto-format staged files. You can also run `pnpm run format` manually.
-- **No `any`** – Use precise TypeScript types; `any` is only acceptable in test overrides or SDK type boundaries.
-- **Tests required** – Every behavior change must include corresponding test additions or updates. Coverage thresholds are enforced in CI.
-- **Documentation** – Update README or inline docs when new features or workflows ship.
-
-### Project Structure
-
-- Pure domain logic (algorithms, services) lives in `src/domain/` — zero I/O imports allowed.
-- Orchestration workflows (composing domain logic + port calls) go in `src/orchestration/`.
-- Port interfaces are defined in `src/ports/` — adapters implement them in `src/adapters/`.
-- MCP tool registration and wiring belongs in `src/server/` — handlers follow parse → delegate → format.
-- Shared types and Zod schemas are defined in `src/domain/types/` — import, don't duplicate.
-- The composition root (`src/composition-root.ts`) is the only place that imports concrete adapter classes.
-- Tests are organized by layer: `tests/unit/` for pure logic, `tests/integration/` for DB-backed tests.

@@ -1,8 +1,22 @@
 {
   "name": "second-memory-learning",
   "version": "0.1.0",
+  "description": "MCP server for AI-powered spaced repetition learning with Postgres",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "author": "recky-ru",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pavel-rp/second-memory-mcp.git"
+  },
+  "keywords": [
+    "mcp",
+    "spaced-repetition",
+    "learning",
+    "claude",
+    "postgres"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
