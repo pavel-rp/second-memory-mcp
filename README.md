@@ -202,7 +202,7 @@ Vitest integration tests exercise recommendation workflows, prerequisite mastery
 
 ### Development Workflow
 
-1. Create a feature branch from `main`.
+1. Create a feature branch from `develop`.
 2. Make your changes following the conventions below.
 3. Run the full quality gate before opening a pull request:
    ```bash
@@ -216,7 +216,7 @@ Vitest integration tests exercise recommendation workflows, prerequisite mastery
 - **Formatting** – Pre-commit hooks auto-format staged files. You can also run `pnpm run format` manually.
 - **No `any`** – Use precise TypeScript types; `any` is only acceptable in test overrides or SDK type boundaries.
 - **Tests required** – Every behavior change must include corresponding test additions or updates. Coverage thresholds are enforced in CI.
-- **Documentation** – Update README, AGENTS.md, or inline docs when new features or workflows ship.
+- **Documentation** – Update README or inline docs when new features or workflows ship.
 
 ### Project Structure
 
