@@ -29,7 +29,6 @@ export class PrerequisiteValidator {
   private databaseAvailable: boolean | null = null;
   private lastDbCheck: number = 0;
   private readonly DB_CHECK_INTERVAL = 30000; // Check database availability every 30 seconds
-  private readonly VALIDATION_TIMEOUT = 5000; // 5 second timeout for validation operations
   private referenceValidator: ReferenceValidatorDep;
   private masteryService: MasteryServiceDep;
   private clock: () => number;
@@ -81,20 +80,6 @@ export class PrerequisiteValidator {
 
     this.lastDbCheck = now;
     return this.databaseAvailable;
-  }
-
-  /**
-   * Execute a promise with timeout
-   * @param promise Promise to execute
-   * @param timeout Timeout in milliseconds
-   * @returns Promise that resolves or times out
-   */
-  private async withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`Operation timed out after ${timeout}ms`)), timeout);
-    });
-
-    return Promise.race([promise, timeoutPromise]);
   }
 
   /**
@@ -154,10 +139,7 @@ export class PrerequisiteValidator {
       };
     }
 
-    const validation = await this.withTimeout(
-      this.validatePrerequisites(item.id, item.prerequisites || []),
-      this.VALIDATION_TIMEOUT
-    );
+    const validation = await this.validatePrerequisites(item.id, item.prerequisites || []);
 
     if (validation.isValid) return { valid: true };
 
