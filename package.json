@@ -25,7 +25,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate": "tsx src/infrastructure/db/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "prepare": "husky"
   },
