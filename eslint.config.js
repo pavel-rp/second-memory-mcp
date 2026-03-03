@@ -107,6 +107,23 @@ export default [
           message: 'Domain must receive time as a parameter, not call Date.now().',
         },
       ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['drizzle-orm', 'drizzle-orm/*'],
+              message:
+                'Domain must not depend on Drizzle ORM. Use domain types and port interfaces instead.',
+            },
+            {
+              group: ['**/infrastructure/**'],
+              message:
+                'Domain must not import from infrastructure.',
+            },
+          ],
+        },
+      ],
     },
   },
 
