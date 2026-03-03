@@ -8,7 +8,7 @@
 
 - TypeScript ES modules (Node.js 20+, pnpm package manager)
 - MCP SDK for Claude Desktop integration
-- SQLite with Drizzle ORM for local-first data storage
+- Postgres with Drizzle ORM for data storage
 - Zod for schema validation and type safety
 - Vitest for testing with coverage reporting
 
@@ -86,10 +86,8 @@ pnpm run start:stdio
 ## Common Build Issues & Solutions
 
 1. **"pnpm: command not found"** -> Run `npm install -g pnpm` first
-2. **Test database conflicts** -> Tests automatically create temp databases (tmp-test-\*.db). Cleanup script runs after tests.
-3. **better-sqlite3 binding errors** -> Reinstall: `pnpm rebuild better-sqlite3`
-4. **Migration script fails** -> Ensure empty JSON file exists: `echo '{}' > /tmp/empty.json && MIGRATE_SOURCE=/tmp/empty.json pnpm run db:migrate`
-5. **TypeScript version warning in lint** -> Safe to ignore. Project uses TypeScript 5.9.2; ESLint supports <5.6.0
+2. **Test database conflicts** -> Tests require a Postgres database with `_test` in its name (enforced by safety check in client.ts).
+3. **Migration script fails** -> Ensure empty JSON file exists: `echo '{}' > /tmp/empty.json && MIGRATE_SOURCE=/tmp/empty.json pnpm run db:migrate`
 
 ## CI/CD Workflows
 
@@ -98,11 +96,9 @@ pnpm run start:stdio
 **`.github/workflows/ci.yml`** - Main CI pipeline:
 
 1. Setup Node.js 20.x and pnpm
-2. Install system dependencies for SQLite (build-essential, python3, libsqlite3-dev)
-3. Rebuild better-sqlite3 with native bindings
-4. Install dependencies with `--frozen-lockfile`
-5. Verify SQLite bindings with test script
-6. Run lint -> type-check -> build -> test (with coverage upload to codecov)
+2. Install dependencies with `--frozen-lockfile`
+3. Start Postgres service container
+4. Run format:check -> lint -> type-check -> build -> test (with coverage upload to codecov)
 
 **`.github/workflows/code-quality.yml`** - Format and quality checks:
 
@@ -161,7 +157,7 @@ src/
 ├── ports/              # Interface definitions (8 port interfaces)
 ├── adapters/drizzle/   # Concrete Drizzle implementations of ports
 ├── infrastructure/     # Database client, schema, migrations, logger
-│   └── db/             # SQLite setup (Drizzle ORM): schema.ts, client.ts, operations.ts, migrate.ts
+│   └── db/             # Postgres setup (Drizzle ORM): schema.ts, client.ts, operations.ts, migrate.ts
 ├── shared/             # Cross-cutting utilities, constants, prompts
 │   └── prompts/        # MCP prompt pack definitions (prompt-pack.ts)
 ├── config/             # Runtime configuration
@@ -190,7 +186,7 @@ src/
 
 **Database:**
 
-- `SM_DB_PATH` - Path to SQLite database (default: `./second-memory.db`)
+- `DATABASE_URL` - Postgres connection string (required). Example: `postgresql://user:pass@localhost:5432/second_memory`
 - `MIGRATE_SOURCE` - Path to JSON import file for `pnpm run db:migrate`
 
 **Spaced Repetition Algorithm (all prefixed with `SM_`):**
@@ -209,7 +205,6 @@ src/
 - `DEBUG` - Enables verbose logging in `src/shared/logger.ts`
 - `NODE_ENV` - Set to 'test' for test environment
 - `VITEST` - Set by Vitest during test runs
-- `FORCE_SQLITE_TESTS` - Forces SQLite tests to run (set in CI)
 
 ## Testing
 
@@ -232,9 +227,8 @@ tests/
 
 **Critical Test Setup (vitest.setup.ts):**
 
-- ALWAYS uses unique temp database per test run: `tmp-test-${uuid}.db`
-- NEVER touches production database (`second-memory.db`)
-- Cleanup script automatically removes temp files after tests
+- Requires `DATABASE_URL` pointing to a Postgres database with `_test` in its name
+- NEVER touches production database (enforced by safety check in `src/infrastructure/db/client.ts`)
 
 **Test Coverage Thresholds:**
 

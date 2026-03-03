@@ -1,6 +1,6 @@
 # Agents Guide
 
-MCP server for AI-powered spaced repetition learning. TypeScript, Node.js 20+, SQLite via Drizzle ORM.
+MCP server for AI-powered spaced repetition learning. TypeScript, Node.js 20+, Postgres via Drizzle ORM.
 
 ## File Organization (Hexagonal Architecture)
 

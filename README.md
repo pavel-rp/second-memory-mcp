@@ -1,11 +1,11 @@
 # Second Memory Learning
 
-Second Memory Learning is a Model Context Protocol (MCP) server that delivers an AI-powered spaced repetition experience backed by a local SQLite database. The server exposes rich tool and prompt surfaces so Claude Desktop can orchestrate complete learning sessions without relying on any external SaaS integrations.
+Second Memory Learning is a Model Context Protocol (MCP) server that delivers an AI-powered spaced repetition experience backed by a Postgres database. The server exposes rich tool and prompt surfaces so Claude Desktop can orchestrate complete learning sessions without relying on any external SaaS integrations.
 
 ## Key Capabilities
 
 - **Evidence-based scheduling** – Enhanced SM-2 algorithms with lapse handling, cognitive load caps, and candidate ranking (`src/domain/algorithms/sr-calculator.ts`).
-- **Guided recommendations** – `what_to_learn_today` can fetch items directly from SQLite, balance new vs. review work, and produce conversational guidance for the learner (`src/domain/services/recommendation-engine.ts`).
+- **Guided recommendations** – `what_to_learn_today` can fetch items directly from the database, balance new vs. review work, and produce conversational guidance for the learner (`src/domain/services/recommendation-engine.ts`).
 - **Session management** – Create, track, and complete structured learning sessions with automatic session chunk creation (`src/orchestration/session-workflows.ts`).
 - **Content operations** – Topic and chunk creation helpers with validation and transactional persistence (`src/orchestration/topic-workflows.ts`, `src/orchestration/chunk-workflows.ts`).
 - **Prompt pack integration** – First-class MCP prompts for scaffolding, learning, retrieval, review, and workflow guidance (`src/shared/prompts/prompt-pack.ts`).
@@ -44,16 +44,19 @@ pnpm run start:stdio
 
 ### Database Setup
 
-The server creates the SQLite database on demand. Run the migration script once to ensure the schema and optional seed data are applied:
+The server requires a Postgres database. Set the connection string and run the migration script to ensure the schema and optional seed data are applied:
 
 ```bash
+# Set the connection string
+export DATABASE_URL=postgresql://user:pass@localhost:5432/second_memory
+
 # Apply schema migrations and optional seed import
 pnpm run db:migrate
 ```
 
 Configuration is driven by environment variables:
 
-- `SM_DB_PATH` – Path to the SQLite database file (defaults to `./second-memory.db`).
+- `DATABASE_URL` – Postgres connection string (required). Example: `postgresql://user:pass@localhost:5432/second_memory`.
 - `MIGRATE_SOURCE` – Path to a JSON import file consumed by `pnpm run db:migrate` when seeding data.
 
 To inspect the database visually, start Drizzle Studio:
@@ -72,7 +75,7 @@ The server registers tools across eight categories:
 | Recommendations    | `what_to_learn_today`, `guided_learning_conversation`                                                                                                                                                                                                          | Generate or converse through personalized learning plans                   |
 | Session analytics  | `session_progress`, `session_completion`, `session_workflow`                                                                                                                                                                                                   | Track session health and decision points                                   |
 | Session management | `create_session`, `create_session_chunk`, `get_active_session`, `get_session`, `complete_session`, `batch_update_session_chunks`, `get_historical_feedback`                                                                                                    | Persisted session lifecycle management with automatic chunk initialization |
-| Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_content`, `update_chunk_metadata`, `delete_chunk`, `batch_fetch_topics_minimal`, `batch_fetch_chunks_minimal`, `list_learning_items` | CRUD helpers for topics and chunks backed by SQLite                        |
+| Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_content`, `update_chunk_metadata`, `delete_chunk`, `batch_fetch_topics_minimal`, `batch_fetch_chunks_minimal`, `list_learning_items` | CRUD helpers for topics and chunks backed by Postgres                      |
 | Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings       |
 | Search             | `search_learning_content`                                                                                                                                                                                                                                      | Search topics and chunks by title                                          |
 | Analytics          | `analytics_daily`, `analytics_window`                                                                                                                                                                                                                          | Compute daily KPIs and date-range analytics with optional breakdowns       |
