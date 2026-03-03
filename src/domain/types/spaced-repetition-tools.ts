@@ -67,7 +67,7 @@ export const RankCandidateSchema = z.object(RankCandidateShape);
 
 export const RankCandidatesInputShape = {
   candidates: z.array(RankCandidateSchema).describe('Learning items to rank for review priority'),
-  timeboxMinutes: z
+  timebox_minutes: z
     .number()
     .int()
     .optional()
@@ -78,7 +78,7 @@ export const RankCandidatesInputSchema = z.object(RankCandidatesInputShape);
 export type RankCandidatesInput = z.infer<typeof RankCandidatesInputSchema>;
 
 export const RecordReviewResultInputShape = {
-  itemId: z
+  item_id: z
     .string()
     .min(1, 'Item ID cannot be empty')
     .describe('ID of the learning item being reviewed'),
@@ -93,21 +93,21 @@ export const RecordReviewResultInputShape = {
       `Quality score cannot exceed ${VALIDATION_CONSTANTS.MAX_QUALITY_SCORE}`
     )
     .describe('Quality score from the review attempt (0-5)'),
-  timeSpentMs: z
+  time_spent_ms: z
     .number()
     .int('Time spent must be an integer')
     .min(0, 'Time spent cannot be negative')
     .optional()
     .default(0)
     .describe('Time spent studying in milliseconds'),
-  consecutiveFailures: z
+  consecutive_failures: z
     .number()
     .int('Consecutive failures must be an integer')
     .min(0, 'Consecutive failures cannot be negative')
     .optional()
     .default(0)
     .describe('Number of consecutive failures for this item'),
-  daysOverdue: z
+  days_overdue: z
     .number()
     .int('Days overdue must be an integer')
     .min(0, 'Days overdue cannot be negative')

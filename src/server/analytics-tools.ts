@@ -19,7 +19,14 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       inputSchema: AnalyticsDailyInputShape,
     },
     async (rawInput: unknown) => {
-      const { entries }: AnalyticsDailyInput = AnalyticsDailyInputSchema.parse(rawInput);
+      const parsed: AnalyticsDailyInput = AnalyticsDailyInputSchema.parse(rawInput);
+      const entries = parsed.entries.map(e => ({
+        date: e.date,
+        quality: e.quality,
+        isNew: e.is_new,
+        topic: e.topic,
+        tags: e.tags,
+      }));
       try {
         const result = ctx.computeDailyKpis(entries);
         return toolJson(result);
@@ -41,10 +48,18 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       inputSchema: AnalyticsWindowInputShape,
     },
     async (rawInput: unknown) => {
-      const { entries, window, includeBreakdowns }: AnalyticsWindowInput =
-        AnalyticsWindowInputSchema.parse(rawInput);
+      const parsed: AnalyticsWindowInput = AnalyticsWindowInputSchema.parse(rawInput);
+      const entries = parsed.entries.map(e => ({
+        date: e.date,
+        quality: e.quality,
+        isNew: e.is_new,
+        topic: e.topic,
+        tags: e.tags,
+      }));
       try {
-        const result = ctx.computeWindowRollup({ entries }, window, { includeBreakdowns });
+        const result = ctx.computeWindowRollup({ entries }, parsed.window, {
+          includeBreakdowns: parsed.include_breakdowns,
+        });
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);

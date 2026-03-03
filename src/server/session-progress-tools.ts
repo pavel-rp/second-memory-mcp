@@ -24,30 +24,30 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         const mappedAttempts = validatedInput.attempts?.map(a => ({
           timestamp: new Date(a.timestamp).toISOString(),
           quality: a.quality,
-          time_spent_ms: a.timeSpentMs,
+          time_spent_ms: a.time_spent_ms,
           completed: a.completed,
         }));
 
         const sessionChunk = await ctx.createSessionChunk({
           id: crypto.randomUUID(),
-          sessionId: validatedInput.sessionId,
-          chunkId: validatedInput.chunkId,
+          sessionId: validatedInput.session_id,
+          chunkId: validatedInput.chunk_id,
           status: validatedInput.status,
           attemptsJson: mappedAttempts ?? undefined,
-          qualityScoresJson: validatedInput.qualityScores ?? undefined,
-          timeSpentMs: validatedInput.timeSpentMs,
+          qualityScoresJson: validatedInput.quality_scores ?? undefined,
+          timeSpentMs: validatedInput.time_spent_ms,
           createdAt: now,
           updatedAt: now,
         });
 
         const result = {
-          sessionChunkId: sessionChunk.id,
+          session_chunk_id: sessionChunk.id,
           status: 'created' as const,
           message: 'Session chunk created successfully',
         };
 
         logger.info(
-          `Created session chunk ${sessionChunk.id} for session ${validatedInput.sessionId}`
+          `Created session chunk ${sessionChunk.id} for session ${validatedInput.session_id}`
         );
         return toolJson(result);
       } catch (error) {
@@ -74,23 +74,30 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         const validatedInput = BatchUpdateInputSchema.parse(input);
 
         // Validate chunk IDs exist in learning content
-        const opChunkIds = Array.from(new Set(validatedInput.operations.map(op => op.chunkId)));
+        const opChunkIds = Array.from(new Set(validatedInput.operations.map(op => op.chunk_id)));
         const validation = await ctx.validateChunkIds(opChunkIds);
         if (!validation.valid) {
           throw new Error(`Invalid chunk IDs provided: ${validation.invalidIds.join(', ')}`);
         }
 
         // Fetch session and existing chunks
-        const { session } = await ctx.getSessionWithChunks(validatedInput.sessionId);
+        const { session } = await ctx.getSessionWithChunks(validatedInput.session_id);
 
         const result = await ctx.applyBatchSessionChunkOperations({
-          sessionId: validatedInput.sessionId,
-          operations: validatedInput.operations,
+          sessionId: validatedInput.session_id,
+          operations: validatedInput.operations.map(op => ({
+            chunkId: op.chunk_id,
+            title: op.title,
+            status: op.status,
+            attempts: op.attempts,
+            qualityScores: op.quality_scores,
+            timeSpentMs: op.time_spent_ms,
+          })),
           activeSessionExists: session?.status === 'active',
           persistFn: async args => {
             // Use the batch update orchestration with the existing chunks
             const batchResult = await ctx.batchUpdateSessionChunks(
-              validatedInput.sessionId,
+              validatedInput.session_id,
               args.operations
             );
             if (!batchResult.success) {
@@ -103,13 +110,15 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           },
         });
 
+        const { affectedChunkIds, ...rest } = result;
         const response = {
           status: 'ok' as const,
-          ...result,
+          ...rest,
+          affected_chunk_ids: affectedChunkIds,
         };
 
         logger.info(
-          `Batch update for session ${validatedInput.sessionId}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
+          `Batch update for session ${validatedInput.session_id}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
         );
         return toolJson(response);
       } catch (error) {
@@ -125,7 +134,7 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
   );
 
   const GetHistoricalFeedbackInputSchema = z.object({
-    chunkIds: z.array(z.string().min(1)).min(1).max(50),
+    chunk_ids: z.array(z.string().min(1)).min(1).max(50),
     limit: z.number().min(1).max(20).default(5).optional(),
   });
 
@@ -144,13 +153,13 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
       try {
         const validatedInput = GetHistoricalFeedbackInputSchema.parse(input);
 
-        const feedback = await ctx.getHistoricalFeedback(validatedInput.chunkIds, {
+        const feedback = await ctx.getHistoricalFeedback(validatedInput.chunk_ids, {
           limit: validatedInput.limit ?? 5,
         });
 
         const result = {
           status: 'ok' as const,
-          feedbackCount: feedback.length,
+          feedback_count: feedback.length,
           feedback,
           hint:
             feedback.length > 0
@@ -159,7 +168,7 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         };
 
         logger.info(
-          `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunkIds.length} chunks`
+          `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunk_ids.length} chunks`
         );
         return toolJson(result);
       } catch (error) {

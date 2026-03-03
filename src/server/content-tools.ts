@@ -28,7 +28,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
     },
     async (rawInput: unknown) => {
       const input: GetChunkContentInput = GetChunkContentInputSchema.parse(rawInput);
-      const { chunkId } = input;
+      const chunkId = input.chunk_id;
 
       try {
         const chunkContent = await ctx.getChunkContent(chunkId);
@@ -41,11 +41,11 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
         }
 
         return toolOk(`Successfully retrieved content for chunk: ${chunkId}`, {
-          chunkId,
+          chunk_id: chunkId,
           content: chunkContent.content,
-          contentVersion: chunkContent.contentVersion,
-          contentUpdatedAt: chunkContent.contentUpdatedAt,
-          sessionReminder:
+          content_version: chunkContent.contentVersion,
+          content_updated_at: chunkContent.contentUpdatedAt,
+          session_reminder:
             'If conducting recall/review: Ensure you have created a session first ' +
             'to access historical feedback about learner difficulties.',
         });
@@ -73,7 +73,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
     },
     async (rawInput: unknown) => {
       const input: GetTopicSummaryInput = GetTopicSummaryInputSchema.parse(rawInput);
-      const { topicId } = input;
+      const topicId = input.topic_id;
 
       try {
         const topicResult = await ctx.getTopicSummary(topicId);
@@ -86,17 +86,17 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
         }
 
         return toolOk(`Successfully retrieved topic summary: ${topicResult.title}`, {
-          topicId,
+          topic_id: topicId,
           title: topicResult.title,
           subject: topicResult.subject,
           summary: topicResult.summary,
-          summaryVersion: topicResult.summaryVersion,
-          summaryUpdatedAt: topicResult.summaryUpdatedAt,
-          createdAt: topicResult.createdAt,
-          updatedAt: topicResult.updatedAt,
-          sessionReminder:
-            'If conducting recall/review: Use batch_fetch_chunks_minimal(topicId) to get chunk IDs, ' +
-            'then create_session(mode: "retrieval", chunkIds: [...]) to load historical feedback.',
+          summary_version: topicResult.summaryVersion,
+          summary_updated_at: topicResult.summaryUpdatedAt,
+          created_at: topicResult.createdAt,
+          updated_at: topicResult.updatedAt,
+          session_reminder:
+            'If conducting recall/review: Use batch_fetch_chunks_minimal(topic_id) to get chunk IDs, ' +
+            'then create_session(mode: "retrieval", chunk_ids: [...]) to load historical feedback.',
         });
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -114,37 +114,37 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'List Learning Items with Content',
       description:
-        'Retrieve learning items with their content. Supports filtering by subject and due status. Returns paginated results with content fields when includeContent is true.',
+        'Retrieve learning items with their content. Supports filtering by subject and due status. Returns paginated results with content fields when include_content is true.',
       inputSchema: ListItemsWithContentInputShape,
     },
     async (rawInput: unknown) => {
       const input: ListItemsWithContentInput = ListItemsWithContentInputSchema.parse(rawInput);
-      const { subjectFilter, dueOnly, limit, offset, includeContent } = input;
+      const { subject_filter, due_only, limit, offset, include_content } = input;
 
       const resolvedOffset = offset ?? 0;
       const resolvedLimit = limit ?? 100;
 
       try {
         const result = await ctx.listChunksWithContent({
-          subjectFilter,
-          dueOnly,
-          includeContent,
+          subjectFilter: subject_filter,
+          dueOnly: due_only,
+          includeContent: include_content,
           limit: resolvedLimit,
           offset: resolvedOffset,
         });
 
         return toolOk(
           `Successfully retrieved ${result.items.length} learning items${
-            includeContent ? ' with content' : ''
+            include_content ? ' with content' : ''
           }`,
           {
             items: result.items,
             count: result.items.length,
             pagination: result.pagination,
-            contentIncluded: includeContent,
+            content_included: include_content,
             filter: {
-              subject: subjectFilter ?? null,
-              dueOnly: dueOnly ?? false,
+              subject: subject_filter ?? null,
+              due_only: due_only ?? false,
               limit: resolvedLimit,
               offset: resolvedOffset,
             },

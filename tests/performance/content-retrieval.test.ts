@@ -74,7 +74,7 @@ describe('Performance: Content Retrieval', () => {
 
     expect(result.items).toHaveLength(itemCount);
     expect(result.pagination.total).toBe(itemCount);
-    expect(result.pagination.hasMore).toBe(false);
+    expect(result.pagination.has_more).toBe(false);
 
     for (const item of result.items) {
       expect(item.content).toBeDefined();
@@ -216,15 +216,15 @@ describe('Performance: Content Retrieval', () => {
 
     expect(page1.items).toHaveLength(pageSize);
     expect(page1.pagination.total).toBe(totalItems);
-    expect(page1.pagination.hasMore).toBe(true);
+    expect(page1.pagination.has_more).toBe(true);
     expect(page1.pagination.offset).toBe(0);
 
     expect(page3.items).toHaveLength(pageSize);
-    expect(page3.pagination.hasMore).toBe(true);
+    expect(page3.pagination.has_more).toBe(true);
     expect(page3.pagination.offset).toBe(pageSize * 2);
 
     expect(lastPage.items).toHaveLength(pageSize);
-    expect(lastPage.pagination.hasMore).toBe(false);
+    expect(lastPage.pagination.has_more).toBe(false);
     expect(lastPage.pagination.offset).toBe(pageSize * 4);
 
     expect(totalTime).toBeLessThan(1500);

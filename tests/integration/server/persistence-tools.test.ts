@@ -48,7 +48,7 @@ describe('persistence-tools', () => {
         title: 'Test Item',
         subject: 'Math',
         difficulty: 5,
-        estimatedDuration: 15,
+        estimated_duration: 15,
         content: 'Test content here',
       });
       const parsed = parseResult(result);
@@ -62,8 +62,8 @@ describe('persistence-tools', () => {
     it('creates a topic with chunks', async () => {
       const handler = server.tools.get('create_topic_with_chunks')!.handler;
       const result = await handler({
-        topicTitle: 'Test Topic',
-        topicDescription: 'A test topic',
+        topic_title: 'Test Topic',
+        topic_description: 'A test topic',
         subject: 'Science',
         chunks: [
           {
@@ -71,7 +71,7 @@ describe('persistence-tools', () => {
             title: 'Chunk 1',
             content: 'Content for chunk 1',
             difficulty: 3,
-            estimatedDuration: 10,
+            estimated_duration: 10,
             order: 1,
           },
         ],
@@ -106,7 +106,7 @@ describe('persistence-tools', () => {
     it('update_chunk_content returns toolError for nonexistent chunk', async () => {
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
-        chunkId: 'nonexistent',
+        chunk_id: 'nonexistent',
         content: 'New content',
       });
       const parsed = parseResult(result);
@@ -115,7 +115,7 @@ describe('persistence-tools', () => {
 
     it('delete_chunk returns toolError for nonexistent chunk', async () => {
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunkId: 'nonexistent' });
+      const result = await handler({ chunk_id: 'nonexistent' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });

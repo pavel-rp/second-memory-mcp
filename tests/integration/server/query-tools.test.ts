@@ -83,7 +83,7 @@ describe('query-tools', () => {
     it('filters by subject', async () => {
       await seedData();
       const handler = server.tools.get('list_learning_items')!.handler;
-      const result = await handler({ subjectFilter: 'Math' });
+      const result = await handler({ subject_filter: 'Math' });
       const parsed = parseResult(result);
       expect(parsed.length).toBe(1);
       expect(parsed[0].subject).toBe('Math');
@@ -112,7 +112,7 @@ describe('query-tools', () => {
     it('filters by subject', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
-      const result = await handler({ subjectFilter: 'Science' });
+      const result = await handler({ subject_filter: 'Science' });
       const parsed = parseResult(result);
       expect(parsed.count).toBe(1);
       expect(parsed.topics[0].subject).toBe('Science');
@@ -135,31 +135,31 @@ describe('query-tools', () => {
   });
 
   describe('batch_fetch_chunks_minimal', () => {
-    it('returns empty list with no workflowHint when no chunks', async () => {
+    it('returns empty list with no workflow_hint when no chunks', async () => {
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
       const result = await handler({});
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.count).toBe(0);
-      expect(parsed.workflowHint).toBeUndefined();
+      expect(parsed.workflow_hint).toBeUndefined();
     });
 
-    it('returns chunks with workflowHint when chunks exist', async () => {
+    it('returns chunks with workflow_hint when chunks exist', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
       const result = await handler({});
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.count).toBe(2);
-      expect(parsed.workflowHint).toBeDefined();
-      expect(parsed.workflowHint.action).toBe('REQUIRED_FOR_RECALL');
-      expect(parsed.workflowHint.chunkIds).toHaveLength(2);
+      expect(parsed.workflow_hint).toBeDefined();
+      expect(parsed.workflow_hint.action).toBe('REQUIRED_FOR_RECALL');
+      expect(parsed.workflow_hint.chunk_ids).toHaveLength(2);
     });
 
     it('filters by topicId', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
-      const result = await handler({ topicId: 'topic-1' });
+      const result = await handler({ topic_id: 'topic-1' });
       const parsed = parseResult(result);
       expect(parsed.count).toBe(1);
     });

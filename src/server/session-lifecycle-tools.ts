@@ -20,7 +20,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       title: 'Create Learning Session',
       description:
         'Create a new learning session with specific parameters for structured learning. ' +
-        'REQUIRED for recall/review/retrieval practice - you MUST create a session before teaching. ' +
+        'REQUIRED for recall/review/retrieval practice — you MUST create a session before teaching. ' +
         'Use mode "retrieval" for recall practice, "review" for spaced review sessions. ' +
         'After creation, call get_active_session to retrieve historical feedback from past sessions ' +
         'showing what the learner found difficult previously.',
@@ -31,12 +31,12 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         const validatedInput = CreateSessionToolInputSchema.parse(input);
         const sessionId = crypto.randomUUID();
 
-        // Resolve dependencies and include prerequisites if chunkIds are provided
-        let finalChunkIds = validatedInput.chunkIds;
+        // Resolve dependencies and include prerequisites if chunk_ids are provided
+        let finalChunkIds = validatedInput.chunk_ids;
         let dependencyMessage = '';
 
-        if (validatedInput.chunkIds && validatedInput.chunkIds.length > 0) {
-          const resolution = await ctx.resolveSessionChunkDependencies(validatedInput.chunkIds);
+        if (validatedInput.chunk_ids && validatedInput.chunk_ids.length > 0) {
+          const resolution = await ctx.resolveSessionChunkDependencies(validatedInput.chunk_ids);
           finalChunkIds = resolution.resolvedChunkIds;
           dependencyMessage = resolution.message;
 
@@ -59,10 +59,10 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         }
 
         const createResult = await ctx.createSession({
-          topicId: validatedInput.topicId,
+          topicId: validatedInput.topic_id,
           chunkIds: finalChunkIds,
           mode: validatedInput.mode,
-          estimatedDuration: validatedInput.estimatedDuration,
+          estimatedDuration: validatedInput.estimated_duration,
         });
 
         if (!createResult.success) {
@@ -78,7 +78,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
             : '';
 
         const result = CreateSessionResultSchema.parse({
-          sessionId: createResult.data.sessionId,
+          session_id: createResult.data.sessionId,
           status: 'created' as const,
           message: `Session created successfully with mode: ${validatedInput.mode}${chunkInfo}${dependencyMessage}`,
         });
@@ -170,11 +170,11 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       try {
         const validatedInput = GetSessionInputSchema.parse(input);
 
-        if (!validatedInput.sessionId) {
+        if (!validatedInput.session_id) {
           throw new Error('Session ID is required');
         }
 
-        const session = await ctx.getSessionById(validatedInput.sessionId);
+        const session = await ctx.getSessionById(validatedInput.session_id);
 
         if (!session) {
           const result = GetActiveSessionResultSchema.parse({
@@ -186,7 +186,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
 
         const includeHistoricalFeedback = session.mode === 'review' || session.mode === 'retrieval';
 
-        const sessionInput = await ctx.convertSessionToInput(validatedInput.sessionId, {
+        const sessionInput = await ctx.convertSessionToInput(validatedInput.session_id, {
           includeHistoricalFeedback,
           historicalFeedbackLimit: 5,
         });
@@ -204,7 +204,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           status: 'found' as const,
         });
 
-        logger.info(`Retrieved session ${validatedInput.sessionId}`);
+        logger.info(`Retrieved session ${validatedInput.session_id}`);
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -232,9 +232,9 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       try {
         const validatedInput = CompleteSessionInputSchema.parse(input);
 
-        const session = await ctx.getSessionById(validatedInput.sessionId);
+        const session = await ctx.getSessionById(validatedInput.session_id);
         if (!session) {
-          throw new Error(`Session ${validatedInput.sessionId} not found`);
+          throw new Error(`Session ${validatedInput.session_id} not found`);
         }
 
         if (session.status === 'completed') {
@@ -248,26 +248,26 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         }
 
         const completeResult = await ctx.completeSession(
-          validatedInput.sessionId,
+          validatedInput.session_id,
           validatedInput.feedback
         );
 
         if (!completeResult.success) {
           throw new Error(
-            `Failed to complete session ${validatedInput.sessionId}: ${completeResult.error.message}`
+            `Failed to complete session ${validatedInput.session_id}: ${completeResult.error.message}`
           );
         }
 
-        const updatedSession = await ctx.getSessionById(validatedInput.sessionId);
+        const updatedSession = await ctx.getSessionById(validatedInput.session_id);
         if (!updatedSession) {
-          throw new Error(`Session ${validatedInput.sessionId} not found after completion`);
+          throw new Error(`Session ${validatedInput.session_id} not found after completion`);
         }
 
         const duration = updatedSession.endTime
           ? updatedSession.endTime - updatedSession.startTime
           : 0;
 
-        const sessionInput = await ctx.convertSessionToInput(validatedInput.sessionId);
+        const sessionInput = await ctx.convertSessionToInput(validatedInput.session_id);
         let chunksCompleted = 0;
         let averageQuality = 0;
 
@@ -287,18 +287,18 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         }
 
         const result = CompleteSessionResultSchema.parse({
-          sessionId: validatedInput.sessionId,
+          session_id: validatedInput.session_id,
           status: 'completed' as const,
-          finalMetrics: {
+          final_metrics: {
             duration,
-            chunksCompleted,
-            averageQuality,
+            chunks_completed: chunksCompleted,
+            average_quality: averageQuality,
           },
           message: `Session completed successfully${validatedInput.feedback ? ' with feedback' : ''}`,
         });
 
         logger.info(
-          `Completed session ${validatedInput.sessionId} with feedback: ${validatedInput.feedback || 'none'}`
+          `Completed session ${validatedInput.session_id} with feedback: ${validatedInput.feedback || 'none'}`
         );
         return toolJson(result);
       } catch (error) {

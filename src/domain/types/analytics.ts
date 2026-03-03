@@ -58,7 +58,7 @@ const ReviewEntryShape = {
     .optional()
     .default(0)
     .describe('Quality score for the review (0-5)'),
-  isNew: z
+  is_new: z
     .boolean()
     .optional()
     .default(false)
@@ -102,7 +102,7 @@ export type AnalyticsDailyInput = z.infer<typeof AnalyticsDailyInputSchema>;
 export const AnalyticsWindowInputShape = {
   entries: z.array(ReviewEntrySchema).describe('Review entries across the requested window'),
   window: WindowSpecSchema.describe('Date range window to analyze'),
-  includeBreakdowns: z
+  include_breakdowns: z
     .boolean()
     .optional()
     .default(false)

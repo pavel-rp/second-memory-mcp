@@ -188,28 +188,28 @@ describe('chunks service', () => {
       title: 'Test Chunk',
       subject: 'CS',
       difficulty: 5,
-      nextReviewDate: '2024-01-01',
-      easeFactor: 2.5,
+      next_review_date: '2024-01-01',
+      ease_factor: 2.5,
       repetitions: 1,
-      estimatedDuration: 20,
-      chunkType: 'new' as const,
-      topicId: 'topic-1',
-      topicTitle: 'Test Topic',
+      estimated_duration: 20,
+      chunk_type: 'new' as const,
+      topic_id: 'topic-1',
+      topic_title: 'Test Topic',
     };
 
     expect(() => LearningItemSchema.parse(validItem)).not.toThrow();
 
     const invalidItem = {
       ...validItem,
-      topicId: '',
+      topic_id: '',
     };
 
     expect(() => LearningItemSchema.parse(invalidItem)).toThrow();
 
     const itemWithoutTopic = {
       ...validItem,
-      topicId: undefined,
-      topicTitle: undefined,
+      topic_id: undefined,
+      topic_title: undefined,
     };
 
     expect(() => LearningItemSchema.parse(itemWithoutTopic)).not.toThrow();
@@ -1066,7 +1066,7 @@ describe('Content Inclusion Functions', () => {
       expect(result.items[0].contentVersion).toBe(1);
       expect(result.items[0].contentUpdatedAt).toBe(now);
       expect(result.pagination.total).toBe(1);
-      expect(result.pagination.hasMore).toBe(false);
+      expect(result.pagination.has_more).toBe(false);
     });
 
     it('should exclude content fields when includeContent is false', async () => {
@@ -1162,7 +1162,7 @@ describe('Content Inclusion Functions', () => {
       });
       expect(result1.items).toHaveLength(2);
       expect(result1.pagination.total).toBe(5);
-      expect(result1.pagination.hasMore).toBe(true);
+      expect(result1.pagination.has_more).toBe(true);
       expect(result1.pagination.offset).toBe(0);
       expect(result1.pagination.limit).toBe(2);
 
@@ -1172,7 +1172,7 @@ describe('Content Inclusion Functions', () => {
         offset: 2,
       });
       expect(result2.items).toHaveLength(2);
-      expect(result2.pagination.hasMore).toBe(true);
+      expect(result2.pagination.has_more).toBe(true);
       expect(result2.pagination.offset).toBe(2);
 
       const result3 = await ctx.listChunksWithContent({
@@ -1181,7 +1181,7 @@ describe('Content Inclusion Functions', () => {
         offset: 4,
       });
       expect(result3.items).toHaveLength(1);
-      expect(result3.pagination.hasMore).toBe(false);
+      expect(result3.pagination.has_more).toBe(false);
       expect(result3.pagination.offset).toBe(4);
     });
   });

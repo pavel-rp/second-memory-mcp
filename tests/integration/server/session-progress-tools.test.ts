@@ -55,10 +55,10 @@ describe('session-progress-tools', () => {
     const createHandler = server.tools.get('create_session')!.handler;
     const createResult = await createHandler({
       mode: 'learning',
-      chunkIds: ['chunk-p1'],
-      topicId: 'topic-p',
+      chunk_ids: ['chunk-p1'],
+      topic_id: 'topic-p',
     });
-    return parseResult(createResult).sessionId;
+    return parseResult(createResult).session_id;
   }
 
   describe('create_session_chunk', () => {
@@ -67,12 +67,12 @@ describe('session-progress-tools', () => {
 
       const handler = server.tools.get('create_session_chunk')!.handler;
       const result = await handler({
-        sessionId,
-        chunkId: 'chunk-p1',
+        session_id: sessionId,
+        chunk_id: 'chunk-p1',
         status: 'in_progress',
       });
       const parsed = parseResult(result);
-      expect(parsed.sessionChunkId).toBeDefined();
+      expect(parsed.session_chunk_id).toBeDefined();
       expect(parsed.status).toBe('created');
     });
 
@@ -81,12 +81,12 @@ describe('session-progress-tools', () => {
 
       const handler = server.tools.get('create_session_chunk')!.handler;
       const result = await handler({
-        sessionId,
-        chunkId: 'chunk-p1',
+        session_id: sessionId,
+        chunk_id: 'chunk-p1',
         status: 'completed',
-        attempts: [{ timestamp: now, quality: 4, timeSpentMs: 5000, completed: true }],
-        qualityScores: [4],
-        timeSpentMs: 5000,
+        attempts: [{ timestamp: now, quality: 4, time_spent_ms: 5000, completed: true }],
+        quality_scores: [4],
+        time_spent_ms: 5000,
       });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('created');
@@ -96,10 +96,10 @@ describe('session-progress-tools', () => {
   describe('get_historical_feedback', () => {
     it('returns empty feedback for chunks with no history', async () => {
       const handler = server.tools.get('get_historical_feedback')!.handler;
-      const result = await handler({ chunkIds: ['chunk-p1'] });
+      const result = await handler({ chunk_ids: ['chunk-p1'] });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
-      expect(parsed.feedbackCount).toBe(0);
+      expect(parsed.feedback_count).toBe(0);
       expect(parsed.hint).toContain('No previous feedback');
     });
 
@@ -131,18 +131,18 @@ describe('session-progress-tools', () => {
       const createHandler = server.tools.get('create_session')!.handler;
       const createResult = await createHandler({
         mode: 'learning',
-        chunkIds: ['chunk-fb'],
+        chunk_ids: ['chunk-fb'],
       });
-      const sessionId = parseResult(createResult).sessionId;
+      const sessionId = parseResult(createResult).session_id;
 
       const completeHandler = server.tools.get('complete_session')!.handler;
-      await completeHandler({ sessionId, feedback: 'Found algebra hard' });
+      await completeHandler({ session_id: sessionId, feedback: 'Found algebra hard' });
 
       const handler = server.tools.get('get_historical_feedback')!.handler;
-      const result = await handler({ chunkIds: ['chunk-fb'] });
+      const result = await handler({ chunk_ids: ['chunk-fb'] });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
-      expect(parsed.feedbackCount).toBeGreaterThanOrEqual(1);
+      expect(parsed.feedback_count).toBeGreaterThanOrEqual(1);
       expect(parsed.hint).toContain('Pay special attention');
     });
   });

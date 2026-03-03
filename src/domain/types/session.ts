@@ -144,15 +144,15 @@ export type BatchOperation = {
 };
 
 export const BatchOperationSchema = z.object({
-  chunkId: z.string().min(1),
+  chunk_id: z.string().min(1),
   title: z.string().min(1).optional(),
   status: z.enum(['pending', 'in_progress', 'completed']).optional(),
   attempts: z.array(ChunkAttemptSchema).optional(),
-  qualityScores: z.array(z.number().min(0).max(5)).optional(),
-  timeSpentMs: z.number().min(0).optional(),
+  quality_scores: z.array(z.number().min(0).max(5)).optional(),
+  time_spent_ms: z.number().min(0).optional(),
 });
 
 export const BatchUpdateInputSchema = z.object({
-  sessionId: z.string().min(1),
+  session_id: z.string().min(1),
   operations: z.array(BatchOperationSchema).min(1).max(50),
 });

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const GetChunkContentInputShape = {
-  chunkId: z
+  chunk_id: z
     .string()
     .min(1, 'Chunk ID cannot be empty')
     .describe('ID of the chunk to retrieve content for'),
@@ -11,7 +11,7 @@ export const GetChunkContentInputSchema = z.object(GetChunkContentInputShape);
 export type GetChunkContentInput = z.infer<typeof GetChunkContentInputSchema>;
 
 export const GetTopicSummaryInputShape = {
-  topicId: z
+  topic_id: z
     .string()
     .min(1, 'Topic ID cannot be empty')
     .describe('ID of the topic to retrieve summary for'),
@@ -21,8 +21,8 @@ export const GetTopicSummaryInputSchema = z.object(GetTopicSummaryInputShape);
 export type GetTopicSummaryInput = z.infer<typeof GetTopicSummaryInputSchema>;
 
 export const ListItemsWithContentInputShape = {
-  subjectFilter: z.string().optional().describe('Filter by subject/category'),
-  dueOnly: z.boolean().optional().describe('Only return items due for review'),
+  subject_filter: z.string().optional().describe('Filter by subject/category'),
+  due_only: z.boolean().optional().describe('Only return items due for review'),
   limit: z
     .number()
     .int()
@@ -37,7 +37,7 @@ export const ListItemsWithContentInputShape = {
     .optional()
     .default(0)
     .describe('Number of items to skip for pagination'),
-  includeContent: z
+  include_content: z
     .boolean()
     .optional()
     .default(true)

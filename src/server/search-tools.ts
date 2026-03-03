@@ -38,15 +38,15 @@ export function registerSearchTools(server: McpServer, ctx: AppContext): void {
               ? `Found ${result.counts.total} matching items.`
               : 'No matching topics or chunks were found.',
           ...result,
-          workflowHint: hasChunks
+          workflow_hint: hasChunks
             ? {
                 action: 'REQUIRED_FOR_RECALL',
                 instruction:
                   'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
                   'and include the chunk IDs before teaching. This loads historical feedback from past sessions ' +
                   'showing what the learner struggled with previously.',
-                suggestedChunkIds: chunkIds,
-                nextStep: `create_session({ mode: "retrieval", chunkIds: ${JSON.stringify(chunkIds)} })`,
+                suggested_chunk_ids: chunkIds,
+                next_step: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
               }
             : undefined,
         });

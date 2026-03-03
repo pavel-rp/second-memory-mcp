@@ -26,22 +26,32 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
       const input: CreateTopicWithChunksInput = CreateTopicWithChunksInputSchema.parse(rawInput);
       try {
         const result = await ctx.createTopicWithChunks({
-          topicTitle: input.topicTitle,
-          topicDescription: input.topicDescription,
+          topicTitle: input.topic_title,
+          topicDescription: input.topic_description,
           subject: input.subject,
-          topicSummary: input.topicSummary,
-          chunks: input.chunks,
+          topicSummary: input.topic_summary,
+          chunks: input.chunks.map(c => ({
+            id: c.id,
+            title: c.title,
+            content: c.content,
+            difficulty: c.difficulty,
+            estimatedDuration: c.estimated_duration,
+            prerequisites: c.prerequisites,
+            tags: c.tags,
+            chunkType: c.chunk_type,
+            order: c.order,
+          })),
         });
 
         if (result.success && result.topic) {
           return toolJson({
             success: true,
             topic: result.topic,
-            message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
+            message: `Successfully created topic "${input.topic_title}" with ${result.topic.chunks.length} chunks`,
           });
         } else {
           return toolError(
-            `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
+            `Failed to create topic "${input.topic_title}": ${result.error?.message || 'Unknown error'}`,
             {
               type: result.error?.type || 'database',
               message: result.error?.message || 'Unknown error',
@@ -51,7 +61,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
-        return toolError(`System error while creating topic "${input.topicTitle}": ${msg}`, {
+        return toolError(`System error while creating topic "${input.topic_title}": ${msg}`, {
           type: 'system',
           message: msg,
           retryable: true,
@@ -71,7 +81,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicInput = UpdateTopicInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateTopicMetadata(input.topicId, {
+        const result = await ctx.updateTopicMetadata(input.topic_id, {
           title: input.title,
           subject: input.subject,
         });
@@ -109,7 +119,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
     async (rawInput: unknown) => {
       const input: UpdateTopicSummaryInput = UpdateTopicSummaryInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateTopicSummary(input.topicId, input.summary);
+        const result = await ctx.updateTopicSummary(input.topic_id, input.summary);
 
         if (result.success && result.topic) {
           return toolJson({

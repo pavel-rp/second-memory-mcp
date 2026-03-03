@@ -1,20 +1,22 @@
 import { describe, it, expect } from 'vitest';
 import { registerServerTools } from '../../../src/server/tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
-import type { LearningItem } from '../../../src/domain/types/recommendations.js';
 import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
-function createTestItem(id: string, overrides: Partial<LearningItem> = {}): LearningItem {
+function createTestItem(
+  id: string,
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
   return {
     id,
     title: overrides.title ?? `Test Item ${id}`,
     subject: overrides.subject ?? 'CS',
     difficulty: overrides.difficulty ?? 5,
-    nextReviewDate: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
-    easeFactor: overrides.easeFactor ?? 2.5,
+    next_review_date: overrides.next_review_date ?? new Date().toISOString().slice(0, 10),
+    ease_factor: overrides.ease_factor ?? 2.5,
     repetitions: overrides.repetitions ?? 2,
-    estimatedDuration: overrides.estimatedDuration ?? 10,
-    chunkType: overrides.chunkType ?? 'review',
+    estimated_duration: overrides.estimated_duration ?? 10,
+    chunk_type: overrides.chunk_type ?? 'review',
     prerequisites: overrides.prerequisites ?? [],
     tags: overrides.tags ?? [],
   };
@@ -29,23 +31,23 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
     const items = [
       createTestItem('basics', {
-        chunkType: 'review',
+        chunk_type: 'review',
         prerequisites: [], // No prerequisites
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Overdue
+        next_review_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), // Overdue
       }),
       createTestItem('advanced', {
-        chunkType: 'review',
+        chunk_type: 'review',
         prerequisites: [],
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        next_review_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
       }),
     ];
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
 
     const result = parseToolResult(out);
@@ -64,23 +66,23 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
     const items = [
       createTestItem('basics', {
-        chunkType: 'review',
+        chunk_type: 'review',
         prerequisites: [],
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        next_review_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
       }),
       createTestItem('advanced', {
-        chunkType: 'review',
+        chunk_type: 'review',
         prerequisites: ['basics'], // Has prerequisite
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        next_review_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
       }),
     ];
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
 
     const result = parseToolResult(out);
@@ -114,18 +116,18 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
 
     const items = [
       createTestItem('item-with-prereq', {
-        chunkType: 'review',
+        chunk_type: 'review',
         prerequisites: ['some-prereq'],
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        next_review_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
       }),
     ];
 
     const out = await tool.handler({
       mode: 'explicit',
-      timeAvailable: 30,
-      subjectPreference: 'Any',
-      learningItems: items,
-      constraints: { maxDuration: 30, maxCognitiveLoad: 40 },
+      time_available: 30,
+      subject_preference: 'Any',
+      learning_items: items,
+      constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
 
     const result = parseToolResult(out);

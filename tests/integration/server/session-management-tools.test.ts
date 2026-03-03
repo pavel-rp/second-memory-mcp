@@ -101,21 +101,21 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const result = await createSessionTool.handler({
-      topicId: uniqueId,
-      chunkIds: ['chunk1', 'chunk2'],
+      topic_id: uniqueId,
+      chunk_ids: ['chunk1', 'chunk2'],
       mode: 'learning',
-      estimatedDuration: 30,
+      estimated_duration: 30,
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.sessionId).toBeDefined();
+    expect(parsed.session_id).toBeDefined();
     expect(parsed.status).toBe('created');
     expect(parsed.message).toContain('Session created successfully');
 
     const [session] = await db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, parsed.sessionId));
+      .where(eq(learningSessions.id, parsed.session_id));
     expect(session).toBeDefined();
     expect(session?.mode).toBe('learning');
     expect(session?.status).toBe('active');
@@ -178,7 +178,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const result = await getSessionTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
 
     const parsed = parseToolResult(result);
@@ -190,7 +190,7 @@ describe('Integration: Session Management Tools', () => {
 
   it('should return not_found for non-existent session', async () => {
     const result = await getSessionTool.handler({
-      sessionId: 'nonexistent-session',
+      session_id: 'nonexistent-session',
     });
 
     const parsed = parseToolResult(result);
@@ -220,16 +220,16 @@ describe('Integration: Session Management Tools', () => {
     await new Promise(resolve => setTimeout(resolve, 10));
 
     const result = await completeSessionTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
       feedback: 'Great session!',
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.sessionId).toBe(sessionId);
+    expect(parsed.session_id).toBe(sessionId);
     expect(parsed.status).toBe('completed');
     expect(parsed.message).toContain('Session completed successfully');
-    expect(parsed.finalMetrics).toBeDefined();
-    expect(parsed.finalMetrics.duration).toBeGreaterThan(0);
+    expect(parsed.final_metrics).toBeDefined();
+    expect(parsed.final_metrics.duration).toBeGreaterThan(0);
 
     const [session] = await db
       .select()
@@ -262,11 +262,11 @@ describe('Integration: Session Management Tools', () => {
     await new Promise(resolve => setTimeout(resolve, 10));
 
     const result = await completeSessionTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.sessionId).toBe(sessionId);
+    expect(parsed.session_id).toBe(sessionId);
     expect(parsed.status).toBe('completed');
     expect(parsed.message).toContain('Session completed successfully');
 
@@ -281,7 +281,7 @@ describe('Integration: Session Management Tools', () => {
 
   it('should handle completion of non-existent session', async () => {
     const result = await completeSessionTool.handler({
-      sessionId: 'nonexistent-session',
+      session_id: 'nonexistent-session',
       feedback: 'Test feedback',
     });
 
@@ -299,7 +299,7 @@ describe('Integration: Session Management Tools', () => {
 
     const result2 = await createSessionTool.handler({
       mode: 'learning',
-      estimatedDuration: 500,
+      estimated_duration: 500,
     });
 
     const parsed2 = parseToolResult(result2);
@@ -350,14 +350,14 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const createResult = await createSessionTool.handler({
-      topicId: uniqueId,
-      chunkIds: [chunkId],
+      topic_id: uniqueId,
+      chunk_ids: [chunkId],
       mode: 'learning',
-      estimatedDuration: 30,
+      estimated_duration: 30,
     });
 
     const createParsed = parseToolResult(createResult);
-    const sessionId = createParsed.sessionId;
+    const sessionId = createParsed.session_id;
 
     await db.insert(sessionChunks).values({
       id: `session-chunk-${now}`,
@@ -379,7 +379,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const getResult = await getSessionTool.handler({
-      sessionId: sessionId,
+      session_id: sessionId,
     });
 
     const getParsed = parseToolResult(getResult);
@@ -420,7 +420,7 @@ describe('Integration: Session Management Tools', () => {
     expect(parsed1.session.mode).toBe('learning');
 
     const completeResult = await completeSessionTool.handler({
-      sessionId: session1Id,
+      session_id: session1Id,
       feedback: 'Great session!',
     });
     const completeParsed = parseToolResult(completeResult);
@@ -511,19 +511,19 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const createOut = await createSessionTool.handler({
-      topicId,
-      chunkIds: ['bchunk1'],
+      topic_id: topicId,
+      chunk_ids: ['bchunk1'],
       mode: 'learning',
-      estimatedDuration: 25,
+      estimated_duration: 25,
     });
     const created = parseToolResult(createOut);
-    const sessionId = created.sessionId;
+    const sessionId = created.session_id;
 
     const batchOut = await batchUpdateChunksTool.handler({
-      sessionId,
+      session_id: sessionId,
       operations: [
         {
-          chunkId: 'bchunk1',
+          chunk_id: 'bchunk1',
           status: 'completed',
           attempts: [
             {
@@ -533,15 +533,15 @@ describe('Integration: Session Management Tools', () => {
               completed: true,
             },
           ],
-          qualityScores: [4],
-          timeSpentMs: 60000,
+          quality_scores: [4],
+          time_spent_ms: 60000,
         },
         {
-          chunkId: 'bchunk2',
+          chunk_id: 'bchunk2',
           status: 'pending',
           attempts: [],
-          qualityScores: [],
-          timeSpentMs: 0,
+          quality_scores: [],
+          time_spent_ms: 0,
         },
       ],
     });
@@ -551,7 +551,7 @@ describe('Integration: Session Management Tools', () => {
     expect(batchParsed.created).toBe(1);
     expect(batchParsed.updated).toBe(1);
     expect(batchParsed.unchanged).toBe(0);
-    expect(batchParsed.affectedChunkIds.sort()).toEqual(['bchunk1', 'bchunk2']);
+    expect(batchParsed.affected_chunk_ids.sort()).toEqual(['bchunk1', 'bchunk2']);
 
     const [session] = await db
       .select()
@@ -574,14 +574,14 @@ describe('Integration: Session Management Tools', () => {
   it('should reject batch update with invalid chunk IDs', async () => {
     const createOut = await createSessionTool.handler({
       mode: 'learning',
-      estimatedDuration: 25,
+      estimated_duration: 25,
     });
     const created = parseToolResult(createOut);
-    const sessionId = created.sessionId;
+    const sessionId = created.session_id;
 
     const batchOut = await batchUpdateChunksTool.handler({
-      sessionId,
-      operations: [{ chunkId: 'does-not-exist', status: 'pending' }],
+      session_id: sessionId,
+      operations: [{ chunk_id: 'does-not-exist', status: 'pending' }],
     });
 
     const batchParsed = parseToolResult(batchOut);
@@ -589,11 +589,11 @@ describe('Integration: Session Management Tools', () => {
   });
 
   it('should reject creating second active session via MCP tool', async () => {
-    const result1 = await createSessionTool.handler({ mode: 'learning', estimatedDuration: 30 });
+    const result1 = await createSessionTool.handler({ mode: 'learning', estimated_duration: 30 });
     const parsed1 = parseToolResult(result1);
     expect(parsed1.status).toBe('created');
 
-    const result2 = await createSessionTool.handler({ mode: 'review', estimatedDuration: 30 });
+    const result2 = await createSessionTool.handler({ mode: 'review', estimated_duration: 30 });
     const parsed2 = parseToolResult(result2);
     expect(parsed2.message).toContain('Active session already exists');
   });
