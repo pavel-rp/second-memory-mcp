@@ -53,6 +53,9 @@ The server requires a Postgres database with the [pgvector](https://github.com/p
 # Start Postgres (pgvector/pgvector:pg16, matches CI)
 docker compose up -d
 
+# Configure environment variables (DATABASE_URL is pre-filled for Docker)
+cp .env.example .env
+
 # Apply schema migrations and optional seed import
 pnpm run db:migrate
 ```

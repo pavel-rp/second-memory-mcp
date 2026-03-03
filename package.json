@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "license": "MIT",
-  "author": "recky-ru",
+  "author": "Pavel Kalabin",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pavel-rp/second-memory-mcp.git"
