@@ -3,15 +3,16 @@
 
 # Second Memory Learning
 
-Second Memory Learning is a Model Context Protocol (MCP) server that delivers an AI-powered spaced repetition experience backed by a Postgres database. The server exposes rich tool and prompt surfaces so Claude Desktop can orchestrate complete learning sessions without relying on any external SaaS integrations.
+An MCP server that turns Claude Desktop into a full learning assistant — backed by a knowledge graph of prerequisites, hybrid retrieval over pgvector embeddings, and multi-step agentic workflows that orchestrate spaced repetition sessions without any external SaaS dependencies.
 
 ## Key Capabilities
 
-- **Evidence-based scheduling** – Enhanced SM-2 algorithms with lapse handling, cognitive load caps, and candidate ranking (`src/domain/algorithms/sr-calculator.ts`).
-- **Guided recommendations** – `what_to_learn_today` can fetch items directly from the database, balance new vs. review work, and produce conversational guidance for the learner (`src/domain/services/recommendation-engine.ts`).
-- **Session management** – Create, track, and complete structured learning sessions with automatic session chunk creation (`src/orchestration/session-workflows.ts`).
-- **Content operations** – Topic and chunk creation helpers with validation and transactional persistence (`src/orchestration/topic-workflows.ts`, `src/orchestration/chunk-workflows.ts`).
-- **Prompt pack integration** – First-class MCP prompts for scaffolding, learning, retrieval, review, and workflow guidance (`src/shared/prompts/prompt-pack.ts`).
+- **Knowledge graph & prerequisite resolution** – Learning items form a directed graph of prerequisite relationships. `DependencyResolver` performs topological sorting, cycle detection, and transitive dependency resolution so the recommendation engine can sequence material in the right order (`src/domain/algorithms/dependency-resolver.ts`).
+- **Hybrid retrieval pipeline** – Three search modes — keyword (title + content text matching), semantic (cosine similarity over pgvector embeddings), and hybrid (weighted rank fusion of both). Embedding vectors are stored alongside content in Postgres with HNSW indexes for sub-linear lookups (`src/orchestration/search-workflows.ts`, `src/adapters/drizzle/search-adapter.ts`).
+- **Agentic session orchestration** – Multi-step learning workflows where Claude creates sessions, walks through chunks, records review quality, and decides when to complete — all driven through MCP tool calls that maintain session state across turns (`src/orchestration/session-workflows.ts`).
+- **Context-aware recommendations** – `what_to_learn_today` fetches items from the database, applies prerequisite filtering via the knowledge graph, balances new vs. review work using cognitive load caps, and produces ranked suggestions with conversational guidance (`src/domain/services/recommendation-engine.ts`).
+- **Prompt engineering surface** – Seven MCP prompt templates (scaffolding, learning, retrieval, review, workflow guidance, chunk generation, chunk management) that give Claude structured context for each phase of a session (`src/shared/prompts/prompt-pack.ts`).
+- **Evidence-based scheduling** – Enhanced SM-2 algorithm with lapse handling, cognitive load modeling, and candidate ranking (`src/domain/algorithms/sr-calculator.ts`).
 
 ## Getting Started
 
@@ -99,16 +100,16 @@ Replace `<path-to-project>` with the absolute path to your cloned repository. Bu
 
 The server registers tools across eight categories:
 
-| Category           | Tool                                                                                                                                                                                                                                                           | Purpose                                                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Spaced repetition  | `calculate_next_review`, `calculate_next_review_advanced`, `calculate_priority_score`, `rank_candidates`, `record_review_result`                                                                                                                               | Core SM-2 computations, scheduling, and review recording                           |
-| Recommendations    | `what_to_learn_today`, `guided_learning_conversation`                                                                                                                                                                                                          | Generate or converse through personalized learning plans                           |
-| Session analytics  | `session_progress`, `session_completion`, `session_workflow`                                                                                                                                                                                                   | Track session health and decision points                                           |
-| Session management | `create_session`, `create_session_chunk`, `get_active_session`, `get_session`, `complete_session`, `batch_update_session_chunks`, `get_historical_feedback`                                                                                                    | Persisted session lifecycle management with automatic chunk initialization         |
-| Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_content`, `update_chunk_metadata`, `delete_chunk`, `batch_fetch_topics_minimal`, `batch_fetch_chunks_minimal`, `list_learning_items` | CRUD helpers for topics and chunks backed by Postgres                              |
-| Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings               |
-| Search             | `search_learning_content`                                                                                                                                                                                                                                      | Hybrid keyword + vector search over topics and chunks (pgvector cosine similarity) |
-| Analytics          | `analytics_daily`, `analytics_window`                                                                                                                                                                                                                          | Compute daily KPIs and date-range analytics with optional breakdowns               |
+| Category           | Tool                                                                                                                                                                                                                                                           | Purpose                                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Search             | `search_learning_content`                                                                                                                                                                                                                                      | Hybrid keyword + semantic retrieval over topics and chunks (pgvector cosine similarity, HNSW index) |
+| Recommendations    | `what_to_learn_today`, `guided_learning_conversation`                                                                                                                                                                                                          | Graph-aware recommendation engine with conversational guidance                                      |
+| Session management | `create_session`, `create_session_chunk`, `get_active_session`, `get_session`, `complete_session`, `batch_update_session_chunks`, `get_historical_feedback`                                                                                                    | Multi-step session lifecycle with automatic chunk initialization                                    |
+| Session analytics  | `session_progress`, `session_completion`, `session_workflow`                                                                                                                                                                                                   | Track session health and decision points                                                            |
+| Spaced repetition  | `calculate_next_review`, `calculate_next_review_advanced`, `calculate_priority_score`, `rank_candidates`, `record_review_result`                                                                                                                               | SM-2 scheduling, priority scoring, and review recording                                             |
+| Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_content`, `update_chunk_metadata`, `delete_chunk`, `batch_fetch_topics_minimal`, `batch_fetch_chunks_minimal`, `list_learning_items` | CRUD for topics and chunks with prerequisite graph edges                                            |
+| Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings                                |
+| Analytics          | `analytics_daily`, `analytics_window`                                                                                                                                                                                                                          | Daily KPIs and date-range analytics with optional breakdowns                                        |
 
 ### Recommendation Example
 
@@ -173,7 +174,9 @@ src/
 │   ├── types/          # Shared type definitions
 │   └── config/         # Algorithm configuration
 ├── ports/              # Interface definitions (8 port interfaces)
-├── adapters/drizzle/   # Concrete Drizzle/PostgreSQL implementations of ports
+├── adapters/
+│   ├── drizzle/        # PostgreSQL implementations (search, persistence, sessions)
+│   └── langchain/      # LangChain embedding adapter (pluggable provider)
 ├── infrastructure/     # Database client, schema, migrations, logger
 ├── shared/             # Cross-cutting utilities, constants, prompts
 └── composition-root.ts # Wires adapters → ports → orchestration → server
@@ -181,7 +184,9 @@ src/
 
 **Layer dependency rule:** Each layer depends only on layers below it. Domain has zero I/O imports. Orchestration depends on ports (interfaces), never adapters. Only the composition root imports concrete adapter classes.
 
-The prerequisite system models a **directed knowledge graph** — `DependencyResolver` performs topological sorting, cycle detection, and transitive dependency resolution to determine optimal learning order across related chunks.
+The domain layer contains the core intelligence: a **knowledge graph** built from prerequisite relationships (`DependencyResolver` — topological sort, cycle detection, transitive resolution), a **recommendation engine** that traverses the graph to sequence learning items by priority and cognitive load, and a **prerequisite validator** that gates progression on demonstrated mastery.
+
+The retrieval pipeline supports three modes — keyword search over Postgres full-text, semantic search via pgvector cosine similarity with HNSW indexing, and hybrid search that applies configurable weighted rank fusion across both signals.
 
 Key entry points:
 
@@ -204,8 +209,8 @@ tests/
 
 ## Database Schema Summary
 
-- **learning_topics** – Topic metadata, optional summaries, timestamps.
-- **learning_chunks** – Individual learning items with content, SM-2 attributes (ease factor, interval, next review date), tags, and prerequisites.
+- **learning_topics** – Topic metadata, optional summaries, and 1536-dimensional summary embeddings (pgvector).
+- **learning_chunks** – Individual learning items with content, SM-2 attributes (ease factor, interval, next review date), content embeddings, prerequisite references, and tags. HNSW indexes on embedding columns enable fast cosine-similarity lookups.
 - **learning_sessions** – Persisted session metadata (mode, status, timing, feedback, chunk list).
 - **session_chunks** – Per-session chunk progress including attempts, quality scores, and time spent.
 
@@ -225,4 +230,4 @@ pnpm run lint
 pnpm run format
 ```
 
-Vitest integration tests exercise recommendation workflows, prerequisite mastery, and session management to ensure parity with the live MCP behavior. Refer to the `tests/` directory for concrete examples of tool invocations.
+Vitest integration tests exercise the retrieval pipeline (keyword, semantic, and hybrid search modes), recommendation workflows, prerequisite mastery via the knowledge graph, and session management to ensure parity with the live MCP behavior. Refer to the `tests/` directory for concrete examples of tool invocations.
