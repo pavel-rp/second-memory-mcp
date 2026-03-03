@@ -9,7 +9,7 @@ export type ChunkType = 'new' | 'review' | 'remediation';
 // Subject preference types
 export type SubjectPreference = 'CS' | 'Math' | 'SWE' | 'Language' | 'Any';
 
-// Learning item from SQLite database
+// Learning item from database
 export type LearningItem = {
   id: string;
   title: string;
@@ -109,7 +109,7 @@ export type RecommendationInput = {
   mode?: RecommendationMode; // "guided" for zero-friction, "explicit" for specified params
   timeAvailable?: number; // minutes
   subjectPreference?: SubjectPreference; // general subject preference (e.g., "Any" or specific SubjectPreference). Used for non-fetch modes or as a fallback.
-  learningItems?: LearningItem[]; // candidate items from SQLite database
+  learningItems?: LearningItem[]; // candidate items from database
   userHistory?: SessionHistory; // recent learning patterns
   sessionContext?: SessionContext; // current session state if continuing
   constraints?: SessionConstraints; // additional filtering/limits (may include subjectFilter for broader subject-based rules)
