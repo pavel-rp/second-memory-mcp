@@ -54,3 +54,8 @@ gh api repos/OWNER/REPO/pulls/comments/{COMMENT_ID}/replies --input "$TEMP/reply
 
 - Concise commit messages: what, not how. No advertising signatures.
 - No promotional taglines in PR descriptions.
+
+## Package manager
+
+pnpm, not npm.
+Use scripts from package.json, don't make up anything.
