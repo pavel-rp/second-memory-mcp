@@ -9,7 +9,6 @@ import type {
   LearningItem,
   PaginatedLearningItemsResponse,
 } from '../domain/types/recommendations.js';
-import type { LearningTopic } from '../domain/types/entities.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 
 export type QueryDeps = {
@@ -59,10 +58,6 @@ export async function batchFetchChunksMinimal(
   deps: QueryDeps
 ): Promise<Awaited<ReturnType<ChunkRepository['batchFetchMinimal']>>> {
   return deps.chunks.batchFetchMinimal(options);
-}
-
-export async function listTopics(deps: QueryDeps): Promise<LearningTopic[]> {
-  return deps.topics.list();
 }
 
 export async function batchFetchTopicsMinimal(
