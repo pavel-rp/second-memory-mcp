@@ -206,7 +206,7 @@ src/
 
 **Test/Debug:**
 
-- `DEBUG` - Enables verbose logging in shared/logger.ts
+- `DEBUG` - Enables verbose logging in `src/shared/logger.ts`
 - `NODE_ENV` - Set to 'test' for test environment
 - `VITEST` - Set by Vitest during test runs
 - `FORCE_SQLITE_TESTS` - Forces SQLite tests to run (set in CI)
