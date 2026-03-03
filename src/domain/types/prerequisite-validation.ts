@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import type { LearningItem } from './recommendations.js';
-import { LearningItemSchema } from './recommendations.js';
 
 // Core validation types for prerequisite checking
 
@@ -80,32 +79,6 @@ export type PrerequisiteReferenceValidationResult = {
   errors: string[];
 };
 
-/**
- * Input for prerequisite validation operations
- */
-export type PrerequisiteValidationInput = {
-  /** Learning items to validate */
-  items: LearningItem[];
-  /** Mastery criteria to use for validation */
-  masteryCriteria: MasteryCriteria;
-  /** Optional list of item IDs to exclude from validation */
-  excludeIds?: string[];
-};
-
-/**
- * Configuration for prerequisite validation behavior
- */
-export type PrerequisiteValidationConfig = {
-  /** Default mastery criteria */
-  defaultMasteryCriteria: MasteryCriteria;
-  /** Whether to enable strict validation (fail on any invalid references) */
-  strictValidation: boolean;
-  /** Maximum depth for dependency graph traversal */
-  maxDependencyDepth: number;
-  /** Whether to cache mastery status results */
-  enableCaching: boolean;
-};
-
 // Zod schemas for runtime validation
 
 export const MasteryCriteriaSchema = z.object({
@@ -113,40 +86,4 @@ export const MasteryCriteriaSchema = z.object({
   requiredAttempts: z.number().int().min(0),
   recencyDays: z.number().int().min(0),
   successRate: z.number().min(0).max(1),
-});
-
-export const ValidationResultSchema = z.object({
-  isValid: z.boolean(),
-  missingPrerequisites: z.array(z.string()),
-  masteredPrerequisites: z.array(z.string()),
-  validationErrors: z.array(z.string()).optional(),
-});
-
-export const MasteryStatusSchema = z.object({
-  itemId: z.string().min(1),
-  isMastered: z.boolean(),
-  averageQuality: z.number().min(0).max(5),
-  attemptCount: z.number().int().min(0),
-  daysSinceLastReview: z.number().int().min(0),
-  successRate: z.number().min(0).max(1),
-});
-
-export const PrerequisiteReferenceValidationResultSchema = z.object({
-  isValid: z.boolean(),
-  validReferences: z.array(z.string()),
-  invalidReferences: z.array(z.string()),
-  errors: z.array(z.string()),
-});
-
-export const PrerequisiteValidationInputSchema = z.object({
-  items: z.array(LearningItemSchema),
-  masteryCriteria: MasteryCriteriaSchema,
-  excludeIds: z.array(z.string()).optional(),
-});
-
-export const PrerequisiteValidationConfigSchema = z.object({
-  defaultMasteryCriteria: MasteryCriteriaSchema,
-  strictValidation: z.boolean(),
-  maxDependencyDepth: z.number().int().min(1),
-  enableCaching: z.boolean(),
 });
