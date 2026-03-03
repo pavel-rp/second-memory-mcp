@@ -3,7 +3,7 @@
 
 # Second Memory Learning
 
-An MCP server that turns Claude Desktop into a full learning assistant — backed by a knowledge graph of prerequisites, hybrid retrieval over pgvector embeddings, and multi-step agentic workflows that orchestrate spaced repetition sessions without any external SaaS dependencies.
+An MCP server that turns any compatible AI client into a full learning assistant — backed by a knowledge graph of prerequisites, hybrid retrieval over pgvector embeddings, and multi-step agentic workflows that orchestrate spaced repetition sessions without any external SaaS dependencies.
 
 ## Key Capabilities
 
