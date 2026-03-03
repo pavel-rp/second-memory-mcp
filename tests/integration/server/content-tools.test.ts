@@ -70,7 +70,7 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed.items[0].contentUpdatedAt).toBe(now);
     expect(parsed.content_included).toBe(true);
     expect(parsed.pagination.total).toBe(1);
-    expect(parsed.pagination.hasMore).toBe(false);
+    expect(parsed.pagination.has_more).toBe(false);
   });
 
   it('should exclude content fields when includeContent is false', async () => {
@@ -173,7 +173,7 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed1.success).toBe(true);
     expect(parsed1.items).toHaveLength(2);
     expect(parsed1.pagination.total).toBe(5);
-    expect(parsed1.pagination.hasMore).toBe(true);
+    expect(parsed1.pagination.has_more).toBe(true);
     expect(parsed1.pagination.offset).toBe(0);
     expect(parsed1.pagination.limit).toBe(2);
 
@@ -186,7 +186,7 @@ describe('Integration: list_items_with_content', () => {
     const parsed2 = parseToolResult(result2);
     expect(parsed2.success).toBe(true);
     expect(parsed2.items).toHaveLength(2);
-    expect(parsed2.pagination.hasMore).toBe(true);
+    expect(parsed2.pagination.has_more).toBe(true);
     expect(parsed2.pagination.offset).toBe(2);
 
     const result3 = await tool.handler({
@@ -198,7 +198,7 @@ describe('Integration: list_items_with_content', () => {
     const parsed3 = parseToolResult(result3);
     expect(parsed3.success).toBe(true);
     expect(parsed3.items).toHaveLength(1);
-    expect(parsed3.pagination.hasMore).toBe(false);
+    expect(parsed3.pagination.has_more).toBe(false);
     expect(parsed3.pagination.offset).toBe(4);
   });
 

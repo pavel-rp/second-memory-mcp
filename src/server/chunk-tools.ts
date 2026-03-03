@@ -227,8 +227,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: DeleteChunkInputShape,
     },
     async (rawInput: unknown) => {
-      const { chunk_id }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
-      const chunkId = chunk_id;
+      const { chunk_id: chunkId }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
       try {
         const result = await ctx.deleteChunk(chunkId);
 

@@ -193,7 +193,7 @@ export type PaginatedLearningItemsResponse = {
     total: number;
     limit: number;
     offset: number;
-    hasMore: boolean;
+    has_more: boolean;
   };
 };
 
@@ -307,4 +307,3 @@ export const ConversationRequestShape = {
 } as const;
 
 export const ConversationRequestSchema = z.object(ConversationRequestShape);
-export type ConversationRequestInput = z.infer<typeof ConversationRequestSchema>;

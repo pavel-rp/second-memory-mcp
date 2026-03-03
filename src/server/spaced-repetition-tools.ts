@@ -24,6 +24,41 @@ import {
   type RecordReviewResultInput,
 } from '../domain/types/spaced-repetition-tools.js';
 
+/** Map a snake_case MCP LearningItem to camelCase internal LearningItem. */
+function mapLearningItemInput(item: {
+  id: string;
+  title: string;
+  subject: string;
+  difficulty: number;
+  next_review_date: string;
+  ease_factor: number;
+  repetitions: number;
+  last_reviewed?: string;
+  estimated_duration: number;
+  chunk_type: string;
+  prerequisites?: string[];
+  tags?: string[];
+  topic_id?: string;
+  topic_title?: string;
+}) {
+  return {
+    id: item.id,
+    title: item.title,
+    subject: item.subject,
+    difficulty: item.difficulty,
+    nextReviewDate: item.next_review_date,
+    easeFactor: item.ease_factor,
+    repetitions: item.repetitions,
+    lastReviewed: item.last_reviewed,
+    estimatedDuration: item.estimated_duration,
+    chunkType: item.chunk_type as 'new' | 'review' | 'remediation',
+    prerequisites: item.prerequisites,
+    tags: item.tags,
+    topicId: item.topic_id,
+    topicTitle: item.topic_title,
+  };
+}
+
 export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'calculate_next_review',
@@ -203,22 +238,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
           mode: parsed.mode,
           timeAvailable: parsed.time_available,
           subjectPreference: parsed.subject_preference,
-          learningItems: parsed.learning_items?.map(item => ({
-            id: item.id,
-            title: item.title,
-            subject: item.subject,
-            difficulty: item.difficulty,
-            nextReviewDate: item.next_review_date,
-            easeFactor: item.ease_factor,
-            repetitions: item.repetitions,
-            lastReviewed: item.last_reviewed,
-            estimatedDuration: item.estimated_duration,
-            chunkType: item.chunk_type,
-            prerequisites: item.prerequisites,
-            tags: item.tags,
-            topicId: item.topic_id,
-            topicTitle: item.topic_title,
-          })),
+          learningItems: parsed.learning_items?.map(mapLearningItemInput),
           fetchFromDatabase: parsed.fetch_from_database,
           subjectFilter: parsed.subject_filter,
           dueOnly: parsed.due_only,
@@ -259,22 +279,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
                 lastActivity: parsed.session_context.last_activity,
                 userPreferences: parsed.session_context.user_preferences,
                 currentRecommendations: parsed.session_context.current_recommendations?.map(r => ({
-                  item: {
-                    id: r.item.id,
-                    title: r.item.title,
-                    subject: r.item.subject,
-                    difficulty: r.item.difficulty,
-                    nextReviewDate: r.item.next_review_date,
-                    easeFactor: r.item.ease_factor,
-                    repetitions: r.item.repetitions,
-                    lastReviewed: r.item.last_reviewed,
-                    estimatedDuration: r.item.estimated_duration,
-                    chunkType: r.item.chunk_type,
-                    prerequisites: r.item.prerequisites,
-                    tags: r.item.tags,
-                    topicId: r.item.topic_id,
-                    topicTitle: r.item.topic_title,
-                  },
+                  item: mapLearningItemInput(r.item),
                   priority: r.priority,
                   reason: r.reason,
                   order: r.order,

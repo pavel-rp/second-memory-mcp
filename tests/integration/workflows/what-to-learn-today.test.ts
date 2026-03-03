@@ -3,17 +3,17 @@ import { registerServerTools } from '../../../src/server/tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
 import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
-function makeItem(overrides: Partial<any> = {}): any {
+function makeItem(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: overrides.id ?? Math.random().toString(36).slice(2),
     title: overrides.title ?? 'Item',
     subject: overrides.subject ?? 'CS',
     difficulty: overrides.difficulty ?? 5,
-    next_review_date: overrides.nextReviewDate ?? new Date().toISOString().slice(0, 10),
-    ease_factor: overrides.easeFactor ?? 2.5,
+    next_review_date: overrides.next_review_date ?? new Date().toISOString().slice(0, 10),
+    ease_factor: overrides.ease_factor ?? 2.5,
     repetitions: overrides.repetitions ?? 2,
-    estimated_duration: overrides.estimatedDuration ?? 10,
-    chunk_type: overrides.chunkType ?? 'review',
+    estimated_duration: overrides.estimated_duration ?? 10,
+    chunk_type: overrides.chunk_type ?? 'review',
     prerequisites: overrides.prerequisites,
     tags: overrides.tags,
   };
@@ -29,12 +29,12 @@ describe('Integration: what_to_learn_today', () => {
     const items = [
       makeItem({
         id: 'o1',
-        chunkType: 'review',
-        nextReviewDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-        estimatedDuration: 10,
+        chunk_type: 'review',
+        next_review_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+        estimated_duration: 10,
       }),
-      makeItem({ id: 'n1', chunkType: 'new', estimatedDuration: 15 }),
-      makeItem({ id: 'r1', chunkType: 'review', estimatedDuration: 10 }),
+      makeItem({ id: 'n1', chunk_type: 'new', estimated_duration: 15 }),
+      makeItem({ id: 'r1', chunk_type: 'review', estimated_duration: 10 }),
     ];
 
     const out = await tool.handler({
@@ -58,8 +58,8 @@ describe('Integration: what_to_learn_today', () => {
     expect(tool).toBeDefined();
 
     const items = [
-      makeItem({ id: 'a', chunkType: 'review', estimatedDuration: 10 }),
-      makeItem({ id: 'b', chunkType: 'new', estimatedDuration: 10 }),
+      makeItem({ id: 'a', chunk_type: 'review', estimated_duration: 10 }),
+      makeItem({ id: 'b', chunk_type: 'new', estimated_duration: 10 }),
     ];
 
     const out = await tool.handler({

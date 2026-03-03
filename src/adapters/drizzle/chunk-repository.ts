@@ -169,7 +169,12 @@ export class DrizzleChunkRepository implements ChunkRepository {
 
     return {
       items,
-      pagination: { total: totalCount, limit, offset, hasMore: offset + items.length < totalCount },
+      pagination: {
+        total: totalCount,
+        limit,
+        offset,
+        has_more: offset + items.length < totalCount,
+      },
     };
   }
 
