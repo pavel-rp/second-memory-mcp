@@ -47,7 +47,7 @@ pnpm run start:stdio
 The server creates the SQLite database on demand. Run the migration script once to ensure the schema and optional seed data are applied:
 
 ```bash
-# Apply schema migrations and optional seed import (see docs/MIGRATION_GUIDE.md)
+# Apply schema migrations and optional seed import
 pnpm run db:migrate
 ```
 

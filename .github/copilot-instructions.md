@@ -150,7 +150,6 @@ pnpm run start:stdio
 src/
 ├── transport/          # MCP SDK bootstrap, STDIO transport (process lifecycle only)
 ├── server/             # MCP tool registration — parse -> delegate -> format
-│   ├── main.ts         # Entry point: MCP server bootstrap, prompt registration
 │   ├── tools.ts        # Master tool registrar (imports all *-tools.ts)
 │   └── *-tools.ts      # Tool registration modules (persistence, session, spaced-repetition, analytics, content)
 ├── orchestration/      # Use-case workflows composing domain logic + port calls
