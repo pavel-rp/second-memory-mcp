@@ -3,12 +3,12 @@
 
 # Second Memory Learning
 
-An MCP server that turns any compatible AI client into a full learning assistant — backed by a knowledge graph of prerequisites, hybrid retrieval over pgvector embeddings, and multi-step agentic workflows that orchestrate spaced repetition sessions without any external SaaS dependencies.
+An MCP server that turns any compatible AI client into a full learning assistant — backed by a knowledge graph of prerequisites, hybrid retrieval over pgvector embeddings, and multi-step agentic workflows that orchestrate spaced repetition sessions with no required external SaaS — embedding providers are optional and pluggable.
 
 ## Key Capabilities
 
 - **Knowledge graph & prerequisite resolution** – Learning items form a directed graph of prerequisite relationships. `DependencyResolver` performs topological sorting, cycle detection, and transitive dependency resolution so the recommendation engine can sequence material in the right order (`src/domain/algorithms/dependency-resolver.ts`).
-- **Hybrid retrieval pipeline** – Three search modes — keyword (title + content text matching), semantic (cosine similarity over pgvector embeddings), and hybrid (weighted rank fusion of both). Embedding vectors are stored alongside content in Postgres with HNSW indexes for sub-linear lookups (`src/orchestration/search-workflows.ts`, `src/adapters/drizzle/search-adapter.ts`).
+- **Hybrid retrieval pipeline** – Three search modes — keyword (title + content text matching), semantic (cosine similarity over pgvector embeddings), and hybrid (weighted linear combination of normalized keyword + semantic scores). Embedding vectors are stored alongside content in Postgres with HNSW indexes for sub-linear lookups (`src/orchestration/search-workflows.ts`, `src/adapters/drizzle/search-adapter.ts`).
 - **Agentic session orchestration** – Multi-step learning workflows where the AI client creates sessions, walks through chunks, records review quality, and decides when to complete — all driven through MCP tool calls that maintain session state across turns (`src/orchestration/session-workflows.ts`).
 - **Context-aware recommendations** – `what_to_learn_today` fetches items from the database, applies prerequisite filtering via the knowledge graph, balances new vs. review work using cognitive load caps, and produces ranked suggestions with conversational guidance (`src/domain/services/recommendation-engine.ts`).
 - **Prompt engineering surface** – Seven MCP prompt templates (scaffolding, learning, retrieval, review, workflow guidance, chunk generation, chunk management) that give the connected AI client structured context for each phase of a session (`src/shared/prompts/prompt-pack.ts`).
@@ -186,7 +186,7 @@ src/
 
 The domain layer contains the core intelligence: a **knowledge graph** built from prerequisite relationships (`DependencyResolver` — topological sort, cycle detection, transitive resolution), a **recommendation engine** that traverses the graph to sequence learning items by priority and cognitive load, and a **prerequisite validator** that gates progression on demonstrated mastery.
 
-The retrieval pipeline supports three modes — keyword search over Postgres full-text, semantic search via pgvector cosine similarity with HNSW indexing, and hybrid search that applies configurable weighted rank fusion across both signals.
+The retrieval pipeline supports three modes — keyword search via case-insensitive token matching, semantic search via pgvector cosine similarity with HNSW indexing, and hybrid search that merges both using a configurable weighted linear combination of normalized scores.
 
 Key entry points:
 
