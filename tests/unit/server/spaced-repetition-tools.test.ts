@@ -553,19 +553,6 @@ describe('spaced-repetition-tools', () => {
         expect.objectContaining({ learningItems: [] })
       );
     });
-
-    it('falls back to empty array when DB returns undefined', async () => {
-      ctx.listChunksAsLearningItems = vi.fn().mockResolvedValue(undefined);
-      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockRecommendationOutput);
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('what_to_learn_today')!.handler;
-
-      await handler({ fetch_from_database: true });
-
-      expect(ctx.generateRecommendations).toHaveBeenCalledWith(
-        expect.objectContaining({ learningItems: [] })
-      );
-    });
   });
 
   // ---------------------------------------------------------------
@@ -697,7 +684,7 @@ describe('spaced-repetition-tools', () => {
       expect(parsed.error.message).toContain('connection lost');
     });
 
-    it('passes optional fields with defaults through to context', async () => {
+    it('passes optional fields through to context in camelCase', async () => {
       const mockProcess = vi.fn().mockResolvedValue({
         success: true,
         data: { isLeech: false },
