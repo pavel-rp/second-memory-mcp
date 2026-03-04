@@ -676,6 +676,7 @@ describe('RecommendationEngine', () => {
 
     // The item with unmastered prerequisites should be filtered, affecting the rationale
     expect(result.rationale).toMatch(/spaced repetition/i);
+    expect(result.rationale).toMatch(/1 items? were filtered out due to unmet prerequisites/i);
   });
 
   it('does not include dependencyResolution when no prerequisites were added', async () => {
@@ -720,18 +721,24 @@ describe('RecommendationEngine', () => {
       NOW
     );
 
+    // Exercises the isSubjectPreference(topSubject) === true branch (line 139).
+    // Note: derived preference is set on defaults but generateIntelligentConstraints
+    // reads from pre-merge input, so filtering isn't applied to results here.
     expect(result.recommendations.length).toBeGreaterThan(0);
   });
 
   it('defaults subject preference to Any for unrecognized top subject', async () => {
     const engine = createTestEngine();
-    const items = [makeItem({ id: 'item-1', subject: 'Biology', estimatedDuration: 10 })];
+    const items = [
+      makeItem({ id: 'bio-item', subject: 'Biology', estimatedDuration: 10 }),
+      makeItem({ id: 'cs-item', subject: 'CS', estimatedDuration: 10 }),
+    ];
 
     const result = await engine.generateRecommendations(
       {
         mode: 'guided',
         learningItems: items,
-        timeAvailable: 30,
+        timeAvailable: 60,
         userHistory: {
           recentSessions: [],
           patterns: {
@@ -746,7 +753,10 @@ describe('RecommendationEngine', () => {
       NOW
     );
 
+    // "Any" means no subject filter — both subjects should appear
     expect(result.recommendations.length).toBeGreaterThan(0);
+    const subjects = new Set(result.recommendations.map(r => r.item.subject));
+    expect(subjects.size).toBeGreaterThan(1);
   });
 
   it('handles missing prerequisite chunks gracefully without breaking topological order', async () => {

@@ -170,6 +170,9 @@ describe('generateRecommendations', () => {
 
     expect(result).toBeDefined();
     expect(deps.chunks.getWithContent).toHaveBeenCalledWith('missing-chunk');
+    // Missing prereq should not appear in dependency resolution
+    const addedPrereqs = result.dependencyResolution?.addedPrerequisites ?? [];
+    expect(addedPrereqs).not.toContain('missing-chunk');
   });
 
   it('chunkLookupFn delegates to chunks.getWithContent', async () => {
