@@ -112,53 +112,138 @@ The server registers tools across eight categories:
 | Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings                                |
 | Analytics          | `analytics_daily`, `analytics_window`                                                                                                                                                                                                                          | Daily KPIs and date-range analytics with optional breakdowns                                        |
 
-### Recommendation Example
+### Example: AI-Guided Learning Session
 
-```ts
-const result = await what_to_learn_today({
-  fetchFromDatabase: true,
-  subjectFilter: 'Math',
-  dueOnly: true,
-  timeAvailable: 30,
-});
+The examples below show how an AI agent orchestrates a learning session through MCP tool calls. Each step is a tool invocation with JSON parameters — the agent decides what to call based on the user's goals and prior results.
 
-/* → {
-  recommendations: [
-    { id: 'chunk-123', priority: 0.94, reason: 'Overdue review with high impact', ... }
-  ],
-  estimatedDuration: 28,
-  sessionSummary: { newItems: 1, reviews: 4, remediation: 0 },
-  nextActions: ['Run guided_learning_conversation', 'Start a retrieval drill']
-} */
-```
+**1. Get today's recommendations**
 
-### Session Lifecycle Example
+The user says: _"I have 30 minutes to study math."_
 
-```ts
-const session = await create_session({
-  topicId: 'math-linear-algebra',
-  chunkIds: ['chunk-123', 'chunk-456'],
-  mode: 'learning',
-  estimatedDuration: 40,
-});
+The agent calls `what_to_learn_today`:
 
-await create_session_chunk({
-  sessionId: session.sessionId,
-  chunkId: 'chunk-123',
-  status: 'completed',
-  attempts: [{ timestamp: Date.now(), completed: true, quality: 4, timeSpentMs: 480000 }],
-  qualityScores: [4],
-  timeSpentMs: 480000,
-});
-
-const completion = await session_completion({ sessionId: session.sessionId });
-if (completion.shouldComplete) {
-  await complete_session({
-    sessionId: session.sessionId,
-    feedback: 'Reached fluency for both chunks.',
-  });
+```json
+{
+  "fetch_from_database": true,
+  "subject_filter": "Math",
+  "due_only": true,
+  "time_available": 30
 }
 ```
+
+The server responds with prioritized items, prerequisite-resolved ordering, and session guidance (some fields like `item` details and `sessionSummary` totals are abbreviated):
+
+```json
+{
+  "recommendations": [
+    {
+      "item": { "id": "chunk-123", "title": "Matrix multiplication" },
+      "priority": 0.94,
+      "reason": "overdue",
+      "order": 1,
+      "cognitiveLoad": 0.6
+    },
+    {
+      "item": { "id": "chunk-456", "title": "Determinants" },
+      "priority": 0.81,
+      "reason": "optimal timing",
+      "order": 2,
+      "cognitiveLoad": 0.5
+    }
+  ],
+  "estimatedDuration": 28,
+  "sessionSummary": { "totalItems": 2, "newItems": 0, "reviewItems": 2 },
+  "nextActions": ["Start a review session with these items"],
+  "rationale": "Two overdue review items fit within 30-minute window"
+}
+```
+
+**2. Start a session**
+
+The agent creates a session scoped to the recommended chunks:
+
+```json
+{
+  "topic_id": "math-linear-algebra",
+  "chunk_ids": ["chunk-123", "chunk-456"],
+  "mode": "review",
+  "estimated_duration": 30
+}
+```
+
+The server returns:
+
+```json
+{
+  "session_id": "ses-abc-123",
+  "status": "created",
+  "message": "Review session created with 2 chunks."
+}
+```
+
+**3. Work through chunks**
+
+Since `create_session` was called with `chunk_ids`, session-chunk rows already exist in `pending` status. The agent presents material, quizzes the user, and records results via `batch_update_session_chunks`:
+
+```json
+{
+  "session_id": "ses-abc-123",
+  "operations": [
+    {
+      "chunk_id": "chunk-123",
+      "status": "completed",
+      "quality_scores": [4],
+      "time_spent_ms": 480000
+    },
+    {
+      "chunk_id": "chunk-456",
+      "status": "completed",
+      "quality_scores": [3],
+      "time_spent_ms": 360000
+    }
+  ]
+}
+```
+
+**4. Check completion**
+
+The agent calls `session_completion` to decide whether to continue or wrap up:
+
+```json
+{ "session_id": "ses-abc-123" }
+```
+
+```json
+{
+  "is_complete": true,
+  "completion_reason": "All chunks completed with sufficient quality",
+  "quality_threshold_met": true,
+  "time_threshold_met": true,
+  "chunk_threshold_met": true,
+  "recommendation": "complete"
+}
+```
+
+**5. Complete the session**
+
+Since `recommendation` is `"complete"`, the agent finishes the session:
+
+```json
+{
+  "session_id": "ses-abc-123",
+  "feedback": "User recalled both matrix topics fluently."
+}
+```
+
+**6. Persist spaced repetition data**
+
+The agent calls `record_review_result` for each chunk to update the SM-2 scheduling:
+
+```json
+{ "item_id": "chunk-123", "quality": 4, "time_spent_ms": 480000 }
+```
+
+This updates the chunk's `easeFactor`, `intervalDays`, and `nextReviewAt` so it appears at the right time in future sessions.
 
 ## Architecture Overview
 
