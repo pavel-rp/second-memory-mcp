@@ -55,6 +55,14 @@ gh api repos/OWNER/REPO/pulls/comments/{COMMENT_ID}/replies --input "$TEMP/reply
 - Concise commit messages: what, not how. No advertising signatures.
 - No promotional taglines in PR descriptions.
 
+## Test Authoring Rules
+
+- Never `as any` — build properly typed fixtures or use `Partial<T>`.
+- Assert on structured data (return fields, objects), not on formatted message strings.
+- Don't import types you don't use.
+- Keep PR description accurate — mention all changes (e.g., lint config), not just tests.
+- Cover every early-return guard (`undefined`, `""`, `"  "`) — don't assume one nullish test covers all branches.
+
 ## Package manager
 
 pnpm, not npm.

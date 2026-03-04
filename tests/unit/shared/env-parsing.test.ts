@@ -87,6 +87,14 @@ describe('parseBoolean', () => {
   it('returns fallback for undefined', () => {
     expect(parseBoolean(undefined, true)).toBe(true);
   });
+
+  it('returns fallback for empty string', () => {
+    expect(parseBoolean('', false)).toBe(false);
+  });
+
+  it('returns fallback for whitespace-only string', () => {
+    expect(parseBoolean('  ', true)).toBe(true);
+  });
 });
 
 describe('parseEnum', () => {
@@ -102,6 +110,14 @@ describe('parseEnum', () => {
 
   it('returns fallback for unknown value', () => {
     expect(parseEnum('unknown', allowed, 'openai')).toBe('openai');
+  });
+
+  it('returns fallback for undefined', () => {
+    expect(parseEnum(undefined, allowed, 'openai')).toBe('openai');
+  });
+
+  it('returns fallback for whitespace-only string', () => {
+    expect(parseEnum('  ', allowed, 'openai')).toBe('openai');
   });
 });
 
