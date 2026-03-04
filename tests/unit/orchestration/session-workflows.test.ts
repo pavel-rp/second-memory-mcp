@@ -354,10 +354,11 @@ describe('resolveSessionChunkDependencies', () => {
     expect(result.message).toBe('');
   });
 
-  it('returns empty result for null-ish input', async () => {
+  it('returns empty result when called with falsy value (runtime guard)', async () => {
     const deps = stubDeps();
 
-    const result = await resolveSessionChunkDependencies(null as any, deps);
+    // Tests the `if (!chunkIds || ...)` guard — cannot happen in typed TS but protects JS callers
+    const result = await resolveSessionChunkDependencies(null as unknown as string[], deps);
 
     expect(result.resolvedChunkIds).toEqual([]);
   });

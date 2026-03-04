@@ -111,7 +111,7 @@ describe('processReviewResult', () => {
     }
   });
 
-  it('returns database error when post-update fetch returns null', async () => {
+  it('returns database error when post-update fetch returns undefined', async () => {
     const deps = stubDeps();
     (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(stubChunk()) // current — found
@@ -141,6 +141,7 @@ describe('processReviewResult', () => {
   });
 
   it('uses createdAt as fallback when lastReviewedAt is null', async () => {
+    // With lastReviewedAt = null, the function falls back to createdAt for interval calculation
     const deps = stubDeps();
     const chunk = stubChunk({ lastReviewedAt: null, createdAt: NOW - 172_800_000 });
     (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
@@ -150,16 +151,35 @@ describe('processReviewResult', () => {
     const result = await processReviewResult('item-1', 4, {}, deps);
 
     expect(result.success).toBe(true);
+    if (result.success) {
+      // The interval should be derived from createdAt (2 days ago), not 0
+      expect(result.data.updated.intervalDays).toBeGreaterThan(0);
+      expect(result.data.updated.nextReviewAt).toBeGreaterThan(NOW);
+    }
   });
 
-  it('passes daysOverdue to SR calculator', async () => {
+  it('passes daysOverdue to SR calculator and it affects the result', async () => {
     const deps = stubDeps();
     (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(stubChunk())
       .mockResolvedValueOnce(stubChunk());
 
-    const result = await processReviewResult('item-1', 4, { daysOverdue: 5 }, deps);
+    const withOverdue = await processReviewResult('item-1', 4, { daysOverdue: 5 }, deps);
 
-    expect(result.success).toBe(true);
+    const deps2 = stubDeps();
+    (deps2.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk());
+
+    const withoutOverdue = await processReviewResult('item-1', 4, { daysOverdue: 0 }, deps2);
+
+    expect(withOverdue.success).toBe(true);
+    expect(withoutOverdue.success).toBe(true);
+    if (withOverdue.success && withoutOverdue.success) {
+      // daysOverdue affects the SR calculation — intervals should differ
+      expect(withOverdue.data.updated.intervalDays).not.toBe(
+        withoutOverdue.data.updated.intervalDays
+      );
+    }
   });
 });

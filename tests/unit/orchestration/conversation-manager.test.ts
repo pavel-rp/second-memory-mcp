@@ -352,8 +352,9 @@ describe('ConversationManager', () => {
         getActiveSession: vi.fn().mockResolvedValue({ id: 'active-sess' }),
         convertSessionToInput: vi.fn().mockResolvedValue({
           chunks: [
-            { chunk_id: 'c1', title: 'Chunk 1', status: 'pending' },
-            { chunk_id: 'c2', title: 'Chunk 2', status: 'completed' },
+            { chunk_id: 'c1', title: 'Chunk 1', status: 'completed' },
+            { chunk_id: 'c2', title: 'Chunk 2', status: 'pending' },
+            { chunk_id: 'c3', title: 'Chunk 3', status: 'pending' },
           ],
         }),
       });
@@ -363,7 +364,7 @@ describe('ConversationManager', () => {
         userInput: 'continue',
       });
 
-      // Should find active session and hydrate — show next item
+      // currentItemIndex = 1 (1 completed), so next item = recommendations[1] = Chunk 2
       expect(out.message).toContain('Chunk 2');
       expect(out.sessionUpdated).toBe(true);
     });

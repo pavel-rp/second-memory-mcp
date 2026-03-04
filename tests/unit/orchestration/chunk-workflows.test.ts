@@ -571,7 +571,7 @@ describe('createChunkWithTopic', () => {
     expect(embedding.embedText).not.toHaveBeenCalled();
   });
 
-  it('returns database error when chunk create fails (getById returns null)', async () => {
+  it('returns database error when chunk create fails (getById returns undefined)', async () => {
     const deps = stubDeps();
     (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 
