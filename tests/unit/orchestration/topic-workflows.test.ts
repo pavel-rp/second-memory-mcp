@@ -1,8 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
+  createTopicWithChunks,
   validateTopicCreationInput,
   type TopicCreationInput,
+  type TopicDeps,
 } from '../../../src/orchestration/topic-workflows.js';
+import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
+import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 
 function validInput(): TopicCreationInput {
   return {
@@ -206,5 +210,129 @@ describe('validateTopicCreationInput', () => {
 
   it('accepts fully valid input', () => {
     expect(validateTopicCreationInput(validInput())).toEqual({ valid: true });
+  });
+});
+
+// --- createTopicWithChunks ---
+
+function stubTxPorts() {
+  return {
+    topics: { create: vi.fn().mockResolvedValue({ success: true, data: undefined }) },
+    chunks: { create: vi.fn().mockResolvedValue(undefined) },
+    sessions: {},
+  } as unknown as TransactionPorts;
+}
+
+function stubDeps(options?: { embedding?: EmbeddingPort }): {
+  deps: TopicDeps;
+  txPorts: TransactionPorts;
+} {
+  const txPorts = stubTxPorts();
+  return {
+    deps: {
+      topics: {
+        saveSummaryEmbedding: vi.fn().mockResolvedValue(1),
+      } as unknown as TopicDeps['topics'],
+      chunks: {
+        saveContentEmbedding: vi.fn().mockResolvedValue(1),
+      } as unknown as TopicDeps['chunks'],
+      unitOfWork: {
+        execute: vi.fn(async <T>(cb: (ports: TransactionPorts) => Promise<T>) => cb(txPorts)),
+      },
+      ...(options?.embedding ? { embedding: options.embedding } : {}),
+    },
+    txPorts,
+  };
+}
+
+function inputWithContent(): TopicCreationInput {
+  return {
+    topicTitle: 'Algebra Basics',
+    subject: 'Math',
+    topicSummary: 'An introduction to algebra',
+    topicDescription: 'Describes algebra basics',
+    chunks: [
+      {
+        id: 'chunk-a',
+        title: 'Variables',
+        content: 'Variables are symbols representing numbers',
+        difficulty: 3,
+        estimatedDuration: 15,
+        chunkType: 'concept',
+      },
+    ],
+  };
+}
+
+describe('createTopicWithChunks', () => {
+  it('creates topic and chunks without embedding', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(result.topic).toBeDefined();
+    expect(result.topic!.topicTitle).toBe('Algebra Basics');
+    expect(result.topic!.subject).toBe('Math');
+    expect(result.topic!.topicSummary).toBe('An introduction to algebra');
+    expect(result.topic!.chunks).toHaveLength(1);
+    expect(result.topic!.chunks[0].title).toBe('Variables');
+    expect(txPorts.topics.create as ReturnType<typeof vi.fn>).toHaveBeenCalledOnce();
+    expect(txPorts.chunks.create as ReturnType<typeof vi.fn>).toHaveBeenCalledOnce();
+    // No embedding port → saveSummaryEmbedding should not be called
+    expect(deps.topics.saveSummaryEmbedding).not.toHaveBeenCalled();
+  });
+
+  it('generates embeddings when embedding port is provided', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+      embedTexts: vi.fn().mockResolvedValue([[0.4, 0.5, 0.6]]),
+      getDimensions: vi.fn().mockReturnValue(3),
+    };
+    const { deps } = stubDeps({ embedding });
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    // Summary embedding
+    expect(embedding.embedText).toHaveBeenCalledWith('An introduction to algebra');
+    expect(deps.topics.saveSummaryEmbedding).toHaveBeenCalledOnce();
+    // Chunk content embedding
+    expect(embedding.embedTexts).toHaveBeenCalledWith([
+      'Variables are symbols representing numbers',
+    ]);
+    expect(deps.chunks.saveContentEmbedding).toHaveBeenCalledOnce();
+  });
+
+  it('returns success when embedding fails (fail-open)', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockRejectedValue(new Error('provider down')),
+      embedTexts: vi.fn().mockRejectedValue(new Error('provider down')),
+      getDimensions: vi.fn().mockReturnValue(3),
+    };
+    const { deps } = stubDeps({ embedding });
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(result.topic).toBeDefined();
+  });
+
+  it('returns retryable database error when unitOfWork throws', async () => {
+    const { deps } = stubDeps();
+    deps.unitOfWork.execute = vi.fn().mockRejectedValue(new Error('connection lost'));
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toEqual({
+      type: 'database',
+      message: 'connection lost',
+      retryable: true,
+    });
   });
 });
