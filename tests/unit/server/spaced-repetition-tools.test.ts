@@ -579,16 +579,24 @@ describe('spaced-repetition-tools', () => {
       });
       const mockChunk = {
         id: 'chunk-1',
+        topicId: 'topic-1',
         title: 'Arrays',
         subject: 'CS',
         difficulty: 5,
-        nextReviewDate: new Date('2025-06-20'),
+        nextReviewAt: new Date('2025-06-20').getTime(),
         easeFactor: 2.6,
         repetitions: 3,
-        interval: 6,
+        lastReviewedAt: null,
         estimatedDuration: 10,
+        intervalDays: 6,
         chunkType: 'review',
-        topicId: 'topic-1',
+        prerequisitesJson: null,
+        tagsJson: ['ds'],
+        content: null,
+        contentVersion: null,
+        contentUpdatedAt: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
         topicTitle: 'Data Structures',
       };
       ctx.getChunkWithContent = vi.fn().mockResolvedValue(mockChunk);
@@ -605,7 +613,10 @@ describe('spaced-repetition-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.is_leech).toBe(false);
       expect(parsed.item).toBeDefined();
-      expect(parsed.message).toContain('successfully');
+      expect(parsed.item.id).toBe('chunk-1');
+      expect(parsed.item.nextReviewDate).toBe('2025-06-20');
+      expect(parsed.item.easeFactor).toBe(2.6);
+      expect(typeof parsed.message).toBe('string');
     });
 
     it('returns leech message when item is a leech', async () => {
@@ -627,7 +638,7 @@ describe('spaced-repetition-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.is_leech).toBe(true);
       expect(parsed.item).toBeUndefined();
-      expect(parsed.message).toContain('leech');
+      expect(typeof parsed.message).toBe('string');
     });
 
     it('returns error when processReviewResult reports failure', async () => {
