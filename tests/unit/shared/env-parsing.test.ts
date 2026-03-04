@@ -62,9 +62,9 @@ describe('parseRecord', () => {
     expect(parseRecord('not json')).toEqual({});
   });
 
-  it('extracts numeric entries from JSON array (no Array.isArray guard)', () => {
-    expect(parseRecord('[1,2]')).toEqual({ '0': 1, '1': 2 });
-  });
+  // Current behavior: arrays pass through Object.entries as indexed keys.
+  // Follow-up: add Array.isArray guard to parseRecord and expect {} here.
+  it.todo('rejects JSON arrays with Array.isArray guard and returns empty object');
 
   it('returns empty object for JSON null', () => {
     expect(parseRecord('null')).toEqual({});
