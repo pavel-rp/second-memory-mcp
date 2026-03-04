@@ -72,9 +72,10 @@ type MigrationData = {
   session_chunks?: NewSessionChunkRow[];
 };
 
-function readJson(pathOrEnv?: string): MigrationData {
-  const src = pathOrEnv || process.env.MIGRATE_SOURCE || './learning-import.json';
+function readJson(pathOrEnv?: string): MigrationData | null {
+  const src = pathOrEnv || process.env.MIGRATE_SOURCE || './seed.json';
   const full = path.resolve(src);
+  if (!fs.existsSync(full)) return null;
   const raw = fs.readFileSync(full, 'utf-8');
   return JSON.parse(raw) as MigrationData;
 }
@@ -129,8 +130,12 @@ async function main() {
   await ensureSchema();
   const src = process.argv[2];
   const data = readJson(src);
-  const summary = await importData(data);
-  logger.info(JSON.stringify({ status: 'ok', summary }, null, 2));
+  if (data) {
+    const summary = await importData(data);
+    logger.info(JSON.stringify({ status: 'ok', summary }, null, 2));
+  } else {
+    logger.info('Schema applied. No seed file found — skipping import.');
+  }
 }
 
 // Check if this script is being run directly (not imported)
