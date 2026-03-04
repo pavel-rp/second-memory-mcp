@@ -310,7 +310,6 @@ pnpm run test:unit         # Unit tests only (no build required)
 pnpm run test:integration  # Build + integration tests (requires running Postgres)
 pnpm run test:embedding    # Build + embedding/semantic-search tests
 pnpm run test:ci           # Build + all tests with coverage (unit + integration)
-pnpm run test:prompts      # Validate prompt template files
 ```
 
 ```bash
