@@ -62,8 +62,7 @@ describe('parseRecord', () => {
     expect(parseRecord('not json')).toEqual({});
   });
 
-  // Current behavior: arrays pass through Object.entries as indexed keys.
-  // Follow-up: add Array.isArray guard to parseRecord and expect {} here.
+  // BUG: arrays pass through Object.entries as indexed keys (#160)
   it.todo('rejects JSON arrays with Array.isArray guard and returns empty object');
 
   it('returns empty object for JSON null', () => {
