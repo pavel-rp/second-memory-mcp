@@ -69,8 +69,24 @@ describe('parseRecord', () => {
     expect(parseRecord('null')).toEqual({});
   });
 
+  it('returns empty object when JSON parses to a primitive number', () => {
+    expect(parseRecord('1')).toEqual({});
+  });
+
+  it('returns empty object when JSON parses to a primitive boolean', () => {
+    expect(parseRecord('true')).toEqual({});
+  });
+
+  it('returns empty object when JSON parses to a primitive string', () => {
+    expect(parseRecord('"x"')).toEqual({});
+  });
+
   it('skips non-numeric values in mixed object', () => {
     expect(parseRecord('{"a":1,"b":"nope","c":3}')).toEqual({ a: 1, c: 3 });
+  });
+
+  it('skips non-finite numeric values in object', () => {
+    expect(parseRecord('{"a":1e309,"b":2}')).toEqual({ b: 2 });
   });
 });
 
