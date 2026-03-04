@@ -414,7 +414,7 @@ describe('ConversationManager', () => {
         intent: 'teach me dfs',
         userInput: 'teach me dfs',
       });
-      expect(out.message).toContain('subject: "CS"');
+      expect(out.recommendations?.sessionSummary?.subjects).toContain('CS');
     });
 
     it('infers SWE for "typescript"', async () => {
@@ -423,7 +423,7 @@ describe('ConversationManager', () => {
         intent: 'teach me typescript',
         userInput: 'teach me typescript',
       });
-      expect(out.message).toContain('subject: "SWE"');
+      expect(out.recommendations?.sessionSummary?.subjects).toContain('SWE');
     });
 
     it('infers Math for "algebra"', async () => {
@@ -432,7 +432,7 @@ describe('ConversationManager', () => {
         intent: 'teach me algebra',
         userInput: 'teach me algebra',
       });
-      expect(out.message).toContain('subject: "Math"');
+      expect(out.recommendations?.sessionSummary?.subjects).toContain('Math');
     });
 
     it('infers Language for "spanish"', async () => {
@@ -441,7 +441,7 @@ describe('ConversationManager', () => {
         intent: 'teach me spanish',
         userInput: 'teach me spanish',
       });
-      expect(out.message).toContain('subject: "Language"');
+      expect(out.recommendations?.sessionSummary?.subjects).toContain('Language');
     });
 
     it('defaults to CS for unknown topic "cooking"', async () => {
@@ -450,7 +450,7 @@ describe('ConversationManager', () => {
         intent: 'teach me cooking',
         userInput: 'teach me cooking',
       });
-      expect(out.message).toContain('subject: "CS"');
+      expect(out.recommendations?.sessionSummary?.subjects).toContain('CS');
     });
   });
 
