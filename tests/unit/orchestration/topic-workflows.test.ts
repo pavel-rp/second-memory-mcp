@@ -60,6 +60,11 @@ describe('validateTopicCreationInput', () => {
         error: 'Invalid subject',
       });
     });
+
+    it('accepts subject at 100 characters', () => {
+      const input = { ...validInput(), subject: 'a'.repeat(100) };
+      expect(validateTopicCreationInput(input)).toEqual({ valid: true });
+    });
   });
 
   describe('chunks array', () => {
@@ -160,6 +165,28 @@ describe('validateTopicCreationInput', () => {
         valid: false,
         error: 'Invalid chunk duration',
       });
+    });
+
+    it('accepts chunk title at 200 characters', () => {
+      const input = validInput();
+      input.chunks[0].title = 'a'.repeat(200);
+      expect(validateTopicCreationInput(input)).toEqual({ valid: true });
+    });
+
+    it('accepts chunk difficulty at boundaries (1 and 10)', () => {
+      const input = validInput();
+      input.chunks[0].difficulty = 1;
+      expect(validateTopicCreationInput(input)).toEqual({ valid: true });
+      input.chunks[0].difficulty = 10;
+      expect(validateTopicCreationInput(input)).toEqual({ valid: true });
+    });
+
+    it('accepts chunk estimatedDuration at boundaries (1 and 120)', () => {
+      const input = validInput();
+      input.chunks[0].estimatedDuration = 1;
+      expect(validateTopicCreationInput(input)).toEqual({ valid: true });
+      input.chunks[0].estimatedDuration = 120;
+      expect(validateTopicCreationInput(input)).toEqual({ valid: true });
     });
   });
 
