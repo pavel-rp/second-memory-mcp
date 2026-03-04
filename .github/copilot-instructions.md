@@ -62,9 +62,11 @@ pnpm run format
 ### Database Commands
 
 ```bash
-# Apply schema migrations (REQUIRES MIGRATE_SOURCE env var or JSON file)
-# Without import file, use: MIGRATE_SOURCE=/tmp/empty.json (create { } file first)
+# Apply schema migrations
 pnpm run db:migrate
+
+# Import seed data (seed.json) into the database
+pnpm run db:seed
 
 # Launch Drizzle Studio for visual database inspection
 pnpm run db:studio
@@ -87,7 +89,7 @@ pnpm run start:stdio
 
 1. **"pnpm: command not found"** -> Run `npm install -g pnpm` first
 2. **Test database conflicts** -> Tests require a Postgres database with `_test` in its name (enforced by safety check in client.ts).
-3. **Migration script fails** -> Ensure empty JSON file exists: `echo '{}' > /tmp/empty.json && MIGRATE_SOURCE=/tmp/empty.json pnpm run db:migrate`
+3. **Migration script fails** -> Ensure `seed.json` exists in the project root (ships with the repo)
 
 ## CI/CD Workflows
 
@@ -187,7 +189,7 @@ src/
 **Database:**
 
 - `DATABASE_URL` - Postgres connection string (required). Example: `postgresql://user:pass@localhost:5432/second_memory`
-- `MIGRATE_SOURCE` - Path to JSON import file for `pnpm run db:migrate`
+- `SEED_SOURCE` - Path to JSON import file for `pnpm run db:seed` (default: `./seed.json`)
 
 **Spaced Repetition Algorithm (all prefixed with `SM_`):**
 
