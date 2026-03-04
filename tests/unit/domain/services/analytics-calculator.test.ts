@@ -262,7 +262,7 @@ describe('computeWindowRollup', () => {
   it('handles entries outside window range', () => {
     const input: AnalyticsInput = {
       entries: [
-        { date: '2023-12-31', quality: 3 }, // Before window
+        { date: '2023-12-31', quality: 1 }, // Before window
         { date: '2024-01-01', quality: 4 }, // In window
         { date: '2024-01-03', quality: 5 }, // After window
       ],
@@ -272,6 +272,33 @@ describe('computeWindowRollup', () => {
     const result = computeWindowRollup(input, window);
     expect(result.days).toHaveLength(2);
     expect(result.total.reviews_completed).toBe(1); // Only the in-window entry
-    expect(result.total.average_quality).toBe(4);
+    expect(result.total.average_quality).toBe(4); // Only in-window quality, not (1+4+5)/3
+  });
+
+  it('excludes out-of-window entries from breakdowns', () => {
+    const input: AnalyticsInput = {
+      entries: [
+        { date: '2023-12-31', quality: 2, topic: 'history', tags: ['ancient'] }, // Before window
+        { date: '2024-01-01', quality: 4, topic: 'math', tags: ['algebra'] }, // In window
+        { date: '2024-01-01', quality: 3, topic: 'math', tags: ['geometry'] }, // In window
+        { date: '2024-01-03', quality: 5, topic: 'science', tags: ['physics'] }, // After window
+      ],
+    };
+    const window: WindowSpec = { start: '2024-01-01', end: '2024-01-02' };
+
+    const result = computeWindowRollup(input, window, { includeBreakdowns: true });
+    // Only in-window topics/tags should appear
+    expect(result.breakdowns?.by_topic).toEqual({
+      math: { reviews_completed: 2, average_quality: 3.5 },
+    });
+    expect(result.breakdowns?.by_tag).toEqual({
+      algebra: { reviews_completed: 1, average_quality: 4 },
+      geometry: { reviews_completed: 1, average_quality: 3 },
+    });
+    // Out-of-window topics/tags must not appear
+    expect(result.breakdowns?.by_topic).not.toHaveProperty('history');
+    expect(result.breakdowns?.by_topic).not.toHaveProperty('science');
+    expect(result.breakdowns?.by_tag).not.toHaveProperty('ancient');
+    expect(result.breakdowns?.by_tag).not.toHaveProperty('physics');
   });
 });

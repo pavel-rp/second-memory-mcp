@@ -194,6 +194,8 @@ export function computeWindowRollup(
   }
 
   const entriesByDate = groupEntriesByDate(cleanedEntries);
+  const dateSet = new Set(dateRange);
+  const windowEntries = cleanedEntries.filter(entry => dateSet.has(entry.date));
 
   const dailyKpis: DailyKpis[] = dateRange.map(date => {
     const dayEntries = entriesByDate.get(date) || [];
@@ -209,7 +211,7 @@ export function computeWindowRollup(
   const totalNewChunks = dailyKpis.reduce((sum, day) => sum + day.new_chunks_learned, 0);
   const totalStreak = dailyKpis.length > 0 ? dailyKpis[dailyKpis.length - 1].streak_days || 0 : 0;
 
-  const allQualityValues = cleanedEntries.map(entry => entry.quality || 0);
+  const allQualityValues = windowEntries.map(entry => entry.quality || 0);
   const overallAverageQuality =
     allQualityValues.length > 0
       ? allQualityValues.reduce((sum, q) => sum + q, 0) / allQualityValues.length
@@ -226,7 +228,7 @@ export function computeWindowRollup(
   };
 
   if (options.includeBreakdowns) {
-    const breakdowns = computeBreakdowns(cleanedEntries);
+    const breakdowns = computeBreakdowns(windowEntries);
     if (breakdowns) result.breakdowns = breakdowns;
   }
 
