@@ -49,7 +49,7 @@ export async function ensureSchema(): Promise<void> {
   await migrate(drizzleDb, { migrationsFolder });
 }
 
-// Check if this script is being run directly (not imported)
+/* v8 ignore start */
 const currentFile = new URL(import.meta.url).pathname;
 const argFile = process.argv[1];
 const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.replace(/\\/g, '/'));
