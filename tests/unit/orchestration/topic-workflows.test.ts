@@ -63,6 +63,14 @@ describe('validateTopicCreationInput', () => {
   });
 
   describe('chunks array', () => {
+    it('rejects undefined chunks', () => {
+      const input = { ...validInput(), chunks: undefined } as unknown as TopicCreationInput;
+      expect(validateTopicCreationInput(input)).toEqual({
+        valid: false,
+        error: 'At least one chunk is required',
+      });
+    });
+
     it('rejects empty chunks', () => {
       const input = { ...validInput(), chunks: [] };
       expect(validateTopicCreationInput(input)).toEqual({
