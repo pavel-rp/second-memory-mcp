@@ -4,10 +4,7 @@ import { RecommendationEngine } from '../../../src/domain/services/recommendatio
 import { PrerequisiteValidator } from '../../../src/domain/services/prerequisite-validator.js';
 import { DependencyResolver } from '../../../src/domain/algorithms/dependency-resolver.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
-import type {
-  ConversationRequest,
-  LearningItem,
-} from '../../../src/domain/types/recommendations.js';
+import type { LearningItem } from '../../../src/domain/types/recommendations.js';
 
 const TEST_NOW = new Date('2025-06-15T12:00:00Z');
 
