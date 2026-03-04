@@ -62,8 +62,11 @@ pnpm run format
 ### Database Commands
 
 ```bash
-# Apply schema migrations (imports seed.json if present)
+# Apply schema migrations
 pnpm run db:migrate
+
+# Import seed data (seed.json) into the database
+pnpm run db:seed
 
 # Launch Drizzle Studio for visual database inspection
 pnpm run db:studio
@@ -186,7 +189,7 @@ src/
 **Database:**
 
 - `DATABASE_URL` - Postgres connection string (required). Example: `postgresql://user:pass@localhost:5432/second_memory`
-- `MIGRATE_SOURCE` - Path to JSON import file for `pnpm run db:migrate` (default: `./seed.json`)
+- `SEED_SOURCE` - Path to JSON import file for `pnpm run db:seed` (default: `./seed.json`)
 
 **Spaced Repetition Algorithm (all prefixed with `SM_`):**
 
