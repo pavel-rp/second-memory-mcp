@@ -147,9 +147,9 @@ The server responds with prioritized items, prerequisite-resolved ordering, and 
       "reason": "optimal timing",
     },
   ],
-  "estimated_duration": 28,
-  "session_summary": { "new_items": 0, "review_items": 2, "remediation_items": 0 },
-  "next_actions": ["Start a review session with these items"],
+  "estimatedDuration": 28,
+  "sessionSummary": { "newItems": 0, "reviewItems": 2, "remediationItems": 0 },
+  "nextActions": ["Start a review session with these items"],
 }
 ```
 
@@ -253,7 +253,7 @@ The agent calls `record_review_result` for each chunk to update the SM-2 schedul
 { "item_id": "chunk-123", "quality": 4, "time_spent_ms": 480000 }
 ```
 
-This updates the chunk's `ease_factor`, `interval`, and `next_review_date` so it appears at the right time in future sessions.
+This updates the chunk's `easeFactor`, `intervalDays`, and `nextReviewAt` so it appears at the right time in future sessions.
 
 ## Architecture Overview
 
