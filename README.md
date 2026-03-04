@@ -140,16 +140,21 @@ The server responds with prioritized items, prerequisite-resolved ordering, and 
       "item": { "id": "chunk-123", "title": "Matrix multiplication" /* ... */ },
       "priority": 0.94,
       "reason": "overdue",
+      "order": 1,
+      "cognitiveLoad": 0.6,
     },
     {
       "item": { "id": "chunk-456", "title": "Determinants" /* ... */ },
       "priority": 0.81,
       "reason": "optimal timing",
+      "order": 2,
+      "cognitiveLoad": 0.5,
     },
   ],
   "estimatedDuration": 28,
-  "sessionSummary": { "newItems": 0, "reviewItems": 2, "remediationItems": 0 },
+  "sessionSummary": { "totalItems": 2, "newItems": 0, "reviewItems": 2 /* ... */ },
   "nextActions": ["Start a review session with these items"],
+  "rationale": "Two overdue review items fit within 30-minute window",
 }
 ```
 
@@ -178,22 +183,7 @@ The server returns:
 
 **3. Work through chunks**
 
-The agent presents material, quizzes the user, and records each result. After the user successfully recalls matrix multiplication:
-
-```json
-{
-  "session_id": "ses-abc-123",
-  "chunk_id": "chunk-123",
-  "status": "completed",
-  "attempts": [
-    { "timestamp": 1709550000000, "completed": true, "quality": 4, "time_spent_ms": 480000 }
-  ],
-  "quality_scores": [4],
-  "time_spent_ms": 480000
-}
-```
-
-For multiple chunks at once, the agent can use `batch_update_session_chunks`:
+Since `create_session` was called with `chunk_ids`, session-chunk rows already exist in `pending` status. The agent presents material, quizzes the user, and records results via `batch_update_session_chunks`:
 
 ```json
 {
