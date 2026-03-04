@@ -72,6 +72,51 @@ describe('chunk-tools', () => {
       expect(parsed.message).toContain('Arrays');
     });
 
+    it('passes prerequisites and tags when provided', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          id: 'c2',
+          topicId: 't1',
+          title: 'Linked Lists',
+          subject: 'CS',
+          difficulty: 5,
+          nextReviewAt: Date.now(),
+          easeFactor: 2.5,
+          repetitions: 0,
+          lastReviewedAt: null,
+          estimatedDuration: 10,
+          intervalDays: null,
+          chunkType: 'new',
+          prerequisitesJson: ['c1'],
+          tagsJson: ['data-structures'],
+          content: null,
+          contentVersion: null,
+          contentUpdatedAt: null,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          topicTitle: 'DS',
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler({
+        ...validInput,
+        title: 'Linked Lists',
+        prerequisites: ['c1'],
+        tags: ['data-structures'],
+        topic_title: 'DS',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.prerequisitesJson).toEqual(['c1']);
+      expect(call.tagsJson).toEqual(['data-structures']);
+      expect(call.topicTitle).toBe('DS');
+    });
+
     it('returns toolError when ctx returns failure result', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: false,
@@ -133,6 +178,43 @@ describe('chunk-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(true);
       expect(parsed.chunk.id).toBe('c1');
+    });
+
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content: 'Updated content for arrays that is long enough to pass validation.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content: 'Updated content for arrays that is long enough to pass validation.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
     });
 
     it('returns toolError when ctx returns failure result', async () => {
@@ -199,6 +281,37 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.chunk.title).toBe('Updated Arrays');
+    });
+
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.updateChunkMetadata = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_metadata')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.updateChunkMetadata = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_metadata')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
     });
 
     it('returns toolError when ctx returns failure result', async () => {
@@ -279,6 +392,37 @@ describe('chunk-tools', () => {
       expect(parsed.message).not.toContain('progress reset');
     });
 
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
     it('returns toolError when ctx returns failure result', async () => {
       ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
         success: false,
@@ -336,6 +480,24 @@ describe('chunk-tools', () => {
       expect(parsed.message).toContain('2 dependent chunks');
     });
 
+    it('returns success with singular dependency message for exactly 1 removed', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: true,
+        chunk: { id: 'c1', title: 'Arrays' },
+        removedDependencies: ['c2'],
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.removed_dependencies).toEqual(['c2']);
+      expect(parsed.message).toContain('1 dependent chunk');
+      expect(parsed.message).not.toContain('chunks.');
+    });
+
     it('returns success without removed dependencies', async () => {
       ctx.deleteChunk = vi.fn().mockResolvedValue({
         success: true,
@@ -350,6 +512,49 @@ describe('chunk-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.removed_dependencies).toEqual([]);
       expect(parsed.message).toContain('Arrays');
+    });
+
+    it('uses chunk_id in message when chunk title is not available', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: true,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c-orphan' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.message).toContain('c-orphan');
+    });
+
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
     });
 
     it('returns toolError when ctx returns failure result', async () => {

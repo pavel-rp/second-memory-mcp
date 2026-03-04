@@ -153,6 +153,28 @@ describe('generateRecommendations', () => {
     expect(deps.chunks.list).toHaveBeenCalledWith(expect.objectContaining({ dueOnly: false }));
   });
 
+  it('chunkLookupFn returns undefined when chunk is not found', async () => {
+    const deps = stubDeps();
+    const items = [stubItem({ id: 'c1', prerequisites: ['missing-chunk'] })];
+    // getWithContent returns null for the missing prerequisite
+    (deps.chunks.getWithContent as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (deps.chunkIdLookup.getExistingIdsByIds as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Set(['missing-chunk'])
+    );
+    const input: RecommendationInput = {
+      mode: 'guided',
+      learningItems: items,
+    };
+
+    const result = await generateRecommendations(input, deps, NOW);
+
+    expect(result).toBeDefined();
+    expect(deps.chunks.getWithContent).toHaveBeenCalledWith('missing-chunk');
+    // Missing prereq should not appear in dependency resolution
+    const addedPrereqs = result.dependencyResolution?.addedPrerequisites ?? [];
+    expect(addedPrereqs).not.toContain('missing-chunk');
+  });
+
   it('chunkLookupFn delegates to chunks.getWithContent', async () => {
     const deps = stubDeps();
     const items = [stubItem({ id: 'c1', prerequisites: ['c2'] })];

@@ -236,6 +236,34 @@ describe('computeWindowRollup', () => {
     expect(result.breakdowns).toBeUndefined(); // Should be omitted when empty
   });
 
+  it('returns empty for invalid start date string', () => {
+    const input: AnalyticsInput = { entries: [] };
+    const window: WindowSpec = { start: 'not-a-date', end: '2024-01-01' };
+
+    const result = computeWindowRollup(input, window);
+    expect(result.days).toEqual([]);
+    expect(result.total.reviews_completed).toBe(0);
+  });
+
+  it('returns empty for invalid end date string', () => {
+    const input: AnalyticsInput = { entries: [] };
+    const window: WindowSpec = { start: '2024-01-01', end: 'bad' };
+
+    const result = computeWindowRollup(input, window);
+    expect(result.days).toEqual([]);
+  });
+
+  it('handles entries with tags as non-array (defaults to empty)', () => {
+    const input: AnalyticsInput = {
+      entries: [{ date: '2024-01-01', quality: 3, tags: null as unknown as string[] }],
+    };
+    const window: WindowSpec = { start: '2024-01-01', end: '2024-01-01' };
+
+    const result = computeWindowRollup(input, window, { includeBreakdowns: true });
+    // No tags → no tag breakdowns
+    expect(result.breakdowns).toBeUndefined();
+  });
+
   it('handles edge case: single day window', () => {
     const input: AnalyticsInput = {
       entries: [{ date: '2024-01-01', quality: 4, isNew: true }],

@@ -131,6 +131,37 @@ describe('topic-tools', () => {
 
       await expect(handler({ topic_title: 'T', subject: 'CS', chunks: [] })).rejects.toThrow();
     });
+
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
   });
 
   // ---------------------------------------------------------------
@@ -186,6 +217,37 @@ describe('topic-tools', () => {
       const handler = server.tools.get('update_topic')!.handler;
 
       await expect(handler({})).rejects.toThrow();
+    });
+
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.updateTopicMetadata = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('update_topic')!.handler;
+
+      const result = await handler({ topic_id: 't1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.updateTopicMetadata = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('update_topic')!.handler;
+
+      const result = await handler({ topic_id: 't1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
     });
   });
 
@@ -250,6 +312,43 @@ describe('topic-tools', () => {
       const handler = server.tools.get('update_topic_summary')!.handler;
 
       await expect(handler({})).rejects.toThrow();
+    });
+
+    it('uses fallback defaults when error object has no fields', async () => {
+      ctx.updateTopicSummary = vi.fn().mockResolvedValue({
+        success: false,
+        error: {},
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('update_topic_summary')!.handler;
+
+      const result = await handler({
+        topic_id: 't1',
+        summary: 'Summary content that is long enough to pass validation checks.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('uses fallback defaults when error object is entirely absent', async () => {
+      ctx.updateTopicSummary = vi.fn().mockResolvedValue({
+        success: false,
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('update_topic_summary')!.handler;
+
+      const result = await handler({
+        topic_id: 't1',
+        summary: 'Summary content that is long enough to pass validation checks.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('Unknown error');
     });
   });
 });

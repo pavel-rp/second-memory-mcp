@@ -219,6 +219,19 @@ describe('session-tools', () => {
       expect(parsed.error.type).toBe('session');
     });
 
+    it('returns error when convertSessionToInput returns null', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(null);
+      registerSessionTools(server as any, ctx);
+      const handler = server.tools.get('session_completion')!.handler;
+
+      const result = await handler({ session_id: 's1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('session');
+    });
+
     it('returns error when neither input provided', async () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_completion')!.handler;
