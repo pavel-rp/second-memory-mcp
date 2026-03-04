@@ -151,6 +151,20 @@ describe('query-tools', () => {
       expect(parsed.workflow_hint.chunk_ids).toEqual(['c1', 'c2']);
     });
 
+    it('returns singular message when exactly 1 chunk found', async () => {
+      ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue([{ id: 'c1', title: 'Arrays' }]);
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.count).toBe(1);
+      expect(parsed.message).toBe('Retrieved 1 chunk');
+      expect(parsed.message).not.toContain('chunks');
+    });
+
     it('returns no workflow_hint when empty', async () => {
       ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue([]);
       registerQueryTools(server as any, ctx);

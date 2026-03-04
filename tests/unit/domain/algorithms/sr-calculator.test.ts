@@ -240,6 +240,22 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
     expect(result.warning).toBeUndefined();
   });
 
+  it('returns empty output when timeboxMinutes set but candidates list is empty', () => {
+    const result = rankCandidatesWithConstraints(
+      {
+        candidates: [],
+        timeboxMinutes: 15,
+      },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(result.orderedIds).toEqual([]);
+    expect(result.ranked).toEqual([]);
+    expect(result.summary.selectedCount).toBe(0);
+    expect(result.summary.timeboxApplied).toBe(true);
+    expect(result.summary.totalDuration).toBe(0);
+  });
+
   it('returns warning when timeboxMinutes set but no candidates have estimatedDuration', () => {
     const result = rankCandidatesWithConstraints(
       {

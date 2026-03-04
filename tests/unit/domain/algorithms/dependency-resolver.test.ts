@@ -208,6 +208,64 @@ describe('DependencyResolver', () => {
     });
   });
 
+  describe('maxDepth exceeded', () => {
+    it('returns invalid when dependency depth exceeds maxDepth limit', async () => {
+      const shallowResolver = new DependencyResolver(2); // maxDepth = 2
+      const items = [
+        createTestItem('item1'),
+        createTestItem('item2', ['item1']),
+        createTestItem('item3', ['item2']),
+        createTestItem('item4', ['item3']), // depth 3 > maxDepth 2
+      ];
+
+      const result = await shallowResolver.resolveDependencies(items, ['item4']);
+
+      expect(result.isValid).toBe(false);
+      expect(result.maxDepthReached).toBeGreaterThan(2);
+      expect(result.errors[0]).toContain('exceeds maximum allowed depth');
+      expect(result.resolvedChain).toEqual([]);
+    });
+
+    it('returns valid when depth equals maxDepth exactly', async () => {
+      const exactResolver = new DependencyResolver(3);
+      const items = [
+        createTestItem('item1'),
+        createTestItem('item2', ['item1']),
+        createTestItem('item3', ['item2']),
+        createTestItem('item4', ['item3']), // depth = 3 = maxDepth
+      ];
+
+      const result = await exactResolver.resolveDependencies(items, ['item4']);
+
+      expect(result.isValid).toBe(true);
+      expect(result.maxDepthReached).toBe(3);
+    });
+  });
+
+  describe('target nodes not in dependency graph', () => {
+    it('resolves target items that have no prerequisites and no dependents', async () => {
+      // Items exist but target nodes are standalone — not referenced by anyone
+      const items = [createTestItem('orphan1'), createTestItem('orphan2')];
+
+      const result = await resolver.resolveDependencies(items, ['orphan1']);
+
+      expect(result.isValid).toBe(true);
+      expect(result.resolvedChain).toContain('orphan1');
+      expect(result.resolvedChain).not.toContain('orphan2');
+    });
+
+    it('adds target nodes to inDegree map when not already present', async () => {
+      // Target item has a prerequisite not in the item list
+      const items = [createTestItem('base'), createTestItem('middle', ['base'])];
+
+      // Resolve for a target that depends on middle
+      const result = await resolver.resolveDependencies(items, ['middle']);
+
+      expect(result.isValid).toBe(true);
+      expect(result.resolvedChain).toEqual(['base', 'middle']);
+    });
+  });
+
   describe('performance and edge cases', () => {
     it('should handle large dependency graphs efficiently', async () => {
       const deepResolver = new DependencyResolver(100);

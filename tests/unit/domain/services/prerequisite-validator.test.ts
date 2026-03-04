@@ -273,6 +273,55 @@ describe('PrerequisiteValidator', () => {
     });
   });
 
+  describe('filterByPrerequisites — database unavailable', () => {
+    it('falls back to filterWithoutDatabase when DB is unavailable', async () => {
+      // Make the DB connectivity probe fail
+      mockReferenceValidator.validateChunkPrerequisites.mockRejectedValue(
+        new Error('Connection refused')
+      );
+
+      const items = [
+        createTestItem('no-prereqs'), // no prerequisites
+        createTestItem('has-prereqs', ['prereq1']), // has prerequisites
+      ];
+
+      const result = await validator.filterByPrerequisites(items);
+
+      // Only items without prerequisites should pass
+      expect(result.validItems).toHaveLength(1);
+      expect(result.validItems[0].id).toBe('no-prereqs');
+      expect(result.rationale).toContain('Database services unavailable');
+      expect(result.rationale).toContain('1 items without prerequisites included');
+    });
+
+    it('filterWithoutDatabase respects excludeIds', async () => {
+      mockReferenceValidator.validateChunkPrerequisites.mockRejectedValue(
+        new Error('Connection refused')
+      );
+
+      const items = [
+        createTestItem('item1'),
+        createTestItem('item2'),
+        createTestItem('item3', ['prereq1']),
+      ];
+
+      const result = await validator.filterByPrerequisites(items, ['item1']);
+
+      // item1 excluded, item2 passes (no prereqs), item3 skipped (has prereqs)
+      expect(result.validItems).toHaveLength(1);
+      expect(result.validItems[0].id).toBe('item2');
+      expect(result.rationale).toContain('Database services unavailable');
+    });
+  });
+
+  describe('generateFilteringRationale edge cases', () => {
+    it('returns "No items were processed" for empty item list with excludeIds', async () => {
+      const result = await validator.filterByPrerequisites([], ['excluded']);
+
+      expect(result.rationale).toContain('No learning items provided');
+    });
+  });
+
   describe('rationale generation', () => {
     it('should generate appropriate rationale for mixed results', async () => {
       const items = [

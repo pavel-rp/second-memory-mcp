@@ -172,6 +172,60 @@ describe('promptPack', () => {
       expect(text).toContain('Explicitly state limitations');
     });
 
+    it('review prompt includes feedback-informed plan step when feedback exists', () => {
+      const text = promptPack.getPrompt('review', {
+        lastReviewed: '2025-01-15',
+        masteryLevel: 3,
+        previousAttempts: 2,
+        weakAreas: 'edge cases',
+        previousSessionFeedback: [
+          {
+            sessionMode: 'retrieval',
+            completedAt: '2025-01-10T12:00:00.000Z',
+            feedback: 'Struggled with recursion examples',
+          },
+        ],
+      });
+      expect(text).toContain('PREVIOUS SESSION FEEDBACK');
+      expect(text).toContain('Struggled with recursion examples');
+      expect(text).toContain('Pay special attention to previously reported pain points');
+      expect(text).toContain('LAST REVIEWED: 2025-01-15');
+    });
+
+    it('retrieval prompt includes feedback section and scaffolding hint when feedback exists', () => {
+      const text = promptPack.getPrompt('retrieval', {
+        chunkTitle: 'Binary Trees',
+        masteryLevel: 4,
+        previousSessionFeedback: [
+          {
+            sessionMode: 'learning',
+            completedAt: '2025-01-08T10:00:00.000Z',
+            feedback: 'Confused by tree rotations',
+          },
+          {
+            sessionMode: 'review',
+            completedAt: '2025-01-12T14:00:00.000Z',
+            feedback: 'Better with traversals now',
+          },
+        ],
+      });
+      expect(text).toContain('PREVIOUS SESSION FEEDBACK');
+      expect(text).toContain('Confused by tree rotations');
+      expect(text).toContain('Better with traversals now');
+      expect(text).toContain('Address previously reported difficulties');
+      expect(text).toContain('[2025-01-08, learning]');
+      expect(text).toContain('[2025-01-12, review]');
+    });
+
+    it('review prompt omits feedback plan step when no feedback provided', () => {
+      const text = promptPack.getPrompt('review', {
+        lastReviewed: '2025-01-15',
+        masteryLevel: 3,
+      });
+      expect(text).not.toContain('PREVIOUS SESSION FEEDBACK');
+      expect(text).not.toContain('Pay special attention to previously reported pain points');
+    });
+
     it('prompts without research context work normally', () => {
       // Test that prompts not enhanced with research still work normally
       const learning = promptPack.getPrompt('learning', { chunkTitle: 'Test Chunk' });

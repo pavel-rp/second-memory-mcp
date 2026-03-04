@@ -4,6 +4,7 @@ import {
   determineNextPhase,
   checkSessionCompletion,
   validateSessionContext,
+  applyBatchSessionChunkOperations,
 } from '../../../../src/domain/services/session-analyzer.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import type { SessionInput } from '../../../../src/domain/types/session.js';
@@ -352,6 +353,227 @@ describe('Session Manager', () => {
       const result = calculateSessionProgress(sessionWithValidData, NOW);
       expect(result).toBeDefined();
       expect(result.average_quality).toBe(4.5);
+    });
+  });
+
+  describe('determineNextPhase — mode-specific zero-progress branches', () => {
+    const zeroProgressSession: SessionInput = {
+      ...mockSessionInput,
+      chunks: mockSessionInput.chunks.map(chunk => ({
+        ...chunk,
+        status: 'pending' as const,
+        attempts: [],
+        quality_scores: [],
+        time_spent_ms: 0,
+      })),
+    };
+
+    it('returns prerequisite_check for learning mode with 0 completed', () => {
+      const result = determineNextPhase({ ...zeroProgressSession, mode: 'learning' }, NOW);
+      expect(result.current_phase).toBe('prerequisite_check');
+      expect(result.next_phase).toBe('content_presentation');
+      expect(result.can_advance).toBe(false);
+    });
+
+    it('returns problem_analysis for scaffolding mode with 0 completed', () => {
+      const result = determineNextPhase({ ...zeroProgressSession, mode: 'scaffolding' }, NOW);
+      expect(result.current_phase).toBe('problem_analysis');
+      expect(result.next_phase).toBe('chunk_planning');
+      expect(result.can_advance).toBe(false);
+    });
+
+    it('returns retrieval_setup for retrieval mode with 0 completed', () => {
+      const result = determineNextPhase({ ...zeroProgressSession, mode: 'retrieval' }, NOW);
+      expect(result.current_phase).toBe('retrieval_setup');
+      expect(result.next_phase).toBe('first_attempt');
+      expect(result.can_advance).toBe(false);
+    });
+
+    it('returns review_preparation for review mode with 0 completed', () => {
+      const result = determineNextPhase({ ...zeroProgressSession, mode: 'review' }, NOW);
+      expect(result.current_phase).toBe('review_preparation');
+      expect(result.next_phase).toBe('spaced_review');
+      expect(result.can_advance).toBe(false);
+    });
+
+    it('returns unknown phase for unrecognized mode', () => {
+      const result = determineNextPhase(
+        { ...zeroProgressSession, mode: 'unknown_mode' as SessionInput['mode'] },
+        NOW
+      );
+      expect(result.current_phase).toBe('unknown');
+      expect(result.guidance).toContain('analysis in progress');
+      expect(result.can_advance).toBe(false);
+    });
+  });
+
+  describe('determineNextPhase — high-progress branches', () => {
+    it('returns comprehension_check for learning mode at high progress', () => {
+      const highProgressSession: SessionInput = {
+        ...mockSessionInput,
+        mode: 'learning',
+        chunks: mockSessionInput.chunks.map(chunk => ({
+          ...chunk,
+          status: 'completed' as const,
+          quality_scores: [5],
+        })),
+      };
+      const result = determineNextPhase(highProgressSession, NOW);
+      expect(result.current_phase).toBe('comprehension_check');
+    });
+
+    it('returns chunk_validation for scaffolding mode at high progress', () => {
+      const highProgressSession: SessionInput = {
+        ...mockSessionInput,
+        mode: 'scaffolding',
+        chunks: mockSessionInput.chunks.map(chunk => ({
+          ...chunk,
+          status: 'completed' as const,
+          quality_scores: [5],
+        })),
+      };
+      const result = determineNextPhase(highProgressSession, NOW);
+      expect(result.current_phase).toBe('chunk_validation');
+    });
+
+    it('returns second_attempt for retrieval mode at high progress', () => {
+      const highProgressSession: SessionInput = {
+        ...mockSessionInput,
+        mode: 'retrieval',
+        chunks: mockSessionInput.chunks.map(chunk => ({
+          ...chunk,
+          status: 'completed' as const,
+          quality_scores: [5],
+        })),
+      };
+      const result = determineNextPhase(highProgressSession, NOW);
+      expect(result.current_phase).toBe('second_attempt');
+    });
+
+    it('returns consolidation for review mode at high progress', () => {
+      const highProgressSession: SessionInput = {
+        ...mockSessionInput,
+        mode: 'review',
+        chunks: mockSessionInput.chunks.map(chunk => ({
+          ...chunk,
+          status: 'completed' as const,
+          quality_scores: [5],
+        })),
+      };
+      const result = determineNextPhase(highProgressSession, NOW);
+      expect(result.current_phase).toBe('consolidation');
+    });
+  });
+
+  describe('checkSessionCompletion — default evaluateCompletionCriteria branch', () => {
+    it('returns continue for mid-progress session with moderate quality and time', () => {
+      // Craft a session that misses ALL specific completion criteria:
+      // - Not max time exceeded
+      // - Not quality+chunk met
+      // - Not chunk met alone
+      // - Not quality+time met
+      // - Not time+50% progress
+      // - Not <30% progress and <30min (the "just beginning" branch)
+      // - Not !can_advance && quality < 3
+      // Falls through to the default "progressing normally" return
+      const midSession: SessionInput = {
+        ...mockSessionInput,
+        mode: 'learning',
+        start_time: '2024-01-01T09:30:00.000Z', // 60 min ago (past the 30min check)
+        current_time: '2024-01-01T10:30:00.000Z',
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Chunk 1',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:00:00.000Z',
+                quality: 3,
+                time_spent_ms: 600000,
+                completed: true,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 600000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            title: 'Chunk 2',
+            status: 'in_progress',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:15:00.000Z',
+                quality: 3,
+                time_spent_ms: 300000,
+                completed: false,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 300000,
+          },
+          {
+            chunk_id: 'chunk-3',
+            title: 'Chunk 3',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+        ],
+      };
+
+      const result = checkSessionCompletion(midSession, DEFAULT_ALGORITHM_CONFIG, NOW);
+      expect(result.is_complete).toBe(false);
+      expect(result.recommendation).toBe('continue');
+      expect(result.completion_reason).toContain('progressing normally');
+    });
+  });
+
+  describe('applyBatchSessionChunkOperations', () => {
+    it('throws when operations exceed maxOps', async () => {
+      const ops = Array.from({ length: 51 }, (_, i) => ({
+        chunkId: `chunk-${i}`,
+        status: 'completed' as const,
+      }));
+
+      await expect(
+        applyBatchSessionChunkOperations({
+          sessionId: 'session-1',
+          operations: ops,
+          maxOps: 50,
+          activeSessionExists: true,
+          persistFn: async () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
+        })
+      ).rejects.toThrow('Too many operations');
+    });
+
+    it('throws when no active session exists', async () => {
+      await expect(
+        applyBatchSessionChunkOperations({
+          sessionId: 'session-1',
+          operations: [{ chunkId: 'chunk-1', status: 'completed' as const }],
+          activeSessionExists: false,
+          persistFn: async () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
+        })
+      ).rejects.toThrow('No active session found');
+    });
+
+    it('delegates to persistFn when validations pass', async () => {
+      const result = await applyBatchSessionChunkOperations({
+        sessionId: 'session-1',
+        operations: [{ chunkId: 'chunk-1', status: 'completed' as const }],
+        activeSessionExists: true,
+        persistFn: async () => ({
+          created: 1,
+          updated: 0,
+          unchanged: 0,
+          affectedChunkIds: ['chunk-1'],
+        }),
+      });
+
+      expect(result.created).toBe(1);
+      expect(result.affectedChunkIds).toEqual(['chunk-1']);
     });
   });
 });

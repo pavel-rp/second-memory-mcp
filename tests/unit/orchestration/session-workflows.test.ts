@@ -417,6 +417,35 @@ describe('resolveSessionChunkDependencies', () => {
     expect(result.message).toContain('missing-prereq');
   });
 
+  it('returns fallback when relevantItems is empty after filtering (falsy chunkId)', async () => {
+    const deps = stubDeps();
+
+    // Pass chunkId that is empty string — falsy so skipped by the `if (!currentId)` guard.
+    // This leaves chunkMap empty, missingRequestedChunks empty, and relevantItems.length === 0.
+    const result = await resolveSessionChunkDependencies([''], deps);
+
+    expect(result.resolvedChunkIds).toEqual(['']);
+    expect(result.addedPrerequisites).toEqual([]);
+    expect(result.message).toBe('');
+  });
+
+  it('falls back to original chunkIds when dependency resolution is invalid (circular)', async () => {
+    const deps = stubDeps();
+    const c1 = stubChunk({ id: 'c1', prerequisitesJson: ['c2'] });
+    const c2 = stubChunk({ id: 'c2', prerequisitesJson: ['c1'] });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      if (id === 'c1') return c1;
+      if (id === 'c2') return c2;
+      return undefined;
+    });
+
+    const result = await resolveSessionChunkDependencies(['c1'], deps);
+
+    expect(result.resolvedChunkIds).toEqual(['c1']);
+    expect(result.addedPrerequisites).toEqual([]);
+    expect(result.message).toBe('');
+  });
+
   it('falls back to original chunkIds on error', async () => {
     const deps = stubDeps();
     (deps.chunks.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));

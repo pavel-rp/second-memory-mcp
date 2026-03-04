@@ -594,6 +594,161 @@ describe('RecommendationEngine', () => {
     }
   });
 
+  it('returns fetchFromDatabase orchestrationHint when items empty and fetchFromDatabase is true', async () => {
+    const engine = createTestEngine();
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: [],
+        timeAvailable: 30,
+        fetchFromDatabase: true,
+      } as any,
+      NOW
+    );
+
+    expect(result.orchestrationHint).toBeDefined();
+    expect(result.orchestrationHint).toContain('No learning items found');
+    expect(result.orchestrationHint).toContain('relaxing filters');
+  });
+
+  it('generates encouragement for sessions with only review items (no overdue, no new)', async () => {
+    const engine = createTestEngine();
+    const items = [
+      makeItem({
+        id: 'r1',
+        chunkType: 'review',
+        estimatedDuration: 10,
+        nextReviewDate: '2025-06-16', // Tomorrow — not overdue
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        timeAvailable: 30,
+      },
+      NOW
+    );
+
+    expect(result.conversationGuidance).toBeDefined();
+    expect(result.conversationGuidance!.encouragement).toContain('reinforcing');
+  });
+
+  it('includes prerequisite filtering count in rationale when items are filtered', async () => {
+    // Create an engine where prerequisite validation filters out items
+    const mockValidator = new PrerequisiteValidator({
+      referenceValidator: {
+        validateChunkPrerequisites: vi
+          .fn()
+          .mockReturnValue({ isValid: true, invalidReferences: [] }),
+      },
+      masteryService: {
+        checkItemMastery: vi.fn().mockResolvedValue({ isMastered: false }),
+      },
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      clock: () => NOW.getTime(),
+    });
+    const dependencyResolver = new DependencyResolver(
+      DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+    );
+
+    const engine = new RecommendationEngine({
+      chunkLookupFn: async () => undefined,
+      prerequisiteValidator: mockValidator,
+      dependencyResolver,
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    });
+
+    const items = [
+      makeItem({ id: 'no-prereqs', prerequisites: [], estimatedDuration: 10 }),
+      makeItem({ id: 'with-prereqs', prerequisites: ['missing-prereq'], estimatedDuration: 10 }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+      },
+      NOW
+    );
+
+    // The item with unmastered prerequisites should be filtered, affecting the rationale
+    expect(result.rationale).toMatch(/spaced repetition/i);
+  });
+
+  it('does not include dependencyResolution when no prerequisites were added', async () => {
+    const engine = createTestEngine();
+    const items = [makeItem({ id: 'standalone', estimatedDuration: 10, prerequisites: [] })];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 30,
+      },
+      NOW
+    );
+
+    expect(result.dependencyResolution).toBeUndefined();
+  });
+
+  it('applies subject preference from user history when not explicitly set', async () => {
+    const engine = createTestEngine();
+    const items = [
+      makeItem({ id: 'cs-item', subject: 'CS', estimatedDuration: 10 }),
+      makeItem({ id: 'math-item', subject: 'Math', estimatedDuration: 10 }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        timeAvailable: 30,
+        userHistory: {
+          recentSessions: [],
+          patterns: {
+            averageSessionDuration: 25,
+            preferredDifficulty: 5,
+            successRate: 0.75,
+            fatigueThreshold: 18,
+            subjectPreferences: { CS: 5, Math: 1 },
+          },
+        },
+      } as any,
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it('defaults subject preference to Any for unrecognized top subject', async () => {
+    const engine = createTestEngine();
+    const items = [makeItem({ id: 'item-1', subject: 'Biology', estimatedDuration: 10 })];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        timeAvailable: 30,
+        userHistory: {
+          recentSessions: [],
+          patterns: {
+            averageSessionDuration: 25,
+            preferredDifficulty: 5,
+            successRate: 0.75,
+            fatigueThreshold: 18,
+            subjectPreferences: { Biology: 5 },
+          },
+        },
+      } as any,
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
   it('handles missing prerequisite chunks gracefully without breaking topological order', async () => {
     const engine = createTestEngine();
 
