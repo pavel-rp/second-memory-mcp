@@ -42,6 +42,14 @@ describe('parseRecord', () => {
     expect(parseRecord(undefined)).toEqual({});
   });
 
+  it('returns empty object for empty string', () => {
+    expect(parseRecord('')).toEqual({});
+  });
+
+  it('returns empty object for whitespace-only string', () => {
+    expect(parseRecord('  ')).toEqual({});
+  });
+
   it('parses valid JSON with numeric values', () => {
     expect(parseRecord('{"a":1.2,"b":0.8}')).toEqual({ a: 1.2, b: 0.8 });
   });
