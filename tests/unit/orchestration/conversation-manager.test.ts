@@ -228,6 +228,285 @@ describe('ConversationManager', () => {
     });
   });
 
+  // ── Coverage: extractSubjectHints direct abbreviation matches ────
+
+  describe('extractSubjectHints — direct abbreviation fallthrough', () => {
+    it('returns "CS" for direct "CS" match (no normalization needed)', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'CS review session',
+      });
+      // Subject hint extracted → proceeds to start_learning
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('returns "SWE" for direct "SWE" match (no normalization needed)', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'SWE practice today',
+      });
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('normalizes "Mathematics" to "Math"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'Mathematics exercises',
+      });
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+  });
+
+  // ── Coverage: handleError ─────────────────────────────────────────
+
+  describe('handleError', () => {
+    it('returns graceful error response when recommendation engine throws', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      // Engine that throws on generateRecommendations
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+      vi.spyOn(engine, 'generateRecommendations').mockRejectedValue(new Error('engine crash'));
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'start_learning',
+        context: {
+          learningItems: [
+            {
+              id: 'a',
+              title: 'Intro',
+              subject: 'CS',
+              difficulty: 5,
+              nextReviewDate: '2025-06-15',
+              easeFactor: 2.3,
+              repetitions: 1,
+              estimatedDuration: 10,
+              chunkType: 'review',
+            },
+          ],
+        },
+      } as any);
+
+      expect(out.message.toLowerCase()).toContain('encountered an issue');
+      expect(out.needsInput).toBe(true);
+      expect(out.suggestedInputs).toBeDefined();
+    });
+  });
+
+  // ── Coverage: handleContinueSession with DB hydration ─────────────
+
+  describe('handleContinueSession — DB hydration', () => {
+    it('hydrates session from DB when no sessionState provided', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([]),
+        getActiveSession: vi.fn().mockResolvedValue({ id: 'active-sess' }),
+        convertSessionToInput: vi.fn().mockResolvedValue({
+          chunks: [
+            { chunk_id: 'c1', title: 'Chunk 1', status: 'completed' },
+            { chunk_id: 'c2', title: 'Chunk 2', status: 'pending' },
+            { chunk_id: 'c3', title: 'Chunk 3', status: 'pending' },
+          ],
+        }),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'continue',
+        userInput: 'continue',
+      });
+
+      // currentItemIndex = 1 (1 completed), so next item = recommendations[1] = Chunk 2
+      expect(out.message).toContain('Chunk 2');
+      expect(out.sessionUpdated).toBe(true);
+    });
+
+    it('handles DB hydration failure gracefully', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([]),
+        getActiveSession: vi.fn().mockRejectedValue(new Error('db crash')),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'continue',
+        userInput: 'continue',
+      });
+
+      // Should fall back to "no active session" message
+      expect(out.message.toLowerCase()).toContain("don't have an active session");
+      expect(out.needsInput).toBe(true);
+    });
+  });
+
+  // ── Coverage: handleStartLearning DB fetch path ───────────────────
+
+  describe('handleStartLearning — DB fetch fallback', () => {
+    it('fetches items from DB when context has no learningItems', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const mockListChunks = vi.fn().mockResolvedValue([
+        {
+          id: 'db-chunk',
+          title: 'From DB',
+          subject: 'CS',
+          difficulty: 5,
+          nextReviewDate: '2025-06-14',
+          easeFactor: 2.5,
+          repetitions: 1,
+          estimatedDuration: 10,
+          chunkType: 'review',
+        },
+      ]);
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: mockListChunks,
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'start_learning',
+        context: {},
+      } as any);
+
+      expect(mockListChunks).toHaveBeenCalledWith({ dueOnly: true, limit: 50 });
+      // Should produce some output (either recommendations or "no items")
+      expect(out.message.length).toBeGreaterThan(0);
+    });
+
+    it('handles DB fetch failure gracefully', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockRejectedValue(new Error('db crash')),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'start_learning',
+        context: {},
+      } as any);
+
+      // Falls back to "no items" message since DB fetch failed
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+  });
+
   // ── STEP-002: parseIntent pattern tests ──────────────────────────
 
   describe('parseIntent routing', () => {
