@@ -226,6 +226,331 @@ describe('ConversationManager', () => {
       expect(out.recommendations?.nextActions).toHaveLength(5);
     });
   });
+
+  // ── STEP-002: parseIntent pattern tests ──────────────────────────
+
+  describe('parseIntent routing', () => {
+    it('routes "i wanna learn React" to topic creation', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'i wanna learn React',
+        userInput: 'i wanna learn React',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('react');
+      expect(out.sessionUpdated).toBe(true);
+    });
+
+    it('routes "start learning algorithms" to topic creation', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'start learning algorithms',
+        userInput: 'start learning algorithms',
+      } as any);
+      expect(out.message).toContain('algorithms');
+      expect(out.sessionUpdated).toBe(true);
+    });
+
+    it('routes "next" to continue_session', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'next',
+        userInput: 'next',
+      } as any);
+      // No session state → prompts to start new session
+      expect(out.message.toLowerCase()).toContain("don't have an active session");
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('routes "keep going" to continue_session', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'keep going',
+        userInput: 'keep going',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't have an active session");
+    });
+
+    it('routes "done" to session_feedback', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'done',
+        userInput: 'done',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('feedback');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('routes "finished" to session_feedback', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'finished',
+        userInput: 'finished',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('feedback');
+    });
+
+    it('routes "help" to get_help', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'help',
+        userInput: 'help',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('learning assistant');
+    });
+
+    it('routes "?" to get_help', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: '?',
+        userInput: '?',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('learning assistant');
+    });
+
+    it('routes "explain this to me" to get_help', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'explain this to me',
+        userInput: 'explain this to me',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('learning assistant');
+    });
+
+    it('routes unmatched input to general_learning', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'hello there',
+        userInput: 'hello there',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('happy to help you learn');
+      expect(out.needsInput).toBe(true);
+    });
+  });
+
+  // ── STEP-003: extractTimeHints, extractSubjectHints, inferSubject ──
+
+  describe('extractTimeHints via general learning', () => {
+    it('extracts "30 minutes" and proceeds to start_learning', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: '30 minutes',
+      } as any);
+      // Time hint extracted → proceeds to handleStartLearning → no items → prompt
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('extracts "2 hours" and proceeds to start_learning', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: '2 hours of study',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('extracts "quick session" and proceeds to start_learning', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'quick session please',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('extracts "extended study" and proceeds to start_learning', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'extended study session',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+  });
+
+  describe('extractSubjectHints via general learning', () => {
+    it('extracts "Computer Science" subject and proceeds', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'Computer Science review',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('extracts "Math" subject and proceeds', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'Math practice',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('extracts "Software Engineering" subject and proceeds', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'Software Engineering focus',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+
+    it('extracts "Language" subject and proceeds', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'general_learning',
+        userInput: 'Language drill',
+      } as any);
+      expect(out.message.toLowerCase()).toContain("don't see any learning items");
+    });
+  });
+
+  describe('inferSubject via topic creation', () => {
+    it('infers CS for "dfs"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'teach me dfs',
+        userInput: 'teach me dfs',
+      } as any);
+      expect(out.message).toContain('subject: "CS"');
+    });
+
+    it('infers SWE for "typescript"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'teach me typescript',
+        userInput: 'teach me typescript',
+      } as any);
+      expect(out.message).toContain('subject: "SWE"');
+    });
+
+    it('infers Math for "algebra"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'teach me algebra',
+        userInput: 'teach me algebra',
+      } as any);
+      expect(out.message).toContain('subject: "Math"');
+    });
+
+    it('infers Language for "spanish"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'teach me spanish',
+        userInput: 'teach me spanish',
+      } as any);
+      expect(out.message).toContain('subject: "Language"');
+    });
+
+    it('defaults to CS for unknown topic "cooking"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'teach me cooking',
+        userInput: 'teach me cooking',
+      } as any);
+      expect(out.message).toContain('subject: "CS"');
+    });
+  });
+
+  // ── STEP-004: handleClarification, handleGetHelp, handleSessionCompletion ──
+
+  describe('handleClarification', () => {
+    it('responds to time-related clarification', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'time',
+        userInput: 'time',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('how much time');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('responds to subject-related clarification with "what subject"', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'what subject',
+        userInput: 'what subject should I focus on',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('focus on today');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('responds to general clarification when no specific keyword matches', async () => {
+      const cm = createTestConversationManager();
+      // Use intent to trigger need_clarification, but leave userInput empty
+      // so handleClarification falls through to general
+      const out = await cm.conductLearningSession({
+        intent: 'how long do I have',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('here to help');
+      expect(out.needsInput).toBe(true);
+    });
+  });
+
+  describe('handleGetHelp', () => {
+    it('returns help message with learning assistant info and examples', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'help',
+        userInput: 'help',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('learning assistant');
+      expect(out.message).toContain('Teach me');
+      expect(out.needsInput).toBe(true);
+      expect(out.suggestedInputs).toBeDefined();
+      expect(out.suggestedInputs!.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('handleSessionCompletion', () => {
+    it('reports partial completion with items remaining', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'done',
+        userInput: 'done',
+        sessionState: {
+          currentItemIndex: 2,
+          currentRecommendations: [
+            { item: minimalItem('1'), priority: 10, reason: 'r', order: 1, cognitiveLoad: 5 },
+            { item: minimalItem('2'), priority: 9, reason: 'r', order: 2, cognitiveLoad: 5 },
+            { item: minimalItem('3'), priority: 8, reason: 'r', order: 3, cognitiveLoad: 5 },
+          ],
+        },
+      } as any);
+      expect(out.message).toContain('2 out of 3');
+      expect(out.message).toContain('1 items remaining');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('reports full session completion', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'done',
+        userInput: 'done',
+        sessionState: {
+          currentItemIndex: 3,
+          currentRecommendations: [
+            { item: minimalItem('1'), priority: 10, reason: 'r', order: 1, cognitiveLoad: 5 },
+            { item: minimalItem('2'), priority: 9, reason: 'r', order: 2, cognitiveLoad: 5 },
+            { item: minimalItem('3'), priority: 8, reason: 'r', order: 3, cognitiveLoad: 5 },
+          ],
+        },
+      } as any);
+      expect(out.message).toContain('Session complete');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('asks for feedback when no sessionState is provided', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'done',
+        userInput: 'done',
+      } as any);
+      expect(out.message.toLowerCase()).toContain('feedback');
+      expect(out.needsInput).toBe(true);
+    });
+  });
 });
 
 function minimalItem(id: string) {
