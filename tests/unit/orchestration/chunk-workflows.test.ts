@@ -262,7 +262,7 @@ describe('updateChunkMetadata', () => {
     const deps = stubDeps();
     (deps.chunks.getById as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(stubChunk())
-      .mockResolvedValueOnce(stubChunk({ difficulty: 8, tags: ['math'] as any }));
+      .mockResolvedValueOnce(stubChunk({ difficulty: 8, tagsJson: ['math'] }));
 
     const result = await updateChunkMetadata(
       'chunk-1',

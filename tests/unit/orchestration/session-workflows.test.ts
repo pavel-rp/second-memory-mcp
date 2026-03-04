@@ -225,11 +225,7 @@ describe('batchUpdateSessionChunks', () => {
   it('returns batch results on happy path', async () => {
     const deps = stubDeps();
 
-    const result = await batchUpdateSessionChunks(
-      'sess-1',
-      [{ type: 'create', chunkId: 'c1' }],
-      deps
-    );
+    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
 
     expect(result.success).toBe(true);
     if (result.success) {
@@ -241,11 +237,7 @@ describe('batchUpdateSessionChunks', () => {
     const deps = stubDeps();
     (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    const result = await batchUpdateSessionChunks(
-      'missing',
-      [{ type: 'create', chunkId: 'c1' }],
-      deps
-    );
+    const result = await batchUpdateSessionChunks('missing', [{ chunkId: 'c1' }], deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -259,11 +251,7 @@ describe('batchUpdateSessionChunks', () => {
       deps.sessions.persistBatchSessionChunkOperations as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db error'));
 
-    const result = await batchUpdateSessionChunks(
-      'sess-1',
-      [{ type: 'create', chunkId: 'c1' }],
-      deps
-    );
+    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
 
     expect(result.success).toBe(false);
     if (!result.success) {

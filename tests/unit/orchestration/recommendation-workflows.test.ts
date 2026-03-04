@@ -170,7 +170,8 @@ describe('generateRecommendations', () => {
     const result = await generateRecommendations(input, deps, NOW);
 
     expect(result).toBeDefined();
-    // The engine may or may not call getWithContent depending on prerequisites validation
-    // We just verify it doesn't throw
+    // Verify that the recommendation engine delegated prerequisite resolution
+    expect(deps.chunkIdLookup.getExistingIdsByIds).toHaveBeenCalled();
+    expect(deps.chunks.getWithContent).toHaveBeenCalled();
   });
 });
