@@ -1,12 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   createTopicWithChunks,
+  updateTopicSummary,
+  updateTopicMetadata,
   validateTopicCreationInput,
   type TopicCreationInput,
   type TopicDeps,
 } from '../../../src/orchestration/topic-workflows.js';
 import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
+import type { LearningTopic } from '../../../src/domain/types/entities.js';
 
 function validInput(): TopicCreationInput {
   return {
@@ -321,6 +324,138 @@ describe('createTopicWithChunks', () => {
     expect(result.topic).toBeDefined();
   });
 
+  it('skips embedding when no summary and no chunk content', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn(),
+      embedTexts: vi.fn(),
+      getDimensions: vi.fn().mockReturnValue(3),
+    };
+    const { deps } = stubDeps({ embedding });
+    const input: TopicCreationInput = {
+      topicTitle: 'No Content Topic',
+      subject: 'Science',
+      chunks: [
+        {
+          id: 'c1',
+          title: 'Empty Chunk',
+          difficulty: 3,
+          estimatedDuration: 10,
+          chunkType: 'concept',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(embedding.embedText).not.toHaveBeenCalled();
+    expect(embedding.embedTexts).not.toHaveBeenCalled();
+  });
+
+  it('skips saveSummaryEmbedding when embedText returns null', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue(null),
+      embedTexts: vi.fn().mockResolvedValue([]),
+      getDimensions: vi.fn().mockReturnValue(3),
+    };
+    const { deps } = stubDeps({ embedding });
+    const input: TopicCreationInput = {
+      topicTitle: 'Null Vector Topic',
+      subject: 'Math',
+      topicSummary: 'A summary that yields null vector',
+      chunks: [
+        { id: 'c1', title: 'Chunk', difficulty: 5, estimatedDuration: 10, chunkType: 'concept' },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(embedding.embedText).toHaveBeenCalledWith('A summary that yields null vector');
+    expect(deps.topics.saveSummaryEmbedding).not.toHaveBeenCalled();
+  });
+
+  it('succeeds when saveSummaryEmbedding returns 0 rows', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
+      embedTexts: vi.fn().mockResolvedValue([]),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const { deps } = stubDeps({ embedding });
+    (deps.topics.saveSummaryEmbedding as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+    const input: TopicCreationInput = {
+      topicTitle: 'Zero Row Topic',
+      subject: 'Math',
+      topicSummary: 'Summary text',
+      chunks: [
+        { id: 'c1', title: 'Chunk', difficulty: 5, estimatedDuration: 10, chunkType: 'concept' },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.topics.saveSummaryEmbedding).toHaveBeenCalledOnce();
+  });
+
+  it('skips saveContentEmbedding when embedTexts returns null vector', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue(null),
+      embedTexts: vi.fn().mockResolvedValue([null]),
+      getDimensions: vi.fn().mockReturnValue(3),
+    };
+    const { deps } = stubDeps({ embedding });
+    const input: TopicCreationInput = {
+      topicTitle: 'Null Chunk Vector',
+      subject: 'Math',
+      chunks: [
+        {
+          id: 'c1',
+          title: 'Chunk',
+          content: 'Some content',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'concept',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(embedding.embedTexts).toHaveBeenCalledWith(['Some content']);
+    expect(deps.chunks.saveContentEmbedding).not.toHaveBeenCalled();
+  });
+
+  it('succeeds when saveContentEmbedding returns 0 rows', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue(null),
+      embedTexts: vi.fn().mockResolvedValue([[0.1, 0.2]]),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const { deps } = stubDeps({ embedding });
+    (deps.chunks.saveContentEmbedding as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+    const input: TopicCreationInput = {
+      topicTitle: 'Zero Row Chunk',
+      subject: 'Math',
+      chunks: [
+        {
+          id: 'c1',
+          title: 'Chunk',
+          content: 'Content here',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'concept',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.chunks.saveContentEmbedding).toHaveBeenCalledOnce();
+  });
+
   it('returns retryable database error when unitOfWork throws', async () => {
     const { deps } = stubDeps();
     deps.unitOfWork.execute = vi.fn().mockRejectedValue(new Error('connection lost'));
@@ -334,5 +469,261 @@ describe('createTopicWithChunks', () => {
       message: 'connection lost',
       retryable: true,
     });
+  });
+});
+
+// --- updateTopicSummary ---
+
+function stubTopic(overrides?: Partial<LearningTopic>): LearningTopic {
+  return {
+    id: 'topic-1',
+    title: 'Test Topic',
+    subject: 'Math',
+    summary: 'Old summary',
+    summaryVersion: 1,
+    summaryUpdatedAt: 1000,
+    createdAt: 1000,
+    updatedAt: 1000,
+    ...overrides,
+  };
+}
+
+function summaryDeps(options?: { embedding?: EmbeddingPort }): TopicDeps {
+  return {
+    topics: {
+      getById: vi.fn().mockResolvedValue(stubTopic()),
+      update: vi.fn().mockResolvedValue({ success: true, data: { changesApplied: 1 } }),
+      saveSummaryEmbedding: vi.fn().mockResolvedValue(1),
+    } as unknown as TopicDeps['topics'],
+    chunks: {
+      saveContentEmbedding: vi.fn().mockResolvedValue(1),
+    } as unknown as TopicDeps['chunks'],
+    unitOfWork: {
+      execute: vi.fn(),
+    } as unknown as TopicDeps['unitOfWork'],
+    ...(options?.embedding ? { embedding: options.embedding } : {}),
+  };
+}
+
+describe('updateTopicSummary', () => {
+  it('updates summary and re-embeds on happy path', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
+      embedTexts: vi.fn(),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const deps = summaryDeps({ embedding });
+
+    const result = await updateTopicSummary('topic-1', 'New summary text', deps);
+
+    expect(result.success).toBe(true);
+    expect(result.topic).toBeDefined();
+    // Stale embedding cleared first
+    expect(deps.topics.saveSummaryEmbedding).toHaveBeenCalledWith('topic-1', null);
+    // Then update called with incremented version
+    expect(deps.topics.update).toHaveBeenCalledWith(
+      'topic-1',
+      expect.objectContaining({
+        summary: 'New summary text',
+        summaryVersion: 2,
+      })
+    );
+    // New embedding saved
+    expect(deps.topics.saveSummaryEmbedding).toHaveBeenCalledWith('topic-1', [0.1, 0.2]);
+  });
+
+  it('returns not_found when topic does not exist', async () => {
+    const deps = summaryDeps();
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const result = await updateTopicSummary('missing-id', 'Summary', deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('not_found');
+  });
+
+  it('returns validation error when summary exceeds MAX_SUMMARY_SIZE', async () => {
+    const deps = summaryDeps();
+
+    const result = await updateTopicSummary('topic-1', 'x'.repeat(5001), deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+    expect(result.error?.field).toBe('summary');
+  });
+
+  it('returns validation error when summary is empty', async () => {
+    const deps = summaryDeps();
+
+    const result = await updateTopicSummary('topic-1', '', deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+    expect(result.error?.field).toBe('summary');
+  });
+
+  it('clears stale embedding but skips save when embedText returns null', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue(null),
+      embedTexts: vi.fn(),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const deps = summaryDeps({ embedding });
+
+    const result = await updateTopicSummary('topic-1', 'Valid summary', deps);
+
+    expect(result.success).toBe(true);
+    // Called once with null (stale clear), never with a vector
+    expect(deps.topics.saveSummaryEmbedding).toHaveBeenCalledWith('topic-1', null);
+    expect(deps.topics.saveSummaryEmbedding).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns success when embedText throws (fail-open)', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockRejectedValue(new Error('provider down')),
+      embedTexts: vi.fn(),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const deps = summaryDeps({ embedding });
+
+    const result = await updateTopicSummary('topic-1', 'Valid summary', deps);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('returns database error when getById throws', async () => {
+    const deps = summaryDeps();
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));
+
+    const result = await updateTopicSummary('topic-1', 'Valid summary', deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('database');
+  });
+});
+
+// --- updateTopicMetadata ---
+
+function metadataDeps(): { deps: TopicDeps; txPorts: TransactionPorts } {
+  const txPorts: TransactionPorts = {
+    topics: {
+      update: vi.fn().mockResolvedValue({ success: true, data: { changesApplied: 1 } }),
+    },
+    chunks: {
+      list: vi.fn().mockResolvedValue([]),
+      update: vi.fn().mockResolvedValue(undefined),
+    },
+    sessions: {},
+  } as unknown as TransactionPorts;
+  return {
+    deps: {
+      topics: {
+        getById: vi.fn().mockResolvedValue(stubTopic()),
+        update: vi.fn().mockResolvedValue({ success: true, data: { changesApplied: 1 } }),
+        saveSummaryEmbedding: vi.fn(),
+      } as unknown as TopicDeps['topics'],
+      chunks: {
+        saveContentEmbedding: vi.fn(),
+      } as unknown as TopicDeps['chunks'],
+      unitOfWork: {
+        execute: vi.fn(async (cb: (ports: TransactionPorts) => Promise<unknown>) => cb(txPorts)),
+      } as unknown as TopicDeps['unitOfWork'],
+    },
+    txPorts,
+  };
+}
+
+describe('updateTopicMetadata', () => {
+  it('updates title without transaction when no subject change', async () => {
+    const { deps } = metadataDeps();
+    const updatedTopic = stubTopic({ title: 'New Title' });
+    (deps.topics.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubTopic()) // first call: current
+      .mockResolvedValueOnce(updatedTopic); // second call: after update
+
+    const result = await updateTopicMetadata('topic-1', { title: 'New Title' }, deps);
+
+    expect(result.success).toBe(true);
+    expect(result.topic?.title).toBe('New Title');
+    // Should call topics.update directly, not unitOfWork
+    expect(deps.topics.update).toHaveBeenCalledWith(
+      'topic-1',
+      expect.objectContaining({
+        title: 'New Title',
+      })
+    );
+    expect(deps.unitOfWork.execute).not.toHaveBeenCalled();
+  });
+
+  it('returns not_found when topic does not exist', async () => {
+    const { deps } = metadataDeps();
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const result = await updateTopicMetadata('missing-id', { title: 'New' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('not_found');
+  });
+
+  it('returns validation error for empty title', async () => {
+    const { deps } = metadataDeps();
+
+    const result = await updateTopicMetadata('topic-1', { title: '' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+    expect(result.error?.field).toBe('title');
+  });
+
+  it('cascades subject change to chunks via unitOfWork', async () => {
+    const { deps, txPorts } = metadataDeps();
+    const chunk = { id: 'c1', topicId: 'topic-1', subject: 'Math' };
+    (txPorts.chunks.list as ReturnType<typeof vi.fn>).mockResolvedValue([chunk]);
+    const updatedTopic = stubTopic({ subject: 'Science' });
+    (deps.topics.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubTopic())
+      .mockResolvedValueOnce(updatedTopic);
+
+    const result = await updateTopicMetadata('topic-1', { subject: 'Science' }, deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+    // Topic updated inside transaction
+    expect(txPorts.topics.update).toHaveBeenCalledWith(
+      'topic-1',
+      expect.objectContaining({
+        subject: 'Science',
+      })
+    );
+    // Chunk subject cascaded
+    expect(txPorts.chunks.update).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({
+        subject: 'Science',
+      })
+    );
+  });
+
+  it('returns error when title-only update fails', async () => {
+    const { deps } = metadataDeps();
+    (deps.topics.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      error: { type: 'database', message: 'update failed' },
+    });
+
+    const result = await updateTopicMetadata('topic-1', { title: 'New Title' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toBe('update failed');
+  });
+
+  it('returns database error when getById throws', async () => {
+    const { deps } = metadataDeps();
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));
+
+    const result = await updateTopicMetadata('topic-1', { title: 'New' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('database');
   });
 });
