@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/gh/pavel-rp/second-memory-mcp/branch/develop/graph/badge.svg)](https://codecov.io/gh/pavel-rp/second-memory-mcp)
+[![codecov](https://codecov.io/github/pavel-rp/second-memory-mcp/graph/badge.svg?token=X6CNWR643K)](https://codecov.io/gh/pavel-rp/second-memory-mcp)
 [![CI](https://github.com/pavel-rp/second-memory-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/pavel-rp/second-memory-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
