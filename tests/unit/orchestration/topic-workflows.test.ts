@@ -237,8 +237,8 @@ function stubDeps(options?: { embedding?: EmbeddingPort }): {
         saveContentEmbedding: vi.fn().mockResolvedValue(1),
       } as unknown as TopicDeps['chunks'],
       unitOfWork: {
-        execute: vi.fn(async <T>(cb: (ports: TransactionPorts) => Promise<T>) => cb(txPorts)),
-      },
+        execute: vi.fn(async (cb: (ports: TransactionPorts) => Promise<unknown>) => cb(txPorts)),
+      } as unknown as TopicDeps['unitOfWork'],
       ...(options?.embedding ? { embedding: options.embedding } : {}),
     },
     txPorts,
