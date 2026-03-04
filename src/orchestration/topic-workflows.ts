@@ -68,7 +68,7 @@ export type TopicCreationResult = {
 
 // --- Topic creation ---
 
-function validateTopicCreationInput(
+export function validateTopicCreationInput(
   input: TopicCreationInput
 ): { valid: true } | { valid: false; error: string } {
   if (!input.topicTitle || input.topicTitle.length > 200)
