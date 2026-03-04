@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     name: 'embedding',
     include: ['tests/embedding/**/*.test.ts'],
-    exclude: [...configDefaults.exclude, '**/.claude/**', '**/*.quarantine.test.ts'],
+    exclude: [...configDefaults.exclude, '**/.claude/**'],
     setupFiles: ['./vitest.setup.ts'],
     globalTeardown: ['./vitest.global-teardown.ts'],
     fileParallelism: false,
