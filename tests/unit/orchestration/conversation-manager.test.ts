@@ -4,6 +4,10 @@ import { RecommendationEngine } from '../../../src/domain/services/recommendatio
 import { PrerequisiteValidator } from '../../../src/domain/services/prerequisite-validator.js';
 import { DependencyResolver } from '../../../src/domain/algorithms/dependency-resolver.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
+import type {
+  ConversationRequest,
+  LearningItem,
+} from '../../../src/domain/types/recommendations.js';
 
 const TEST_NOW = new Date('2025-06-15T12:00:00Z');
 
@@ -235,7 +239,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'i wanna learn React',
         userInput: 'i wanna learn React',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('react');
       expect(out.sessionUpdated).toBe(true);
     });
@@ -245,7 +249,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'start learning algorithms',
         userInput: 'start learning algorithms',
-      } as any);
+      });
       expect(out.message).toContain('algorithms');
       expect(out.sessionUpdated).toBe(true);
     });
@@ -255,7 +259,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'next',
         userInput: 'next',
-      } as any);
+      });
       // No session state → prompts to start new session
       expect(out.message.toLowerCase()).toContain("don't have an active session");
       expect(out.needsInput).toBe(true);
@@ -266,7 +270,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'keep going',
         userInput: 'keep going',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't have an active session");
     });
 
@@ -275,7 +279,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'done',
         userInput: 'done',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('feedback');
       expect(out.needsInput).toBe(true);
     });
@@ -285,7 +289,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'finished',
         userInput: 'finished',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('feedback');
     });
 
@@ -294,7 +298,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'help',
         userInput: 'help',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('learning assistant');
     });
 
@@ -303,7 +307,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: '?',
         userInput: '?',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('learning assistant');
     });
 
@@ -312,7 +316,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'explain this to me',
         userInput: 'explain this to me',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('learning assistant');
     });
 
@@ -321,7 +325,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'hello there',
         userInput: 'hello there',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('happy to help you learn');
       expect(out.needsInput).toBe(true);
     });
@@ -335,7 +339,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: '30 minutes',
-      } as any);
+      });
       // Time hint extracted → proceeds to handleStartLearning → no items → prompt
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
@@ -345,7 +349,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: '2 hours of study',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
 
@@ -354,7 +358,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: 'quick session please',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
 
@@ -363,7 +367,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: 'extended study session',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
   });
@@ -374,7 +378,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: 'Computer Science review',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
 
@@ -383,7 +387,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: 'Math practice',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
 
@@ -392,7 +396,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: 'Software Engineering focus',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
 
@@ -401,7 +405,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'general_learning',
         userInput: 'Language drill',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain("don't see any learning items");
     });
   });
@@ -412,7 +416,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'teach me dfs',
         userInput: 'teach me dfs',
-      } as any);
+      });
       expect(out.message).toContain('subject: "CS"');
     });
 
@@ -421,7 +425,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'teach me typescript',
         userInput: 'teach me typescript',
-      } as any);
+      });
       expect(out.message).toContain('subject: "SWE"');
     });
 
@@ -430,7 +434,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'teach me algebra',
         userInput: 'teach me algebra',
-      } as any);
+      });
       expect(out.message).toContain('subject: "Math"');
     });
 
@@ -439,7 +443,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'teach me spanish',
         userInput: 'teach me spanish',
-      } as any);
+      });
       expect(out.message).toContain('subject: "Language"');
     });
 
@@ -448,7 +452,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'teach me cooking',
         userInput: 'teach me cooking',
-      } as any);
+      });
       expect(out.message).toContain('subject: "CS"');
     });
   });
@@ -461,7 +465,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'time',
         userInput: 'time',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('how much time');
       expect(out.needsInput).toBe(true);
     });
@@ -471,7 +475,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'what subject',
         userInput: 'what subject should I focus on',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('focus on today');
       expect(out.needsInput).toBe(true);
     });
@@ -482,7 +486,7 @@ describe('ConversationManager', () => {
       // so handleClarification falls through to general
       const out = await cm.conductLearningSession({
         intent: 'how long do I have',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('here to help');
       expect(out.needsInput).toBe(true);
     });
@@ -494,7 +498,7 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'help',
         userInput: 'help',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('learning assistant');
       expect(out.message).toContain('Teach me');
       expect(out.needsInput).toBe(true);
@@ -517,9 +521,9 @@ describe('ConversationManager', () => {
             { item: minimalItem('3'), priority: 8, reason: 'r', order: 3, cognitiveLoad: 5 },
           ],
         },
-      } as any);
+      });
       expect(out.message).toContain('2 out of 3');
-      expect(out.message).toContain('1 items remaining');
+      expect(out.message).toMatch(/1 item[s]? remaining/i);
       expect(out.needsInput).toBe(true);
     });
 
@@ -536,7 +540,7 @@ describe('ConversationManager', () => {
             { item: minimalItem('3'), priority: 8, reason: 'r', order: 3, cognitiveLoad: 5 },
           ],
         },
-      } as any);
+      });
       expect(out.message).toContain('Session complete');
       expect(out.needsInput).toBe(true);
     });
@@ -546,14 +550,14 @@ describe('ConversationManager', () => {
       const out = await cm.conductLearningSession({
         intent: 'done',
         userInput: 'done',
-      } as any);
+      });
       expect(out.message.toLowerCase()).toContain('feedback');
       expect(out.needsInput).toBe(true);
     });
   });
 });
 
-function minimalItem(id: string) {
+function minimalItem(id: string): LearningItem {
   return {
     id,
     title: 'T',
