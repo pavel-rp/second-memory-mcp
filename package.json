@@ -31,7 +31,6 @@
     "test:integration": "pnpm run build && vitest run --config vitest.integration.config.ts",
     "test:embedding": "pnpm run build && vitest run --config vitest.embedding.config.ts",
     "test:ci": "pnpm run build && vitest run --coverage",
-    "test:quarantine": "pnpm run build && vitest run --config vitest.quarantine.config.ts",
     "test": "pnpm run test:ci && pnpm run test:embedding",
     "lint": "eslint src tests --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src tests --fix",

@@ -305,15 +305,18 @@ Legacy tables (`session_logs`, `performance_analytics`, `friction_metrics`, `rev
 ## Testing & Quality
 
 ```bash
-# Compile and run the full Vitest suite with coverage
-pnpm test
-
-# Type-check only
-pnpm run type-check
-
-# Lint and format
-pnpm run lint
-pnpm run format
+pnpm test                  # Full suite: build + unit/integration with coverage, then embedding tests
+pnpm run test:unit         # Unit tests only (no build required)
+pnpm run test:integration  # Build + integration tests (requires running Postgres)
+pnpm run test:embedding    # Build + embedding/semantic-search tests
+pnpm run test:ci           # Build + all tests with coverage (unit + integration)
+pnpm run test:prompts      # Validate prompt template files
 ```
 
-Vitest integration tests exercise the retrieval pipeline (keyword, semantic, and hybrid search modes), recommendation workflows, prerequisite mastery via the knowledge graph, and session management to ensure parity with the live MCP behavior. Refer to the `tests/` directory for concrete examples of tool invocations.
+```bash
+pnpm run type-check        # Type-check only
+pnpm run lint              # Lint
+pnpm run format            # Format
+```
+
+Integration tests exercise the retrieval pipeline (keyword, semantic, and hybrid search modes), recommendation workflows, prerequisite mastery via the knowledge graph, and session management. Refer to the `tests/` directory for concrete examples.

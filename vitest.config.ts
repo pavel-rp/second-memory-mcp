@@ -9,7 +9,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['tests/unit/**/*.test.ts'],
-          exclude: [...configDefaults.exclude, '**/.claude/**', '**/*.quarantine.test.ts'],
+          exclude: [...configDefaults.exclude, '**/.claude/**'],
           fileParallelism: true,
         },
       },
@@ -20,7 +20,6 @@ export default defineConfig({
           exclude: [
             ...configDefaults.exclude,
             '**/.claude/**',
-            '**/*.quarantine.test.ts',
             'tests/integration/transport/mcp-stdout-validation.test.ts',
           ],
           setupFiles: ['./vitest.setup.ts'],

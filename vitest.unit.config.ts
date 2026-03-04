@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     name: 'unit',
     include: ['tests/unit/**/*.test.ts'],
-    exclude: [...configDefaults.exclude, '**/.claude/**', '**/*.quarantine.test.ts'],
+    exclude: [...configDefaults.exclude, '**/.claude/**'],
     fileParallelism: true,
   },
 });
