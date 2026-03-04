@@ -1,15 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { mapChunkRowToLearningItem } from '../../../src/shared/chunk-mapping.js';
-import type { LearningChunk } from '../../../src/domain/types/entities.js';
-
-type ChunkListRowWithContent = LearningChunk & {
-  contentEmbedding?: number[] | null;
-  topicTitle?: string | null;
-};
+import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 
 const NOW_MS = new Date('2025-06-15T12:00:00.000Z').getTime();
 
-function makeRow(overrides: Partial<ChunkListRowWithContent> = {}): ChunkListRowWithContent {
+function makeRow(overrides: Partial<ChunkWithTopicTitle> = {}): ChunkWithTopicTitle {
   return {
     id: 'chunk-1',
     topicId: 'topic-1',
