@@ -103,6 +103,26 @@ describe('calculatePriorityScore', () => {
   });
 });
 
+describe('calculateNextReviewAdvanced', () => {
+  it('applies lapse penalty and can flag leech on consecutive failures', () => {
+    const base = calculateNextReviewAdvanced(
+      {
+        quality: 2,
+        repetitions: 5,
+        easeFactor: 1.5,
+        interval: 10,
+        daysOverdue: 5,
+        consecutiveFailures: 4,
+      },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(base.interval).toBeGreaterThanOrEqual(1);
+    expect(base.easeFactor).toBeGreaterThanOrEqual(1.3);
+    expect(typeof base.leech).toBe('boolean');
+  });
+});
+
 describe('rankCandidatesWithConstraints', () => {
   it('produces a low-priority reason for well-ahead items', () => {
     // Far-future review date → low score
@@ -125,29 +145,7 @@ describe('rankCandidatesWithConstraints', () => {
     expect(out.ranked.length).toBe(1);
     expect(out.ranked[0].reason).toContain('low priority');
   });
-});
 
-describe('calculateNextReviewAdvanced', () => {
-  it('applies lapse penalty and can flag leech on consecutive failures', () => {
-    const base = calculateNextReviewAdvanced(
-      {
-        quality: 2,
-        repetitions: 5,
-        easeFactor: 1.5,
-        interval: 10,
-        daysOverdue: 5,
-        consecutiveFailures: 4,
-      },
-      DEFAULT_ALGORITHM_CONFIG,
-      NOW
-    );
-    expect(base.interval).toBeGreaterThanOrEqual(1);
-    expect(base.easeFactor).toBeGreaterThanOrEqual(1.3);
-    expect(typeof base.leech).toBe('boolean');
-  });
-});
-
-describe('rankCandidatesWithConstraints', () => {
   it('orders candidates and respects caps', () => {
     const out = rankCandidatesWithConstraints(
       {
