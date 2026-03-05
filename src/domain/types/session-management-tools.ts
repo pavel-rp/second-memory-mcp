@@ -19,11 +19,11 @@ export const CompleteSessionInputShape = {
 
 export const CompleteSessionInputSchema = z.object(CompleteSessionInputShape);
 
-export const GetSessionInputShape = {
-  session_id: z.string().min(1).optional(), // Optional for get_active_session
+export const GetSessionByIdInputShape = {
+  session_id: z.string().min(1),
 } as const;
 
-export const GetSessionInputSchema = z.object(GetSessionInputShape);
+export const GetSessionByIdInputSchema = z.object(GetSessionByIdInputShape);
 
 export const CreateSessionChunkToolInputShape = {
   session_id: z.string().min(1),

@@ -279,7 +279,7 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
-    it('returns error for missing session_id', async () => {
+    it('returns validation error for missing session_id', async () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_session')!.handler;
 
@@ -287,8 +287,20 @@ describe('session-lifecycle-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
-      expect(parsed.error.retryable).toBe(true);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for empty session_id', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({ session_id: '' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
   });
 
