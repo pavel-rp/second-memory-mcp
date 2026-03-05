@@ -347,18 +347,17 @@ export class ConversationManager {
           if (sessionInput) {
             sessionState = {
               currentItemIndex: sessionInput.chunks.filter(c => c.status === 'completed').length,
-              // See #145: hardcoded defaults — SessionChunk lacks full chunk metadata.
               currentRecommendations: sessionInput.chunks.map((c, idx) => ({
                 item: {
                   id: c.chunk_id,
                   title: c.title,
-                  estimatedDuration: 10,
-                  difficulty: 5,
-                  repetitions: 0,
-                  easeFactor: 2.5,
-                  nextReviewDate: new Date().toISOString(),
-                  chunkType: 'review' as const,
-                  subject: '',
+                  estimatedDuration: c.estimated_duration ?? 10,
+                  difficulty: c.difficulty ?? 5,
+                  repetitions: c.repetitions ?? 0,
+                  easeFactor: c.ease_factor ?? 2.5,
+                  nextReviewDate: c.next_review_date ?? new Date().toISOString(),
+                  chunkType: (c.chunk_type as 'new' | 'review' | 'remediation') ?? 'review',
+                  subject: c.subject ?? '',
                 },
                 reason: 'Active session item',
                 priority: 50,

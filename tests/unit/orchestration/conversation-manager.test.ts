@@ -429,9 +429,42 @@ describe('ConversationManager', () => {
         getActiveSession: vi.fn().mockResolvedValue({ id: 'active-sess' }),
         convertSessionToInput: vi.fn().mockResolvedValue({
           chunks: [
-            { chunk_id: 'c1', title: 'Chunk 1', status: 'completed' },
-            { chunk_id: 'c2', title: 'Chunk 2', status: 'pending' },
-            { chunk_id: 'c3', title: 'Chunk 3', status: 'pending' },
+            {
+              chunk_id: 'c1',
+              title: 'Chunk 1',
+              status: 'completed',
+              repetitions: 3,
+              ease_factor: 2.1,
+              next_review_date: '2026-03-10',
+              subject: 'CS',
+              difficulty: 7,
+              estimated_duration: 15,
+              chunk_type: 'review',
+            },
+            {
+              chunk_id: 'c2',
+              title: 'Chunk 2',
+              status: 'pending',
+              repetitions: 1,
+              ease_factor: 2.5,
+              next_review_date: '2026-03-05',
+              subject: 'Math',
+              difficulty: 4,
+              estimated_duration: 20,
+              chunk_type: 'new',
+            },
+            {
+              chunk_id: 'c3',
+              title: 'Chunk 3',
+              status: 'pending',
+              repetitions: 0,
+              ease_factor: 2.5,
+              next_review_date: '2026-03-06',
+              subject: 'SWE',
+              difficulty: 6,
+              estimated_duration: 12,
+              chunk_type: 'remediation',
+            },
           ],
         }),
       });
@@ -443,6 +476,8 @@ describe('ConversationManager', () => {
 
       // currentItemIndex = 1 (1 completed), so next item = recommendations[1] = Chunk 2
       expect(out.message).toContain('Chunk 2');
+      // Verify real metadata is used (20 min from chunk, not hardcoded 10)
+      expect(out.message).toContain('20 min');
       expect(out.sessionUpdated).toBe(true);
     });
 

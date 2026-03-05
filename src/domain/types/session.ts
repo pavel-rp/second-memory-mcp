@@ -19,6 +19,14 @@ export type SessionChunk = {
   attempts: ChunkAttempt[];
   quality_scores: number[]; // 0-5 quality ratings
   time_spent_ms: number;
+  // Optional SM-2 metadata from learning_chunks (populated by convertSessionToSessionInput)
+  repetitions?: number;
+  ease_factor?: number;
+  next_review_date?: string; // ISO date YYYY-MM-DD
+  subject?: string;
+  difficulty?: number; // 1-10
+  estimated_duration?: number; // minutes
+  chunk_type?: string; // 'new' | 'review' | 'remediation'
 };
 
 // Historical feedback from previous sessions on same chunks
@@ -95,6 +103,16 @@ export const SessionChunkSchema = z.object({
   attempts: z.array(ChunkAttemptSchema),
   quality_scores: z.array(z.number().min(0).max(5)),
   time_spent_ms: z.number().min(0),
+  repetitions: z.number().int().min(0).optional(),
+  ease_factor: z.number().min(1.3).optional(),
+  next_review_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD')
+    .optional(),
+  subject: z.string().optional(),
+  difficulty: z.number().int().min(1).max(10).optional(),
+  estimated_duration: z.number().min(0).optional(),
+  chunk_type: z.string().optional(),
 });
 
 export const HistoricalFeedbackSchema = z.object({
