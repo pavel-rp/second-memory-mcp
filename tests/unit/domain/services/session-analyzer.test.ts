@@ -465,6 +465,194 @@ describe('Session Manager', () => {
     });
   });
 
+  describe('checkSessionCompletion — completes when only chunk threshold is met', () => {
+    it('completes when chunk threshold met but quality below threshold', () => {
+      // chunkMet=true, qualityMet=false, timeMet=false
+      // Need overall_progress >= 0.8 (completionThreshold) with low quality
+      const session: SessionInput = {
+        ...mockSessionInput,
+        mode: 'learning',
+        start_time: '2024-01-01T10:00:00.000Z',
+        current_time: '2024-01-01T10:30:00.000Z',
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Chunk 1',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:05:00.000Z',
+                quality: 3,
+                time_spent_ms: 300000,
+                completed: true,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 300000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            title: 'Chunk 2',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:10:00.000Z',
+                quality: 3,
+                time_spent_ms: 300000,
+                completed: true,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 300000,
+          },
+        ],
+      };
+
+      const result = checkSessionCompletion(session, DEFAULT_ALGORITHM_CONFIG, NOW);
+      // All chunks completed → overall_progress = 1.0 >= 0.8 → chunkMet
+      // Quality 3 < 4.0 → qualityMet=false
+      // 30 min < 90 min → timeMet=false
+      expect(result.is_complete).toBe(true);
+      expect(result.chunk_threshold_met).toBe(true);
+      expect(result.quality_threshold_met).toBe(false);
+      expect(result.recommendation).toBe('complete');
+      expect(result.completion_reason).toContain('objectives completed');
+    });
+  });
+
+  describe('checkSessionCompletion — quality and time thresholds met with incomplete chunks', () => {
+    it('completes when quality and time thresholds met but chunks incomplete', () => {
+      // qualityMet=true, timeMet=true, chunkMet=false, maxTime not exceeded
+      // Quality >= 4.0, 90min <= time < 120min, progress < 0.8
+      const session: SessionInput = {
+        ...mockSessionInput,
+        mode: 'learning',
+        start_time: '2024-01-01T08:50:00.000Z', // 100 min ago (< 120 max)
+        current_time: '2024-01-01T10:30:00.000Z',
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Chunk 1',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T09:00:00.000Z',
+                quality: 5,
+                time_spent_ms: 600000,
+                completed: true,
+              },
+            ],
+            quality_scores: [5],
+            time_spent_ms: 600000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            title: 'Chunk 2',
+            status: 'in_progress',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:00:00.000Z',
+                quality: 4,
+                time_spent_ms: 300000,
+                completed: false,
+              },
+            ],
+            quality_scores: [4],
+            time_spent_ms: 300000,
+          },
+          {
+            chunk_id: 'chunk-3',
+            title: 'Chunk 3',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+          {
+            chunk_id: 'chunk-4',
+            title: 'Chunk 4',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+        ],
+      };
+
+      const result = checkSessionCompletion(session, DEFAULT_ALGORITHM_CONFIG, NOW);
+      // avg quality = (5+4)/2 = 4.5 >= 4.0 → qualityMet
+      // time = 100 min >= 90 min → timeMet, < 120 → not maxTimeExceeded
+      // progress = 1/4 = 0.25 < 0.8 → chunkMet=false
+      expect(result.is_complete).toBe(true);
+      expect(result.quality_threshold_met).toBe(true);
+      expect(result.time_threshold_met).toBe(true);
+      expect(result.chunk_threshold_met).toBe(false);
+      expect(result.recommendation).toBe('complete');
+      expect(result.completion_reason).toContain('High quality');
+    });
+  });
+
+  describe('checkSessionCompletion — time threshold met with 50%+ progress recommends break', () => {
+    it('recommends break when time threshold met with 50%+ progress', () => {
+      // timeMet=true, progress >= 0.5, qualityMet=false, chunkMet=false
+      // 90min <= time < 120min, quality < 4.0, 0.5 <= progress < 0.8
+      const session: SessionInput = {
+        ...mockSessionInput,
+        mode: 'learning',
+        start_time: '2024-01-01T08:50:00.000Z', // 100 min ago
+        current_time: '2024-01-01T10:30:00.000Z',
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Chunk 1',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T09:00:00.000Z',
+                quality: 3,
+                time_spent_ms: 600000,
+                completed: true,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 600000,
+          },
+          {
+            chunk_id: 'chunk-2',
+            title: 'Chunk 2',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:00:00.000Z',
+                quality: 3,
+                time_spent_ms: 300000,
+                completed: true,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 300000,
+          },
+          {
+            chunk_id: 'chunk-3',
+            title: 'Chunk 3',
+            status: 'pending',
+            attempts: [],
+            quality_scores: [],
+            time_spent_ms: 0,
+          },
+        ],
+      };
+
+      const result = checkSessionCompletion(session, DEFAULT_ALGORITHM_CONFIG, NOW);
+      // quality = 3 < 4 → qualityMet=false
+      // time = 100 min >= 90 min → timeMet=true, < 120 → not maxTime
+      // progress = 2/3 = 0.67 >= 0.5 but < 0.8 → chunkMet=false
+      expect(result.is_complete).toBe(true);
+      expect(result.recommendation).toBe('break');
+      expect(result.completion_reason).toContain('Good progress');
+    });
+  });
+
   describe('checkSessionCompletion — default evaluateCompletionCriteria branch', () => {
     it('returns continue for mid-progress session with moderate quality and time', () => {
       // Craft a session that misses ALL specific completion criteria:
@@ -527,6 +715,108 @@ describe('Session Manager', () => {
       expect(result.is_complete).toBe(false);
       expect(result.recommendation).toBe('continue');
       expect(result.completion_reason).toContain('progressing normally');
+    });
+  });
+
+  describe('helper function edge cases', () => {
+    it('clamps NaN quality to 0 and handles negative time_spent_ms', () => {
+      const session: SessionInput = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Bad Data',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:00:00.000Z',
+                quality: NaN,
+                time_spent_ms: -100,
+                completed: true,
+              },
+            ],
+            quality_scores: [NaN],
+            time_spent_ms: -500,
+          },
+        ],
+      };
+
+      const result = calculateSessionProgress(session, NOW);
+      expect(result.average_quality).toBe(0);
+      // Negative chunk time clamped to 0
+      expect(result.time_elapsed_ms).toBeGreaterThanOrEqual(0);
+    });
+
+    it('clamps quality > 5 to 5 in session chunks', () => {
+      const session: SessionInput = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Over Max',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:00:00.000Z',
+                quality: 10,
+                time_spent_ms: 1000,
+                completed: true,
+              },
+            ],
+            quality_scores: [10],
+            time_spent_ms: 1000,
+          },
+        ],
+      };
+
+      const result = calculateSessionProgress(session, NOW);
+      expect(result.average_quality).toBe(5);
+    });
+
+    it('handles undefined quality in attempt', () => {
+      const session: SessionInput = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'No Quality',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:00:00.000Z',
+                quality: undefined as any,
+                time_spent_ms: 1000,
+                completed: true,
+              },
+            ],
+            quality_scores: [3],
+            time_spent_ms: 1000,
+          },
+        ],
+      };
+
+      const result = calculateSessionProgress(session, NOW);
+      expect(result).toBeDefined();
+    });
+
+    it('throws validation error for invalid start_time in validateSessionContext', () => {
+      const session: SessionInput = {
+        ...mockSessionInput,
+        start_time: 'not-a-date',
+        current_time: '2024-01-01T10:30:00.000Z',
+      };
+
+      expect(() => validateSessionContext(session, NOW)).toThrow('Invalid session context');
+    });
+
+    it('validates context without current_time by using fallback', () => {
+      const session: SessionInput = {
+        ...mockSessionInput,
+        current_time: undefined as any,
+      };
+      // Should not throw — current_time falls back to now
+      const result = validateSessionContext(session, NOW);
+      expect(result).toBeDefined();
     });
   });
 

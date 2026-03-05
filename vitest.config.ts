@@ -35,7 +35,7 @@ export default defineConfig({
       exclude: ['scripts/**'],
       thresholds: {
         statements: 90,
-        branches: 84,
+        branches: 86,
         lines: 90,
         functions: 88,
       },

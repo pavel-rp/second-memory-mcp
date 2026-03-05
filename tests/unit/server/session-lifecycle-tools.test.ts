@@ -278,6 +278,18 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.error.type).toBe('database');
       expect(parsed.error.retryable).toBe(true);
     });
+
+    it('returns error for missing session_id', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.retryable).toBe(true);
+    });
   });
 
   // ---------------------------------------------------------------
@@ -405,6 +417,37 @@ describe('session-lifecycle-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
+    });
+
+    it('returns zero metrics when convertSessionToInput returns null after completion', async () => {
+      const now = Date.now();
+      ctx.getSessionById = vi
+        .fn()
+        .mockResolvedValueOnce({
+          id: 's1',
+          mode: 'learning',
+          status: 'active',
+          startTime: now - 60000,
+          endTime: null,
+        })
+        .mockResolvedValueOnce({
+          id: 's1',
+          mode: 'learning',
+          status: 'completed',
+          startTime: now - 60000,
+          endTime: now,
+        });
+      ctx.completeSession = vi.fn().mockResolvedValue({ success: true });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(null);
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('complete_session')!.handler;
+
+      const result = await handler({ session_id: 's1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('completed');
+      expect(parsed.final_metrics.chunks_completed).toBe(0);
+      expect(parsed.final_metrics.average_quality).toBe(0);
     });
   });
 });

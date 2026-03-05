@@ -303,6 +303,31 @@ describe('computeWindowRollup', () => {
     expect(result.total.average_quality).toBe(4); // Only in-window quality, not (1+4+5)/3
   });
 
+  it('returns zero average quality when all entries are outside window', () => {
+    const input: AnalyticsInput = {
+      entries: [
+        { date: '2023-12-31', quality: 4 },
+        { date: '2024-01-05', quality: 5 },
+      ],
+    };
+    const window: WindowSpec = { start: '2024-01-01', end: '2024-01-03' };
+
+    const result = computeWindowRollup(input, window);
+    expect(result.days).toHaveLength(3);
+    expect(result.total.reviews_completed).toBe(0);
+    expect(result.total.average_quality).toBe(0);
+  });
+
+  it('returns undefined breakdowns when no in-window entries with breakdowns requested', () => {
+    const input: AnalyticsInput = {
+      entries: [{ date: '2023-12-31', quality: 4, topic: 'math', tags: ['algebra'] }],
+    };
+    const window: WindowSpec = { start: '2024-01-01', end: '2024-01-03' };
+
+    const result = computeWindowRollup(input, window, { includeBreakdowns: true });
+    expect(result.breakdowns).toBeUndefined();
+  });
+
   it('excludes out-of-window entries from breakdowns', () => {
     const input: AnalyticsInput = {
       entries: [

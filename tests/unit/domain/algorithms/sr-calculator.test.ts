@@ -85,6 +85,22 @@ describe('calculatePriorityScore', () => {
     expect(out.priority).toBeGreaterThanOrEqual(0);
     expect(out.priority).toBeLessThanOrEqual(100);
   });
+
+  it('falls back to now when nextReviewDate is an invalid date string', () => {
+    const out = calculatePriorityScore(
+      {
+        nextReviewDate: 'not-a-date',
+        easeFactor: 2.5,
+        repetitions: 5,
+        difficulty: 5,
+      },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    // Should not throw, should return a valid priority
+    expect(out.priority).toBeGreaterThanOrEqual(0);
+    expect(out.priority).toBeLessThanOrEqual(100);
+  });
 });
 
 describe('calculateNextReviewAdvanced', () => {
@@ -108,6 +124,28 @@ describe('calculateNextReviewAdvanced', () => {
 });
 
 describe('rankCandidatesWithConstraints', () => {
+  it('produces a low-priority reason for well-ahead items', () => {
+    // Far-future review date → low score
+    const out = rankCandidatesWithConstraints(
+      {
+        candidates: [
+          {
+            id: 'far-future',
+            nextReviewDate: '2026-06-15',
+            easeFactor: 2.5,
+            repetitions: 10,
+            difficulty: 1,
+            estimatedDuration: 10,
+          },
+        ],
+      },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(out.ranked.length).toBe(1);
+    expect(out.ranked[0].reason).toContain('low priority');
+  });
+
   it('orders candidates and respects caps', () => {
     const out = rankCandidatesWithConstraints(
       {
