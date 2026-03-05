@@ -8,14 +8,14 @@ import type {
   SessionContext,
 } from '../domain/types/recommendations.js';
 import type { SessionInput } from '../domain/types/session.js';
+import type { ListChunksFilter } from '../ports/chunk-repository.js';
 import { logger } from '../shared/logger.js';
 
 export interface ConversationManagerDeps {
   recommendationEngine: RecommendationEngine;
-  listChunksAsLearningItems: (filter?: {
-    dueOnly?: boolean;
-    limit?: number;
-  }) => Promise<LearningItem[]>;
+  listChunksAsLearningItems: (
+    filter?: Pick<ListChunksFilter, 'subjectFilter' | 'dueOnly' | 'limit'>
+  ) => Promise<LearningItem[]>;
   getActiveSession: () => Promise<{ id: string } | null>;
   convertSessionToInput: (sessionId: string) => Promise<SessionInput | null>;
 }
@@ -54,6 +54,8 @@ export class ConversationManager {
         );
       case 'start_learning':
         return await this.handleStartLearning(request);
+      case 'get_recommendations':
+        return await this.handleGetRecommendations(request);
       case 'continue_session':
         return await this.handleContinueSession(request);
       case 'need_clarification':
@@ -101,6 +103,10 @@ export class ConversationManager {
     }
 
     // Explicit intents
+    if (request.intent === 'get_recommendations') {
+      return { type: 'get_recommendations', confidence: 1.0 };
+    }
+
     if (
       request.intent === 'start_learning' ||
       input.includes('teach me') ||
@@ -329,6 +335,71 @@ export class ConversationManager {
       };
     } catch (error) {
       return this.handleError('generating your learning plan', error);
+    }
+  }
+
+  /**
+   * Handle get_recommendations intent — query DB for personalized recommendations
+   */
+  private async handleGetRecommendations(
+    request: ConversationRequest
+  ): Promise<ConversationResponse> {
+    const context = (request.context ?? {}) as Record<string, unknown>;
+    const subjectFilter = typeof context.subject === 'string' ? context.subject : undefined;
+
+    let learningItems: LearningItem[] = [];
+    try {
+      learningItems = await this.listChunksAsLearningItems({
+        subjectFilter,
+        dueOnly: true,
+        limit: 50,
+      });
+    } catch (error) {
+      logger.error('Failed to fetch learning items for recommendations:', error);
+      return this.handleError('fetching your learning items', error);
+    }
+
+    if (learningItems.length === 0) {
+      return {
+        message:
+          "No learning items are due for review right now. You're all caught up! Try adding new content or check back later.",
+        needsInput: false,
+        suggestedInputs: ['Add new content', 'Check all subjects', 'Start a new topic'],
+      };
+    }
+
+    try {
+      const recommendationInput: RecommendationInput = {
+        mode: 'guided',
+        learningItems,
+        userHistory: context.userHistory as SessionHistory | undefined,
+        sessionContext: context.sessionContext as SessionContext | undefined,
+      };
+
+      const recommendations = await this.recommendationEngine.generateRecommendations(
+        recommendationInput,
+        new Date()
+      );
+
+      if (recommendations.recommendations.length === 0) {
+        return {
+          message:
+            "You're all caught up! No items need review right now. Would you like to explore new content?",
+          needsInput: true,
+          suggestedInputs: ['Show me new content', 'Check again later', 'Change subject'],
+        };
+      }
+
+      const count = recommendations.recommendations.length;
+      const subjectNote = subjectFilter ? ` for ${subjectFilter}` : '';
+      return {
+        message: `Here are your top ${count} recommendation${count > 1 ? 's' : ''}${subjectNote}, prioritized by spaced repetition schedule:`,
+        recommendations,
+        needsInput: false,
+        suggestedInputs: ["Let's start", 'Show more details', 'Filter by subject'],
+      };
+    } catch (error) {
+      return this.handleError('generating recommendations', error);
     }
   }
 

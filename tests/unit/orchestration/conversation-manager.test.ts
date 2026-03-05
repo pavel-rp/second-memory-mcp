@@ -36,6 +36,28 @@ function createTestConversationManager() {
   });
 }
 
+function createTestRecommendationEngine() {
+  const validator = new PrerequisiteValidator({
+    referenceValidator: {
+      validateChunkPrerequisites: vi.fn().mockReturnValue({ isValid: true, invalidReferences: [] }),
+    },
+    masteryService: {
+      checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+    },
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    clock: () => TEST_NOW.getTime(),
+  });
+  const dependencyResolver = new DependencyResolver(
+    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+  );
+  return new RecommendationEngine({
+    chunkLookupFn: async () => undefined,
+    prerequisiteValidator: validator,
+    dependencyResolver,
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+  });
+}
+
 describe('ConversationManager', () => {
   it('handles start learning with no items by prompting setup', async () => {
     const cm = createTestConversationManager();
@@ -401,27 +423,7 @@ describe('ConversationManager', () => {
 
   describe('handleContinueSession — DB hydration', () => {
     it('hydrates session from DB when no sessionState provided', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -482,27 +484,7 @@ describe('ConversationManager', () => {
     });
 
     it('uses default SM-2 values when chunk metadata is absent', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -525,27 +507,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles DB hydration failure gracefully', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -569,27 +531,7 @@ describe('ConversationManager', () => {
 
   describe('handleStartLearning — DB fetch fallback', () => {
     it('fetches items from DB when context has no learningItems', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const mockListChunks = vi.fn().mockResolvedValue([
         {
@@ -623,27 +565,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles DB fetch failure gracefully', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -969,27 +891,7 @@ describe('ConversationManager', () => {
     });
 
     it('returns all-caught-up when engine produces 0 recommendations', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       // Spy to return empty recommendations
       vi.spyOn(engine, 'generateRecommendations').mockResolvedValue({
@@ -1084,6 +986,218 @@ describe('ConversationManager', () => {
         userInput: 'done',
       });
       expect(out.message.toLowerCase()).toContain('feedback');
+      expect(out.needsInput).toBe(true);
+    });
+  });
+
+  // ── STEP-003: get_recommendations intent ─────────────────────────
+
+  describe('get_recommendations intent', () => {
+    it('returns DB-backed recommendations when items exist', async () => {
+      const engine = createTestRecommendationEngine();
+
+      const mockListChunks = vi.fn().mockResolvedValue([
+        {
+          id: 'rec-1',
+          title: 'Overdue Review',
+          subject: 'CS',
+          difficulty: 5,
+          nextReviewDate: '2025-06-14',
+          easeFactor: 2.5,
+          repetitions: 1,
+          estimatedDuration: 10,
+          chunkType: 'review',
+        },
+      ]);
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: mockListChunks,
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(mockListChunks).toHaveBeenCalledWith({
+        subjectFilter: undefined,
+        dueOnly: true,
+        limit: 50,
+      });
+      expect(out.recommendations).toBeDefined();
+      expect(out.needsInput).toBe(false);
+    });
+
+    it('returns no-items message when DB is empty', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message.toLowerCase()).toContain('no learning items');
+      expect(out.needsInput).toBe(false);
+    });
+
+    it('handles DB fetch failure gracefully', async () => {
+      const engine = createTestRecommendationEngine();
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockRejectedValue(new Error('db crash')),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message.toLowerCase()).toContain('encountered an issue');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('passes subject filter from context', async () => {
+      const engine = createTestRecommendationEngine();
+      const mockListChunks = vi.fn().mockResolvedValue([]);
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: mockListChunks,
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+        context: { subject: 'Math' },
+      });
+
+      expect(mockListChunks).toHaveBeenCalledWith({
+        subjectFilter: 'Math',
+        dueOnly: true,
+        limit: 50,
+      });
+      expect(out.message.toLowerCase()).toContain('no learning items');
+    });
+
+    it('includes subject note and plural form when multiple items with subject filter', async () => {
+      const engine = createTestRecommendationEngine();
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            title: 'Algebra Basics',
+            subject: 'Math',
+            difficulty: 4,
+            nextReviewDate: '2025-06-14',
+            easeFactor: 2.5,
+            repetitions: 1,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+          {
+            id: 'b',
+            title: 'Calculus Intro',
+            subject: 'Math',
+            difficulty: 6,
+            nextReviewDate: '2025-06-13',
+            easeFactor: 2.3,
+            repetitions: 2,
+            estimatedDuration: 15,
+            chunkType: 'review',
+          },
+        ]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+        context: { subject: 'Math' },
+      });
+
+      expect(out.message).toContain('recommendations for Math');
+      expect(out.recommendations).toBeDefined();
+      expect(out.needsInput).toBe(false);
+    });
+
+    it('handles recommendation engine failure gracefully', async () => {
+      const engine = createTestRecommendationEngine();
+      vi.spyOn(engine, 'generateRecommendations').mockRejectedValue(new Error('engine crash'));
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            title: 'X',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewDate: '2025-06-14',
+            easeFactor: 2.5,
+            repetitions: 1,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+        ]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message.toLowerCase()).toContain('encountered an issue');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('returns all-caught-up when engine produces 0 recommendations', async () => {
+      const engine = createTestRecommendationEngine();
+
+      vi.spyOn(engine, 'generateRecommendations').mockResolvedValue({
+        recommendations: [],
+        estimatedDuration: 0,
+        rationale: '',
+        sessionSummary: {
+          totalItems: 0,
+          totalDuration: 0,
+          totalCognitiveLoad: 0,
+          newItems: 0,
+          reviewItems: 0,
+          remediationItems: 0,
+          subjects: [],
+        },
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            title: 'X',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewDate: '2025-06-15',
+            easeFactor: 2.3,
+            repetitions: 1,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+        ]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message).toContain('all caught up');
       expect(out.needsInput).toBe(true);
     });
   });
