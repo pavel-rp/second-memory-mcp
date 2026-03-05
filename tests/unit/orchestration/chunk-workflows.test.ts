@@ -8,11 +8,14 @@ import {
   createChunkWithTopic,
   type ChunkDeps,
 } from '../../../src/orchestration/chunk-workflows.js';
-import type { ChunkRepository } from '../../../src/ports/chunk-repository.js';
-import type { TopicRepository } from '../../../src/ports/topic-repository.js';
-import type { UnitOfWorkPort, TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { LearningChunk, NewLearningChunk } from '../../../src/domain/types/entities.js';
+import {
+  stubChunkRepository,
+  stubTopicRepository,
+  stubSessionRepository,
+  stubUnitOfWork,
+} from '../../helpers/stub-ports.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -44,30 +47,29 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
 }
 
 function stubDeps(options?: { embedding?: EmbeddingPort }): ChunkDeps {
-  const txPorts: TransactionPorts = {
-    chunks: {
-      update: vi.fn().mockResolvedValue(1),
-      delete: vi.fn().mockResolvedValue(1),
-    } as unknown as ChunkRepository,
-    topics: {} as unknown as TopicRepository,
-    sessions: {} as any,
+  const txChunks = stubChunkRepository({
+    update: vi.fn().mockResolvedValue(1),
+    delete: vi.fn().mockResolvedValue(1),
+  });
+  const txPorts = {
+    chunks: txChunks,
+    topics: stubTopicRepository(),
+    sessions: stubSessionRepository(),
   };
   return {
-    chunks: {
+    chunks: stubChunkRepository({
       getById: vi.fn().mockResolvedValue(stubChunk()),
       update: vi.fn().mockResolvedValue(1),
       delete: vi.fn().mockResolvedValue(1),
       create: vi.fn().mockResolvedValue(undefined),
       saveContentEmbedding: vi.fn().mockResolvedValue(1),
       findDependents: vi.fn().mockResolvedValue([]),
-    } as unknown as ChunkRepository,
-    topics: {
+    }),
+    topics: stubTopicRepository({
       list: vi.fn().mockResolvedValue([]),
-      create: vi.fn().mockResolvedValue(undefined),
-    } as unknown as TopicRepository,
-    unitOfWork: {
-      execute: vi.fn(async (cb: (ports: TransactionPorts) => Promise<unknown>) => cb(txPorts)),
-    } as unknown as UnitOfWorkPort,
+      create: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+    }),
+    unitOfWork: stubUnitOfWork(undefined, txPorts),
     maxDependencyDepth: 5,
     ...(options?.embedding ? { embedding: options.embedding } : {}),
   };
@@ -465,6 +467,42 @@ describe('deleteChunk', () => {
 
     expect(result.success).toBe(true);
     // No cleanup needed — remaining equals previous
+    expect(result.removedDependencies).toEqual([]);
+  });
+
+  it('returns database error when delete inside transaction returns 0', async () => {
+    const deps = stubDeps();
+    // No dependents, but the tx delete returns 0
+    (deps.chunks.findDependents as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    const txChunks = stubChunkRepository({
+      update: vi.fn().mockResolvedValue(1),
+      delete: vi.fn().mockResolvedValue(0), // delete fails
+    });
+    (deps.unitOfWork.execute as ReturnType<typeof vi.fn>).mockImplementation(
+      async (
+        cb: (ports: { chunks: typeof txChunks; topics: any; sessions: any }) => Promise<unknown>
+      ) =>
+        cb({ chunks: txChunks, topics: stubTopicRepository(), sessions: stubSessionRepository() })
+    );
+
+    const result = await deleteChunk('chunk-1', deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('database');
+  });
+
+  it('handles dependents with null prerequisitesJson', async () => {
+    const deps = stubDeps();
+    const dependent = stubChunk({
+      id: 'dep-1',
+      title: 'Null Prereqs',
+      prerequisitesJson: null,
+    });
+    (deps.chunks.findDependents as ReturnType<typeof vi.fn>).mockResolvedValue([dependent]);
+
+    const result = await deleteChunk('chunk-1', deps);
+
+    expect(result.success).toBe(true);
     expect(result.removedDependencies).toEqual([]);
   });
 });

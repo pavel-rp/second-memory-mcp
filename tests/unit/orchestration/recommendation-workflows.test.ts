@@ -3,15 +3,18 @@ import {
   generateRecommendations,
   type RecommendationDeps,
 } from '../../../src/orchestration/recommendation-workflows.js';
-import type { ChunkRepository, ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
-import type { PrerequisiteMasteryPort } from '../../../src/ports/prerequisite-mastery-port.js';
-import type { ChunkIdLookupPort } from '../../../src/ports/chunk-id-lookup-port.js';
+import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 import type {
   LearningItem,
   RecommendationInput,
 } from '../../../src/domain/types/recommendations.js';
 import type { LearningChunk } from '../../../src/domain/types/entities.js';
+import {
+  stubChunkRepository,
+  stubPrerequisiteMastery,
+  stubChunkIdLookup,
+} from '../../helpers/stub-ports.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -63,18 +66,12 @@ function stubItem(overrides?: Partial<LearningItem>): LearningItem {
 
 function stubDeps(): RecommendationDeps {
   return {
-    chunks: {
+    chunks: stubChunkRepository({
       list: vi.fn().mockResolvedValue([stubChunkRow()]),
       getWithContent: vi.fn().mockResolvedValue(stubChunkRow()),
-    } as unknown as ChunkRepository,
-    mastery: {
-      checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-      checkMultipleItemsMastery: vi.fn().mockResolvedValue(new Map()),
-    } as unknown as PrerequisiteMasteryPort,
-    chunkIdLookup: {
-      getExistingIdsByIds: vi.fn().mockResolvedValue(new Set<string>()),
-      getAllIds: vi.fn().mockResolvedValue(new Set<string>()),
-    } as unknown as ChunkIdLookupPort,
+    }),
+    mastery: stubPrerequisiteMastery(),
+    chunkIdLookup: stubChunkIdLookup(),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   };
 }

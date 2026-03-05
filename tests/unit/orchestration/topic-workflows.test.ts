@@ -10,6 +10,12 @@ import {
 import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { LearningTopic } from '../../../src/domain/types/entities.js';
+import {
+  stubChunkRepository,
+  stubTopicRepository,
+  stubSessionRepository,
+  stubUnitOfWork,
+} from '../../helpers/stub-ports.js';
 
 function validInput(): TopicCreationInput {
   return {
@@ -218,12 +224,16 @@ describe('validateTopicCreationInput', () => {
 
 // --- createTopicWithChunks ---
 
-function stubTxPorts() {
+function stubTxPorts(): TransactionPorts {
   return {
-    topics: { create: vi.fn().mockResolvedValue({ success: true, data: undefined }) },
-    chunks: { create: vi.fn().mockResolvedValue(undefined) },
-    sessions: {},
-  } as unknown as TransactionPorts;
+    topics: stubTopicRepository({
+      create: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+    }),
+    chunks: stubChunkRepository({
+      create: vi.fn().mockResolvedValue(undefined),
+    }),
+    sessions: stubSessionRepository(),
+  };
 }
 
 function stubDeps(options?: { embedding?: EmbeddingPort }): {
@@ -233,15 +243,13 @@ function stubDeps(options?: { embedding?: EmbeddingPort }): {
   const txPorts = stubTxPorts();
   return {
     deps: {
-      topics: {
+      topics: stubTopicRepository({
         saveSummaryEmbedding: vi.fn().mockResolvedValue(1),
-      } as unknown as TopicDeps['topics'],
-      chunks: {
+      }),
+      chunks: stubChunkRepository({
         saveContentEmbedding: vi.fn().mockResolvedValue(1),
-      } as unknown as TopicDeps['chunks'],
-      unitOfWork: {
-        execute: vi.fn(async (cb: (ports: TransactionPorts) => Promise<unknown>) => cb(txPorts)),
-      } as unknown as TopicDeps['unitOfWork'],
+      }),
+      unitOfWork: stubUnitOfWork(undefined, txPorts),
       ...(options?.embedding ? { embedding: options.embedding } : {}),
     },
     txPorts,
@@ -268,6 +276,28 @@ function inputWithContent(): TopicCreationInput {
 }
 
 describe('createTopicWithChunks', () => {
+  it('returns validation error when input is invalid', async () => {
+    const { deps } = stubDeps();
+    const input: TopicCreationInput = {
+      topicTitle: '',
+      subject: 'Math',
+      chunks: [
+        {
+          id: 'c1',
+          title: 'Chunk',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'concept',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+  });
+
   it('creates topic and chunks without embedding', async () => {
     const { deps, txPorts } = stubDeps();
     const input = inputWithContent();
@@ -490,17 +520,15 @@ function stubTopic(overrides?: Partial<LearningTopic>): LearningTopic {
 
 function summaryDeps(options?: { embedding?: EmbeddingPort }): TopicDeps {
   return {
-    topics: {
+    topics: stubTopicRepository({
       getById: vi.fn().mockResolvedValue(stubTopic()),
       update: vi.fn().mockResolvedValue({ success: true, data: { changesApplied: 1 } }),
       saveSummaryEmbedding: vi.fn().mockResolvedValue(1),
-    } as unknown as TopicDeps['topics'],
-    chunks: {
+    }),
+    chunks: stubChunkRepository({
       saveContentEmbedding: vi.fn().mockResolvedValue(1),
-    } as unknown as TopicDeps['chunks'],
-    unitOfWork: {
-      execute: vi.fn(),
-    } as unknown as TopicDeps['unitOfWork'],
+    }),
+    unitOfWork: stubUnitOfWork(),
     ...(options?.embedding ? { embedding: options.embedding } : {}),
   };
 }
@@ -606,28 +634,26 @@ describe('updateTopicSummary', () => {
 
 function metadataDeps(): { deps: TopicDeps; txPorts: TransactionPorts } {
   const txPorts: TransactionPorts = {
-    topics: {
+    topics: stubTopicRepository({
       update: vi.fn().mockResolvedValue({ success: true, data: { changesApplied: 1 } }),
-    },
-    chunks: {
+    }),
+    chunks: stubChunkRepository({
       list: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue(undefined),
-    },
-    sessions: {},
-  } as unknown as TransactionPorts;
+    }),
+    sessions: stubSessionRepository(),
+  };
   return {
     deps: {
-      topics: {
+      topics: stubTopicRepository({
         getById: vi.fn().mockResolvedValue(stubTopic()),
         update: vi.fn().mockResolvedValue({ success: true, data: { changesApplied: 1 } }),
         saveSummaryEmbedding: vi.fn(),
-      } as unknown as TopicDeps['topics'],
-      chunks: {
+      }),
+      chunks: stubChunkRepository({
         saveContentEmbedding: vi.fn(),
-      } as unknown as TopicDeps['chunks'],
-      unitOfWork: {
-        execute: vi.fn(async (cb: (ports: TransactionPorts) => Promise<unknown>) => cb(txPorts)),
-      } as unknown as TopicDeps['unitOfWork'],
+      }),
+      unitOfWork: stubUnitOfWork(undefined, txPorts),
     },
     txPorts,
   };
@@ -748,5 +774,25 @@ describe('updateTopicMetadata', () => {
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('database');
     expect(result.error?.message).toContain('tx failure');
+  });
+
+  it('returns validation error for title exceeding max length', async () => {
+    const { deps } = metadataDeps();
+
+    const result = await updateTopicMetadata('topic-1', { title: 'a'.repeat(201) }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+    expect(result.error?.field).toBe('title');
+  });
+
+  it('returns validation error for subject exceeding max length', async () => {
+    const { deps } = metadataDeps();
+
+    const result = await updateTopicMetadata('topic-1', { subject: 'a'.repeat(101) }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+    expect(result.error?.field).toBe('subject');
   });
 });
