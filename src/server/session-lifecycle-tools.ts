@@ -1,11 +1,11 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 import crypto from 'node:crypto';
 import {
   CreateSessionToolInputSchema,
   CompleteSessionInputSchema,
-  GetSessionInputSchema,
+  GetSessionByIdInputSchema,
   CreateSessionResultSchema,
   GetActiveSessionResultSchema,
   CompleteSessionResultSchema,
@@ -164,15 +164,11 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         'Retrieve a specific learning session by its ID. ' +
         'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
         'to help inform teaching strategy based on previously reported difficulties.',
-      inputSchema: GetSessionInputSchema.shape,
+      inputSchema: GetSessionByIdInputSchema.shape,
     },
     async (input: unknown) => {
       try {
-        const validatedInput = GetSessionInputSchema.parse(input);
-
-        if (!validatedInput.session_id) {
-          throw new Error('Session ID is required');
-        }
+        const validatedInput = GetSessionByIdInputSchema.parse(input);
 
         const session = await ctx.getSessionById(validatedInput.session_id);
 
@@ -208,6 +204,14 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          logger.error('Invalid get_session input:', error);
+          return toolError(`Failed to get session: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         logger.error('Failed to get session:', error);
         return toolError(`Failed to get session: ${msg}`, {
           type: 'database',
