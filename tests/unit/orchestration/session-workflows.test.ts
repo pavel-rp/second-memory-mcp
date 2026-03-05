@@ -14,9 +14,8 @@ import {
   resolveSessionChunkDependencies,
   type SessionDeps,
 } from '../../../src/orchestration/session-workflows.js';
-import type { SessionRepository } from '../../../src/ports/session-repository.js';
-import type { ChunkRepository } from '../../../src/ports/chunk-repository.js';
 import type { LearningSession, LearningChunk } from '../../../src/domain/types/entities.js';
+import { stubSessionRepository, stubChunkRepository } from '../../helpers/stub-ports.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -66,7 +65,7 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
 
 function stubDeps(): SessionDeps {
   return {
-    sessions: {
+    sessions: stubSessionRepository({
       getActiveSession: vi.fn().mockResolvedValue(null),
       validateChunkIds: vi
         .fn()
@@ -95,10 +94,10 @@ function stubDeps(): SessionDeps {
         createdAt: NOW,
         updatedAt: NOW,
       }),
-    } as unknown as SessionRepository,
-    chunks: {
+    }),
+    chunks: stubChunkRepository({
       getById: vi.fn().mockResolvedValue(stubChunk()),
-    } as unknown as ChunkRepository,
+    }),
     maxDependencyDepth: 5,
   };
 }
@@ -178,6 +177,19 @@ describe('createSession', () => {
       expect(result.error.type).toBe('database');
     }
   });
+
+  it('returns fallback message when createSession throws a non-Error', async () => {
+    const deps = stubDeps();
+    (deps.sessions.createSession as ReturnType<typeof vi.fn>).mockRejectedValue('string error');
+
+    const result = await createSession({ mode: 'guided' }, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toBe('Failed to create session');
+    }
+  });
 });
 
 // ── completeSession ─────────────────────────────────────────────
@@ -215,6 +227,19 @@ describe('completeSession', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.type).toBe('database');
+    }
+  });
+
+  it('returns fallback message when completeSession throws a non-Error', async () => {
+    const deps = stubDeps();
+    (deps.sessions.completeSession as ReturnType<typeof vi.fn>).mockRejectedValue('string error');
+
+    const result = await completeSession('sess-1', undefined, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toBe('Failed to complete session');
     }
   });
 });
@@ -256,6 +281,21 @@ describe('batchUpdateSessionChunks', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.type).toBe('database');
+    }
+  });
+
+  it('returns fallback message when persist throws a non-Error', async () => {
+    const deps = stubDeps();
+    (
+      deps.sessions.persistBatchSessionChunkOperations as ReturnType<typeof vi.fn>
+    ).mockRejectedValue('string error');
+
+    const result = await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toBe('Failed to batch update session chunks');
     }
   });
 });
@@ -489,6 +529,19 @@ describe('resolveSessionChunkDependencies', () => {
     const result = await resolveSessionChunkDependencies(['c1'], deps);
 
     expect(result.resolvedChunkIds).toEqual(['c1']);
+    expect(result.addedPrerequisites).toEqual([]);
+  });
+
+  it('handles chunk with undefined prerequisites gracefully', async () => {
+    const deps = stubDeps();
+    // Chunk with no prerequisites field at all → mapChunkRowToLearningItem returns prerequisites: []
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'c1', prerequisitesJson: null })
+    );
+
+    const result = await resolveSessionChunkDependencies(['c1'], deps);
+
+    expect(result.resolvedChunkIds).toContain('c1');
     expect(result.addedPrerequisites).toEqual([]);
   });
 });

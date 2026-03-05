@@ -3,9 +3,9 @@ import {
   processReviewResult,
   type ReviewDeps,
 } from '../../../src/orchestration/review-workflows.js';
-import type { ReviewPersistencePort } from '../../../src/ports/review-persistence-port.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 import type { LearningChunk } from '../../../src/domain/types/entities.js';
+import { stubReviewPersistence } from '../../helpers/stub-ports.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -38,10 +38,10 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
 
 function stubDeps(): ReviewDeps {
   return {
-    reviewPersistence: {
+    reviewPersistence: stubReviewPersistence({
       getChunk: vi.fn().mockResolvedValue(stubChunk()),
       persistReviewUpdate: vi.fn().mockResolvedValue(1),
-    } as unknown as ReviewPersistencePort,
+    }),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   };
 }
