@@ -12,7 +12,7 @@ export function parseRecord(envValue: string | undefined): Record<string, number
   if (!envValue) return {};
   try {
     const raw: unknown = JSON.parse(envValue);
-    if (typeof raw !== 'object' || raw === null) return {};
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
     const obj = raw as Record<string, unknown>;
     const out: Record<string, number> = {};
     for (const [k, v] of Object.entries(obj)) {
