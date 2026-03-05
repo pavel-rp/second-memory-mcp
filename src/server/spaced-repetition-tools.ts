@@ -3,61 +3,21 @@ import type { AppContext } from '../composition-root.js';
 import {
   RecommendationInputSchema,
   RecommendationInputShape,
-  type RecommendationInput,
 } from '../domain/types/recommendations.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
-  type CalculateNextReviewInput,
   CalculatePriorityScoreInputSchema,
   CalculatePriorityScoreInputShape,
-  type CalculatePriorityScoreInput,
   CalculateNextReviewAdvancedInputSchema,
   CalculateNextReviewAdvancedInputShape,
-  type CalculateNextReviewAdvancedInput,
   RankCandidatesInputSchema,
   RankCandidatesInputShape,
-  type RankCandidatesInput,
   RecordReviewResultInputSchema,
   RecordReviewResultInputShape,
-  type RecordReviewResultInput,
 } from '../domain/types/spaced-repetition-tools.js';
-
-/** Map a snake_case MCP LearningItem to camelCase internal LearningItem. */
-function mapLearningItemInput(item: {
-  id: string;
-  title: string;
-  subject: string;
-  difficulty: number;
-  next_review_date: string;
-  ease_factor: number;
-  repetitions: number;
-  last_reviewed?: string;
-  estimated_duration: number;
-  chunk_type: string;
-  prerequisites?: string[];
-  tags?: string[];
-  topic_id?: string;
-  topic_title?: string;
-}) {
-  return {
-    id: item.id,
-    title: item.title,
-    subject: item.subject,
-    difficulty: item.difficulty,
-    nextReviewDate: item.next_review_date,
-    easeFactor: item.ease_factor,
-    repetitions: item.repetitions,
-    lastReviewed: item.last_reviewed,
-    estimatedDuration: item.estimated_duration,
-    chunkType: item.chunk_type as 'new' | 'review' | 'remediation',
-    prerequisites: item.prerequisites,
-    tags: item.tags,
-    topicId: item.topic_id,
-    topicTitle: item.topic_title,
-  };
-}
 
 export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -70,27 +30,18 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     },
     async (rawInput: unknown) => {
       try {
-        const { quality, repetitions, ease_factor, interval }: CalculateNextReviewInput =
+        const { quality, repetitions, easeFactor, interval } =
           CalculateNextReviewInputSchema.parse(rawInput);
-        const {
-          interval: outInterval,
-          repetitions: outReps,
-          easeFactor,
-          nextReview,
-        } = ctx.calculateNextReview({
-          quality,
-          repetitions,
-          easeFactor: ease_factor,
-          interval,
-        });
+        const result = ctx.calculateNextReview({ quality, repetitions, easeFactor, interval });
 
-        const result = {
-          interval: outInterval,
-          repetitions: outReps,
-          ease_factor: Number(easeFactor.toFixed(3)),
-          next_review: nextReview,
-        };
-        return toolJson(result);
+        return toolJson(
+          toSnakeCase({
+            interval: result.interval,
+            repetitions: result.repetitions,
+            easeFactor: Number(result.easeFactor.toFixed(3)),
+            nextReview: result.nextReview,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to calculate next review: ${msg}`, {
@@ -111,15 +62,11 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     },
     async (rawInput: unknown) => {
       try {
-        const {
-          next_review_date,
-          ease_factor,
-          repetitions,
-          difficulty,
-        }: CalculatePriorityScoreInput = CalculatePriorityScoreInputSchema.parse(rawInput);
+        const { nextReviewDate, easeFactor, repetitions, difficulty } =
+          CalculatePriorityScoreInputSchema.parse(rawInput);
         const { priority } = ctx.calculatePriorityScore({
-          nextReviewDate: next_review_date,
-          easeFactor: ease_factor,
+          nextReviewDate,
+          easeFactor,
           repetitions,
           difficulty,
         });
@@ -144,38 +91,26 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     },
     async (rawInput: unknown) => {
       try {
-        const {
-          quality,
-          repetitions,
-          ease_factor,
-          interval,
-          days_overdue,
-          consecutive_failures,
-        }: CalculateNextReviewAdvancedInput =
+        const { quality, repetitions, easeFactor, interval, daysOverdue, consecutiveFailures } =
           CalculateNextReviewAdvancedInputSchema.parse(rawInput);
-        const {
-          interval: outInterval,
-          repetitions: outReps,
-          easeFactor,
-          nextReview,
-          leech,
-        } = ctx.calculateNextReviewAdvanced({
+        const result = ctx.calculateNextReviewAdvanced({
           quality,
           repetitions,
-          easeFactor: ease_factor,
+          easeFactor,
           interval,
-          daysOverdue: days_overdue,
-          consecutiveFailures: consecutive_failures,
+          daysOverdue,
+          consecutiveFailures,
         });
 
-        const result = {
-          interval: outInterval,
-          repetitions: outReps,
-          ease_factor: Number(easeFactor.toFixed(3)),
-          next_review: nextReview,
-          leech,
-        };
-        return toolJson(result);
+        return toolJson(
+          toSnakeCase({
+            interval: result.interval,
+            repetitions: result.repetitions,
+            easeFactor: Number(result.easeFactor.toFixed(3)),
+            nextReview: result.nextReview,
+            leech: result.leech,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to calculate advanced review: ${msg}`, {
@@ -195,22 +130,9 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     },
     async (rawInput: unknown) => {
       try {
-        const { candidates, timebox_minutes }: RankCandidatesInput =
-          RankCandidatesInputSchema.parse(rawInput);
-        const mapped = candidates.map(c => ({
-          id: c.id,
-          nextReviewDate: c.next_review_date,
-          easeFactor: c.ease_factor,
-          repetitions: c.repetitions,
-          difficulty: c.difficulty,
-          tags: c.tags,
-          estimatedDuration: c.estimated_duration,
-        }));
-        const out = ctx.rankCandidates({
-          candidates: mapped,
-          timeboxMinutes: timebox_minutes,
-        });
-        return toolJson(out);
+        const { candidates, timeboxMinutes } = RankCandidatesInputSchema.parse(rawInput);
+        const out = ctx.rankCandidates({ candidates, timeboxMinutes });
+        return toolJson(toSnakeCase(out));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to rank candidates: ${msg}`, {
@@ -233,71 +155,14 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
       try {
         const parsed = RecommendationInputSchema.parse(input);
 
-        // Map snake_case MCP input to camelCase internal type
-        const parsedInput: RecommendationInput = {
-          mode: parsed.mode,
-          timeAvailable: parsed.time_available,
-          subjectPreference: parsed.subject_preference,
-          learningItems: parsed.learning_items?.map(mapLearningItemInput),
-          fetchFromDatabase: parsed.fetch_from_database,
-          subjectFilter: parsed.subject_filter,
-          dueOnly: parsed.due_only,
-          limit: parsed.limit,
-          constraints: parsed.constraints
-            ? {
-                maxDuration: parsed.constraints.max_duration,
-                maxCognitiveLoad: parsed.constraints.max_cognitive_load,
-                maxNewItems: parsed.constraints.max_new_items,
-                subjectFilter: parsed.constraints.subject_filter,
-                excludeIds: parsed.constraints.exclude_ids,
-              }
-            : undefined,
-          userHistory: parsed.user_history
-            ? {
-                recentSessions: parsed.user_history.recent_sessions.map(s => ({
-                  date: s.date,
-                  duration: s.duration,
-                  itemsCompleted: s.items_completed,
-                  averageQuality: s.average_quality,
-                  cognitiveLoad: s.cognitive_load,
-                })),
-                patterns: {
-                  averageSessionDuration: parsed.user_history.patterns.average_session_duration,
-                  preferredDifficulty: parsed.user_history.patterns.preferred_difficulty,
-                  successRate: parsed.user_history.patterns.success_rate,
-                  fatigueThreshold: parsed.user_history.patterns.fatigue_threshold,
-                  subjectPreferences: parsed.user_history.patterns.subject_preferences,
-                  optimalSessionTime: parsed.user_history.patterns.optimal_session_time,
-                },
-              }
-            : undefined,
-          sessionContext: parsed.session_context
-            ? {
-                currentSessionId: parsed.session_context.current_session_id,
-                activeItems: parsed.session_context.active_items,
-                sessionStartTime: parsed.session_context.session_start_time,
-                lastActivity: parsed.session_context.last_activity,
-                userPreferences: parsed.session_context.user_preferences,
-                currentRecommendations: parsed.session_context.current_recommendations?.map(r => ({
-                  item: mapLearningItemInput(r.item),
-                  priority: r.priority,
-                  reason: r.reason,
-                  order: r.order,
-                  cognitiveLoad: r.cognitive_load,
-                })),
-                currentItemIndex: parsed.session_context.current_item_index,
-              }
-            : undefined,
-        };
-
         // Self-fetch mode: fetch from database
-        let itemsToProcess = parsedInput.learningItems;
-        if (parsedInput.fetchFromDatabase) {
+        let itemsToProcess = parsed.learningItems;
+        if (parsed.fetchFromDatabase) {
           try {
             itemsToProcess = await ctx.listChunksAsLearningItems({
-              subjectFilter: parsedInput.subjectFilter,
-              dueOnly: parsedInput.dueOnly,
-              limit: parsedInput.limit,
+              subjectFilter: parsed.subjectFilter,
+              dueOnly: parsed.dueOnly,
+              limit: parsed.limit,
             });
           } catch (dbError) {
             const msg = extractErrorMessage(dbError);
@@ -311,10 +176,10 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
 
         // Generate recommendations with fetched or provided items
         const result = await ctx.generateRecommendations({
-          ...parsedInput,
+          ...parsed,
           learningItems: itemsToProcess ?? [],
         });
-        return toolJson(result);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to generate recommendations: ${msg}`, {
@@ -335,11 +200,11 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     },
     async (rawInput: unknown) => {
       try {
-        const input: RecordReviewResultInput = RecordReviewResultInputSchema.parse(rawInput);
-        const result = await ctx.processReviewResult(input.item_id, input.quality, {
-          timeSpentMs: input.time_spent_ms,
-          consecutiveFailures: input.consecutive_failures,
-          daysOverdue: input.days_overdue,
+        const input = RecordReviewResultInputSchema.parse(rawInput);
+        const result = await ctx.processReviewResult(input.itemId, input.quality, {
+          timeSpentMs: input.timeSpentMs,
+          consecutiveFailures: input.consecutiveFailures,
+          daysOverdue: input.daysOverdue,
         });
 
         if (!result.success) {
@@ -351,17 +216,19 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         }
 
         // Fetch updated chunk to return as learning item
-        const updatedChunk = await ctx.getChunkWithContent(input.item_id);
+        const updatedChunk = await ctx.getChunkWithContent(input.itemId);
         const learningItem = updatedChunk ? ctx.mapChunkRowToLearningItem(updatedChunk) : undefined;
 
-        return toolJson({
-          success: true,
-          item: learningItem,
-          is_leech: result.data.isLeech,
-          message: result.data.isLeech
-            ? 'Item marked as leech due to consecutive failures'
-            : 'Review result recorded successfully',
-        });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            item: learningItem,
+            isLeech: result.data.isLeech,
+            message: result.data.isLeech
+              ? 'Item marked as leech due to consecutive failures'
+              : 'Review result recorded successfully',
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to record review result: ${msg}`, {

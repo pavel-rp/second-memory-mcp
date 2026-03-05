@@ -266,8 +266,8 @@ describe('spaced-repetition-tools', () => {
         timebox_minutes: 60,
       });
       const parsed = parseResult(result);
-      expect(parsed.orderedIds).toBeDefined();
-      expect(Array.isArray(parsed.orderedIds)).toBe(true);
+      expect(parsed.ordered_ids).toBeDefined();
+      expect(Array.isArray(parsed.ordered_ids)).toBe(true);
     });
 
     it('handles empty candidates array', async () => {
@@ -275,7 +275,7 @@ describe('spaced-repetition-tools', () => {
       const handler = server.tools.get('rank_candidates')!.handler;
       const result = await handler({ candidates: [] });
       const parsed = parseResult(result);
-      expect(parsed.orderedIds).toEqual([]);
+      expect(parsed.ordered_ids).toEqual([]);
     });
 
     it('returns computation error when context throws', async () => {
@@ -601,8 +601,8 @@ describe('spaced-repetition-tools', () => {
       expect(parsed.is_leech).toBe(false);
       expect(parsed.item).toBeDefined();
       expect(parsed.item.id).toBe('chunk-1');
-      expect(parsed.item.nextReviewDate).toBe('2025-06-20');
-      expect(parsed.item.easeFactor).toBe(2.6);
+      expect(parsed.item.next_review_date).toBe('2025-06-20');
+      expect(parsed.item.ease_factor).toBe(2.6);
       expect(typeof parsed.message).toBe('string');
     });
 

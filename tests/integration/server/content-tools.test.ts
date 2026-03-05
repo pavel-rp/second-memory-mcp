@@ -66,8 +66,8 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed.success).toBe(true);
     expect(parsed.items).toHaveLength(1);
     expect(parsed.items[0].content).toBe('This is the content for Two Sum problem');
-    expect(parsed.items[0].contentVersion).toBe(1);
-    expect(parsed.items[0].contentUpdatedAt).toBe(now);
+    expect(parsed.items[0].content_version).toBe(1);
+    expect(parsed.items[0].content_updated_at).toBe(now);
     expect(parsed.content_included).toBe(true);
     expect(parsed.pagination.total).toBe(1);
     expect(parsed.pagination.has_more).toBe(false);
@@ -118,8 +118,8 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed.success).toBe(true);
     expect(parsed.items).toHaveLength(1);
     expect(parsed.items[0].content).toBeUndefined();
-    expect(parsed.items[0].contentVersion).toBeUndefined();
-    expect(parsed.items[0].contentUpdatedAt).toBeUndefined();
+    expect(parsed.items[0].content_version).toBeUndefined();
+    expect(parsed.items[0].content_updated_at).toBeUndefined();
     expect(parsed.items[0].title).toBe('Two Sum Problem');
     expect(parsed.content_included).toBe(false);
   });

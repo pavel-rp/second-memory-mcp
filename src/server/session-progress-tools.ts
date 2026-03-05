@@ -3,7 +3,10 @@ import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import { BatchUpdateInputSchema } from '../domain/types/session.js';
-import { CreateSessionChunkToolInputSchema } from '../domain/types/session-management-tools.js';
+import {
+  CreateSessionChunkToolInputShape,
+  CreateSessionChunkToolInputSchema,
+} from '../domain/types/session-management-tools.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -14,7 +17,7 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
       title: 'Create Session Chunk',
       description:
         'Create a new session chunk to track learning progress for a specific chunk within a session',
-      inputSchema: CreateSessionChunkToolInputSchema.shape,
+      inputSchema: CreateSessionChunkToolInputShape,
     },
     async (input: unknown) => {
       try {
@@ -24,18 +27,18 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         const mappedAttempts = validatedInput.attempts?.map(a => ({
           timestamp: new Date(a.timestamp).toISOString(),
           quality: a.quality,
-          time_spent_ms: a.time_spent_ms,
+          time_spent_ms: a.timeSpentMs,
           completed: a.completed,
         }));
 
         const sessionChunk = await ctx.createSessionChunk({
           id: crypto.randomUUID(),
-          sessionId: validatedInput.session_id,
-          chunkId: validatedInput.chunk_id,
+          sessionId: validatedInput.sessionId,
+          chunkId: validatedInput.chunkId,
           status: validatedInput.status,
           attemptsJson: mappedAttempts ?? undefined,
-          qualityScoresJson: validatedInput.quality_scores ?? undefined,
-          timeSpentMs: validatedInput.time_spent_ms,
+          qualityScoresJson: validatedInput.qualityScores ?? undefined,
+          timeSpentMs: validatedInput.timeSpentMs,
           createdAt: now,
           updatedAt: now,
         });
@@ -47,7 +50,7 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         };
 
         logger.info(
-          `Created session chunk ${sessionChunk.id} for session ${validatedInput.session_id}`
+          `Created session chunk ${sessionChunk.id} for session ${validatedInput.sessionId}`
         );
         return toolJson(result);
       } catch (error) {

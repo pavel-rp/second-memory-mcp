@@ -266,7 +266,7 @@ describe('session-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.message).toBe('Let me help you learn arrays.');
-      expect(parsed.needsInput).toBe(true);
+      expect(parsed.needs_input).toBe(true);
     });
 
     it('maps snake_case input to camelCase for conductor', async () => {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 // Base review entry for analytics calculations
 export type ReviewEntry = {
@@ -71,7 +72,7 @@ const ReviewEntryShape = {
     .describe('Optional tags associated with the review'),
 } as const;
 
-export const ReviewEntrySchema = z.object(ReviewEntryShape);
+export const ReviewEntrySchema = z.object(ReviewEntryShape).transform(toCamelCaseKeys);
 
 const AnalyticsInputShape = {
   entries: z.array(ReviewEntrySchema).describe('Review entries used to compute analytics'),
@@ -109,7 +110,9 @@ export const AnalyticsWindowInputShape = {
     .describe('Include topic/tag breakdowns in the analytics output'),
 } as const;
 
-export const AnalyticsWindowInputSchema = z.object(AnalyticsWindowInputShape);
+export const AnalyticsWindowInputSchema = z
+  .object(AnalyticsWindowInputShape)
+  .transform(toCamelCaseKeys);
 export type AnalyticsWindowInput = z.infer<typeof AnalyticsWindowInputSchema>;
 
 export const DailyKpisSchema = z.object({

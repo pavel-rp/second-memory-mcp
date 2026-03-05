@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 export const GetChunkContentInputShape = {
   chunk_id: z
@@ -7,7 +8,9 @@ export const GetChunkContentInputShape = {
     .describe('ID of the chunk to retrieve content for'),
 } as const;
 
-export const GetChunkContentInputSchema = z.object(GetChunkContentInputShape);
+export const GetChunkContentInputSchema = z
+  .object(GetChunkContentInputShape)
+  .transform(toCamelCaseKeys);
 export type GetChunkContentInput = z.infer<typeof GetChunkContentInputSchema>;
 
 export const GetTopicSummaryInputShape = {
@@ -17,7 +20,9 @@ export const GetTopicSummaryInputShape = {
     .describe('ID of the topic to retrieve summary for'),
 } as const;
 
-export const GetTopicSummaryInputSchema = z.object(GetTopicSummaryInputShape);
+export const GetTopicSummaryInputSchema = z
+  .object(GetTopicSummaryInputShape)
+  .transform(toCamelCaseKeys);
 export type GetTopicSummaryInput = z.infer<typeof GetTopicSummaryInputSchema>;
 
 export const ListItemsWithContentInputShape = {
@@ -46,5 +51,7 @@ export const ListItemsWithContentInputShape = {
     ),
 } as const;
 
-export const ListItemsWithContentInputSchema = z.object(ListItemsWithContentInputShape);
+export const ListItemsWithContentInputSchema = z
+  .object(ListItemsWithContentInputShape)
+  .transform(toCamelCaseKeys);
 export type ListItemsWithContentInput = z.infer<typeof ListItemsWithContentInputSchema>;

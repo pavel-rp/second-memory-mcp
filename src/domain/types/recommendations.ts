@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 // Recommendation mode types
 export type RecommendationMode = 'guided' | 'explicit';
@@ -161,7 +162,7 @@ export const ChunkTypeSchema = z.enum(['new', 'review', 'remediation']);
 
 export const SubjectPreferenceSchema = z.enum(['CS', 'Math', 'SWE', 'Language', 'Any']);
 
-export const LearningItemSchema = z.object({
+const LearningItemObjectSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   subject: z.string().min(1),
@@ -181,11 +182,13 @@ export const LearningItemSchema = z.object({
   topic_title: z.string().min(1).optional(),
 });
 
-export const LearningItemWithContentSchema = LearningItemSchema.extend({
+export const LearningItemSchema = LearningItemObjectSchema.transform(toCamelCaseKeys);
+
+export const LearningItemWithContentSchema = LearningItemObjectSchema.extend({
   content: z.string().optional(),
   content_version: z.number().int().min(1).optional(),
   content_updated_at: z.number().int().min(0).optional(),
-});
+}).transform(toCamelCaseKeys);
 
 export type PaginatedLearningItemsResponse = {
   items: LearningItemWithContent[];
@@ -197,21 +200,25 @@ export type PaginatedLearningItemsResponse = {
   };
 };
 
-export const SessionConstraintsSchema = z.object({
-  max_duration: z.number().min(0).optional(),
-  max_cognitive_load: z.number().min(0).optional(),
-  max_new_items: z.number().int().min(0).optional(),
-  subject_filter: z.string().optional(),
-  exclude_ids: z.array(z.string()).optional(),
-});
+export const SessionConstraintsSchema = z
+  .object({
+    max_duration: z.number().min(0).optional(),
+    max_cognitive_load: z.number().min(0).optional(),
+    max_new_items: z.number().int().min(0).optional(),
+    subject_filter: z.string().optional(),
+    exclude_ids: z.array(z.string()).optional(),
+  })
+  .transform(toCamelCaseKeys);
 
-export const LearningRecommendationSchema = z.object({
-  item: LearningItemSchema,
-  priority: z.number(),
-  reason: z.string().min(1),
-  order: z.number().int().min(1),
-  cognitive_load: z.number().min(0),
-});
+export const LearningRecommendationSchema = z
+  .object({
+    item: LearningItemSchema,
+    priority: z.number(),
+    reason: z.string().min(1),
+    order: z.number().int().min(1),
+    cognitive_load: z.number().min(0),
+  })
+  .transform(toCamelCaseKeys);
 
 export const SessionSummarySchema = z.object({
   total_items: z.number().int().min(0),
@@ -230,37 +237,45 @@ export const ConversationGuidanceSchema = z.object({
   progress_update: z.string().optional(),
 });
 
-export const LearningPatternsSchema = z.object({
-  average_session_duration: z.number().min(0),
-  preferred_difficulty: z.number().min(1).max(10),
-  success_rate: z.number().min(0).max(1),
-  fatigue_threshold: z.number().min(0),
-  subject_preferences: z.record(z.number()),
-  optimal_session_time: z.string().optional(),
-});
+export const LearningPatternsSchema = z
+  .object({
+    average_session_duration: z.number().min(0),
+    preferred_difficulty: z.number().min(1).max(10),
+    success_rate: z.number().min(0).max(1),
+    fatigue_threshold: z.number().min(0),
+    subject_preferences: z.record(z.number()),
+    optimal_session_time: z.string().optional(),
+  })
+  .transform(toCamelCaseKeys);
 
-export const SessionHistorySchema = z.object({
-  recent_sessions: z.array(
-    z.object({
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
-      duration: z.number().min(0),
-      items_completed: z.number().int().min(0),
-      average_quality: z.number().min(0).max(5),
-      cognitive_load: z.number().min(0),
-    })
-  ),
-  patterns: LearningPatternsSchema,
-});
+export const SessionHistorySchema = z
+  .object({
+    recent_sessions: z.array(
+      z
+        .object({
+          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
+          duration: z.number().min(0),
+          items_completed: z.number().int().min(0),
+          average_quality: z.number().min(0).max(5),
+          cognitive_load: z.number().min(0),
+        })
+        .transform(toCamelCaseKeys)
+    ),
+    patterns: LearningPatternsSchema,
+  })
+  .transform(toCamelCaseKeys);
 
-export const SessionContextSchema = z.object({
-  current_session_id: z.string().optional(),
-  active_items: z.array(z.string()).optional(),
-  session_start_time: z.number().optional(),
-  last_activity: z.number().optional(),
-  user_preferences: z.record(z.unknown()).optional(),
-  current_recommendations: z.array(LearningRecommendationSchema).optional(),
-  current_item_index: z.number().optional(),
-});
+export const SessionContextSchema = z
+  .object({
+    current_session_id: z.string().optional(),
+    active_items: z.array(z.string()).optional(),
+    session_start_time: z.number().optional(),
+    last_activity: z.number().optional(),
+    user_preferences: z.record(z.unknown()).optional(),
+    current_recommendations: z.array(LearningRecommendationSchema).optional(),
+    current_item_index: z.number().optional(),
+  })
+  .transform(toCamelCaseKeys);
 
 export const RecommendationInputShape = {
   mode: RecommendationModeSchema.optional(),
@@ -291,7 +306,8 @@ export const RecommendationInputSchema = z
         message: 'Provide learning_items when fetch_from_database is false.',
       });
     }
-  });
+  })
+  .transform(toCamelCaseKeys);
 
 export const ConversationRequestShape = {
   intent: z.string().min(1).describe('User intent driving the guided learning conversation'),
@@ -306,4 +322,6 @@ export const ConversationRequestShape = {
     .describe('Opaque session state blob from prior interactions'),
 } as const;
 
-export const ConversationRequestSchema = z.object(ConversationRequestShape);
+export const ConversationRequestSchema = z
+  .object(ConversationRequestShape)
+  .transform(toCamelCaseKeys);

@@ -8,7 +8,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(false);
+    expect(result.fetchFromDatabase).toBe(false);
   });
 
   it('validates fetch_from_database: true with filters', () => {
@@ -21,9 +21,9 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(true);
-    expect(result.subject_filter).toBe('Math');
-    expect(result.due_only).toBe(true);
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result.subjectFilter).toBe('Math');
+    expect(result.dueOnly).toBe(true);
     expect(result.limit).toBe(10);
   });
 
@@ -34,7 +34,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(false);
+    expect(result.fetchFromDatabase).toBe(false);
   });
 
   it('validates subject filter is optional', () => {
@@ -44,7 +44,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.subject_filter).toBe('CS');
+    expect(result.subjectFilter).toBe('CS');
   });
 
   it('validates due_only filter is optional', () => {
@@ -54,7 +54,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.due_only).toBe(true);
+    expect(result.dueOnly).toBe(true);
   });
 
   it('validates limit filter is optional and must be positive integer', () => {
@@ -104,9 +104,9 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(true);
-    expect(result.subject_filter).toBe('SWE');
-    expect(result.due_only).toBe(false);
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result.subjectFilter).toBe('SWE');
+    expect(result.dueOnly).toBe(false);
     expect(result.limit).toBe(20);
   });
 
@@ -117,9 +117,9 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(true);
-    expect(result.subject_filter).toBeUndefined();
-    expect(result.due_only).toBeUndefined();
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result.subjectFilter).toBeUndefined();
+    expect(result.dueOnly).toBeUndefined();
     expect(result.limit).toBeUndefined();
   });
 
@@ -133,10 +133,10 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
 
     const result = RecommendationInputSchema.parse(input);
     // fetch_from_database should default to false
-    expect(result.fetch_from_database).toBe(false);
+    expect(result.fetchFromDatabase).toBe(false);
     // But filters should still be present in the parsed result
-    expect(result.subject_filter).toBe('Math');
-    expect(result.due_only).toBe(true);
+    expect(result.subjectFilter).toBe('Math');
+    expect(result.dueOnly).toBe(true);
     expect(result.limit).toBe(10);
   });
 });

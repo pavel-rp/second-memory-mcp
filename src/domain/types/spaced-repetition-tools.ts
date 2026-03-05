@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
+import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 export const CalculateNextReviewInputShape = {
   quality: z.number().min(0).max(5).describe('Quality score from the latest review (0-5)'),
@@ -8,7 +9,9 @@ export const CalculateNextReviewInputShape = {
   interval: z.number().int().min(0).describe('Current review interval in days'),
 } as const;
 
-export const CalculateNextReviewInputSchema = z.object(CalculateNextReviewInputShape);
+export const CalculateNextReviewInputSchema = z
+  .object(CalculateNextReviewInputShape)
+  .transform(toCamelCaseKeys);
 export type CalculateNextReviewInput = z.infer<typeof CalculateNextReviewInputSchema>;
 
 export const CalculatePriorityScoreInputShape = {
@@ -23,7 +26,9 @@ export const CalculatePriorityScoreInputShape = {
     .describe('Difficulty rating for the learning item (1-10)'),
 } as const;
 
-export const CalculatePriorityScoreInputSchema = z.object(CalculatePriorityScoreInputShape);
+export const CalculatePriorityScoreInputSchema = z
+  .object(CalculatePriorityScoreInputShape)
+  .transform(toCamelCaseKeys);
 export type CalculatePriorityScoreInput = z.infer<typeof CalculatePriorityScoreInputSchema>;
 
 export const CalculateNextReviewAdvancedInputShape = {
@@ -40,9 +45,9 @@ export const CalculateNextReviewAdvancedInputShape = {
     .describe('Number of consecutive failed reviews'),
 } as const;
 
-export const CalculateNextReviewAdvancedInputSchema = z.object(
-  CalculateNextReviewAdvancedInputShape
-);
+export const CalculateNextReviewAdvancedInputSchema = z
+  .object(CalculateNextReviewAdvancedInputShape)
+  .transform(toCamelCaseKeys);
 export type CalculateNextReviewAdvancedInput = z.infer<
   typeof CalculateNextReviewAdvancedInputSchema
 >;
@@ -63,7 +68,7 @@ export const RankCandidateShape = {
     .describe('Estimated study duration in minutes'),
 } as const;
 
-export const RankCandidateSchema = z.object(RankCandidateShape);
+export const RankCandidateSchema = z.object(RankCandidateShape).transform(toCamelCaseKeys);
 
 export const RankCandidatesInputShape = {
   candidates: z.array(RankCandidateSchema).describe('Learning items to rank for review priority'),
@@ -74,7 +79,9 @@ export const RankCandidatesInputShape = {
     .describe('Optional timebox limit for the review session (minutes)'),
 } as const;
 
-export const RankCandidatesInputSchema = z.object(RankCandidatesInputShape);
+export const RankCandidatesInputSchema = z
+  .object(RankCandidatesInputShape)
+  .transform(toCamelCaseKeys);
 export type RankCandidatesInput = z.infer<typeof RankCandidatesInputSchema>;
 
 export const RecordReviewResultInputShape = {
@@ -116,5 +123,7 @@ export const RecordReviewResultInputShape = {
     .describe('Days past the scheduled review date'),
 } as const;
 
-export const RecordReviewResultInputSchema = z.object(RecordReviewResultInputShape);
+export const RecordReviewResultInputSchema = z
+  .object(RecordReviewResultInputShape)
+  .transform(toCamelCaseKeys);
 export type RecordReviewResultInput = z.infer<typeof RecordReviewResultInputSchema>;

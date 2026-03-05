@@ -2,11 +2,11 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
 import {
-  type ConversationRequest,
   ConversationRequestSchema,
   ConversationRequestShape,
 } from '../domain/types/recommendations.js';
 import { SessionInputSchema } from '../domain/types/session.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -182,15 +182,9 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     async (input: unknown) => {
       try {
         const parsed = ConversationRequestSchema.parse(input);
-        const conversationInput: ConversationRequest = {
-          intent: parsed.intent,
-          context: parsed.context,
-          userInput: parsed.user_input,
-          sessionState: parsed.session_state,
-        };
         const conversationManager = ctx.createConversationManager();
-        const result = await conversationManager.conductLearningSession(conversationInput);
-        return toolJson(result);
+        const result = await conversationManager.conductLearningSession(parsed);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to conduct learning conversation: ${msg}`, {
