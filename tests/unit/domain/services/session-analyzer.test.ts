@@ -465,7 +465,7 @@ describe('Session Manager', () => {
     });
   });
 
-  describe('checkSessionCompletion — chunkMet only (line 273)', () => {
+  describe('checkSessionCompletion — completes when only chunk threshold is met', () => {
     it('completes when chunk threshold met but quality below threshold', () => {
       // chunkMet=true, qualityMet=false, timeMet=false
       // Need overall_progress >= 0.8 (completionThreshold) with low quality
@@ -520,7 +520,7 @@ describe('Session Manager', () => {
     });
   });
 
-  describe('checkSessionCompletion — qualityMet+timeMet (line 280)', () => {
+  describe('checkSessionCompletion — quality and time thresholds met with incomplete chunks', () => {
     it('completes when quality and time thresholds met but chunks incomplete', () => {
       // qualityMet=true, timeMet=true, chunkMet=false, maxTime not exceeded
       // Quality >= 4.0, 90min <= time < 120min, progress < 0.8
@@ -592,7 +592,7 @@ describe('Session Manager', () => {
     });
   });
 
-  describe('checkSessionCompletion — timeMet+50% progress (line 287)', () => {
+  describe('checkSessionCompletion — time threshold met with 50%+ progress recommends break', () => {
     it('recommends break when time threshold met with 50%+ progress', () => {
       // timeMet=true, progress >= 0.5, qualityMet=false, chunkMet=false
       // 90min <= time < 120min, quality < 4.0, 0.5 <= progress < 0.8

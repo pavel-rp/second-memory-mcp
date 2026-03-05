@@ -898,7 +898,7 @@ describe('RecommendationEngine', () => {
     );
 
     expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.conversationGuidance.encouragement).toContain(
+    expect(result.conversationGuidance?.encouragement).toContain(
       'Consistent review leads to lasting learning'
     );
   });
@@ -1023,7 +1023,7 @@ describe('RecommendationEngine', () => {
     );
 
     expect(result.recommendations).toEqual([]);
-    expect(result.conversationGuidance.nextAction).toContain('No items are due');
+    expect(result.conversationGuidance?.nextAction).toContain('No items are due');
   });
 
   it('includes timeAvailable in rationale when set', async () => {
@@ -1062,6 +1062,6 @@ describe('RecommendationEngine', () => {
     );
 
     expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.conversationGuidance.encouragement).toContain('explore new concepts');
+    expect(result.conversationGuidance?.encouragement).toContain('explore new concepts');
   });
 });
