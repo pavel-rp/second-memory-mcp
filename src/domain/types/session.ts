@@ -26,7 +26,7 @@ export type SessionChunk = {
   subject?: string;
   difficulty?: number; // 1-10
   estimated_duration?: number; // minutes
-  chunk_type?: string; // 'new' | 'review' | 'remediation'
+  chunk_type?: 'new' | 'review' | 'remediation';
 };
 
 // Historical feedback from previous sessions on same chunks
@@ -112,7 +112,7 @@ export const SessionChunkSchema = z.object({
   subject: z.string().optional(),
   difficulty: z.number().int().min(1).max(10).optional(),
   estimated_duration: z.number().min(0).optional(),
-  chunk_type: z.string().optional(),
+  chunk_type: z.enum(['new', 'review', 'remediation']).optional(),
 });
 
 export const HistoricalFeedbackSchema = z.object({

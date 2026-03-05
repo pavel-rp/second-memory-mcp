@@ -26,6 +26,14 @@ import type {
 } from '../../domain/types/session.js';
 import { logger } from '../../shared/logger.js';
 
+function toIsoDate(epochMs: number): string {
+  const d = new Date(epochMs);
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
 export class DrizzleSessionRepository implements SessionRepository {
   constructor(private db: SqlDb = getSql()) {}
 
@@ -190,13 +198,6 @@ export class DrizzleSessionRepository implements SessionRepository {
         : [];
     const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
 
-    const toIsoDate = (epochMs: number): string => {
-      const d = new Date(epochMs);
-      const y = d.getUTCFullYear();
-      const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(d.getUTCDate()).padStart(2, '0');
-      return `${y}-${mo}-${day}`;
-    };
     const chunks = sessionChunkRows.map(sc => {
       const detail = chunkMap.get(sc.chunkId);
       return {
@@ -213,7 +214,7 @@ export class DrizzleSessionRepository implements SessionRepository {
           subject: detail.subject,
           difficulty: detail.difficulty,
           estimated_duration: detail.estimatedDuration,
-          chunk_type: detail.chunkType,
+          chunk_type: detail.chunkType as 'new' | 'review' | 'remediation',
         }),
       };
     });

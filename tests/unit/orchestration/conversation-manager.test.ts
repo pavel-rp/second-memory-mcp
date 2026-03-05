@@ -481,6 +481,49 @@ describe('ConversationManager', () => {
       expect(out.sessionUpdated).toBe(true);
     });
 
+    it('uses default SM-2 values when chunk metadata is absent', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([]),
+        getActiveSession: vi.fn().mockResolvedValue({ id: 'active-sess' }),
+        convertSessionToInput: vi.fn().mockResolvedValue({
+          chunks: [{ chunk_id: 'c1', title: 'No Metadata Chunk', status: 'pending' }],
+        }),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'continue',
+        userInput: 'continue',
+      });
+
+      // Falls back to default estimatedDuration of 10
+      expect(out.message).toContain('No Metadata Chunk');
+      expect(out.message).toContain('10 min');
+      expect(out.sessionUpdated).toBe(true);
+    });
+
     it('handles DB hydration failure gracefully', async () => {
       const validator = new PrerequisiteValidator({
         referenceValidator: {
