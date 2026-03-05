@@ -1087,6 +1087,192 @@ describe('ConversationManager', () => {
       expect(out.needsInput).toBe(true);
     });
   });
+
+  // ── STEP-003: get_recommendations intent ─────────────────────────
+
+  describe('get_recommendations intent', () => {
+    it('returns DB-backed recommendations when items exist', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const mockListChunks = vi.fn().mockResolvedValue([
+        {
+          id: 'rec-1',
+          title: 'Overdue Review',
+          subject: 'CS',
+          difficulty: 5,
+          nextReviewDate: '2025-06-14',
+          easeFactor: 2.5,
+          repetitions: 1,
+          estimatedDuration: 10,
+          chunkType: 'review',
+        },
+      ]);
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: mockListChunks,
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(mockListChunks).toHaveBeenCalledWith({
+        subjectFilter: undefined,
+        dueOnly: true,
+        limit: 50,
+      });
+      expect(out.recommendations).toBeDefined();
+      expect(out.needsInput).toBe(false);
+    });
+
+    it('returns no-items message when DB is empty', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message.toLowerCase()).toContain('no learning items');
+      expect(out.needsInput).toBe(false);
+    });
+
+    it('handles DB fetch failure gracefully', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockRejectedValue(new Error('db crash')),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message.toLowerCase()).toContain('encountered an issue');
+      expect(out.needsInput).toBe(true);
+    });
+
+    it('passes subject filter from context', async () => {
+      const cm = createTestConversationManager();
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+        context: { subject: 'Math' },
+      });
+
+      // listChunksAsLearningItems mock returns [] → no items message
+      expect(out.message.toLowerCase()).toContain('no learning items');
+    });
+
+    it('returns all-caught-up when engine produces 0 recommendations', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      vi.spyOn(engine, 'generateRecommendations').mockResolvedValue({
+        recommendations: [],
+        estimatedDuration: 0,
+        rationale: '',
+        sessionSummary: {
+          totalItems: 0,
+          totalDuration: 0,
+          totalCognitiveLoad: 0,
+          newItems: 0,
+          reviewItems: 0,
+          remediationItems: 0,
+          subjects: [],
+        },
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            title: 'X',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewDate: '2025-06-15',
+            easeFactor: 2.3,
+            repetitions: 1,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+        ]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message).toContain('all caught up');
+      expect(out.needsInput).toBe(true);
+    });
+  });
 });
 
 function minimalItem(id: string): LearningItem {
