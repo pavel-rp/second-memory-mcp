@@ -241,7 +241,7 @@ describe('searchLearningContent — hybrid mode', () => {
     const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
 
     // Should still have semantic results
-    expect(result.results.length).toBeGreaterThanOrEqual(0);
+    expect(result.results.length).toBeGreaterThan(0);
   });
 
   it('handles empty semantic results gracefully', async () => {
