@@ -36,6 +36,28 @@ function createTestConversationManager() {
   });
 }
 
+function createTestRecommendationEngine() {
+  const validator = new PrerequisiteValidator({
+    referenceValidator: {
+      validateChunkPrerequisites: vi.fn().mockReturnValue({ isValid: true, invalidReferences: [] }),
+    },
+    masteryService: {
+      checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+    },
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    clock: () => TEST_NOW.getTime(),
+  });
+  const dependencyResolver = new DependencyResolver(
+    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+  );
+  return new RecommendationEngine({
+    chunkLookupFn: async () => undefined,
+    prerequisiteValidator: validator,
+    dependencyResolver,
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+  });
+}
+
 describe('ConversationManager', () => {
   it('handles start learning with no items by prompting setup', async () => {
     const cm = createTestConversationManager();
@@ -401,27 +423,7 @@ describe('ConversationManager', () => {
 
   describe('handleContinueSession — DB hydration', () => {
     it('hydrates session from DB when no sessionState provided', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -482,27 +484,7 @@ describe('ConversationManager', () => {
     });
 
     it('uses default SM-2 values when chunk metadata is absent', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -525,27 +507,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles DB hydration failure gracefully', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -569,27 +531,7 @@ describe('ConversationManager', () => {
 
   describe('handleStartLearning — DB fetch fallback', () => {
     it('fetches items from DB when context has no learningItems', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const mockListChunks = vi.fn().mockResolvedValue([
         {
@@ -623,27 +565,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles DB fetch failure gracefully', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -969,27 +891,7 @@ describe('ConversationManager', () => {
     });
 
     it('returns all-caught-up when engine produces 0 recommendations', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       // Spy to return empty recommendations
       vi.spyOn(engine, 'generateRecommendations').mockResolvedValue({
@@ -1092,27 +994,7 @@ describe('ConversationManager', () => {
 
   describe('get_recommendations intent', () => {
     it('returns DB-backed recommendations when items exist', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const mockListChunks = vi.fn().mockResolvedValue([
         {
@@ -1159,27 +1041,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles DB fetch failure gracefully', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -1197,39 +1059,31 @@ describe('ConversationManager', () => {
     });
 
     it('passes subject filter from context', async () => {
-      const cm = createTestConversationManager();
+      const engine = createTestRecommendationEngine();
+      const mockListChunks = vi.fn().mockResolvedValue([]);
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: mockListChunks,
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
 
       const out = await cm.conductLearningSession({
         intent: 'get_recommendations',
         context: { subject: 'Math' },
       });
 
-      // listChunksAsLearningItems mock returns [] → no items message
+      expect(mockListChunks).toHaveBeenCalledWith({
+        subjectFilter: 'Math',
+        dueOnly: true,
+        limit: 50,
+      });
       expect(out.message.toLowerCase()).toContain('no learning items');
     });
 
     it('includes subject note and plural form when multiple items with subject filter', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       const cm = new ConversationManager({
         recommendationEngine: engine,
@@ -1272,27 +1126,7 @@ describe('ConversationManager', () => {
     });
 
     it('handles recommendation engine failure gracefully', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
       vi.spyOn(engine, 'generateRecommendations').mockRejectedValue(new Error('engine crash'));
 
       const cm = new ConversationManager({
@@ -1323,27 +1157,7 @@ describe('ConversationManager', () => {
     });
 
     it('returns all-caught-up when engine produces 0 recommendations', async () => {
-      const validator = new PrerequisiteValidator({
-        referenceValidator: {
-          validateChunkPrerequisites: vi
-            .fn()
-            .mockReturnValue({ isValid: true, invalidReferences: [] }),
-        },
-        masteryService: {
-          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-        },
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-        clock: () => TEST_NOW.getTime(),
-      });
-      const dependencyResolver = new DependencyResolver(
-        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-      );
-      const engine = new RecommendationEngine({
-        chunkLookupFn: async () => undefined,
-        prerequisiteValidator: validator,
-        dependencyResolver,
-        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-      });
+      const engine = createTestRecommendationEngine();
 
       vi.spyOn(engine, 'generateRecommendations').mockResolvedValue({
         recommendations: [],

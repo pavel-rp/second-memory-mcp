@@ -8,15 +8,14 @@ import type {
   SessionContext,
 } from '../domain/types/recommendations.js';
 import type { SessionInput } from '../domain/types/session.js';
+import type { ListChunksFilter } from '../ports/chunk-repository.js';
 import { logger } from '../shared/logger.js';
 
 export interface ConversationManagerDeps {
   recommendationEngine: RecommendationEngine;
-  listChunksAsLearningItems: (filter?: {
-    subjectFilter?: string;
-    dueOnly?: boolean;
-    limit?: number;
-  }) => Promise<LearningItem[]>;
+  listChunksAsLearningItems: (
+    filter?: Pick<ListChunksFilter, 'subjectFilter' | 'dueOnly' | 'limit'>
+  ) => Promise<LearningItem[]>;
   getActiveSession: () => Promise<{ id: string } | null>;
   convertSessionToInput: (sessionId: string) => Promise<SessionInput | null>;
 }
@@ -374,6 +373,7 @@ export class ConversationManager {
         mode: 'guided',
         learningItems,
         userHistory: context.userHistory as SessionHistory | undefined,
+        sessionContext: context.sessionContext as SessionContext | undefined,
       };
 
       const recommendations = await this.recommendationEngine.generateRecommendations(
