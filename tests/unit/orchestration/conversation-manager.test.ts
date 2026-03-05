@@ -1208,6 +1208,120 @@ describe('ConversationManager', () => {
       expect(out.message.toLowerCase()).toContain('no learning items');
     });
 
+    it('includes subject note and plural form when multiple items with subject filter', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            title: 'Algebra Basics',
+            subject: 'Math',
+            difficulty: 4,
+            nextReviewDate: '2025-06-14',
+            easeFactor: 2.5,
+            repetitions: 1,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+          {
+            id: 'b',
+            title: 'Calculus Intro',
+            subject: 'Math',
+            difficulty: 6,
+            nextReviewDate: '2025-06-13',
+            easeFactor: 2.3,
+            repetitions: 2,
+            estimatedDuration: 15,
+            chunkType: 'review',
+          },
+        ]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+        context: { subject: 'Math' },
+      });
+
+      expect(out.message).toContain('recommendations for Math');
+      expect(out.recommendations).toBeDefined();
+      expect(out.needsInput).toBe(false);
+    });
+
+    it('handles recommendation engine failure gracefully', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+      vi.spyOn(engine, 'generateRecommendations').mockRejectedValue(new Error('engine crash'));
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            title: 'X',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewDate: '2025-06-14',
+            easeFactor: 2.5,
+            repetitions: 1,
+            estimatedDuration: 10,
+            chunkType: 'review',
+          },
+        ]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'get_recommendations',
+      });
+
+      expect(out.message.toLowerCase()).toContain('encountered an issue');
+      expect(out.needsInput).toBe(true);
+    });
+
     it('returns all-caught-up when engine produces 0 recommendations', async () => {
       const validator = new PrerequisiteValidator({
         referenceValidator: {
