@@ -9,6 +9,7 @@ import {
   type ChunkDeps,
 } from '../../../src/orchestration/chunk-workflows.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
+import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { LearningChunk, NewLearningChunk } from '../../../src/domain/types/entities.js';
 import {
   stubChunkRepository,
@@ -479,9 +480,7 @@ describe('deleteChunk', () => {
       delete: vi.fn().mockResolvedValue(0), // delete fails
     });
     (deps.unitOfWork.execute as ReturnType<typeof vi.fn>).mockImplementation(
-      async (
-        cb: (ports: { chunks: typeof txChunks; topics: any; sessions: any }) => Promise<unknown>
-      ) =>
+      async (cb: (ports: TransactionPorts) => Promise<unknown>) =>
         cb({ chunks: txChunks, topics: stubTopicRepository(), sessions: stubSessionRepository() })
     );
 
