@@ -26,6 +26,14 @@ import type {
 } from '../../domain/types/session.js';
 import { logger } from '../../shared/logger.js';
 
+function toIsoDate(epochMs: number): string {
+  const d = new Date(epochMs);
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
+}
+
 export class DrizzleSessionRepository implements SessionRepository {
   constructor(private db: SqlDb = getSql()) {}
 
@@ -199,6 +207,15 @@ export class DrizzleSessionRepository implements SessionRepository {
         attempts: (sc.attemptsJson as ChunkAttempt[]) || [],
         quality_scores: (sc.qualityScoresJson as number[]) || [],
         time_spent_ms: sc.timeSpentMs,
+        ...(detail && {
+          repetitions: detail.repetitions,
+          ease_factor: detail.easeFactor,
+          next_review_date: toIsoDate(detail.nextReviewAt),
+          subject: detail.subject,
+          difficulty: detail.difficulty,
+          estimated_duration: detail.estimatedDuration,
+          chunk_type: detail.chunkType as 'new' | 'review' | 'remediation',
+        }),
       };
     });
 
