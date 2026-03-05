@@ -287,6 +287,8 @@ describe('session-lifecycle-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.retryable).toBe(true);
     });
   });
 

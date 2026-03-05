@@ -101,7 +101,9 @@ describe('calculatePriorityScore', () => {
     expect(out.priority).toBeGreaterThanOrEqual(0);
     expect(out.priority).toBeLessThanOrEqual(100);
   });
+});
 
+describe('rankCandidatesWithConstraints', () => {
   it('produces a low-priority reason for well-ahead items', () => {
     // Far-future review date → low score
     const out = rankCandidatesWithConstraints(
