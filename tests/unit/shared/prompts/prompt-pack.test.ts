@@ -55,6 +55,72 @@ describe('promptPack', () => {
     expect(text).toContain('resulting chunk(s)');
   });
 
+  it('chunk management uses defaults when managedChunk is omitted', () => {
+    const text = promptPack.getPrompt('chunk_management', { intent: 'cleanup' });
+    expect(text).toContain('OPERATION: update');
+    expect(text).toContain('TARGET CHUNK: <untitled>');
+    expect(text).toContain('INTENT: cleanup');
+  });
+
+  it('chunk management includes order, content, and prerequisites when provided', () => {
+    const text = promptPack.getPrompt('chunk_management', {
+      operation: 'update',
+      managedChunk: {
+        title: 'Linked Lists',
+        order: 3,
+        content: 'Singly and doubly linked lists',
+        prerequisites: 'Arrays, Pointers',
+      },
+      intent: 'expand',
+    });
+    expect(text).toContain('ORDER: 3');
+    expect(text).toContain('CONTENT (current): Singly and doubly linked lists');
+    expect(text).toContain('PREREQUISITES (current): Arrays, Pointers');
+  });
+
+  it('scaffolding uses problem fallback when problem is omitted', () => {
+    const text = promptPack.getPrompt('scaffolding', {});
+    expect(text).toContain('<problem not provided>');
+    expect(text).toContain('## RESEARCH FIRST');
+  });
+
+  it('learning uses all fallback defaults when context is empty', () => {
+    const text = promptPack.getPrompt('learning', {});
+    expect(text).toContain('(1/1)');
+    expect(text).toContain('<untitled chunk>');
+    expect(text).toContain('<content not provided>');
+    expect(text).toContain('open_ended');
+  });
+
+  it('retrieval uses fallback defaults when context is empty', () => {
+    const text = promptPack.getPrompt('retrieval', {});
+    expect(text).toContain('<untitled chunk>');
+    expect(text).toContain('TARGET MASTERY: 2/5');
+  });
+
+  it('review uses fallback defaults when context is empty', () => {
+    const text = promptPack.getPrompt('review', {});
+    expect(text).toContain('LAST REVIEWED: <unknown>');
+    expect(text).toContain('CURRENT MASTERY: 2/5');
+    expect(text).toContain('PREVIOUS ATTEMPTS: 0');
+    expect(text).toContain('focus foundational gaps');
+  });
+
+  it('chunk generation uses fallback defaults when context is empty', () => {
+    const text = promptPack.getPrompt('chunk_generation', {});
+    expect(text).toContain('<topic not provided>');
+    expect(text).toContain('<description not provided>');
+    expect(text).toContain('No existing chunk titles provided.');
+  });
+
+  it('chunk generation handles non-array existingChunkTitles', () => {
+    const text = promptPack.getPrompt('chunk_generation', {
+      topicTitle: 'Test',
+      existingChunkTitles: 'not-an-array' as any,
+    });
+    expect(text).toContain('No existing chunk titles provided.');
+  });
+
   describe('web search enhancements', () => {
     it('scaffolding prompt includes research instructions by default', () => {
       const text = promptPack.getPrompt('scaffolding', { problem: 'React Hooks' });

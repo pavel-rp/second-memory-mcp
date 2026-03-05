@@ -808,4 +808,260 @@ describe('RecommendationEngine', () => {
       expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
     }
   });
+
+  it('returns original recommendations when dependency resolution finds circular deps', async () => {
+    const engine = createTestEngine();
+    // Items with circular prerequisites: A → B → A
+    const items = [
+      makeItem({
+        id: 'item-a',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+        estimatedDuration: 10,
+        prerequisites: ['item-b'],
+      }),
+      makeItem({
+        id: 'item-b',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+        estimatedDuration: 10,
+        prerequisites: ['item-a'],
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { mode: 'explicit', learningItems: items, timeAvailable: 60 },
+      NOW
+    );
+
+    // Should still return recommendations despite circular deps
+    expect(result.recommendations.length).toBeGreaterThan(0);
+    // Dependency resolution should be undefined (invalid resolution → null internally)
+    expect(result.dependencyResolution).toBeUndefined();
+  });
+
+  it('returns original recommendations when dependency resolver throws', async () => {
+    const mockValidator = new PrerequisiteValidator({
+      referenceValidator: {
+        validateChunkPrerequisites: vi
+          .fn()
+          .mockReturnValue({ isValid: true, invalidReferences: [] }),
+      },
+      masteryService: {
+        checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+      },
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      clock: () => NOW.getTime(),
+    });
+    const mockResolver = {
+      resolveDependencies: vi.fn().mockRejectedValue(new Error('resolver crash')),
+    };
+    const engine = new RecommendationEngine({
+      chunkLookupFn: async () => undefined,
+      prerequisiteValidator: mockValidator,
+      dependencyResolver: mockResolver as any,
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    });
+
+    const items = [makeItem({ id: 'item-x', chunkType: 'review', nextReviewDate: '2025-06-14' })];
+
+    const result = await engine.generateRecommendations(
+      { mode: 'explicit', learningItems: items, timeAvailable: 60 },
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+    expect(result.dependencyResolution).toBeUndefined();
+  });
+
+  it('generates default encouragement for non-overdue review-only items', async () => {
+    const engine = createTestEngine();
+    // All review items with future nextReviewDate — no overdue, no new
+    const items = [
+      makeItem({
+        id: 'future-1',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-16',
+        estimatedDuration: 10,
+      }),
+      makeItem({
+        id: 'future-2',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-16',
+        estimatedDuration: 10,
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { mode: 'guided', learningItems: items, timeAvailable: 60 },
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+    expect(result.conversationGuidance.encouragement).toContain(
+      'Consistent review leads to lasting learning'
+    );
+  });
+
+  it('defaults mode to guided when mode is falsy', async () => {
+    const engine = createTestEngine();
+    const items = [
+      makeItem({
+        id: 'a',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+        estimatedDuration: 10,
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { mode: undefined as any, learningItems: items, timeAvailable: 30 },
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it('infers timeAvailable from user history when not provided', async () => {
+    const engine = createTestEngine();
+    const items = [
+      makeItem({
+        id: 'a',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+        estimatedDuration: 10,
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        userHistory: {
+          recentSessions: [],
+          patterns: {
+            averageSessionDuration: 45,
+            preferredDifficulty: 5,
+            successRate: 0.8,
+            fatigueThreshold: 20,
+            subjectPreferences: {},
+          },
+        },
+      } as any,
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it('handles undefined learningItems gracefully', async () => {
+    const engine = createTestEngine();
+
+    const result = await engine.generateRecommendations(
+      { mode: 'explicit', learningItems: undefined as any, timeAvailable: 30 },
+      NOW
+    );
+
+    expect(result.recommendations).toEqual([]);
+  });
+
+  it('interleaves only easy and hard items when no medium-difficulty items exist', async () => {
+    const engine = createTestEngine();
+    // All items either very easy (cogLoad < 10) or very hard (cogLoad >= 15)
+    const items = [
+      makeItem({
+        id: 'easy-1',
+        difficulty: 1,
+        estimatedDuration: 5,
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'easy-2',
+        difficulty: 2,
+        estimatedDuration: 5,
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'hard-1',
+        difficulty: 10,
+        estimatedDuration: 15,
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'hard-2',
+        difficulty: 10,
+        estimatedDuration: 15,
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { mode: 'guided', learningItems: items, timeAvailable: 120 },
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it('generates empty-recommendation guidance when no items pass constraints', async () => {
+    const engine = createTestEngine();
+    // Items with mismatched subject so all get filtered by subjectFilter
+    const items = [makeItem({ id: 'a', subject: 'Math', estimatedDuration: 10 })];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'guided',
+        learningItems: items,
+        constraints: { subjectFilter: 'CS' },
+        timeAvailable: 30,
+      } as any,
+      NOW
+    );
+
+    expect(result.recommendations).toEqual([]);
+    expect(result.conversationGuidance.nextAction).toContain('No items are due');
+  });
+
+  it('includes timeAvailable in rationale when set', async () => {
+    const engine = createTestEngine();
+    const items = [
+      makeItem({
+        id: 'a',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-14',
+        estimatedDuration: 10,
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { mode: 'guided', learningItems: items, timeAvailable: 45 },
+      NOW
+    );
+
+    expect(result.rationale).toContain('45-minute time constraint');
+  });
+
+  it('generates new-item encouragement when only new items are recommended', async () => {
+    const engine = createTestEngine();
+    const items = [
+      makeItem({
+        id: 'new-1',
+        chunkType: 'new',
+        nextReviewDate: '2025-06-16',
+        estimatedDuration: 10,
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { mode: 'guided', learningItems: items, timeAvailable: 60 },
+      NOW
+    );
+
+    expect(result.recommendations.length).toBeGreaterThan(0);
+    expect(result.conversationGuidance.encouragement).toContain('explore new concepts');
+  });
 });

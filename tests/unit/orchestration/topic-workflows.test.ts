@@ -726,4 +726,27 @@ describe('updateTopicMetadata', () => {
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('database');
   });
+
+  it('returns validation error for empty subject', async () => {
+    const { deps } = metadataDeps();
+
+    const result = await updateTopicMetadata('topic-1', { subject: '' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('validation');
+    expect(result.error?.field).toBe('subject');
+  });
+
+  it('returns database error when subject-change transaction fails', async () => {
+    const { deps } = metadataDeps();
+    (deps.unitOfWork.execute as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('tx failure')
+    );
+
+    const result = await updateTopicMetadata('topic-1', { subject: 'Science' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('database');
+    expect(result.error?.message).toContain('tx failure');
+  });
 });

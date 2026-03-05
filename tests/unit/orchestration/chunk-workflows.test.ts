@@ -157,6 +157,25 @@ describe('updateChunkContent', () => {
     expect(result.success).toBe(true);
   });
 
+  it('skips saveContentEmbedding when embedText returns null', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue(null),
+      embedTexts: vi.fn(),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const deps = stubDeps({ embedding });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk({ content: 'New' }));
+
+    const result = await updateChunkContent('chunk-1', { content: 'New' }, deps);
+
+    expect(result.success).toBe(true);
+    // Called once with null (stale clear), never with a vector
+    expect(deps.chunks.saveContentEmbedding).toHaveBeenCalledWith('chunk-1', null);
+    expect(deps.chunks.saveContentEmbedding).toHaveBeenCalledTimes(1);
+  });
+
   it('returns database error when update returns 0 rows', async () => {
     const deps = stubDeps();
     (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(stubChunk());
@@ -551,6 +570,24 @@ describe('createChunkWithTopic', () => {
     const result = await createChunkWithTopic(baseInput, deps);
 
     expect(result.success).toBe(true);
+  });
+
+  it('succeeds when saveContentEmbedding returns 0 rows', async () => {
+    const embedding: EmbeddingPort = {
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
+      embedTexts: vi.fn(),
+      getDimensions: vi.fn().mockReturnValue(2),
+    };
+    const deps = stubDeps({ embedding });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk', content: 'Some content' })
+    );
+    (deps.chunks.saveContentEmbedding as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+    const result = await createChunkWithTopic(baseInput, deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.chunks.saveContentEmbedding).toHaveBeenCalledWith('new-chunk', [0.1, 0.2]);
   });
 
   it('skips embedding when content is null', async () => {

@@ -320,6 +320,43 @@ describe('PrerequisiteValidator', () => {
 
       expect(result.rationale).toContain('No learning items provided');
     });
+
+    it('returns "No items were processed" when all items are excluded by excludeIds', async () => {
+      // DB probe succeeds
+      mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+        isValid: true,
+        validReferences: [],
+        invalidReferences: [],
+        errors: [],
+      });
+
+      const items = [createTestItem('item1'), createTestItem('item2')];
+      const result = await validator.filterByPrerequisites(items, ['item1', 'item2']);
+
+      expect(result.rationale).toContain('No items were processed');
+    });
+  });
+
+  describe('database availability caching', () => {
+    it('uses cached DB availability on second call within interval', async () => {
+      // DB probe succeeds
+      mockReferenceValidator.validateChunkPrerequisites.mockResolvedValue({
+        isValid: true,
+        validReferences: [],
+        invalidReferences: [],
+        errors: [],
+      });
+
+      const items = [createTestItem('item1')];
+
+      // First call — triggers DB probe
+      await validator.filterByPrerequisites(items);
+      // Second call — should use cached result
+      await validator.filterByPrerequisites(items);
+
+      // validateChunkPrerequisites called once for DB probe, not twice
+      expect(mockReferenceValidator.validateChunkPrerequisites).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('rationale generation', () => {

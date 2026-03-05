@@ -446,6 +446,42 @@ describe('resolveSessionChunkDependencies', () => {
     expect(result.message).toBe('');
   });
 
+  it('pluralizes message when multiple prerequisites are added', async () => {
+    const deps = stubDeps();
+    // c1 depends on c2, c2 depends on c3 → 2 prerequisites added
+    const c1 = stubChunk({ id: 'c1', prerequisitesJson: ['c2'] });
+    const c2 = stubChunk({ id: 'c2', prerequisitesJson: ['c3'] });
+    const c3 = stubChunk({ id: 'c3', prerequisitesJson: null });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      if (id === 'c1') return c1;
+      if (id === 'c2') return c2;
+      if (id === 'c3') return c3;
+      return undefined;
+    });
+
+    const result = await resolveSessionChunkDependencies(['c1'], deps);
+
+    expect(result.addedPrerequisites).toContain('c2');
+    expect(result.addedPrerequisites).toContain('c3');
+    expect(result.message).toContain('prerequisites');
+  });
+
+  it('pluralizes message when multiple missing prerequisites are skipped', async () => {
+    const deps = stubDeps();
+    // c1 depends on missing-a and missing-b
+    const c1 = stubChunk({ id: 'c1', prerequisitesJson: ['missing-a', 'missing-b'] });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      if (id === 'c1') return c1;
+      return undefined;
+    });
+
+    const result = await resolveSessionChunkDependencies(['c1'], deps);
+
+    expect(result.message).toContain('missing-a');
+    expect(result.message).toContain('missing-b');
+    expect(result.message).toContain('prerequisites');
+  });
+
   it('falls back to original chunkIds on error', async () => {
     const deps = stubDeps();
     (deps.chunks.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));

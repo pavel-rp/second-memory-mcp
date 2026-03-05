@@ -97,6 +97,83 @@ describe('ConversationManager', () => {
     expect(out.needsInput).toBe(true);
   });
 
+  it('uses singular "item" when exactly 1 item remains', async () => {
+    const cm = createTestConversationManager();
+    const out = await cm.conductLearningSession({
+      intent: 'continue_session',
+      sessionState: {
+        currentItemIndex: 0,
+        currentRecommendations: [
+          {
+            item: { ...minimalItem('1') },
+            priority: 10,
+            reason: 'review',
+            order: 1,
+            cognitiveLoad: 5,
+          },
+          {
+            item: { ...minimalItem('2') },
+            priority: 9,
+            reason: 'review',
+            order: 2,
+            cognitiveLoad: 5,
+          },
+        ],
+      },
+    } as any);
+
+    // remaining = 2 - 0 - 1 = 1 → singular "item"
+    expect(out.message).toContain('1 more item to complete');
+    expect(out.message).not.toContain('items to complete');
+  });
+
+  it('uses plural "items" when more than 1 item remains', async () => {
+    const cm = createTestConversationManager();
+    const out = await cm.conductLearningSession({
+      intent: 'continue_session',
+      sessionState: {
+        currentItemIndex: 0,
+        currentRecommendations: [
+          {
+            item: { ...minimalItem('1') },
+            priority: 10,
+            reason: 'review',
+            order: 1,
+            cognitiveLoad: 5,
+          },
+          {
+            item: { ...minimalItem('2') },
+            priority: 9,
+            reason: 'review',
+            order: 2,
+            cognitiveLoad: 5,
+          },
+          {
+            item: { ...minimalItem('3') },
+            priority: 8,
+            reason: 'review',
+            order: 3,
+            cognitiveLoad: 5,
+          },
+        ],
+      },
+    } as any);
+
+    // remaining = 3 - 0 - 1 = 2 → plural "items"
+    expect(out.message).toContain('2 more items to complete');
+  });
+
+  it('prompts for new session when sessionState exists but currentRecommendations is missing', async () => {
+    const cm = createTestConversationManager();
+    const out = await cm.conductLearningSession({
+      intent: 'continue_session',
+      sessionState: { currentItemIndex: 0 },
+    } as any);
+
+    expect(out.message.toLowerCase()).toContain("don't have an active session");
+    expect(out.needsInput).toBe(true);
+  });
+
   it('asks clarifying question for time', async () => {
     const cm = createTestConversationManager();
     const out = await cm.conductLearningSession({
@@ -780,6 +857,107 @@ describe('ConversationManager', () => {
       expect(out.needsInput).toBe(true);
       expect(out.suggestedInputs).toBeDefined();
       expect(out.suggestedInputs!.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('handleContinueSession — final item and empty recommendations', () => {
+    it('displays final-item message when remaining is 0', async () => {
+      const cm = createTestConversationManager();
+      const out = await cm.conductLearningSession({
+        intent: 'continue_session',
+        sessionState: {
+          currentItemIndex: 1,
+          currentRecommendations: [
+            {
+              item: { ...minimalItem('1') },
+              priority: 10,
+              reason: 'review',
+              order: 1,
+              cognitiveLoad: 5,
+            },
+            {
+              item: { ...minimalItem('2') },
+              priority: 9,
+              reason: 'review',
+              order: 2,
+              cognitiveLoad: 5,
+            },
+          ],
+        },
+      } as any);
+
+      // remaining = 2 - 1 - 1 = 0 → final item branch
+      expect(out.message).toContain('final item for this session');
+    });
+
+    it('returns all-caught-up when engine produces 0 recommendations', async () => {
+      const validator = new PrerequisiteValidator({
+        referenceValidator: {
+          validateChunkPrerequisites: vi
+            .fn()
+            .mockReturnValue({ isValid: true, invalidReferences: [] }),
+        },
+        masteryService: {
+          checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
+        },
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        clock: () => TEST_NOW.getTime(),
+      });
+      const dependencyResolver = new DependencyResolver(
+        DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
+      );
+      const engine = new RecommendationEngine({
+        chunkLookupFn: async () => undefined,
+        prerequisiteValidator: validator,
+        dependencyResolver,
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      });
+
+      // Spy to return empty recommendations
+      vi.spyOn(engine, 'generateRecommendations').mockResolvedValue({
+        recommendations: [],
+        estimatedDuration: 0,
+        conversationGuidance: { nextAction: '', encouragement: '' },
+        rationale: '',
+        sessionSummary: {
+          totalItems: 0,
+          totalDuration: 0,
+          totalCognitiveLoad: 0,
+          newItems: 0,
+          reviewItems: 0,
+          remediationItems: 0,
+          subjects: [],
+        },
+      });
+
+      const cm = new ConversationManager({
+        recommendationEngine: engine,
+        listChunksAsLearningItems: vi.fn().mockResolvedValue([]),
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        convertSessionToInput: vi.fn().mockResolvedValue(null),
+      });
+
+      const out = await cm.conductLearningSession({
+        intent: 'start_learning',
+        context: {
+          learningItems: [
+            {
+              id: 'a',
+              title: 'X',
+              subject: 'CS',
+              difficulty: 5,
+              nextReviewDate: '2025-06-15',
+              easeFactor: 2.3,
+              repetitions: 1,
+              estimatedDuration: 10,
+              chunkType: 'review',
+            },
+          ],
+        },
+      } as any);
+
+      expect(out.message).toContain('all caught up');
+      expect(out.needsInput).toBe(true);
     });
   });
 
