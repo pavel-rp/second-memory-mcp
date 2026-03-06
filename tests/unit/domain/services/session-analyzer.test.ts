@@ -244,12 +244,15 @@ describe('Session Manager', () => {
   describe('validateSessionContext', () => {
     it('should validate correct session data', () => {
       const result = validateSessionContext(mockSessionInput, NOW);
-      expect(result).toEqual(
-        expect.objectContaining({
-          session_id: 'test-session-123',
-          mode: 'learning',
-        })
-      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual(
+          expect.objectContaining({
+            session_id: 'test-session-123',
+            mode: 'learning',
+          })
+        );
+      }
     });
 
     it('should reject invalid session data', () => {
@@ -260,7 +263,11 @@ describe('Session Manager', () => {
         chunks: [],
       };
 
-      expect(() => validateSessionContext(invalidSession, NOW)).toThrow('Invalid session context');
+      const result = validateSessionContext(invalidSession, NOW);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Invalid session context');
+      }
     });
 
     it('should reject sessions with empty chunks array', () => {
@@ -269,9 +276,11 @@ describe('Session Manager', () => {
         chunks: [],
       };
 
-      expect(() => validateSessionContext(noChunksSession, NOW)).toThrow(
-        'Session must contain at least one chunk'
-      );
+      const result = validateSessionContext(noChunksSession, NOW);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Session must contain at least one chunk');
+      }
     });
 
     it('should reject sessions where current time is before start time', () => {
@@ -281,9 +290,11 @@ describe('Session Manager', () => {
         current_time: '2024-01-01T10:00:00.000Z', // Before start time
       };
 
-      expect(() => validateSessionContext(timeInconsistentSession, NOW)).toThrow(
-        'Current time cannot be before start time'
-      );
+      const result = validateSessionContext(timeInconsistentSession, NOW);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Current time cannot be before start time');
+      }
     });
 
     it('should set default current_time if not provided', () => {
@@ -293,10 +304,13 @@ describe('Session Manager', () => {
       };
 
       const result = validateSessionContext(sessionWithoutCurrentTime, NOW);
-      expect(result.current_time).toBeDefined();
-      expect(new Date(result.current_time!).getTime()).toBeGreaterThan(
-        new Date(mockSessionInput.start_time).getTime()
-      );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.current_time).toBeDefined();
+        expect(new Date(result.data.current_time!).getTime()).toBeGreaterThan(
+          new Date(mockSessionInput.start_time).getTime()
+        );
+      }
     });
 
     it('should reject invalid chunk data during validation', () => {
@@ -321,9 +335,11 @@ describe('Session Manager', () => {
         ],
       };
 
-      expect(() => validateSessionContext(sessionWithBadData, NOW)).toThrow(
-        'Invalid session context'
-      );
+      const result = validateSessionContext(sessionWithBadData, NOW);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Invalid session context');
+      }
     });
 
     it('should clean chunk data when using calculate functions directly', () => {
@@ -799,14 +815,18 @@ describe('Session Manager', () => {
       expect(result).toBeDefined();
     });
 
-    it('throws validation error for invalid start_time in validateSessionContext', () => {
+    it('returns failure for invalid start_time in validateSessionContext', () => {
       const session: SessionInput = {
         ...mockSessionInput,
         start_time: 'not-a-date',
         current_time: '2024-01-01T10:30:00.000Z',
       };
 
-      expect(() => validateSessionContext(session, NOW)).toThrow('Invalid session context');
+      const result = validateSessionContext(session, NOW);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Invalid session context');
+      }
     });
 
     it('validates context without current_time by using fallback', () => {
@@ -814,39 +834,64 @@ describe('Session Manager', () => {
         ...mockSessionInput,
         current_time: undefined as any,
       };
-      // Should not throw — current_time falls back to now
+      // Should succeed — current_time falls back to now
       const result = validateSessionContext(session, NOW);
-      expect(result).toBeDefined();
+      expect(result.success).toBe(true);
     });
   });
 
   describe('applyBatchSessionChunkOperations', () => {
-    it('throws when operations exceed maxOps', async () => {
+    it('returns failure when operations exceed maxOps', async () => {
       const ops = Array.from({ length: 51 }, (_, i) => ({
         chunkId: `chunk-${i}`,
         status: 'completed' as const,
       }));
 
-      await expect(
-        applyBatchSessionChunkOperations({
-          sessionId: 'session-1',
-          operations: ops,
-          maxOps: 50,
-          activeSessionExists: true,
-          persistFn: async () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
-        })
-      ).rejects.toThrow('Too many operations');
+      const result = await applyBatchSessionChunkOperations({
+        sessionId: 'session-1',
+        operations: ops,
+        maxOps: 50,
+        activeSessionExists: true,
+        persistFn: async () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Too many operations');
+        expect(result.error.type).toBe('validation');
+      }
     });
 
-    it('throws when no active session exists', async () => {
-      await expect(
-        applyBatchSessionChunkOperations({
-          sessionId: 'session-1',
-          operations: [{ chunkId: 'chunk-1', status: 'completed' as const }],
-          activeSessionExists: false,
-          persistFn: async () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
-        })
-      ).rejects.toThrow('No active session found');
+    it('returns failure when no active session exists', async () => {
+      const result = await applyBatchSessionChunkOperations({
+        sessionId: 'session-1',
+        operations: [{ chunkId: 'chunk-1', status: 'completed' as const }],
+        activeSessionExists: false,
+        persistFn: async () => ({ created: 0, updated: 0, unchanged: 0, affectedChunkIds: [] }),
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('No active session found');
+        expect(result.error.type).toBe('not_found');
+      }
+    });
+
+    it('returns database failure when persistFn throws', async () => {
+      const result = await applyBatchSessionChunkOperations({
+        sessionId: 'session-1',
+        operations: [{ chunkId: 'chunk-1', status: 'completed' as const }],
+        activeSessionExists: true,
+        persistFn: async () => {
+          throw new Error('Connection refused');
+        },
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Connection refused');
+        expect(result.error.type).toBe('database');
+      }
     });
 
     it('delegates to persistFn when validations pass', async () => {
@@ -862,8 +907,11 @@ describe('Session Manager', () => {
         }),
       });
 
-      expect(result.created).toBe(1);
-      expect(result.affectedChunkIds).toEqual(['chunk-1']);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.created).toBe(1);
+        expect(result.data.affectedChunkIds).toEqual(['chunk-1']);
+      }
     });
   });
 });

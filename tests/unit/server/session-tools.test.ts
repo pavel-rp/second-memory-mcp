@@ -94,6 +94,19 @@ describe('session-tools', () => {
       expect(parsed.error.message).toContain('Failed to convert');
     });
 
+    it('returns validation error when session data is invalid', async () => {
+      registerSessionTools(server as any, ctx);
+      const handler = server.tools.get('session_progress')!.handler;
+
+      const result = await handler({
+        session_data: { ...makeSessionInput(), chunks: [] },
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+    });
+
     it('returns error when neither session_id nor session_data', async () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_progress')!.handler;
@@ -169,6 +182,19 @@ describe('session-tools', () => {
       expect(parsed.success).toBe(false);
     });
 
+    it('returns validation error when session data is invalid', async () => {
+      registerSessionTools(server as any, ctx);
+      const handler = server.tools.get('session_workflow')!.handler;
+
+      const result = await handler({
+        session_data: { ...makeSessionInput(), chunks: [] },
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+    });
+
     it('returns error when neither input provided', async () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_workflow')!.handler;
@@ -230,6 +256,19 @@ describe('session-tools', () => {
 
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('session');
+    });
+
+    it('returns validation error when session data is invalid', async () => {
+      registerSessionTools(server as any, ctx);
+      const handler = server.tools.get('session_completion')!.handler;
+
+      const result = await handler({
+        session_data: { ...makeSessionInput(), chunks: [] },
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
     });
 
     it('returns error when neither input provided', async () => {

@@ -229,7 +229,7 @@ export interface AppContext {
   calculateSessionProgress: (sessionData: SessionInput) => SessionProgress;
   determineNextPhase: (sessionData: SessionInput) => WorkflowPhase;
   checkSessionCompletion: (sessionData: SessionInput) => CompletionStatus;
-  validateSessionContext: (context: unknown) => SessionInput;
+  validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
   createConversationManager: () => ConversationManager;
 }

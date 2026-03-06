@@ -1,5 +1,4 @@
 import type { LearningItem } from '../types/recommendations.js';
-import { extractErrorMessage } from '../../shared/errors.js';
 
 /**
  * Result of dependency resolution
@@ -58,40 +57,39 @@ export class DependencyResolver {
     }
 
     // Resolve dependency chain using topological sort
-    try {
-      const resolvedChain = this.topologicalSort(dependencyGraph, itemsToResolve);
+    const resolvedChain = this.topologicalSort(dependencyGraph, itemsToResolve);
 
-      const maxDepthReached = this.calculateMaxDepth(dependencyGraph, itemsToResolve);
-
-      if (maxDepthReached > this.maxDepth) {
-        return {
-          resolvedChain: [],
-          circularDependencies: [],
-          maxDepthReached,
-          isValid: false,
-          errors: [
-            `Dependency depth ${maxDepthReached} exceeds maximum allowed depth ${this.maxDepth}`,
-          ],
-        };
-      }
-
-      return {
-        resolvedChain,
-        circularDependencies: [],
-        maxDepthReached,
-        isValid: true,
-        errors: [],
-      };
-    } catch (error) {
-      const errorMessage = extractErrorMessage(error);
+    if (resolvedChain === null) {
       return {
         resolvedChain: [],
         circularDependencies: [],
         maxDepthReached: 0,
         isValid: false,
-        errors: [errorMessage],
+        errors: ['Dependency cycle detected during topological sort'],
       };
     }
+
+    const maxDepthReached = this.calculateMaxDepth(dependencyGraph, itemsToResolve);
+
+    if (maxDepthReached > this.maxDepth) {
+      return {
+        resolvedChain: [],
+        circularDependencies: [],
+        maxDepthReached,
+        isValid: false,
+        errors: [
+          `Dependency depth ${maxDepthReached} exceeds maximum allowed depth ${this.maxDepth}`,
+        ],
+      };
+    }
+
+    return {
+      resolvedChain,
+      circularDependencies: [],
+      maxDepthReached,
+      isValid: true,
+      errors: [],
+    };
   }
 
   /**
@@ -212,7 +210,10 @@ export class DependencyResolver {
    * @param targetItems Items to include in resolution
    * @returns Ordered list of item IDs (prerequisites first)
    */
-  private topologicalSort(dependencyGraph: Map<string, string[]>, targetItems: string[]): string[] {
+  private topologicalSort(
+    dependencyGraph: Map<string, string[]>,
+    targetItems: string[]
+  ): string[] | null {
     const inDegree = new Map<string, number>();
     const dependentsMap = new Map<string, string[]>();
     const result: string[] = [];
@@ -265,7 +266,7 @@ export class DependencyResolver {
     }
 
     if (result.length !== allNodes.size) {
-      throw new Error('Dependency cycle detected during topological sort');
+      return null;
     }
 
     const relevantItems = this.findAllDependencies(dependencyGraph, targetItems);

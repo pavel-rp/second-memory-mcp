@@ -60,8 +60,14 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           throw new Error('Either session_id or session_data must be provided');
         }
 
-        const validatedSession = ctx.validateSessionContext(sessionData);
-        const result = ctx.calculateSessionProgress(validatedSession);
+        const validated = ctx.validateSessionContext(sessionData);
+        if (!validated.success) {
+          return toolError(`Failed to calculate session progress: ${validated.error.message}`, {
+            type: validated.error.type,
+            message: validated.error.message,
+          });
+        }
+        const result = ctx.calculateSessionProgress(validated.data);
         return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -109,8 +115,17 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           throw new Error('Either session_id or session_data must be provided');
         }
 
-        const validatedSession = ctx.validateSessionContext(sessionData);
-        const result = ctx.determineNextPhase(validatedSession);
+        const validated = ctx.validateSessionContext(sessionData);
+        if (!validated.success) {
+          return toolError(
+            `Failed to determine session workflow phase: ${validated.error.message}`,
+            {
+              type: validated.error.type,
+              message: validated.error.message,
+            }
+          );
+        }
+        const result = ctx.determineNextPhase(validated.data);
         return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -158,8 +173,14 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           throw new Error('Either session_id or session_data must be provided');
         }
 
-        const validatedSession = ctx.validateSessionContext(sessionData);
-        const result = ctx.checkSessionCompletion(validatedSession);
+        const validated = ctx.validateSessionContext(sessionData);
+        if (!validated.success) {
+          return toolError(`Failed to check session completion: ${validated.error.message}`, {
+            type: validated.error.type,
+            message: validated.error.message,
+          });
+        }
+        const result = ctx.checkSessionCompletion(validated.data);
         return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);

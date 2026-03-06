@@ -110,13 +110,20 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           },
         });
 
+        if (!result.success) {
+          return toolError(`Failed to batch update session chunks: ${result.error.message}`, {
+            type: result.error.type,
+            message: result.error.message,
+          });
+        }
+
         logger.info(
-          `Batch update for session ${validatedInput.sessionId}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
+          `Batch update for session ${validatedInput.sessionId}: created=${result.data.created}, updated=${result.data.updated}, unchanged=${result.data.unchanged}`
         );
         return toolJson(
           toSnakeCase({
             status: 'ok' as const,
-            ...result,
+            ...result.data,
           })
         );
       } catch (error) {

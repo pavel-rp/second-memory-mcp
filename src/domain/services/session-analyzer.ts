@@ -8,6 +8,8 @@ import type {
 } from '../types/session.js';
 import { SessionInputSchema } from '../types/session.js';
 import type { AlgorithmConfig } from '../config/algorithm.js';
+import type { ServiceResult } from '../types/service-result.js';
+import { serviceOk, serviceFail } from '../types/service-result.js';
 import { clamp, roundTo } from '../../shared/math.js';
 
 // Helper function to parse ISO timestamp
@@ -348,7 +350,7 @@ export function checkSessionCompletion(
 /**
  * Validate and normalize session context data
  */
-export function validateSessionContext(context: unknown, now: Date): SessionInput {
+export function validateSessionContext(context: unknown, now: Date): ServiceResult<SessionInput> {
   // Use Zod to validate and parse the input
   const result = SessionInputSchema.safeParse(context);
 
@@ -358,7 +360,10 @@ export function validateSessionContext(context: unknown, now: Date): SessionInpu
       .map(err => `${err.path.join('.')}: ${err.message}`)
       .join('; ');
 
-    throw new Error(`Invalid session context: ${errorMessages}`);
+    return serviceFail({
+      type: 'validation',
+      message: `Invalid session context: ${errorMessages}`,
+    });
   }
 
   const validatedData = result.data;
@@ -373,7 +378,7 @@ export function validateSessionContext(context: unknown, now: Date): SessionInpu
 
   // Additional business logic validation
   if (normalizedData.chunks.length === 0) {
-    throw new Error('Session must contain at least one chunk');
+    return serviceFail({ type: 'validation', message: 'Session must contain at least one chunk' });
   }
 
   // Validate time consistency
@@ -381,10 +386,10 @@ export function validateSessionContext(context: unknown, now: Date): SessionInpu
   const currentTime = parseTimestamp(normalizedData.current_time || '', now);
 
   if (currentTime < startTime) {
-    throw new Error('Current time cannot be before start time');
+    return serviceFail({ type: 'validation', message: 'Current time cannot be before start time' });
   }
 
-  return normalizedData;
+  return serviceOk(normalizedData);
 }
 
 /**
@@ -403,16 +408,29 @@ export async function applyBatchSessionChunkOperations(args: {
     unchanged: number;
     affectedChunkIds: string[];
   }>;
-}): Promise<{ created: number; updated: number; unchanged: number; affectedChunkIds: string[] }> {
+}): Promise<
+  ServiceResult<{ created: number; updated: number; unchanged: number; affectedChunkIds: string[] }>
+> {
   const { sessionId, operations, maxOps = 50, activeSessionExists, persistFn } = args;
 
   if (operations.length > maxOps) {
-    throw new Error(`Too many operations: max ${maxOps} operations allowed`);
+    return serviceFail({
+      type: 'validation',
+      message: `Too many operations: max ${maxOps} operations allowed`,
+    });
   }
 
   if (!activeSessionExists) {
-    throw new Error('No active session found. Create a session first.');
+    return serviceFail({
+      type: 'not_found',
+      message: 'No active session found. Create a session first.',
+    });
   }
 
-  return await persistFn({ sessionId, operations });
+  try {
+    return serviceOk(await persistFn({ sessionId, operations }));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Persistence operation failed';
+    return serviceFail({ type: 'database', message });
+  }
 }
