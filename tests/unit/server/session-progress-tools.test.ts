@@ -166,6 +166,26 @@ describe('session-progress-tools', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
+    it('returns error when session is not active', async () => {
+      ctx.validateChunkIds = vi.fn().mockResolvedValue({ valid: true, invalidIds: [] });
+      ctx.getSessionWithChunks = vi.fn().mockResolvedValue({
+        session: { id: 's1', status: 'completed' },
+        chunks: [],
+      });
+      registerSessionProgressTools(server as any, ctx);
+      const handler = server.tools.get('batch_update_session_chunks')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        operations: [{ chunk_id: 'c1', status: 'completed' }],
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('not_found');
+      expect(parsed.error.message).toContain('No active session found');
+    });
+
     it('returns error for missing session_id', async () => {
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('batch_update_session_chunks')!.handler;
