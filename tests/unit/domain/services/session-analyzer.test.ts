@@ -877,6 +877,23 @@ describe('Session Manager', () => {
       }
     });
 
+    it('returns database failure when persistFn throws', async () => {
+      const result = await applyBatchSessionChunkOperations({
+        sessionId: 'session-1',
+        operations: [{ chunkId: 'chunk-1', status: 'completed' as const }],
+        activeSessionExists: true,
+        persistFn: async () => {
+          throw new Error('Connection refused');
+        },
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain('Connection refused');
+        expect(result.error.type).toBe('database');
+      }
+    });
+
     it('delegates to persistFn when validations pass', async () => {
       const result = await applyBatchSessionChunkOperations({
         sessionId: 'session-1',
