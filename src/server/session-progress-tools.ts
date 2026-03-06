@@ -2,7 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
 import crypto from 'node:crypto';
-import { BatchUpdateInputSchema } from '../domain/types/session.js';
+import type { BatchOperation } from '../domain/types/session.js';
+import { BatchUpdateInputSchema, BatchUpdateInputShape } from '../domain/types/session.js';
+import { toCamelCaseKeys, toSnakeCase } from '../shared/case-convert.js';
 import {
   CreateSessionChunkToolInputShape,
   CreateSessionChunkToolInputSchema,
@@ -43,16 +45,16 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           updatedAt: now,
         });
 
-        const result = {
-          session_chunk_id: sessionChunk.id,
-          status: 'created' as const,
-          message: 'Session chunk created successfully',
-        };
-
         logger.info(
           `Created session chunk ${sessionChunk.id} for session ${validatedInput.sessionId}`
         );
-        return toolJson(result);
+        return toolJson(
+          toSnakeCase({
+            sessionChunkId: sessionChunk.id,
+            status: 'created' as const,
+            message: 'Session chunk created successfully',
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to create session chunk:', error);
@@ -70,37 +72,32 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
     {
       title: 'Batch Update Session Chunks',
       description: 'Create or update multiple session chunks atomically within the active session',
-      inputSchema: BatchUpdateInputSchema.shape,
+      inputSchema: BatchUpdateInputShape,
     },
     async (input: unknown) => {
       try {
         const validatedInput = BatchUpdateInputSchema.parse(input);
 
         // Validate chunk IDs exist in learning content
-        const opChunkIds = Array.from(new Set(validatedInput.operations.map(op => op.chunk_id)));
+        const opChunkIds = Array.from(new Set(validatedInput.operations.map(op => op.chunkId)));
         const validation = await ctx.validateChunkIds(opChunkIds);
         if (!validation.valid) {
           throw new Error(`Invalid chunk IDs provided: ${validation.invalidIds.join(', ')}`);
         }
 
         // Fetch session and existing chunks
-        const { session } = await ctx.getSessionWithChunks(validatedInput.session_id);
+        const { session } = await ctx.getSessionWithChunks(validatedInput.sessionId);
 
         const result = await ctx.applyBatchSessionChunkOperations({
-          sessionId: validatedInput.session_id,
-          operations: validatedInput.operations.map(op => ({
-            chunkId: op.chunk_id,
-            title: op.title,
-            status: op.status,
-            attempts: op.attempts,
-            qualityScores: op.quality_scores,
-            timeSpentMs: op.time_spent_ms,
-          })),
+          sessionId: validatedInput.sessionId,
+          // Type assertion: CamelCaseKeys doesn't reflect rawKeys at the type level,
+          // but toCamelCaseKeysExcept preserves attempts' snake_case keys at runtime.
+          operations: validatedInput.operations as unknown as BatchOperation[],
           activeSessionExists: session?.status === 'active',
           persistFn: async args => {
             // Use the batch update orchestration with the existing chunks
             const batchResult = await ctx.batchUpdateSessionChunks(
-              validatedInput.session_id,
+              validatedInput.sessionId,
               args.operations
             );
             if (!batchResult.success) {
@@ -113,17 +110,15 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           },
         });
 
-        const { affectedChunkIds, ...rest } = result;
-        const response = {
-          status: 'ok' as const,
-          ...rest,
-          affected_chunk_ids: affectedChunkIds,
-        };
-
         logger.info(
-          `Batch update for session ${validatedInput.session_id}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
+          `Batch update for session ${validatedInput.sessionId}: created=${result.created}, updated=${result.updated}, unchanged=${result.unchanged}`
         );
-        return toolJson(response);
+        return toolJson(
+          toSnakeCase({
+            status: 'ok' as const,
+            ...result,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to batch update session chunks:', error);
@@ -136,10 +131,14 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
     }
   );
 
-  const GetHistoricalFeedbackInputSchema = z.object({
+  const GetHistoricalFeedbackInputShape = {
     chunk_ids: z.array(z.string().min(1)).min(1).max(50),
     limit: z.number().min(1).max(20).default(5).optional(),
-  });
+  } as const;
+
+  const GetHistoricalFeedbackInputSchema = z
+    .object(GetHistoricalFeedbackInputShape)
+    .transform(toCamelCaseKeys);
 
   server.registerTool(
     'get_historical_feedback',
@@ -150,30 +149,30 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         'This helps inform teaching strategy during reviews by surfacing previously reported ' +
         'difficulties, pain points, and successes. Use this to adapt your approach based on ' +
         'what the learner struggled with or found easy in the past.',
-      inputSchema: GetHistoricalFeedbackInputSchema.shape,
+      inputSchema: GetHistoricalFeedbackInputShape,
     },
     async (input: unknown) => {
       try {
         const validatedInput = GetHistoricalFeedbackInputSchema.parse(input);
 
-        const feedback = await ctx.getHistoricalFeedback(validatedInput.chunk_ids, {
+        const feedback = await ctx.getHistoricalFeedback(validatedInput.chunkIds, {
           limit: validatedInput.limit ?? 5,
         });
 
-        const result = {
-          status: 'ok' as const,
-          feedback_count: feedback.length,
-          feedback,
-          hint:
-            feedback.length > 0
-              ? 'Pay special attention to reported difficulties when teaching these chunks.'
-              : 'No previous feedback found for these chunks.',
-        };
-
         logger.info(
-          `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunk_ids.length} chunks`
+          `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunkIds.length} chunks`
         );
-        return toolJson(result);
+        return toolJson(
+          toSnakeCase({
+            status: 'ok' as const,
+            feedbackCount: feedback.length,
+            feedback,
+            hint:
+              feedback.length > 0
+                ? 'Pay special attention to reported difficulties when teaching these chunks.'
+                : 'No previous feedback found for these chunks.',
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Failed to get historical feedback:', error);

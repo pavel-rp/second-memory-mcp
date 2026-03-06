@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { toCamelCaseKeysExcept } from '../../shared/case-convert.js';
 
 // Session mode types
 export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review';
@@ -161,16 +162,24 @@ export type BatchOperation = {
   timeSpentMs?: number;
 };
 
-export const BatchOperationSchema = z.object({
+export const BatchOperationShape = {
   chunk_id: z.string().min(1),
   title: z.string().min(1).optional(),
   status: z.enum(['pending', 'in_progress', 'completed']).optional(),
   attempts: z.array(ChunkAttemptSchema).optional(),
   quality_scores: z.array(z.number().min(0).max(5)).optional(),
   time_spent_ms: z.number().min(0).optional(),
-});
+} as const;
 
-export const BatchUpdateInputSchema = z.object({
+export const BatchOperationSchema = z
+  .object(BatchOperationShape)
+  .transform(toCamelCaseKeysExcept(new Set(['attempts'])));
+
+export const BatchUpdateInputShape = {
   session_id: z.string().min(1),
   operations: z.array(BatchOperationSchema).min(1).max(50),
-});
+} as const;
+
+export const BatchUpdateInputSchema = z
+  .object(BatchUpdateInputShape)
+  .transform(toCamelCaseKeysExcept(new Set(['operations'])));
