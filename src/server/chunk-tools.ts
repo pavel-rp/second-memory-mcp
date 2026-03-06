@@ -148,11 +148,13 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
         });
 
         if (result.success && result.chunk) {
-          return toolJson({
-            success: true,
-            chunk: result.chunk,
-            message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunk: result.chunk,
+              message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
+            })
+          );
         } else {
           return toolError(
             `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
@@ -244,12 +246,14 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             );
           }
 
-          return toolJson({
-            success: true,
-            chunk: result.chunk,
-            removed_dependencies: result.removedDependencies ?? [],
-            message: messageParts.join(' '),
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunk: result.chunk,
+              removedDependencies: result.removedDependencies ?? [],
+              message: messageParts.join(' '),
+            })
+          );
         }
 
         return toolError(result.error?.message || `Failed to delete chunk "${chunkId}"`, {

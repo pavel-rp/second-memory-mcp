@@ -8,6 +8,7 @@ import {
   UpdateTopicSummaryInputSchema,
   UpdateTopicSummaryInputShape,
 } from '../domain/types/persistence-tools.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerTopicTools(server: McpServer, ctx: AppContext): void {
@@ -31,11 +32,13 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
         });
 
         if (result.success && result.topic) {
-          return toolJson({
-            success: true,
-            topic: result.topic,
-            message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topic: result.topic,
+              message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
+            })
+          );
         } else {
           return toolError(
             `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
@@ -74,11 +77,13 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
         });
 
         if (result.success && result.topic) {
-          return toolJson({
-            success: true,
-            topic: result.topic,
-            message: `Successfully updated topic "${result.topic.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topic: result.topic,
+              message: `Successfully updated topic "${result.topic.title}"`,
+            })
+          );
         } else {
           return toolError(`Failed to update topic: ${result.error?.message || 'Unknown error'}`, {
             type: result.error?.type || 'database',
@@ -109,11 +114,13 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
         const result = await ctx.updateTopicSummary(input.topicId, input.summary);
 
         if (result.success && result.topic) {
-          return toolJson({
-            success: true,
-            topic: result.topic,
-            message: `Successfully updated summary for topic "${result.topic.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topic: result.topic,
+              message: `Successfully updated summary for topic "${result.topic.title}"`,
+            })
+          );
         } else {
           return toolError(
             `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,

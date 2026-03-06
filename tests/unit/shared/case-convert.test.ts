@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { toSnakeCase, toCamelCaseKeys } from '../../../src/shared/case-convert.js';
+import {
+  toSnakeCase,
+  toCamelCaseKeys,
+  toCamelCaseKeysExcept,
+} from '../../../src/shared/case-convert.js';
 
 describe('toSnakeCase', () => {
   it('converts flat camelCase keys to snake_case', () => {
@@ -105,6 +109,22 @@ describe('toSnakeCase', () => {
           },
         },
       },
+    });
+  });
+
+  it('does not produce leading underscores for PascalCase keys', () => {
+    const input = { FooBar: 1, Math: 2, CS: 3 };
+    expect(toSnakeCase(input)).toEqual({ foo_bar: 1, math: 2, c_s: 3 });
+  });
+
+  it('skips recursion into rawKeys values', () => {
+    const input = {
+      subjectPreferences: { machine_learning: 3, CS: 5 },
+      averageDuration: 30,
+    };
+    expect(toSnakeCase(input, new Set(['subjectPreferences']))).toEqual({
+      subject_preferences: { machine_learning: 3, CS: 5 },
+      average_duration: 30,
     });
   });
 });
@@ -213,6 +233,34 @@ describe('toCamelCaseKeys', () => {
           averageSessionDuration: 30,
           preferredDifficulty: 5,
         },
+      },
+    });
+  });
+
+  it('toCamelCaseKeysExcept skips recursion into rawKeys values', () => {
+    const transform = toCamelCaseKeysExcept(new Set(['subject_preferences']));
+    const input = {
+      subject_preferences: { machine_learning: 3, data_science: 5 },
+      average_session_duration: 30,
+    };
+    expect(transform(input)).toEqual({
+      subjectPreferences: { machine_learning: 3, data_science: 5 },
+      averageSessionDuration: 30,
+    });
+  });
+
+  it('toCamelCaseKeysExcept propagates through nested levels', () => {
+    const transform = toCamelCaseKeysExcept(new Set(['user_preferences']));
+    const input = {
+      outer: {
+        user_preferences: { dark_mode: true, font_size: 14 },
+        some_field: 'hello',
+      },
+    };
+    expect(transform(input)).toEqual({
+      outer: {
+        userPreferences: { dark_mode: true, font_size: 14 },
+        someField: 'hello',
       },
     });
   });

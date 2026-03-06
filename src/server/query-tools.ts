@@ -48,12 +48,14 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
       try {
         const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
-        return toolJson({
-          success: true,
-          topics,
-          count: topics.length,
-          message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
-        });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            topics,
+            count: topics.length,
+            message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to fetch topics: ${msg}`, {
@@ -87,23 +89,25 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
           limit,
         });
         const chunkIds = chunks.map((c: { id: string }) => c.id);
-        return toolJson({
-          success: true,
-          chunks,
-          count: chunks.length,
-          message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
-          workflow_hint:
-            chunks.length > 0
-              ? {
-                  action: 'REQUIRED_FOR_RECALL',
-                  instruction:
-                    'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
-                    'and include these chunk IDs before teaching. This loads historical feedback.',
-                  chunk_ids: chunkIds,
-                  next_step: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
-                }
-              : undefined,
-        });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            chunks,
+            count: chunks.length,
+            message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
+            workflowHint:
+              chunks.length > 0
+                ? {
+                    action: 'REQUIRED_FOR_RECALL',
+                    instruction:
+                      'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                      'and include these chunk IDs before teaching. This loads historical feedback.',
+                    chunkIds,
+                    nextStep: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
+                  }
+                : undefined,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to fetch chunks: ${msg}`, {

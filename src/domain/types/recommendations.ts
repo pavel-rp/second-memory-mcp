@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { toCamelCaseKeys } from '../../shared/case-convert.js';
+import { toCamelCaseKeys, toCamelCaseKeysExcept } from '../../shared/case-convert.js';
 
 // Recommendation mode types
 export type RecommendationMode = 'guided' | 'explicit';
@@ -246,7 +246,7 @@ export const LearningPatternsSchema = z
     subject_preferences: z.record(z.number()),
     optimal_session_time: z.string().optional(),
   })
-  .transform(toCamelCaseKeys);
+  .transform(toCamelCaseKeysExcept(new Set(['subject_preferences'])));
 
 export const SessionHistorySchema = z
   .object({
@@ -275,7 +275,7 @@ export const SessionContextSchema = z
     current_recommendations: z.array(LearningRecommendationSchema).optional(),
     current_item_index: z.number().optional(),
   })
-  .transform(toCamelCaseKeys);
+  .transform(toCamelCaseKeysExcept(new Set(['user_preferences'])));
 
 export const RecommendationInputShape = {
   mode: RecommendationModeSchema.optional(),
