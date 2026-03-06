@@ -263,7 +263,7 @@ export const SessionHistorySchema = z
     ),
     patterns: LearningPatternsSchema,
   })
-  .transform(toCamelCaseKeys);
+  .transform(toCamelCaseKeysExcept(new Set(['patterns'])));
 
 export const SessionContextSchema = z
   .object({
@@ -307,7 +307,7 @@ export const RecommendationInputSchema = z
       });
     }
   })
-  .transform(toCamelCaseKeys);
+  .transform(toCamelCaseKeysExcept(new Set(['user_history', 'session_context'])));
 
 export const ConversationRequestShape = {
   intent: z.string().min(1).describe('User intent driving the guided learning conversation'),
