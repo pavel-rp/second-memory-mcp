@@ -2,11 +2,11 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
 import {
-  type ConversationRequest,
   ConversationRequestSchema,
   ConversationRequestShape,
 } from '../domain/types/recommendations.js';
 import { SessionInputSchema } from '../domain/types/session.js';
+import { toCamelCaseKeysExcept, toSnakeCase } from '../shared/case-convert.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -21,7 +21,8 @@ const SessionAnalysisInputSchema = z
   .object(SessionAnalysisInputShape)
   .refine(data => data.session_id || data.session_data, {
     message: 'Either session_id or session_data must be provided',
-  });
+  })
+  .transform(toCamelCaseKeysExcept(new Set(['session_data'])));
 
 export function registerSessionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -37,23 +38,23 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
         const validatedInput = SessionAnalysisInputSchema.parse(input);
         let sessionData: unknown;
 
-        if (validatedInput.session_id) {
-          const session = await ctx.getSessionById(validatedInput.session_id);
+        if (validatedInput.sessionId) {
+          const session = await ctx.getSessionById(validatedInput.sessionId);
           if (!session) {
-            throw new Error(`Session ${validatedInput.session_id} not found`);
+            throw new Error(`Session ${validatedInput.sessionId} not found`);
           }
           const sessionInput = await ctx.convertSessionToInput(session.id);
           if (!sessionInput) {
             throw new Error(
-              `Failed to convert session ${validatedInput.session_id} to SessionInput format`
+              `Failed to convert session ${validatedInput.sessionId} to SessionInput format`
             );
           }
           sessionData = sessionInput;
           logger.info(
-            `Retrieved session ${validatedInput.session_id} from database for progress calculation`
+            `Retrieved session ${validatedInput.sessionId} from database for progress calculation`
           );
-        } else if (validatedInput.session_data) {
-          sessionData = validatedInput.session_data;
+        } else if (validatedInput.sessionData) {
+          sessionData = validatedInput.sessionData;
           logger.info('Using provided session data for progress calculation');
         } else {
           throw new Error('Either session_id or session_data must be provided');
@@ -61,7 +62,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
 
         const validatedSession = ctx.validateSessionContext(sessionData);
         const result = ctx.calculateSessionProgress(validatedSession);
-        return toolJson(result);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Session progress calculation failed:', error);
@@ -86,23 +87,23 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
         const validatedInput = SessionAnalysisInputSchema.parse(input);
         let sessionData: unknown;
 
-        if (validatedInput.session_id) {
-          const session = await ctx.getSessionById(validatedInput.session_id);
+        if (validatedInput.sessionId) {
+          const session = await ctx.getSessionById(validatedInput.sessionId);
           if (!session) {
-            throw new Error(`Session ${validatedInput.session_id} not found`);
+            throw new Error(`Session ${validatedInput.sessionId} not found`);
           }
           const sessionInput = await ctx.convertSessionToInput(session.id);
           if (!sessionInput) {
             throw new Error(
-              `Failed to convert session ${validatedInput.session_id} to SessionInput format`
+              `Failed to convert session ${validatedInput.sessionId} to SessionInput format`
             );
           }
           sessionData = sessionInput;
           logger.info(
-            `Retrieved session ${validatedInput.session_id} from database for workflow analysis`
+            `Retrieved session ${validatedInput.sessionId} from database for workflow analysis`
           );
-        } else if (validatedInput.session_data) {
-          sessionData = validatedInput.session_data;
+        } else if (validatedInput.sessionData) {
+          sessionData = validatedInput.sessionData;
           logger.info('Using provided session data for workflow analysis');
         } else {
           throw new Error('Either session_id or session_data must be provided');
@@ -110,7 +111,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
 
         const validatedSession = ctx.validateSessionContext(sessionData);
         const result = ctx.determineNextPhase(validatedSession);
-        return toolJson(result);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Session workflow analysis failed:', error);
@@ -135,23 +136,23 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
         const validatedInput = SessionAnalysisInputSchema.parse(input);
         let sessionData: unknown;
 
-        if (validatedInput.session_id) {
-          const session = await ctx.getSessionById(validatedInput.session_id);
+        if (validatedInput.sessionId) {
+          const session = await ctx.getSessionById(validatedInput.sessionId);
           if (!session) {
-            throw new Error(`Session ${validatedInput.session_id} not found`);
+            throw new Error(`Session ${validatedInput.sessionId} not found`);
           }
           const sessionInput = await ctx.convertSessionToInput(session.id);
           if (!sessionInput) {
             throw new Error(
-              `Failed to convert session ${validatedInput.session_id} to SessionInput format`
+              `Failed to convert session ${validatedInput.sessionId} to SessionInput format`
             );
           }
           sessionData = sessionInput;
           logger.info(
-            `Retrieved session ${validatedInput.session_id} from database for completion analysis`
+            `Retrieved session ${validatedInput.sessionId} from database for completion analysis`
           );
-        } else if (validatedInput.session_data) {
-          sessionData = validatedInput.session_data;
+        } else if (validatedInput.sessionData) {
+          sessionData = validatedInput.sessionData;
           logger.info('Using provided session data for completion analysis');
         } else {
           throw new Error('Either session_id or session_data must be provided');
@@ -159,7 +160,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
 
         const validatedSession = ctx.validateSessionContext(sessionData);
         const result = ctx.checkSessionCompletion(validatedSession);
-        return toolJson(result);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         logger.error('Session completion analysis failed:', error);
@@ -182,15 +183,9 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     async (input: unknown) => {
       try {
         const parsed = ConversationRequestSchema.parse(input);
-        const conversationInput: ConversationRequest = {
-          intent: parsed.intent,
-          context: parsed.context,
-          userInput: parsed.user_input,
-          sessionState: parsed.session_state,
-        };
         const conversationManager = ctx.createConversationManager();
-        const result = await conversationManager.conductLearningSession(conversationInput);
-        return toolJson(result);
+        const result = await conversationManager.conductLearningSession(parsed);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to conduct learning conversation: ${msg}`, {

@@ -3,11 +3,10 @@ import type { AppContext } from '../composition-root.js';
 import {
   AnalyticsDailyInputSchema,
   AnalyticsDailyInputShape,
-  type AnalyticsDailyInput,
   AnalyticsWindowInputSchema,
   AnalyticsWindowInputShape,
-  type AnalyticsWindowInput,
 } from '../domain/types/analytics.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void {
@@ -19,17 +18,10 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       inputSchema: AnalyticsDailyInputShape,
     },
     async (rawInput: unknown) => {
-      const parsed: AnalyticsDailyInput = AnalyticsDailyInputSchema.parse(rawInput);
-      const entries = parsed.entries.map(e => ({
-        date: e.date,
-        quality: e.quality,
-        isNew: e.is_new,
-        topic: e.topic,
-        tags: e.tags,
-      }));
+      const parsed = AnalyticsDailyInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeDailyKpis(entries);
-        return toolJson(result);
+        const result = ctx.computeDailyKpis(parsed.entries);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to compute daily KPIs: ${msg}`, {
@@ -48,19 +40,12 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       inputSchema: AnalyticsWindowInputShape,
     },
     async (rawInput: unknown) => {
-      const parsed: AnalyticsWindowInput = AnalyticsWindowInputSchema.parse(rawInput);
-      const entries = parsed.entries.map(e => ({
-        date: e.date,
-        quality: e.quality,
-        isNew: e.is_new,
-        topic: e.topic,
-        tags: e.tags,
-      }));
+      const parsed = AnalyticsWindowInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeWindowRollup({ entries }, parsed.window, {
-          includeBreakdowns: parsed.include_breakdowns,
+        const result = ctx.computeWindowRollup({ entries: parsed.entries }, parsed.window, {
+          includeBreakdowns: parsed.includeBreakdowns,
         });
-        return toolJson(result);
+        return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to compute window analytics: ${msg}`, {

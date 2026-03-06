@@ -20,7 +20,13 @@ describe('ReviewEntrySchema', () => {
     const result = ReviewEntrySchema.safeParse(validEntry);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data).toEqual(validEntry);
+      expect(result.data).toEqual({
+        date: '2024-01-01',
+        quality: 4,
+        isNew: true,
+        topic: 'mathematics',
+        tags: ['algebra', 'basic'],
+      });
     }
   });
 
@@ -33,7 +39,7 @@ describe('ReviewEntrySchema', () => {
       expect(result.data).toEqual({
         date: '2024-01-01',
         quality: 0,
-        is_new: false,
+        isNew: false,
         tags: [],
       });
     }

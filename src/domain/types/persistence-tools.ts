@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
+import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 export const ListLearningItemsInputShape = {
   subject_filter: z.string().optional().describe('Optional subject filter for learning items'),
@@ -7,7 +8,9 @@ export const ListLearningItemsInputShape = {
   limit: z.number().int().optional().describe('Maximum number of learning items to return'),
 } as const;
 
-export const ListLearningItemsInputSchema = z.object(ListLearningItemsInputShape);
+export const ListLearningItemsInputSchema = z
+  .object(ListLearningItemsInputShape)
+  .transform(toCamelCaseKeys);
 export type ListLearningItemsInput = z.infer<typeof ListLearningItemsInputSchema>;
 
 const TopicChunkShape = {
@@ -66,7 +69,7 @@ const TopicChunkShape = {
     .describe('Chunk classification'),
 } as const;
 
-export const TopicChunkSchema = z.object(TopicChunkShape);
+export const TopicChunkSchema = z.object(TopicChunkShape).transform(toCamelCaseKeys);
 
 export const TopicUserPreferencesSchema = z
   .object({
@@ -93,7 +96,8 @@ export const TopicUserPreferencesSchema = z
       .optional()
       .describe('Whether to include prerequisite content'),
   })
-  .describe('Optional user preference overrides');
+  .describe('Optional user preference overrides')
+  .transform(toCamelCaseKeys);
 
 export const CreateTopicWithChunksInputShape = {
   topic_title: z
@@ -134,7 +138,9 @@ export const CreateTopicWithChunksInputShape = {
   user_preferences: TopicUserPreferencesSchema.optional(),
 } as const;
 
-export const CreateTopicWithChunksInputSchema = z.object(CreateTopicWithChunksInputShape);
+export const CreateTopicWithChunksInputSchema = z
+  .object(CreateTopicWithChunksInputShape)
+  .transform(toCamelCaseKeys);
 export type CreateTopicWithChunksInput = z.infer<typeof CreateTopicWithChunksInputSchema>;
 
 export const CreateLearningItemInputShape = {
@@ -185,7 +191,9 @@ export const CreateLearningItemInputShape = {
   topic_title: z.string().optional().describe('Optional topic title; creates a topic if missing'),
 } as const;
 
-export const CreateLearningItemInputSchema = z.object(CreateLearningItemInputShape);
+export const CreateLearningItemInputSchema = z
+  .object(CreateLearningItemInputShape)
+  .transform(toCamelCaseKeys);
 export type CreateLearningItemInput = z.infer<typeof CreateLearningItemInputSchema>;
 
 export const UpdateChunkContentInputShape = {
@@ -201,7 +209,9 @@ export const UpdateChunkContentInputShape = {
   reset_progress: z.boolean().optional().describe('Whether to reset spaced repetition progress'),
 } as const;
 
-export const UpdateChunkContentInputSchema = z.object(UpdateChunkContentInputShape);
+export const UpdateChunkContentInputSchema = z
+  .object(UpdateChunkContentInputShape)
+  .transform(toCamelCaseKeys);
 export type UpdateChunkContentInput = z.infer<typeof UpdateChunkContentInputSchema>;
 
 export const UpdateChunkMetadataInputShape = {
@@ -239,7 +249,9 @@ export const UpdateChunkMetadataInputShape = {
     .describe('Updated estimated study duration'),
 } as const;
 
-export const UpdateChunkMetadataInputSchema = z.object(UpdateChunkMetadataInputShape);
+export const UpdateChunkMetadataInputSchema = z
+  .object(UpdateChunkMetadataInputShape)
+  .transform(toCamelCaseKeys);
 export type UpdateChunkMetadataInput = z.infer<typeof UpdateChunkMetadataInputSchema>;
 
 export const UpdateChunkInputShape = {
@@ -287,14 +299,14 @@ export const UpdateChunkInputShape = {
   force_reset: z.boolean().optional().describe('Force reset of spaced repetition progress'),
 } as const;
 
-export const UpdateChunkInputSchema = z.object(UpdateChunkInputShape);
+export const UpdateChunkInputSchema = z.object(UpdateChunkInputShape).transform(toCamelCaseKeys);
 export type UpdateChunkInput = z.infer<typeof UpdateChunkInputSchema>;
 
 export const DeleteChunkInputShape = {
   chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to delete'),
 } as const;
 
-export const DeleteChunkInputSchema = z.object(DeleteChunkInputShape);
+export const DeleteChunkInputSchema = z.object(DeleteChunkInputShape).transform(toCamelCaseKeys);
 export type DeleteChunkInput = z.infer<typeof DeleteChunkInputSchema>;
 
 export const UpdateTopicInputShape = {
@@ -319,7 +331,7 @@ export const UpdateTopicInputShape = {
     .describe('New subject for the topic'),
 } as const;
 
-export const UpdateTopicInputSchema = z.object(UpdateTopicInputShape);
+export const UpdateTopicInputSchema = z.object(UpdateTopicInputShape).transform(toCamelCaseKeys);
 export type UpdateTopicInput = z.infer<typeof UpdateTopicInputSchema>;
 
 export const UpdateTopicSummaryInputShape = {
@@ -334,7 +346,9 @@ export const UpdateTopicSummaryInputShape = {
     .describe('New summary content for the topic'),
 } as const;
 
-export const UpdateTopicSummaryInputSchema = z.object(UpdateTopicSummaryInputShape);
+export const UpdateTopicSummaryInputSchema = z
+  .object(UpdateTopicSummaryInputShape)
+  .transform(toCamelCaseKeys);
 export type UpdateTopicSummaryInput = z.infer<typeof UpdateTopicSummaryInputSchema>;
 
 export const BatchFetchTopicsMinimalInputShape = {
@@ -342,7 +356,9 @@ export const BatchFetchTopicsMinimalInputShape = {
   limit: z.number().int().positive().optional().describe('Maximum number of topics to return'),
 } as const;
 
-export const BatchFetchTopicsMinimalInputSchema = z.object(BatchFetchTopicsMinimalInputShape);
+export const BatchFetchTopicsMinimalInputSchema = z
+  .object(BatchFetchTopicsMinimalInputShape)
+  .transform(toCamelCaseKeys);
 export type BatchFetchTopicsMinimalInput = z.infer<typeof BatchFetchTopicsMinimalInputSchema>;
 
 export const BatchFetchChunksMinimalInputShape = {
@@ -352,5 +368,7 @@ export const BatchFetchChunksMinimalInputShape = {
   limit: z.number().int().positive().optional().describe('Maximum number of chunks to return'),
 } as const;
 
-export const BatchFetchChunksMinimalInputSchema = z.object(BatchFetchChunksMinimalInputShape);
+export const BatchFetchChunksMinimalInputSchema = z
+  .object(BatchFetchChunksMinimalInputShape)
+  .transform(toCamelCaseKeys);
 export type BatchFetchChunksMinimalInput = z.infer<typeof BatchFetchChunksMinimalInputSchema>;

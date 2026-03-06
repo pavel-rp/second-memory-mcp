@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SessionModeSchema, SessionInputSchema } from './session.js';
+import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 // Input schemas for session management tools
 
@@ -10,20 +11,26 @@ export const CreateSessionToolInputShape = {
   estimated_duration: z.number().min(1).max(480).optional(), // 1-480 minutes
 } as const;
 
-export const CreateSessionToolInputSchema = z.object(CreateSessionToolInputShape);
+export const CreateSessionToolInputSchema = z
+  .object(CreateSessionToolInputShape)
+  .transform(toCamelCaseKeys);
 
 export const CompleteSessionInputShape = {
   session_id: z.string().min(1),
   feedback: z.string().optional(),
 } as const;
 
-export const CompleteSessionInputSchema = z.object(CompleteSessionInputShape);
+export const CompleteSessionInputSchema = z
+  .object(CompleteSessionInputShape)
+  .transform(toCamelCaseKeys);
 
 export const GetSessionByIdInputShape = {
   session_id: z.string().min(1),
 } as const;
 
-export const GetSessionByIdInputSchema = z.object(GetSessionByIdInputShape);
+export const GetSessionByIdInputSchema = z
+  .object(GetSessionByIdInputShape)
+  .transform(toCamelCaseKeys);
 
 export const CreateSessionChunkToolInputShape = {
   session_id: z.string().min(1),
@@ -43,7 +50,9 @@ export const CreateSessionChunkToolInputShape = {
   time_spent_ms: z.number().min(0).default(0),
 } as const;
 
-export const CreateSessionChunkToolInputSchema = z.object(CreateSessionChunkToolInputShape);
+export const CreateSessionChunkToolInputSchema = z
+  .object(CreateSessionChunkToolInputShape)
+  .transform(toCamelCaseKeys);
 
 // Result schemas for session management tools
 

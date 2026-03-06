@@ -3,14 +3,12 @@ import type { AppContext } from '../composition-root.js';
 import {
   ListLearningItemsInputSchema,
   ListLearningItemsInputShape,
-  type ListLearningItemsInput,
   BatchFetchTopicsMinimalInputSchema,
   BatchFetchTopicsMinimalInputShape,
-  type BatchFetchTopicsMinimalInput,
   BatchFetchChunksMinimalInputSchema,
   BatchFetchChunksMinimalInputShape,
-  type BatchFetchChunksMinimalInput,
 } from '../domain/types/persistence-tools.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerQueryTools(server: McpServer, ctx: AppContext): void {
@@ -23,15 +21,10 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: ListLearningItemsInputShape,
     },
     async (rawInput: unknown) => {
-      const { subject_filter, due_only, limit }: ListLearningItemsInput =
-        ListLearningItemsInputSchema.parse(rawInput);
+      const { subjectFilter, dueOnly, limit } = ListLearningItemsInputSchema.parse(rawInput);
       try {
-        const items = await ctx.listChunksAsLearningItems({
-          subjectFilter: subject_filter,
-          dueOnly: due_only,
-          limit,
-        });
-        return toolJson(items);
+        const items = await ctx.listChunksAsLearningItems({ subjectFilter, dueOnly, limit });
+        return toolJson(toSnakeCase(items));
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to list learning items: ${msg}`, {
@@ -52,16 +45,17 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchTopicsMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { subject_filter, limit }: BatchFetchTopicsMinimalInput =
-        BatchFetchTopicsMinimalInputSchema.parse(rawInput);
+      const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
       try {
-        const topics = await ctx.batchFetchTopicsMinimal({ subject: subject_filter, limit });
-        return toolJson({
-          success: true,
-          topics,
-          count: topics.length,
-          message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
-        });
+        const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            topics,
+            count: topics.length,
+            message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to fetch topics: ${msg}`, {
@@ -85,33 +79,35 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { topic_id, subject_filter, due_only, limit }: BatchFetchChunksMinimalInput =
+      const { topicId, subjectFilter, dueOnly, limit } =
         BatchFetchChunksMinimalInputSchema.parse(rawInput);
       try {
         const chunks = await ctx.batchFetchChunksMinimal({
-          topicId: topic_id,
-          subject: subject_filter,
-          dueOnly: due_only,
+          topicId,
+          subject: subjectFilter,
+          dueOnly,
           limit,
         });
         const chunkIds = chunks.map((c: { id: string }) => c.id);
-        return toolJson({
-          success: true,
-          chunks,
-          count: chunks.length,
-          message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
-          workflow_hint:
-            chunks.length > 0
-              ? {
-                  action: 'REQUIRED_FOR_RECALL',
-                  instruction:
-                    'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
-                    'and include these chunk IDs before teaching. This loads historical feedback.',
-                  chunk_ids: chunkIds,
-                  next_step: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
-                }
-              : undefined,
-        });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            chunks,
+            count: chunks.length,
+            message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
+            workflowHint:
+              chunks.length > 0
+                ? {
+                    action: 'REQUIRED_FOR_RECALL',
+                    instruction:
+                      'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                      'and include these chunk IDs before teaching. This loads historical feedback.',
+                    chunkIds,
+                    nextStep: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
+                  }
+                : undefined,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to fetch chunks: ${msg}`, {

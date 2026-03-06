@@ -3,14 +3,12 @@ import type { AppContext } from '../composition-root.js';
 import {
   CreateTopicWithChunksInputSchema,
   CreateTopicWithChunksInputShape,
-  type CreateTopicWithChunksInput,
   UpdateTopicInputSchema,
   UpdateTopicInputShape,
-  type UpdateTopicInput,
   UpdateTopicSummaryInputSchema,
   UpdateTopicSummaryInputShape,
-  type UpdateTopicSummaryInput,
 } from '../domain/types/persistence-tools.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerTopicTools(server: McpServer, ctx: AppContext): void {
@@ -23,35 +21,27 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
       inputSchema: CreateTopicWithChunksInputShape,
     },
     async (rawInput: unknown) => {
-      const input: CreateTopicWithChunksInput = CreateTopicWithChunksInputSchema.parse(rawInput);
+      const input = CreateTopicWithChunksInputSchema.parse(rawInput);
       try {
         const result = await ctx.createTopicWithChunks({
-          topicTitle: input.topic_title,
-          topicDescription: input.topic_description,
+          topicTitle: input.topicTitle,
+          topicDescription: input.topicDescription,
           subject: input.subject,
-          topicSummary: input.topic_summary,
-          chunks: input.chunks.map(c => ({
-            id: c.id,
-            title: c.title,
-            content: c.content,
-            difficulty: c.difficulty,
-            estimatedDuration: c.estimated_duration,
-            prerequisites: c.prerequisites,
-            tags: c.tags,
-            chunkType: c.chunk_type,
-            order: c.order,
-          })),
+          topicSummary: input.topicSummary,
+          chunks: input.chunks,
         });
 
         if (result.success && result.topic) {
-          return toolJson({
-            success: true,
-            topic: result.topic,
-            message: `Successfully created topic "${input.topic_title}" with ${result.topic.chunks.length} chunks`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topic: result.topic,
+              message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
+            })
+          );
         } else {
           return toolError(
-            `Failed to create topic "${input.topic_title}": ${result.error?.message || 'Unknown error'}`,
+            `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
             {
               type: result.error?.type || 'database',
               message: result.error?.message || 'Unknown error',
@@ -61,7 +51,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
         }
       } catch (error) {
         const msg = extractErrorMessage(error);
-        return toolError(`System error while creating topic "${input.topic_title}": ${msg}`, {
+        return toolError(`System error while creating topic "${input.topicTitle}": ${msg}`, {
           type: 'system',
           message: msg,
           retryable: true,
@@ -79,19 +69,21 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
       inputSchema: UpdateTopicInputShape,
     },
     async (rawInput: unknown) => {
-      const input: UpdateTopicInput = UpdateTopicInputSchema.parse(rawInput);
+      const input = UpdateTopicInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateTopicMetadata(input.topic_id, {
+        const result = await ctx.updateTopicMetadata(input.topicId, {
           title: input.title,
           subject: input.subject,
         });
 
         if (result.success && result.topic) {
-          return toolJson({
-            success: true,
-            topic: result.topic,
-            message: `Successfully updated topic "${result.topic.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topic: result.topic,
+              message: `Successfully updated topic "${result.topic.title}"`,
+            })
+          );
         } else {
           return toolError(`Failed to update topic: ${result.error?.message || 'Unknown error'}`, {
             type: result.error?.type || 'database',
@@ -117,16 +109,18 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
       inputSchema: UpdateTopicSummaryInputShape,
     },
     async (rawInput: unknown) => {
-      const input: UpdateTopicSummaryInput = UpdateTopicSummaryInputSchema.parse(rawInput);
+      const input = UpdateTopicSummaryInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateTopicSummary(input.topic_id, input.summary);
+        const result = await ctx.updateTopicSummary(input.topicId, input.summary);
 
         if (result.success && result.topic) {
-          return toolJson({
-            success: true,
-            topic: result.topic,
-            message: `Successfully updated summary for topic "${result.topic.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topic: result.topic,
+              message: `Successfully updated summary for topic "${result.topic.title}"`,
+            })
+          );
         } else {
           return toolError(
             `Failed to update topic summary: ${result.error?.message || 'Unknown error'}`,

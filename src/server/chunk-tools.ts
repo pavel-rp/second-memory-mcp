@@ -5,20 +5,16 @@ import type { NewLearningChunk } from '../domain/types/entities.js';
 import {
   CreateLearningItemInputSchema,
   CreateLearningItemInputShape,
-  type CreateLearningItemInput,
   UpdateChunkContentInputSchema,
   UpdateChunkContentInputShape,
-  type UpdateChunkContentInput,
   UpdateChunkMetadataInputSchema,
   UpdateChunkMetadataInputShape,
-  type UpdateChunkMetadataInput,
   UpdateChunkInputSchema,
   UpdateChunkInputShape,
-  type UpdateChunkInput,
   DeleteChunkInputSchema,
   DeleteChunkInputShape,
-  type DeleteChunkInput,
 } from '../domain/types/persistence-tools.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerChunkTools(server: McpServer, ctx: AppContext): void {
@@ -31,7 +27,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: CreateLearningItemInputShape,
     },
     async (rawInput: unknown) => {
-      const input: CreateLearningItemInput = CreateLearningItemInputSchema.parse(rawInput);
+      const input = CreateLearningItemInputSchema.parse(rawInput);
       try {
         const now = Date.now();
         const chunkId = crypto.randomUUID();
@@ -45,7 +41,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           nextReviewAt: now,
           easeFactor: 2.5,
           repetitions: 0,
-          estimatedDuration: input.estimated_duration,
+          estimatedDuration: input.estimatedDuration,
           chunkType: 'new' as const,
           prerequisitesJson: input.prerequisites ?? null,
           tagsJson: input.tags ?? null,
@@ -54,7 +50,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           contentUpdatedAt: now,
           createdAt: now,
           updatedAt: now,
-          topicTitle: input.topic_title || `Topic: ${input.subject} - ${input.title}`,
+          topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
         } as NewLearningChunk & { topicTitle?: string });
 
         if (!result.success) {
@@ -69,11 +65,13 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
 
         const learningItem = ctx.mapChunkRowToLearningItem(result.data);
 
-        return toolJson({
-          success: true,
-          item: learningItem,
-          message: `Successfully created learning item "${input.title}"`,
-        });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            item: learningItem,
+            message: `Successfully created learning item "${input.title}"`,
+          })
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to create learning item "${input.title}": ${msg}`, {
@@ -94,20 +92,22 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: UpdateChunkContentInputShape,
     },
     async (rawInput: unknown) => {
-      const input: UpdateChunkContentInput = UpdateChunkContentInputSchema.parse(rawInput);
+      const input = UpdateChunkContentInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateChunkContent(input.chunk_id, {
+        const result = await ctx.updateChunkContent(input.chunkId, {
           content: input.content,
-          resetProgress: input.reset_progress,
+          resetProgress: input.resetProgress,
         });
 
         if (result.success && result.chunk) {
-          return toolJson({
-            success: true,
-            chunk: result.chunk,
-            progress_reset: result.progressReset,
-            message: `Successfully updated content for chunk "${result.chunk.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunk: result.chunk,
+              progressReset: result.progressReset,
+              message: `Successfully updated content for chunk "${result.chunk.title}"`,
+            })
+          );
         } else {
           return toolError(
             `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
@@ -137,22 +137,24 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: UpdateChunkMetadataInputShape,
     },
     async (rawInput: unknown) => {
-      const input: UpdateChunkMetadataInput = UpdateChunkMetadataInputSchema.parse(rawInput);
+      const input = UpdateChunkMetadataInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateChunkMetadata(input.chunk_id, {
+        const result = await ctx.updateChunkMetadata(input.chunkId, {
           title: input.title,
           difficulty: input.difficulty,
           prerequisites: input.prerequisites,
           tags: input.tags,
-          estimatedDuration: input.estimated_duration,
+          estimatedDuration: input.estimatedDuration,
         });
 
         if (result.success && result.chunk) {
-          return toolJson({
-            success: true,
-            chunk: result.chunk,
-            message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunk: result.chunk,
+              message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
+            })
+          );
         } else {
           return toolError(
             `Failed to update chunk metadata: ${result.error?.message || 'Unknown error'}`,
@@ -182,25 +184,27 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: UpdateChunkInputShape,
     },
     async (rawInput: unknown) => {
-      const input: UpdateChunkInput = UpdateChunkInputSchema.parse(rawInput);
+      const input = UpdateChunkInputSchema.parse(rawInput);
       try {
-        const result = await ctx.updateChunkWithProgressReset(input.chunk_id, {
+        const result = await ctx.updateChunkWithProgressReset(input.chunkId, {
           content: input.content,
           title: input.title,
           difficulty: input.difficulty,
           prerequisites: input.prerequisites,
           tags: input.tags,
-          estimatedDuration: input.estimated_duration,
-          forceReset: input.force_reset,
+          estimatedDuration: input.estimatedDuration,
+          forceReset: input.forceReset,
         });
 
         if (result.success && result.chunk) {
-          return toolJson({
-            success: true,
-            chunk: result.chunk,
-            progress_reset: result.progressReset,
-            message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunk: result.chunk,
+              progressReset: result.progressReset,
+              message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
+            })
+          );
         } else {
           return toolError(`Failed to update chunk: ${result.error?.message || 'Unknown error'}`, {
             type: result.error?.type || 'database',
@@ -227,7 +231,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
       inputSchema: DeleteChunkInputShape,
     },
     async (rawInput: unknown) => {
-      const { chunk_id: chunkId }: DeleteChunkInput = DeleteChunkInputSchema.parse(rawInput);
+      const { chunkId } = DeleteChunkInputSchema.parse(rawInput);
       try {
         const result = await ctx.deleteChunk(chunkId);
 
@@ -242,12 +246,14 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             );
           }
 
-          return toolJson({
-            success: true,
-            chunk: result.chunk,
-            removed_dependencies: result.removedDependencies ?? [],
-            message: messageParts.join(' '),
-          });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunk: result.chunk,
+              removedDependencies: result.removedDependencies ?? [],
+              message: messageParts.join(' '),
+            })
+          );
         }
 
         return toolError(result.error?.message || `Failed to delete chunk "${chunkId}"`, {

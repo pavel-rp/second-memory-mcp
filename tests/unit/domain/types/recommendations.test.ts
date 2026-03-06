@@ -1,5 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { RecommendationInputSchema } from '../../../../src/domain/types/recommendations.js';
+import {
+  RecommendationInputSchema,
+  SessionHistorySchema,
+} from '../../../../src/domain/types/recommendations.js';
+
+describe('SessionHistorySchema - nested z.record() protection', () => {
+  it('preserves multi-word user-data keys in subject_preferences', () => {
+    const input = {
+      recent_sessions: [],
+      patterns: {
+        average_session_duration: 30,
+        preferred_difficulty: 5,
+        success_rate: 0.8,
+        fatigue_threshold: 10,
+        subject_preferences: { machine_learning: 5, data_science: 3 },
+      },
+    };
+
+    const result = SessionHistorySchema.parse(input);
+    expect(result.patterns.subjectPreferences).toEqual({
+      machine_learning: 5,
+      data_science: 3,
+    });
+  });
+});
 
 describe('RecommendationInputSchema - self-fetch parameters', () => {
   it('validates fetch_from_database defaults to false when omitted', () => {
@@ -8,7 +32,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(false);
+    expect(result.fetchFromDatabase).toBe(false);
   });
 
   it('validates fetch_from_database: true with filters', () => {
@@ -21,9 +45,9 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(true);
-    expect(result.subject_filter).toBe('Math');
-    expect(result.due_only).toBe(true);
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result.subjectFilter).toBe('Math');
+    expect(result.dueOnly).toBe(true);
     expect(result.limit).toBe(10);
   });
 
@@ -34,7 +58,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(false);
+    expect(result.fetchFromDatabase).toBe(false);
   });
 
   it('validates subject filter is optional', () => {
@@ -44,7 +68,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.subject_filter).toBe('CS');
+    expect(result.subjectFilter).toBe('CS');
   });
 
   it('validates due_only filter is optional', () => {
@@ -54,7 +78,7 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.due_only).toBe(true);
+    expect(result.dueOnly).toBe(true);
   });
 
   it('validates limit filter is optional and must be positive integer', () => {
@@ -104,9 +128,9 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(true);
-    expect(result.subject_filter).toBe('SWE');
-    expect(result.due_only).toBe(false);
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result.subjectFilter).toBe('SWE');
+    expect(result.dueOnly).toBe(false);
     expect(result.limit).toBe(20);
   });
 
@@ -117,10 +141,40 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     };
 
     const result = RecommendationInputSchema.parse(input);
-    expect(result.fetch_from_database).toBe(true);
-    expect(result.subject_filter).toBeUndefined();
-    expect(result.due_only).toBeUndefined();
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result.subjectFilter).toBeUndefined();
+    expect(result.dueOnly).toBeUndefined();
     expect(result.limit).toBeUndefined();
+  });
+
+  it('preserves multi-word user-data keys in nested z.record() fields', () => {
+    const input = {
+      learning_items: [],
+      user_history: {
+        recent_sessions: [],
+        patterns: {
+          average_session_duration: 30,
+          preferred_difficulty: 5,
+          success_rate: 0.8,
+          fatigue_threshold: 10,
+          subject_preferences: { machine_learning: 5, data_science: 3 },
+        },
+      },
+      session_context: {
+        user_preferences: { dark_mode: true, auto_advance: false },
+      },
+    };
+
+    const result = RecommendationInputSchema.parse(input);
+    // user-data keys must NOT be camelCased
+    expect(result.userHistory!.patterns.subjectPreferences).toEqual({
+      machine_learning: 5,
+      data_science: 3,
+    });
+    expect(result.sessionContext!.userPreferences).toEqual({
+      dark_mode: true,
+      auto_advance: false,
+    });
   });
 
   it('validates backward compatibility - filters can be provided without fetch_from_database', () => {
@@ -133,10 +187,10 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
 
     const result = RecommendationInputSchema.parse(input);
     // fetch_from_database should default to false
-    expect(result.fetch_from_database).toBe(false);
+    expect(result.fetchFromDatabase).toBe(false);
     // But filters should still be present in the parsed result
-    expect(result.subject_filter).toBe('Math');
-    expect(result.due_only).toBe(true);
+    expect(result.subjectFilter).toBe('Math');
+    expect(result.dueOnly).toBe(true);
     expect(result.limit).toBe(10);
   });
 });

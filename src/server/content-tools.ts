@@ -3,14 +3,12 @@ import type { AppContext } from '../composition-root.js';
 import {
   GetChunkContentInputSchema,
   GetChunkContentInputShape,
-  type GetChunkContentInput,
   GetTopicSummaryInputSchema,
   GetTopicSummaryInputShape,
-  type GetTopicSummaryInput,
   ListItemsWithContentInputSchema,
   ListItemsWithContentInputShape,
-  type ListItemsWithContentInput,
 } from '../domain/types/content-tools.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
 
 export function registerContentTools(server: McpServer, ctx: AppContext): void {
@@ -27,28 +25,30 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
       inputSchema: GetChunkContentInputShape,
     },
     async (rawInput: unknown) => {
-      const input: GetChunkContentInput = GetChunkContentInputSchema.parse(rawInput);
-      const chunkId = input.chunk_id;
+      const input = GetChunkContentInputSchema.parse(rawInput);
 
       try {
-        const chunkContent = await ctx.getChunkContent(chunkId);
+        const chunkContent = await ctx.getChunkContent(input.chunkId);
 
         if (!chunkContent) {
-          return toolError(`No chunk found with ID: ${chunkId}`, {
+          return toolError(`No chunk found with ID: ${input.chunkId}`, {
             type: 'not_found',
             message: 'Chunk not found',
           });
         }
 
-        return toolOk(`Successfully retrieved content for chunk: ${chunkId}`, {
-          chunk_id: chunkId,
-          content: chunkContent.content,
-          content_version: chunkContent.contentVersion,
-          content_updated_at: chunkContent.contentUpdatedAt,
-          session_reminder:
-            'If conducting recall/review: Ensure you have created a session first ' +
-            'to access historical feedback about learner difficulties.',
-        });
+        return toolOk(
+          `Successfully retrieved content for chunk: ${input.chunkId}`,
+          toSnakeCase({
+            chunkId: input.chunkId,
+            content: chunkContent.content,
+            contentVersion: chunkContent.contentVersion,
+            contentUpdatedAt: chunkContent.contentUpdatedAt,
+            sessionReminder:
+              'If conducting recall/review: Ensure you have created a session first ' +
+              'to access historical feedback about learner difficulties.',
+          }) as Record<string, unknown>
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to retrieve chunk content: ${msg}`, {
@@ -72,32 +72,34 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
       inputSchema: GetTopicSummaryInputShape,
     },
     async (rawInput: unknown) => {
-      const input: GetTopicSummaryInput = GetTopicSummaryInputSchema.parse(rawInput);
-      const topicId = input.topic_id;
+      const input = GetTopicSummaryInputSchema.parse(rawInput);
 
       try {
-        const topicResult = await ctx.getTopicSummary(topicId);
+        const topicResult = await ctx.getTopicSummary(input.topicId);
 
         if (!topicResult) {
-          return toolError(`No topic found with ID: ${topicId}`, {
+          return toolError(`No topic found with ID: ${input.topicId}`, {
             type: 'database',
             message: 'Topic not found',
           });
         }
 
-        return toolOk(`Successfully retrieved topic summary: ${topicResult.title}`, {
-          topic_id: topicId,
-          title: topicResult.title,
-          subject: topicResult.subject,
-          summary: topicResult.summary,
-          summary_version: topicResult.summaryVersion,
-          summary_updated_at: topicResult.summaryUpdatedAt,
-          created_at: topicResult.createdAt,
-          updated_at: topicResult.updatedAt,
-          session_reminder:
-            'If conducting recall/review: Use batch_fetch_chunks_minimal(topic_id) to get chunk IDs, ' +
-            'then create_session(mode: "retrieval", chunk_ids: [...]) to load historical feedback.',
-        });
+        return toolOk(
+          `Successfully retrieved topic summary: ${topicResult.title}`,
+          toSnakeCase({
+            topicId: input.topicId,
+            title: topicResult.title,
+            subject: topicResult.subject,
+            summary: topicResult.summary,
+            summaryVersion: topicResult.summaryVersion,
+            summaryUpdatedAt: topicResult.summaryUpdatedAt,
+            createdAt: topicResult.createdAt,
+            updatedAt: topicResult.updatedAt,
+            sessionReminder:
+              'If conducting recall/review: Use batch_fetch_chunks_minimal(topic_id) to get chunk IDs, ' +
+              'then create_session(mode: "retrieval", chunk_ids: [...]) to load historical feedback.',
+          }) as Record<string, unknown>
+        );
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to retrieve topic summary: ${msg}`, {
@@ -118,37 +120,37 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
       inputSchema: ListItemsWithContentInputShape,
     },
     async (rawInput: unknown) => {
-      const input: ListItemsWithContentInput = ListItemsWithContentInputSchema.parse(rawInput);
-      const { subject_filter, due_only, limit, offset, include_content } = input;
+      const input = ListItemsWithContentInputSchema.parse(rawInput);
+      const { subjectFilter, dueOnly, limit, offset, includeContent } = input;
 
       const resolvedOffset = offset ?? 0;
       const resolvedLimit = limit ?? 100;
 
       try {
         const result = await ctx.listChunksWithContent({
-          subjectFilter: subject_filter,
-          dueOnly: due_only,
-          includeContent: include_content,
+          subjectFilter,
+          dueOnly,
+          includeContent,
           limit: resolvedLimit,
           offset: resolvedOffset,
         });
 
         return toolOk(
           `Successfully retrieved ${result.items.length} learning items${
-            include_content ? ' with content' : ''
+            includeContent ? ' with content' : ''
           }`,
-          {
+          toSnakeCase({
             items: result.items,
             count: result.items.length,
             pagination: result.pagination,
-            content_included: include_content,
+            contentIncluded: includeContent,
             filter: {
-              subject: subject_filter ?? null,
-              due_only: due_only ?? false,
+              subject: subjectFilter ?? null,
+              dueOnly: dueOnly ?? false,
               limit: resolvedLimit,
               offset: resolvedOffset,
             },
-          }
+          }) as Record<string, unknown>
         );
       } catch (error) {
         const msg = extractErrorMessage(error);

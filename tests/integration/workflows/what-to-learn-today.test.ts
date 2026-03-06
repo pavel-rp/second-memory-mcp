@@ -46,9 +46,9 @@ describe('Integration: what_to_learn_today', () => {
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);
-    const newCount = result.recommendations.filter((r: any) => r.item.chunkType === 'new').length;
+    const newCount = result.recommendations.filter((r: any) => r.item.chunk_type === 'new').length;
     expect(newCount).toBeLessThanOrEqual(1);
-    expect(result.estimatedDuration).toBeLessThanOrEqual(30);
+    expect(result.estimated_duration).toBeLessThanOrEqual(30);
   });
 
   it('guided mode works with minimal inputs and produces guidance', async () => {
@@ -78,8 +78,8 @@ describe('Integration: what_to_learn_today', () => {
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.conversationGuidance).toBeDefined();
-    expect(Array.isArray(result.nextActions)).toBe(true);
+    expect(result.conversation_guidance).toBeDefined();
+    expect(Array.isArray(result.next_actions)).toBe(true);
   });
 });
 
@@ -111,6 +111,6 @@ describe('Integration: guided_learning_conversation', () => {
     });
     const result = parseToolResult(out);
     expect(result.message.length).toBeGreaterThan(0);
-    expect(result.needsInput).toBe(false);
+    expect(result.needs_input).toBe(false);
   });
 });

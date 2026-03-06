@@ -105,7 +105,7 @@ describe('topic-tools', () => {
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.topic.summary).toBe('A great summary');
-      expect(parsed.topic.summaryVersion).toBe(2);
+      expect(parsed.topic.summary_version).toBe(2);
     });
 
     it('returns error for nonexistent topic', async () => {
