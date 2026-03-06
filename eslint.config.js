@@ -106,6 +106,11 @@ export default [
             'MemberExpression[object.name="Date"][property.name="now"]',
           message: 'Domain must receive time as a parameter, not call Date.now().',
         },
+        {
+          selector: 'ThrowStatement',
+          message:
+            'Domain functions must return Result objects, not throw. See ServiceResult in domain/types/service-result.ts.',
+        },
       ],
       'no-restricted-imports': [
         'error',
