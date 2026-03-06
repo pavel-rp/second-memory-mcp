@@ -324,4 +324,4 @@ export const ConversationRequestShape = {
 
 export const ConversationRequestSchema = z
   .object(ConversationRequestShape)
-  .transform(toCamelCaseKeys);
+  .transform(toCamelCaseKeysExcept(new Set(['context', 'session_state'])));
