@@ -427,5 +427,10 @@ export async function applyBatchSessionChunkOperations(args: {
     });
   }
 
-  return serviceOk(await persistFn({ sessionId, operations }));
+  try {
+    return serviceOk(await persistFn({ sessionId, operations }));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Persistence operation failed';
+    return serviceFail({ type: 'database', message });
+  }
 }

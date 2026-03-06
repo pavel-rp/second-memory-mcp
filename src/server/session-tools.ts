@@ -63,7 +63,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
         const validated = ctx.validateSessionContext(sessionData);
         if (!validated.success) {
           return toolError(`Failed to calculate session progress: ${validated.error.message}`, {
-            type: 'session',
+            type: validated.error.type,
             message: validated.error.message,
           });
         }
@@ -120,7 +120,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           return toolError(
             `Failed to determine session workflow phase: ${validated.error.message}`,
             {
-              type: 'session',
+              type: validated.error.type,
               message: validated.error.message,
             }
           );
@@ -176,7 +176,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
         const validated = ctx.validateSessionContext(sessionData);
         if (!validated.success) {
           return toolError(`Failed to check session completion: ${validated.error.message}`, {
-            type: 'session',
+            type: validated.error.type,
             message: validated.error.message,
           });
         }
