@@ -124,16 +124,24 @@ const INIT_BODY = {
 };
 
 describe('startHttpTransport', () => {
-  const port = 19876;
-  const config: TransportConfig = { mode: 'http', httpPort: port, httpHost: '127.0.0.1' };
+  const config: TransportConfig = { mode: 'http', httpPort: 0, httpHost: '127.0.0.1' };
   const ctx = createMockAppContext();
   let handle: HttpTransportHandle;
+  let port: number;
+  let processOnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeAll(async () => {
+    processOnSpy = vi
+      .spyOn(process, 'on')
+      .mockImplementation(
+        (_event: string | symbol, _handler: (...args: unknown[]) => void) => process
+      );
     handle = await startHttpTransport(config, () => createMcpServer(ctx));
+    port = handle.port;
   });
 
   afterAll(async () => {
+    processOnSpy.mockRestore();
     await handle.close();
   });
 
@@ -317,14 +325,14 @@ describe('startHttpTransport', () => {
 });
 
 describe('startHttpTransport shutdown', () => {
-  const shutdownPort = 19877;
   const shutdownConfig: TransportConfig = {
     mode: 'http',
-    httpPort: shutdownPort,
+    httpPort: 0,
     httpHost: '127.0.0.1',
   };
   const ctx = createMockAppContext();
   let shutdownHandle: HttpTransportHandle;
+  let shutdownPort: number;
 
   // Capture SIGINT/SIGTERM handlers registered by startHttpTransport
   const capturedHandlers: Record<string, (...args: unknown[]) => void> = {};
@@ -338,6 +346,7 @@ describe('startHttpTransport shutdown', () => {
         return process;
       });
     shutdownHandle = await startHttpTransport(shutdownConfig, () => createMcpServer(ctx));
+    shutdownPort = shutdownHandle.port;
   });
 
   afterAll(async () => {
@@ -369,10 +378,10 @@ describe('startHttpTransport shutdown', () => {
     // Invoke the captured SIGTERM handler (which calls shutdown via void ...then)
     capturedHandlers['SIGTERM']();
 
-    // Wait for the async shutdown().then(() => process.exit(0)) chain
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    expect(exitSpy).toHaveBeenCalledWith(0);
+    // Wait deterministically for the async shutdown chain
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalledWith(0);
+    });
     exitSpy.mockRestore();
   });
 });

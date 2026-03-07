@@ -9,6 +9,7 @@ import type { TransportConfig } from '../config/resolve-transport-config.js';
 const MAX_BODY_BYTES = 1_048_576; // 1 MB
 
 class ReadBodyError extends Error {
+  override readonly name = 'ReadBodyError';
   constructor(
     public readonly statusCode: number,
     message: string
@@ -25,6 +26,7 @@ class ReadBodyError extends Error {
  */
 export interface HttpTransportHandle {
   close: () => Promise<void>;
+  port: number;
 }
 
 export async function startHttpTransport(
@@ -159,37 +161,63 @@ export async function startHttpTransport(
     });
   };
 
-  process.on('SIGINT', () => void shutdown().then(() => process.exit(0)));
-  process.on('SIGTERM', () => void shutdown().then(() => process.exit(0)));
+  const onSignal = () =>
+    void shutdown()
+      .then(() => process.exit(0))
+      .catch(() => process.exit(1));
+  process.on('SIGINT', onSignal);
+  process.on('SIGTERM', onSignal);
 
-  return { close: shutdown };
+  const addr = httpServer.address();
+  const actualPort = typeof addr === 'object' && addr ? addr.port : config.httpPort;
+
+  return {
+    close: async () => {
+      process.removeListener('SIGINT', onSignal);
+      process.removeListener('SIGTERM', onSignal);
+      await shutdown();
+    },
+    port: actualPort,
+  };
 }
 
 function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let totalBytes = 0;
-    let exceeded = false;
+    let settled = false;
+
+    const settle = <T>(fn: () => T) => {
+      if (settled) return;
+      settled = true;
+      fn();
+    };
+
     req.on('data', (chunk: Buffer) => {
+      if (settled) return;
       totalBytes += chunk.length;
       if (totalBytes > MAX_BODY_BYTES) {
-        exceeded = true;
+        settle(() =>
+          reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`))
+        );
         return;
       }
-      if (!exceeded) chunks.push(chunk);
+      chunks.push(chunk);
     });
-    req.on('end', () => {
-      if (exceeded) {
-        reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
-        return;
-      }
-      try {
-        const raw = Buffer.concat(chunks).toString('utf-8');
-        resolve(raw ? JSON.parse(raw) : undefined);
-      } catch {
-        reject(new ReadBodyError(400, 'Invalid JSON in request body'));
-      }
-    });
-    req.on('error', reject);
+
+    req.on('end', () =>
+      settle(() => {
+        try {
+          const raw = Buffer.concat(chunks).toString('utf-8');
+          resolve(raw ? JSON.parse(raw) : undefined);
+        } catch {
+          reject(new ReadBodyError(400, 'Invalid JSON in request body'));
+        }
+      })
+    );
+
+    req.on('error', err => settle(() => reject(err)));
+
+    req.on('close', () => settle(() => reject(new Error('Client disconnected'))));
   });
 }
