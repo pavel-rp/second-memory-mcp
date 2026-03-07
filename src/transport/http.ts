@@ -1,33 +1,26 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../shared/logger.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 
-const MAX_BODY_BYTES = 1_048_576; // 1 MB
+/** Standard JSON-RPC 2.0 error codes. */
+const JSON_RPC_INVALID_REQUEST = -32600;
+const JSON_RPC_PARSE_ERROR = -32700;
+const JSON_RPC_INTERNAL_ERROR = -32603;
+const JSON_RPC_SERVER_ERROR = -32000;
 
-class ReadBodyError extends Error {
-  override readonly name = 'ReadBodyError';
-  constructor(
-    public readonly statusCode: number,
-    public readonly errorCode: number,
-    message: string
-  ) {
-    super(message);
-  }
-}
-
-/**
- * Start the HTTP transport for MCP Streamable HTTP/SSE.
- *
- * Each client session gets its own McpServer + transport pair (stateful mode).
- * The `createServer` factory is called per session so prompts/tools are registered fresh.
- */
 export interface HttpTransportHandle {
   close: () => Promise<void>;
   port: number;
+}
+
+function getSessionId(req: Request): string | undefined {
+  const raw = req.headers['mcp-session-id'];
+  return typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined;
 }
 
 export async function startHttpTransport(
@@ -35,106 +28,98 @@ export async function startHttpTransport(
   createMcpServer: () => McpServer
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
+  const app = express();
 
-  const httpServer = createServer(async (req, res) => {
-    try {
-      const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-
-      if (url.pathname !== '/mcp') {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Not found' }));
-        return;
-      }
-
-      // CORS headers for cross-origin clients
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
-      res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
-
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        res.end();
-        return;
-      }
-
-      const rawSessionId = req.headers['mcp-session-id'];
-      const sessionId =
-        typeof rawSessionId === 'string'
-          ? rawSessionId
-          : Array.isArray(rawSessionId)
-            ? rawSessionId[0]
-            : undefined;
-
-      if (req.method === 'POST') {
-        const body = await readBody(req);
-
-        const existingTransport = sessionId ? transports.get(sessionId) : undefined;
-        if (existingTransport) {
-          await existingTransport.handleRequest(req, res, body);
-          return;
-        }
-
-        if (!sessionId && isInitializeRequest(body)) {
-          const transport = new StreamableHTTPServerTransport({
-            sessionIdGenerator: () => randomUUID(),
-            onsessioninitialized: (sid: string) => {
-              transports.set(sid, transport);
-            },
-          });
-
-          transport.onclose = () => {
-            const sid = transport.sessionId;
-            if (sid) transports.delete(sid);
-          };
-
-          const server = createMcpServer();
-          await server.connect(transport);
-          await transport.handleRequest(req, res, body);
-          return;
-        }
-
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            error: { code: -32000, message: 'Bad Request: No valid session ID provided' },
-            id: null,
-          })
-        );
-        return;
-      }
-
-      if (req.method === 'GET' || req.method === 'DELETE') {
-        const sessionTransport = sessionId ? transports.get(sessionId) : undefined;
-        if (!sessionTransport) {
-          res.writeHead(400, { 'Content-Type': 'text/plain' });
-          res.end('Invalid or missing session ID');
-          return;
-        }
-        await sessionTransport.handleRequest(req, res);
-        return;
-      }
-
-      res.writeHead(405, { 'Content-Type': 'text/plain' });
-      res.end('Method not allowed');
-    } catch (error) {
-      logger.error('Error handling MCP HTTP request:', error);
-      if (!res.headersSent) {
-        const statusCode = error instanceof ReadBodyError ? error.statusCode : 500;
-        const errorCode = error instanceof ReadBodyError ? error.errorCode : -32603;
-        const message = error instanceof ReadBodyError ? error.message : 'Internal server error';
-        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            error: { code: errorCode, message },
-            id: null,
-          })
-        );
-      }
+  // CORS
+  app.use('/mcp', (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
+    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
     }
+    next();
   });
+
+  // Body parser (replaces manual readBody)
+  app.use('/mcp', express.json({ limit: '1mb' }));
+
+  // POST /mcp
+  app.post('/mcp', async (req, res) => {
+    const sessionId = getSessionId(req);
+    const body = req.body as unknown;
+
+    const existing = sessionId ? transports.get(sessionId) : undefined;
+    if (existing) {
+      await existing.handleRequest(req, res, body);
+      return;
+    }
+
+    if (!sessionId && isInitializeRequest(body)) {
+      const transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: (sid: string) => {
+          transports.set(sid, transport);
+        },
+      });
+      transport.onclose = () => {
+        const sid = transport.sessionId;
+        if (sid) transports.delete(sid);
+      };
+
+      const server = createMcpServer();
+      await server.connect(transport);
+      await transport.handleRequest(req, res, body);
+      return;
+    }
+
+    res.status(400).json({
+      jsonrpc: '2.0',
+      error: { code: JSON_RPC_SERVER_ERROR, message: 'Bad Request: No valid session ID provided' },
+      id: null,
+    });
+  });
+
+  // GET/DELETE /mcp — session-bound
+  const sessionHandler: express.RequestHandler = async (req, res) => {
+    const transport = transports.get(getSessionId(req) ?? '');
+    if (!transport) {
+      res.status(400).type('text/plain').send('Invalid or missing session ID');
+      return;
+    }
+    await transport.handleRequest(req, res);
+  };
+  app.get('/mcp', sessionHandler);
+  app.delete('/mcp', sessionHandler);
+
+  app.all('/mcp', (_req, res) => res.status(405).type('text/plain').send('Method not allowed'));
+  app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+
+  // Error handler — maps body-parser errors to JSON-RPC format
+  app.use(
+    (
+      err: Error & { status?: number; type?: string },
+      _req: Request,
+      res: Response,
+      _next: NextFunction
+    ) => {
+      logger.error('Error handling MCP HTTP request:', err);
+      if (res.headersSent) return;
+      const [statusCode, errorCode, message] =
+        err.status === 413
+          ? ([413, JSON_RPC_INVALID_REQUEST, 'Request body exceeds limit'] as const)
+          : err.type === 'entity.parse.failed'
+            ? ([400, JSON_RPC_PARSE_ERROR, 'Invalid JSON in request body'] as const)
+            : ([err.status ?? 500, JSON_RPC_INTERNAL_ERROR, 'Internal server error'] as const);
+      res
+        .status(statusCode)
+        .json({ jsonrpc: '2.0', error: { code: errorCode, message }, id: null });
+    }
+  );
+
+  const httpServer = createServer(app);
 
   await new Promise<void>((resolve, reject) => {
     const onError = (err: Error) => reject(err);
@@ -187,46 +172,4 @@ export async function startHttpTransport(
     },
     port: actualPort,
   };
-}
-
-function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    let totalBytes = 0;
-    let settled = false;
-
-    const settle = <T>(fn: () => T) => {
-      if (settled) return;
-      settled = true;
-      fn();
-    };
-
-    req.on('data', (chunk: Buffer) => {
-      if (settled) return;
-      totalBytes += chunk.length;
-      if (totalBytes > MAX_BODY_BYTES) {
-        settle(() => {
-          req.resume(); // drain remaining data so the socket can close cleanly
-          reject(new ReadBodyError(413, -32600, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
-        });
-        return;
-      }
-      chunks.push(chunk);
-    });
-
-    req.on('end', () =>
-      settle(() => {
-        try {
-          const raw = Buffer.concat(chunks).toString('utf-8');
-          resolve(raw ? JSON.parse(raw) : undefined);
-        } catch {
-          reject(new ReadBodyError(400, -32700, 'Invalid JSON in request body'));
-        }
-      })
-    );
-
-    req.on('error', err => settle(() => reject(err)));
-
-    req.on('close', () => settle(() => reject(new Error('Client disconnected'))));
-  });
 }

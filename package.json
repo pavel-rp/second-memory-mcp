@@ -64,14 +64,16 @@
     "@langchain/ollama": "^1.2.5",
     "@langchain/openai": "^1.2.11",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "cross-env": "^10.1.0",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1",
     "pg": "^8.13.3",
-    "zod": "^3.23.8",
-    "cross-env": "^10.1.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.19.35",
     "@types/pg": "^8.11.13",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
