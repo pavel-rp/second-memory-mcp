@@ -12,6 +12,7 @@ class ReadBodyError extends Error {
   override readonly name = 'ReadBodyError';
   constructor(
     public readonly statusCode: number,
+    public readonly errorCode: number,
     message: string
   ) {
     super(message);
@@ -121,7 +122,7 @@ export async function startHttpTransport(
       logger.error('Error handling MCP HTTP request:', error);
       if (!res.headersSent) {
         const statusCode = error instanceof ReadBodyError ? error.statusCode : 500;
-        const errorCode = error instanceof ReadBodyError ? -32700 : -32603;
+        const errorCode = error instanceof ReadBodyError ? error.errorCode : -32603;
         const message = error instanceof ReadBodyError ? error.message : 'Internal server error';
         res.writeHead(statusCode, { 'Content-Type': 'application/json' });
         res.end(
@@ -204,7 +205,7 @@ function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
       if (totalBytes > MAX_BODY_BYTES) {
         settle(() => {
           req.resume(); // drain remaining data so the socket can close cleanly
-          reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
+          reject(new ReadBodyError(413, -32600, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
         });
         return;
       }
@@ -217,7 +218,7 @@ function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
           const raw = Buffer.concat(chunks).toString('utf-8');
           resolve(raw ? JSON.parse(raw) : undefined);
         } catch {
-          reject(new ReadBodyError(400, 'Invalid JSON in request body'));
+          reject(new ReadBodyError(400, -32700, 'Invalid JSON in request body'));
         }
       })
     );

@@ -300,7 +300,7 @@ describe('startHttpTransport', () => {
     });
     expect(res.status).toBe(413);
     const parsed = JSON.parse(res.body);
-    expect(parsed.error.code).toBe(-32700);
+    expect(parsed.error.code).toBe(-32600);
   });
 
   // ── DELETE with valid session ──────────────────────────────────
