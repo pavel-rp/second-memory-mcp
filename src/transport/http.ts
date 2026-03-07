@@ -137,8 +137,10 @@ export async function startHttpTransport(
 
   await new Promise<void>((resolve, reject) => {
     httpServer.listen(config.httpPort, config.httpHost, () => {
+      const addr = httpServer.address();
+      const boundPort = typeof addr === 'object' && addr ? addr.port : config.httpPort;
       logger.info(
-        `MCP Streamable HTTP server listening on http://${config.httpHost}:${config.httpPort}/mcp`
+        `MCP Streamable HTTP server listening on http://${config.httpHost}:${boundPort}/mcp`
       );
       resolve();
     });
@@ -197,9 +199,10 @@ function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
       if (settled) return;
       totalBytes += chunk.length;
       if (totalBytes > MAX_BODY_BYTES) {
-        settle(() =>
-          reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`))
-        );
+        settle(() => {
+          req.resume(); // drain remaining data so the socket can close cleanly
+          reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
+        });
         return;
       }
       chunks.push(chunk);
