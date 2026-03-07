@@ -314,8 +314,8 @@ describe('startHttpTransport shutdown', () => {
   beforeAll(async () => {
     processOnSpy = vi
       .spyOn(process, 'on')
-      .mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
-        capturedHandlers[event] = handler;
+      .mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
+        capturedHandlers[String(event)] = handler;
         return process;
       });
     await startHttpTransport(shutdownConfig, () => createMcpServer(ctx));
