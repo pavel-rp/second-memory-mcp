@@ -67,7 +67,8 @@
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.13.3",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "cross-env": "^10.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -76,7 +77,6 @@
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
     "@vitest/coverage-v8": "^4.0.18",
-    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.9",
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",

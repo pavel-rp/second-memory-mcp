@@ -137,7 +137,10 @@ export async function startHttpTransport(
   });
 
   await new Promise<void>((resolve, reject) => {
+    const onError = (err: Error) => reject(err);
+    httpServer.once('error', onError);
     httpServer.listen(config.httpPort, config.httpHost, () => {
+      httpServer.removeListener('error', onError);
       const addr = httpServer.address();
       const boundPort = typeof addr === 'object' && addr ? addr.port : config.httpPort;
       logger.info(
@@ -145,7 +148,6 @@ export async function startHttpTransport(
       );
       resolve();
     });
-    httpServer.on('error', reject);
   });
 
   // Graceful shutdown
