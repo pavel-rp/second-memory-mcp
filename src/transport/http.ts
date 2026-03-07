@@ -157,16 +157,20 @@ function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let totalBytes = 0;
+    let exceeded = false;
     req.on('data', (chunk: Buffer) => {
       totalBytes += chunk.length;
       if (totalBytes > MAX_BODY_BYTES) {
-        req.destroy();
+        exceeded = true;
+        return;
+      }
+      if (!exceeded) chunks.push(chunk);
+    });
+    req.on('end', () => {
+      if (exceeded) {
         reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
         return;
       }
-      chunks.push(chunk);
-    });
-    req.on('end', () => {
       try {
         const raw = Buffer.concat(chunks).toString('utf-8');
         resolve(raw ? JSON.parse(raw) : undefined);

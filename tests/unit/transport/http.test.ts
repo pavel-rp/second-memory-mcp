@@ -277,6 +277,19 @@ describe('startHttpTransport', () => {
     expect(parsed.error.code).toBe(-32700);
   });
 
+  // ── POST with oversized body (>1 MB) ────────────────────────────
+
+  it('returns 413 for POST with body exceeding 1 MB', async () => {
+    const oversizedBody = 'x'.repeat(1_048_577); // 1 MB + 1 byte
+    const res = await makeRawRequest(port, {
+      method: 'POST',
+      rawBody: oversizedBody,
+    });
+    expect(res.status).toBe(413);
+    const parsed = JSON.parse(res.body);
+    expect(parsed.error.code).toBe(-32700);
+  });
+
   // ── DELETE with valid session ──────────────────────────────────
 
   it('handles DELETE with a valid session ID', async () => {
