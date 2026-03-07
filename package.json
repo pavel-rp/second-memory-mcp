@@ -25,6 +25,7 @@
     "start": "node dist/transport/main.js",
     "start:pnpm": "pnpm run build && node dist/transport/main.js",
     "start:stdio": "node dist/transport/main.js",
+    "start:http": "TRANSPORT=http node dist/transport/main.js",
     "start:stdio:debug": "node --inspect=0 dist/transport/main.js",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "pnpm run build && vitest run --config vitest.integration.config.ts",
