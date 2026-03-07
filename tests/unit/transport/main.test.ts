@@ -5,7 +5,7 @@ const mockInitializeDatabase = vi.fn().mockResolvedValue(undefined);
 const mockCreateAppContext = vi.fn().mockReturnValue({ fake: true });
 const mockResolveTransportConfig = vi.fn();
 const mockCreateMcpServer = vi.fn();
-const mockStartHttpTransport = vi.fn().mockResolvedValue(undefined);
+const mockStartHttpTransport = vi.fn().mockResolvedValue({ close: vi.fn() });
 const mockConnect = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('dotenv/config', () => ({}));
@@ -48,7 +48,7 @@ describe('transport/main bootstrap', () => {
     vi.resetModules();
     vi.clearAllMocks();
     mockInitializeDatabase.mockResolvedValue(undefined);
-    mockStartHttpTransport.mockResolvedValue(undefined);
+    mockStartHttpTransport.mockResolvedValue({ close: vi.fn() });
   });
 
   it('bootstraps stdio transport by default', async () => {
@@ -60,10 +60,8 @@ describe('transport/main bootstrap', () => {
     const mockServer = { connect: mockConnect };
     mockCreateMcpServer.mockReturnValue(mockServer);
 
-    await import('../../../src/transport/main.js');
-
-    // Give the bootstrap promise time to resolve
-    await new Promise(resolve => setTimeout(resolve, 50));
+    const { ready } = await import('../../../src/transport/main.js');
+    await ready;
 
     expect(mockInitializeDatabase).toHaveBeenCalled();
     expect(mockCreateAppContext).toHaveBeenCalled();
@@ -82,10 +80,11 @@ describe('transport/main bootstrap', () => {
     // Invoke the factory callback so coverage records the inner arrow function
     mockStartHttpTransport.mockImplementation(async (_config: unknown, factory: () => unknown) => {
       factory();
+      return { close: vi.fn() };
     });
 
-    await import('../../../src/transport/main.js');
-    await new Promise(resolve => setTimeout(resolve, 50));
+    const { ready } = await import('../../../src/transport/main.js');
+    await ready;
 
     expect(mockInitializeDatabase).toHaveBeenCalled();
     expect(mockStartHttpTransport).toHaveBeenCalledWith(
@@ -100,8 +99,8 @@ describe('transport/main bootstrap', () => {
     const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
     const { logger } = await import('../../../src/shared/logger.js');
 
-    await import('../../../src/transport/main.js');
-    await new Promise(resolve => setTimeout(resolve, 50));
+    const { ready } = await import('../../../src/transport/main.js');
+    await ready;
 
     expect(logger.error).toHaveBeenCalledWith('Failed to start MCP server:', expect.any(Error));
     expect(mockExit).toHaveBeenCalledWith(1);

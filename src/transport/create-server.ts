@@ -161,7 +161,7 @@ export function createMcpServer(ctx: AppContext): McpServer {
       argsSchema: {
         topicTitle: z.string().describe('Topic title'),
         topicDescription: z.string().optional(),
-        existingChunkTitles: z.string().optional(),
+        existingChunkTitles: z.union([z.string(), z.array(z.string())]).optional(),
       },
     },
     (args: ChunkGenerationPromptArgs) => ({

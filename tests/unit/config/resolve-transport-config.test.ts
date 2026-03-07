@@ -42,11 +42,11 @@ describe('resolveTransportConfig', () => {
     expect(resolveTransportConfig({ HTTP_HOST: '  localhost  ' }).httpHost).toBe('localhost');
   });
 
-  it('falls back to 0.0.0.0 for empty HTTP_HOST', () => {
+  it('falls back to 127.0.0.1 for empty HTTP_HOST', () => {
     expect(resolveTransportConfig({ HTTP_HOST: '' }).httpHost).toBe('127.0.0.1');
   });
 
-  it('falls back to 0.0.0.0 for whitespace-only HTTP_HOST', () => {
+  it('falls back to 127.0.0.1 for whitespace-only HTTP_HOST', () => {
     expect(resolveTransportConfig({ HTTP_HOST: '   ' }).httpHost).toBe('127.0.0.1');
   });
 });

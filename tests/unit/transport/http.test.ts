@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'node:http';
-import { startHttpTransport } from '../../../src/transport/http.js';
+import { startHttpTransport, type HttpTransportHandle } from '../../../src/transport/http.js';
 import { createMcpServer } from '../../../src/transport/create-server.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import type { TransportConfig } from '../../../src/config/resolve-transport-config.js';
@@ -127,9 +127,14 @@ describe('startHttpTransport', () => {
   const port = 19876;
   const config: TransportConfig = { mode: 'http', httpPort: port, httpHost: '127.0.0.1' };
   const ctx = createMockAppContext();
+  let handle: HttpTransportHandle;
 
   beforeAll(async () => {
-    await startHttpTransport(config, () => createMcpServer(ctx));
+    handle = await startHttpTransport(config, () => createMcpServer(ctx));
+  });
+
+  afterAll(async () => {
+    await handle.close();
   });
 
   // ── Route filtering ───────────────────────────────────────────
@@ -319,6 +324,7 @@ describe('startHttpTransport shutdown', () => {
     httpHost: '127.0.0.1',
   };
   const ctx = createMockAppContext();
+  let shutdownHandle: HttpTransportHandle;
 
   // Capture SIGINT/SIGTERM handlers registered by startHttpTransport
   const capturedHandlers: Record<string, (...args: unknown[]) => void> = {};
@@ -331,11 +337,17 @@ describe('startHttpTransport shutdown', () => {
         capturedHandlers[String(event)] = handler;
         return process;
       });
-    await startHttpTransport(shutdownConfig, () => createMcpServer(ctx));
+    shutdownHandle = await startHttpTransport(shutdownConfig, () => createMcpServer(ctx));
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     processOnSpy.mockRestore();
+    // The shutdown test already closes the server, but ensure cleanup
+    try {
+      await shutdownHandle.close();
+    } catch {
+      /* already closed */
+    }
   });
 
   it('registers SIGINT and SIGTERM handlers', () => {

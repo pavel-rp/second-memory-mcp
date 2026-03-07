@@ -22,7 +22,7 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-bootstrap().catch(error => {
+export const ready = bootstrap().catch(error => {
   logger.error('Failed to start MCP server:', error);
   process.exit(1);
 });

@@ -23,10 +23,14 @@ class ReadBodyError extends Error {
  * Each client session gets its own McpServer + transport pair (stateful mode).
  * The `createServer` factory is called per session so prompts/tools are registered fresh.
  */
+export interface HttpTransportHandle {
+  close: () => Promise<void>;
+}
+
 export async function startHttpTransport(
   config: TransportConfig,
   createMcpServer: () => McpServer
-): Promise<void> {
+): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   const httpServer = createServer(async (req, res) => {
@@ -51,7 +55,13 @@ export async function startHttpTransport(
         return;
       }
 
-      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+      const rawSessionId = req.headers['mcp-session-id'];
+      const sessionId =
+        typeof rawSessionId === 'string'
+          ? rawSessionId
+          : Array.isArray(rawSessionId)
+            ? rawSessionId[0]
+            : undefined;
 
       if (req.method === 'POST') {
         const body = await readBody(req);
@@ -151,6 +161,8 @@ export async function startHttpTransport(
 
   process.on('SIGINT', () => void shutdown().then(() => process.exit(0)));
   process.on('SIGTERM', () => void shutdown().then(() => process.exit(0)));
+
+  return { close: shutdown };
 }
 
 function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
