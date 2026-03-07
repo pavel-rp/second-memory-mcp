@@ -6,7 +6,7 @@ describe('resolveTransportConfig', () => {
     expect(resolveTransportConfig({})).toEqual({
       mode: 'stdio',
       httpPort: 3000,
-      httpHost: '0.0.0.0',
+      httpHost: '127.0.0.1',
     });
   });
 
@@ -43,10 +43,10 @@ describe('resolveTransportConfig', () => {
   });
 
   it('falls back to 0.0.0.0 for empty HTTP_HOST', () => {
-    expect(resolveTransportConfig({ HTTP_HOST: '' }).httpHost).toBe('0.0.0.0');
+    expect(resolveTransportConfig({ HTTP_HOST: '' }).httpHost).toBe('127.0.0.1');
   });
 
   it('falls back to 0.0.0.0 for whitespace-only HTTP_HOST', () => {
-    expect(resolveTransportConfig({ HTTP_HOST: '   ' }).httpHost).toBe('0.0.0.0');
+    expect(resolveTransportConfig({ HTTP_HOST: '   ' }).httpHost).toBe('127.0.0.1');
   });
 });

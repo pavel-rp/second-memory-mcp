@@ -267,14 +267,14 @@ describe('startHttpTransport', () => {
 
   // ── POST with invalid JSON body (readBody parse error → catch) ─
 
-  it('returns 500 for POST with malformed JSON body', async () => {
+  it('returns 400 for POST with malformed JSON body', async () => {
     const res = await makeRawRequest(port, {
       method: 'POST',
       rawBody: '{not valid json!!!',
     });
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     const parsed = JSON.parse(res.body);
-    expect(parsed.error.code).toBe(-32603);
+    expect(parsed.error.code).toBe(-32700);
   });
 
   // ── DELETE with valid session ──────────────────────────────────

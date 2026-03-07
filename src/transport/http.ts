@@ -6,6 +6,17 @@ import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../shared/logger.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 
+const MAX_BODY_BYTES = 1_048_576; // 1 MB
+
+class ReadBodyError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
 /**
  * Start the HTTP transport for MCP Streamable HTTP/SSE.
  *
@@ -19,29 +30,29 @@ export async function startHttpTransport(
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   const httpServer = createServer(async (req, res) => {
-    const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
-
-    if (url.pathname !== '/mcp') {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Not found' }));
-      return;
-    }
-
-    // CORS headers for cross-origin clients
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
-    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
-    const sessionId = req.headers['mcp-session-id'] as string | undefined;
-
     try {
+      const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
+
+      if (url.pathname !== '/mcp') {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not found' }));
+        return;
+      }
+
+      // CORS headers for cross-origin clients
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
+      res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      const sessionId = req.headers['mcp-session-id'] as string | undefined;
+
       if (req.method === 'POST') {
         const body = await readBody(req);
 
@@ -97,11 +108,14 @@ export async function startHttpTransport(
     } catch (error) {
       logger.error('Error handling MCP HTTP request:', error);
       if (!res.headersSent) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
+        const statusCode = error instanceof ReadBodyError ? error.statusCode : 500;
+        const errorCode = error instanceof ReadBodyError ? -32700 : -32603;
+        const message = error instanceof ReadBodyError ? error.message : 'Internal server error';
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
         res.end(
           JSON.stringify({
             jsonrpc: '2.0',
-            error: { code: -32603, message: 'Internal server error' },
+            error: { code: errorCode, message },
             id: null,
           })
         );
@@ -130,7 +144,9 @@ export async function startHttpTransport(
         logger.error(`Error closing transport for session ${sid}:`, error);
       }
     }
-    httpServer.close();
+    await new Promise<void>((resolve, reject) => {
+      httpServer.close(err => (err ? reject(err) : resolve()));
+    });
   };
 
   process.on('SIGINT', () => void shutdown().then(() => process.exit(0)));
@@ -140,13 +156,22 @@ export async function startHttpTransport(
 function readBody(req: import('node:http').IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    let totalBytes = 0;
+    req.on('data', (chunk: Buffer) => {
+      totalBytes += chunk.length;
+      if (totalBytes > MAX_BODY_BYTES) {
+        req.destroy();
+        reject(new ReadBodyError(413, `Request body exceeds ${MAX_BODY_BYTES} bytes`));
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => {
       try {
         const raw = Buffer.concat(chunks).toString('utf-8');
         resolve(raw ? JSON.parse(raw) : undefined);
-      } catch (error) {
-        reject(error);
+      } catch {
+        reject(new ReadBodyError(400, 'Invalid JSON in request body'));
       }
     });
     req.on('error', reject);

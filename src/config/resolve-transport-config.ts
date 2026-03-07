@@ -17,6 +17,6 @@ export function resolveTransportConfig(
   return {
     mode: parseEnum(env.TRANSPORT, ['stdio', 'http'] as const, 'stdio'),
     httpPort: parseNumber(env.HTTP_PORT, 3000),
-    httpHost: env.HTTP_HOST?.trim() || '0.0.0.0',
+    httpHost: env.HTTP_HOST?.trim() || '127.0.0.1',
   };
 }
