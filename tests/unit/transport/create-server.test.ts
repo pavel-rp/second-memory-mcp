@@ -112,4 +112,46 @@ describe('createMcpServer', () => {
     });
     expect(result.messages).toHaveLength(1);
   });
+
+  // ── Branch coverage: optional-arg falsy paths ──────────────────
+
+  it('learning prompt without optional numeric args', async () => {
+    const result = await client.getPrompt({
+      name: 'learning',
+      arguments: { chunkTitle: 'Intro' },
+    });
+    expect(result.messages).toHaveLength(1);
+  });
+
+  it('retrieval prompt without masteryLevel', async () => {
+    const result = await client.getPrompt({
+      name: 'retrieval',
+      arguments: { chunkTitle: 'Intro' },
+    });
+    expect(result.messages).toHaveLength(1);
+  });
+
+  it('review prompt without numeric args', async () => {
+    const result = await client.getPrompt({
+      name: 'review',
+      arguments: { lastReviewed: '2025-01-01' },
+    });
+    expect(result.messages).toHaveLength(1);
+  });
+
+  it('chunk_generation prompt without existingChunkTitles', async () => {
+    const result = await client.getPrompt({
+      name: 'chunk_generation',
+      arguments: { topicTitle: 'Algebra' },
+    });
+    expect(result.messages).toHaveLength(1);
+  });
+
+  it('chunk_management prompt with managedChunkOrder', async () => {
+    const result = await client.getPrompt({
+      name: 'chunk_management',
+      arguments: { operation: 'update', managedChunkTitle: 'Test', managedChunkOrder: '3' },
+    });
+    expect(result.messages).toHaveLength(1);
+  });
 });

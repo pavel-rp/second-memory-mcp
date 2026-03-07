@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'node:http';
 import { startHttpTransport } from '../../../src/transport/http.js';
 import { createMcpServer } from '../../../src/transport/create-server.js';
@@ -67,6 +67,49 @@ function parseSSEData(body: string): unknown[] {
     .split('\n')
     .filter(line => line.startsWith('data: '))
     .map(line => JSON.parse(line.slice(6)));
+}
+
+/** Send a request with a raw string body (not JSON-serialized). */
+function makeRawRequest(
+  port: number,
+  options: {
+    method: string;
+    path?: string;
+    headers?: Record<string, string>;
+    rawBody?: string;
+  }
+): Promise<{ status: number; headers: http.IncomingHttpHeaders; body: string }> {
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: options.path ?? '/mcp',
+        method: options.method,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: MCP_ACCEPT,
+          ...options.headers,
+        },
+      },
+      res => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf-8'),
+          });
+        });
+      }
+    );
+    req.on('error', reject);
+    if (options.rawBody) {
+      req.write(options.rawBody);
+    }
+    req.end();
+  });
 }
 
 const INIT_BODY = {
@@ -204,6 +247,13 @@ describe('startHttpTransport', () => {
     expect(res.body).toBe('Method not allowed');
   });
 
+  // ── POST with empty body ─────────────────────────────────────
+
+  it('returns 400 for POST with empty body', async () => {
+    const res = await makeRawRequest(port, { method: 'POST' });
+    expect(res.status).toBe(400);
+  });
+
   // ── POST with invalid session ID ──────────────────────────────
 
   it('returns 400 for POST with invalid session ID and non-init body', async () => {
@@ -213,5 +263,91 @@ describe('startHttpTransport', () => {
       body: { jsonrpc: '2.0', method: 'tools/list', id: 3 },
     });
     expect(res.status).toBe(400);
+  });
+
+  // ── POST with invalid JSON body (readBody parse error → catch) ─
+
+  it('returns 500 for POST with malformed JSON body', async () => {
+    const res = await makeRawRequest(port, {
+      method: 'POST',
+      rawBody: '{not valid json!!!',
+    });
+    expect(res.status).toBe(500);
+    const parsed = JSON.parse(res.body);
+    expect(parsed.error.code).toBe(-32603);
+  });
+
+  // ── DELETE with valid session ──────────────────────────────────
+
+  it('handles DELETE with a valid session ID', async () => {
+    // Initialize to get a session ID
+    const initRes = await makeRequest(port, {
+      method: 'POST',
+      body: { ...INIT_BODY, id: 20 },
+    });
+    const sessionId = initRes.headers['mcp-session-id'] as string;
+    expect(sessionId).toBeDefined();
+
+    // DELETE the session — SDK transport handles this
+    const delRes = await makeRequest(port, {
+      method: 'DELETE',
+      headers: { 'mcp-session-id': sessionId },
+    });
+    // SDK may return 200 or 204; either way it's not 400/500
+    expect(delRes.status).toBeLessThan(400);
+  });
+});
+
+describe('startHttpTransport shutdown', () => {
+  const shutdownPort = 19877;
+  const shutdownConfig: TransportConfig = {
+    mode: 'http',
+    httpPort: shutdownPort,
+    httpHost: '127.0.0.1',
+  };
+  const ctx = createMockAppContext();
+
+  // Capture SIGINT/SIGTERM handlers registered by startHttpTransport
+  const capturedHandlers: Record<string, (...args: unknown[]) => void> = {};
+  let processOnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeAll(async () => {
+    processOnSpy = vi
+      .spyOn(process, 'on')
+      .mockImplementation((event: string, handler: (...args: unknown[]) => void) => {
+        capturedHandlers[event] = handler;
+        return process;
+      });
+    await startHttpTransport(shutdownConfig, () => createMcpServer(ctx));
+  });
+
+  afterAll(() => {
+    processOnSpy.mockRestore();
+  });
+
+  it('registers SIGINT and SIGTERM handlers', () => {
+    expect(capturedHandlers['SIGINT']).toBeTypeOf('function');
+    expect(capturedHandlers['SIGTERM']).toBeTypeOf('function');
+  });
+
+  it('graceful shutdown closes transports and server', async () => {
+    // Create a session first so shutdown has something to clean up
+    const initRes = await makeRequest(shutdownPort, {
+      method: 'POST',
+      body: { ...INIT_BODY, id: 40 },
+    });
+    expect(initRes.headers['mcp-session-id']).toBeDefined();
+
+    // Mock process.exit to prevent test runner from exiting
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    // Invoke the captured SIGTERM handler (which calls shutdown via void ...then)
+    capturedHandlers['SIGTERM']();
+
+    // Wait for the async shutdown().then(() => process.exit(0)) chain
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    exitSpy.mockRestore();
   });
 });
