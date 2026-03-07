@@ -148,7 +148,10 @@ export async function startHttpTransport(
   });
 
   // Graceful shutdown
+  let shuttingDown = false;
   const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     logger.info('Shutting down HTTP server...');
     for (const [sid, transport] of transports) {
       try {
