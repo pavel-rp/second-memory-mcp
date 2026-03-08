@@ -128,31 +128,27 @@ export async function resolveLeech(
     }
 
     const nowMs = Date.now();
+    const baseUpdate = { chunkType: 'review' as const, updatedAt: nowMs };
 
     let rowCount: number;
     switch (resolution) {
       case 'reset_progress':
         rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+          ...baseUpdate,
           easeFactor: 2.5,
           repetitions: 0,
           intervalDays: null,
           nextReviewAt: nowMs,
-          chunkType: 'review',
-          updatedAt: nowMs,
         });
         break;
       case 'archive':
         rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
-          chunkType: 'review',
+          ...baseUpdate,
           nextReviewAt: nowMs + 100 * 365.25 * 24 * 60 * 60 * 1000, // ~100 years
-          updatedAt: nowMs,
         });
         break;
       case 'mark_reviewed':
-        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
-          chunkType: 'review',
-          updatedAt: nowMs,
-        });
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, baseUpdate);
         break;
     }
 

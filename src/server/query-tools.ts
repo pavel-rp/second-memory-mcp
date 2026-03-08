@@ -59,8 +59,8 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchTopicsMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
       try {
+        const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
         const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
         return toolJson(
           toSnakeCase({
@@ -72,6 +72,13 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         );
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          return toolError(`Failed to fetch topics: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         return toolError(`Failed to fetch topics: ${msg}`, {
           type: 'database',
           message: msg,
