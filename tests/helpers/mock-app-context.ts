@@ -1,4 +1,5 @@
 import type { AppContext } from '../../src/composition-root.js';
+import type { DailyKpis, AnalyticsOutput } from '../../src/domain/types/analytics.js';
 import { mapChunkRowToLearningItem } from '../../src/shared/chunk-mapping.js';
 import {
   calculateNextReview,
@@ -7,10 +8,6 @@ import {
   rankCandidatesWithConstraints,
 } from '../../src/domain/algorithms/sr-calculator.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../src/domain/config/algorithm-defaults.js';
-import {
-  computeDailyKpis,
-  computeWindowRollup,
-} from '../../src/domain/services/analytics-calculator.js';
 import {
   calculateSessionProgress,
   determineNextPhase,
@@ -36,13 +33,23 @@ export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z'
     calculateNextReviewAdvanced: input =>
       calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, now),
     rankCandidates: input => rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG, now),
-    computeDailyKpis,
-    computeWindowRollup,
     calculateSessionProgress: data => calculateSessionProgress(data, now),
     determineNextPhase: data => determineNextPhase(data, now),
     checkSessionCompletion: data => checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG, now),
     validateSessionContext: context => validateSessionContext(context, now),
     applyBatchSessionChunkOperations,
+
+    // Analytics — async stubs returning empty results (override with vi.fn() in individual tests)
+    computeDailyAnalytics: async (date: string): Promise<DailyKpis> => ({
+      date,
+      reviews_completed: 0,
+      average_quality: 0,
+      new_chunks_learned: 0,
+    }),
+    computeWindowAnalytics: async (): Promise<AnalyticsOutput> => ({
+      days: [],
+      total: { reviews_completed: 0, average_quality: 0, new_chunks_learned: 0, streak_days: 0 },
+    }),
   };
 
   return new Proxy(pureFunctions as AppContext, {

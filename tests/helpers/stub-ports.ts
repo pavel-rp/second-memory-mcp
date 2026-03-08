@@ -103,6 +103,7 @@ export function stubReviewPersistence(
   return {
     getChunk: vi.fn().mockResolvedValue(undefined),
     persistReviewUpdate: vi.fn().mockResolvedValue(1),
+    getReviewsByDateRange: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

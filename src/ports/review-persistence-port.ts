@@ -1,4 +1,5 @@
 import type { LearningChunk } from '../domain/types/entities.js';
+import type { PersistedReviewEntry } from '../domain/types/analytics.js';
 
 /** Data returned after persisting a review result. */
 export type ReviewResultData = {
@@ -44,4 +45,6 @@ export interface ReviewPersistencePort {
       >
     >
   ): Promise<number>;
+  /** Fetch reviews in the half-open range [from, to). */
+  getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]>;
 }

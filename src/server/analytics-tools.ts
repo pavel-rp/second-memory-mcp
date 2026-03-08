@@ -6,7 +6,6 @@ import {
   AnalyticsWindowInputSchema,
   AnalyticsWindowInputShape,
 } from '../domain/types/analytics.js';
-import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void {
@@ -14,14 +13,14 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
     'analytics_daily',
     {
       title: 'Calculate Daily KPIs',
-      description: 'Compute daily analytics KPIs from review entries for a single day',
+      description: 'Compute daily analytics KPIs from stored review history for a single day',
       inputSchema: AnalyticsDailyInputShape,
     },
     async (rawInput: unknown) => {
       const parsed = AnalyticsDailyInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeDailyKpis(parsed.entries);
-        return toolJson(toSnakeCase(result));
+        const result = await ctx.computeDailyAnalytics(parsed.date);
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to compute daily KPIs: ${msg}`, {
@@ -42,10 +41,10 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
     async (rawInput: unknown) => {
       const parsed = AnalyticsWindowInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeWindowRollup({ entries: parsed.entries }, parsed.window, {
+        const result = await ctx.computeWindowAnalytics(parsed.from, parsed.to, {
           includeBreakdowns: parsed.includeBreakdowns,
         });
-        return toolJson(toSnakeCase(result));
+        return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to compute window analytics: ${msg}`, {
