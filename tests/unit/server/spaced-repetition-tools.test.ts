@@ -894,7 +894,7 @@ describe('spaced-repetition-tools', () => {
       expect(parsed.error.message).toContain('connection reset');
     });
 
-    it('returns error for missing chunk_id', async () => {
+    it('returns validation error for missing chunk_id', async () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
@@ -902,10 +902,11 @@ describe('spaced-repetition-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
-    it('returns error for empty chunk_id', async () => {
+    it('returns validation error for empty chunk_id', async () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
@@ -913,10 +914,11 @@ describe('spaced-repetition-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
-    it('returns error for invalid resolution value', async () => {
+    it('returns validation error for invalid resolution value', async () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
@@ -924,7 +926,8 @@ describe('spaced-repetition-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
   });
 });

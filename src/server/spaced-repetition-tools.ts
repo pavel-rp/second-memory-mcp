@@ -5,6 +5,7 @@ import {
   RecommendationInputShape,
 } from '../domain/types/recommendations.js';
 import { toSnakeCase } from '../shared/case-convert.js';
+import { ZodError } from 'zod';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import {
   CalculateNextReviewInputSchema,
@@ -270,6 +271,13 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         );
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          return toolError(`Failed to get leeches: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         return toolError(`Failed to get leeches: ${msg}`, {
           type: 'database',
           message: msg,
@@ -296,6 +304,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
           return toolError(`Failed to resolve leech: ${result.error.message}`, {
             type: result.error.type,
             message: result.error.message,
+            retryable: result.error.type === 'database',
           });
         }
 
@@ -309,6 +318,13 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         );
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          return toolError(`Failed to resolve leech: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         return toolError(`Failed to resolve leech: ${msg}`, {
           type: 'database',
           message: msg,

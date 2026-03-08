@@ -129,9 +129,10 @@ export async function resolveLeech(
 
     const nowMs = Date.now();
 
+    let rowCount: number;
     switch (resolution) {
       case 'reset_progress':
-        await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
           easeFactor: 2.5,
           repetitions: 0,
           intervalDays: null,
@@ -141,18 +142,25 @@ export async function resolveLeech(
         });
         break;
       case 'archive':
-        await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
           chunkType: 'review',
           nextReviewAt: nowMs + 100 * 365.25 * 24 * 60 * 60 * 1000, // ~100 years
           updatedAt: nowMs,
         });
         break;
       case 'mark_reviewed':
-        await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
           chunkType: 'review',
           updatedAt: nowMs,
         });
         break;
+    }
+
+    if (rowCount === 0) {
+      return serviceFail({
+        type: 'database',
+        message: `Update affected 0 rows for chunk ${chunkId} — it may have been deleted concurrently`,
+      });
     }
 
     return serviceOk({ chunkId, resolution });
