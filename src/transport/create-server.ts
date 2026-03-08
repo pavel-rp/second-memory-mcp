@@ -254,7 +254,7 @@ export function createMcpServer(ctx: AppContext): McpServer {
             text: promptPack.getPrompt('learning_session', {
               sessionMode: args?.sessionMode,
               timeAvailable: args?.timeAvailable ? Number(args.timeAvailable) : undefined,
-              topicTitle: args?.subject,
+              subject: args?.subject,
             }),
           },
         },

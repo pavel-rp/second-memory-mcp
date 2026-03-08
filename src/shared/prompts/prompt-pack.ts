@@ -49,6 +49,7 @@ export type PromptContext = {
   // Learning session context
   sessionMode?: string;
   timeAvailable?: number;
+  subject?: string;
 
   // Chunk management context
   operation?: 'update' | 'merge' | 'split' | 'retire';
@@ -426,7 +427,7 @@ export class PromptPack {
   private getLearningSessionPrompt(context: PromptContext): string {
     const mode = context.sessionMode ?? 'start';
     const time = context.timeAvailable;
-    const subject = context.topicTitle;
+    const subject = context.subject;
 
     const timeNote = time ? `The learner has ${time} minutes available.` : '';
     const subjectNote = subject ? `Focus area: ${subject}.` : '';

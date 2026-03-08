@@ -114,6 +114,23 @@ describe('createMcpServer', () => {
     expect(result.messages).toHaveLength(1);
   });
 
+  it('learning_session prompt returns messages with args', async () => {
+    const result = await client.getPrompt({
+      name: 'learning_session',
+      arguments: { sessionMode: 'start', timeAvailable: '30', subject: 'Math' },
+    });
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('user');
+    const text = (result.messages[0].content as { type: string; text: string }).text;
+    expect(text).toContain('30');
+    expect(text).toContain('Math');
+  });
+
+  it('learning_session prompt works without optional args', async () => {
+    const result = await client.getPrompt({ name: 'learning_session', arguments: {} });
+    expect(result.messages).toHaveLength(1);
+  });
+
   // ── Branch coverage: optional-arg falsy paths ──────────────────
 
   it('learning prompt without optional numeric args', async () => {

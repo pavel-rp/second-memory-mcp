@@ -28,8 +28,10 @@ export type ChunkGenerationPromptArgs = {
   existingChunkTitles?: string | string[];
 };
 
+export type LearningSessionMode = 'start' | 'continue' | 'review' | 'new_topic';
+
 export type LearningSessionPromptArgs = {
-  sessionMode?: string;
+  sessionMode?: LearningSessionMode;
   timeAvailable?: string;
   subject?: string;
 };
