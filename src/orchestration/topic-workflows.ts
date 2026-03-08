@@ -68,27 +68,6 @@ export type TopicCreationResult = {
 
 // --- Topic creation ---
 
-export function validateTopicCreationInput(
-  input: TopicCreationInput
-): { valid: true } | { valid: false; error: string } {
-  if (!input.topicTitle || input.topicTitle.length > 200)
-    return { valid: false, error: 'Invalid topic title' };
-  if (!input.subject || input.subject.length > 100)
-    return { valid: false, error: 'Invalid subject' };
-  if (!input.chunks || input.chunks.length === 0)
-    return { valid: false, error: 'At least one chunk is required' };
-  if (input.chunks.length > 20) return { valid: false, error: 'Maximum 20 chunks per topic' };
-  for (const chunk of input.chunks) {
-    if (!chunk.title || chunk.title.length > 200)
-      return { valid: false, error: 'Invalid chunk title' };
-    if (chunk.difficulty < 1 || chunk.difficulty > 10)
-      return { valid: false, error: 'Invalid chunk difficulty' };
-    if (chunk.estimatedDuration < 1 || chunk.estimatedDuration > 120)
-      return { valid: false, error: 'Invalid chunk duration' };
-  }
-  return { valid: true };
-}
-
 function toTopicWithChunks(
   topic: LearningTopic,
   chunks: LearningChunk[],
@@ -120,14 +99,6 @@ export async function createTopicWithChunks(
   input: TopicCreationInput,
   deps: TopicDeps
 ): Promise<TopicCreationResult> {
-  const validation = validateTopicCreationInput(input);
-  if (!validation.valid) {
-    return {
-      success: false,
-      error: { type: 'validation', message: validation.error, retryable: false },
-    };
-  }
-
   try {
     const result = await deps.unitOfWork.execute(async ports => {
       const topicId = crypto.randomUUID();
