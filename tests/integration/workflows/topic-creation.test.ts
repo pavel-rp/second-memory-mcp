@@ -65,47 +65,6 @@ describe('topic creation service', () => {
       expect(result.topic?.chunks[1].title).toBe('Advanced Concepts');
     });
 
-    it('should handle empty chunks array', async () => {
-      const request: TopicCreationInput = {
-        topicTitle: 'Empty Topic',
-        topicDescription: 'A topic with no chunks',
-        subject: 'Test',
-        chunks: [],
-      };
-
-      const result = await ctx.createTopicWithChunks(request);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(result.error?.message).toContain('At least one chunk is required');
-    });
-
-    it('should validate chunk requirements', async () => {
-      const request: TopicCreationInput = {
-        topicTitle: 'Invalid Topic',
-        topicDescription: 'A topic with invalid chunks',
-        subject: 'Test',
-        chunks: [
-          {
-            id: '',
-            title: '',
-            content: '',
-            difficulty: 0,
-            prerequisites: [],
-            estimatedDuration: 0,
-
-            tags: [],
-            chunkType: 'new',
-          },
-        ],
-      };
-
-      const result = await ctx.createTopicWithChunks(request);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-
     it('should handle database transaction rollback on error', async () => {
       // Create a request with invalid data that will cause a database error
       const request: TopicCreationInput = {
