@@ -66,9 +66,9 @@ describe('topic creation service', () => {
     });
 
     it('should handle database transaction rollback on error', async () => {
-      // Create a request with invalid data that will cause a database error
+      // Use an invalid chunkType to trigger the DB CHECK constraint (chk_chunk_type)
       const request: TopicCreationInput = {
-        topicTitle: 'x'.repeat(1000), // Exceeds max length
+        topicTitle: 'Rollback Test',
         topicDescription: 'Test description',
         subject: 'Test',
         chunks: [
@@ -81,7 +81,7 @@ describe('topic creation service', () => {
             estimatedDuration: 20,
 
             tags: [],
-            chunkType: 'new',
+            chunkType: 'invalid_type',
           },
         ],
       };
