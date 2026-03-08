@@ -200,6 +200,20 @@ describe('resolveLeech', () => {
     expect(updateArg.nextReviewAt).toBeUndefined();
   });
 
+  // --- zero rows updated ---
+  it('returns database error when persistReviewUpdate affects 0 rows', async () => {
+    deps = makeMockDeps({
+      getChunk: vi.fn().mockResolvedValue(makeLeechChunk()),
+      persistReviewUpdate: vi.fn().mockResolvedValue(0),
+    });
+
+    const result = await resolveLeech('chunk-leech-1', 'reset_progress', deps);
+
+    expect(result.success).toBe(false);
+    expect(result.success === false && result.error.type).toBe('database');
+    expect(result.success === false && result.error.message).toContain('0 rows');
+  });
+
   // --- database error ---
   it('returns database error when persistReviewUpdate throws', async () => {
     deps = makeMockDeps({

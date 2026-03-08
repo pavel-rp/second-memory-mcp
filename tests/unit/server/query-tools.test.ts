@@ -77,6 +77,18 @@ describe('query-tools', () => {
       expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: false }));
     });
 
+    it('returns validation error for invalid input types', async () => {
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('list_learning_items')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
     it('returns database error when ctx throws', async () => {
       ctx.listChunksAsLearningItems = vi.fn().mockRejectedValue(new Error('connection refused'));
       registerQueryTools(server as any, ctx);
@@ -225,6 +237,18 @@ describe('query-tools', () => {
       await handler({ is_leech: true });
 
       expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: true }));
+    });
+
+    it('returns validation error for invalid input types', async () => {
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('returns database error when ctx throws', async () => {

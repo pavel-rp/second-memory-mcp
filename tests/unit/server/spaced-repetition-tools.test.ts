@@ -813,6 +813,18 @@ describe('spaced-repetition-tools', () => {
       expect(mockFn).toHaveBeenCalledWith({ subjectFilter: 'Math', limit: 5 });
     });
 
+    it('returns validation error for invalid input types', async () => {
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
     it('returns database error when ctx.getLeeches throws', async () => {
       ctx.getLeeches = vi.fn().mockRejectedValue(new Error('timeout'));
       registerSpacedRepetitionTools(server as any, ctx);
