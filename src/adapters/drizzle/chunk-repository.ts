@@ -1,4 +1,4 @@
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, eq, lte, ne, sql } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -49,6 +49,7 @@ type ChunkFilterOptions = {
   subject?: string;
   subjectFilter?: string;
   dueOnly?: boolean;
+  isLeech?: boolean;
 };
 
 function buildChunkWhereClause(options: ChunkFilterOptions) {
@@ -57,6 +58,8 @@ function buildChunkWhereClause(options: ChunkFilterOptions) {
   const subj = options.subject || options.subjectFilter;
   if (subj) conditions.push(eq(learningChunks.subject, subj));
   if (options.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, Date.now()));
+  if (options.isLeech === true) conditions.push(eq(learningChunks.chunkType, 'remediation'));
+  if (options.isLeech === false) conditions.push(ne(learningChunks.chunkType, 'remediation'));
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
@@ -183,6 +186,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
     subject?: string;
     dueOnly?: boolean;
     limit?: number;
+    isLeech?: boolean;
   }): Promise<ChunkMinimalMetadata[]> {
     const whereClause = buildChunkWhereClause(options ?? {});
     let query = this.db

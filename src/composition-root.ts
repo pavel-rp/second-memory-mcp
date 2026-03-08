@@ -27,6 +27,7 @@ import type {
 import type { SearchPort } from './ports/search-port.js';
 import type { ChunkIdLookupPort } from './ports/chunk-id-lookup-port.js';
 import type { PrerequisiteMasteryPort } from './ports/prerequisite-mastery-port.js';
+import type { ChunkMinimalMetadata } from './ports/chunk-repository.js';
 import type { ReviewPersistencePort, ReviewResultData } from './ports/review-persistence-port.js';
 import type { UnitOfWorkPort } from './ports/unit-of-work-port.js';
 import type {
@@ -147,6 +148,16 @@ export interface AppContext {
     options: { timeSpentMs?: number; consecutiveFailures?: number; daysOverdue?: number }
   ) => Promise<ServiceResult<ReviewResultData>>;
 
+  // Leech orchestration
+  getLeeches: (options: {
+    subjectFilter?: string;
+    limit?: number;
+  }) => Promise<ChunkMinimalMetadata[]>;
+  resolveLeech: (
+    chunkId: string,
+    resolution: reviewWorkflows.LeechResolution
+  ) => Promise<ServiceResult<{ chunkId: string; resolution: reviewWorkflows.LeechResolution }>>;
+
   // Session orchestration
   createSession: (input: {
     topicId?: string;
@@ -208,6 +219,7 @@ export interface AppContext {
     subject?: string;
     dueOnly?: boolean;
     limit?: number;
+    isLeech?: boolean;
   }) => Promise<Awaited<ReturnType<ChunkRepository['batchFetchMinimal']>>>;
   getTopicSummary: (
     topicId: string
@@ -287,6 +299,10 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
   };
+  const leechDeps: reviewWorkflows.LeechDeps = {
+    chunks: ports.chunks,
+    reviewPersistence: ports.reviewPersistence,
+  };
   const sessionDeps: sessionWorkflows.SessionDeps = {
     sessions: ports.sessions,
     chunks: ports.chunks,
@@ -325,6 +341,11 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     // Review orchestration
     processReviewResult: (itemId, quality, options) =>
       reviewWorkflows.processReviewResult(itemId, quality, options, reviewDeps),
+
+    // Leech orchestration
+    getLeeches: options => reviewWorkflows.getLeeches(options, leechDeps),
+    resolveLeech: (chunkId, resolution) =>
+      reviewWorkflows.resolveLeech(chunkId, resolution, leechDeps),
 
     // Session orchestration
     createSession: input => sessionWorkflows.createSession(input, sessionDeps),

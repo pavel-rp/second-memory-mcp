@@ -54,7 +54,9 @@ export async function getChunkWithContent(
 }
 
 export async function batchFetchChunksMinimal(
-  options: { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number } | undefined,
+  options:
+    | { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number; isLeech?: boolean }
+    | undefined,
   deps: QueryDeps
 ): Promise<Awaited<ReturnType<ChunkRepository['batchFetchMinimal']>>> {
   return deps.chunks.batchFetchMinimal(options);

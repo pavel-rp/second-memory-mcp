@@ -118,6 +118,7 @@ export type RecommendationInput = {
   subjectFilter?: string; // subject filter applied when fetchFromDatabase is true. Overrides general preferences for precise database querying.
   dueOnly?: boolean; // filter to only due items when fetchFromDatabase is true
   limit?: number; // limit number of items fetched when fetchFromDatabase is true
+  includeLeeches?: boolean; // when true, include leech items (chunkType='remediation') in results; default false excludes them
 };
 
 // Main recommendation output
@@ -272,6 +273,10 @@ export const RecommendationInputShape = {
   subject_filter: z.string().optional(),
   due_only: z.boolean().optional(),
   limit: z.number().int().min(1).optional(),
+  include_leeches: z
+    .boolean()
+    .optional()
+    .describe('Include leech items (chunkType=remediation) in results; default excludes them'),
 };
 
 export const RecommendationInputSchema = z

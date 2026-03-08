@@ -21,9 +21,15 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: ListLearningItemsInputShape,
     },
     async (rawInput: unknown) => {
-      const { subjectFilter, dueOnly, limit } = ListLearningItemsInputSchema.parse(rawInput);
+      const { subjectFilter, dueOnly, limit, isLeech } =
+        ListLearningItemsInputSchema.parse(rawInput);
       try {
-        const items = await ctx.listChunksAsLearningItems({ subjectFilter, dueOnly, limit });
+        const items = await ctx.listChunksAsLearningItems({
+          subjectFilter,
+          dueOnly,
+          limit,
+          isLeech,
+        });
         return toolJson(toSnakeCase(items));
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -79,7 +85,7 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { topicId, subjectFilter, dueOnly, limit } =
+      const { topicId, subjectFilter, dueOnly, limit, isLeech } =
         BatchFetchChunksMinimalInputSchema.parse(rawInput);
       try {
         const chunks = await ctx.batchFetchChunksMinimal({
@@ -87,6 +93,7 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
           subject: subjectFilter,
           dueOnly,
           limit,
+          isLeech,
         });
         const chunkIds = chunks.map((c: { id: string }) => c.id);
         return toolJson(

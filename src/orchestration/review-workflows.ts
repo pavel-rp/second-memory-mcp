@@ -1,6 +1,7 @@
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
 import type { ReviewResultData } from '../ports/review-persistence-port.js';
+import type { ChunkRepository, ChunkMinimalMetadata } from '../ports/chunk-repository.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
@@ -87,6 +88,78 @@ export async function processReviewResult(
     return serviceFail({
       type: 'database',
       message: `Failed to process review result: ${extractErrorMessage(error)}`,
+    });
+  }
+}
+
+export type LeechDeps = {
+  chunks: ChunkRepository;
+  reviewPersistence: ReviewPersistencePort;
+};
+
+export type LeechResolution = 'reset_progress' | 'archive' | 'mark_reviewed';
+
+export async function getLeeches(
+  options: { subjectFilter?: string; limit?: number },
+  deps: LeechDeps
+): Promise<ChunkMinimalMetadata[]> {
+  return deps.chunks.batchFetchMinimal({
+    subject: options.subjectFilter,
+    limit: options.limit,
+    isLeech: true,
+  });
+}
+
+export async function resolveLeech(
+  chunkId: string,
+  resolution: LeechResolution,
+  deps: LeechDeps
+): Promise<ServiceResult<{ chunkId: string; resolution: LeechResolution }>> {
+  try {
+    const chunk = await deps.reviewPersistence.getChunk(chunkId);
+    if (!chunk) {
+      return serviceFail({ type: 'not_found', message: `Chunk not found: ${chunkId}` });
+    }
+    if (chunk.chunkType !== 'remediation') {
+      return serviceFail({
+        type: 'validation',
+        message: `Chunk ${chunkId} is not a leech (chunkType=${chunk.chunkType})`,
+      });
+    }
+
+    const nowMs = Date.now();
+
+    switch (resolution) {
+      case 'reset_progress':
+        await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+          easeFactor: 2.5,
+          repetitions: 0,
+          intervalDays: null,
+          nextReviewAt: nowMs,
+          chunkType: 'review',
+          updatedAt: nowMs,
+        });
+        break;
+      case 'archive':
+        await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+          chunkType: 'review',
+          nextReviewAt: nowMs + 100 * 365.25 * 24 * 60 * 60 * 1000, // ~100 years
+          updatedAt: nowMs,
+        });
+        break;
+      case 'mark_reviewed':
+        await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+          chunkType: 'review',
+          updatedAt: nowMs,
+        });
+        break;
+    }
+
+    return serviceOk({ chunkId, resolution });
+  } catch (error) {
+    return serviceFail({
+      type: 'database',
+      message: `Failed to resolve leech: ${extractErrorMessage(error)}`,
     });
   }
 }

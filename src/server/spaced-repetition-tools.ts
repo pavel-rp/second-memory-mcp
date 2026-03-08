@@ -17,6 +17,10 @@ import {
   RankCandidatesInputShape,
   RecordReviewResultInputSchema,
   RecordReviewResultInputShape,
+  GetLeechesInputSchema,
+  GetLeechesInputShape,
+  ResolveLeechInputSchema,
+  ResolveLeechInputShape,
 } from '../domain/types/spaced-repetition-tools.js';
 
 export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext): void {
@@ -163,6 +167,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
               subjectFilter: parsed.subjectFilter,
               dueOnly: parsed.dueOnly,
               limit: parsed.limit,
+              isLeech: parsed.includeLeeches ? undefined : false,
             });
           } catch (dbError) {
             const msg = extractErrorMessage(dbError);
@@ -232,6 +237,79 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
       } catch (error) {
         const msg = extractErrorMessage(error);
         return toolError(`Failed to record review result: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'get_leeches',
+    {
+      title: 'Get Leech Items',
+      description:
+        'List learning items flagged as leeches (chunkType=remediation) — items with repeated failures that need remediation. Use resolve_leech to act on them.',
+      inputSchema: GetLeechesInputShape,
+    },
+    async (rawInput: unknown) => {
+      try {
+        const { subjectFilter, limit } = GetLeechesInputSchema.parse(rawInput);
+        const leeches = await ctx.getLeeches({ subjectFilter, limit });
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            leeches,
+            count: leeches.length,
+            message:
+              leeches.length > 0
+                ? `Found ${leeches.length} leech item${leeches.length === 1 ? '' : 's'}. Use resolve_leech to remediate.`
+                : 'No leech items found.',
+          })
+        );
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to get leeches: ${msg}`, {
+          type: 'database',
+          message: msg,
+          retryable: true,
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'resolve_leech',
+    {
+      title: 'Resolve Leech Item',
+      description:
+        'Remediate a leech item. Resolutions: reset_progress (reset SR to fresh start), archive (move to far future — effectively remove from queue), mark_reviewed (clear leech flag, keep SR progress).',
+      inputSchema: ResolveLeechInputShape,
+    },
+    async (rawInput: unknown) => {
+      try {
+        const { chunkId, resolution } = ResolveLeechInputSchema.parse(rawInput);
+        const result = await ctx.resolveLeech(chunkId, resolution);
+
+        if (!result.success) {
+          return toolError(`Failed to resolve leech: ${result.error.message}`, {
+            type: result.error.type,
+            message: result.error.message,
+          });
+        }
+
+        return toolJson(
+          toSnakeCase({
+            success: true,
+            chunkId: result.data.chunkId,
+            resolution: result.data.resolution,
+            message: `Leech resolved with '${resolution}' strategy.`,
+          })
+        );
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to resolve leech: ${msg}`, {
           type: 'database',
           message: msg,
           retryable: true,

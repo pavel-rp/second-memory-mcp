@@ -6,6 +6,10 @@ export const ListLearningItemsInputShape = {
   subject_filter: z.string().optional().describe('Optional subject filter for learning items'),
   due_only: z.boolean().optional().describe('Return only items due for review'),
   limit: z.number().int().optional().describe('Maximum number of learning items to return'),
+  is_leech: z
+    .boolean()
+    .optional()
+    .describe('Filter by leech status: true for leeches only, false to exclude leeches'),
 } as const;
 
 export const ListLearningItemsInputSchema = z
@@ -366,6 +370,10 @@ export const BatchFetchChunksMinimalInputShape = {
   subject_filter: z.string().optional().describe('Filter chunks by subject'),
   due_only: z.boolean().optional().describe('Return only chunks due for review'),
   limit: z.number().int().positive().optional().describe('Maximum number of chunks to return'),
+  is_leech: z
+    .boolean()
+    .optional()
+    .describe('Filter by leech status: true for leeches only, false to exclude leeches'),
 } as const;
 
 export const BatchFetchChunksMinimalInputSchema = z
