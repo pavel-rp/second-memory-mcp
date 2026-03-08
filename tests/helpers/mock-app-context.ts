@@ -1,4 +1,5 @@
 import type { AppContext } from '../../src/composition-root.js';
+import type { DailyKpis, AnalyticsOutput } from '../../src/domain/types/analytics.js';
 import { mapChunkRowToLearningItem } from '../../src/shared/chunk-mapping.js';
 import {
   calculateNextReview,
@@ -37,6 +38,18 @@ export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z'
     checkSessionCompletion: data => checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG, now),
     validateSessionContext: context => validateSessionContext(context, now),
     applyBatchSessionChunkOperations,
+
+    // Analytics — async stubs returning empty results (override with vi.fn() in individual tests)
+    computeDailyAnalytics: async (date: string): Promise<DailyKpis> => ({
+      date,
+      reviews_completed: 0,
+      average_quality: 0,
+      new_chunks_learned: 0,
+    }),
+    computeWindowAnalytics: async (): Promise<AnalyticsOutput> => ({
+      days: [],
+      total: { reviews_completed: 0, average_quality: 0, new_chunks_learned: 0, streak_days: 0 },
+    }),
   };
 
   return new Proxy(pureFunctions as AppContext, {
