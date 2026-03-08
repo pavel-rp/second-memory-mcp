@@ -314,7 +314,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
             success: true,
             chunkId: result.data.chunkId,
             resolution: result.data.resolution,
-            message: `Leech resolved with '${resolution}' strategy.`,
+            message: `Leech resolved with '${result.data.resolution}' strategy.`,
           })
         );
       } catch (error) {
