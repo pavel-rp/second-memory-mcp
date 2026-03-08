@@ -161,6 +161,7 @@ describe('resolveLeech', () => {
         repetitions: 0,
         intervalDays: null,
         chunkType: 'review',
+        lastReviewedAt: null,
       })
     );
     const updateArg = mockPersist.mock.calls[0][1];

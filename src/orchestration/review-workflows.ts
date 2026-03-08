@@ -146,6 +146,7 @@ export async function resolveLeech(
           repetitions: 0,
           intervalDays: null,
           nextReviewAt: nowMs,
+          lastReviewedAt: null,
         });
         break;
       case 'archive':
