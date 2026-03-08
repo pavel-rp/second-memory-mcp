@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { getLeeches, resolveLeech } from '../../../src/orchestration/review-workflows.js';
 import type { LeechDeps } from '../../../src/orchestration/review-workflows.js';
 import type { ChunkRepository, ChunkMinimalMetadata } from '../../../src/ports/chunk-repository.js';
@@ -113,10 +113,10 @@ describe('getLeeches', () => {
 // ---------------------------------------------------------------
 describe('resolveLeech', () => {
   let deps: LeechDeps;
-  let mockPersist: ReturnType<typeof vi.fn>;
+  let mockPersist: Mock<ReviewPersistencePort['persistReviewUpdate']>;
 
   beforeEach(() => {
-    mockPersist = vi.fn().mockResolvedValue(1);
+    mockPersist = vi.fn<ReviewPersistencePort['persistReviewUpdate']>().mockResolvedValue(1);
     deps = makeMockDeps({
       getChunk: vi.fn().mockResolvedValue(makeLeechChunk()),
       persistReviewUpdate: mockPersist,
