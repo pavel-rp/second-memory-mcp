@@ -9,7 +9,7 @@ export const VALIDATION_CONSTANTS = {
   MAX_QUALITY_SCORE: 5,
   DEFAULT_ESTIMATED_DURATION: 15,
   // Content validation limits
-  MAX_CONTENT_SIZE: 50000, // 50KB for chunk content
+  MAX_CONTENT_SIZE: 8000, // ~2000 tokens — aligned with embedding chunk best practices
   MAX_SUMMARY_SIZE: 5000, // 5KB for topic summaries
   MIN_CONTENT_LENGTH: 1, // Minimum content length if provided
 } as const;
