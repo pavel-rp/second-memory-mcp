@@ -137,23 +137,6 @@ export type RecommendationOutput = {
   };
 };
 
-// Conversation request for guided mode
-export type ConversationRequest = {
-  intent: string; // "start_learning", "continue_session", "get_recommendations"
-  context?: Record<string, unknown>; // conversation context
-  userInput?: string; // user's message/request
-  sessionState?: SessionContext; // current learning session state
-};
-
-// Conversation response for guided mode
-export type ConversationResponse = {
-  message: string; // response to user
-  recommendations?: RecommendationOutput; // if recommendations are ready
-  needsInput: boolean; // whether more user input is required
-  suggestedInputs?: string[]; // example responses user could give
-  sessionUpdated?: boolean; // whether session state was modified
-};
-
 // Zod schemas for runtime validation
 
 export const RecommendationModeSchema = z.enum(['guided', 'explicit']);
@@ -308,20 +291,3 @@ export const RecommendationInputSchema = z
     }
   })
   .transform(toCamelCaseKeysExcept(new Set(['user_history', 'session_context'])));
-
-export const ConversationRequestShape = {
-  intent: z.string().min(1).describe('User intent driving the guided learning conversation'),
-  context: z
-    .record(z.unknown())
-    .optional()
-    .describe('Optional contextual metadata for the conversation'),
-  user_input: z.string().optional().describe('Raw user utterance or request'),
-  session_state: z
-    .record(z.unknown())
-    .optional()
-    .describe('Opaque session state blob from prior interactions'),
-} as const;
-
-export const ConversationRequestSchema = z
-  .object(ConversationRequestShape)
-  .transform(toCamelCaseKeysExcept(new Set(['context', 'session_state'])));

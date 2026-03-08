@@ -28,6 +28,14 @@ export type ChunkGenerationPromptArgs = {
   existingChunkTitles?: string | string[];
 };
 
+export type LearningSessionMode = 'start' | 'continue' | 'review' | 'new_topic';
+
+export type LearningSessionPromptArgs = {
+  sessionMode?: LearningSessionMode;
+  timeAvailable?: string;
+  subject?: string;
+};
+
 export type ChunkManagementPromptArgs = {
   operation?: string;
   managedChunkTitle?: string;

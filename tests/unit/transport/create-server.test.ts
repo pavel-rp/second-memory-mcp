@@ -33,13 +33,14 @@ describe('createMcpServer', () => {
     expect(createMcpServer(ctx)).not.toBe(createMcpServer(ctx));
   });
 
-  it('registers all seven prompts', async () => {
+  it('registers all eight prompts', async () => {
     const { prompts } = await client.listPrompts();
     const names = prompts.map(p => p.name).sort();
     expect(names).toEqual([
       'chunk_generation',
       'chunk_management',
       'learning',
+      'learning_session',
       'retrieval',
       'review',
       'scaffolding',
@@ -110,6 +111,23 @@ describe('createMcpServer', () => {
       name: 'chunk_management',
       arguments: { operation: 'invalid' },
     });
+    expect(result.messages).toHaveLength(1);
+  });
+
+  it('learning_session prompt returns messages with args', async () => {
+    const result = await client.getPrompt({
+      name: 'learning_session',
+      arguments: { sessionMode: 'start', timeAvailable: '30', subject: 'Math' },
+    });
+    expect(result.messages).toHaveLength(1);
+    expect(result.messages[0].role).toBe('user');
+    const text = (result.messages[0].content as { type: string; text: string }).text;
+    expect(text).toContain('30');
+    expect(text).toContain('Math');
+  });
+
+  it('learning_session prompt works without optional args', async () => {
+    const result = await client.getPrompt({ name: 'learning_session', arguments: {} });
     expect(result.messages).toHaveLength(1);
   });
 

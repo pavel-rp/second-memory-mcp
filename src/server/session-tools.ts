@@ -1,10 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
-import {
-  ConversationRequestSchema,
-  ConversationRequestShape,
-} from '../domain/types/recommendations.js';
 import { SessionInputSchema } from '../domain/types/session.js';
 import { toCamelCaseKeysExcept, toSnakeCase } from '../shared/case-convert.js';
 import { logger } from '../shared/logger.js';
@@ -186,30 +182,6 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
         const msg = extractErrorMessage(error);
         logger.error('Session completion analysis failed:', error);
         return toolError(`Failed to check session completion: ${msg}`, {
-          type: 'session',
-          message: msg,
-        });
-      }
-    }
-  );
-
-  server.registerTool(
-    'guided_learning_conversation',
-    {
-      title: 'Guided Learning Conversation',
-      description:
-        "Conduct a conversational 'teach me' session with zero friction. Handles session guidance, clarifying questions, and learning orchestration.",
-      inputSchema: ConversationRequestShape,
-    },
-    async (input: unknown) => {
-      try {
-        const parsed = ConversationRequestSchema.parse(input);
-        const conversationManager = ctx.createConversationManager();
-        const result = await conversationManager.conductLearningSession(parsed);
-        return toolJson(toSnakeCase(result));
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to conduct learning conversation: ${msg}`, {
           type: 'session',
           message: msg,
         });

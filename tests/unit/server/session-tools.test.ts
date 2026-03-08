@@ -32,12 +32,11 @@ describe('session-tools', () => {
     ctx = createMockAppContext();
   });
 
-  it('registers all 4 session tools', () => {
+  it('registers all 3 session tools', () => {
     registerSessionTools(server as any, ctx);
     expect(server.tools.has('session_progress')).toBe(true);
     expect(server.tools.has('session_workflow')).toBe(true);
     expect(server.tools.has('session_completion')).toBe(true);
-    expect(server.tools.has('guided_learning_conversation')).toBe(true);
   });
 
   // ---------------------------------------------------------------
@@ -279,79 +278,6 @@ describe('session-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-    });
-  });
-
-  // ---------------------------------------------------------------
-  // guided_learning_conversation
-  // ---------------------------------------------------------------
-  describe('guided_learning_conversation', () => {
-    it('conducts learning session on happy path', async () => {
-      const mockResult = {
-        message: 'Let me help you learn arrays.',
-        needsInput: true,
-        suggestedInputs: ['arrays', 'lists'],
-      };
-      const mockConductor = { conductLearningSession: vi.fn().mockResolvedValue(mockResult) };
-      ctx.createConversationManager = vi.fn().mockReturnValue(mockConductor);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('guided_learning_conversation')!.handler;
-
-      const result = await handler({
-        intent: 'start_learning',
-        user_input: 'teach me arrays',
-        session_state: { currentSessionId: 's1' },
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.message).toBe('Let me help you learn arrays.');
-      expect(parsed.needs_input).toBe(true);
-    });
-
-    it('maps snake_case input to camelCase for conductor', async () => {
-      const mockConductor = {
-        conductLearningSession: vi.fn().mockResolvedValue({ message: 'ok', needsInput: false }),
-      };
-      ctx.createConversationManager = vi.fn().mockReturnValue(mockConductor);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('guided_learning_conversation')!.handler;
-
-      await handler({
-        intent: 'continue',
-        user_input: 'next topic',
-        session_state: { key: 'value' },
-      });
-
-      const call = mockConductor.conductLearningSession.mock.calls[0][0];
-      expect(call.userInput).toBe('next topic');
-      expect(call.sessionState).toEqual({ key: 'value' });
-    });
-
-    it('returns error when conductor throws', async () => {
-      const mockConductor = {
-        conductLearningSession: vi.fn().mockRejectedValue(new Error('conductor crash')),
-      };
-      ctx.createConversationManager = vi.fn().mockReturnValue(mockConductor);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('guided_learning_conversation')!.handler;
-
-      const result = await handler({ intent: 'start' });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
-      expect(parsed.error.message).toContain('conductor crash');
-    });
-
-    it('returns error for missing intent', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('guided_learning_conversation')!.handler;
-
-      const result = await handler({});
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
     });
   });
 });

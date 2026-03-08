@@ -82,35 +82,3 @@ describe('Integration: what_to_learn_today', () => {
     expect(Array.isArray(result.next_actions)).toBe(true);
   });
 });
-
-describe('Integration: guided_learning_conversation', () => {
-  it('starts a session and returns user-facing guidance', async () => {
-    const server = new CaptureServer() as any;
-    registerServerTools(server, createAppContext({ embedding: undefined }));
-    const tool = server.tools.get('guided_learning_conversation');
-    expect(tool).toBeDefined();
-
-    // Context is an opaque record consumed by internal code expecting camelCase LearningItem objects
-    const out = await tool.handler({
-      intent: 'start_learning',
-      context: {
-        learningItems: [
-          {
-            id: 'a',
-            title: 'Item',
-            subject: 'CS',
-            difficulty: 5,
-            nextReviewDate: new Date().toISOString().slice(0, 10),
-            easeFactor: 2.5,
-            repetitions: 2,
-            estimatedDuration: 10,
-            chunkType: 'review',
-          },
-        ],
-      },
-    });
-    const result = parseToolResult(out);
-    expect(result.message.length).toBeGreaterThan(0);
-    expect(result.needs_input).toBe(false);
-  });
-});

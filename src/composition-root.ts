@@ -63,10 +63,6 @@ import {
   validateSessionContext,
   applyBatchSessionChunkOperations,
 } from './domain/services/session-analyzer.js';
-import { ConversationManager } from './orchestration/conversation-manager.js';
-import { RecommendationEngine } from './domain/services/recommendation-engine.js';
-import { PrerequisiteValidator } from './domain/services/prerequisite-validator.js';
-import { DependencyResolver } from './domain/algorithms/dependency-resolver.js';
 import type {
   NextReviewInput,
   NextReviewOutput,
@@ -231,7 +227,6 @@ export interface AppContext {
   checkSessionCompletion: (sessionData: SessionInput) => CompletionStatus;
   validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
-  createConversationManager: () => ConversationManager;
 }
 
 /** Create the default production ports wired to the Drizzle/PostgreSQL adapters. */
@@ -302,36 +297,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     chunks: ports.chunks,
     topics: ports.topics,
   };
-
-  // Build the recommendation engine for the conversation manager
-  const chunkLookupFn = async (id: string): Promise<LearningItem | undefined> => {
-    const row = await ports.chunks.getWithContent(id);
-    return row ? (mapChunkRowToLearningItem(row) as LearningItem) : undefined;
-  };
-  const prerequisiteValidator = new PrerequisiteValidator({
-    referenceValidator: {
-      validateChunkPrerequisites: async (_chunkId: string, prerequisites: string[]) => {
-        const existing = await ports.chunkIdLookup.getExistingIdsByIds(prerequisites);
-        const invalidReferences = prerequisites.filter(id => !existing.has(id));
-        return { isValid: invalidReferences.length === 0, invalidReferences };
-      },
-    },
-    masteryService: {
-      checkItemMastery: (id: string) => ports.prerequisiteMastery.checkItemMastery(id),
-    },
-    algorithmConfig,
-    clock: () => Date.now(),
-  });
-  const depResolver = new DependencyResolver(
-    algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth
-  );
-  const createRecommendationEngine = () =>
-    new RecommendationEngine({
-      chunkLookupFn,
-      prerequisiteValidator,
-      dependencyResolver: depResolver,
-      algorithmConfig,
-    });
 
   const ctx: AppContext = {
     // Chunk orchestration
@@ -413,15 +378,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
       checkSessionCompletion(sessionData, algorithmConfig, new Date()),
     validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
-    createConversationManager: () =>
-      new ConversationManager({
-        recommendationEngine: createRecommendationEngine(),
-        listChunksAsLearningItems: filter =>
-          queryWorkflows.listChunksAsLearningItems(filter, queryDeps),
-        getActiveSession: () => sessionWorkflows.getActiveSession(sessionDeps),
-        convertSessionToInput: (sessionId: string) =>
-          sessionWorkflows.convertSessionToSessionInput(sessionId, undefined, sessionDeps),
-      }),
   };
 
   return Object.freeze(ctx);
