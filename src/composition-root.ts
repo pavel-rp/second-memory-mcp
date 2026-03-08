@@ -47,6 +47,7 @@ import * as sessionWorkflows from './orchestration/session-workflows.js';
 import * as recommendationWorkflows from './orchestration/recommendation-workflows.js';
 import * as searchWorkflows from './orchestration/search-workflows.js';
 import * as queryWorkflows from './orchestration/query-workflows.js';
+import * as analyticsWorkflows from './orchestration/analytics-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
 import {
@@ -74,6 +75,7 @@ import type {
   RankOutput,
 } from './domain/types/sr.js';
 import type { SessionProgress, WorkflowPhase, CompletionStatus } from './domain/types/session.js';
+import type { DailyKpis, AnalyticsOutput } from './domain/types/analytics.js';
 
 /** Ports — injectable for testing */
 export interface AppPorts {
@@ -222,6 +224,12 @@ export interface AppContext {
   rankCandidates: (input: RankInput) => RankOutput;
   computeDailyKpis: typeof computeDailyKpis;
   computeWindowRollup: typeof computeWindowRollup;
+  computeDailyAnalytics: (date: string) => Promise<DailyKpis>;
+  computeWindowAnalytics: (
+    from: string,
+    to: string,
+    options: { includeBreakdowns?: boolean }
+  ) => Promise<AnalyticsOutput>;
   calculateSessionProgress: (sessionData: SessionInput) => SessionProgress;
   determineNextPhase: (sessionData: SessionInput) => WorkflowPhase;
   checkSessionCompletion: (sessionData: SessionInput) => CompletionStatus;
@@ -296,6 +304,9 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const queryDeps: queryWorkflows.QueryDeps = {
     chunks: ports.chunks,
     topics: ports.topics,
+  };
+  const analyticsDeps: analyticsWorkflows.AnalyticsDeps = {
+    reviewPersistence: ports.reviewPersistence,
   };
 
   const ctx: AppContext = {
@@ -372,6 +383,9 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     rankCandidates: input => rankCandidatesWithConstraints(input, algorithmConfig, new Date()),
     computeDailyKpis,
     computeWindowRollup,
+    computeDailyAnalytics: date => analyticsWorkflows.computeDailyAnalytics(date, analyticsDeps),
+    computeWindowAnalytics: (from, to, options) =>
+      analyticsWorkflows.computeWindowAnalytics(from, to, options, analyticsDeps),
     calculateSessionProgress: sessionData => calculateSessionProgress(sessionData, new Date()),
     determineNextPhase: sessionData => determineNextPhase(sessionData, new Date()),
     checkSessionCompletion: sessionData =>

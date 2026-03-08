@@ -5,6 +5,8 @@ import {
   WindowSpecSchema,
   DailyKpisSchema,
   AnalyticsOutputSchema,
+  AnalyticsDailyInputSchema,
+  AnalyticsWindowInputSchema,
 } from '../../../../src/domain/types/analytics.js';
 
 describe('ReviewEntrySchema', () => {
@@ -152,6 +154,82 @@ describe('WindowSpecSchema', () => {
       const result = WindowSpecSchema.safeParse(window);
       expect(result.success).toBe(false);
     }
+  });
+});
+
+describe('AnalyticsDailyInputSchema', () => {
+  it('validates a valid date', () => {
+    const result = AnalyticsDailyInputSchema.safeParse({ date: '2026-01-15' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.date).toBe('2026-01-15');
+    }
+  });
+
+  it('rejects missing date', () => {
+    const result = AnalyticsDailyInputSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid date format', () => {
+    const invalidDates = ['2026-1-15', '2026/01/15', 'invalid', ''];
+    for (const date of invalidDates) {
+      const result = AnalyticsDailyInputSchema.safeParse({ date });
+      expect(result.success).toBe(false);
+    }
+  });
+});
+
+describe('AnalyticsWindowInputSchema', () => {
+  it('validates valid from/to with include_breakdowns', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({
+      from: '2026-01-01',
+      to: '2026-01-31',
+      include_breakdowns: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBe('2026-01-01');
+      expect(result.data.to).toBe('2026-01-31');
+      expect(result.data.includeBreakdowns).toBe(true);
+    }
+  });
+
+  it('defaults include_breakdowns to false', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({
+      from: '2026-01-01',
+      to: '2026-01-31',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.includeBreakdowns).toBe(false);
+    }
+  });
+
+  it('rejects missing from', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({ to: '2026-01-31' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing to', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({ from: '2026-01-01' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid from date format', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({
+      from: 'invalid',
+      to: '2026-01-31',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid to date format', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({
+      from: '2026-01-01',
+      to: '2026-1-31',
+    });
+    expect(result.success).toBe(false);
   });
 });
 

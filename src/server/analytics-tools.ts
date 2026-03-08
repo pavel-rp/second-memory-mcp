@@ -14,13 +14,13 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
     'analytics_daily',
     {
       title: 'Calculate Daily KPIs',
-      description: 'Compute daily analytics KPIs from review entries for a single day',
+      description: 'Compute daily analytics KPIs from stored review history for a single day',
       inputSchema: AnalyticsDailyInputShape,
     },
     async (rawInput: unknown) => {
       const parsed = AnalyticsDailyInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeDailyKpis(parsed.entries);
+        const result = await ctx.computeDailyAnalytics(parsed.date);
         return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);
@@ -42,7 +42,7 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
     async (rawInput: unknown) => {
       const parsed = AnalyticsWindowInputSchema.parse(rawInput);
       try {
-        const result = ctx.computeWindowRollup({ entries: parsed.entries }, parsed.window, {
+        const result = await ctx.computeWindowAnalytics(parsed.from, parsed.to, {
           includeBreakdowns: parsed.includeBreakdowns,
         });
         return toolJson(toSnakeCase(result));

@@ -3,14 +3,42 @@ import { registerAnalyticsTools } from '../../../src/server/analytics-tools.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 import type { AppContext } from '../../../src/composition-root.js';
+import type { DailyKpis, AnalyticsOutput } from '../../../src/domain/types/analytics.js';
 
 describe('analytics-tools', () => {
   let server: CaptureServer;
   let ctx: AppContext;
 
+  const dailyKpisResult: DailyKpis = {
+    date: '2026-01-15',
+    reviews_completed: 3,
+    average_quality: 4.0,
+    new_chunks_learned: 1,
+  };
+
+  const windowResult: AnalyticsOutput = {
+    days: [
+      {
+        date: '2026-01-15',
+        reviews_completed: 3,
+        average_quality: 4.0,
+        new_chunks_learned: 1,
+        streak_days: 1,
+      },
+    ],
+    total: {
+      reviews_completed: 3,
+      average_quality: 4.0,
+      new_chunks_learned: 1,
+      streak_days: 1,
+    },
+  };
+
   beforeEach(() => {
     server = new CaptureServer();
     ctx = createMockAppContext();
+    ctx.computeDailyAnalytics = vi.fn().mockResolvedValue(dailyKpisResult);
+    ctx.computeWindowAnalytics = vi.fn().mockResolvedValue(windowResult);
     registerAnalyticsTools(server as any, ctx);
   });
 
@@ -20,66 +48,87 @@ describe('analytics-tools', () => {
   });
 
   describe('analytics_daily', () => {
-    it('computes KPIs for valid entries', async () => {
+    it('computes KPIs for a valid date', async () => {
       const handler = server.tools.get('analytics_daily')!.handler;
-      const result = await handler({
-        entries: [
-          { date: '2026-01-15', quality: 4, topic: 'math' },
-          { date: '2026-01-15', quality: 5, topic: 'math' },
-        ],
-      });
+      const result = await handler({ date: '2026-01-15' });
       const parsed = parseResult(result);
-      expect(parsed.reviews_completed).toBe(2);
-      expect(parsed.average_quality).toBeGreaterThan(0);
+      expect(parsed.reviews_completed).toBe(3);
+      expect(parsed.average_quality).toBe(4.0);
+      expect(ctx.computeDailyAnalytics).toHaveBeenCalledWith('2026-01-15');
     });
 
-    it('throws for invalid input', async () => {
+    it('rejects missing date', async () => {
       const handler = server.tools.get('analytics_daily')!.handler;
       await expect(handler({})).rejects.toThrow();
     });
 
-    it('returns computation error when computeDailyKpis throws', async () => {
-      ctx.computeDailyKpis = vi.fn().mockImplementation(() => {
-        throw new Error('computation overflow');
-      });
+    it('rejects invalid date format', async () => {
+      const handler = server.tools.get('analytics_daily')!.handler;
+      await expect(handler({ date: '2026-1-15' })).rejects.toThrow();
+    });
+
+    it('returns computation error when computeDailyAnalytics throws', async () => {
+      ctx.computeDailyAnalytics = vi.fn().mockRejectedValue(new Error('db connection lost'));
       const freshServer = new CaptureServer();
       registerAnalyticsTools(freshServer as any, ctx);
       const handler = freshServer.tools.get('analytics_daily')!.handler;
 
-      const result = await handler({
-        entries: [{ date: '2026-01-15', quality: 4 }],
-      });
+      const result = await handler({ date: '2026-01-15' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('computation');
-      expect(parsed.error.message).toContain('computation overflow');
+      expect(parsed.error.message).toContain('db connection lost');
     });
   });
 
   describe('analytics_window', () => {
-    it('computes window analytics for valid entries', async () => {
+    it('computes window analytics for valid date range', async () => {
       const handler = server.tools.get('analytics_window')!.handler;
       const result = await handler({
-        entries: [{ date: '2026-01-15', quality: 3, topic: 'science' }],
-        window: { start: '2026-01-01', end: '2026-01-31' },
+        from: '2026-01-01',
+        to: '2026-01-31',
         include_breakdowns: false,
       });
       const parsed = parseResult(result);
       expect(parsed.days).toBeDefined();
+      expect(parsed.total.reviews_completed).toBe(3);
     });
 
-    it('returns computation error when computeWindowRollup throws', async () => {
-      ctx.computeWindowRollup = vi.fn().mockImplementation(() => {
-        throw new Error('window calc failed');
+    it('passes includeBreakdowns option correctly', async () => {
+      const handler = server.tools.get('analytics_window')!.handler;
+      await handler({
+        from: '2026-01-01',
+        to: '2026-01-31',
+        include_breakdowns: true,
       });
+
+      expect(ctx.computeWindowAnalytics).toHaveBeenCalledWith('2026-01-01', '2026-01-31', {
+        includeBreakdowns: true,
+      });
+    });
+
+    it('defaults include_breakdowns to false', async () => {
+      const handler = server.tools.get('analytics_window')!.handler;
+      await handler({
+        from: '2026-01-01',
+        to: '2026-01-31',
+      });
+
+      expect(ctx.computeWindowAnalytics).toHaveBeenCalledWith('2026-01-01', '2026-01-31', {
+        includeBreakdowns: false,
+      });
+    });
+
+    it('returns computation error when computeWindowAnalytics throws', async () => {
+      ctx.computeWindowAnalytics = vi.fn().mockRejectedValue(new Error('window calc failed'));
       const freshServer = new CaptureServer();
       registerAnalyticsTools(freshServer as any, ctx);
       const handler = freshServer.tools.get('analytics_window')!.handler;
 
       const result = await handler({
-        entries: [{ date: '2026-01-15', quality: 3 }],
-        window: { start: '2026-01-01', end: '2026-01-31' },
+        from: '2026-01-01',
+        to: '2026-01-31',
       });
       const parsed = parseResult(result);
 
@@ -88,29 +137,14 @@ describe('analytics-tools', () => {
       expect(parsed.error.message).toContain('window calc failed');
     });
 
-    it('passes include_breakdowns as includeBreakdowns to ctx', async () => {
-      const mockFn = vi.fn().mockReturnValue({ days: [], total: {} });
-      ctx.computeWindowRollup = mockFn;
-      const freshServer = new CaptureServer();
-      registerAnalyticsTools(freshServer as any, ctx);
-      const handler = freshServer.tools.get('analytics_window')!.handler;
-
-      await handler({
-        entries: [{ date: '2026-01-15', quality: 3 }],
-        window: { start: '2026-01-01', end: '2026-01-31' },
-        include_breakdowns: true,
-      });
-
-      expect(mockFn).toHaveBeenCalledWith(
-        expect.any(Object),
-        { start: '2026-01-01', end: '2026-01-31' },
-        { includeBreakdowns: true }
-      );
+    it('rejects missing from field', async () => {
+      const handler = server.tools.get('analytics_window')!.handler;
+      await expect(handler({ to: '2026-01-31' })).rejects.toThrow();
     });
 
-    it('throws for missing window field', async () => {
+    it('rejects invalid date format in from', async () => {
       const handler = server.tools.get('analytics_window')!.handler;
-      await expect(handler({ entries: [] })).rejects.toThrow();
+      await expect(handler({ from: 'invalid', to: '2026-01-31' })).rejects.toThrow();
     });
   });
 });

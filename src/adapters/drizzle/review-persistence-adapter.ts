@@ -1,7 +1,13 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, gte, lte, isNotNull } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
-import { learningChunks } from '../../infrastructure/db/schema.js';
+import {
+  learningChunks,
+  learningSessions,
+  sessionChunks,
+  learningTopics,
+} from '../../infrastructure/db/schema.js';
 import type { LearningChunk } from '../../domain/types/entities.js';
+import type { PersistedReviewEntry } from '../../domain/types/analytics.js';
 import type { ReviewPersistencePort } from '../../ports/review-persistence-port.js';
 
 export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
@@ -32,5 +38,48 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       .set(updates)
       .where(eq(learningChunks.id, chunkId));
     return res.rowCount ?? 0;
+  }
+
+  async getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]> {
+    const fromMs = from.getTime();
+    const toMs = to.getTime();
+
+    const rows = await this.db
+      .select({
+        startTime: learningSessions.startTime,
+        qualityScoresJson: sessionChunks.qualityScoresJson,
+        chunkType: learningChunks.chunkType,
+        tagsJson: learningChunks.tagsJson,
+        topicTitle: learningTopics.title,
+      })
+      .from(sessionChunks)
+      .innerJoin(learningSessions, eq(sessionChunks.sessionId, learningSessions.id))
+      .innerJoin(learningChunks, eq(sessionChunks.chunkId, learningChunks.id))
+      .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+      .where(
+        and(
+          isNotNull(sessionChunks.qualityScoresJson),
+          gte(learningSessions.startTime, fromMs),
+          lte(learningSessions.startTime, toMs)
+        )
+      );
+
+    const entries: PersistedReviewEntry[] = [];
+
+    for (const row of rows) {
+      const scores = row.qualityScoresJson;
+      if (!scores || scores.length === 0) continue;
+
+      const date = new Date(row.startTime).toISOString().split('T')[0];
+      const isNew = row.chunkType === 'new';
+      const topic = row.topicTitle ?? '(unknown)';
+      const tags = row.tagsJson ?? [];
+
+      for (const quality of scores) {
+        entries.push({ date, quality, isNew, topic, tags });
+      }
+    }
+
+    return entries;
   }
 }
