@@ -183,5 +183,55 @@ describe('chunk-queries service', () => {
       expect(chunks[0]).toHaveProperty('title');
       expect(chunks[0]).toHaveProperty('difficulty');
     });
+
+    it('filters by isLeech: true to return only remediation chunks', async () => {
+      await seedData();
+      const db = getSql();
+      const now = Date.now();
+      await db.insert(learningChunks).values({
+        id: 'chunk-leech',
+        topicId: (await ctx.batchFetchChunksMinimal())[0].topicId,
+        title: 'Leech Chunk',
+        subject: 'Math',
+        difficulty: 3,
+        nextReviewAt: now,
+        easeFactor: 1.3,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'remediation',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const leeches = await ctx.batchFetchChunksMinimal({ isLeech: true });
+      expect(leeches.length).toBe(1);
+      expect(leeches[0].id).toBe('chunk-leech');
+    });
+
+    it('filters by isLeech: false to exclude remediation chunks', async () => {
+      await seedData();
+      const db = getSql();
+      const now = Date.now();
+      const topicId = (await ctx.batchFetchChunksMinimal())[0].topicId;
+      await db.insert(learningChunks).values({
+        id: 'chunk-leech-2',
+        topicId,
+        title: 'Leech Chunk 2',
+        subject: 'Math',
+        difficulty: 3,
+        nextReviewAt: now,
+        easeFactor: 1.3,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'remediation',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const nonLeeches = await ctx.batchFetchChunksMinimal({ isLeech: false });
+      expect(nonLeeches.every(c => c.chunkType !== 'remediation')).toBe(true);
+      expect(nonLeeches.length).toBe(1);
+      expect(nonLeeches[0].id).toBe('chunk-1');
+    });
   });
 });
