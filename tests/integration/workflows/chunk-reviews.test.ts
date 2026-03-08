@@ -44,6 +44,68 @@ describe('chunk-reviews service', () => {
   });
   afterAll(teardownTestDb);
 
+  describe('getLeeches', () => {
+    it('returns chunks with chunkType remediation', async () => {
+      const db = getSql();
+      const now = Date.now();
+      await db.insert(learningChunks).values({
+        id: 'chunk-leech',
+        topicId,
+        title: 'Leech Chunk',
+        subject: 'Math',
+        difficulty: 5,
+        nextReviewAt: now,
+        easeFactor: 1.3,
+        repetitions: 0,
+        estimatedDuration: 15,
+        chunkType: 'remediation',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const leeches = await ctx.getLeeches({});
+      expect(leeches.length).toBe(1);
+      expect(leeches[0].id).toBe('chunk-leech');
+    });
+
+    it('returns empty when no leeches exist', async () => {
+      const leeches = await ctx.getLeeches({});
+      expect(leeches.length).toBe(0);
+    });
+  });
+
+  describe('resolveLeech', () => {
+    it('resolves a leech chunk with reset_progress', async () => {
+      const db = getSql();
+      const now = Date.now();
+      await db.insert(learningChunks).values({
+        id: 'chunk-leech-resolve',
+        topicId,
+        title: 'Leech to Resolve',
+        subject: 'Math',
+        difficulty: 5,
+        nextReviewAt: now,
+        easeFactor: 1.3,
+        repetitions: 0,
+        estimatedDuration: 15,
+        chunkType: 'remediation',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const result = await ctx.resolveLeech('chunk-leech-resolve', 'reset_progress');
+      expect(result.success).toBe(true);
+    });
+
+    it('returns error for nonexistent chunk', async () => {
+      const result = await ctx.resolveLeech('nonexistent', 'reset_progress');
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.type).toBe('not_found');
+      }
+    });
+  });
+
   describe('processReviewResult', () => {
     it('updates chunk with good quality review', async () => {
       const result = await ctx.processReviewResult(chunkId, 4, {});

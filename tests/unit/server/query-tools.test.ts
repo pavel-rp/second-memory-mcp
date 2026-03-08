@@ -55,6 +55,40 @@ describe('query-tools', () => {
       });
     });
 
+    it('passes is_leech filter through as camelCase', async () => {
+      const mockFn = vi.fn().mockResolvedValue([]);
+      ctx.listChunksAsLearningItems = mockFn;
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('list_learning_items')!.handler;
+
+      await handler({ is_leech: true });
+
+      expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: true }));
+    });
+
+    it('passes is_leech: false to exclude leeches', async () => {
+      const mockFn = vi.fn().mockResolvedValue([]);
+      ctx.listChunksAsLearningItems = mockFn;
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('list_learning_items')!.handler;
+
+      await handler({ is_leech: false });
+
+      expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: false }));
+    });
+
+    it('returns validation error for invalid input types', async () => {
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('list_learning_items')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
     it('returns database error when ctx throws', async () => {
       ctx.listChunksAsLearningItems = vi.fn().mockRejectedValue(new Error('connection refused'));
       registerQueryTools(server as any, ctx);
@@ -111,6 +145,18 @@ describe('query-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.topics).toHaveLength(0);
       expect(parsed.count).toBe(0);
+    });
+
+    it('returns validation error for invalid input types', async () => {
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('returns database error when ctx throws', async () => {
@@ -192,6 +238,29 @@ describe('query-tools', () => {
         dueOnly: true,
         limit: 20,
       });
+    });
+
+    it('passes is_leech filter through as camelCase', async () => {
+      const mockFn = vi.fn().mockResolvedValue([]);
+      ctx.batchFetchChunksMinimal = mockFn;
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
+
+      await handler({ is_leech: true });
+
+      expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: true }));
+    });
+
+    it('returns validation error for invalid input types', async () => {
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('returns database error when ctx throws', async () => {

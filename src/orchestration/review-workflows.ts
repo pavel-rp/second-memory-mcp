@@ -1,10 +1,16 @@
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
 import type { ReviewResultData } from '../ports/review-persistence-port.js';
+import type { ChunkRepository, ChunkMinimalMetadata } from '../ports/chunk-repository.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
 import { extractErrorMessage } from '../shared/errors.js';
+
+/** SM-2 default initial ease factor — used when resetting progress. */
+const SM2_INITIAL_EASE_FACTOR = 2.5;
+/** ~100 years in ms — effectively removes archived items from the review queue. */
+const ARCHIVE_OFFSET_MS = 100 * 365.25 * 24 * 60 * 60 * 1000;
 
 export type ReviewDeps = {
   reviewPersistence: ReviewPersistencePort;
@@ -87,6 +93,85 @@ export async function processReviewResult(
     return serviceFail({
       type: 'database',
       message: `Failed to process review result: ${extractErrorMessage(error)}`,
+    });
+  }
+}
+
+export type LeechDeps = {
+  chunks: ChunkRepository;
+  reviewPersistence: ReviewPersistencePort;
+};
+
+export type LeechResolution = 'reset_progress' | 'archive' | 'mark_reviewed';
+
+export async function getLeeches(
+  options: { subjectFilter?: string; limit?: number },
+  deps: LeechDeps
+): Promise<ChunkMinimalMetadata[]> {
+  return deps.chunks.batchFetchMinimal({
+    subject: options.subjectFilter,
+    limit: options.limit,
+    isLeech: true,
+  });
+}
+
+export async function resolveLeech(
+  chunkId: string,
+  resolution: LeechResolution,
+  deps: LeechDeps
+): Promise<ServiceResult<{ chunkId: string; resolution: LeechResolution }>> {
+  try {
+    // Note: TOCTOU — getChunk → validate → persist has a small race window.
+    // Acceptable for single-user MCP; the rowCount === 0 guard below catches concurrent deletes.
+    const chunk = await deps.reviewPersistence.getChunk(chunkId);
+    if (!chunk) {
+      return serviceFail({ type: 'not_found', message: `Chunk not found: ${chunkId}` });
+    }
+    if (chunk.chunkType !== 'remediation') {
+      return serviceFail({
+        type: 'validation',
+        message: `Chunk ${chunkId} is not a leech (chunkType=${chunk.chunkType})`,
+      });
+    }
+
+    const nowMs = Date.now();
+    const baseUpdate = { chunkType: 'review' as const, updatedAt: nowMs };
+
+    let rowCount: number;
+    switch (resolution) {
+      case 'reset_progress':
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+          ...baseUpdate,
+          easeFactor: SM2_INITIAL_EASE_FACTOR,
+          repetitions: 0,
+          intervalDays: null,
+          nextReviewAt: nowMs,
+          lastReviewedAt: null,
+        });
+        break;
+      case 'archive':
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
+          ...baseUpdate,
+          nextReviewAt: nowMs + ARCHIVE_OFFSET_MS,
+        });
+        break;
+      case 'mark_reviewed':
+        rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, baseUpdate);
+        break;
+    }
+
+    if (rowCount === 0) {
+      return serviceFail({
+        type: 'database',
+        message: `Update affected 0 rows for chunk ${chunkId} — it may have been deleted concurrently`,
+      });
+    }
+
+    return serviceOk({ chunkId, resolution });
+  } catch (error) {
+    return serviceFail({
+      type: 'database',
+      message: extractErrorMessage(error),
     });
   }
 }

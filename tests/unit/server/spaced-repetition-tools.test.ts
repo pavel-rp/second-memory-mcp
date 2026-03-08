@@ -13,7 +13,7 @@ describe('spaced-repetition-tools', () => {
     ctx = createMockAppContext();
   });
 
-  it('registers all 6 spaced repetition tools', () => {
+  it('registers all 8 spaced repetition tools', () => {
     registerSpacedRepetitionTools(server as any, ctx);
     expect(server.tools.has('calculate_next_review')).toBe(true);
     expect(server.tools.has('calculate_priority_score')).toBe(true);
@@ -21,6 +21,8 @@ describe('spaced-repetition-tools', () => {
     expect(server.tools.has('rank_candidates')).toBe(true);
     expect(server.tools.has('what_to_learn_today')).toBe(true);
     expect(server.tools.has('record_review_result')).toBe(true);
+    expect(server.tools.has('get_leeches')).toBe(true);
+    expect(server.tools.has('resolve_leech')).toBe(true);
   });
 
   // ---------------------------------------------------------------
@@ -381,6 +383,7 @@ describe('spaced-repetition-tools', () => {
         subjectFilter: 'CS',
         dueOnly: true,
         limit: 50,
+        isLeech: false,
       });
     });
 
@@ -551,6 +554,19 @@ describe('spaced-repetition-tools', () => {
 
       expect(ctx.generateRecommendations).toHaveBeenCalledWith(
         expect.objectContaining({ learningItems: [] })
+      );
+    });
+
+    it('passes isLeech: undefined when include_leeches is true', async () => {
+      ctx.listChunksAsLearningItems = vi.fn().mockResolvedValue([]);
+      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockRecommendationOutput);
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('what_to_learn_today')!.handler;
+
+      await handler({ fetch_from_database: true, include_leeches: true });
+
+      expect(ctx.listChunksAsLearningItems).toHaveBeenCalledWith(
+        expect.objectContaining({ isLeech: undefined })
       );
     });
   });
@@ -734,6 +750,196 @@ describe('spaced-repetition-tools', () => {
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('database');
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_leeches
+  // ---------------------------------------------------------------
+  describe('get_leeches', () => {
+    it('returns leeches with count and message', async () => {
+      const mockLeeches = [
+        { id: 'l1', title: 'Leech A', subject: 'CS' },
+        { id: 'l2', title: 'Leech B', subject: 'CS' },
+      ];
+      ctx.getLeeches = vi.fn().mockResolvedValue(mockLeeches);
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.leeches).toHaveLength(2);
+      expect(parsed.count).toBe(2);
+      expect(parsed.message).toContain('2 leech items');
+    });
+
+    it('returns singular message for exactly 1 leech', async () => {
+      ctx.getLeeches = vi.fn().mockResolvedValue([{ id: 'l1', title: 'Leech', subject: 'CS' }]);
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.count).toBe(1);
+      expect(parsed.message).toContain('1 leech item');
+      expect(parsed.message).not.toContain('items');
+    });
+
+    it('returns empty message when no leeches', async () => {
+      ctx.getLeeches = vi.fn().mockResolvedValue([]);
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.leeches).toHaveLength(0);
+      expect(parsed.count).toBe(0);
+      expect(parsed.message).toContain('No leech items');
+    });
+
+    it('passes subject_filter and limit through as camelCase', async () => {
+      const mockFn = vi.fn().mockResolvedValue([]);
+      ctx.getLeeches = mockFn;
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      await handler({ subject_filter: 'Math', limit: 5 });
+
+      expect(mockFn).toHaveBeenCalledWith({ subjectFilter: 'Math', limit: 5 });
+    });
+
+    it('returns validation error for invalid input types', async () => {
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns database error when ctx.getLeeches throws', async () => {
+      ctx.getLeeches = vi.fn().mockRejectedValue(new Error('timeout'));
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('get_leeches')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.retryable).toBe(true);
+      expect(parsed.error.message).toContain('timeout');
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // resolve_leech
+  // ---------------------------------------------------------------
+  describe('resolve_leech', () => {
+    it('returns success with chunk_id and resolution', async () => {
+      ctx.resolveLeech = vi.fn().mockResolvedValue({
+        success: true,
+        data: { chunkId: 'l1', resolution: 'reset_progress' },
+      });
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ chunk_id: 'l1', resolution: 'reset_progress' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.chunk_id).toBe('l1');
+      expect(parsed.resolution).toBe('reset_progress');
+      expect(parsed.message).toContain('reset_progress');
+    });
+
+    it('returns error when resolveLeech reports not_found', async () => {
+      ctx.resolveLeech = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Chunk not found: missing' },
+      });
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ chunk_id: 'missing', resolution: 'archive' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('not_found');
+      expect(parsed.error.message).toContain('not found');
+    });
+
+    it('returns error when resolveLeech reports validation failure', async () => {
+      ctx.resolveLeech = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'validation', message: 'not a leech' },
+      });
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', resolution: 'mark_reviewed' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+    });
+
+    it('returns database error when ctx.resolveLeech throws', async () => {
+      ctx.resolveLeech = vi.fn().mockRejectedValue(new Error('connection reset'));
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ chunk_id: 'l1', resolution: 'archive' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.retryable).toBe(true);
+      expect(parsed.error.message).toContain('connection reset');
+    });
+
+    it('returns validation error for missing chunk_id', async () => {
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ resolution: 'archive' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for empty chunk_id', async () => {
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ chunk_id: '', resolution: 'archive' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for invalid resolution value', async () => {
+      registerSpacedRepetitionTools(server as any, ctx);
+      const handler = server.tools.get('resolve_leech')!.handler;
+
+      const result = await handler({ chunk_id: 'l1', resolution: 'invalid' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
   });
 });

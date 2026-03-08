@@ -127,3 +127,26 @@ export const RecordReviewResultInputSchema = z
   .object(RecordReviewResultInputShape)
   .transform(toCamelCaseKeys);
 export type RecordReviewResultInput = z.infer<typeof RecordReviewResultInputSchema>;
+
+export const GetLeechesInputShape = {
+  subject_filter: z.string().optional().describe('Optional subject filter for leech items'),
+  limit: z.number().int().positive().optional().describe('Maximum number of leech items to return'),
+} as const;
+
+export const GetLeechesInputSchema = z.object(GetLeechesInputShape).transform(toCamelCaseKeys);
+export type GetLeechesInput = z.infer<typeof GetLeechesInputSchema>;
+
+export const ResolveLeechInputShape = {
+  chunk_id: z
+    .string()
+    .min(1, 'Chunk ID cannot be empty')
+    .describe('ID of the leech chunk to resolve'),
+  resolution: z
+    .enum(['reset_progress', 'archive', 'mark_reviewed'])
+    .describe(
+      'Resolution strategy: reset_progress resets SR progress, archive moves to far future, mark_reviewed clears leech flag only'
+    ),
+} as const;
+
+export const ResolveLeechInputSchema = z.object(ResolveLeechInputShape).transform(toCamelCaseKeys);
+export type ResolveLeechInput = z.infer<typeof ResolveLeechInputSchema>;

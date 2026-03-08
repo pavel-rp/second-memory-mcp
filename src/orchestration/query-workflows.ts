@@ -1,6 +1,7 @@
 import type {
   ChunkRepository,
   ListChunksFilter,
+  ListChunksWithContentFilter,
   ChunkContentResult,
   ChunkWithTopicTitle,
 } from '../ports/chunk-repository.js';
@@ -25,15 +26,7 @@ export async function listChunksAsLearningItems(
 }
 
 export async function listChunksWithContent(
-  filter:
-    | {
-        subjectFilter?: string;
-        dueOnly?: boolean;
-        includeContent?: boolean;
-        limit?: number;
-        offset?: number;
-      }
-    | undefined,
+  filter: ListChunksWithContentFilter | undefined,
   deps: QueryDeps
 ): Promise<PaginatedLearningItemsResponse> {
   return deps.chunks.listWithContent(filter);
@@ -54,7 +47,9 @@ export async function getChunkWithContent(
 }
 
 export async function batchFetchChunksMinimal(
-  options: { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number } | undefined,
+  options:
+    | { topicId?: string; subject?: string; dueOnly?: boolean; limit?: number; isLeech?: boolean }
+    | undefined,
   deps: QueryDeps
 ): Promise<Awaited<ReturnType<ChunkRepository['batchFetchMinimal']>>> {
   return deps.chunks.batchFetchMinimal(options);
