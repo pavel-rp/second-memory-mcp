@@ -1,8 +1,9 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import express, { type Request, type Response, type NextFunction } from 'express';
+import { type Request, type Response, type NextFunction, type RequestHandler } from 'express';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../shared/logger.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
@@ -28,7 +29,7 @@ export async function startHttpTransport(
   createMcpServer: () => McpServer
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
-  const app = express();
+  const app = createMcpExpressApp({ host: config.httpHost });
 
   // CORS
   app.use('/mcp', (req, res, next) => {
@@ -42,9 +43,6 @@ export async function startHttpTransport(
     }
     next();
   });
-
-  // Body parser (replaces manual readBody)
-  app.use('/mcp', express.json({ limit: '1mb' }));
 
   // POST /mcp
   app.post('/mcp', async (req, res) => {
@@ -83,7 +81,7 @@ export async function startHttpTransport(
   });
 
   // GET/DELETE /mcp — session-bound
-  const sessionHandler: express.RequestHandler = async (req, res) => {
+  const sessionHandler: RequestHandler = async (req, res) => {
     const transport = transports.get(getSessionId(req) ?? '');
     if (!transport) {
       res.status(400).type('text/plain').send('Invalid or missing session ID');
