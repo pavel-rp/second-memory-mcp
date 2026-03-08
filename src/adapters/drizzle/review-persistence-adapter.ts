@@ -76,7 +76,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       const tags = row.tagsJson ?? [];
 
       // A single session_chunk can have multiple quality scores (e.g. retries within a session),
-      // so each score becomes its own ReviewEntry.
+      // so each score becomes its own PersistedReviewEntry.
       for (const quality of scores) {
         entries.push({ date, quality, isNew, topic, tags });
       }

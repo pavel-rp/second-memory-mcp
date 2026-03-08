@@ -84,8 +84,8 @@ describe('analytics workflows', () => {
       const result = await ctx.computeDailyAnalytics('2026-01-15');
 
       expect(result.date).toBe('2026-01-15');
-      expect(result.reviews_completed).toBe(2); // two quality scores
-      expect(result.new_chunks_learned).toBe(2); // chunkType is 'new'
+      expect(result.reviews_completed).toBe(2); // qualityScoresJson [4,5] expands to 2 entries
+      expect(result.new_chunks_learned).toBe(2); // both entries have isNew (chunkType='new')
       expect(result.average_quality).toBe(4.5);
     });
 
