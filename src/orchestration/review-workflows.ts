@@ -7,6 +7,11 @@ import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
 import { extractErrorMessage } from '../shared/errors.js';
 
+/** SM-2 default initial ease factor — used when resetting progress. */
+const SM2_INITIAL_EASE_FACTOR = 2.5;
+/** ~100 years in ms — effectively removes archived items from the review queue. */
+const ARCHIVE_OFFSET_MS = 100 * 365.25 * 24 * 60 * 60 * 1000;
+
 export type ReviewDeps = {
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
@@ -116,6 +121,8 @@ export async function resolveLeech(
   deps: LeechDeps
 ): Promise<ServiceResult<{ chunkId: string; resolution: LeechResolution }>> {
   try {
+    // Note: TOCTOU — getChunk → validate → persist has a small race window.
+    // Acceptable for single-user MCP; the rowCount === 0 guard below catches concurrent deletes.
     const chunk = await deps.reviewPersistence.getChunk(chunkId);
     if (!chunk) {
       return serviceFail({ type: 'not_found', message: `Chunk not found: ${chunkId}` });
@@ -135,7 +142,7 @@ export async function resolveLeech(
       case 'reset_progress':
         rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
           ...baseUpdate,
-          easeFactor: 2.5,
+          easeFactor: SM2_INITIAL_EASE_FACTOR,
           repetitions: 0,
           intervalDays: null,
           nextReviewAt: nowMs,
@@ -144,7 +151,7 @@ export async function resolveLeech(
       case 'archive':
         rowCount = await deps.reviewPersistence.persistReviewUpdate(chunkId, {
           ...baseUpdate,
-          nextReviewAt: nowMs + 100 * 365.25 * 24 * 60 * 60 * 1000, // ~100 years
+          nextReviewAt: nowMs + ARCHIVE_OFFSET_MS,
         });
         break;
       case 'mark_reviewed':

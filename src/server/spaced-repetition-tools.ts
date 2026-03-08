@@ -168,6 +168,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
               subjectFilter: parsed.subjectFilter,
               dueOnly: parsed.dueOnly,
               limit: parsed.limit,
+              // undefined = no filter (include all); false = exclude leeches from recommendations
               isLeech: parsed.includeLeeches ? undefined : false,
             });
           } catch (dbError) {

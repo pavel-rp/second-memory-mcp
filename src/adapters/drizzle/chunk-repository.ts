@@ -44,6 +44,9 @@ const CHUNK_CONTENT_COLUMNS = {
   contentUpdatedAt: learningChunks.contentUpdatedAt,
 };
 
+/** The chunkType value that represents a leech (remediation) item. */
+const LEECH_CHUNK_TYPE = 'remediation';
+
 type ChunkFilterOptions = {
   topicId?: string;
   subject?: string;
@@ -58,8 +61,8 @@ function buildChunkWhereClause(options: ChunkFilterOptions) {
   const subj = options.subject || options.subjectFilter;
   if (subj) conditions.push(eq(learningChunks.subject, subj));
   if (options.dueOnly) conditions.push(lte(learningChunks.nextReviewAt, Date.now()));
-  if (options.isLeech === true) conditions.push(eq(learningChunks.chunkType, 'remediation'));
-  if (options.isLeech === false) conditions.push(ne(learningChunks.chunkType, 'remediation'));
+  if (options.isLeech === true) conditions.push(eq(learningChunks.chunkType, LEECH_CHUNK_TYPE));
+  if (options.isLeech === false) conditions.push(ne(learningChunks.chunkType, LEECH_CHUNK_TYPE));
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
