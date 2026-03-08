@@ -56,7 +56,6 @@ import {
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
 } from './domain/algorithms/sr-calculator.js';
-import { computeDailyKpis, computeWindowRollup } from './domain/services/analytics-calculator.js';
 import {
   calculateSessionProgress,
   determineNextPhase,
@@ -222,8 +221,6 @@ export interface AppContext {
   calculatePriorityScore: (input: PriorityInput) => PriorityOutput;
   calculateNextReviewAdvanced: (input: AdvancedNextReviewInput) => AdvancedNextReviewOutput;
   rankCandidates: (input: RankInput) => RankOutput;
-  computeDailyKpis: typeof computeDailyKpis;
-  computeWindowRollup: typeof computeWindowRollup;
   computeDailyAnalytics: (date: string) => Promise<DailyKpis>;
   computeWindowAnalytics: (
     from: string,
@@ -381,8 +378,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     calculateNextReviewAdvanced: input =>
       calculateNextReviewAdvanced(input, algorithmConfig, new Date()),
     rankCandidates: input => rankCandidatesWithConstraints(input, algorithmConfig, new Date()),
-    computeDailyKpis,
-    computeWindowRollup,
     computeDailyAnalytics: date => analyticsWorkflows.computeDailyAnalytics(date, analyticsDeps),
     computeWindowAnalytics: (from, to, options) =>
       analyticsWorkflows.computeWindowAnalytics(from, to, options, analyticsDeps),

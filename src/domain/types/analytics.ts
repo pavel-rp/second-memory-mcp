@@ -104,6 +104,11 @@ export const WindowSpecSchema = z.object(WindowSpecShape);
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
+function isValidCalendarDate(date: string): boolean {
+  const d = new Date(date + 'T00:00:00.000Z');
+  return !isNaN(d.getTime()) && d.toISOString().startsWith(date);
+}
+
 export const AnalyticsDailyInputShape = {
   date: z
     .string()
@@ -111,7 +116,9 @@ export const AnalyticsDailyInputShape = {
     .describe('The day to compute analytics for (YYYY-MM-DD)'),
 } as const;
 
-export const AnalyticsDailyInputSchema = z.object(AnalyticsDailyInputShape);
+export const AnalyticsDailyInputSchema = z
+  .object(AnalyticsDailyInputShape)
+  .refine(d => isValidCalendarDate(d.date), { message: 'Date must be a valid calendar date' });
 export type AnalyticsDailyInput = z.infer<typeof AnalyticsDailyInputSchema>;
 
 export const AnalyticsWindowInputShape = {
@@ -132,6 +139,9 @@ export const AnalyticsWindowInputShape = {
 
 export const AnalyticsWindowInputSchema = z
   .object(AnalyticsWindowInputShape)
+  .refine(d => isValidCalendarDate(d.from), { message: '"from" must be a valid calendar date' })
+  .refine(d => isValidCalendarDate(d.to), { message: '"to" must be a valid calendar date' })
+  .refine(d => d.from <= d.to, { message: '"from" must not be after "to"' })
   .transform(toCamelCaseKeys);
 export type AnalyticsWindowInput = z.infer<typeof AnalyticsWindowInputSchema>;
 

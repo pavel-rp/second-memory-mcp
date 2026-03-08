@@ -39,7 +39,7 @@ describe('computeDailyAnalytics', () => {
 
     const [from, to] = mock.mock.calls[0];
     expect(from).toEqual(new Date('2026-03-08T00:00:00.000Z'));
-    expect(to).toEqual(new Date('2026-03-08T23:59:59.999Z'));
+    expect(to).toEqual(new Date('2026-03-09T00:00:00.000Z'));
   });
 
   it('returns zero-value KPIs with correct date when no reviews exist', async () => {
@@ -145,7 +145,7 @@ describe('computeWindowAnalytics', () => {
 
     const [from, to] = mock.mock.calls[0];
     expect(from).toEqual(new Date('2026-01-01T00:00:00.000Z'));
-    expect(to).toEqual(new Date('2026-01-31T23:59:59.999Z'));
+    expect(to).toEqual(new Date('2026-02-01T00:00:00.000Z'));
   });
 
   it('handles multi-day ranges with entries on different days', async () => {

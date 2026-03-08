@@ -178,6 +178,14 @@ describe('AnalyticsDailyInputSchema', () => {
       expect(result.success).toBe(false);
     }
   });
+
+  it('rejects impossible calendar dates', () => {
+    const impossibleDates = ['2026-02-30', '2026-04-31', '2026-13-01', '2026-00-15'];
+    for (const date of impossibleDates) {
+      const result = AnalyticsDailyInputSchema.safeParse({ date });
+      expect(result.success).toBe(false);
+    }
+  });
 });
 
 describe('AnalyticsWindowInputSchema', () => {
@@ -228,6 +236,22 @@ describe('AnalyticsWindowInputSchema', () => {
     const result = AnalyticsWindowInputSchema.safeParse({
       from: '2026-01-01',
       to: '2026-1-31',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects from after to', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({
+      from: '2026-03-10',
+      to: '2026-03-01',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects impossible calendar dates', () => {
+    const result = AnalyticsWindowInputSchema.safeParse({
+      from: '2026-02-30',
+      to: '2026-03-15',
     });
     expect(result.success).toBe(false);
   });

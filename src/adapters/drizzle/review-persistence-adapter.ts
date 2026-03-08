@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, isNotNull } from 'drizzle-orm';
+import { eq, and, gte, lt, isNotNull } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -60,7 +60,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
         and(
           isNotNull(sessionChunks.qualityScoresJson),
           gte(learningSessions.startTime, fromMs),
-          lte(learningSessions.startTime, toMs)
+          lt(learningSessions.startTime, toMs)
         )
       );
 
@@ -75,6 +75,8 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       const topic = row.topicTitle ?? '(unknown)';
       const tags = row.tagsJson ?? [];
 
+      // A single session_chunk can have multiple quality scores (e.g. retries within a session),
+      // so each score becomes its own ReviewEntry.
       for (const quality of scores) {
         entries.push({ date, quality, isNew, topic, tags });
       }

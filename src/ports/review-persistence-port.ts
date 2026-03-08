@@ -45,5 +45,6 @@ export interface ReviewPersistencePort {
       >
     >
   ): Promise<number>;
+  /** Fetch reviews in the half-open range [from, to). */
   getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]>;
 }
