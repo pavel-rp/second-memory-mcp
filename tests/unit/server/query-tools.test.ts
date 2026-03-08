@@ -147,6 +147,18 @@ describe('query-tools', () => {
       expect(parsed.count).toBe(0);
     });
 
+    it('returns validation error for invalid input types', async () => {
+      registerQueryTools(server as any, ctx);
+      const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
+
+      const result = await handler({ limit: 'not-a-number' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
     it('returns database error when ctx throws', async () => {
       ctx.batchFetchTopicsMinimal = vi.fn().mockRejectedValue(new Error('timeout'));
       registerQueryTools(server as any, ctx);
