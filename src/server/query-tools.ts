@@ -9,6 +9,7 @@ import {
   BatchFetchChunksMinimalInputShape,
 } from '../domain/types/persistence-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
+import { ZodError } from 'zod';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerQueryTools(server: McpServer, ctx: AppContext): void {
@@ -21,9 +22,9 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: ListLearningItemsInputShape,
     },
     async (rawInput: unknown) => {
-      const { subjectFilter, dueOnly, limit, isLeech } =
-        ListLearningItemsInputSchema.parse(rawInput);
       try {
+        const { subjectFilter, dueOnly, limit, isLeech } =
+          ListLearningItemsInputSchema.parse(rawInput);
         const items = await ctx.listChunksAsLearningItems({
           subjectFilter,
           dueOnly,
@@ -33,6 +34,13 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         return toolJson(toSnakeCase(items));
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          return toolError(`Failed to list learning items: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         return toolError(`Failed to list learning items: ${msg}`, {
           type: 'database',
           message: msg,
@@ -85,9 +93,9 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
     async (rawInput: unknown) => {
-      const { topicId, subjectFilter, dueOnly, limit, isLeech } =
-        BatchFetchChunksMinimalInputSchema.parse(rawInput);
       try {
+        const { topicId, subjectFilter, dueOnly, limit, isLeech } =
+          BatchFetchChunksMinimalInputSchema.parse(rawInput);
         const chunks = await ctx.batchFetchChunksMinimal({
           topicId,
           subject: subjectFilter,
@@ -117,6 +125,13 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         );
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          return toolError(`Failed to fetch chunks: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         return toolError(`Failed to fetch chunks: ${msg}`, {
           type: 'database',
           message: msg,

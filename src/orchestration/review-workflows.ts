@@ -167,7 +167,7 @@ export async function resolveLeech(
   } catch (error) {
     return serviceFail({
       type: 'database',
-      message: `Failed to resolve leech: ${extractErrorMessage(error)}`,
+      message: extractErrorMessage(error),
     });
   }
 }
