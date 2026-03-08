@@ -16,11 +16,10 @@ describe('session-tools', () => {
   });
   afterAll(teardownTestDb);
 
-  it('registers session analysis and conversation tools', () => {
+  it('registers session analysis tools', () => {
     expect(server.tools.has('session_progress')).toBe(true);
     expect(server.tools.has('session_workflow')).toBe(true);
     expect(server.tools.has('session_completion')).toBe(true);
-    expect(server.tools.has('guided_learning_conversation')).toBe(true);
   });
 
   describe('session_progress', () => {

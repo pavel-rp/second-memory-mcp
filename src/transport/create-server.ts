@@ -5,6 +5,7 @@ import { registerServerTools } from '../server/tools.js';
 import type { AppContext } from '../composition-root.js';
 import type {
   LearningPromptArgs,
+  LearningSessionPromptArgs,
   RetrievalPromptArgs,
   ReviewPromptArgs,
   ChunkGenerationPromptArgs,
@@ -227,6 +228,38 @@ export function createMcpServer(ctx: AppContext): McpServer {
         ],
       };
     }
+  );
+
+  server.registerPrompt(
+    'learning_session',
+    {
+      title: 'Learning Session',
+      description:
+        "Session orchestration guidance — how to start, conduct, and complete a learning session using this server's tools",
+      argsSchema: {
+        sessionMode: z
+          .enum(['start', 'continue', 'review', 'new_topic'])
+          .optional()
+          .describe('Session mode'),
+        timeAvailable: z.string().optional().describe('Minutes available for learning'),
+        subject: z.string().optional().describe('Subject or topic to focus on'),
+      },
+    },
+    (args: LearningSessionPromptArgs) => ({
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: promptPack.getPrompt('learning_session', {
+              sessionMode: args?.sessionMode,
+              timeAvailable: args?.timeAvailable ? Number(args.timeAvailable) : undefined,
+              topicTitle: args?.subject,
+            }),
+          },
+        },
+      ],
+    })
   );
 
   return server;

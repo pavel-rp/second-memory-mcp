@@ -33,13 +33,14 @@ describe('createMcpServer', () => {
     expect(createMcpServer(ctx)).not.toBe(createMcpServer(ctx));
   });
 
-  it('registers all seven prompts', async () => {
+  it('registers all eight prompts', async () => {
     const { prompts } = await client.listPrompts();
     const names = prompts.map(p => p.name).sort();
     expect(names).toEqual([
       'chunk_generation',
       'chunk_management',
       'learning',
+      'learning_session',
       'retrieval',
       'review',
       'scaffolding',

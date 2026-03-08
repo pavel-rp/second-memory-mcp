@@ -28,6 +28,12 @@ export type ChunkGenerationPromptArgs = {
   existingChunkTitles?: string | string[];
 };
 
+export type LearningSessionPromptArgs = {
+  sessionMode?: string;
+  timeAvailable?: string;
+  subject?: string;
+};
+
 export type ChunkManagementPromptArgs = {
   operation?: string;
   managedChunkTitle?: string;

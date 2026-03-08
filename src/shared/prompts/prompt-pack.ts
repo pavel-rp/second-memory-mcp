@@ -5,7 +5,8 @@ export type PromptName =
   | 'review'
   | 'workflow_guidance'
   | 'chunk_generation'
-  | 'chunk_management';
+  | 'chunk_management'
+  | 'learning_session';
 
 export type DrillFormat =
   | 'multiple_choice'
@@ -45,6 +46,10 @@ export type PromptContext = {
   topicDescription?: string;
   existingChunkTitles?: string[];
 
+  // Learning session context
+  sessionMode?: string;
+  timeAvailable?: number;
+
   // Chunk management context
   operation?: 'update' | 'merge' | 'split' | 'retire';
   managedChunk?: { title: string; order?: number; content?: string; prerequisites?: string };
@@ -68,6 +73,7 @@ export class PromptPack {
     workflow_guidance: () => this.getWorkflowGuidancePrompt(),
     chunk_generation: context => this.getChunkGenerationPrompt(context),
     chunk_management: context => this.getChunkManagementPrompt(context),
+    learning_session: context => this.getLearningSessionPrompt(context),
   };
 
   getPrompt(name: PromptName, context: PromptContext = {}): string {
@@ -412,6 +418,70 @@ export class PromptPack {
       '- resulting chunk(s) with title, order, content summary, prerequisites',
       '- brief rationale for the change',
       '- explicit mapping of any splits/merges',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  private getLearningSessionPrompt(context: PromptContext): string {
+    const mode = context.sessionMode ?? 'start';
+    const time = context.timeAvailable;
+    const subject = context.topicTitle;
+
+    const timeNote = time ? `The learner has ${time} minutes available.` : '';
+    const subjectNote = subject ? `Focus area: ${subject}.` : '';
+    const contextLine = [timeNote, subjectNote].filter(Boolean).join(' ');
+
+    return [
+      'LEARNING SESSION ORCHESTRATION',
+      '',
+      `Mode: ${mode}`,
+      contextLine,
+      '',
+      'You are orchestrating a spaced-repetition learning session. Use the tools available on this MCP server to manage the session end-to-end.',
+      '',
+      '## Starting a Session',
+      '',
+      '1. Get recommendations: `what_to_learn_today({ fetch_from_database: true' +
+        (time ? `, time_available: ${time}` : '') +
+        (subject ? `, subject_filter: "${subject}"` : '') +
+        ' })`',
+      '2. Review the recommendations and present them to the learner',
+      '3. Create a session: `create_session({ mode: "learning", chunk_ids: [...recommended IDs...] })`',
+      '4. Begin teaching the first chunk using the `learning` prompt',
+      '',
+      '## Conducting Reviews',
+      '',
+      '1. Search for content: `search_learning_content({ query: "topic" })` or `batch_fetch_chunks_minimal({ topic_id: "..." })`',
+      '2. Create a review session: `create_session({ mode: "retrieval", chunk_ids: [...] })`',
+      '3. Get session with feedback: `get_active_session()` — includes historical_feedback',
+      '4. Use the `review` or `retrieval` prompt, adapting to past difficulties',
+      '5. After each chunk, record results with `record_review_result`',
+      '',
+      '## Session Continuation',
+      '',
+      '- Check progress: `session_progress({ session_id: "..." })`',
+      '- Get next phase: `session_workflow({ session_id: "..." })`',
+      '- Check if done: `session_completion({ session_id: "..." })`',
+      '',
+      '## Completing a Session',
+      '',
+      '- Complete with feedback: `complete_session({ session_id: "...", feedback: "detailed notes on what was difficult/easy" })`',
+      '- Detailed feedback is critical — it informs future review sessions',
+      '',
+      '## Creating New Topics',
+      '',
+      'If the learner wants to learn something new:',
+      '1. Search existing content first: `search_learning_content({ query: "topic" })`',
+      '2. If not found, use the `chunk_generation` prompt to propose chunks',
+      '3. Create with: `create_topic_with_chunks({ ... })`',
+      '',
+      '## Key Principles',
+      '',
+      '- Always create a session before teaching — sessions track progress and surface historical feedback',
+      '- Record review results promptly so spaced repetition scheduling stays accurate',
+      '- Complete sessions with detailed feedback for future adaptation',
+      '- Use `what_to_learn_today` for efficient single-call recommendations',
     ]
       .filter(Boolean)
       .join('\n');
