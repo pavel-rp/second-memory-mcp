@@ -4,16 +4,16 @@ import type { AuthConfig } from '../config/resolve-auth-config.js';
 
 export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
   const jwks = createRemoteJWKSet(new URL(`${authConfig.issuer}/.well-known/jwks.json`));
-  const prmUrl = `${authConfig.audience}/.well-known/oauth-protected-resource/mcp`;
+  const prmUrl = new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href;
 
   return async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader || !/^bearer /i.test(authHeader)) {
       return reply401(res, prmUrl);
     }
 
-    const token = authHeader.slice(7);
+    const token = authHeader.slice(7).trim();
     if (!token) {
       return reply401(res, prmUrl);
     }
@@ -23,6 +23,10 @@ export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
         issuer: authConfig.issuer,
         audience: authConfig.audience,
       });
+
+      if (typeof payload.sub !== 'string' || !payload.sub) {
+        return reply401(res, prmUrl);
+      }
 
       res.locals.auth = {
         sub: payload.sub,

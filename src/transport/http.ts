@@ -43,7 +43,7 @@ export async function startHttpTransport(
 
   // PRM endpoint (before /mcp, only when auth is enabled)
   if (authConfig) {
-    app.use('/.well-known/oauth-protected-resource/mcp', createPrmHandler(authConfig));
+    app.all('/.well-known/oauth-protected-resource/mcp', createPrmHandler(authConfig));
   }
 
   // CORS
@@ -52,6 +52,7 @@ export async function startHttpTransport(
       const origin = req.headers.origin;
       if (origin && authConfig.corsAllowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
       }
     } else {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -177,6 +178,7 @@ export async function startHttpTransport(
       try {
         await transport.close();
         transports.delete(sid);
+        sessionIdentity.delete(sid);
       } catch (error) {
         logger.error(`Error closing transport for session ${sid}:`, error);
       }

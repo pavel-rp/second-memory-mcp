@@ -444,6 +444,14 @@ describe('startHttpTransport with auth', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 
+  it('sets Vary: Origin when reflecting allowed origin (VC-11)', async () => {
+    const res = await makeRequest(port, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://app.test.local' },
+    });
+    expect(res.headers['vary']).toBe('Origin');
+  });
+
   it('includes Authorization in Access-Control-Allow-Headers (VC-11)', async () => {
     const res = await makeRequest(port, {
       method: 'OPTIONS',
@@ -477,13 +485,6 @@ describe('startHttpTransport with auth', () => {
   });
 
   // ── Auth integration ────────────────────────────────────────
-
-  it('accepts null authConfig (no JWT middleware applied)', async () => {
-    // The main 'startHttpTransport' describe block already tests this implicitly —
-    // it calls startHttpTransport without authConfig and all POST/GET work without auth.
-    // This test documents that `null` is explicitly accepted.
-    expect(true).toBe(true);
-  });
 
   // ── Session identity (VC-12) ────────────────────────────────
 

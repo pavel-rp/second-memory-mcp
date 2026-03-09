@@ -217,6 +217,79 @@ describe('createJwtMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  // ── Case-insensitive Bearer scheme (RFC 9110) ──────────────
+
+  it('lowercase "bearer" scheme is accepted', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'bearer valid-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'user-123', email: 'user@example.com' });
+  });
+
+  it('uppercase "BEARER" scheme is accepted', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'BEARER valid-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  // ── Missing sub claim → 401 ───────────────────────────────
+
+  it('token without sub claim returns 401', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer no-sub-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('token with empty sub claim returns 401', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: '', email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer empty-sub-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── PRM URL in WWW-Authenticate header ────────────────────
+
+  it('WWW-Authenticate resource_metadata URL uses origin of audience (not appended path)', async () => {
+    const req = createMockReq({}, 'POST');
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    // audience is https://mcp.example.com/mcp — PRM URL should be at the origin, not appended
+    expect(res._headers['www-authenticate']).toBe(
+      'Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp"'
+    );
+  });
+
   // ── Valid token with sub but no email ──────────────────────
 
   it('valid token with sub but no email sets email as undefined', async () => {

@@ -58,7 +58,7 @@ describe('createPrmHandler', () => {
 
   // ── GET returns valid PRM document (VC-05) ─────────────────
 
-  it('returns 200 with JSON content-type (VC-05)', () => {
+  it('returns 200 for GET request (VC-05)', () => {
     const req = createMockReq('GET');
     const res = createMockRes();
 
