@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import type { Request, Response } from 'express';
+import { describe, it, expect, vi } from 'vitest';
+import type { Request, Response, NextFunction } from 'express';
 import type { AuthConfig } from '../../../src/config/resolve-auth-config.js';
 import { createPrmHandler } from '../../../src/transport/prm-handler.js';
 
@@ -62,7 +62,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('GET');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     expect(res._status).toBe(200);
   });
@@ -71,7 +71,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('GET');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     const body = res._body as Record<string, unknown>;
     expect(body.resource).toBe('https://mcp.example.com/mcp');
@@ -81,7 +81,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('GET');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     const body = res._body as Record<string, unknown>;
     expect(body.authorization_servers).toEqual(['https://auth.example.com']);
@@ -91,7 +91,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('GET');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     const body = res._body as Record<string, unknown>;
     expect(body.scopes_supported).toEqual(['openid', 'profile', 'email']);
@@ -101,7 +101,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('GET');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     const body = res._body as Record<string, unknown>;
     expect(body.bearer_methods_supported).toEqual(['header']);
@@ -113,7 +113,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('POST');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     expect(res._status).toBe(405);
   });
@@ -122,7 +122,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('DELETE');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     expect(res._status).toBe(405);
   });
@@ -131,7 +131,7 @@ describe('createPrmHandler', () => {
     const req = createMockReq('PUT');
     const res = createMockRes();
 
-    handler(req, res);
+    handler(req, res, vi.fn() as unknown as NextFunction);
 
     expect(res._status).toBe(405);
   });
