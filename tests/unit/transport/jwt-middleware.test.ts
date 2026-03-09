@@ -305,4 +305,20 @@ describe('createJwtMiddleware', () => {
     expect(next).toHaveBeenCalled();
     expect(res.locals.auth).toEqual({ sub: 'service-account-42', email: undefined });
   });
+
+  // ── Non-string email claim is discarded ────────────────────
+
+  it('non-string email claim is stored as undefined', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', email: ['user@example.com'] },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer array-email-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'user-123', email: undefined });
+  });
 });

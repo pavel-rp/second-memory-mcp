@@ -10,6 +10,14 @@ export function createPrmHandler(authConfig: AuthConfig): RequestHandler {
   };
 
   return (req, res) => {
+    // PRM is a public metadata document — allow cross-origin discovery
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
     if (req.method !== 'GET') {
       res.status(405).type('text/plain').send('Method not allowed');
       return;

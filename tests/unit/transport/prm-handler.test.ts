@@ -45,6 +45,10 @@ function createMockRes(): Response & {
     end() {
       return res;
     },
+    sendStatus(code: number) {
+      res._status = code;
+      return res;
+    },
   };
   return res as unknown as Response & {
     _status: number;
@@ -105,6 +109,27 @@ describe('createPrmHandler', () => {
 
     const body = res._body as Record<string, unknown>;
     expect(body.bearer_methods_supported).toEqual(['header']);
+  });
+
+  // ── CORS headers for cross-origin discovery ────────────────
+
+  it('sets Access-Control-Allow-Origin: * on GET response', () => {
+    const req = createMockReq('GET');
+    const res = createMockRes();
+
+    handler(req, res, vi.fn() as unknown as NextFunction);
+
+    expect(res._headers['access-control-allow-origin']).toBe('*');
+  });
+
+  it('handles OPTIONS preflight with 204 and CORS headers', () => {
+    const req = createMockReq('OPTIONS');
+    const res = createMockRes();
+
+    handler(req, res, vi.fn() as unknown as NextFunction);
+
+    expect(res._status).toBe(204);
+    expect(res._headers['access-control-allow-origin']).toBe('*');
   });
 
   // ── Non-GET methods return 405 ─────────────────────────────

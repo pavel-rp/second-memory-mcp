@@ -484,7 +484,71 @@ describe('startHttpTransport with auth', () => {
     expect(body.authorization_servers).toEqual(['https://auth.test.local']);
   });
 
-  // ── Auth integration ────────────────────────────────────────
+  it('PRM endpoint includes CORS headers for cross-origin discovery', async () => {
+    const res = await makeRequest(port, {
+      method: 'GET',
+      path: '/.well-known/oauth-protected-resource/mcp',
+    });
+    expect(res.headers['access-control-allow-origin']).toBe('*');
+  });
+
+  it('PRM endpoint handles OPTIONS preflight', async () => {
+    const res = await makeRequest(port, {
+      method: 'OPTIONS',
+      path: '/.well-known/oauth-protected-resource/mcp',
+    });
+    expect(res.status).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe('*');
+  });
+
+  // ── Expose WWW-Authenticate for browser-based OAuth ─────────
+
+  it('exposes WWW-Authenticate in Access-Control-Expose-Headers when auth is enabled', async () => {
+    const res = await makeRequest(port, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://app.test.local' },
+    });
+    expect(res.headers['access-control-expose-headers']).toContain('WWW-Authenticate');
+  });
+
+  // ── Session-subject binding ────────────────────────────────
+
+  it('rejects request with different sub on an existing session (403)', async () => {
+    const { jwtVerify } = await import('jose');
+
+    // Initialize a session as test-user
+    const initRes = await makeRequest(port, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer token-user-a',
+        Origin: 'https://app.test.local',
+      },
+      body: { ...INIT_BODY, id: 200 },
+    });
+    expect(initRes.status).toBe(200);
+    const sessionId = initRes.headers['mcp-session-id'] as string;
+    expect(sessionId).toBeDefined();
+
+    // Now mock jwtVerify to return a different sub
+    vi.mocked(jwtVerify).mockResolvedValueOnce({
+      payload: { sub: 'attacker', email: 'attacker@evil.com' },
+      protectedHeader: { alg: 'RS256' },
+    });
+
+    // Try to use the session as a different user
+    const hijackRes = await makeRequest(port, {
+      method: 'POST',
+      headers: {
+        'mcp-session-id': sessionId,
+        Authorization: 'Bearer token-user-b',
+        Origin: 'https://app.test.local',
+      },
+      body: { jsonrpc: '2.0', method: 'tools/list', id: 201 },
+    });
+    expect(hijackRes.status).toBe(403);
+    const body = JSON.parse(hijackRes.body);
+    expect(body.error.message).toContain('session bound to a different subject');
+  });
 
   // ── Session identity (VC-12) ────────────────────────────────
 

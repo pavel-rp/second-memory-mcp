@@ -30,7 +30,7 @@ export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
 
       res.locals.auth = {
         sub: payload.sub,
-        email: payload.email as string | undefined,
+        email: typeof payload.email === 'string' ? payload.email : undefined,
       };
       next();
     } catch {

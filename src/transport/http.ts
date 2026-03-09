@@ -32,6 +32,30 @@ function getSessionId(req: Request): string | undefined {
   return typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined;
 }
 
+/**
+ * Verify that the current request's authenticated subject matches the session owner.
+ * Returns true if the request may proceed, false if a 403 was sent.
+ * Sessions without stored identity (no auth) always pass.
+ */
+function verifySessionBinding(
+  sessionIdentity: Map<string, SessionIdentity>,
+  sessionId: string,
+  res: Response
+): boolean {
+  const bound = sessionIdentity.get(sessionId);
+  if (!bound) return true; // no-auth session
+  const current = res.locals.auth as SessionIdentity | undefined;
+  if (current && current.sub !== bound.sub) {
+    res.status(403).json({
+      jsonrpc: '2.0',
+      error: { code: -32000, message: 'Forbidden: session bound to a different subject' },
+      id: null,
+    });
+    return false;
+  }
+  return true;
+}
+
 export async function startHttpTransport(
   config: TransportConfig,
   createMcpServer: () => McpServer,
@@ -59,7 +83,10 @@ export async function startHttpTransport(
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id, Authorization');
-    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      authConfig ? 'mcp-session-id, WWW-Authenticate' : 'mcp-session-id'
+    );
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
       return;
@@ -78,7 +105,8 @@ export async function startHttpTransport(
     const body = req.body as unknown;
 
     const existing = sessionId ? transports.get(sessionId) : undefined;
-    if (existing) {
+    if (existing && sessionId) {
+      if (!verifySessionBinding(sessionIdentity, sessionId, res)) return;
       await existing.handleRequest(req, res, body);
       return;
     }
@@ -116,11 +144,13 @@ export async function startHttpTransport(
 
   // GET/DELETE /mcp — session-bound
   const sessionHandler: RequestHandler = async (req, res) => {
-    const transport = transports.get(getSessionId(req) ?? '');
+    const sid = getSessionId(req) ?? '';
+    const transport = transports.get(sid);
     if (!transport) {
       res.status(400).type('text/plain').send('Invalid or missing session ID');
       return;
     }
+    if (!verifySessionBinding(sessionIdentity, sid, res)) return;
     await transport.handleRequest(req, res);
   };
   app.get('/mcp', sessionHandler);
