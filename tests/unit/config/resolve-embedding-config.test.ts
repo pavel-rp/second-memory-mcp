@@ -35,6 +35,9 @@ describe('resolveEmbeddingConfig', () => {
       model: DEFAULT_EMBEDDING_CONFIG.model,
       openaiApiKey: null,
       ollamaBaseUrl: DEFAULT_EMBEDDING_CONFIG.ollamaBaseUrl,
+      maxRetries: DEFAULT_EMBEDDING_CONFIG.maxRetries,
+      maxConcurrency: DEFAULT_EMBEDDING_CONFIG.maxConcurrency,
+      timeout: DEFAULT_EMBEDDING_CONFIG.timeout,
     });
     expect(result.vectorSimilarityThreshold).toBe(DEFAULT_VECTOR_SIMILARITY_THRESHOLD);
     expect(result.hybridKeywordWeight).toBe(DEFAULT_HYBRID_KEYWORD_WEIGHT);
@@ -99,6 +102,18 @@ describe('resolveEmbeddingConfig', () => {
     });
 
     expect(result.vectorSimilarityThreshold).toBe(0.5);
+  });
+
+  it('uses custom resilience env vars', () => {
+    const result = resolveEmbeddingConfig({
+      EMBEDDING_MAX_RETRIES: '5',
+      EMBEDDING_MAX_CONCURRENCY: '20',
+      EMBEDDING_TIMEOUT_MS: '60000',
+    });
+
+    expect(result.embedding.maxRetries).toBe(5);
+    expect(result.embedding.maxConcurrency).toBe(20);
+    expect(result.embedding.timeout).toBe(60_000);
   });
 
   it('uses custom hybrid weights', () => {

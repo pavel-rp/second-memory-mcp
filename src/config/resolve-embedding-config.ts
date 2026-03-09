@@ -32,6 +32,12 @@ export function resolveEmbeddingConfig(
       (provider === 'ollama' ? 'nomic-embed-text' : DEFAULT_EMBEDDING_CONFIG.model),
     openaiApiKey: env.OPENAI_API_KEY || null,
     ollamaBaseUrl: env.OLLAMA_BASE_URL || DEFAULT_EMBEDDING_CONFIG.ollamaBaseUrl,
+    maxRetries: parseNumber(env.EMBEDDING_MAX_RETRIES, DEFAULT_EMBEDDING_CONFIG.maxRetries),
+    maxConcurrency: parseNumber(
+      env.EMBEDDING_MAX_CONCURRENCY,
+      DEFAULT_EMBEDDING_CONFIG.maxConcurrency
+    ),
+    timeout: parseNumber(env.EMBEDDING_TIMEOUT_MS, DEFAULT_EMBEDDING_CONFIG.timeout),
   };
 
   const hybridKeywordWeight = parseNumber(

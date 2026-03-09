@@ -87,9 +87,12 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     }
     const { OpenAIEmbeddings } = await import('@langchain/openai');
     this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: this.config.openaiApiKey,
-      modelName: this.config.model,
+      apiKey: this.config.openaiApiKey,
+      model: this.config.model,
       dimensions: this.config.dimensions,
+      maxRetries: this.config.maxRetries,
+      maxConcurrency: this.config.maxConcurrency,
+      timeout: this.config.timeout,
     });
   }
 
@@ -115,6 +118,9 @@ export class LangChainEmbeddingAdapter implements EmbeddingPort {
     this.embeddings = new OllamaEmbeddings({
       model: this.config.model,
       baseUrl: this.config.ollamaBaseUrl,
+      dimensions: this.config.dimensions,
+      maxRetries: this.config.maxRetries,
+      maxConcurrency: this.config.maxConcurrency,
     });
   }
 }
