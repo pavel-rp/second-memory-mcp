@@ -95,11 +95,10 @@ export async function startHttpTransport(
         },
       });
       transport.onclose = () => {
-        const sid = transport.sessionId;
-        if (sid) {
-          transports.delete(sid);
-          sessionIdentity.delete(sid);
-        }
+        // sessionId is always set — onclose only fires after onsessioninitialized
+        const sid = transport.sessionId as string;
+        transports.delete(sid);
+        sessionIdentity.delete(sid);
       };
 
       const server = createMcpServer();
