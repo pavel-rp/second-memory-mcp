@@ -533,6 +533,7 @@ describe('startHttpTransport with auth', () => {
     vi.mocked(jwtVerify).mockResolvedValueOnce({
       payload: { sub: 'attacker', email: 'attacker@evil.com' },
       protectedHeader: { alg: 'RS256' },
+      key: new Uint8Array(),
     });
 
     // Try to use the session as a different user
