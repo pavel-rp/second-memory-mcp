@@ -40,6 +40,26 @@ describe('resolveAuthConfig', () => {
     expect(() => resolveAuthConfig('http', {})).toThrow();
   });
 
+  // ── HTTP mode — invalid URLs ──────────────────────────────
+
+  it('throws when AUTH_ISSUER is not a valid URL', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'not-a-url',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      })
+    ).toThrow('AUTH_ISSUER must be a valid absolute URL');
+  });
+
+  it('throws when AUTH_AUDIENCE is not a valid URL', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: '/relative/path',
+      })
+    ).toThrow('AUTH_AUDIENCE must be a valid absolute URL');
+  });
+
   // ── STDIO mode (VC-09) ─────────────────────────────────────
 
   it('returns null when transport=stdio regardless of auth env vars', () => {

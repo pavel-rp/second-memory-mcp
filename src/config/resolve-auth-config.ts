@@ -20,6 +20,16 @@ function requireEnv(env: Record<string, string | undefined>, key: string): strin
   return value;
 }
 
+function requireUrl(env: Record<string, string | undefined>, key: string): string {
+  const value = requireEnv(env, key);
+  try {
+    new URL(value);
+  } catch {
+    throw new Error(`${key} must be a valid absolute URL, got: "${value}"`);
+  }
+  return value;
+}
+
 function parseStringList(value: string | undefined, fallback: string[]): string[] {
   const trimmed = value?.trim();
   if (!trimmed) return fallback;
@@ -37,8 +47,8 @@ export function resolveAuthConfig(
   if (transportMode === 'stdio') return null;
 
   return {
-    issuer: requireEnv(env, 'AUTH_ISSUER'),
-    audience: requireEnv(env, 'AUTH_AUDIENCE'),
+    issuer: requireUrl(env, 'AUTH_ISSUER'),
+    audience: requireUrl(env, 'AUTH_AUDIENCE'),
     corsAllowedOrigins: parseStringList(env.CORS_ALLOWED_ORIGINS, ['*']),
   };
 }
