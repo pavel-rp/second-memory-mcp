@@ -7,12 +7,20 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../shared/logger.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
+import type { AuthConfig } from '../config/resolve-auth-config.js';
+import { createJwtMiddleware } from './jwt-middleware.js';
+import { createPrmHandler } from './prm-handler.js';
 
 /** Standard JSON-RPC 2.0 error codes. */
 const JSON_RPC_INVALID_REQUEST = -32600;
 const JSON_RPC_PARSE_ERROR = -32700;
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_SERVER_ERROR = -32000;
+
+export interface SessionIdentity {
+  sub: string;
+  email?: string;
+}
 
 export interface HttpTransportHandle {
   close: () => Promise<void>;
@@ -24,19 +32,64 @@ function getSessionId(req: Request): string | undefined {
   return typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : undefined;
 }
 
+/**
+ * Verify that the current request's authenticated subject matches the session owner.
+ * Returns true if the request may proceed, false if a 403 was sent.
+ * Sessions without stored identity (no auth) always pass.
+ */
+function verifySessionBinding(
+  sessionIdentity: Map<string, SessionIdentity>,
+  sessionId: string,
+  res: Response
+): boolean {
+  const bound = sessionIdentity.get(sessionId);
+  if (!bound) return true; // no-auth session
+  const current = res.locals.auth as SessionIdentity | undefined;
+  if (current && current.sub !== bound.sub) {
+    res.status(403).json({
+      jsonrpc: '2.0',
+      error: {
+        code: JSON_RPC_SERVER_ERROR,
+        message: 'Forbidden: session bound to a different subject',
+      },
+      id: null,
+    });
+    return false;
+  }
+  return true;
+}
+
 export async function startHttpTransport(
   config: TransportConfig,
-  createMcpServer: () => McpServer
+  createMcpServer: () => McpServer,
+  authConfig?: AuthConfig | null
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
+  const sessionIdentity = new Map<string, SessionIdentity>();
   const app = createMcpExpressApp({ host: config.httpHost });
+
+  // PRM endpoint (before /mcp, only when auth is enabled)
+  if (authConfig) {
+    app.all('/.well-known/oauth-protected-resource/mcp', createPrmHandler(authConfig));
+  }
 
   // CORS
   app.use('/mcp', (req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (authConfig && !authConfig.corsAllowedOrigins.includes('*')) {
+      const origin = req.headers.origin;
+      if (origin && authConfig.corsAllowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+      }
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
-    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id, Authorization');
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      authConfig ? 'mcp-session-id, WWW-Authenticate' : 'mcp-session-id'
+    );
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
       return;
@@ -44,13 +97,19 @@ export async function startHttpTransport(
     next();
   });
 
+  // JWT middleware (after CORS, before route handlers — only when auth is enabled)
+  if (authConfig) {
+    app.use('/mcp', createJwtMiddleware(authConfig));
+  }
+
   // POST /mcp
   app.post('/mcp', async (req, res) => {
     const sessionId = getSessionId(req);
     const body = req.body as unknown;
 
     const existing = sessionId ? transports.get(sessionId) : undefined;
-    if (existing) {
+    if (existing && sessionId) {
+      if (!verifySessionBinding(sessionIdentity, sessionId, res)) return;
       await existing.handleRequest(req, res, body);
       return;
     }
@@ -60,11 +119,18 @@ export async function startHttpTransport(
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid: string) => {
           transports.set(sid, transport);
+          const auth = res.locals.auth as SessionIdentity | undefined;
+          if (auth) {
+            sessionIdentity.set(sid, auth);
+          }
         },
       });
       transport.onclose = () => {
         const sid = transport.sessionId;
-        if (sid) transports.delete(sid);
+        if (sid) {
+          transports.delete(sid);
+          sessionIdentity.delete(sid);
+        }
       };
 
       const server = createMcpServer();
@@ -82,11 +148,13 @@ export async function startHttpTransport(
 
   // GET/DELETE /mcp — session-bound
   const sessionHandler: RequestHandler = async (req, res) => {
-    const transport = transports.get(getSessionId(req) ?? '');
+    const sid = getSessionId(req) ?? '';
+    const transport = transports.get(sid);
     if (!transport) {
       res.status(400).type('text/plain').send('Invalid or missing session ID');
       return;
     }
+    if (!verifySessionBinding(sessionIdentity, sid, res)) return;
     await transport.handleRequest(req, res);
   };
   app.get('/mcp', sessionHandler);
@@ -143,6 +211,7 @@ export async function startHttpTransport(
       try {
         await transport.close();
         transports.delete(sid);
+        sessionIdentity.delete(sid);
       } catch (error) {
         logger.error(`Error closing transport for session ${sid}:`, error);
       }

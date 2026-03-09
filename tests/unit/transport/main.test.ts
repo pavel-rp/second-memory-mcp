@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockInitializeDatabase = vi.fn().mockResolvedValue(undefined);
 const mockCreateAppContext = vi.fn().mockReturnValue({ fake: true });
 const mockResolveTransportConfig = vi.fn();
+const mockResolveAuthConfig = vi.fn().mockReturnValue(null);
 const mockCreateMcpServer = vi.fn();
 const mockStartHttpTransport = vi.fn().mockResolvedValue({ close: vi.fn() });
 const mockConnect = vi.fn().mockResolvedValue(undefined);
@@ -20,6 +21,10 @@ vi.mock('../../../src/composition-root.js', () => ({
 
 vi.mock('../../../src/config/resolve-transport-config.js', () => ({
   resolveTransportConfig: mockResolveTransportConfig,
+}));
+
+vi.mock('../../../src/config/resolve-auth-config.js', () => ({
+  resolveAuthConfig: mockResolveAuthConfig,
 }));
 
 vi.mock('../../../src/transport/create-server.js', () => ({
@@ -78,10 +83,12 @@ describe('transport/main bootstrap', () => {
       httpHost: '127.0.0.1',
     });
     // Invoke the factory callback so coverage records the inner arrow function
-    mockStartHttpTransport.mockImplementation(async (_config: unknown, factory: () => unknown) => {
-      factory();
-      return { close: vi.fn() };
-    });
+    mockStartHttpTransport.mockImplementation(
+      async (_config: unknown, factory: () => unknown, _authConfig: unknown) => {
+        factory();
+        return { close: vi.fn() };
+      }
+    );
 
     const { ready } = await import('../../../src/transport/main.js');
     await ready;
@@ -89,7 +96,8 @@ describe('transport/main bootstrap', () => {
     expect(mockInitializeDatabase).toHaveBeenCalled();
     expect(mockStartHttpTransport).toHaveBeenCalledWith(
       { mode: 'http', httpPort: 8080, httpHost: '127.0.0.1' },
-      expect.any(Function)
+      expect.any(Function),
+      null
     );
     expect(mockCreateMcpServer).toHaveBeenCalled();
   });
