@@ -53,7 +53,9 @@ function normalizeOrigins(origins: string[]): string[] {
     try {
       return new URL(entry).origin;
     } catch {
-      return entry;
+      throw new Error(
+        `CORS_ALLOWED_ORIGINS contains an invalid origin: "${entry}". Each entry must be a valid URL (scheme+host+port).`
+      );
     }
   });
 }

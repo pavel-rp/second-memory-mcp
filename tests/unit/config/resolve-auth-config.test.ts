@@ -197,4 +197,14 @@ describe('resolveAuthConfig', () => {
       'https://c.com:8080',
     ]);
   });
+
+  it('throws on invalid CORS origin entry to fail fast on misconfiguration', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+        CORS_ALLOWED_ORIGINS: 'https//not-a-url',
+      })
+    ).toThrow('CORS_ALLOWED_ORIGINS contains an invalid origin');
+  });
 });
