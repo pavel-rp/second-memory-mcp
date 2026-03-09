@@ -7,12 +7,20 @@ import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../shared/logger.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
+import type { AuthConfig } from '../config/resolve-auth-config.js';
+import { createJwtMiddleware } from './jwt-middleware.js';
+import { createPrmHandler } from './prm-handler.js';
 
 /** Standard JSON-RPC 2.0 error codes. */
 const JSON_RPC_INVALID_REQUEST = -32600;
 const JSON_RPC_PARSE_ERROR = -32700;
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_SERVER_ERROR = -32000;
+
+export interface SessionIdentity {
+  sub: string;
+  email?: string;
+}
 
 export interface HttpTransportHandle {
   close: () => Promise<void>;
@@ -26,16 +34,30 @@ function getSessionId(req: Request): string | undefined {
 
 export async function startHttpTransport(
   config: TransportConfig,
-  createMcpServer: () => McpServer
+  createMcpServer: () => McpServer,
+  authConfig?: AuthConfig | null
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
+  const sessionIdentity = new Map<string, SessionIdentity>();
   const app = createMcpExpressApp({ host: config.httpHost });
+
+  // PRM endpoint (before /mcp, only when auth is enabled)
+  if (authConfig) {
+    app.use('/.well-known/oauth-protected-resource/mcp', createPrmHandler(authConfig));
+  }
 
   // CORS
   app.use('/mcp', (req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (authConfig && !authConfig.corsAllowedOrigins.includes('*')) {
+      const origin = req.headers.origin;
+      if (origin && authConfig.corsAllowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      }
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id, Authorization');
     res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
@@ -43,6 +65,11 @@ export async function startHttpTransport(
     }
     next();
   });
+
+  // JWT middleware (after CORS, before route handlers — only when auth is enabled)
+  if (authConfig) {
+    app.use('/mcp', createJwtMiddleware(authConfig));
+  }
 
   // POST /mcp
   app.post('/mcp', async (req, res) => {
@@ -60,11 +87,18 @@ export async function startHttpTransport(
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid: string) => {
           transports.set(sid, transport);
+          const auth = res.locals.auth as SessionIdentity | undefined;
+          if (auth) {
+            sessionIdentity.set(sid, auth);
+          }
         },
       });
       transport.onclose = () => {
         const sid = transport.sessionId;
-        if (sid) transports.delete(sid);
+        if (sid) {
+          transports.delete(sid);
+          sessionIdentity.delete(sid);
+        }
       };
 
       const server = createMcpServer();

@@ -1,0 +1,235 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Request, Response, NextFunction } from 'express';
+import type { AuthConfig } from '../../../src/config/resolve-auth-config.js';
+
+// Mock jose before importing the module under test
+const mockJwtVerify = vi.fn();
+const mockCreateRemoteJWKSet = vi.fn();
+
+vi.mock('jose', () => ({
+  jwtVerify: (...args: unknown[]) => mockJwtVerify(...args),
+  createRemoteJWKSet: (...args: unknown[]) => mockCreateRemoteJWKSet(...args),
+}));
+
+const { createJwtMiddleware } = await import('../../../src/transport/jwt-middleware.js');
+
+const AUTH_CONFIG: AuthConfig = {
+  issuer: 'https://auth.example.com',
+  audience: 'https://mcp.example.com/mcp',
+  corsAllowedOrigins: ['https://app.example.com'],
+};
+
+function createMockReq(headers: Record<string, string> = {}, method = 'POST'): Request {
+  return { headers, method } as unknown as Request;
+}
+
+function createMockRes(): Response & {
+  _status: number;
+  _headers: Record<string, string>;
+  _body: string;
+} {
+  const res = {
+    _status: 0,
+    _headers: {} as Record<string, string>,
+    _body: '',
+    locals: {} as Record<string, unknown>,
+    status(code: number) {
+      res._status = code;
+      return res;
+    },
+    setHeader(name: string, value: string) {
+      res._headers[name.toLowerCase()] = value;
+      return res;
+    },
+    json(body: unknown) {
+      res._body = JSON.stringify(body);
+      return res;
+    },
+    end() {
+      return res;
+    },
+  };
+  return res as unknown as Response & {
+    _status: number;
+    _headers: Record<string, string>;
+    _body: string;
+  };
+}
+
+describe('createJwtMiddleware', () => {
+  const jwksFunction = vi.fn();
+  let middleware: ReturnType<typeof createJwtMiddleware>;
+  let next: NextFunction;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCreateRemoteJWKSet.mockReturnValue(jwksFunction);
+    middleware = createJwtMiddleware(AUTH_CONFIG);
+    next = vi.fn();
+  });
+
+  // ── Factory ─────────────────────────────────────────────────
+
+  it('returns a middleware function', () => {
+    expect(typeof middleware).toBe('function');
+  });
+
+  it('calls createRemoteJWKSet with JWKS URI derived from issuer', () => {
+    createJwtMiddleware(AUTH_CONFIG);
+    expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(
+      new URL('https://auth.example.com/.well-known/jwks.json')
+    );
+  });
+
+  // ── No Authorization header → 401 (VC-01, VC-02, VC-03) ───
+
+  it('POST without Authorization header returns 401 with WWW-Authenticate (VC-01)', async () => {
+    const req = createMockReq({}, 'POST');
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(res._headers['www-authenticate']).toContain('Bearer');
+    expect(res._headers['www-authenticate']).toContain('resource_metadata=');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('GET without Authorization header returns 401 with WWW-Authenticate (VC-02)', async () => {
+    const req = createMockReq({}, 'GET');
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(res._headers['www-authenticate']).toContain('Bearer');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('DELETE without Authorization header returns 401 with WWW-Authenticate (VC-03)', async () => {
+    const req = createMockReq({}, 'DELETE');
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(res._headers['www-authenticate']).toContain('Bearer');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── Valid Bearer token → access granted (VC-06) ────────────
+
+  it('valid Bearer token calls next() and sets res.locals.auth (VC-06)', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer valid-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'user-123', email: 'user@example.com' });
+    expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', jwksFunction, {
+      issuer: AUTH_CONFIG.issuer,
+      audience: AUTH_CONFIG.audience,
+    });
+  });
+
+  // ── Expired token → 401 (VC-07) ────────────────────────────
+
+  it('expired token returns 401 (VC-07)', async () => {
+    const error = new Error('JWT expired');
+    (error as Error & { code: string }).code = 'ERR_JWT_EXPIRED';
+    mockJwtVerify.mockRejectedValue(error);
+
+    const req = createMockReq({ authorization: 'Bearer expired-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── Invalid signature → 401 (VC-07) ────────────────────────
+
+  it('invalid signature returns 401 (VC-07)', async () => {
+    const error = new Error('signature verification failed');
+    (error as Error & { code: string }).code = 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED';
+    mockJwtVerify.mockRejectedValue(error);
+
+    const req = createMockReq({ authorization: 'Bearer bad-sig-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── Wrong audience → 401 (VC-08) ──────────────────────────
+
+  it('wrong audience returns 401 (VC-08)', async () => {
+    const error = new Error('claim validation failed');
+    (error as Error & { code: string }).code = 'ERR_JWT_CLAIM_VALIDATION_FAILED';
+    mockJwtVerify.mockRejectedValue(error);
+
+    const req = createMockReq({ authorization: 'Bearer wrong-aud-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── Malformed Authorization header → 401 ───────────────────
+
+  it('Basic auth scheme returns 401', async () => {
+    const req = createMockReq({ authorization: 'Basic dXNlcjpwYXNz' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('Bearer with no token returns 401', async () => {
+    const req = createMockReq({ authorization: 'Bearer' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('Bearer with empty token returns 401', async () => {
+    const req = createMockReq({ authorization: 'Bearer ' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── Valid token with sub but no email ──────────────────────
+
+  it('valid token with sub but no email sets email as undefined', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'service-account-42' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer no-email-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'service-account-42', email: undefined });
+  });
+});
