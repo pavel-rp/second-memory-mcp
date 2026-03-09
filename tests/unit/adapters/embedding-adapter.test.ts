@@ -45,6 +45,9 @@ function makeConfig(overrides?: Partial<EmbeddingConfig>): EmbeddingConfig {
     model: 'text-embedding-3-small',
     openaiApiKey: 'sk-test-key',
     ollamaBaseUrl: 'http://localhost:11434',
+    maxRetries: 3,
+    maxConcurrency: 10,
+    timeout: 30_000,
     ...overrides,
   };
 }
@@ -116,10 +119,29 @@ describe('LangChainEmbeddingAdapter', () => {
       await adapter.embedText('test');
 
       expect(OpenAIEmbeddings).toHaveBeenCalledWith({
-        openAIApiKey: 'sk-test-key',
-        modelName: 'text-embedding-3-small',
+        apiKey: 'sk-test-key',
+        model: 'text-embedding-3-small',
         dimensions: SCHEMA_EMBEDDING_DIMENSIONS,
+        maxRetries: 3,
+        maxConcurrency: 10,
+        timeout: 30_000,
       });
+    });
+
+    it('forwards custom resilience config to OpenAIEmbeddings', async () => {
+      mockEmbedQuery.mockResolvedValueOnce(fakeVector());
+      const cfg = makeConfig({ maxRetries: 5, maxConcurrency: 20, timeout: 60_000 });
+      const adapter = new LangChainEmbeddingAdapter(cfg);
+
+      await adapter.embedText('test');
+
+      expect(OpenAIEmbeddings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          maxRetries: 5,
+          maxConcurrency: 20,
+          timeout: 60_000,
+        })
+      );
     });
 
     it('fails gracefully when API key is missing', async () => {
@@ -151,6 +173,9 @@ describe('LangChainEmbeddingAdapter', () => {
       expect(OllamaEmbeddings).toHaveBeenCalledWith({
         model: 'nomic-embed-text',
         baseUrl: 'http://localhost:11434',
+        dimensions: SCHEMA_EMBEDDING_DIMENSIONS,
+        maxRetries: 3,
+        maxConcurrency: 10,
       });
     });
   });

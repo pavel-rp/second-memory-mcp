@@ -9,6 +9,9 @@ export const DEFAULT_EMBEDDING_CONFIG: EmbeddingConfig = {
   model: 'text-embedding-3-small',
   openaiApiKey: null,
   ollamaBaseUrl: 'http://localhost:11434',
+  maxRetries: 3,
+  maxConcurrency: 10,
+  timeout: 30_000,
 };
 
 /** Minimum cosine similarity threshold for vector search results. */
