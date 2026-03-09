@@ -12,7 +12,7 @@ export type EmbeddingConfig = {
   model: string;
   openaiApiKey: string | null;
   ollamaBaseUrl: string;
-  maxRetries?: number;
-  maxConcurrency?: number;
-  timeout?: number;
+  maxRetries: number;
+  maxConcurrency: number;
+  timeout: number;
 };
