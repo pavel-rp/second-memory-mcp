@@ -48,7 +48,10 @@ function verifySessionBinding(
   if (current && current.sub !== bound.sub) {
     res.status(403).json({
       jsonrpc: '2.0',
-      error: { code: -32000, message: 'Forbidden: session bound to a different subject' },
+      error: {
+        code: JSON_RPC_SERVER_ERROR,
+        message: 'Forbidden: session bound to a different subject',
+      },
       id: null,
     });
     return false;
@@ -123,10 +126,11 @@ export async function startHttpTransport(
         },
       });
       transport.onclose = () => {
-        // sessionId is always set — onclose only fires after onsessioninitialized
-        const sid = transport.sessionId as string;
-        transports.delete(sid);
-        sessionIdentity.delete(sid);
+        const sid = transport.sessionId;
+        if (sid) {
+          transports.delete(sid);
+          sessionIdentity.delete(sid);
+        }
       };
 
       const server = createMcpServer();

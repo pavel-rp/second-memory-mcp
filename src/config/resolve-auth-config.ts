@@ -23,10 +23,11 @@ function requireEnv(env: Record<string, string | undefined>, key: string): strin
 function parseStringList(value: string | undefined, fallback: string[]): string[] {
   const trimmed = value?.trim();
   if (!trimmed) return fallback;
-  return trimmed
+  const parsed = trimmed
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
+  return parsed.length > 0 ? parsed : fallback;
 }
 
 export function resolveAuthConfig(
