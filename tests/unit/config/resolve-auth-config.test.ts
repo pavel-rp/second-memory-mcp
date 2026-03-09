@@ -151,4 +151,50 @@ describe('resolveAuthConfig', () => {
 
     expect(result!.corsAllowedOrigins).toEqual(['*']);
   });
+
+  // ── CORS origin normalization ────────────────────────────────
+
+  it('strips trailing slashes from CORS origin entries', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      CORS_ALLOWED_ORIGINS: 'https://app.example.com/',
+    });
+
+    expect(result!.corsAllowedOrigins).toEqual(['https://app.example.com']);
+  });
+
+  it('strips paths from CORS origin entries to match browser Origin header format', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      CORS_ALLOWED_ORIGINS: 'https://app.example.com/some/path',
+    });
+
+    expect(result!.corsAllowedOrigins).toEqual(['https://app.example.com']);
+  });
+
+  it('preserves wildcard "*" as-is during origin normalization', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      CORS_ALLOWED_ORIGINS: '*',
+    });
+
+    expect(result!.corsAllowedOrigins).toEqual(['*']);
+  });
+
+  it('normalizes multiple CORS origins with trailing slashes and paths', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      CORS_ALLOWED_ORIGINS: 'https://a.com/,https://b.com/path,https://c.com:8080/',
+    });
+
+    expect(result!.corsAllowedOrigins).toEqual([
+      'https://a.com',
+      'https://b.com',
+      'https://c.com:8080',
+    ]);
+  });
 });

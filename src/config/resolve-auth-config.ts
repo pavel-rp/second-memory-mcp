@@ -40,6 +40,24 @@ function parseStringList(value: string | undefined, fallback: string[]): string[
   return parsed.length > 0 ? parsed : fallback;
 }
 
+/**
+ * Normalize CORS origin entries to scheme+host+port only.
+ * Browser Origin headers never include paths or trailing slashes,
+ * so config values like "https://app.example.com/" or "https://app.example.com/path"
+ * would silently fail the includes() check without normalization.
+ * The wildcard "*" is passed through unchanged.
+ */
+function normalizeOrigins(origins: string[]): string[] {
+  return origins.map(entry => {
+    if (entry === '*') return entry;
+    try {
+      return new URL(entry).origin;
+    } catch {
+      return entry;
+    }
+  });
+}
+
 export function resolveAuthConfig(
   transportMode: TransportMode,
   env: Record<string, string | undefined> = process.env
@@ -49,6 +67,6 @@ export function resolveAuthConfig(
   return {
     issuer: requireUrl(env, 'AUTH_ISSUER'),
     audience: requireUrl(env, 'AUTH_AUDIENCE'),
-    corsAllowedOrigins: parseStringList(env.CORS_ALLOWED_ORIGINS, ['*']),
+    corsAllowedOrigins: normalizeOrigins(parseStringList(env.CORS_ALLOWED_ORIGINS, ['*'])),
   };
 }
