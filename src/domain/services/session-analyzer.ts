@@ -32,12 +32,13 @@ function calculateTimeElapsed(startTime: string, now: Date, currentTime?: string
 }
 
 // Helper function to validate and clean session chunks
+// Handles both legacy attempts (with completed, optional quality) and new attempts (with passed, required quality)
 function cleanSessionChunks(chunks: SessionChunk[]): SessionChunk[] {
   return chunks.map(chunk => ({
     ...chunk,
     attempts: chunk.attempts.map(attempt => ({
       ...attempt,
-      quality: attempt.quality !== undefined ? clampQuality(attempt.quality) : undefined,
+      quality: clampQuality(attempt.quality),
       time_spent_ms: Math.max(0, attempt.time_spent_ms || 0),
     })),
     quality_scores: chunk.quality_scores.map(score => clampQuality(score)),

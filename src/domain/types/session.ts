@@ -7,9 +7,12 @@ export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review';
 // Chunk attempt record
 export type ChunkAttempt = {
   timestamp: string; // ISO timestamp
-  quality?: number; // 0-5 quality rating
+  question: string; // the drill question asked
+  response: string; // the learner's answer
+  passed: boolean; // agent's pass/fail judgment
+  feedback: string; // agent's explanation of why right/wrong
+  quality: number; // server-derived: 1st pass→5, 2nd pass→3, both fail→1
   time_spent_ms: number;
-  completed: boolean;
 };
 
 // Session chunk progress
@@ -18,6 +21,7 @@ export type SessionChunk = {
   title: string;
   status: 'pending' | 'in_progress' | 'completed';
   attempts: ChunkAttempt[];
+  /** @deprecated Derive from attempts[].quality instead. Kept for backward compatibility. */
   quality_scores: number[]; // 0-5 quality ratings
   time_spent_ms: number;
   // Optional SM-2 metadata from learning_chunks (populated by convertSessionToSessionInput)
@@ -92,9 +96,12 @@ export const ChunkAttemptSchema = z.object({
       /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/,
       'Timestamp must be in ISO format'
     ),
-  quality: z.number().min(0).max(5).optional(),
+  question: z.string().min(1, 'Question cannot be empty'),
+  response: z.string().min(1, 'Response cannot be empty'),
+  passed: z.boolean(),
+  feedback: z.string().min(1, 'Feedback cannot be empty'),
+  quality: z.number().min(0).max(5),
   time_spent_ms: z.number().min(0),
-  completed: z.boolean(),
 });
 
 export const SessionChunkSchema = z.object({

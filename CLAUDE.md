@@ -23,6 +23,10 @@ src/
 
 Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/helpers/`, `tests/performance/`.
 
+## Source Code Discovery
+
+- Prioritize Sourcebot MCP for fast code lookups
+
 ## Naming Conventions
 
 - **MCP tool schemas** (`src/domain/types/*-tools.ts`, `recommendations.ts`, `session.ts`, `analytics.ts`): snake_case for all field names (`ease_factor`, `next_review_date`, `chunk_id`, `time_spent_ms`).
@@ -62,6 +66,11 @@ gh api repos/OWNER/REPO/pulls/comments/{COMMENT_ID}/replies --input "$TEMP/reply
 - Don't import types you don't use.
 - Keep PR description accurate — mention all changes (e.g., lint config), not just tests.
 - Cover every early-return guard (`undefined`, `""`, `"  "`) — don't assume one nullish test covers all branches.
+
+## Linear
+
+- **Team**: Neurasphere (key: NEU)
+- **Project**: Second Memory MCP
 
 ## Package manager
 

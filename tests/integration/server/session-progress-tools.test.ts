@@ -84,7 +84,17 @@ describe('session-progress-tools', () => {
         session_id: sessionId,
         chunk_id: 'chunk-p1',
         status: 'completed',
-        attempts: [{ timestamp: now, quality: 4, time_spent_ms: 5000, completed: true }],
+        attempts: [
+          {
+            timestamp: now,
+            question: 'Test question',
+            response: 'Test response',
+            passed: true,
+            feedback: 'Test feedback',
+            quality: 4,
+            time_spent_ms: 5000,
+          },
+        ],
         quality_scores: [4],
         time_spent_ms: 5000,
       });

@@ -54,7 +54,17 @@ describe('session-progress-tools', () => {
       await handler({
         session_id: 's1',
         chunk_id: 'c1',
-        attempts: [{ timestamp: 1000000, quality: 4, time_spent_ms: 5000, completed: true }],
+        attempts: [
+          {
+            timestamp: 1000000,
+            question: 'Test question',
+            response: 'Test response',
+            passed: true,
+            feedback: 'Test feedback',
+            quality: 4,
+            time_spent_ms: 5000,
+          },
+        ],
         quality_scores: [4],
         time_spent_ms: 5000,
       });

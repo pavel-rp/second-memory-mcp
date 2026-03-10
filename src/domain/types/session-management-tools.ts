@@ -40,9 +40,12 @@ export const CreateSessionChunkToolInputShape = {
     .array(
       z.object({
         timestamp: z.number(),
-        quality: z.number().min(0).max(5).optional(),
+        question: z.string().min(1),
+        response: z.string().min(1),
+        passed: z.boolean(),
+        feedback: z.string().min(1),
+        quality: z.number().min(0).max(5),
         time_spent_ms: z.number().min(0),
-        completed: z.boolean(),
       })
     )
     .optional(),
