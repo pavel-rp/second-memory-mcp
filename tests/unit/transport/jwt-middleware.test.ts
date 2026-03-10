@@ -93,24 +93,41 @@ describe('createJwtMiddleware', () => {
     );
   });
 
-  it('strips trailing slashes from issuer before discovery', async () => {
+  it('strips trailing slashes from issuer for discovery and jwtVerify', async () => {
     mockFetch.mockResolvedValue(
       new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
     );
+    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1' } });
+
     const trailingSlashConfig: AuthConfig = {
       ...AUTH_CONFIG,
       issuer: 'https://auth.example.com/',
     };
-    await createJwtMiddleware(trailingSlashConfig);
+    const mw = await createJwtMiddleware(trailingSlashConfig);
     expect(mockFetch).toHaveBeenLastCalledWith(
       'https://auth.example.com/.well-known/openid-configuration',
       expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+
+    // Verify normalized issuer is also used for jwtVerify
+    const req = createMockReq({ authorization: 'Bearer tok' });
+    const res = createMockRes();
+    await mw(req, res, vi.fn());
+    expect(mockJwtVerify).toHaveBeenCalledWith(
+      'tok',
+      jwksFunction,
+      expect.objectContaining({ issuer: 'https://auth.example.com' })
     );
   });
 
   it('throws when OIDC discovery returns non-200 status', async () => {
     mockFetch.mockResolvedValue(new Response('Not Found', { status: 404 }));
     await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('returned 404');
+  });
+
+  it('throws when OIDC discovery returns non-JSON body', async () => {
+    mockFetch.mockResolvedValue(new Response('<html>Error</html>', { status: 200 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('returned invalid JSON');
   });
 
   it('throws on non-string jwks_uri in discovery response', async () => {
@@ -132,18 +149,21 @@ describe('createJwtMiddleware', () => {
 
   it('throws on fetch timeout (AbortError)', async () => {
     vi.useFakeTimers();
-    mockFetch.mockImplementation(
-      (_url: RequestInfo | URL, init?: RequestInit) =>
-        new Promise<globalThis.Response>((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => {
-            reject(new DOMException('The operation was aborted', 'AbortError'));
-          });
-        })
-    );
-    const promise = createJwtMiddleware(AUTH_CONFIG);
-    vi.advanceTimersByTime(5_000);
-    await expect(promise).rejects.toThrow('timed out');
-    vi.useRealTimers();
+    try {
+      mockFetch.mockImplementation(
+        (_url: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<globalThis.Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('The operation was aborted', 'AbortError'));
+            });
+          })
+      );
+      const promise = createJwtMiddleware(AUTH_CONFIG);
+      vi.advanceTimersByTime(5_000);
+      await expect(promise).rejects.toThrow('timed out');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('throws on network error with message', async () => {

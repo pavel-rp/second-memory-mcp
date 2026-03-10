@@ -3,8 +3,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
 
 async function discoverJwksUri(issuer: string): Promise<string> {
-  const normalizedIssuer = issuer.replace(/\/+$/, '');
-  const discoveryUrl = `${normalizedIssuer}/.well-known/openid-configuration`;
+  const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
 
   const controller = new AbortController();
   const timeoutMs = 5_000;
@@ -31,12 +30,17 @@ async function discoverJwksUri(issuer: string): Promise<string> {
   if (!res.ok) {
     throw new Error(`OIDC discovery failed: ${discoveryUrl} returned ${res.status}`);
   }
-  const metadata = (await res.json()) as { jwks_uri?: unknown };
+  let metadata: { jwks_uri?: unknown };
+  try {
+    metadata = (await res.json()) as { jwks_uri?: unknown };
+  } catch (err) {
+    throw new Error(`OIDC discovery at ${discoveryUrl} returned invalid JSON`, { cause: err });
+  }
   if (typeof metadata.jwks_uri !== 'string' || !metadata.jwks_uri) {
     throw new Error(`OIDC discovery at ${discoveryUrl} missing or invalid jwks_uri`);
   }
   try {
-    return new URL(metadata.jwks_uri, normalizedIssuer).href;
+    return new URL(metadata.jwks_uri, issuer).href;
   } catch (err) {
     throw new Error(
       `OIDC discovery returned invalid jwks_uri at ${discoveryUrl}: ${metadata.jwks_uri}`,
@@ -46,7 +50,8 @@ async function discoverJwksUri(issuer: string): Promise<string> {
 }
 
 export async function createJwtMiddleware(authConfig: AuthConfig): Promise<RequestHandler> {
-  const jwksUri = await discoverJwksUri(authConfig.issuer);
+  const issuer = authConfig.issuer.replace(/\/+$/, '');
+  const jwksUri = await discoverJwksUri(issuer);
   const jwks = createRemoteJWKSet(new URL(jwksUri));
   const prmUrl = authConfig.audience
     ? new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href
@@ -66,7 +71,7 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
 
     try {
       const { payload } = await jwtVerify(token, jwks, {
-        issuer: authConfig.issuer,
+        issuer,
         ...(authConfig.audience ? { audience: authConfig.audience } : {}),
       });
 
