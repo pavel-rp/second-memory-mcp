@@ -11,6 +11,11 @@ vi.mock('jose', () => ({
   createRemoteJWKSet: (...args: unknown[]) => mockCreateRemoteJWKSet(...args),
 }));
 
+// Mock fetch for OIDC discovery
+const MOCK_JWKS_URI = 'https://auth.example.com/auth/v1/oidc/certs';
+const mockFetch = vi.fn<(input: RequestInfo | URL) => Promise<globalThis.Response>>();
+vi.stubGlobal('fetch', mockFetch);
+
 const { createJwtMiddleware } = await import('../../../src/transport/jwt-middleware.js');
 
 const AUTH_CONFIG: AuthConfig = {
@@ -58,13 +63,16 @@ function createMockRes(): Response & {
 
 describe('createJwtMiddleware', () => {
   const jwksFunction = vi.fn();
-  let middleware: ReturnType<typeof createJwtMiddleware>;
+  let middleware: Awaited<ReturnType<typeof createJwtMiddleware>>;
   let next: NextFunction;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
     mockCreateRemoteJWKSet.mockReturnValue(jwksFunction);
-    middleware = createJwtMiddleware(AUTH_CONFIG);
+    middleware = await createJwtMiddleware(AUTH_CONFIG);
     next = vi.fn();
   });
 
@@ -74,11 +82,93 @@ describe('createJwtMiddleware', () => {
     expect(typeof middleware).toBe('function');
   });
 
-  it('calls createRemoteJWKSet with JWKS URI derived from issuer', () => {
-    createJwtMiddleware(AUTH_CONFIG);
-    expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(
-      new URL('https://auth.example.com/.well-known/jwks.json')
+  it('calls createRemoteJWKSet with JWKS URI from OIDC discovery', () => {
+    expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(new URL(MOCK_JWKS_URI));
+  });
+
+  it('fetches OIDC discovery document from issuer', () => {
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://auth.example.com/.well-known/openid-configuration',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
+  });
+
+  it('strips trailing slashes from issuer for discovery and jwtVerify', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
+    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1' } });
+
+    const trailingSlashConfig: AuthConfig = {
+      ...AUTH_CONFIG,
+      issuer: 'https://auth.example.com/',
+    };
+    const mw = await createJwtMiddleware(trailingSlashConfig);
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      'https://auth.example.com/.well-known/openid-configuration',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+
+    // Verify normalized issuer is also used for jwtVerify
+    const req = createMockReq({ authorization: 'Bearer tok' });
+    const res = createMockRes();
+    await mw(req, res, vi.fn());
+    expect(mockJwtVerify).toHaveBeenCalledWith(
+      'tok',
+      jwksFunction,
+      expect.objectContaining({ issuer: 'https://auth.example.com' })
+    );
+  });
+
+  it('throws when OIDC discovery returns non-200 status', async () => {
+    mockFetch.mockResolvedValue(new Response('Not Found', { status: 404 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('returned 404');
+  });
+
+  it('throws when OIDC discovery returns non-JSON body', async () => {
+    mockFetch.mockResolvedValue(new Response('<html>Error</html>', { status: 200 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('returned invalid JSON');
+  });
+
+  it('throws on non-string jwks_uri in discovery response', async () => {
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ jwks_uri: 42 }), { status: 200 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('missing or invalid jwks_uri');
+  });
+
+  it('throws on missing jwks_uri in discovery response', async () => {
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('missing or invalid jwks_uri');
+  });
+
+  it('throws on unparseable jwks_uri string in discovery response', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: 'http://[invalid' }), { status: 200 })
+    );
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('invalid jwks_uri at');
+  });
+
+  it('throws on fetch timeout (AbortError)', async () => {
+    vi.useFakeTimers();
+    try {
+      mockFetch.mockImplementation(
+        (_url: RequestInfo | URL, init?: RequestInit) =>
+          new Promise<globalThis.Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              reject(new DOMException('The operation was aborted', 'AbortError'));
+            });
+          })
+      );
+      const promise = createJwtMiddleware(AUTH_CONFIG);
+      vi.advanceTimersByTime(5_000);
+      await expect(promise).rejects.toThrow('timed out');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('throws on network error with message', async () => {
+    mockFetch.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('OIDC discovery request failed');
   });
 
   // ── No Authorization header → 401 (VC-01, VC-02, VC-03) ───
@@ -293,8 +383,11 @@ describe('createJwtMiddleware', () => {
   // ── No-audience config ───────────────────────────────────
 
   it('calls jwtVerify without audience option when audience is undefined', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
     const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
-    const noAudMiddleware = createJwtMiddleware(noAudConfig);
+    const noAudMiddleware = await createJwtMiddleware(noAudConfig);
 
     mockJwtVerify.mockResolvedValue({
       payload: { sub: 'user-123', email: 'user@example.com' },
@@ -312,8 +405,11 @@ describe('createJwtMiddleware', () => {
   });
 
   it('WWW-Authenticate is plain Bearer when audience is undefined', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
     const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
-    const noAudMiddleware = createJwtMiddleware(noAudConfig);
+    const noAudMiddleware = await createJwtMiddleware(noAudConfig);
 
     const req = createMockReq({}, 'POST');
     const res = createMockRes();

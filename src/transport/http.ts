@@ -99,7 +99,7 @@ export async function startHttpTransport(
 
   // JWT middleware (after CORS, before route handlers — only when auth is enabled)
   if (authConfig) {
-    app.use('/mcp', createJwtMiddleware(authConfig));
+    app.use('/mcp', await createJwtMiddleware(authConfig));
   }
 
   // POST /mcp

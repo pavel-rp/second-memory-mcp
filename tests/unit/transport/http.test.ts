@@ -397,6 +397,18 @@ vi.mock('jose', () => ({
   createRemoteJWKSet: vi.fn().mockReturnValue(vi.fn()),
 }));
 
+// Mock fetch for OIDC discovery used by createJwtMiddleware
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ jwks_uri: 'https://auth.test.local/auth/v1/oidc/certs' }), {
+        status: 200,
+      })
+    )
+  )
+);
+
 describe('startHttpTransport with auth', () => {
   const authConfig: AuthConfig = {
     issuer: 'https://auth.test.local',
