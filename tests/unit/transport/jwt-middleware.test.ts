@@ -108,15 +108,35 @@ describe('createJwtMiddleware', () => {
     );
   });
 
+  it('throws when OIDC discovery returns non-200 status', async () => {
+    mockFetch.mockResolvedValue(new Response('Not Found', { status: 404 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('returned 404');
+  });
+
   it('throws on non-string jwks_uri in discovery response', async () => {
     mockFetch.mockResolvedValue(new Response(JSON.stringify({ jwks_uri: 42 }), { status: 200 }));
     await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('missing or invalid jwks_uri');
   });
 
+  it('throws on missing jwks_uri in discovery response', async () => {
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('missing or invalid jwks_uri');
+  });
+
   it('throws on fetch timeout (AbortError)', async () => {
-    const abortError = new DOMException('The operation was aborted', 'AbortError');
-    mockFetch.mockRejectedValue(abortError);
-    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('timed out');
+    vi.useFakeTimers();
+    mockFetch.mockImplementation(
+      (_url: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<globalThis.Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(new DOMException('The operation was aborted', 'AbortError'));
+          });
+        })
+    );
+    const promise = createJwtMiddleware(AUTH_CONFIG);
+    vi.advanceTimersByTime(5_000);
+    await expect(promise).rejects.toThrow('timed out');
+    vi.useRealTimers();
   });
 
   it('throws on network error with message', async () => {
