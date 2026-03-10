@@ -6,7 +6,7 @@ import type { TransportMode } from './resolve-transport-config.js';
 
 export type AuthConfig = {
   issuer: string;
-  audience: string;
+  audience: string | undefined;
   corsAllowedOrigins: string[];
 };
 
@@ -22,6 +22,17 @@ function requireEnv(env: Record<string, string | undefined>, key: string): strin
 
 function requireUrl(env: Record<string, string | undefined>, key: string): string {
   const value = requireEnv(env, key);
+  try {
+    new URL(value);
+  } catch {
+    throw new Error(`${key} must be a valid absolute URL, got: "${value}"`);
+  }
+  return value;
+}
+
+function optionalUrl(env: Record<string, string | undefined>, key: string): string | undefined {
+  const value = env[key]?.trim();
+  if (!value) return undefined;
   try {
     new URL(value);
   } catch {
@@ -68,7 +79,7 @@ export function resolveAuthConfig(
 
   return {
     issuer: requireUrl(env, 'AUTH_ISSUER'),
-    audience: requireUrl(env, 'AUTH_AUDIENCE'),
+    audience: optionalUrl(env, 'AUTH_AUDIENCE'),
     corsAllowedOrigins: normalizeOrigins(parseStringList(env.CORS_ALLOWED_ORIGINS, ['*'])),
   };
 }

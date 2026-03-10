@@ -501,6 +501,43 @@ describe('startHttpTransport with auth', () => {
     expect(res.headers['access-control-allow-origin']).toBe('*');
   });
 
+  // ── PRM document without audience ───────────────────────────
+
+  it('PRM document omits resource field when audience is undefined', async () => {
+    const noAudAuthConfig: AuthConfig = {
+      issuer: 'https://auth.test.local',
+      audience: undefined,
+      corsAllowedOrigins: ['https://app.test.local'],
+    };
+    const noAudConfig: TransportConfig = { mode: 'http', httpPort: 0, httpHost: '127.0.0.1' };
+    const noAudCtx = createMockAppContext();
+    const noAudProcessOnSpy = vi
+      .spyOn(process, 'on')
+      .mockImplementation(
+        (_event: string | symbol, _handler: (...args: unknown[]) => void) => process
+      );
+    const noAudHandle = await startHttpTransport(
+      noAudConfig,
+      () => createMcpServer(noAudCtx),
+      noAudAuthConfig
+    );
+    const noAudPort = noAudHandle.port;
+
+    try {
+      const res = await makeRequest(noAudPort, {
+        method: 'GET',
+        path: '/.well-known/oauth-protected-resource/mcp',
+      });
+      expect(res.status).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.resource).toBeUndefined();
+      expect(body.authorization_servers).toEqual(['https://auth.test.local']);
+    } finally {
+      noAudProcessOnSpy.mockRestore();
+      await noAudHandle.close();
+    }
+  });
+
   // ── Expose WWW-Authenticate for browser-based OAuth ─────────
 
   it('exposes WWW-Authenticate in Access-Control-Expose-Headers when auth is enabled', async () => {
