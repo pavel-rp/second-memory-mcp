@@ -11,6 +11,11 @@ vi.mock('jose', () => ({
   createRemoteJWKSet: (...args: unknown[]) => mockCreateRemoteJWKSet(...args),
 }));
 
+// Mock fetch for OIDC discovery
+const MOCK_JWKS_URI = 'https://auth.example.com/auth/v1/oidc/certs';
+const mockFetch = vi.fn<(input: RequestInfo | URL) => Promise<globalThis.Response>>();
+vi.stubGlobal('fetch', mockFetch);
+
 const { createJwtMiddleware } = await import('../../../src/transport/jwt-middleware.js');
 
 const AUTH_CONFIG: AuthConfig = {
@@ -58,13 +63,16 @@ function createMockRes(): Response & {
 
 describe('createJwtMiddleware', () => {
   const jwksFunction = vi.fn();
-  let middleware: ReturnType<typeof createJwtMiddleware>;
+  let middleware: Awaited<ReturnType<typeof createJwtMiddleware>>;
   let next: NextFunction;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
     mockCreateRemoteJWKSet.mockReturnValue(jwksFunction);
-    middleware = createJwtMiddleware(AUTH_CONFIG);
+    middleware = await createJwtMiddleware(AUTH_CONFIG);
     next = vi.fn();
   });
 
@@ -74,10 +82,13 @@ describe('createJwtMiddleware', () => {
     expect(typeof middleware).toBe('function');
   });
 
-  it('calls createRemoteJWKSet with JWKS URI derived from issuer', () => {
-    createJwtMiddleware(AUTH_CONFIG);
-    expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(
-      new URL('https://auth.example.com/.well-known/jwks.json')
+  it('calls createRemoteJWKSet with JWKS URI from OIDC discovery', () => {
+    expect(mockCreateRemoteJWKSet).toHaveBeenCalledWith(new URL(MOCK_JWKS_URI));
+  });
+
+  it('fetches OIDC discovery document from issuer', () => {
+    expect(mockFetch).toHaveBeenCalledWith(
+      'https://auth.example.com/.well-known/openid-configuration'
     );
   });
 
@@ -293,8 +304,11 @@ describe('createJwtMiddleware', () => {
   // ── No-audience config ───────────────────────────────────
 
   it('calls jwtVerify without audience option when audience is undefined', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
     const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
-    const noAudMiddleware = createJwtMiddleware(noAudConfig);
+    const noAudMiddleware = await createJwtMiddleware(noAudConfig);
 
     mockJwtVerify.mockResolvedValue({
       payload: { sub: 'user-123', email: 'user@example.com' },
@@ -312,8 +326,11 @@ describe('createJwtMiddleware', () => {
   });
 
   it('WWW-Authenticate is plain Bearer when audience is undefined', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
     const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
-    const noAudMiddleware = createJwtMiddleware(noAudConfig);
+    const noAudMiddleware = await createJwtMiddleware(noAudConfig);
 
     const req = createMockReq({}, 'POST');
     const res = createMockRes();
