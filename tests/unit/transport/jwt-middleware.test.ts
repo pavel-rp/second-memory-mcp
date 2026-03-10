@@ -88,8 +88,40 @@ describe('createJwtMiddleware', () => {
 
   it('fetches OIDC discovery document from issuer', () => {
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://auth.example.com/.well-known/openid-configuration'
+      'https://auth.example.com/.well-known/openid-configuration',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
+  });
+
+  it('strips trailing slashes from issuer before discovery', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+    );
+    const trailingSlashConfig: AuthConfig = {
+      ...AUTH_CONFIG,
+      issuer: 'https://auth.example.com/',
+    };
+    await createJwtMiddleware(trailingSlashConfig);
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      'https://auth.example.com/.well-known/openid-configuration',
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
+  it('throws on non-string jwks_uri in discovery response', async () => {
+    mockFetch.mockResolvedValue(new Response(JSON.stringify({ jwks_uri: 42 }), { status: 200 }));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('missing or invalid jwks_uri');
+  });
+
+  it('throws on fetch timeout (AbortError)', async () => {
+    const abortError = new DOMException('The operation was aborted', 'AbortError');
+    mockFetch.mockRejectedValue(abortError);
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('timed out');
+  });
+
+  it('throws on network error with message', async () => {
+    mockFetch.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'));
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('OIDC discovery request failed');
   });
 
   // ── No Authorization header → 401 (VC-01, VC-02, VC-03) ───

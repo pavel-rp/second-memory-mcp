@@ -3,16 +3,39 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
 
 async function discoverJwksUri(issuer: string): Promise<string> {
-  const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
-  const res = await fetch(discoveryUrl);
+  const normalizedIssuer = issuer.replace(/\/+$/, '');
+  const discoveryUrl = `${normalizedIssuer}/.well-known/openid-configuration`;
+
+  const controller = new AbortController();
+  const timeoutMs = 5_000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: globalThis.Response;
+  try {
+    res = await fetch(discoveryUrl, { signal: controller.signal });
+  } catch (err) {
+    const error = err as { name?: string; message?: string };
+    if (error?.name === 'AbortError') {
+      throw new Error(`OIDC discovery timed out after ${timeoutMs}ms: ${discoveryUrl}`, {
+        cause: err,
+      });
+    }
+    throw new Error(
+      `OIDC discovery request failed: ${discoveryUrl}${error?.message ? ` - ${error.message}` : ''}`,
+      { cause: err }
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
   if (!res.ok) {
     throw new Error(`OIDC discovery failed: ${discoveryUrl} returned ${res.status}`);
   }
-  const metadata = (await res.json()) as { jwks_uri?: string };
-  if (!metadata.jwks_uri) {
-    throw new Error(`OIDC discovery at ${discoveryUrl} missing jwks_uri`);
+  const metadata = (await res.json()) as { jwks_uri?: unknown };
+  if (typeof metadata.jwks_uri !== 'string' || !metadata.jwks_uri) {
+    throw new Error(`OIDC discovery at ${discoveryUrl} missing or invalid jwks_uri`);
   }
-  return metadata.jwks_uri;
+  return new URL(metadata.jwks_uri, normalizedIssuer).href;
 }
 
 export async function createJwtMiddleware(authConfig: AuthConfig): Promise<RequestHandler> {
