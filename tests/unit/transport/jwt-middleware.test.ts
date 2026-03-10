@@ -290,6 +290,39 @@ describe('createJwtMiddleware', () => {
     );
   });
 
+  // ── No-audience config ───────────────────────────────────
+
+  it('calls jwtVerify without audience option when audience is undefined', async () => {
+    const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
+    const noAudMiddleware = createJwtMiddleware(noAudConfig);
+
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer valid-token' });
+    const res = createMockRes();
+
+    await noAudMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', jwksFunction, {
+      issuer: noAudConfig.issuer,
+    });
+  });
+
+  it('WWW-Authenticate is plain Bearer when audience is undefined', async () => {
+    const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
+    const noAudMiddleware = createJwtMiddleware(noAudConfig);
+
+    const req = createMockReq({}, 'POST');
+    const res = createMockRes();
+
+    await noAudMiddleware(req, res, next);
+
+    expect(res._headers['www-authenticate']).toBe('Bearer');
+  });
+
   // ── Valid token with sub but no email ──────────────────────
 
   it('valid token with sub but no email sets email as undefined', async () => {

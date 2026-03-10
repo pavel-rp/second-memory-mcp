@@ -4,7 +4,9 @@ import type { AuthConfig } from '../config/resolve-auth-config.js';
 
 export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
   const jwks = createRemoteJWKSet(new URL(`${authConfig.issuer}/.well-known/jwks.json`));
-  const prmUrl = new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href;
+  const prmUrl = authConfig.audience
+    ? new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href
+    : undefined;
 
   return async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -21,7 +23,7 @@ export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
     try {
       const { payload } = await jwtVerify(token, jwks, {
         issuer: authConfig.issuer,
-        audience: authConfig.audience,
+        ...(authConfig.audience ? { audience: authConfig.audience } : {}),
       });
 
       if (typeof payload.sub !== 'string' || !payload.sub) {
@@ -39,10 +41,7 @@ export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
   };
 }
 
-function reply401(res: Parameters<RequestHandler>[1], prmUrl: string): void {
-  res
-    .setHeader('WWW-Authenticate', `Bearer resource_metadata="${prmUrl}"`)
-    .status(401)
-    .json({ error: 'Unauthorized' })
-    .end();
+function reply401(res: Parameters<RequestHandler>[1], prmUrl: string | undefined): void {
+  const challenge = prmUrl ? `Bearer resource_metadata="${prmUrl}"` : 'Bearer';
+  res.setHeader('WWW-Authenticate', challenge).status(401).json({ error: 'Unauthorized' }).end();
 }
