@@ -39,7 +39,7 @@ describe('resolveAuthConfig', () => {
     });
   });
 
-  it('throws when both AUTH_ISSUER and AUTH_AUDIENCE missing and transport=http', () => {
+  it('throws when AUTH_ISSUER missing even if AUTH_AUDIENCE also missing', () => {
     expect(() => resolveAuthConfig('http', {})).toThrow();
   });
 
@@ -134,6 +134,14 @@ describe('resolveAuthConfig', () => {
         AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
       })
     ).toThrow('AUTH_ISSUER');
+  });
+
+  it('handles whitespace-only AUTH_AUDIENCE as absent (returns undefined)', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: '   ',
+    });
+    expect(result!.audience).toBeUndefined();
   });
 
   it('handles empty-string AUTH_AUDIENCE as absent (returns undefined)', () => {
