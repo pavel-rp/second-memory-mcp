@@ -123,6 +123,13 @@ describe('createJwtMiddleware', () => {
     await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('missing or invalid jwks_uri');
   });
 
+  it('throws on unparseable jwks_uri string in discovery response', async () => {
+    mockFetch.mockResolvedValue(
+      new Response(JSON.stringify({ jwks_uri: 'http://[invalid' }), { status: 200 })
+    );
+    await expect(createJwtMiddleware(AUTH_CONFIG)).rejects.toThrow('invalid jwks_uri at');
+  });
+
   it('throws on fetch timeout (AbortError)', async () => {
     vi.useFakeTimers();
     mockFetch.mockImplementation(

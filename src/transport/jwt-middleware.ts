@@ -35,7 +35,14 @@ async function discoverJwksUri(issuer: string): Promise<string> {
   if (typeof metadata.jwks_uri !== 'string' || !metadata.jwks_uri) {
     throw new Error(`OIDC discovery at ${discoveryUrl} missing or invalid jwks_uri`);
   }
-  return new URL(metadata.jwks_uri, normalizedIssuer).href;
+  try {
+    return new URL(metadata.jwks_uri, normalizedIssuer).href;
+  } catch (err) {
+    throw new Error(
+      `OIDC discovery returned invalid jwks_uri at ${discoveryUrl}: ${metadata.jwks_uri}`,
+      { cause: err }
+    );
+  }
 }
 
 export async function createJwtMiddleware(authConfig: AuthConfig): Promise<RequestHandler> {
