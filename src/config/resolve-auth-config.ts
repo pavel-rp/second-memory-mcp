@@ -1,6 +1,6 @@
 // Composition root layer: reads process.env and returns auth configuration
 // Returns null for STDIO transport (inherently trusted, no auth needed)
-// Throws on missing required vars when transport=http (fail-fast)
+// Throws on missing AUTH_ISSUER when transport=http (fail-fast); AUTH_AUDIENCE is optional
 
 import type { TransportMode } from './resolve-transport-config.js';
 
