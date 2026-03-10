@@ -533,7 +533,7 @@ describe('startHttpTransport with auth', () => {
       expect(body.resource).toBeUndefined();
       expect(body.authorization_servers).toEqual(['https://auth.test.local']);
     } finally {
-      noAudProcessOnSpy.mockRestore();
+      noAudProcessOnSpy.mockReset();
       await noAudHandle.close();
     }
   });
