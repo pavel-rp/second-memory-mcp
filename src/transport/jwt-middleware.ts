@@ -2,8 +2,22 @@ import type { RequestHandler } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
 
-export function createJwtMiddleware(authConfig: AuthConfig): RequestHandler {
-  const jwks = createRemoteJWKSet(new URL(`${authConfig.issuer}/.well-known/jwks.json`));
+async function discoverJwksUri(issuer: string): Promise<string> {
+  const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
+  const res = await fetch(discoveryUrl);
+  if (!res.ok) {
+    throw new Error(`OIDC discovery failed: ${discoveryUrl} returned ${res.status}`);
+  }
+  const metadata = (await res.json()) as { jwks_uri?: string };
+  if (!metadata.jwks_uri) {
+    throw new Error(`OIDC discovery at ${discoveryUrl} missing jwks_uri`);
+  }
+  return metadata.jwks_uri;
+}
+
+export async function createJwtMiddleware(authConfig: AuthConfig): Promise<RequestHandler> {
+  const jwksUri = await discoverJwksUri(authConfig.issuer);
+  const jwks = createRemoteJWKSet(new URL(jwksUri));
   const prmUrl = authConfig.audience
     ? new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href
     : undefined;
