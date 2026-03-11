@@ -733,4 +733,70 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c1');
   });
+
+  // Ordering: fallback when session.chunkIds is empty array
+  it('preserves DB order when session.chunkIds is empty array', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: [] })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c1');
+  });
+
+  // Ordering: chunks not in chunkIds map sort to end
+  it('sorts unknown chunks to end when not in session.chunkIds', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c2'] })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c2');
+  });
+
+  // Edge case: pending chunk with passed attempts is neither fresh nor requeued
+  it('returns blocked with empty chunk_id when pending chunk has passed attempts', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'pending',
+            attemptsJson: [makeAttempt({ passed: true })],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('blocked');
+    expect(result).toHaveProperty('current_chunk_id', '');
+  });
 });
