@@ -80,13 +80,9 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     }
 
     // Inconsistent state: pending chunks exist but none are selectable and none are in_progress
-    const unresolvedPendingIds = pendingChunks.map(sc => sc.chunkId);
     return {
       status: 'error',
-      message:
-        unresolvedPendingIds.length === 0
-          ? 'Session is in an inconsistent state: no selectable chunks remain, but not all chunks are completed.'
-          : `Session is in an inconsistent state: pending chunks cannot be advanced. Pending chunk ids: ${unresolvedPendingIds.join(', ')}.`,
+      message: `Session is in an inconsistent state: pending chunks cannot be advanced. Pending chunk ids: ${pendingChunks.map(sc => sc.chunkId).join(', ')}.`,
     };
   }
 

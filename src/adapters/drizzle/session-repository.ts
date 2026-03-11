@@ -163,9 +163,9 @@ export class DrizzleSessionRepository implements SessionRepository {
       sessionId: input.sessionId,
       chunkId: input.chunkId,
       status: input.status || 'pending',
-      attemptsJson: input.attemptsJson ?? null,
-      qualityScoresJson: input.qualityScoresJson ?? null,
-      timeSpentMs: input.timeSpentMs ?? 0,
+      attemptsJson: null,
+      qualityScoresJson: null,
+      timeSpentMs: 0,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     }));
