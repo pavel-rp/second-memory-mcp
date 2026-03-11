@@ -159,11 +159,18 @@ function hasAttempts(sc: SessionChunk): boolean {
   return Array.isArray(sc.attemptsJson) && sc.attemptsJson.length > 0;
 }
 
+/** Resolve `passed` with legacy `completed` fallback for raw DB attempts. */
+function attemptPassed(attempt: ChunkAttempt): boolean {
+  if ('passed' in attempt) return Boolean(attempt.passed);
+  // Legacy rows may have `completed` instead of `passed`
+  return Boolean((attempt as unknown as Record<string, unknown>).completed);
+}
+
 function isRequeuedFailure(sc: SessionChunk): boolean {
   if (!hasAttempts(sc)) return false;
   const attempts = sc.attemptsJson as ChunkAttempt[];
   const lastAttempt = attempts[attempts.length - 1];
-  return !lastAttempt.passed;
+  return !attemptPassed(lastAttempt);
 }
 
 function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse {
@@ -174,9 +181,9 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
   for (const sc of sessionChunks) {
     const attempts = sc.attemptsJson ?? [];
     if (attempts.length === 0) continue;
-    if (attempts.length === 1 && attempts[0].passed) {
+    if (attempts.length === 1 && attemptPassed(attempts[0])) {
       passedFirstTry++;
-    } else if (attempts.some(a => a.passed)) {
+    } else if (attempts.some(a => attemptPassed(a))) {
       neededRetry++;
     }
   }

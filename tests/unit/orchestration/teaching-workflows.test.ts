@@ -598,6 +598,120 @@ describe('getNextTeachingStep', () => {
     expect(result.chunk_index).toBe(1); // 1-based position in ordered list
   });
 
+  // Legacy: re-queued detection with `completed` instead of `passed`
+  it('treats legacy completed:false attempt as re-queued failure', async () => {
+    const legacyAttempt = {
+      timestamp: '2026-03-10T10:00:00Z',
+      question: 'What is X?',
+      response: 'X is Y',
+      completed: false,
+      feedback: 'Wrong',
+      quality: 2,
+      time_spent_ms: 5000,
+    };
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'pending',
+            attemptsJson: [legacyAttempt as unknown as ChunkAttempt],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.mode).toBe('retrieval'); // re-queued → retrieval
+    expect(result.chunk_id).toBe('c1');
+  });
+
+  // Legacy: completed:true not treated as re-queued failure
+  it('treats legacy completed:true attempt as passed (not re-queued)', async () => {
+    const legacyPassedAttempt = {
+      timestamp: '2026-03-10T10:00:00Z',
+      question: 'What is X?',
+      response: 'X is Y',
+      completed: true,
+      feedback: 'Correct!',
+      quality: 4,
+      time_spent_ms: 5000,
+    };
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          // Only chunk is pending with a passed legacy attempt — not re-queued, not fresh
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: [legacyPassedAttempt as unknown as ChunkAttempt],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.passed_first_try).toBe(1);
+  });
+
+  // Legacy: buildCompleteResponse with mixed legacy + modern attempts
+  it('computes summary correctly with legacy completed field', async () => {
+    const legacyPassedAttempt = {
+      timestamp: '2026-03-10T10:00:00Z',
+      question: 'Q1',
+      response: 'A1',
+      completed: true,
+      feedback: 'OK',
+      quality: 4,
+      time_spent_ms: 3000,
+    };
+    const legacyFailedAttempt = {
+      timestamp: '2026-03-10T10:01:00Z',
+      question: 'Q2',
+      response: 'A2',
+      completed: false,
+      feedback: 'Wrong',
+      quality: 1,
+      time_spent_ms: 2000,
+    };
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: [legacyPassedAttempt as unknown as ChunkAttempt],
+          }),
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'completed',
+            attemptsJson: [
+              legacyFailedAttempt as unknown as ChunkAttempt,
+              makeAttempt({ passed: true }),
+            ],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.needed_retry).toBe(1);
+  });
+
   // Ordering: fallback when session.chunkIds is null
   it('preserves DB order when session.chunkIds is null', async () => {
     const deps = makeDeps({
