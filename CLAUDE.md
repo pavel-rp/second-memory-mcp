@@ -46,12 +46,18 @@ Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/help
 - Checkout feature branch from develop before starting. Ask if uncommitted/unsynced changes exist.
 - Run all builds, lints, and tests before claiming completion.
 
-## Windows `gh api` Workaround
+## GitHub PR Comment Replies
 
-Backticks break in `-f body=` on Windows bash. Write JSON to `$TEMP/reply.json`, then:
+The endpoint **must** include the PR number — without it you get a 404:
 
 ```bash
-gh api repos/OWNER/REPO/pulls/comments/{COMMENT_ID}/replies --input "$TEMP/reply.json"
+gh api --method POST "repos/OWNER/REPO/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/replies" -f body="message"
+```
+
+On Windows bash, backticks break in `-f body=`. For complex bodies write JSON to `$TEMP/reply.json`, then:
+
+```bash
+gh api --method POST "repos/OWNER/REPO/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/replies" --input "$TEMP/reply.json"
 ```
 
 ## Commit & PR Conventions
