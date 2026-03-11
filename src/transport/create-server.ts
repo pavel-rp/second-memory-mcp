@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { registerServerTools } from '../server/tools.js';
 import type { AppContext } from '../composition-root.js';
+import { SERVER_INSTRUCTIONS } from '../shared/instructions.js';
 import type {
   LearningPromptArgs,
   LearningSessionPromptArgs,
@@ -17,10 +18,10 @@ import type {
  * Transport-agnostic — caller is responsible for connecting to a transport.
  */
 export function createMcpServer(ctx: AppContext): McpServer {
-  const server = new McpServer({
-    name: 'second-memory-learning',
-    version: '0.1.0',
-  });
+  const server = new McpServer(
+    { name: 'second-memory-learning', version: '0.1.0' },
+    { instructions: SERVER_INSTRUCTIONS }
+  );
 
   registerServerTools(server, ctx);
 
