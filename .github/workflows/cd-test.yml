@@ -66,3 +66,45 @@ jobs:
           REPO_DIR: ${{ env.REPO_DIR }}
           COMPOSE_DIR: ${{ env.COMPOSE_DIR }}
           COMPOSE_FILE: ${{ env.COMPOSE_FILE }}
+
+  smoke-test:
+    needs: [deploy-test]
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch != 'develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate smoke test config
+        env:
+          MCP_BASE_URL: ${{ secrets.SMOKE_TEST_BASE_URL }}
+        run: |
+          if [ -z "$MCP_BASE_URL" ]; then
+            echo "::error::SMOKE_TEST_BASE_URL secret is not set — smoke tests would silently skip"
+            exit 1
+          fi
+
+      - name: Run smoke tests
+        env:
+          MCP_BASE_URL: ${{ secrets.SMOKE_TEST_BASE_URL }}
+          MCP_AUTH_TOKEN: ${{ secrets.SMOKE_TEST_AUTH_TOKEN }}
+        run: pnpm run test:smoke

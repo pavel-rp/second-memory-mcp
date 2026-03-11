@@ -29,6 +29,7 @@
     "start:stdio:debug": "node --inspect=0 dist/transport/main.js",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "pnpm run build && vitest run --config vitest.integration.config.ts",
+    "test:smoke": "vitest run --config vitest.smoke.config.ts",
     "test:embedding": "pnpm run build && vitest run --config vitest.embedding.config.ts",
     "test:ci": "pnpm run build && vitest run --coverage",
     "test": "pnpm run test:ci && pnpm run test:embedding",
