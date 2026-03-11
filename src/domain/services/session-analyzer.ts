@@ -32,7 +32,7 @@ function calculateTimeElapsed(startTime: string, now: Date, currentTime?: string
 }
 
 // Helper function to validate and clean session chunks
-// Handles both legacy attempts (with completed, optional quality) and new attempts (with passed, required quality)
+// Legacy normalization (completed → passed, missing fields) is handled by ChunkAttemptSchema
 function cleanSessionChunks(chunks: SessionChunk[]): SessionChunk[] {
   return chunks.map(chunk => ({
     ...chunk,

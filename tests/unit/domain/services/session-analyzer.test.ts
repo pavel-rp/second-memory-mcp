@@ -354,6 +354,71 @@ describe('Session Manager', () => {
       }
     });
 
+    it('should accept legacy attempts with completed instead of passed', () => {
+      const legacySession = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Legacy Chunk',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:15:00.000Z',
+                completed: true,
+                quality: 4,
+                time_spent_ms: 900000,
+              },
+            ],
+            quality_scores: [4],
+            time_spent_ms: 900000,
+          },
+        ],
+      };
+
+      const result = validateSessionContext(legacySession, NOW);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const attempt = result.data.chunks[0].attempts[0];
+        expect(attempt.passed).toBe(true);
+        expect(attempt.question).toBe('');
+        expect(attempt.response).toBe('');
+        expect(attempt.feedback).toBe('');
+      }
+    });
+
+    it('should default missing fields on legacy attempts', () => {
+      const legacySession = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Legacy Chunk',
+            status: 'pending',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:15:00.000Z',
+                time_spent_ms: 500,
+              },
+            ],
+            quality_scores: [],
+            time_spent_ms: 500,
+          },
+        ],
+      };
+
+      const result = validateSessionContext(legacySession, NOW);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const attempt = result.data.chunks[0].attempts[0];
+        expect(attempt.passed).toBe(false);
+        expect(attempt.quality).toBe(0);
+        expect(attempt.question).toBe('');
+        expect(attempt.response).toBe('');
+        expect(attempt.feedback).toBe('');
+      }
+    });
+
     it('should clean chunk data when using calculate functions directly', () => {
       // Test that the cleaning happens in the calculation functions
       const sessionWithValidData: SessionInput = {
