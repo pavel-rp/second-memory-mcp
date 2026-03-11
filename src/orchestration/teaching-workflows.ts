@@ -1,7 +1,6 @@
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
-import type { ChunkAttempt } from '../domain/types/session.js';
 import type { TeachNextResponse } from '../domain/types/teaching.js';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
@@ -162,15 +161,18 @@ function hasAttempts(sc: SessionChunk): boolean {
 }
 
 /** Resolve `passed` with legacy `completed` fallback for raw DB attempts. */
-function attemptPassed(attempt: ChunkAttempt): boolean {
-  if ('passed' in attempt) return Boolean(attempt.passed);
+function attemptPassed(attempt: unknown): boolean {
+  if (attempt === null || typeof attempt !== 'object') return false;
+  const obj = attempt as Record<string, unknown>;
+  if ('passed' in obj) return Boolean(obj.passed);
   // Legacy rows may have `completed` instead of `passed`
-  return Boolean((attempt as unknown as Record<string, unknown>).completed);
+  if ('completed' in obj) return Boolean(obj.completed);
+  return false;
 }
 
 function isRequeuedFailure(sc: SessionChunk): boolean {
   if (!hasAttempts(sc)) return false;
-  const attempts = sc.attemptsJson as ChunkAttempt[];
+  const attempts = sc.attemptsJson as unknown[];
   const lastAttempt = attempts[attempts.length - 1];
   return !attemptPassed(lastAttempt);
 }
