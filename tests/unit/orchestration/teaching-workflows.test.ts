@@ -570,4 +570,52 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.passed_first_try).toBe(0);
     expect(result.summary.needed_retry).toBe(0);
   });
+
+  // Ordering: selects first pending by session.chunkIds order, not DB row order
+  it('selects chunks in session.chunkIds order regardless of DB order', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c2', 'c1', 'c3'] })),
+        // DB returns c1 first, but session order says c2 first
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-3', chunkId: 'c3', status: 'pending' }),
+          ]),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c2'); // c2 first per session order
+    expect(result.chunk_index).toBe(1); // 1-based position in ordered list
+  });
+
+  // Ordering: fallback when session.chunkIds is null
+  it('preserves DB order when session.chunkIds is null', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: null })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c1');
+  });
 });

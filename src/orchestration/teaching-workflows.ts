@@ -1,6 +1,6 @@
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
-import type { SessionChunk } from '../domain/types/entities.js';
+import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type { ChunkAttempt } from '../domain/types/session.js';
 import type { TeachNextResponse } from '../domain/types/teaching.js';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
@@ -34,14 +34,15 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     };
   }
 
-  // 2. Get session chunks
-  const sessionChunks = await deps.sessions.getSessionChunks(session.id);
-  if (sessionChunks.length === 0) {
+  // 2. Get session chunks, ordered by session's chunkIds (pedagogical sequence)
+  const rawChunks = await deps.sessions.getSessionChunks(session.id);
+  if (rawChunks.length === 0) {
     return {
       status: 'error',
       message: 'Session has no chunks.',
     };
   }
+  const sessionChunks = orderBySessionChunkIds(rawChunks, session.chunkIds);
 
   // 3. Gating: refuse if any in_progress chunk has no recorded attempts
   const inProgressChunk = sessionChunks.find(sc => sc.status === 'in_progress');
@@ -139,6 +140,20 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
+
+/** Sort session chunks to match the session's chunkIds order (pedagogical sequence). */
+function orderBySessionChunkIds(
+  chunks: SessionChunk[],
+  chunkIds: LearningSession['chunkIds']
+): SessionChunk[] {
+  if (!chunkIds || chunkIds.length === 0) return chunks;
+  const indexMap = new Map(chunkIds.map((id, i) => [id, i]));
+  return [...chunks].sort((a, b) => {
+    const ai = indexMap.get(a.chunkId) ?? Number.MAX_SAFE_INTEGER;
+    const bi = indexMap.get(b.chunkId) ?? Number.MAX_SAFE_INTEGER;
+    return ai - bi;
+  });
+}
 
 function hasAttempts(sc: SessionChunk): boolean {
   return Array.isArray(sc.attemptsJson) && sc.attemptsJson.length > 0;
