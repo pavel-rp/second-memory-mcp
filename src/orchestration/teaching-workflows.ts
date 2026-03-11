@@ -103,7 +103,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   // 7. Fetch historical feedback
   const historicalFeedback = await deps.sessions.getHistoricalFeedbackForChunks(
     [selected.chunkId],
-    { excludeSessionId: session.id }
+    { excludeSessionId: session.id, limit: 5 }
   );
 
   const previousSessionFeedback: PromptFeedbackEntry[] = historicalFeedback.map(hf => ({

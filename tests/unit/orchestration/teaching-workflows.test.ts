@@ -270,6 +270,18 @@ describe('getNextTeachingStep', () => {
     expect(result.previous_feedback).toEqual(['Struggled with the concept of closures']);
   });
 
+  // Historical feedback fetched with bounded limit
+  it('passes limit to getHistoricalFeedbackForChunks', async () => {
+    const deps = makeDeps();
+
+    await getNextTeachingStep(deps);
+
+    expect(deps.sessions.getHistoricalFeedbackForChunks).toHaveBeenCalledWith(['c1'], {
+      excludeSessionId: 'sess-1',
+      limit: 5,
+    });
+  });
+
   // VC-06: All chunks completed → complete signal
   it('returns complete when all chunks are completed', async () => {
     const deps = makeDeps({
@@ -783,6 +795,120 @@ describe('getNextTeachingStep', () => {
     expect(result.status).toBe('teach');
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
+  });
+
+  // Ordering: tie-breaker by chunkId when unknown chunks share createdAt
+  it('breaks ties by chunkId when unknown chunks have same createdAt', async () => {
+    const deps = makeDeps({
+      sessions: {
+        // chunkIds only contains c3 — c1 and c2 are unknown, both pending with same createdAt
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c3'] })),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending', createdAt: NOW }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending', createdAt: NOW }),
+          makeSessionChunk({
+            id: 'sc-3',
+            chunkId: 'c3',
+            status: 'completed',
+            attemptsJson: [makeAttempt()],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    // c1 < c2 lexicographically, so c1 comes first
+    expect(result.chunk_id).toBe('c1');
+  });
+
+  // Ordering: unknown chunks with different createdAt sort by createdAt
+  it('sorts unknown chunks by createdAt before chunkId tie-breaker', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c3'] })),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending', createdAt: NOW }),
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'pending',
+            createdAt: NOW + 1000,
+          }),
+          makeSessionChunk({
+            id: 'sc-3',
+            chunkId: 'c3',
+            status: 'completed',
+            attemptsJson: [makeAttempt()],
+          }),
+        ]),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    // c2 has earlier createdAt (NOW) so comes first, despite c1 < c2 lexicographically
+    expect(result.chunk_id).toBe('c2');
+  });
+
+  // attemptPassed: null attempt handled defensively
+  it('treats null attempt in attemptsJson as not passed', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: [null as unknown as ChunkAttempt],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.passed_first_try).toBe(0);
+  });
+
+  // attemptPassed: returns false for attempt with neither passed nor completed
+  it('treats attempt without passed or completed as not passed in summary', async () => {
+    const bareAttempt = {
+      timestamp: '2026-03-10T10:00:00Z',
+      question: 'Q',
+      response: 'A',
+      feedback: 'Noted',
+      quality: 3,
+      time_spent_ms: 1000,
+    };
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: [bareAttempt as unknown as ChunkAttempt],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.passed_first_try).toBe(0);
+    expect(result.summary.needed_retry).toBe(0);
   });
 
   // Edge case: pending chunk with passed attempts is neither fresh nor requeued
