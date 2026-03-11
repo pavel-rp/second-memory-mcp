@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { z } from 'zod';
+import { SubmitAnswerInputShape } from '../domain/types/teaching.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -23,6 +24,39 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         const msg = extractErrorMessage(error);
         logger.error('teach_next failed:', error);
         return toolError(`Failed to get next teaching step: ${msg}`, {
+          type: 'session',
+          message: msg,
+          retryable: true,
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'submit_answer',
+    {
+      title: 'Submit Answer',
+      description:
+        "Submit the learner's answer for the current in-progress chunk. " +
+        'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
+        'After completion, the response includes the next teaching instruction (piggybacks teach_next).',
+      inputSchema: z.object(SubmitAnswerInputShape).shape,
+    },
+    async input => {
+      try {
+        const parsed = z.object(SubmitAnswerInputShape).parse(input);
+        const result = await ctx.submitAnswer({
+          question: parsed.question,
+          response: parsed.response,
+          passed: parsed.passed,
+          feedback: parsed.feedback,
+          timeSpentMs: parsed.time_spent_ms,
+        });
+        return toolJson(result);
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        logger.error('submit_answer failed:', error);
+        return toolError(`Failed to submit answer: ${msg}`, {
           type: 'session',
           message: msg,
           retryable: true,
