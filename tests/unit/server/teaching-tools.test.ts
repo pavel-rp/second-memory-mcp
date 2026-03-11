@@ -115,6 +115,24 @@ describe('teaching-tools', () => {
     });
   });
 
+  it('submit_answer returns validation error for invalid input', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('submit_answer')!.handler;
+
+    const result = await handler({
+      question: '', // min(1) violation
+      response: 'A',
+      passed: true,
+      feedback: 'OK',
+      time_spent_ms: 1000,
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+  });
+
   it('submit_answer returns structured error when orchestration throws', async () => {
     ctx.submitAnswer = vi.fn().mockRejectedValue(new Error('Session expired'));
     registerTeachingTools(server as any, ctx);

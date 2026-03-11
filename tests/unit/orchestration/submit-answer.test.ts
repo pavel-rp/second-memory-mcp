@@ -568,8 +568,8 @@ describe('submitAnswer', () => {
     );
   });
 
-  // SR failure gracefully returns zeroed review_update
-  it('returns zeroed review_update when SR update fails', async () => {
+  // SR failure returns explicit error instead of fake review_update
+  it('returns error when SR persistence fails', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -589,14 +589,94 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ passed: true }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
-    expect(result.review_update).toEqual({
-      next_review_date: '',
-      interval_days: 0,
-      ease_factor: 0,
-      is_leech: false,
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain(
+      'Failed to persist spaced repetition'
+    );
+  });
+
+  // SR failure still persists the chunk update (attempt + qualityScoresJson)
+  it('persists chunk update even when SR fails', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: null,
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+      reviewPersistence: {
+        getChunk: vi.fn().mockResolvedValue(undefined),
+      },
     });
+
+    await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({
+        status: 'completed',
+        qualityScoresJson: [5],
+      })
+    );
+  });
+
+  // qualityScoresJson is persisted with derived quality
+  it('persists qualityScoresJson on completion', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: null,
+            qualityScoresJson: null,
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({
+        qualityScoresJson: [5],
+      })
+    );
+  });
+
+  // qualityScoresJson appends to existing scores
+  it('appends to existing qualityScoresJson', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: [makeAttempt({ passed: false, quality: 0 })],
+            qualityScoresJson: [2],
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({
+        qualityScoresJson: [2, 3],
+      })
+    );
   });
 
   // Empty attemptsJson array treated as no attempts (same as null)

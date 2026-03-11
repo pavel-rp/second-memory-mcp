@@ -300,33 +300,34 @@ export async function submitAnswer(
 
   // Determine chunk status: re-queue on attempt-2 failure, otherwise completed
   const newStatus = attemptNumber === 2 && !input.passed ? 'pending' : 'completed';
+  const updatedQualityScores = (inProgressChunk.qualityScoresJson ?? []).concat(quality);
 
   await deps.sessions.updateSessionChunk(inProgressChunk.id, {
     status: newStatus,
     attemptsJson: updatedAttempts,
+    qualityScoresJson: updatedQualityScores,
     timeSpentMs: accumulatedTimeMs,
     updatedAt: Date.now(),
   });
 
-  // Piggyback teach_next
+  // If SR persistence failed, surface this explicitly
+  if (!reviewResult.success) {
+    return {
+      status: 'error',
+      message: 'Failed to persist spaced repetition review result.',
+    };
+  }
+
+  // Piggyback teach_next only when SR persistence succeeded
   const nextTeachStep = await getNextTeachingStep(deps);
 
-  // Build review_update from SR result
-  const reviewUpdate = reviewResult.success
-    ? {
-        next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
-          .toISOString()
-          .split('T')[0],
-        interval_days: reviewResult.data.updated.intervalDays,
-        ease_factor: reviewResult.data.updated.easeFactor,
-        is_leech: reviewResult.data.isLeech,
-      }
-    : {
-        next_review_date: '',
-        interval_days: 0,
-        ease_factor: 0,
-        is_leech: false,
-      };
+  // Build review_update from SR result (now guaranteed successful)
+  const reviewUpdate = {
+    next_review_date: new Date(reviewResult.data.updated.nextReviewAt).toISOString().split('T')[0],
+    interval_days: reviewResult.data.updated.intervalDays,
+    ease_factor: reviewResult.data.updated.easeFactor,
+    is_leech: reviewResult.data.isLeech,
+  };
 
   return {
     status: 'recorded',

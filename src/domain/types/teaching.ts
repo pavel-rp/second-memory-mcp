@@ -86,3 +86,10 @@ export const SubmitAnswerInputShape = {
   feedback: z.string().min(1).describe("Agent's explanation of why right/wrong"),
   time_spent_ms: z.number().int().min(0).describe('Time the learner spent in milliseconds'),
 } as const;
+
+export const SubmitAnswerInputSchema = z
+  .object(SubmitAnswerInputShape)
+  .transform(({ time_spent_ms, ...rest }) => ({
+    ...rest,
+    timeSpentMs: time_spent_ms,
+  }));

@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
-import { z } from 'zod';
-import { SubmitAnswerInputShape } from '../domain/types/teaching.js';
+import { z, ZodError } from 'zod';
+import { SubmitAnswerInputShape, SubmitAnswerInputSchema } from '../domain/types/teaching.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -44,17 +44,19 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
     },
     async input => {
       try {
-        const parsed = z.object(SubmitAnswerInputShape).parse(input);
-        const result = await ctx.submitAnswer({
-          question: parsed.question,
-          response: parsed.response,
-          passed: parsed.passed,
-          feedback: parsed.feedback,
-          timeSpentMs: parsed.time_spent_ms,
-        });
+        const parsed = SubmitAnswerInputSchema.parse(input);
+        const result = await ctx.submitAnswer(parsed);
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          logger.error('Invalid submit_answer input:', error);
+          return toolError(`Failed to submit answer: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         logger.error('submit_answer failed:', error);
         return toolError(`Failed to submit answer: ${msg}`, {
           type: 'session',
