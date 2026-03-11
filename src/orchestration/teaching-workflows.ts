@@ -16,7 +16,10 @@ import type { ChunkAttempt } from '../domain/types/session.js';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
-import type { LearningItem } from '../domain/types/recommendations.js';
+import {
+  DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
+  type LearningItem,
+} from '../domain/types/recommendations.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -414,7 +417,7 @@ export async function startLearning(
   // 2. Fetch learning items from DB
   const rows = await deps.chunks.list({
     dueOnly: true,
-    limit: 50,
+    limit: DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
     subjectFilter: input.subjectFilter,
   });
   const items = rows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
@@ -439,7 +442,7 @@ export async function startLearning(
   const recommendations = await recommendationWorkflows.generateRecommendations(
     {
       learningItems: items,
-      timeAvailable: input.timeAvailableMinutes,
+      timeAvailable: input.timeAvailable,
       subjectFilter: input.subjectFilter,
     },
     recDeps,
@@ -491,7 +494,7 @@ export async function startLearning(
     session_id: sessionResult.data.sessionId,
     mode,
     total_chunks: resolvedChunkIds.length,
-    estimated_duration_minutes: recommendations.estimatedDuration,
+    estimated_duration: recommendations.estimatedDuration,
     first_chunk: firstChunk,
     recommendation_summary: recommendations.rationale,
   };

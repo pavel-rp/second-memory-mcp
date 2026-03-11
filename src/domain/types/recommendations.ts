@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { toCamelCaseKeys, toCamelCaseKeysExcept } from '../../shared/case-convert.js';
 
+/** Default limit for fetching recommendation candidates from the DB. */
+export const DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT = 50;
+
 // Recommendation mode types
 export type RecommendationMode = 'guided' | 'explicit';
 

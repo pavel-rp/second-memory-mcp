@@ -1163,7 +1163,7 @@ describe('startLearning', () => {
     if (result.status !== 'started') throw new Error('Expected started');
     expect(result.session_id).toBe('new-sess');
     expect(result.total_chunks).toBe(1);
-    expect(result.estimated_duration_minutes).toBe(10);
+    expect(result.estimated_duration).toBe(10);
     expect(result.first_chunk).toBeDefined();
     expect(result.first_chunk.status).toBe('teach');
     expect(result.recommendation_summary).toBe('Review overdue items');
@@ -1191,10 +1191,10 @@ describe('startLearning', () => {
     );
   });
 
-  it('passes time_available_minutes to generateRecommendations', async () => {
+  it('passes time_available to generateRecommendations', async () => {
     const deps = makeStartLearningDeps();
 
-    await startLearning({ timeAvailableMinutes: 15 }, deps);
+    await startLearning({ timeAvailable: 15 }, deps);
 
     expect(recommendationWorkflows.generateRecommendations).toHaveBeenCalledWith(
       expect.objectContaining({ timeAvailable: 15 }),

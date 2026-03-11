@@ -166,7 +166,7 @@ describe('teaching-tools', () => {
       session_id: 'sess-1',
       mode: 'review',
       total_chunks: 3,
-      estimated_duration_minutes: 15,
+      estimated_duration: 15,
       first_chunk: { status: 'teach', chunk_id: 'c1' },
       recommendation_summary: 'Review overdue items',
     };
@@ -189,13 +189,13 @@ describe('teaching-tools', () => {
 
     await handler({
       subject_filter: 'Math',
-      time_available_minutes: 20,
+      time_available: 20,
       mode: 'review',
     });
 
     expect(ctx.startLearning).toHaveBeenCalledWith({
       subjectFilter: 'Math',
-      timeAvailableMinutes: 20,
+      timeAvailable: 20,
       mode: 'review',
     });
   });

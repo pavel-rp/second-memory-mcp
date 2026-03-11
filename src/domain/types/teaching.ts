@@ -98,7 +98,7 @@ export const SubmitAnswerInputSchema = z
 
 export type StartLearningInput = {
   subjectFilter?: string;
-  timeAvailableMinutes?: number;
+  timeAvailable?: number;
   mode?: 'learning' | 'review';
 };
 
@@ -107,7 +107,7 @@ export type StartLearningStarted = {
   session_id: string;
   mode: 'learning' | 'review';
   total_chunks: number;
-  estimated_duration_minutes: number;
+  estimated_duration: number;
   first_chunk: TeachNextResponse;
   recommendation_summary: string;
 };
@@ -129,12 +129,7 @@ export type StartLearningResult =
 
 export const StartLearningInputShape = {
   subject_filter: z.string().optional().describe('Filter recommendations by subject'),
-  time_available_minutes: z
-    .number()
-    .int()
-    .min(1)
-    .optional()
-    .describe('Available study time in minutes'),
+  time_available: z.number().int().min(1).optional().describe('Available study time in minutes'),
   mode: z
     .enum(['learning', 'review'])
     .optional()
@@ -145,8 +140,8 @@ export const StartLearningInputShape = {
 
 export const StartLearningInputSchema = z
   .object(StartLearningInputShape)
-  .transform(({ subject_filter, time_available_minutes, ...rest }) => ({
+  .transform(({ subject_filter, time_available, ...rest }) => ({
     ...rest,
     subjectFilter: subject_filter,
-    timeAvailableMinutes: time_available_minutes,
+    timeAvailable: time_available,
   }));
