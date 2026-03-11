@@ -146,7 +146,9 @@ function orderBySessionChunkIds(
   chunks: SessionChunk[],
   chunkIds: LearningSession['chunkIds']
 ): SessionChunk[] {
-  if (!chunkIds || chunkIds.length === 0) return chunks;
+  if (!chunkIds || chunkIds.length === 0) {
+    return [...chunks].sort((a, b) => a.createdAt - b.createdAt);
+  }
   const indexMap = new Map(chunkIds.map((id, i) => [id, i]));
   return [...chunks].sort((a, b) => {
     const ai = indexMap.get(a.chunkId) ?? Number.MAX_SAFE_INTEGER;

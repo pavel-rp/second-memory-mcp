@@ -713,17 +713,20 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.needed_retry).toBe(1);
   });
 
-  // Ordering: fallback when session.chunkIds is null
-  it('preserves DB order when session.chunkIds is null', async () => {
+  // Ordering: fallback sort by createdAt when session.chunkIds is null
+  it('sorts by createdAt when session.chunkIds is null', async () => {
     const deps = makeDeps({
       sessions: {
         getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: null })),
-        getSessionChunks: vi
-          .fn()
-          .mockResolvedValue([
-            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
-            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
-          ]),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'pending',
+            createdAt: NOW + 1000,
+          }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending', createdAt: NOW }),
+        ]),
       },
     });
 
@@ -734,17 +737,20 @@ describe('getNextTeachingStep', () => {
     expect(result.chunk_id).toBe('c1');
   });
 
-  // Ordering: fallback when session.chunkIds is empty array
-  it('preserves DB order when session.chunkIds is empty array', async () => {
+  // Ordering: fallback sort by createdAt when session.chunkIds is empty array
+  it('sorts by createdAt when session.chunkIds is empty array', async () => {
     const deps = makeDeps({
       sessions: {
         getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: [] })),
-        getSessionChunks: vi
-          .fn()
-          .mockResolvedValue([
-            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
-            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
-          ]),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'pending',
+            createdAt: NOW + 1000,
+          }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending', createdAt: NOW }),
+        ]),
       },
     });
 
