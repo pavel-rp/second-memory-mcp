@@ -196,6 +196,30 @@ describe('session-progress-tools', () => {
       expect(parsed.error.message).toContain('No active session found');
     });
 
+    it('returns error when persistFn batchUpdateSessionChunks fails', async () => {
+      ctx.validateChunkIds = vi.fn().mockResolvedValue({ valid: true, invalidIds: [] });
+      ctx.getSessionWithChunks = vi.fn().mockResolvedValue({
+        session: { id: 's1', status: 'active' },
+        chunks: [],
+      });
+      ctx.batchUpdateSessionChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: { message: 'constraint violation', type: 'database' },
+      });
+      registerSessionProgressTools(server as any, ctx);
+      const handler = server.tools.get('batch_update_session_chunks')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        operations: [{ chunk_id: 'c1', status: 'completed' }],
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toContain('constraint violation');
+    });
+
     it('returns error for missing session_id', async () => {
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('batch_update_session_chunks')!.handler;

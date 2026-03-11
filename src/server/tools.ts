@@ -7,6 +7,7 @@ import { registerSpacedRepetitionTools } from './spaced-repetition-tools.js';
 import { registerPersistenceTools } from './persistence-tools.js';
 import { registerContentTools } from './content-tools.js';
 import { registerSearchTools } from './search-tools.js';
+import { registerTeachingTools } from './teaching-tools.js';
 
 export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerSpacedRepetitionTools(server, ctx);
@@ -16,4 +17,5 @@ export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerPersistenceTools(server, ctx);
   registerContentTools(server, ctx);
   registerSearchTools(server, ctx);
+  registerTeachingTools(server, ctx);
 }

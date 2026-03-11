@@ -39,6 +39,7 @@ import type {
 import type { SessionInput, HistoricalFeedback, BatchOperation } from './domain/types/session.js';
 import type { SearchLearningContentInput, SearchResultSet } from './domain/types/search-tools.js';
 import type { ServiceResult } from './domain/types/service-result.js';
+import type { TeachNextResponse } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
@@ -49,6 +50,7 @@ import * as recommendationWorkflows from './orchestration/recommendation-workflo
 import * as searchWorkflows from './orchestration/search-workflows.js';
 import * as queryWorkflows from './orchestration/query-workflows.js';
 import * as analyticsWorkflows from './orchestration/analytics-workflows.js';
+import * as teachingWorkflows from './orchestration/teaching-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
 import {
@@ -193,6 +195,9 @@ export interface AppContext {
     chunkIds: string[]
   ) => Promise<{ resolvedChunkIds: string[]; addedPrerequisites: string[]; message: string }>;
 
+  // Teaching orchestration
+  getNextTeachingStep: () => Promise<TeachNextResponse>;
+
   // Recommendation orchestration
   generateRecommendations: (input: RecommendationInput) => Promise<RecommendationOutput>;
 
@@ -321,6 +326,10 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const analyticsDeps: analyticsWorkflows.AnalyticsDeps = {
     reviewPersistence: ports.reviewPersistence,
   };
+  const teachingDeps: teachingWorkflows.TeachingDeps = {
+    sessions: ports.sessions,
+    chunks: ports.chunks,
+  };
 
   const ctx: AppContext = {
     // Chunk orchestration
@@ -366,6 +375,9 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     getSessionChunks: sessionId => sessionWorkflows.getSessionChunks(sessionId, sessionDeps),
     resolveSessionChunkDependencies: chunkIds =>
       sessionWorkflows.resolveSessionChunkDependencies(chunkIds, sessionDeps),
+
+    // Teaching orchestration
+    getNextTeachingStep: () => teachingWorkflows.getNextTeachingStep(teachingDeps),
 
     // Recommendation orchestration
     generateRecommendations: input =>
