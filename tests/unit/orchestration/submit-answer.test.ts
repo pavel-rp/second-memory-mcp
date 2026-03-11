@@ -235,7 +235,7 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: 0 })],
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -260,7 +260,7 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: 0 })],
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -288,7 +288,7 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: 0 })],
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -337,7 +337,7 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: 0 })],
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -352,8 +352,8 @@ describe('submitAnswer', () => {
     );
   });
 
-  // VC-07: Third attempt rejected
-  it('rejects third attempt with error', async () => {
+  // VC-07: Re-queued chunk starts a new presentation (per-presentation attempt counting)
+  it('allows new attempts on re-queued chunk (new presentation)', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -362,18 +362,21 @@ describe('submitAnswer', () => {
             chunkId: 'c1',
             status: 'in_progress',
             attemptsJson: [
-              makeAttempt({ passed: false, quality: 0 }),
+              makeAttempt({ passed: false, quality: undefined }),
               makeAttempt({ passed: false, quality: 1 }),
             ],
           }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
       },
     });
 
-    const result = await submitAnswer(makeInput(), deps);
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
 
-    expect(result.status).toBe('error');
-    expect((result as { message: string }).message).toContain('Max 2 attempts');
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.attempt).toBe(1); // attempt 1 of new presentation
+    expect(result.quality).toBe(5); // first-attempt pass
   });
 
   // VC-08: Attempt persisted in attemptsJson
@@ -485,7 +488,7 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: 0, time_spent_ms: 3000 })],
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined, time_spent_ms: 3000 })],
             timeSpentMs: 3000,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
@@ -530,7 +533,7 @@ describe('submitAnswer', () => {
 
   // VC-08: Attempt appended to existing attemptsJson on second attempt
   it('appends second attempt to existing attemptsJson', async () => {
-    const firstAttempt = makeAttempt({ passed: false, quality: 0, time_spent_ms: 2000 });
+    const firstAttempt = makeAttempt({ passed: false, quality: undefined, time_spent_ms: 2000 });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -661,7 +664,7 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: 0 })],
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
             qualityScoresJson: [2],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),

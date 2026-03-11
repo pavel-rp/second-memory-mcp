@@ -240,28 +240,31 @@ export async function submitAnswer(
     return { status: 'error', message: 'No in-progress chunk. Call teach_next first.' };
   }
 
-  // 3. Count existing attempts
+  // 3. Count attempts for the *current presentation* (chunks can be re-presented
+  //    after failures+re-queuing, so attempts are grouped into pairs).
   const existingAttempts = inProgressChunk.attemptsJson ?? [];
-  const attemptNumber = existingAttempts.length + 1;
+  const attemptsInCurrentPresentation = existingAttempts.length % 2;
 
-  if (attemptNumber > 2) {
+  if (attemptsInCurrentPresentation >= 2) {
     return {
       status: 'error',
-      message: `Max 2 attempts per chunk presentation. Chunk ${inProgressChunk.chunkId} already has ${existingAttempts.length} attempts.`,
+      message: `Max 2 attempts per chunk presentation. Chunk ${inProgressChunk.chunkId} already has ${attemptsInCurrentPresentation} attempts in this presentation.`,
     };
   }
 
-  // 4. Derive quality (attemptNumber is guaranteed 1 or 2 after the > 2 guard)
-  const quality = deriveQuality(attemptNumber as 1 | 2, input.passed);
+  const attemptNumber = (attemptsInCurrentPresentation + 1) as 1 | 2;
 
-  // 5. Build attempt record
+  // 4. Derive quality based on the attempt number within the current presentation
+  const quality = deriveQuality(attemptNumber, input.passed);
+
+  // 5. Build attempt record (omit quality for unscored retry attempts)
   const attempt: ChunkAttempt = {
     timestamp: new Date().toISOString(),
     question: input.question,
     response: input.response,
     passed: input.passed,
     feedback: input.feedback,
-    quality: quality ?? 0,
+    ...(quality !== null ? { quality } : {}),
     time_spent_ms: input.timeSpentMs,
   };
 

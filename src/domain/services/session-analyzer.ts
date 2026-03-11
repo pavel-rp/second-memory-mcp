@@ -38,7 +38,7 @@ function cleanSessionChunks(chunks: SessionChunk[]): SessionChunk[] {
     ...chunk,
     attempts: chunk.attempts.map(attempt => ({
       ...attempt,
-      quality: clampQuality(attempt.quality),
+      quality: clampQuality(attempt.quality ?? 0),
       time_spent_ms: Math.max(0, attempt.time_spent_ms || 0),
     })),
     quality_scores: chunk.quality_scores.map(score => clampQuality(score)),

@@ -40,7 +40,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         "Submit the learner's answer for the current in-progress chunk. " +
         'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
         'After completion, the response includes the next teaching instruction (piggybacks teach_next).',
-      inputSchema: z.object(SubmitAnswerInputShape).shape,
+      inputSchema: SubmitAnswerInputShape,
     },
     async input => {
       try {

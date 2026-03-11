@@ -11,7 +11,7 @@ export type ChunkAttempt = {
   response: string; // the learner's answer
   passed: boolean; // agent's pass/fail judgment
   feedback: string; // agent's explanation of why right/wrong
-  quality: number; // 0-5 quality rating (agent-provided; future: server-derived)
+  quality?: number; // 0-5 quality rating; omitted for unscored retry attempts
   time_spent_ms: number;
 };
 
@@ -113,7 +113,7 @@ export const ChunkAttemptSchema = z.preprocess(
     response: z.string().default(''),
     passed: z.boolean().default(false),
     feedback: z.string().default(''),
-    quality: z.number().min(0).max(5).default(0),
+    quality: z.number().min(0).max(5).optional(),
     time_spent_ms: z.number().min(0),
   })
 );
