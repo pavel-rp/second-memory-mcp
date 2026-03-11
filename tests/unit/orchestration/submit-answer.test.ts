@@ -568,6 +568,37 @@ describe('submitAnswer', () => {
     );
   });
 
+  // SR failure gracefully returns zeroed review_update
+  it('returns zeroed review_update when SR update fails', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: null,
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+      reviewPersistence: {
+        getChunk: vi.fn().mockResolvedValue(undefined), // chunk not found → SR fails
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.review_update).toEqual({
+      next_review_date: '',
+      interval_days: 0,
+      ease_factor: 0,
+      is_leech: false,
+    });
+  });
+
   // Empty attemptsJson array treated as no attempts (same as null)
   it('treats empty attemptsJson array as no attempts', async () => {
     const deps = makeDeps({

@@ -204,12 +204,11 @@ function isRequeuedFailure(sc: SessionChunk): boolean {
  * Deterministic quality derivation — no agent discretion.
  * Returns null when no quality should be recorded yet (first-attempt failure → retry).
  */
-function deriveQuality(attemptNumber: number, passed: boolean): number | null {
+function deriveQuality(attemptNumber: 1 | 2, passed: boolean): number | null {
   if (attemptNumber === 1 && passed) return 5;
   if (attemptNumber === 1 && !passed) return null;
-  if (attemptNumber === 2 && passed) return 3;
-  if (attemptNumber === 2 && !passed) return 1;
-  return null;
+  if (passed) return 3;
+  return 1;
 }
 
 /**
@@ -252,8 +251,8 @@ export async function submitAnswer(
     };
   }
 
-  // 4. Derive quality
-  const quality = deriveQuality(attemptNumber, input.passed);
+  // 4. Derive quality (attemptNumber is guaranteed 1 or 2 after the > 2 guard)
+  const quality = deriveQuality(attemptNumber as 1 | 2, input.passed);
 
   // 5. Build attempt record
   const attempt: ChunkAttempt = {
