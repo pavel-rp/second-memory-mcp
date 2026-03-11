@@ -69,12 +69,24 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     if (allCompleted) {
       return buildCompleteResponse(sessionChunks);
     }
-    // Some in_progress remain — blocked
+    // Some in_progress remain — blocked on that chunk
     const blockedChunk = sessionChunks.find(sc => sc.status === 'in_progress');
+    if (blockedChunk) {
+      return {
+        status: 'blocked',
+        message: 'Complete the current chunk before advancing.',
+        current_chunk_id: blockedChunk.chunkId,
+      };
+    }
+
+    // Inconsistent state: pending chunks exist but none are selectable and none are in_progress
+    const unresolvedPendingIds = pendingChunks.map(sc => sc.chunkId);
     return {
-      status: 'blocked',
-      message: 'Complete the current chunk before advancing.',
-      current_chunk_id: blockedChunk?.chunkId ?? '',
+      status: 'error',
+      message:
+        unresolvedPendingIds.length === 0
+          ? 'Session is in an inconsistent state: no selectable chunks remain, but not all chunks are completed.'
+          : `Session is in an inconsistent state: pending chunks cannot be advanced. Pending chunk ids: ${unresolvedPendingIds.join(', ')}.`,
     };
   }
 

@@ -786,7 +786,7 @@ describe('getNextTeachingStep', () => {
   });
 
   // Edge case: pending chunk with passed attempts is neither fresh nor requeued
-  it('returns blocked with empty chunk_id when pending chunk has passed attempts', async () => {
+  it('returns error for inconsistent state when pending chunk has passed attempts', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -802,7 +802,9 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('blocked');
-    expect(result).toHaveProperty('current_chunk_id', '');
+    expect(result.status).toBe('error');
+    expect(result).toHaveProperty('message');
+    expect((result as { message: string }).message).toContain('inconsistent state');
+    expect((result as { message: string }).message).toContain('c1');
   });
 });
