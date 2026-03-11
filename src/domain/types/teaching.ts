@@ -105,7 +105,7 @@ export type StartLearningInput = {
 export type StartLearningStarted = {
   status: 'started';
   session_id: string;
-  mode: string;
+  mode: 'learning' | 'review';
   total_chunks: number;
   estimated_duration_minutes: number;
   first_chunk: TeachNextResponse;

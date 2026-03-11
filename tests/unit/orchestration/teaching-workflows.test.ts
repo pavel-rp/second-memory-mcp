@@ -1050,11 +1050,6 @@ describe('startLearning', () => {
     vi.spyOn(sessionWorkflows, 'createSession').mockResolvedValue(
       serviceOk({ sessionId: 'new-sess' })
     );
-    vi.spyOn(sessionWorkflows, 'resolveSessionChunkDependencies').mockResolvedValue({
-      resolvedChunkIds: ['c1'],
-      addedPrerequisites: [],
-      message: '',
-    });
     vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
       makeRecommendationOutput()
     );

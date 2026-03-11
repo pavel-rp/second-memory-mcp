@@ -453,12 +453,8 @@ export async function startLearning(
     };
   }
 
-  // 4. Extract chunk IDs and resolve dependencies
-  const recommendedChunkIds = recommendations.recommendations.map(r => r.item.id);
-  const { resolvedChunkIds } = await sessionWorkflows.resolveSessionChunkDependencies(
-    recommendedChunkIds,
-    sessionDeps
-  );
+  // 4. Extract chunk IDs (already dependency-resolved and ordered by RecommendationEngine)
+  const resolvedChunkIds = recommendations.recommendations.map(r => r.item.id);
 
   // 5. Auto-detect mode if not specified
   const mode = input.mode ?? inferMode(recommendations.recommendations.map(r => r.item));
