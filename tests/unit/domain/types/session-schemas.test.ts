@@ -20,7 +20,7 @@ describe('ChunkAttemptSchema', () => {
     }
   });
 
-  it('keeps passed field when both passed and completed are absent', () => {
+  it('defaults passed to false when both passed and completed are absent', () => {
     const result = ChunkAttemptSchema.safeParse({
       timestamp: '2026-03-10T10:00:00Z',
       time_spent_ms: 5000,

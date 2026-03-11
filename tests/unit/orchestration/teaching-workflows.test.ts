@@ -645,7 +645,7 @@ describe('getNextTeachingStep', () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
-          // Only chunk is pending with a passed legacy attempt — not re-queued, not fresh
+          // Only chunk is completed with a passed legacy attempt
           makeSessionChunk({
             id: 'sc-1',
             chunkId: 'c1',

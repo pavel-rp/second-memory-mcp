@@ -160,7 +160,10 @@ function orderBySessionChunkIds(
   return [...chunks].sort((a, b) => {
     const ai = indexMap.get(a.chunkId) ?? Number.MAX_SAFE_INTEGER;
     const bi = indexMap.get(b.chunkId) ?? Number.MAX_SAFE_INTEGER;
-    return ai - bi;
+    if (ai !== bi) return ai - bi;
+    // Tie-breaker for chunks not in chunkIds: sort by createdAt, then chunkId
+    const timeDiff = a.createdAt - b.createdAt;
+    return timeDiff !== 0 ? timeDiff : a.chunkId.localeCompare(b.chunkId);
   });
 }
 
