@@ -419,6 +419,7 @@ export async function startLearning(
     dueOnly: true,
     limit: DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
     subjectFilter: input.subjectFilter,
+    isLeech: false,
   });
   const items = rows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
 

@@ -1191,6 +1191,14 @@ describe('startLearning', () => {
     );
   });
 
+  it('excludes leeches from candidate chunks by default', async () => {
+    const deps = makeStartLearningDeps();
+
+    await startLearning({}, deps);
+
+    expect(deps.chunks.list).toHaveBeenCalledWith(expect.objectContaining({ isLeech: false }));
+  });
+
   it('passes time_available to generateRecommendations', async () => {
     const deps = makeStartLearningDeps();
 
