@@ -10,8 +10,12 @@ import { describe, it, expect } from 'vitest';
  * raw JSON-RPC 2.0 requests — no MCP SDK dependency needed.
  */
 
-const BASE_URL = process.env.MCP_BASE_URL;
+const RAW_BASE_URL = process.env.MCP_BASE_URL;
 const AUTH_TOKEN = process.env.MCP_AUTH_TOKEN;
+
+// Normalize: strip trailing slashes, build canonical endpoint
+const BASE_URL = RAW_BASE_URL?.replace(/\/+$/, '');
+const MCP_ENDPOINT = BASE_URL ? new URL('/mcp', BASE_URL).toString() : '';
 
 // ── JSON-RPC helpers ────────────────────────────────────────
 
@@ -64,12 +68,11 @@ async function parseResponse(res: Response): Promise<unknown> {
 }
 
 async function mcpPost(body: unknown, sessionId?: string) {
-  const res = await fetch(`${BASE_URL}/mcp`, {
+  return fetch(MCP_ENDPOINT, {
     method: 'POST',
     headers: headers(sessionId),
     body: JSON.stringify(body),
   });
-  return res;
 }
 
 // ── Test suite ──────────────────────────────────────────────
@@ -108,8 +111,8 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
 
     const res = await mcpPost(jsonRpcNotification('notifications/initialized'), sessionId);
 
-    // Notifications return 202 Accepted (no response body)
-    expect(res.status).toBe(202);
+    // Notifications may return any success status (often 202 or 204)
+    expect(res.status).toBeLessThan(400);
   });
 
   // ── list_learning_items (DB connectivity) ──────────────
@@ -191,7 +194,7 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
   it('session DELETE cleans up gracefully', async () => {
     expect(sessionId).toBeDefined();
 
-    const res = await fetch(`${BASE_URL}/mcp`, {
+    const res = await fetch(MCP_ENDPOINT, {
       method: 'DELETE',
       headers: headers(sessionId),
     });

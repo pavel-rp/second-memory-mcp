@@ -94,6 +94,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate smoke test config
+        env:
+          MCP_BASE_URL: ${{ secrets.SMOKE_TEST_BASE_URL }}
+        run: |
+          if [ -z "$MCP_BASE_URL" ]; then
+            echo "::error::SMOKE_TEST_BASE_URL secret is not set — smoke tests would silently skip"
+            exit 1
+          fi
+
       - name: Run smoke tests
         env:
           MCP_BASE_URL: ${{ secrets.SMOKE_TEST_BASE_URL }}
