@@ -56,13 +56,17 @@ const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.rep
 
 if (isMainModule) {
   ensureSchema()
-    .then(async () => {
-      logger.info('Schema applied.');
-      const pool = getPool();
-      await pool.end();
-    })
+    .then(() => logger.info('Schema applied.'))
     .catch(err => {
       logger.error('Migration failed:', err);
       process.exitCode = 1;
+    })
+    .finally(async () => {
+      try {
+        await getPool().end();
+      } catch (err) {
+        logger.error('Failed to close database pool:', err);
+        process.exitCode ??= 1;
+      }
     });
 }
