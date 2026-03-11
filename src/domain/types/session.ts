@@ -7,9 +7,12 @@ export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review';
 // Chunk attempt record
 export type ChunkAttempt = {
   timestamp: string; // ISO timestamp
-  quality?: number; // 0-5 quality rating
+  question: string; // the drill question asked
+  response: string; // the learner's answer
+  passed: boolean; // agent's pass/fail judgment
+  feedback: string; // agent's explanation of why right/wrong
+  quality: number; // 0-5 quality rating (agent-provided; future: server-derived)
   time_spent_ms: number;
-  completed: boolean;
 };
 
 // Session chunk progress
@@ -18,6 +21,7 @@ export type SessionChunk = {
   title: string;
   status: 'pending' | 'in_progress' | 'completed';
   attempts: ChunkAttempt[];
+  /** @deprecated Deprecated for new writes; will be removed once analytics derives quality from attempts[].quality. */
   quality_scores: number[]; // 0-5 quality ratings
   time_spent_ms: number;
   // Optional SM-2 metadata from learning_chunks (populated by convertSessionToSessionInput)
@@ -85,17 +89,34 @@ export type CompletionStatus = {
 
 export const SessionModeSchema = z.enum(['scaffolding', 'learning', 'retrieval', 'review']);
 
-export const ChunkAttemptSchema = z.object({
-  timestamp: z
-    .string()
-    .regex(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/,
-      'Timestamp must be in ISO format'
-    ),
-  quality: z.number().min(0).max(5).optional(),
-  time_spent_ms: z.number().min(0),
-  completed: z.boolean(),
-});
+// Normalize legacy attempts: map `completed` → `passed`, default missing fields
+function normalizeLegacyAttempt(data: unknown): unknown {
+  if (typeof data !== 'object' || data === null) return data;
+  const d = data as Record<string, unknown>;
+  if ('completed' in d && !('passed' in d)) {
+    const { completed, ...rest } = d;
+    return { ...rest, passed: completed };
+  }
+  return d;
+}
+
+export const ChunkAttemptSchema = z.preprocess(
+  normalizeLegacyAttempt,
+  z.object({
+    timestamp: z
+      .string()
+      .regex(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?([+-]\d{2}:\d{2})?$/,
+        'Timestamp must be in ISO format'
+      ),
+    question: z.string().default(''),
+    response: z.string().default(''),
+    passed: z.boolean().default(false),
+    feedback: z.string().default(''),
+    quality: z.number().min(0).max(5).default(0),
+    time_spent_ms: z.number().min(0),
+  })
+);
 
 export const SessionChunkSchema = z.object({
   chunk_id: z.string().min(1),

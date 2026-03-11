@@ -14,7 +14,15 @@ const makeSessionInput = () => ({
       title: 'Arrays',
       status: 'completed' as const,
       attempts: [
-        { timestamp: '2025-06-15T10:05:00Z', quality: 4, time_spent_ms: 5000, completed: true },
+        {
+          timestamp: '2025-06-15T10:05:00Z',
+          question: 'Test question',
+          response: 'Test response',
+          passed: true,
+          feedback: 'Test feedback',
+          quality: 4,
+          time_spent_ms: 5000,
+        },
       ],
       quality_scores: [4],
       time_spent_ms: 5000,
@@ -337,9 +345,12 @@ describe('session-lifecycle-tools', () => {
             attempts: [
               {
                 timestamp: '2025-06-15T10:05:00Z',
+                question: 'Test question',
+                response: 'Test response',
+                passed: true,
+                feedback: 'Test feedback',
                 quality: 4,
                 time_spent_ms: 5000,
-                completed: true,
               },
             ],
             quality_scores: [4],

@@ -28,9 +28,12 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
 
         const mappedAttempts = validatedInput.attempts?.map(a => ({
           timestamp: new Date(a.timestamp).toISOString(),
+          question: a.question,
+          response: a.response,
+          passed: a.passed,
+          feedback: a.feedback,
           quality: a.quality,
           time_spent_ms: a.timeSpentMs,
-          completed: a.completed,
         }));
 
         const sessionChunk = await ctx.createSessionChunk({

@@ -185,9 +185,12 @@ describe('sessions service', () => {
       attemptsJson: [
         {
           timestamp: new Date(now).toISOString(),
+          question: 'Test question',
+          response: 'Test response',
+          passed: true,
+          feedback: 'Test feedback',
           quality: 4,
           time_spent_ms: 5000,
-          completed: true,
         },
       ],
       qualityScoresJson: [4],

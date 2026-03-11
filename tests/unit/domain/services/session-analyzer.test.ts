@@ -27,7 +27,10 @@ describe('Session Manager', () => {
             timestamp: '2024-01-01T10:15:00.000Z',
             quality: 4,
             time_spent_ms: 900000, // 15 minutes
-            completed: true,
+            passed: true,
+            question: 'Test question',
+            response: 'Test response',
+            feedback: 'Test feedback',
           },
         ],
         quality_scores: [4],
@@ -42,7 +45,10 @@ describe('Session Manager', () => {
             timestamp: '2024-01-01T10:25:00.000Z',
             quality: 3,
             time_spent_ms: 300000, // 5 minutes
-            completed: false,
+            passed: false,
+            question: 'Test question',
+            response: 'Test response',
+            feedback: 'Test feedback',
           },
         ],
         quality_scores: [3],
@@ -115,7 +121,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:15:00.000Z',
                 quality: 10, // Invalid: too high
                 time_spent_ms: 900000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [10, -5], // Invalid scores
@@ -326,7 +335,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:15:00.000Z',
                 quality: 10, // Invalid: too high
                 time_spent_ms: -100, // Invalid: negative
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [-1, 6], // Invalid: outside range
@@ -339,6 +351,71 @@ describe('Session Manager', () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.message).toContain('Invalid session context');
+      }
+    });
+
+    it('should accept legacy attempts with completed instead of passed', () => {
+      const legacySession = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Legacy Chunk',
+            status: 'completed',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:15:00.000Z',
+                completed: true,
+                quality: 4,
+                time_spent_ms: 900000,
+              },
+            ],
+            quality_scores: [4],
+            time_spent_ms: 900000,
+          },
+        ],
+      };
+
+      const result = validateSessionContext(legacySession, NOW);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const attempt = result.data.chunks[0].attempts[0];
+        expect(attempt.passed).toBe(true);
+        expect(attempt.question).toBe('');
+        expect(attempt.response).toBe('');
+        expect(attempt.feedback).toBe('');
+      }
+    });
+
+    it('should default missing fields on legacy attempts', () => {
+      const legacySession = {
+        ...mockSessionInput,
+        chunks: [
+          {
+            chunk_id: 'chunk-1',
+            title: 'Legacy Chunk',
+            status: 'pending',
+            attempts: [
+              {
+                timestamp: '2024-01-01T10:15:00.000Z',
+                time_spent_ms: 500,
+              },
+            ],
+            quality_scores: [],
+            time_spent_ms: 500,
+          },
+        ],
+      };
+
+      const result = validateSessionContext(legacySession, NOW);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const attempt = result.data.chunks[0].attempts[0];
+        expect(attempt.passed).toBe(false);
+        expect(attempt.quality).toBe(0);
+        expect(attempt.question).toBe('');
+        expect(attempt.response).toBe('');
+        expect(attempt.feedback).toBe('');
       }
     });
 
@@ -356,7 +433,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:15:00.000Z',
                 quality: 4,
                 time_spent_ms: 900000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [4, 5],
@@ -500,7 +580,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:05:00.000Z',
                 quality: 3,
                 time_spent_ms: 300000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [3],
@@ -515,7 +598,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:10:00.000Z',
                 quality: 3,
                 time_spent_ms: 300000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [3],
@@ -555,7 +641,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T09:00:00.000Z',
                 quality: 5,
                 time_spent_ms: 600000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [5],
@@ -570,7 +659,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:00:00.000Z',
                 quality: 4,
                 time_spent_ms: 300000,
-                completed: false,
+                passed: false,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [4],
@@ -627,7 +719,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T09:00:00.000Z',
                 quality: 3,
                 time_spent_ms: 600000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [3],
@@ -642,7 +737,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:00:00.000Z',
                 quality: 3,
                 time_spent_ms: 300000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [3],
@@ -695,7 +793,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:00:00.000Z',
                 quality: 3,
                 time_spent_ms: 600000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [3],
@@ -710,7 +811,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:15:00.000Z',
                 quality: 3,
                 time_spent_ms: 300000,
-                completed: false,
+                passed: false,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [3],
@@ -748,7 +852,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:00:00.000Z',
                 quality: NaN,
                 time_spent_ms: -100,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [NaN],
@@ -776,7 +883,10 @@ describe('Session Manager', () => {
                 timestamp: '2024-01-01T10:00:00.000Z',
                 quality: 10,
                 time_spent_ms: 1000,
-                completed: true,
+                passed: true,
+                question: 'Test question',
+                response: 'Test response',
+                feedback: 'Test feedback',
               },
             ],
             quality_scores: [10],
@@ -789,7 +899,7 @@ describe('Session Manager', () => {
       expect(result.average_quality).toBe(5);
     });
 
-    it('handles undefined quality in attempt', () => {
+    it('handles NaN quality in attempt', () => {
       const session: SessionInput = {
         ...mockSessionInput,
         chunks: [
@@ -800,9 +910,12 @@ describe('Session Manager', () => {
             attempts: [
               {
                 timestamp: '2024-01-01T10:00:00.000Z',
-                quality: undefined as any,
+                quality: NaN,
+                question: 'Test question',
+                response: 'Test response',
+                passed: true,
+                feedback: 'Test feedback',
                 time_spent_ms: 1000,
-                completed: true,
               },
             ],
             quality_scores: [3],

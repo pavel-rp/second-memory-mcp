@@ -107,9 +107,12 @@ describe('Integration: batch session chunk operations', () => {
         attempts: [
           {
             timestamp: new Date(now).toISOString(),
+            question: 'Test question',
+            response: 'Test response',
+            passed: true,
+            feedback: 'Test feedback',
             quality: 5,
             time_spent_ms: 1000,
-            completed: true,
           },
         ],
         qualityScores: [5],
