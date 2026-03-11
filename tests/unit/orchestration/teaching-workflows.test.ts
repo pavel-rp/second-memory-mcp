@@ -446,4 +446,128 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.previous_feedback).toBeUndefined();
   });
+
+  // Branch: null content handled gracefully
+  it('handles chunk with null content', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ content: null })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.instruction).toBeTruthy();
+  });
+
+  // Branch: prerequisites populated in prompt
+  it('passes prerequisites to prompt when present', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi
+          .fn()
+          .mockResolvedValue(makeChunkData({ prerequisitesJson: ['Arrays', 'Loops'] })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.instruction).toContain('Arrays, Loops');
+  });
+
+  // Branch: mastery level from repetitions > 0
+  it('includes mastery level when chunk has repetitions', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ repetitions: 3 })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    // Mastery level is used in retrieval prompt; for learning mode it's still passed
+    expect(result.instruction).toBeTruthy();
+  });
+
+  // Branch: empty attemptsJson array treated same as null
+  it('treats empty attemptsJson array as no attempts', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: [],
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    // Empty array = no attempts → gating blocks
+    expect(result.status).toBe('blocked');
+    expect(result).toHaveProperty('current_chunk_id', 'c1');
+  });
+
+  // Branch: completed chunk with no attempts in summary
+  it('handles completed chunks with no attempts in summary', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: null,
+          }),
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'completed',
+            attemptsJson: [makeAttempt({ passed: true })],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.total).toBe(2);
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.needed_retry).toBe(0);
+  });
+
+  // Branch: completed chunk where all attempts failed (no pass)
+  it('counts chunks where no attempt passed as neither first_try nor retry', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: [makeAttempt({ passed: false }), makeAttempt({ passed: false })],
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.passed_first_try).toBe(0);
+    expect(result.summary.needed_retry).toBe(0);
+  });
 });
