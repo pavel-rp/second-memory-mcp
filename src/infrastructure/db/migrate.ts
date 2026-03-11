@@ -56,12 +56,13 @@ const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.rep
 
 if (isMainModule) {
   ensureSchema()
-    .then(() => {
+    .then(async () => {
       logger.info('Schema applied.');
-      process.exit(0);
+      const pool = getPool();
+      await pool.end();
     })
     .catch(err => {
       logger.error('Migration failed:', err);
-      process.exit(1);
+      process.exitCode = 1;
     });
 }
