@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  REPO_DIR: /home/deploy/second-memory-mcp
+  REPO_DIR: /home/deploy/second-memory-mcp-test
   COMPOSE_DIR: /home/deploy/docker-services/second-memory-mcp
   COMPOSE_FILE: docker-compose.test.yml
 
