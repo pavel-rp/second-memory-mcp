@@ -43,10 +43,10 @@ jobs:
               echo "Error: $COMPOSE_FILE not found in $(pwd)"
               exit 1
             fi
-            docker compose -f "$COMPOSE_FILE" up -d --build
+            docker compose -p second-memory-mcp-test -f "$COMPOSE_FILE" up -d --build
 
             # Wait for health check
-            CONTAINER=$(docker compose -f "$COMPOSE_FILE" ps -q app)
+            CONTAINER=$(docker compose -p second-memory-mcp-test -f "$COMPOSE_FILE" ps -q app)
             for i in $(seq 1 30); do
               if docker inspect --format='{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null | grep -q healthy; then
                 echo "Container healthy"
