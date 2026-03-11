@@ -44,8 +44,8 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const sessionChunks = orderBySessionChunkIds(rawChunks, session.chunkIds);
 
   // 3. Gating: refuse if any in_progress chunk has no recorded attempts
-  const inProgressChunk = sessionChunks.find(sc => sc.status === 'in_progress');
-  if (inProgressChunk && !hasAttempts(inProgressChunk)) {
+  const inProgressChunk = sessionChunks.find(sc => sc.status === 'in_progress' && !hasAttempts(sc));
+  if (inProgressChunk) {
     return {
       status: 'blocked',
       message: 'Complete the current chunk before advancing.',
