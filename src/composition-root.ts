@@ -39,7 +39,11 @@ import type {
 import type { SessionInput, HistoricalFeedback, BatchOperation } from './domain/types/session.js';
 import type { SearchLearningContentInput, SearchResultSet } from './domain/types/search-tools.js';
 import type { ServiceResult } from './domain/types/service-result.js';
-import type { TeachNextResponse } from './domain/types/teaching.js';
+import type {
+  TeachNextResponse,
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+} from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
@@ -197,6 +201,7 @@ export interface AppContext {
 
   // Teaching orchestration
   getNextTeachingStep: () => Promise<TeachNextResponse>;
+  submitAnswer: (input: SubmitAnswerInput) => Promise<SubmitAnswerResult>;
 
   // Recommendation orchestration
   generateRecommendations: (input: RecommendationInput) => Promise<RecommendationOutput>;
@@ -329,6 +334,8 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const teachingDeps: teachingWorkflows.TeachingDeps = {
     sessions: ports.sessions,
     chunks: ports.chunks,
+    reviewPersistence: ports.reviewPersistence,
+    algorithmConfig,
   };
 
   const ctx: AppContext = {
@@ -378,6 +385,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
     // Teaching orchestration
     getNextTeachingStep: () => teachingWorkflows.getNextTeachingStep(teachingDeps),
+    submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
 
     // Recommendation orchestration
     generateRecommendations: input =>

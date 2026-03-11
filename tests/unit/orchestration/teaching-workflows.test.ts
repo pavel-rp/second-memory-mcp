@@ -6,7 +6,12 @@ import {
 import type { LearningSession, SessionChunk } from '../../../src/domain/types/entities.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import type { ChunkAttempt, HistoricalFeedback } from '../../../src/domain/types/session.js';
-import { stubSessionRepository, stubChunkRepository } from '../../helpers/stub-ports.js';
+import {
+  stubSessionRepository,
+  stubChunkRepository,
+  stubReviewPersistence,
+} from '../../helpers/stub-ports.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -105,6 +110,8 @@ function makeDeps(overrides?: {
       getWithContent: vi.fn().mockResolvedValue(makeChunkData()),
       ...overrides?.chunks,
     }),
+    reviewPersistence: stubReviewPersistence(),
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   };
 }
 

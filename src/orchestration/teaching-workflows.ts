@@ -1,13 +1,23 @@
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
+import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
+import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
-import type { TeachNextResponse } from '../domain/types/teaching.js';
+import type {
+  TeachNextResponse,
+  SubmitAnswerInput,
+  SubmitAnswerResult,
+} from '../domain/types/teaching.js';
+import type { ChunkAttempt } from '../domain/types/session.js';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
+import * as reviewWorkflows from './review-workflows.js';
 
 export type TeachingDeps = {
   sessions: SessionRepository;
   chunks: ChunkRepository;
+  reviewPersistence: ReviewPersistencePort;
+  algorithmConfig: AlgorithmConfig;
 };
 
 /**
@@ -186,6 +196,151 @@ function isRequeuedFailure(sc: SessionChunk): boolean {
   const attempts = sc.attemptsJson as unknown[];
   const lastAttempt = attempts[attempts.length - 1];
   return !attemptPassed(lastAttempt);
+}
+
+// ── submit_answer ────────────────────────────────────────────────
+
+/**
+ * Deterministic quality derivation — no agent discretion.
+ * Returns null when no quality should be recorded yet (first-attempt failure → retry).
+ */
+function deriveQuality(attemptNumber: 1 | 2, passed: boolean): number | null {
+  if (attemptNumber === 1 && passed) return 5;
+  if (attemptNumber === 1 && !passed) return null;
+  if (passed) return 3;
+  return 1;
+}
+
+/**
+ * Submit the learner's answer for the current in-progress chunk.
+ *
+ * Flow:
+ * 1. Get active session → error if none
+ * 2. Find in-progress chunk → error if none
+ * 3. Count existing attempts → reject if >= 2
+ * 4. Derive quality from attempt number + passed
+ * 5. Build ChunkAttempt, append to attemptsJson
+ * 6. If attempt 1 failed → persist, return retry
+ * 7. If completed → SR update, mark completed/re-queued, piggyback teach_next
+ */
+export async function submitAnswer(
+  input: SubmitAnswerInput,
+  deps: TeachingDeps
+): Promise<SubmitAnswerResult> {
+  // 1. Get active session
+  const session = await deps.sessions.getActiveSession();
+  if (!session) {
+    return { status: 'error', message: 'No active session. Call create_session first.' };
+  }
+
+  // 2. Find the in-progress chunk
+  const sessionChunks = await deps.sessions.getSessionChunks(session.id);
+  const inProgressChunk = sessionChunks.find(sc => sc.status === 'in_progress');
+  if (!inProgressChunk) {
+    return { status: 'error', message: 'No in-progress chunk. Call teach_next first.' };
+  }
+
+  // 3. Count attempts for the *current presentation* (chunks can be re-presented
+  //    after failures+re-queuing, so attempts are grouped into pairs).
+  const existingAttempts = inProgressChunk.attemptsJson ?? [];
+  const attemptsInCurrentPresentation = existingAttempts.length % 2;
+
+  if (attemptsInCurrentPresentation >= 2) {
+    return {
+      status: 'error',
+      message: `Max 2 attempts per chunk presentation. Chunk ${inProgressChunk.chunkId} already has ${attemptsInCurrentPresentation} attempts in this presentation.`,
+    };
+  }
+
+  const attemptNumber = (attemptsInCurrentPresentation + 1) as 1 | 2;
+
+  // 4. Derive quality based on the attempt number within the current presentation
+  const quality = deriveQuality(attemptNumber, input.passed);
+
+  // 5. Build attempt record (omit quality for unscored retry attempts)
+  const attempt: ChunkAttempt = {
+    timestamp: new Date().toISOString(),
+    question: input.question,
+    response: input.response,
+    passed: input.passed,
+    feedback: input.feedback,
+    ...(quality !== null ? { quality } : {}),
+    time_spent_ms: input.timeSpentMs,
+  };
+
+  const updatedAttempts = [...existingAttempts, attempt];
+  const accumulatedTimeMs = inProgressChunk.timeSpentMs + input.timeSpentMs;
+
+  // 6. First attempt failed → retry (no SR update)
+  if (quality === null) {
+    await deps.sessions.updateSessionChunk(inProgressChunk.id, {
+      attemptsJson: updatedAttempts,
+      timeSpentMs: accumulatedTimeMs,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      status: 'retry',
+      attempt: attemptNumber,
+      chunk_id: inProgressChunk.chunkId,
+      message: 'Incorrect. Try again.',
+      feedback: input.feedback,
+    };
+  }
+
+  // 7. Completed (attempt 1 pass, or attempt 2 pass/fail)
+  const reviewDeps: reviewWorkflows.ReviewDeps = {
+    reviewPersistence: deps.reviewPersistence,
+    algorithmConfig: deps.algorithmConfig,
+  };
+
+  const reviewResult = await reviewWorkflows.processReviewResult(
+    inProgressChunk.chunkId,
+    quality,
+    { timeSpentMs: accumulatedTimeMs },
+    reviewDeps
+  );
+
+  // Determine chunk status: re-queue on attempt-2 failure, otherwise completed
+  const newStatus = attemptNumber === 2 && !input.passed ? 'pending' : 'completed';
+  const updatedQualityScores = (inProgressChunk.qualityScoresJson ?? []).concat(quality);
+
+  await deps.sessions.updateSessionChunk(inProgressChunk.id, {
+    status: newStatus,
+    attemptsJson: updatedAttempts,
+    qualityScoresJson: updatedQualityScores,
+    timeSpentMs: accumulatedTimeMs,
+    updatedAt: Date.now(),
+  });
+
+  // If SR persistence failed, surface this explicitly
+  if (!reviewResult.success) {
+    return {
+      status: 'error',
+      message: 'Failed to persist spaced repetition review result.',
+    };
+  }
+
+  // Piggyback teach_next only when SR persistence succeeded
+  const nextTeachStep = await getNextTeachingStep(deps);
+
+  // Build review_update from SR result (now guaranteed successful)
+  const reviewUpdate = {
+    next_review_date: new Date(reviewResult.data.updated.nextReviewAt).toISOString().split('T')[0],
+    interval_days: reviewResult.data.updated.intervalDays,
+    ease_factor: reviewResult.data.updated.easeFactor,
+    is_leech: reviewResult.data.isLeech,
+  };
+
+  return {
+    status: 'recorded',
+    attempt: attemptNumber,
+    passed: input.passed,
+    quality,
+    chunk_id: inProgressChunk.chunkId,
+    review_update: reviewUpdate,
+    next: nextTeachStep,
+  };
 }
 
 function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse {
