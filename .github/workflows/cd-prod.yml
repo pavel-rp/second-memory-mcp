@@ -27,13 +27,12 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT }}
-          envs: REPO_DIR,COMPOSE_DIR
+          envs: SHA,REPO_DIR,COMPOSE_DIR
           script: |
             set -e
             cd "$REPO_DIR"
-            git fetch origin main
-            git checkout -B main origin/main
-            git reset --hard
+            git fetch origin
+            git reset --hard "$SHA"
             git clean -fd
 
             cd "$COMPOSE_DIR"
@@ -56,5 +55,6 @@ jobs:
             # Run migrations
             docker exec "$CONTAINER" node dist/infrastructure/db/migrate.js
         env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
           REPO_DIR: ${{ env.REPO_DIR }}
           COMPOSE_DIR: ${{ env.COMPOSE_DIR }}
