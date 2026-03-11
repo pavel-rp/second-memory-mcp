@@ -195,18 +195,18 @@ describe('getNextTeachingStep', () => {
     expect(result.drill_format).toBe('explanation');
   });
 
-  // VC-02, VC-05: Re-queued failure prioritized over fresh pending
-  it('prioritizes re-queued failure over fresh pending', async () => {
+  // VC-02, VC-05: Fresh pending prioritized over re-queued failure (interleaving)
+  it('prioritizes fresh pending over re-queued failure', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
-          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }), // fresh
           makeSessionChunk({
-            id: 'sc-2',
-            chunkId: 'c2',
+            id: 'sc-1',
+            chunkId: 'c1',
             status: 'pending',
             attemptsJson: [makeAttempt({ passed: false })], // re-queued failure
           }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }), // fresh
         ]),
       },
       chunks: {
@@ -219,6 +219,7 @@ describe('getNextTeachingStep', () => {
     expect(result.status).toBe('teach');
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
+    expect(result.mode).toBe('learning'); // fresh → learning mode
   });
 
   // VC-04: Re-queued chunk uses retrieval mode

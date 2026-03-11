@@ -18,7 +18,7 @@ export type TeachingDeps = {
  * 1. Get active session
  * 2. Get session chunks
  * 3. Validate gating (refuse if in_progress chunk has no attempts)
- * 4. Select next chunk (re-queued failures → fresh pending → complete)
+ * 4. Select next chunk (fresh pending → re-queued failures → complete)
  * 5. Fetch chunk data from DB
  * 6. Determine mode (learning vs retrieval)
  * 7. Fetch historical feedback
@@ -62,7 +62,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   // Fresh pending: pending chunks with no prior attempts
   const freshPending = pendingChunks.filter(sc => !hasAttempts(sc));
 
-  const selected = requeued[0] ?? freshPending[0];
+  const selected = freshPending[0] ?? requeued[0];
 
   if (!selected) {
     // No candidates — check if all completed
