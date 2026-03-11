@@ -56,7 +56,10 @@ const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.rep
 
 if (isMainModule) {
   ensureSchema()
-    .then(() => logger.info('Schema applied.'))
+    .then(() => {
+      logger.info('Schema applied.');
+      process.exit(0);
+    })
     .catch(err => {
       logger.error('Migration failed:', err);
       process.exit(1);
