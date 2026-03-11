@@ -1,15 +1,23 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   getNextTeachingStep,
+  startLearning,
   type TeachingDeps,
+  type StartLearningDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
+import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
+import * as recommendationWorkflows from '../../../src/orchestration/recommendation-workflows.js';
 import type { LearningSession, SessionChunk } from '../../../src/domain/types/entities.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import type { ChunkAttempt, HistoricalFeedback } from '../../../src/domain/types/session.js';
+import type { RecommendationOutput } from '../../../src/domain/types/recommendations.js';
+import { serviceOk, serviceFail } from '../../../src/domain/types/service-result.js';
 import {
   stubSessionRepository,
   stubChunkRepository,
   stubReviewPersistence,
+  stubPrerequisiteMastery,
+  stubChunkIdLookup,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
@@ -939,5 +947,267 @@ describe('getNextTeachingStep', () => {
     expect(result).toHaveProperty('message');
     expect((result as { message: string }).message).toContain('inconsistent state');
     expect((result as { message: string }).message).toContain('c1');
+  });
+});
+
+// ── startLearning ─────────────────────────────────────────────────
+
+function makeChunkListRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicTitle {
+  return {
+    id: 'c1',
+    topicId: 'topic-1',
+    title: 'Chunk 1',
+    subject: 'CS',
+    difficulty: 5,
+    nextReviewAt: NOW,
+    easeFactor: 2.5,
+    repetitions: 1,
+    lastReviewedAt: NOW - 86400000,
+    estimatedDuration: 10,
+    intervalDays: 1,
+    chunkType: 'review',
+    prerequisitesJson: null,
+    tagsJson: null,
+    content: 'Content...',
+    contentVersion: 1,
+    contentUpdatedAt: NOW,
+    createdAt: NOW,
+    updatedAt: NOW,
+    topicTitle: 'Topic 1',
+    ...overrides,
+  };
+}
+
+function makeRecommendationOutput(overrides?: Partial<RecommendationOutput>): RecommendationOutput {
+  return {
+    recommendations: [
+      {
+        item: {
+          id: 'c1',
+          title: 'Chunk 1',
+          subject: 'CS',
+          difficulty: 5,
+          nextReviewDate: '2026-03-10',
+          easeFactor: 2.5,
+          repetitions: 1,
+          estimatedDuration: 10,
+          chunkType: 'review',
+        },
+        priority: 10,
+        reason: 'overdue',
+        order: 1,
+        cognitiveLoad: 3,
+      },
+    ],
+    sessionSummary: {
+      totalItems: 1,
+      totalDuration: 10,
+      totalCognitiveLoad: 3,
+      newItems: 0,
+      reviewItems: 1,
+      remediationItems: 0,
+      subjects: ['CS'],
+    },
+    estimatedDuration: 10,
+    rationale: 'Review overdue items',
+    ...overrides,
+  };
+}
+
+function makeStartLearningDeps(overrides?: {
+  sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
+  chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
+}): StartLearningDeps {
+  return {
+    sessions: stubSessionRepository({
+      // For getNextTeachingStep (called after session creation)
+      getActiveSession: vi.fn().mockResolvedValue(makeSession({ id: 'new-sess' })),
+      getSessionChunks: vi
+        .fn()
+        .mockResolvedValue([
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending', sessionId: 'new-sess' }),
+        ]),
+      getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+      updateSessionChunk: vi.fn().mockResolvedValue(1),
+      ...overrides?.sessions,
+    }),
+    chunks: stubChunkRepository({
+      list: vi.fn().mockResolvedValue([makeChunkListRow()]),
+      getWithContent: vi.fn().mockResolvedValue(makeChunkData()),
+      ...overrides?.chunks,
+    }),
+    mastery: stubPrerequisiteMastery(),
+    chunkIdLookup: stubChunkIdLookup(),
+    reviewPersistence: stubReviewPersistence(),
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    maxDependencyDepth: 5,
+  };
+}
+
+describe('startLearning', () => {
+  beforeEach(() => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(null);
+    vi.spyOn(sessionWorkflows, 'createSession').mockResolvedValue(
+      serviceOk({ sessionId: 'new-sess' })
+    );
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
+      makeRecommendationOutput()
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns error when an active session already exists', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(makeSession());
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('active session already exists');
+  });
+
+  it('returns nothing_due when DB has no chunks', async () => {
+    const deps = makeStartLearningDeps({
+      chunks: { list: vi.fn().mockResolvedValue([]) },
+    });
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('nothing_due');
+  });
+
+  it('returns nothing_due with subject hint when subject_filter used and no items', async () => {
+    const deps = makeStartLearningDeps({
+      chunks: { list: vi.fn().mockResolvedValue([]) },
+    });
+
+    const result = await startLearning({ subjectFilter: 'Math' }, deps);
+
+    expect(result.status).toBe('nothing_due');
+    expect((result as { message: string }).message).toContain('Math');
+  });
+
+  it('returns nothing_due when no recommendations are available', async () => {
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
+      makeRecommendationOutput({ recommendations: [] })
+    );
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('nothing_due');
+  });
+
+  it('auto-detects mode as review when due review items exist', async () => {
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('started');
+    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.mode).toBe('review');
+  });
+
+  it('auto-detects mode as learning when only new content is available', async () => {
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
+      makeRecommendationOutput({
+        recommendations: [
+          {
+            item: {
+              id: 'c1',
+              title: 'New Chunk',
+              subject: 'CS',
+              difficulty: 3,
+              nextReviewDate: '2026-03-15',
+              easeFactor: 2.5,
+              repetitions: 0,
+              estimatedDuration: 10,
+              chunkType: 'new',
+            },
+            priority: 5,
+            reason: 'new content',
+            order: 1,
+            cognitiveLoad: 2,
+          },
+        ],
+      })
+    );
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('started');
+    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.mode).toBe('learning');
+  });
+
+  it('uses explicitly provided mode when specified', async () => {
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({ mode: 'learning' }, deps);
+
+    expect(result.status).toBe('started');
+    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.mode).toBe('learning');
+  });
+
+  it('returns started with sessionId, totalChunks, firstChunk on success', async () => {
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('started');
+    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.session_id).toBe('new-sess');
+    expect(result.total_chunks).toBe(1);
+    expect(result.estimated_duration).toBe(10);
+    expect(result.first_chunk).toBeDefined();
+    expect(result.first_chunk.status).toBe('teach');
+    expect(result.recommendation_summary).toBe('Review overdue items');
+  });
+
+  it('returns error when session creation fails', async () => {
+    vi.spyOn(sessionWorkflows, 'createSession').mockResolvedValue(
+      serviceFail({ type: 'conflict', message: 'Race condition' })
+    );
+    const deps = makeStartLearningDeps();
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('Race condition');
+  });
+
+  it('passes subject_filter to chunks.list', async () => {
+    const deps = makeStartLearningDeps();
+
+    await startLearning({ subjectFilter: 'Math' }, deps);
+
+    expect(deps.chunks.list).toHaveBeenCalledWith(
+      expect.objectContaining({ subjectFilter: 'Math' })
+    );
+  });
+
+  it('excludes leeches from candidate chunks by default', async () => {
+    const deps = makeStartLearningDeps();
+
+    await startLearning({}, deps);
+
+    expect(deps.chunks.list).toHaveBeenCalledWith(expect.objectContaining({ isLeech: false }));
+  });
+
+  it('passes time_available to generateRecommendations', async () => {
+    const deps = makeStartLearningDeps();
+
+    await startLearning({ timeAvailable: 15 }, deps);
+
+    expect(recommendationWorkflows.generateRecommendations).toHaveBeenCalledWith(
+      expect.objectContaining({ timeAvailable: 15 }),
+      expect.anything(),
+      expect.any(Date)
+    );
   });
 });

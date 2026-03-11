@@ -152,4 +152,77 @@ describe('teaching-tools', () => {
     expect(parsed.error.message).toContain('Session expired');
     expect(parsed.error.retryable).toBe(true);
   });
+
+  // ── start_learning ──────────────────────────────────────────────
+
+  it('registers start_learning tool', () => {
+    registerTeachingTools(server as any, ctx);
+    expect(server.tools.has('start_learning')).toBe(true);
+  });
+
+  it('start_learning returns toolJson result on success', async () => {
+    const startResult = {
+      status: 'started',
+      session_id: 'sess-1',
+      mode: 'review',
+      total_chunks: 3,
+      estimated_duration: 15,
+      first_chunk: { status: 'teach', chunk_id: 'c1' },
+      recommendation_summary: 'Review overdue items',
+    };
+    ctx.startLearning = vi.fn().mockResolvedValue(startResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('start_learning')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('started');
+    expect(parsed.session_id).toBe('sess-1');
+    expect(parsed.first_chunk.status).toBe('teach');
+  });
+
+  it('start_learning maps snake_case input to camelCase', async () => {
+    ctx.startLearning = vi.fn().mockResolvedValue({ status: 'nothing_due', message: 'None' });
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('start_learning')!.handler;
+
+    await handler({
+      subject_filter: 'Math',
+      time_available: 20,
+      mode: 'review',
+    });
+
+    expect(ctx.startLearning).toHaveBeenCalledWith({
+      subjectFilter: 'Math',
+      timeAvailable: 20,
+      mode: 'review',
+    });
+  });
+
+  it('start_learning returns validation error for invalid input', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('start_learning')!.handler;
+
+    const result = await handler({ mode: 'invalid_mode' });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+  });
+
+  it('start_learning returns session error when orchestration throws', async () => {
+    ctx.startLearning = vi.fn().mockRejectedValue(new Error('DB timeout'));
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('start_learning')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('session');
+    expect(parsed.error.message).toContain('DB timeout');
+    expect(parsed.error.retryable).toBe(true);
+  });
 });

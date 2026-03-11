@@ -18,4 +18,10 @@ describe('teaching workflows (composition-root wiring)', () => {
     expect(result.status).toBe('error');
     expect(result).toHaveProperty('message', 'No active session. Call create_session first.');
   });
+
+  it('startLearning returns nothing_due when no chunks exist', async () => {
+    const result = await ctx.startLearning({});
+
+    expect(result.status).toBe('nothing_due');
+  });
 });

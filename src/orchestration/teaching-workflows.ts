@@ -1,17 +1,28 @@
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
+import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
+import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type {
   TeachNextResponse,
   SubmitAnswerInput,
   SubmitAnswerResult,
+  StartLearningInput,
+  StartLearningResult,
 } from '../domain/types/teaching.js';
 import type { ChunkAttempt } from '../domain/types/session.js';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
+import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
+import {
+  DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
+  type LearningItem,
+} from '../domain/types/recommendations.js';
 import * as reviewWorkflows from './review-workflows.js';
+import * as sessionWorkflows from './session-workflows.js';
+import * as recommendationWorkflows from './recommendation-workflows.js';
 
 export type TeachingDeps = {
   sessions: SessionRepository;
@@ -367,4 +378,132 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
       needed_retry: neededRetry,
     },
   };
+}
+
+// ── start_learning ──────────────────────────────────────────────
+
+export type StartLearningDeps = {
+  sessions: SessionRepository;
+  chunks: ChunkRepository;
+  mastery: PrerequisiteMasteryPort;
+  chunkIdLookup: ChunkIdLookupPort;
+  reviewPersistence: ReviewPersistencePort;
+  algorithmConfig: AlgorithmConfig;
+  maxDependencyDepth: number;
+};
+
+/**
+ * Convenience workflow: check for active session → recommend → create session → teach first chunk.
+ * Collapses what_to_learn_today + create_session + teach_next into one call.
+ */
+export async function startLearning(
+  input: StartLearningInput,
+  deps: StartLearningDeps
+): Promise<StartLearningResult> {
+  // 1. Check for active session
+  const sessionDeps: sessionWorkflows.SessionDeps = {
+    sessions: deps.sessions,
+    chunks: deps.chunks,
+    maxDependencyDepth: deps.maxDependencyDepth,
+  };
+  const activeSession = await sessionWorkflows.getActiveSession(sessionDeps);
+  if (activeSession) {
+    return {
+      status: 'error',
+      message: 'An active session already exists. Complete or end it before starting a new one.',
+    };
+  }
+
+  // 2. Fetch learning items from DB
+  const rows = await deps.chunks.list({
+    dueOnly: true,
+    limit: DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
+    subjectFilter: input.subjectFilter,
+    isLeech: false,
+  });
+  const items = rows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
+
+  if (items.length === 0) {
+    return {
+      status: 'nothing_due',
+      message: input.subjectFilter
+        ? `No items due for review in subject "${input.subjectFilter}".`
+        : 'No items due for review. Add new content or wait for items to become due.',
+    };
+  }
+
+  // 3. Generate recommendations
+  const recDeps: recommendationWorkflows.RecommendationDeps = {
+    chunks: deps.chunks,
+    mastery: deps.mastery,
+    chunkIdLookup: deps.chunkIdLookup,
+    algorithmConfig: deps.algorithmConfig,
+  };
+  const now = new Date();
+  const recommendations = await recommendationWorkflows.generateRecommendations(
+    {
+      learningItems: items,
+      timeAvailable: input.timeAvailable,
+      subjectFilter: input.subjectFilter,
+    },
+    recDeps,
+    now
+  );
+
+  if (recommendations.recommendations.length === 0) {
+    return {
+      status: 'nothing_due',
+      message: 'No recommendations available. All items may be up to date.',
+    };
+  }
+
+  // 4. Extract chunk IDs (already dependency-resolved and ordered by RecommendationEngine)
+  const resolvedChunkIds = recommendations.recommendations.map(r => r.item.id);
+
+  // 5. Auto-detect mode if not specified
+  const mode = input.mode ?? inferMode(recommendations.recommendations.map(r => r.item));
+
+  // 6. Create session
+  const sessionResult = await sessionWorkflows.createSession(
+    {
+      chunkIds: resolvedChunkIds,
+      mode,
+      estimatedDuration: recommendations.estimatedDuration,
+    },
+    sessionDeps
+  );
+
+  if (!sessionResult.success) {
+    return {
+      status: 'error',
+      message: `Failed to create session: ${sessionResult.error.message}`,
+    };
+  }
+
+  // 7. Get first teaching step
+  const teachingDeps: TeachingDeps = {
+    sessions: deps.sessions,
+    chunks: deps.chunks,
+    reviewPersistence: deps.reviewPersistence,
+    algorithmConfig: deps.algorithmConfig,
+  };
+  const firstChunk = await getNextTeachingStep(teachingDeps);
+
+  // 8. Return combined result
+  return {
+    status: 'started',
+    session_id: sessionResult.data.sessionId,
+    mode,
+    total_chunks: resolvedChunkIds.length,
+    estimated_duration: recommendations.estimatedDuration,
+    first_chunk: firstChunk,
+    recommendation_summary: recommendations.rationale,
+  };
+}
+
+function inferMode(items: LearningItem[]): 'learning' | 'review' {
+  const hasReviewItems = items.some(
+    item => item.chunkType === 'review' || item.chunkType === 'remediation'
+  );
+  return hasReviewItems ? 'review' : 'learning';
 }

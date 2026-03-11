@@ -93,3 +93,55 @@ export const SubmitAnswerInputSchema = z
     ...rest,
     timeSpentMs: time_spent_ms,
   }));
+
+// ── start_learning types ────────────────────────────────────────
+
+export type StartLearningInput = {
+  subjectFilter?: string;
+  timeAvailable?: number;
+  mode?: 'learning' | 'review';
+};
+
+export type StartLearningStarted = {
+  status: 'started';
+  session_id: string;
+  mode: 'learning' | 'review';
+  total_chunks: number;
+  estimated_duration: number;
+  first_chunk: TeachNextResponse;
+  recommendation_summary: string;
+};
+
+export type StartLearningNothingDue = {
+  status: 'nothing_due';
+  message: string;
+};
+
+export type StartLearningError = {
+  status: 'error';
+  message: string;
+};
+
+export type StartLearningResult =
+  | StartLearningStarted
+  | StartLearningNothingDue
+  | StartLearningError;
+
+export const StartLearningInputShape = {
+  subject_filter: z.string().optional().describe('Filter recommendations by subject'),
+  time_available: z.number().int().min(1).optional().describe('Available study time in minutes'),
+  mode: z
+    .enum(['learning', 'review'])
+    .optional()
+    .describe(
+      "Session mode: 'learning' for new content, 'review' for due items. Auto-detected if omitted."
+    ),
+} as const;
+
+export const StartLearningInputSchema = z
+  .object(StartLearningInputShape)
+  .transform(({ subject_filter, time_available, ...rest }) => ({
+    ...rest,
+    subjectFilter: subject_filter,
+    timeAvailable: time_available,
+  }));

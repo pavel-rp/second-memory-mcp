@@ -1,7 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { z, ZodError } from 'zod';
-import { SubmitAnswerInputShape, SubmitAnswerInputSchema } from '../domain/types/teaching.js';
+import {
+  SubmitAnswerInputShape,
+  SubmitAnswerInputSchema,
+  StartLearningInputShape,
+  StartLearningInputSchema,
+} from '../domain/types/teaching.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -59,6 +64,41 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         }
         logger.error('submit_answer failed:', error);
         return toolError(`Failed to submit answer: ${msg}`, {
+          type: 'session',
+          message: msg,
+          retryable: true,
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'start_learning',
+    {
+      title: 'Start Learning Session',
+      description:
+        'One-call convenience tool: checks for active sessions, generates recommendations, ' +
+        'creates a session, and returns the first teaching chunk. ' +
+        'Replaces the manual sequence of what_to_learn_today → create_session → teach_next.',
+      inputSchema: StartLearningInputShape,
+    },
+    async input => {
+      try {
+        const parsed = StartLearningInputSchema.parse(input);
+        const result = await ctx.startLearning(parsed);
+        return toolJson(result);
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          logger.error('Invalid start_learning input:', error);
+          return toolError(`Failed to start learning: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
+        logger.error('start_learning failed:', error);
+        return toolError(`Failed to start learning: ${msg}`, {
           type: 'session',
           message: msg,
           retryable: true,

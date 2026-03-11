@@ -43,6 +43,8 @@ import type {
   TeachNextResponse,
   SubmitAnswerInput,
   SubmitAnswerResult,
+  StartLearningInput,
+  StartLearningResult,
 } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 
@@ -202,6 +204,7 @@ export interface AppContext {
   // Teaching orchestration
   getNextTeachingStep: () => Promise<TeachNextResponse>;
   submitAnswer: (input: SubmitAnswerInput) => Promise<SubmitAnswerResult>;
+  startLearning: (input: StartLearningInput) => Promise<StartLearningResult>;
 
   // Recommendation orchestration
   generateRecommendations: (input: RecommendationInput) => Promise<RecommendationOutput>;
@@ -337,6 +340,15 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
   };
+  const startLearningDeps: teachingWorkflows.StartLearningDeps = {
+    sessions: ports.sessions,
+    chunks: ports.chunks,
+    mastery: ports.prerequisiteMastery,
+    chunkIdLookup: ports.chunkIdLookup,
+    reviewPersistence: ports.reviewPersistence,
+    algorithmConfig,
+    maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
+  };
 
   const ctx: AppContext = {
     // Chunk orchestration
@@ -386,6 +398,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     // Teaching orchestration
     getNextTeachingStep: () => teachingWorkflows.getNextTeachingStep(teachingDeps),
     submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
+    startLearning: input => teachingWorkflows.startLearning(input, startLearningDeps),
 
     // Recommendation orchestration
     generateRecommendations: input =>

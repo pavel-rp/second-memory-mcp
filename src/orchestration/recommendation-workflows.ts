@@ -2,10 +2,11 @@ import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
 import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
-import type {
-  LearningItem,
-  RecommendationInput,
-  RecommendationOutput,
+import {
+  DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
+  type LearningItem,
+  type RecommendationInput,
+  type RecommendationOutput,
 } from '../domain/types/recommendations.js';
 import { RecommendationEngine } from '../domain/services/recommendation-engine.js';
 import { PrerequisiteValidator } from '../domain/services/prerequisite-validator.js';
@@ -28,7 +29,7 @@ export async function generateRecommendations(
   if (!items || items.length === 0) {
     const rows = await deps.chunks.list({
       dueOnly: input.dueOnly ?? true,
-      limit: 50,
+      limit: DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
       subjectFilter: input.subjectFilter,
     });
     items = rows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
