@@ -4,7 +4,7 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
-    branches: [main]
+    branches: [develop]
 
 concurrency:
   group: cd-prod
@@ -16,7 +16,9 @@ env:
 
 jobs:
   deploy-prod:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
 
     steps:
