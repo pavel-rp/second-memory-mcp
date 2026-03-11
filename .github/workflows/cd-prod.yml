@@ -10,6 +10,10 @@ concurrency:
   group: cd-prod
   cancel-in-progress: false
 
+env:
+  REPO_DIR: /home/deploy/second-memory-mcp
+  COMPOSE_DIR: /home/deploy/docker-services/second-memory-mcp
+
 jobs:
   deploy-prod:
     if: github.event.workflow_run.conclusion == 'success'
@@ -17,20 +21,22 @@ jobs:
 
     steps:
       - name: Deploy to prod
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT }}
+          envs: REPO_DIR,COMPOSE_DIR
           script: |
             set -e
-            cd /home/deploy/second-memory-mcp
-            git fetch origin
-            git checkout main
-            git pull origin main
+            cd "$REPO_DIR"
+            git fetch origin main
+            git checkout -B main origin/main
+            git reset --hard
+            git clean -fd
 
-            cd /home/deploy/docker-services/second-memory-mcp
+            cd "$COMPOSE_DIR"
             docker compose up -d --build
 
             # Wait for health check
@@ -49,3 +55,6 @@ jobs:
 
             # Run migrations
             docker exec "$CONTAINER" node dist/infrastructure/db/migrate.js
+        env:
+          REPO_DIR: ${{ env.REPO_DIR }}
+          COMPOSE_DIR: ${{ env.COMPOSE_DIR }}

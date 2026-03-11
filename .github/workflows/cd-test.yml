@@ -9,31 +9,43 @@ concurrency:
   group: cd-test
   cancel-in-progress: false
 
+env:
+  REPO_DIR: /home/deploy/second-memory-mcp
+  COMPOSE_DIR: /home/deploy/docker-services/second-memory-mcp
+  COMPOSE_FILE: docker-compose.test.yml
+
 jobs:
   deploy-test:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
 
     steps:
       - name: Deploy to test
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT }}
-          envs: SHA
+          envs: SHA,REPO_DIR,COMPOSE_DIR,COMPOSE_FILE
           script: |
             set -e
-            cd /home/deploy/second-memory-mcp
+            cd "$REPO_DIR"
             git fetch origin
-            git checkout $SHA
+            git reset --hard "$SHA"
+            git clean -fd
 
-            cd /home/deploy/docker-services/second-memory-mcp
-            docker compose -f docker-compose.test.yml up -d --build
+            cd "$COMPOSE_DIR"
+            if [ ! -f "$COMPOSE_FILE" ]; then
+              echo "Error: $COMPOSE_FILE not found in $(pwd)"
+              exit 1
+            fi
+            docker compose -f "$COMPOSE_FILE" up -d --build
 
             # Wait for health check
-            CONTAINER=$(docker compose -f docker-compose.test.yml ps -q app)
+            CONTAINER=$(docker compose -f "$COMPOSE_FILE" ps -q app)
             for i in $(seq 1 30); do
               if docker inspect --format='{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null | grep -q healthy; then
                 echo "Container healthy"
@@ -50,3 +62,6 @@ jobs:
             docker exec "$CONTAINER" node dist/infrastructure/db/migrate.js
         env:
           SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO_DIR: ${{ env.REPO_DIR }}
+          COMPOSE_DIR: ${{ env.COMPOSE_DIR }}
+          COMPOSE_FILE: ${{ env.COMPOSE_FILE }}
