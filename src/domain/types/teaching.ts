@@ -19,6 +19,7 @@ export type TeachNextComplete = {
     total: number;
     passed_first_try: number;
     needed_retry: number;
+    exhausted_retries: number;
   };
 };
 
