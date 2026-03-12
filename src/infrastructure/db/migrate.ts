@@ -55,19 +55,22 @@ const argFile = process.argv[1];
 const isMainModule = currentFile === argFile || currentFile.endsWith(argFile.replace(/\\/g, '/'));
 
 if (isMainModule) {
-  const pool = getPool();
-  ensureSchema()
-    .then(() => logger.info('Schema applied.'))
-    .catch(err => {
+  (async () => {
+    let pool: ReturnType<typeof getPool> | undefined;
+    try {
+      pool = getPool();
+      await ensureSchema();
+      logger.info('Schema applied.');
+    } catch (err) {
       logger.error('Migration failed:', err);
       process.exitCode = 1;
-    })
-    .finally(async () => {
+    } finally {
       try {
-        await pool.end();
+        await pool?.end();
       } catch (err) {
         logger.error('Failed to close database pool:', err);
         process.exitCode ||= 1;
       }
-    });
+    }
+  })();
 }
