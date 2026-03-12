@@ -53,6 +53,7 @@ desktop.ini
 test-artifacts/
 .claude/settings.local.json
 .claude/worktrees/
+wf.config.js
 
 # Internal docs (not public)
 /audit/
@@ -65,3 +66,4 @@ AUDIT.md
 /docs/testing/
 /docs/audits/
 /docs/pg-migration/
+docs/wf-plans/

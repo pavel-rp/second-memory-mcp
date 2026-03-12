@@ -7,9 +7,16 @@ import { resolveAuthConfig } from '../config/resolve-auth-config.js';
 import { createMcpServer } from './create-server.js';
 import { startHttpTransport } from './http.js';
 import { logger } from '../shared/logger.js';
+import { getVersion, getBuildTime, SERVER_NAME } from '../shared/version.js';
 
 async function bootstrap(): Promise<void> {
   await initializeDatabase();
+
+  const buildTime = getBuildTime();
+  const versionTag = buildTime
+    ? `${SERVER_NAME} v${getVersion()} (built ${buildTime})`
+    : `${SERVER_NAME} v${getVersion()}`;
+  logger.info(versionTag);
 
   const ctx = createAppContext();
   const transportConfig = resolveTransportConfig();

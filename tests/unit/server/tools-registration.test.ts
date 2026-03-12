@@ -27,5 +27,7 @@ describe('registerServerTools', () => {
     expect(stub.tools).toContain('record_review_result');
     // Learning recommendation tools
     expect(stub.tools).toContain('what_to_learn_today');
+    // Server info tools
+    expect(stub.tools).toContain('get_server_info');
   });
 });
