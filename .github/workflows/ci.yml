@@ -112,4 +112,4 @@ jobs:
           git commit -m "chore: bump version to ${NEW_VERSION}"
           git push -u origin "${BRANCH}"
           gh pr create --title "chore: bump version to ${NEW_VERSION} [skip ci]" --body "Automated version bump to ${NEW_VERSION}" --base develop
-          gh pr merge --auto --squash --delete-branch
+          gh pr merge --auto --squash --delete-branch || gh pr merge --squash --delete-branch
