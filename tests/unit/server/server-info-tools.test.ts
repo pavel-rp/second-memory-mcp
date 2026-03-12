@@ -58,7 +58,7 @@ describe('server-info-tools', () => {
   });
 
   it('returns toolError when getServerInfo throws', async () => {
-    mockedGetServerInfo.mockImplementation(() => {
+    mockedGetServerInfo.mockImplementationOnce(() => {
       throw new Error('version read failed');
     });
     server = new CaptureServer();
