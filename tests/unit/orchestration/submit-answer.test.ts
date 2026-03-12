@@ -682,12 +682,10 @@ describe('submitAnswer', () => {
     );
   });
 
-  // Grind loop: 3rd retry (6 existing attempts) still re-queues normally
-  it('re-queues chunk on 3rd retry (6 existing attempts)', async () => {
-    // 6 existing attempts = 3 presentations already done; this is attempt 1 of 4th presentation
-    // After fail+fail on 4th presentation → 8 attempts → presentationCount=4 > MAX_RETRIES=3 → force-complete
-    // But after fail on attempt 1 of 3rd retry (presentation 4), attempt 2 fail → 8 attempts → force-complete
-    // We need to test that at 6 attempts (3 presentations), double fail still re-queues
+  // Grind loop: 3rd presentation (6 total attempts) still re-queues
+  it('re-queues chunk on 3rd presentation (6 total attempts)', async () => {
+    // 5 prior attempts → attemptNumber=2 of 3rd presentation
+    // After submission: 6 total → presentationCount=3 ≤ MAX_RETRIES=3 → re-queue
     const priorAttempts = Array.from({ length: 5 }, (_, i) =>
       makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
     );

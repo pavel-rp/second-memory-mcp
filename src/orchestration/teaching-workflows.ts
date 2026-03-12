@@ -376,8 +376,8 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
       passedFirstTry++;
     } else if (attempts.some(a => attemptPassed(a))) {
       neededRetry++;
-    } else if (attempts.length > 2) {
-      // No attempt passed and more than one presentation — retried and exhausted
+    } else if (attempts.length >= (MAX_RETRIES + 1) * 2) {
+      // No attempt passed and reached the retry cap — retried and exhausted
       exhaustedRetries++;
     }
   }

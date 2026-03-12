@@ -601,7 +601,7 @@ describe('getNextTeachingStep', () => {
   });
 
   // Grind loop: exhausted_retries counted for force-completed chunks
-  it('counts exhausted_retries for chunks with all-failed attempts and >2 attempts', async () => {
+  it('counts exhausted_retries for force-completed chunks at retry cap', async () => {
     const exhaustedAttempts = Array.from({ length: 8 }, () => makeAttempt({ passed: false }));
     const deps = makeDeps({
       sessions: {
@@ -649,7 +649,7 @@ describe('getNextTeachingStep', () => {
               makeAttempt({ passed: true }),
             ],
           }),
-          // Exhausted retries (all failed, >2 attempts)
+          // Exhausted retries (all failed, reached retry cap)
           makeSessionChunk({
             id: 'sc-3',
             chunkId: 'c3',
