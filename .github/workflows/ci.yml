@@ -77,6 +77,7 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -98,12 +99,17 @@ jobs:
       - name: Bump patch version
         run: pnpm version patch --no-git-tag-version
 
-      - name: Commit and push
+      - name: Create version bump PR and merge
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           NEW_VERSION=$(node -p "require('./package.json').version")
+          BRANCH="chore/version-bump-${NEW_VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
           git add package.json
-          git commit -m "chore: bump version to ${NEW_VERSION} [skip ci]"
-          git pull --rebase
-          git push
+          git commit -m "chore: bump version to ${NEW_VERSION}"
+          git push -u origin "${BRANCH}"
+          gh pr create --title "chore: bump version to ${NEW_VERSION} [skip ci]" --body "Automated version bump to ${NEW_VERSION}" --base develop
+          gh pr merge --auto --squash --delete-branch
