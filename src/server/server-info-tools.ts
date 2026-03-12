@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getServerInfo } from '../shared/version.js';
-import { toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerServerInfoTools(server: McpServer): void {
   server.registerTool(
@@ -12,12 +12,20 @@ export function registerServerInfoTools(server: McpServer): void {
       inputSchema: z.object({}).shape,
     },
     () => {
-      const info = getServerInfo();
-      return toolJson({
-        name: info.name,
-        version: info.version,
-        build_time: info.buildTime,
-      });
+      try {
+        const info = getServerInfo();
+        return toolJson({
+          name: info.name,
+          version: info.version,
+          build_time: info.buildTime,
+        });
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        return toolError(`Failed to get server info: ${msg}`, {
+          type: 'computation',
+          message: msg,
+        });
+      }
     }
   );
 }

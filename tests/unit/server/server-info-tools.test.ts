@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { registerServerInfoTools } from '../../../src/server/server-info-tools.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
+
+vi.mock('../../../src/shared/version.js', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../src/shared/version.js')>();
+  return { ...actual, getServerInfo: vi.fn(actual.getServerInfo) };
+});
+
+import { getServerInfo } from '../../../src/shared/version.js';
+import { registerServerInfoTools } from '../../../src/server/server-info-tools.js';
+
+const mockedGetServerInfo = vi.mocked(getServerInfo);
 
 describe('server-info-tools', () => {
   let server: CaptureServer;
@@ -18,6 +27,7 @@ describe('server-info-tools', () => {
     } else {
       process.env.BUILD_TIME = previousBuildTime;
     }
+    vi.restoreAllMocks();
   });
 
   it('registers get_server_info tool', () => {
@@ -45,5 +55,19 @@ describe('server-info-tools', () => {
     const handler = server.tools.get('get_server_info')!.handler;
     const result = parseResult(await handler());
     expect(result.build_time).toBe('2026-03-12T14:30:00Z');
+  });
+
+  it('returns toolError when getServerInfo throws', async () => {
+    mockedGetServerInfo.mockImplementation(() => {
+      throw new Error('version read failed');
+    });
+    server = new CaptureServer();
+    registerServerInfoTools(server as any);
+    const handler = server.tools.get('get_server_info')!.handler;
+    const result = parseResult(await handler());
+    expect(result.success).toBe(false);
+    expect(result.error.type).toBe('computation');
+    expect(result.error.message).toBe('version read failed');
+    expect(result.message).toBe('Failed to get server info: version read failed');
   });
 });
