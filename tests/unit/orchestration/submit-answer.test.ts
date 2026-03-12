@@ -682,6 +682,121 @@ describe('submitAnswer', () => {
     );
   });
 
+  // Grind loop: 3rd presentation (6 total attempts) still re-queues
+  it('re-queues chunk on 3rd presentation (6 total attempts)', async () => {
+    // 5 prior attempts → attemptNumber=2 of 3rd presentation
+    // After submission: 6 total → presentationCount=3 ≤ MAX_RETRIES=3 → re-queue
+    const priorAttempts = Array.from({ length: 5 }, (_, i) =>
+      makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
+    );
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: priorAttempts, // 5 existing → this is attempt 2 of 3rd presentation
+            timeSpentMs: 15000,
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: false }), deps);
+
+    // 6 total attempts → presentationCount = 3 ≤ MAX_RETRIES → re-queue
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'pending' })
+    );
+  });
+
+  // Grind loop: 4th presentation (8 total attempts) force-completes
+  it('force-completes chunk after exhausting retries (8 total attempts)', async () => {
+    // 7 existing attempts = attempt 1 of 4th presentation already failed; this is attempt 2
+    const priorAttempts = Array.from({ length: 7 }, (_, i) =>
+      makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
+    );
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: priorAttempts,
+            timeSpentMs: 35000,
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: false }), deps);
+
+    // 8 total attempts → presentationCount = 4 > MAX_RETRIES = 3 → force-complete
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'completed' })
+    );
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.quality).toBe(1);
+    expect(result.passed).toBe(false);
+  });
+
+  // Grind loop: force-completed chunk still triggers SR update with quality 1
+  it('triggers SR update with quality 1 on force-completion', async () => {
+    const priorAttempts = Array.from({ length: 7 }, (_, i) =>
+      makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
+    );
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: priorAttempts,
+            timeSpentMs: 35000,
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: false }), deps);
+
+    expect(deps.reviewPersistence.getChunk).toHaveBeenCalledWith('c1');
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalled();
+  });
+
+  // Grind loop: 1st presentation double fail still re-queues (regression guard)
+  it('re-queues on 1st presentation double fail (existing behavior)', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
+          }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: false }), deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'pending' })
+    );
+  });
+
   // Empty attemptsJson array treated as no attempts (same as null)
   it('treats empty attemptsJson array as no attempts', async () => {
     const deps = makeDeps({

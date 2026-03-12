@@ -24,6 +24,9 @@ import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
 
+/** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
+const MAX_RETRIES = 3;
+
 export type TeachingDeps = {
   sessions: SessionRepository;
   chunks: ChunkRepository;
@@ -312,8 +315,14 @@ export async function submitAnswer(
     reviewDeps
   );
 
-  // Determine chunk status: re-queue on attempt-2 failure, otherwise completed
-  const newStatus = attemptNumber === 2 && !input.passed ? 'pending' : 'completed';
+  // Determine chunk status: re-queue on attempt-2 failure, unless retries exhausted
+  let newStatus: 'completed' | 'pending';
+  if (attemptNumber === 2 && !input.passed) {
+    const presentationCount = Math.ceil(updatedAttempts.length / 2);
+    newStatus = presentationCount > MAX_RETRIES ? 'completed' : 'pending';
+  } else {
+    newStatus = 'completed';
+  }
   const updatedQualityScores = (inProgressChunk.qualityScoresJson ?? []).concat(quality);
 
   await deps.sessions.updateSessionChunk(inProgressChunk.id, {
@@ -358,6 +367,7 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
   const total = sessionChunks.length;
   let passedFirstTry = 0;
   let neededRetry = 0;
+  let exhaustedRetries = 0;
 
   for (const sc of sessionChunks) {
     const attempts = sc.attemptsJson ?? [];
@@ -366,6 +376,9 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
       passedFirstTry++;
     } else if (attempts.some(a => attemptPassed(a))) {
       neededRetry++;
+    } else if (attempts.length >= (MAX_RETRIES + 1) * 2) {
+      // No attempt passed and reached the retry cap — retried and exhausted
+      exhaustedRetries++;
     }
   }
 
@@ -376,6 +389,7 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
       total,
       passed_first_try: passedFirstTry,
       needed_retry: neededRetry,
+      exhausted_retries: exhaustedRetries,
     },
   };
 }

@@ -576,8 +576,8 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.needed_retry).toBe(0);
   });
 
-  // Branch: completed chunk where all attempts failed (no pass)
-  it('counts chunks where no attempt passed as neither first_try nor retry', async () => {
+  // Branch: completed chunk where all attempts failed (no pass) — single presentation
+  it('counts single-presentation all-fail as neither first_try, retry, nor exhausted', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -597,6 +597,77 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(0);
     expect(result.summary.needed_retry).toBe(0);
+    expect(result.summary.exhausted_retries).toBe(0);
+  });
+
+  // Grind loop: exhausted_retries counted for force-completed chunks
+  it('counts exhausted_retries for force-completed chunks at retry cap', async () => {
+    const exhaustedAttempts = Array.from({ length: 8 }, () => makeAttempt({ passed: false }));
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: exhaustedAttempts,
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.exhausted_retries).toBe(1);
+    expect(result.summary.passed_first_try).toBe(0);
+    expect(result.summary.needed_retry).toBe(0);
+  });
+
+  // Grind loop: summary with mixed outcomes (passed, retried, exhausted)
+  it('computes summary correctly with passed, retried, and exhausted chunks', async () => {
+    const exhaustedAttempts = Array.from({ length: 8 }, () => makeAttempt({ passed: false }));
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          // Passed first try
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            attemptsJson: [makeAttempt({ passed: true })],
+          }),
+          // Needed retry (failed then passed)
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'completed',
+            attemptsJson: [
+              makeAttempt({ passed: false }),
+              makeAttempt({ passed: false }),
+              makeAttempt({ passed: true }),
+            ],
+          }),
+          // Exhausted retries (all failed, reached retry cap)
+          makeSessionChunk({
+            id: 'sc-3',
+            chunkId: 'c3',
+            status: 'completed',
+            attemptsJson: exhaustedAttempts,
+          }),
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.total).toBe(3);
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.needed_retry).toBe(1);
+    expect(result.summary.exhausted_retries).toBe(1);
   });
 
   // Ordering: selects first pending by session.chunkIds order, not DB row order
