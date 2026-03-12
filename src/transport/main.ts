@@ -7,9 +7,16 @@ import { resolveAuthConfig } from '../config/resolve-auth-config.js';
 import { createMcpServer } from './create-server.js';
 import { startHttpTransport } from './http.js';
 import { logger } from '../shared/logger.js';
+import { getVersion, getBuildTime } from '../shared/version.js';
 
 async function bootstrap(): Promise<void> {
   await initializeDatabase();
+
+  const buildTime = getBuildTime();
+  const versionTag = buildTime
+    ? `second-memory-learning v${getVersion()} (built ${buildTime})`
+    : `second-memory-learning v${getVersion()}`;
+  logger.info(versionTag);
 
   const ctx = createAppContext();
   const transportConfig = resolveTransportConfig();

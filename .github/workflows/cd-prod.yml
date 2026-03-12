@@ -37,8 +37,10 @@ jobs:
             git reset --hard "$SHA"
             git clean -fd
 
+            export BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
             cd "$COMPOSE_DIR"
-            docker compose up -d --build
+            BUILD_TIME="$BUILD_TIME" docker compose up -d --build
 
             # Wait for health check
             CONTAINER=$(docker compose ps -q app)
