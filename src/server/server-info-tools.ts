@@ -1,4 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 import { getServerInfo } from '../shared/version.js';
 import { toolJson } from './tool-helpers.js';
 
@@ -8,6 +9,7 @@ export function registerServerInfoTools(server: McpServer): void {
     {
       title: 'Get Server Info',
       description: 'Returns server name, version, and build time',
+      inputSchema: z.object({}).shape,
     },
     () => {
       const info = getServerInfo();

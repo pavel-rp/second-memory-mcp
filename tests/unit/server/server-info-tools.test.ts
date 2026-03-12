@@ -4,14 +4,20 @@ import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 
 describe('server-info-tools', () => {
   let server: CaptureServer;
+  let previousBuildTime: string | undefined;
 
   beforeEach(() => {
+    previousBuildTime = process.env.BUILD_TIME;
     server = new CaptureServer();
     registerServerInfoTools(server as any);
   });
 
   afterEach(() => {
-    delete process.env.BUILD_TIME;
+    if (previousBuildTime === undefined) {
+      delete process.env.BUILD_TIME;
+    } else {
+      process.env.BUILD_TIME = previousBuildTime;
+    }
   });
 
   it('registers get_server_info tool', () => {

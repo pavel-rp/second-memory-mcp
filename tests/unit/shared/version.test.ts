@@ -1,9 +1,19 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getVersion, getBuildTime, getServerInfo } from '../../../src/shared/version.js';
 
 describe('version utility', () => {
+  let originalBuildTime: string | undefined;
+
+  beforeEach(() => {
+    originalBuildTime = process.env.BUILD_TIME;
+  });
+
   afterEach(() => {
-    delete process.env.BUILD_TIME;
+    if (originalBuildTime === undefined) {
+      delete process.env.BUILD_TIME;
+    } else {
+      process.env.BUILD_TIME = originalBuildTime;
+    }
   });
 
   describe('getVersion', () => {
