@@ -24,7 +24,7 @@ import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
 
-/** Max re-presentations after the initial attempt pair. 3 = 4 total presentations / 8 total attempts. */
+/** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
 const MAX_RETRIES = 3;
 
 export type TeachingDeps = {
