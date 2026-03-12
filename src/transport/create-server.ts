@@ -4,7 +4,7 @@ import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { registerServerTools } from '../server/tools.js';
 import type { AppContext } from '../composition-root.js';
 import { SERVER_INSTRUCTIONS } from '../shared/instructions.js';
-import { getVersion } from '../shared/version.js';
+import { getVersion, SERVER_NAME } from '../shared/version.js';
 import type {
   LearningPromptArgs,
   LearningSessionPromptArgs,
@@ -20,7 +20,7 @@ import type {
  */
 export function createMcpServer(ctx: AppContext): McpServer {
   const server = new McpServer(
-    { name: 'second-memory-learning', version: getVersion() },
+    { name: SERVER_NAME, version: getVersion() },
     { instructions: SERVER_INSTRUCTIONS }
   );
 

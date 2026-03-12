@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string };
 
-const SERVER_NAME = 'second-memory-learning';
+export const SERVER_NAME = 'second-memory-learning';
 
 export function getVersion(): string {
   return pkg.version;
