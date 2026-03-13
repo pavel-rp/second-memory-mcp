@@ -77,6 +77,24 @@ async function mcpPost(body: unknown, sessionId?: string) {
 
 // ── Test suite ──────────────────────────────────────────────
 
+describe.skipIf(!BASE_URL)('Public endpoints', () => {
+  it('GET /health returns ok', async () => {
+    const res = await fetch(new URL('/health', BASE_URL!));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({ status: 'ok' });
+  });
+
+  it('GET /version returns server info', async () => {
+    const res = await fetch(new URL('/version', BASE_URL!));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { name: string; version: string; buildTime: string | null };
+    expect(body.name).toBe('second-memory-learning');
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(body).toHaveProperty('buildTime');
+  });
+});
+
 describe.skipIf(!BASE_URL)('Smoke tests', () => {
   let sessionId: string | undefined;
 

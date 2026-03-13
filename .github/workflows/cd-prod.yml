@@ -98,8 +98,26 @@ jobs:
             exit 1
           fi
 
+      - name: Fetch OAuth token
+        id: auth
+        env:
+          TOKEN_URL: https://auth.neurasphere.ee/auth/v1/oidc/token
+          CLIENT_ID: ${{ secrets.SMOKE_PROD_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.SMOKE_PROD_CLIENT_SECRET }}
+        run: |
+          RESPONSE=$(curl -sf -X POST "$TOKEN_URL" \
+            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET")
+          TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "::error::Failed to obtain OAuth token"
+            echo "$RESPONSE" >&2
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
       - name: Run smoke tests
         env:
           MCP_BASE_URL: ${{ secrets.SMOKE_PROD_BASE_URL }}
-          MCP_AUTH_TOKEN: ${{ secrets.SMOKE_PROD_AUTH_TOKEN }}
+          MCP_AUTH_TOKEN: ${{ steps.auth.outputs.token }}
         run: pnpm run test:smoke
