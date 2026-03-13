@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { logger } from '../shared/logger.js';
+import { getServerInfo } from '../shared/version.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
 import { createJwtMiddleware } from './jwt-middleware.js';
@@ -67,6 +68,10 @@ export async function startHttpTransport(
   const transports = new Map<string, StreamableHTTPServerTransport>();
   const sessionIdentity = new Map<string, SessionIdentity>();
   const app = createMcpExpressApp({ host: config.httpHost });
+
+  // Public endpoints — no auth required
+  app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  app.get('/version', (_req, res) => res.json(getServerInfo()));
 
   // PRM endpoint (before /mcp, only when auth is enabled)
   if (authConfig) {
