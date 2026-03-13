@@ -119,7 +119,7 @@ export async function startHttpTransport(
       return;
     }
 
-    if (!sessionId && isInitializeRequest(body)) {
+    if (isInitializeRequest(body)) {
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid: string) => {
