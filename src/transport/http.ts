@@ -144,11 +144,21 @@ export async function startHttpTransport(
       return;
     }
 
-    res.status(404).json({
-      jsonrpc: '2.0',
-      error: { code: JSON_RPC_SERVER_ERROR, message: 'Session not found' },
-      id: null,
-    });
+    if (sessionId) {
+      // Stale or unknown session ID — 404 lets clients know to re-initialize
+      res.status(404).json({
+        jsonrpc: '2.0',
+        error: { code: JSON_RPC_SERVER_ERROR, message: 'Session not found' },
+        id: null,
+      });
+    } else {
+      // No session header and not an initialize request — bad request
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: { code: JSON_RPC_INVALID_REQUEST, message: 'Missing session ID' },
+        id: null,
+      });
+    }
   });
 
   // GET/DELETE /mcp — session-bound
