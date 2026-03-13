@@ -106,7 +106,9 @@ jobs:
           CLIENT_SECRET: ${{ secrets.SMOKE_PROD_CLIENT_SECRET }}
         run: |
           RESPONSE=$(curl -sf -X POST "$TOKEN_URL" \
-            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET")
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "client_id=$CLIENT_ID" \
+            --data-urlencode "client_secret=$CLIENT_SECRET")
           TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
           if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
             echo "::error::Failed to obtain OAuth token"
