@@ -10,7 +10,7 @@ export function getVersion(): string {
 }
 
 export function getBuildTime(): string | null {
-  return process.env.BUILD_TIME ?? null;
+  return process.env.BUILD_TIME || null;
 }
 
 export function getServerInfo(): { name: string; version: string; buildTime: string | null } {
