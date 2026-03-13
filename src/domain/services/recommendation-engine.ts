@@ -312,8 +312,8 @@ export class RecommendationEngine {
       }
     }
 
-    // Interleave for optimal learning (mix difficulties)
-    return this.interleaveRecommendations(recommendations);
+    // Group by topic so chunks from the same topic stay contiguous
+    return this.groupByTopic(recommendations);
   }
 
   /**
@@ -380,14 +380,12 @@ export class RecommendationEngine {
   }
 
   /**
-   * Interleave recommendations at the topic level.
+   * Group recommendations by topic.
    * Chunks from the same topic stay contiguous (preserving input order);
    * topic-groups are emitted sequentially in first-seen order.
    * Chunks without a topicId are treated as individual single-item groups.
    */
-  private interleaveRecommendations(
-    recommendations: LearningRecommendation[]
-  ): LearningRecommendation[] {
+  private groupByTopic(recommendations: LearningRecommendation[]): LearningRecommendation[] {
     if (recommendations.length === 0) return [];
 
     // Group by topicId; orphan chunks each become their own group
@@ -405,15 +403,15 @@ export class RecommendationEngine {
     }
 
     // Emit groups sequentially in insertion order: all chunks of group 1, then group 2, etc.
-    const interleaved: LearningRecommendation[] = [];
+    const grouped: LearningRecommendation[] = [];
     let order = 1;
     for (const group of groupMap.values()) {
       for (const rec of group) {
-        interleaved.push({ ...rec, order: order++ });
+        grouped.push({ ...rec, order: order++ });
       }
     }
 
-    return interleaved;
+    return grouped;
   }
 
   /**
@@ -659,7 +657,7 @@ export class RecommendationEngine {
       rationale += `. Added ${reviewCount} optimally-timed reviews for reinforcement`;
     }
 
-    rationale += '. Items are interleaved by difficulty to optimize cognitive load.';
+    rationale += '. Items are grouped by topic to maintain learning context.';
 
     // Add dependency resolution explanation if applicable
     if (

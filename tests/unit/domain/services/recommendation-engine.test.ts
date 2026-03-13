@@ -979,7 +979,7 @@ describe('RecommendationEngine', () => {
     expect(result.recommendations).toEqual([]);
   });
 
-  it('interleaves only easy and hard items when no medium-difficulty items exist', async () => {
+  it('groups easy and hard items by topic when no medium-difficulty items exist', async () => {
     const engine = createTestEngine();
     // All items either very easy (cogLoad < 10) or very hard (cogLoad >= 15)
     const items = [
@@ -1282,7 +1282,7 @@ describe('RecommendationEngine', () => {
     expect(ids.length).toBe(3);
 
     // Verify intra-topic order: the relative order of topic-c chunks in the
-    // output should match the order they entered interleaveRecommendations
+    // output should match the order they entered groupByTopic
     // (which is the composeBalancedSession order). Since all are overdue and
     // same topic, they should remain in their input-priority order.
     const topicCIds = result.recommendations
