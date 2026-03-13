@@ -33,6 +33,11 @@ describe('version utility', () => {
       expect(getBuildTime()).toBeNull();
     });
 
+    it('returns null when BUILD_TIME is empty string', () => {
+      process.env.BUILD_TIME = '';
+      expect(getBuildTime()).toBeNull();
+    });
+
     it('returns the value when BUILD_TIME is set', () => {
       process.env.BUILD_TIME = '2026-03-12T14:30:00Z';
       expect(getBuildTime()).toBe('2026-03-12T14:30:00Z');
