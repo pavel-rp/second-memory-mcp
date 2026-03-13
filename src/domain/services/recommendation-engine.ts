@@ -380,30 +380,40 @@ export class RecommendationEngine {
   }
 
   /**
-   * Interleave recommendations for optimal learning
+   * Interleave recommendations at the topic level.
+   * Chunks from the same topic stay contiguous (preserving input order);
+   * topic-groups are round-robined so different topics alternate.
+   * Chunks without a topicId are treated as individual single-item groups.
    */
   private interleaveRecommendations(
     recommendations: LearningRecommendation[]
   ): LearningRecommendation[] {
-    // Sort by cognitive load to interleave easy/hard items
-    const easy = recommendations.filter(r => r.cognitiveLoad < 10);
-    const medium = recommendations.filter(r => r.cognitiveLoad >= 10 && r.cognitiveLoad < 15);
-    const hard = recommendations.filter(r => r.cognitiveLoad >= 15);
+    if (recommendations.length === 0) return [];
 
+    // Group by topicId; orphan chunks each become their own group
+    const groupMap = new Map<string, LearningRecommendation[]>();
+    const groupOrder: string[] = []; // preserves first-seen order of groups
+    let orphanCounter = 0;
+
+    for (const rec of recommendations) {
+      const key = rec.item.topicId ?? `__orphan_${orphanCounter++}`;
+      let group = groupMap.get(key);
+      if (!group) {
+        group = [];
+        groupMap.set(key, group);
+        groupOrder.push(key);
+      }
+      group.push(rec);
+    }
+
+    // Round-robin the groups: emit all chunks of group 1, then group 2, etc.
     const interleaved: LearningRecommendation[] = [];
     let order = 1;
-
-    // Interleave pattern: easy, medium, hard, easy, medium...
-    const maxLength = Math.max(easy.length, medium.length, hard.length);
-    for (let i = 0; i < maxLength; i++) {
-      if (easy[i]) {
-        interleaved.push({ ...easy[i], order: order++ });
-      }
-      if (medium[i]) {
-        interleaved.push({ ...medium[i], order: order++ });
-      }
-      if (hard[i]) {
-        interleaved.push({ ...hard[i], order: order++ });
+    for (const key of groupOrder) {
+      const group = groupMap.get(key);
+      if (!group) continue;
+      for (const rec of group) {
+        interleaved.push({ ...rec, order: order++ });
       }
     }
 

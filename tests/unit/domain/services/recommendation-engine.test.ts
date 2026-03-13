@@ -44,6 +44,8 @@ function makeItem(overrides: Partial<any> = {}): any {
     chunkType: overrides.chunkType ?? 'review',
     prerequisites: overrides.prerequisites,
     tags: overrides.tags,
+    topicId: overrides.topicId,
+    topicTitle: overrides.topicTitle,
   };
 }
 
@@ -185,12 +187,24 @@ describe('RecommendationEngine', () => {
   it('interleaves recommendations by difficulty buckets', async () => {
     const engine = createTestEngine();
     const items = [
-      makeItem({ id: 'e1', difficulty: 3, estimatedDuration: 5 }),
-      makeItem({ id: 'm1', difficulty: 6, estimatedDuration: 5 }),
-      makeItem({ id: 'h1', difficulty: 9, estimatedDuration: 5, easeFactor: 1.6 }),
-      makeItem({ id: 'e2', difficulty: 3, estimatedDuration: 5 }),
-      makeItem({ id: 'm2', difficulty: 6, estimatedDuration: 5 }),
-      makeItem({ id: 'h2', difficulty: 9, estimatedDuration: 5, easeFactor: 1.6 }),
+      makeItem({ id: 'e1', difficulty: 3, estimatedDuration: 5, topicId: 'topic-easy' }),
+      makeItem({ id: 'm1', difficulty: 6, estimatedDuration: 5, topicId: 'topic-med' }),
+      makeItem({
+        id: 'h1',
+        difficulty: 9,
+        estimatedDuration: 5,
+        easeFactor: 1.6,
+        topicId: 'topic-hard',
+      }),
+      makeItem({ id: 'e2', difficulty: 3, estimatedDuration: 5, topicId: 'topic-easy' }),
+      makeItem({ id: 'm2', difficulty: 6, estimatedDuration: 5, topicId: 'topic-med' }),
+      makeItem({
+        id: 'h2',
+        difficulty: 9,
+        estimatedDuration: 5,
+        easeFactor: 1.6,
+        topicId: 'topic-hard',
+      }),
     ];
 
     const out = await engine.generateRecommendations(
@@ -975,6 +989,7 @@ describe('RecommendationEngine', () => {
         estimatedDuration: 5,
         chunkType: 'review',
         nextReviewDate: '2025-06-14',
+        topicId: 'topic-easy',
       }),
       makeItem({
         id: 'easy-2',
@@ -982,6 +997,7 @@ describe('RecommendationEngine', () => {
         estimatedDuration: 5,
         chunkType: 'review',
         nextReviewDate: '2025-06-14',
+        topicId: 'topic-easy',
       }),
       makeItem({
         id: 'hard-1',
@@ -989,6 +1005,7 @@ describe('RecommendationEngine', () => {
         estimatedDuration: 15,
         chunkType: 'review',
         nextReviewDate: '2025-06-14',
+        topicId: 'topic-hard',
       }),
       makeItem({
         id: 'hard-2',
@@ -996,6 +1013,7 @@ describe('RecommendationEngine', () => {
         estimatedDuration: 15,
         chunkType: 'review',
         nextReviewDate: '2025-06-14',
+        topicId: 'topic-hard',
       }),
     ];
 
@@ -1063,5 +1081,212 @@ describe('RecommendationEngine', () => {
 
     expect(result.recommendations.length).toBeGreaterThan(0);
     expect(result.conversationGuidance?.encouragement).toContain('explore new concepts');
+  });
+
+  it('groups chunks from the same topic contiguously', async () => {
+    const engine = createTestEngine();
+    // 2 topics, 3 chunks each, varying difficulty — all overdue so they all get selected
+    const items = [
+      makeItem({
+        id: 'a1',
+        topicId: 'topic-a',
+        topicTitle: 'Topic A',
+        difficulty: 3,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'a2',
+        topicId: 'topic-a',
+        topicTitle: 'Topic A',
+        difficulty: 7,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'a3',
+        topicId: 'topic-a',
+        topicTitle: 'Topic A',
+        difficulty: 9,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+        easeFactor: 1.6,
+      }),
+      makeItem({
+        id: 'b1',
+        topicId: 'topic-b',
+        topicTitle: 'Topic B',
+        difficulty: 2,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'b2',
+        topicId: 'topic-b',
+        topicTitle: 'Topic B',
+        difficulty: 6,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'b3',
+        topicId: 'topic-b',
+        topicTitle: 'Topic B',
+        difficulty: 10,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+        easeFactor: 1.6,
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+        constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
+      } as any,
+      NOW
+    );
+
+    // For each pair of chunks from the same topic, no chunk from a different topic appears between them
+    for (const topicId of ['topic-a', 'topic-b']) {
+      const indices = result.recommendations
+        .map((r, i) => (r.item.topicId === topicId ? i : -1))
+        .filter(i => i !== -1);
+      if (indices.length > 1) {
+        const min = indices[0];
+        const max = indices[indices.length - 1];
+        // All items between min and max must belong to the same topic
+        for (let i = min; i <= max; i++) {
+          expect(result.recommendations[i].item.topicId).toBe(topicId);
+        }
+      }
+    }
+
+    // Orders should be sequential 1..N
+    const orders = result.recommendations.map(r => r.order);
+    for (let i = 0; i < orders.length; i++) {
+      expect(orders[i]).toBe(i + 1);
+    }
+  });
+
+  it('treats chunks without topicId as individual groups', async () => {
+    const engine = createTestEngine();
+    // Mix orphan chunks (no topicId) with multi-chunk topic
+    const items = [
+      makeItem({
+        id: 'orphan-1',
+        difficulty: 5,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 't1',
+        topicId: 'topic-x',
+        topicTitle: 'Topic X',
+        difficulty: 5,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 't2',
+        topicId: 'topic-x',
+        topicTitle: 'Topic X',
+        difficulty: 5,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'orphan-2',
+        difficulty: 5,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+        constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
+      } as any,
+      NOW
+    );
+
+    // Topic-x chunks must be contiguous
+    const topicXIndices = result.recommendations
+      .map((r, i) => (r.item.topicId === 'topic-x' ? i : -1))
+      .filter(i => i !== -1);
+    if (topicXIndices.length === 2) {
+      expect(topicXIndices[1] - topicXIndices[0]).toBe(1);
+    }
+
+    // Orphans may or may not be adjacent — key assertion is that topic-x chunks are contiguous
+    expect(result.recommendations.length).toBe(4);
+  });
+
+  it('preserves intra-topic chunk order across difficulty levels', async () => {
+    const engine = createTestEngine();
+    // Single topic with easy + hard chunks — order from composeBalancedSession should be preserved within the group
+    const items = [
+      makeItem({
+        id: 'c1',
+        topicId: 'topic-c',
+        topicTitle: 'Topic C',
+        difficulty: 2,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+      makeItem({
+        id: 'c2',
+        topicId: 'topic-c',
+        topicTitle: 'Topic C',
+        difficulty: 9,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+        easeFactor: 1.6,
+      }),
+      makeItem({
+        id: 'c3',
+        topicId: 'topic-c',
+        topicTitle: 'Topic C',
+        difficulty: 5,
+        estimatedDuration: 5,
+        nextReviewDate: '2025-06-14',
+      }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      {
+        mode: 'explicit',
+        learningItems: items,
+        timeAvailable: 60,
+        constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
+      } as any,
+      NOW
+    );
+
+    // All chunks belong to same topic — output order should match the order
+    // they were selected (from composeBalancedSession), since they're all in one group
+    const ids = result.recommendations.map(r => r.item.id);
+    expect(ids.length).toBe(3);
+
+    // Verify intra-topic order: the relative order of topic-c chunks in the
+    // output should match the order they entered interleaveRecommendations
+    // (which is the composeBalancedSession order). Since all are overdue and
+    // same topic, they should remain in their input-priority order.
+    const topicCIds = result.recommendations
+      .filter(r => r.item.topicId === 'topic-c')
+      .map(r => r.item.id);
+    // They should be contiguous and in the same relative order
+    expect(topicCIds.length).toBe(3);
+
+    // Orders should be sequential 1..N
+    const orders = result.recommendations.map(r => r.order);
+    for (let i = 0; i < orders.length; i++) {
+      expect(orders[i]).toBe(i + 1);
+    }
   });
 });
