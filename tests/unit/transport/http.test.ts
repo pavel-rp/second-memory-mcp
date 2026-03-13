@@ -146,6 +146,26 @@ describe('startHttpTransport', () => {
     await handle.close();
   });
 
+  // ── Public endpoints ─────────────────────────────────────────
+
+  it('GET /health returns 200 with status ok', async () => {
+    const res = await makeRequest(port, { method: 'GET', path: '/health' });
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('application/json');
+    expect(JSON.parse(res.body)).toEqual({ status: 'ok' });
+  });
+
+  it('GET /version returns 200 with server info', async () => {
+    const res = await makeRequest(port, { method: 'GET', path: '/version' });
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('application/json');
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty('name', 'second-memory-learning');
+    expect(body).toHaveProperty('version');
+    expect(typeof body.version).toBe('string');
+    expect(body).toHaveProperty('buildTime');
+  });
+
   // ── Route filtering ───────────────────────────────────────────
 
   it('returns 404 for non-/mcp paths', async () => {
@@ -434,6 +454,22 @@ describe('startHttpTransport with auth', () => {
   afterAll(async () => {
     processOnSpy.mockRestore();
     await handle.close();
+  });
+
+  // ── Public endpoints bypass auth ─────────────────────────────
+
+  it('GET /health returns 200 without Authorization header', async () => {
+    const res = await makeRequest(port, { method: 'GET', path: '/health' });
+    expect(res.status).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ status: 'ok' });
+  });
+
+  it('GET /version returns 200 without Authorization header', async () => {
+    const res = await makeRequest(port, { method: 'GET', path: '/version' });
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body).toHaveProperty('name', 'second-memory-learning');
+    expect(body).toHaveProperty('version');
   });
 
   // ── CORS with configured origins (VC-11) ────────────────────
