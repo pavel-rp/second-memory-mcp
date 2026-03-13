@@ -144,9 +144,9 @@ export async function startHttpTransport(
       return;
     }
 
-    res.status(400).json({
+    res.status(404).json({
       jsonrpc: '2.0',
-      error: { code: JSON_RPC_SERVER_ERROR, message: 'Bad Request: No valid session ID provided' },
+      error: { code: JSON_RPC_SERVER_ERROR, message: 'Session not found' },
       id: null,
     });
   });
