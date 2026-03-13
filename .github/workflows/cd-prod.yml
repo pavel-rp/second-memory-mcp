@@ -110,7 +110,7 @@ jobs:
           TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
           if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
             echo "::error::Failed to obtain OAuth token"
-            echo "$RESPONSE" >&2
+            echo "$RESPONSE" | jq '{error, error_description}' >&2 || true
             exit 1
           fi
           echo "::add-mask::$TOKEN"
