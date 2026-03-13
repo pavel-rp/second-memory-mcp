@@ -195,7 +195,8 @@ describe('startHttpTransport', () => {
     });
     expect(res.status).toBe(400);
     const parsed = JSON.parse(res.body);
-    expect(parsed.error.code).toBe(-32000);
+    expect(parsed.error.code).toBe(-32600);
+    expect(parsed.error.message).toBe('Missing session ID');
   });
 
   // ── POST initialization ───────────────────────────────────────
@@ -210,6 +211,17 @@ describe('startHttpTransport', () => {
       : [JSON.parse(res.body)];
     const initResponse = data[0] as Record<string, unknown>;
     expect((initResponse.result as Record<string, unknown>)?.serverInfo).toBeDefined();
+  });
+
+  it('accepts initialize request even with stale session header', async () => {
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'mcp-session-id': 'stale-gone-session' },
+      body: { ...INIT_BODY, id: 50 },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers['mcp-session-id']).toBeDefined();
+    expect(res.headers['mcp-session-id']).not.toBe('stale-gone-session');
   });
 
   // ── Session reuse ─────────────────────────────────────────────
@@ -291,13 +303,16 @@ describe('startHttpTransport', () => {
 
   // ── POST with invalid session ID ──────────────────────────────
 
-  it('returns 400 for POST with invalid session ID and non-init body', async () => {
+  it('returns 404 for POST with invalid session ID and non-init body', async () => {
     const res = await makeRequest(port, {
       method: 'POST',
       headers: { 'mcp-session-id': 'does-not-exist' },
       body: { jsonrpc: '2.0', method: 'tools/list', id: 3 },
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
+    const parsed = JSON.parse(res.body);
+    expect(parsed.error.code).toBe(-32000);
+    expect(parsed.error.message).toBe('Session not found');
   });
 
   // ── POST with invalid JSON body (readBody parse error → catch) ─
