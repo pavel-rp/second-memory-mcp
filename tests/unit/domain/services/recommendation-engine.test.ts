@@ -1023,6 +1023,20 @@ describe('RecommendationEngine', () => {
     );
 
     expect(result.recommendations.length).toBeGreaterThan(0);
+
+    // Verify topic contiguity: items from the same topic must be adjacent
+    for (const topicId of ['topic-easy', 'topic-hard']) {
+      const indices = result.recommendations
+        .map((r, i) => (r.item.topicId === topicId ? i : -1))
+        .filter(i => i !== -1);
+      if (indices.length > 1) {
+        const min = indices[0];
+        const max = indices[indices.length - 1];
+        for (let i = min; i <= max; i++) {
+          expect(result.recommendations[i].item.topicId).toBe(topicId);
+        }
+      }
+    }
   });
 
   it('generates empty-recommendation guidance when no items pass constraints', async () => {
