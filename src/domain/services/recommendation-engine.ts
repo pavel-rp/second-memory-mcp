@@ -382,7 +382,7 @@ export class RecommendationEngine {
   /**
    * Interleave recommendations at the topic level.
    * Chunks from the same topic stay contiguous (preserving input order);
-   * topic-groups are round-robined so different topics alternate.
+   * topic-groups are emitted sequentially in first-seen order.
    * Chunks without a topicId are treated as individual single-item groups.
    */
   private interleaveRecommendations(
@@ -392,7 +392,6 @@ export class RecommendationEngine {
 
     // Group by topicId; orphan chunks each become their own group
     const groupMap = new Map<string, LearningRecommendation[]>();
-    const groupOrder: string[] = []; // preserves first-seen order of groups
     let orphanCounter = 0;
 
     for (const rec of recommendations) {
@@ -401,17 +400,14 @@ export class RecommendationEngine {
       if (!group) {
         group = [];
         groupMap.set(key, group);
-        groupOrder.push(key);
       }
       group.push(rec);
     }
 
-    // Round-robin the groups: emit all chunks of group 1, then group 2, etc.
+    // Emit groups sequentially in insertion order: all chunks of group 1, then group 2, etc.
     const interleaved: LearningRecommendation[] = [];
     let order = 1;
-    for (const key of groupOrder) {
-      const group = groupMap.get(key);
-      if (!group) continue;
+    for (const group of groupMap.values()) {
       for (const rec of group) {
         interleaved.push({ ...rec, order: order++ });
       }

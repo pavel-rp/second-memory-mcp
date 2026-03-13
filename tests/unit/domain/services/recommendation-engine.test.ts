@@ -184,7 +184,7 @@ describe('RecommendationEngine', () => {
     expect(out.sessionSummary.totalCognitiveLoad).toBeGreaterThan(0);
   });
 
-  it('interleaves recommendations by difficulty buckets', async () => {
+  it('groups recommendations by topic and assigns sequential order', async () => {
     const engine = createTestEngine();
     const items = [
       makeItem({ id: 'e1', difficulty: 3, estimatedDuration: 5, topicId: 'topic-easy' }),
@@ -1149,11 +1149,19 @@ describe('RecommendationEngine', () => {
       NOW
     );
 
+    // Assert all 6 items are present (prevents vacuous contiguity check)
+    const allIds = result.recommendations.map(r => r.item.id);
+    expect(allIds).toHaveLength(6);
+    for (const id of ['a1', 'a2', 'a3', 'b1', 'b2', 'b3']) {
+      expect(allIds).toContain(id);
+    }
+
     // For each pair of chunks from the same topic, no chunk from a different topic appears between them
     for (const topicId of ['topic-a', 'topic-b']) {
       const indices = result.recommendations
         .map((r, i) => (r.item.topicId === topicId ? i : -1))
         .filter(i => i !== -1);
+      expect(indices.length).toBe(3);
       if (indices.length > 1) {
         const min = indices[0];
         const max = indices[indices.length - 1];
@@ -1280,8 +1288,8 @@ describe('RecommendationEngine', () => {
     const topicCIds = result.recommendations
       .filter(r => r.item.topicId === 'topic-c')
       .map(r => r.item.id);
-    // They should be contiguous and in the same relative order
-    expect(topicCIds.length).toBe(3);
+    // They should be contiguous and in the same relative order as input priority
+    expect(topicCIds).toEqual(['c1', 'c2', 'c3']);
 
     // Orders should be sequential 1..N
     const orders = result.recommendations.map(r => r.order);
