@@ -105,8 +105,33 @@ jobs:
             exit 1
           fi
 
+      - name: Fetch OAuth token
+        id: auth
+        env:
+          TOKEN_URL: https://auth.neurasphere.ee/auth/v1/oidc/token
+          CLIENT_ID: ${{ secrets.SMOKE_TEST_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.SMOKE_TEST_CLIENT_SECRET }}
+        run: |
+          if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
+            echo "::error::SMOKE_TEST_CLIENT_ID or SMOKE_TEST_CLIENT_SECRET secret is not set"
+            exit 1
+          fi
+          RESPONSE=$(curl -sS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 5 \
+            -X POST "$TOKEN_URL" \
+            --data-urlencode "grant_type=client_credentials" \
+            --data-urlencode "client_id=$CLIENT_ID" \
+            --data-urlencode "client_secret=$CLIENT_SECRET")
+          TOKEN=$(echo "$RESPONSE" | jq -r '.access_token')
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "::error::Failed to obtain OAuth token"
+            echo "$RESPONSE" | jq '{error, error_description}' >&2 || true
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
       - name: Run smoke tests
         env:
           MCP_BASE_URL: ${{ secrets.SMOKE_TEST_BASE_URL }}
-          MCP_AUTH_TOKEN: ${{ secrets.SMOKE_TEST_AUTH_TOKEN }}
+          MCP_AUTH_TOKEN: ${{ steps.auth.outputs.token }}
         run: pnpm run test:smoke
