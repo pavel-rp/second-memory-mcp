@@ -91,7 +91,7 @@ describe.skipIf(!BASE_URL)('Public endpoints', () => {
     const body = (await res.json()) as { name: string; version: string; buildTime: string | null };
     expect(body.name).toBe('second-memory-learning');
     expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(body).toHaveProperty('buildTime');
+    expect(body.buildTime === null || typeof body.buildTime === 'string').toBe(true);
   });
 });
 

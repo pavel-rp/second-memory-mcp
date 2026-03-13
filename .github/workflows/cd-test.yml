@@ -112,7 +112,11 @@ jobs:
           CLIENT_ID: ${{ secrets.SMOKE_TEST_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.SMOKE_TEST_CLIENT_SECRET }}
         run: |
-          RESPONSE=$(curl -sf -X POST "$TOKEN_URL" \
+          if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
+            echo "::error::SMOKE_TEST_CLIENT_ID or SMOKE_TEST_CLIENT_SECRET secret is not set"
+            exit 1
+          fi
+          RESPONSE=$(curl -s -X POST "$TOKEN_URL" \
             --data-urlencode "grant_type=client_credentials" \
             --data-urlencode "client_id=$CLIENT_ID" \
             --data-urlencode "client_secret=$CLIENT_SECRET")
