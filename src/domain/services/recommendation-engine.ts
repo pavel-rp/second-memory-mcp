@@ -312,8 +312,8 @@ export class RecommendationEngine {
       }
     }
 
-    // Interleave for optimal learning (mix difficulties)
-    return this.interleaveRecommendations(recommendations);
+    // Group by topic so chunks from the same topic stay contiguous
+    return this.groupByTopic(recommendations);
   }
 
   /**
@@ -380,34 +380,38 @@ export class RecommendationEngine {
   }
 
   /**
-   * Interleave recommendations for optimal learning
+   * Group recommendations by topic.
+   * Chunks from the same topic stay contiguous (preserving input order);
+   * topic-groups are emitted sequentially in first-seen order.
+   * Chunks without a topicId are treated as individual single-item groups.
    */
-  private interleaveRecommendations(
-    recommendations: LearningRecommendation[]
-  ): LearningRecommendation[] {
-    // Sort by cognitive load to interleave easy/hard items
-    const easy = recommendations.filter(r => r.cognitiveLoad < 10);
-    const medium = recommendations.filter(r => r.cognitiveLoad >= 10 && r.cognitiveLoad < 15);
-    const hard = recommendations.filter(r => r.cognitiveLoad >= 15);
+  private groupByTopic(recommendations: LearningRecommendation[]): LearningRecommendation[] {
+    if (recommendations.length === 0) return [];
 
-    const interleaved: LearningRecommendation[] = [];
+    // Group by topicId; orphan chunks each become their own group
+    const groupMap = new Map<string, LearningRecommendation[]>();
+    let orphanCounter = 0;
+
+    for (const rec of recommendations) {
+      const key = rec.item.topicId ?? `__orphan_${orphanCounter++}`;
+      let group = groupMap.get(key);
+      if (!group) {
+        group = [];
+        groupMap.set(key, group);
+      }
+      group.push(rec);
+    }
+
+    // Emit groups sequentially in insertion order: all chunks of group 1, then group 2, etc.
+    const grouped: LearningRecommendation[] = [];
     let order = 1;
-
-    // Interleave pattern: easy, medium, hard, easy, medium...
-    const maxLength = Math.max(easy.length, medium.length, hard.length);
-    for (let i = 0; i < maxLength; i++) {
-      if (easy[i]) {
-        interleaved.push({ ...easy[i], order: order++ });
-      }
-      if (medium[i]) {
-        interleaved.push({ ...medium[i], order: order++ });
-      }
-      if (hard[i]) {
-        interleaved.push({ ...hard[i], order: order++ });
+    for (const group of groupMap.values()) {
+      for (const rec of group) {
+        grouped.push({ ...rec, order: order++ });
       }
     }
 
-    return interleaved;
+    return grouped;
   }
 
   /**
@@ -653,7 +657,7 @@ export class RecommendationEngine {
       rationale += `. Added ${reviewCount} optimally-timed reviews for reinforcement`;
     }
 
-    rationale += '. Items are interleaved by difficulty to optimize cognitive load.';
+    rationale += '. Items are grouped by topic to maintain learning context.';
 
     // Add dependency resolution explanation if applicable
     if (
