@@ -109,7 +109,8 @@ jobs:
             echo "::error::SMOKE_PROD_CLIENT_ID or SMOKE_PROD_CLIENT_SECRET secret is not set"
             exit 1
           fi
-          RESPONSE=$(curl -s -X POST "$TOKEN_URL" \
+          RESPONSE=$(curl -sS --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 5 \
+            -X POST "$TOKEN_URL" \
             --data-urlencode "grant_type=client_credentials" \
             --data-urlencode "client_id=$CLIENT_ID" \
             --data-urlencode "client_secret=$CLIENT_SECRET")
