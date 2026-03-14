@@ -47,17 +47,17 @@ describe('createMcpServer', () => {
     expect(names).toEqual(['chunk_generation', 'chunk_management', 'scaffolding']);
   });
 
-  it('does not register deprecated prompts', async () => {
+  it('does not register removed prompt resources', async () => {
     const { prompts } = await client.listPrompts();
     const names = prompts.map(p => p.name);
-    for (const deprecated of [
+    for (const removed of [
       'learning',
       'retrieval',
       'review',
       'workflow_guidance',
       'learning_session',
     ]) {
-      expect(names).not.toContain(deprecated);
+      expect(names).not.toContain(removed);
     }
   });
 
