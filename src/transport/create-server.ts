@@ -6,10 +6,6 @@ import type { AppContext } from '../composition-root.js';
 import { SERVER_INSTRUCTIONS } from '../shared/instructions.js';
 import { getVersion, SERVER_NAME } from '../shared/version.js';
 import type {
-  LearningPromptArgs,
-  LearningSessionPromptArgs,
-  RetrievalPromptArgs,
-  ReviewPromptArgs,
   ChunkGenerationPromptArgs,
   ChunkManagementPromptArgs,
 } from '../domain/types/prompts.js';
@@ -40,116 +36,6 @@ export function createMcpServer(ctx: AppContext): McpServer {
           content: {
             type: 'text',
             text: promptPack.getPrompt('scaffolding', { problem }),
-          },
-        },
-      ],
-    })
-  );
-
-  server.registerPrompt(
-    'learning',
-    {
-      title: 'Learning Guidance',
-      description: 'Active learning guidance for a chunk',
-      argsSchema: {
-        chunkNumber: z.string().optional(),
-        totalChunks: z.string().optional(),
-        chunkTitle: z.string().optional(),
-        chunkContent: z.string().optional(),
-        prerequisites: z.string().optional(),
-        drillFormat: z
-          .enum(['multiple_choice', 'open_ended', 'coding_problem', 'explanation', 'application'])
-          .optional(),
-      },
-    },
-    (args: LearningPromptArgs) => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: promptPack.getPrompt('learning', {
-              ...args,
-              chunkNumber: args?.chunkNumber ? Number(args.chunkNumber) : undefined,
-              totalChunks: args?.totalChunks ? Number(args.totalChunks) : undefined,
-            }),
-          },
-        },
-      ],
-    })
-  );
-
-  server.registerPrompt(
-    'retrieval',
-    {
-      title: 'Retrieval Drill',
-      description: 'Generate retrieval drill (two-attempt policy)',
-      argsSchema: {
-        chunkTitle: z.string().optional(),
-        drillFormat: z
-          .enum(['multiple_choice', 'open_ended', 'coding_problem', 'explanation', 'application'])
-          .optional(),
-        masteryLevel: z.string().optional(),
-      },
-    },
-    (args: RetrievalPromptArgs) => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: promptPack.getPrompt('retrieval', {
-              ...args,
-              masteryLevel: args?.masteryLevel ? Number(args.masteryLevel) : undefined,
-            }),
-          },
-        },
-      ],
-    })
-  );
-
-  server.registerPrompt(
-    'review',
-    {
-      title: 'Spaced Review',
-      description: 'Spaced review session guidance',
-      argsSchema: {
-        lastReviewed: z.string().optional(),
-        masteryLevel: z.string().optional(),
-        previousAttempts: z.string().optional(),
-        weakAreas: z.string().optional(),
-      },
-    },
-    (args: ReviewPromptArgs) => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: promptPack.getPrompt('review', {
-              ...args,
-              masteryLevel: args?.masteryLevel ? Number(args.masteryLevel) : undefined,
-              previousAttempts: args?.previousAttempts ? Number(args.previousAttempts) : undefined,
-            }),
-          },
-        },
-      ],
-    })
-  );
-
-  server.registerPrompt(
-    'workflow_guidance',
-    {
-      title: 'Workflow Guidance',
-      description: 'End-to-end orchestration guidance',
-    },
-    () => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: promptPack.getPrompt('workflow_guidance', {}),
           },
         },
       ],
@@ -230,38 +116,6 @@ export function createMcpServer(ctx: AppContext): McpServer {
         ],
       };
     }
-  );
-
-  server.registerPrompt(
-    'learning_session',
-    {
-      title: 'Learning Session',
-      description:
-        "Session orchestration guidance — how to start, conduct, and complete a learning session using this server's tools",
-      argsSchema: {
-        sessionMode: z
-          .enum(['start', 'continue', 'review', 'new_topic'])
-          .optional()
-          .describe('Session mode'),
-        timeAvailable: z.string().optional().describe('Minutes available for learning'),
-        subject: z.string().optional().describe('Subject or topic to focus on'),
-      },
-    },
-    (args: LearningSessionPromptArgs) => ({
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: promptPack.getPrompt('learning_session', {
-              sessionMode: args?.sessionMode,
-              timeAvailable: args?.timeAvailable ? Number(args.timeAvailable) : undefined,
-              subject: args?.subject,
-            }),
-          },
-        },
-      ],
-    })
   );
 
   return server;
