@@ -113,7 +113,7 @@ The server registers tools across eight categories:
 | Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings                                |
 | Analytics          | `analytics_daily`, `analytics_window`                                                                                                                                                                                                                          | Daily KPIs and date-range analytics from stored review history                                      |
 
-The server also exposes MCP prompt resources (discoverable via `prompts/list`) for content scaffolding, chunk generation, and chunk management. Teaching and session orchestration are now handled server-side through dedicated tools rather than client-invoked prompts.
+The server also exposes MCP prompt resources (discoverable via `prompts/list`) for content scaffolding, chunk generation, and chunk management. Teaching and session orchestration are now handled through dedicated MCP tools rather than prompt resources.
 
 ### Example: AI-Guided Learning Session
 
