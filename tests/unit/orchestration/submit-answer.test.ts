@@ -1,9 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import { submitAnswer, type TeachingDeps } from '../../../src/orchestration/teaching-workflows.js';
+import {
+  submitAnswer,
+  createSessionQuestions,
+  aggregateQuestionQualities,
+  type TeachingDeps,
+} from '../../../src/orchestration/teaching-workflows.js';
 import type {
   LearningSession,
   SessionChunk,
   LearningChunk,
+  SessionQuestion,
+  SessionQuestionAttempt,
 } from '../../../src/domain/types/entities.js';
 import type { ChunkAttempt } from '../../../src/domain/types/session.js';
 import type { SubmitAnswerInput } from '../../../src/domain/types/teaching.js';
@@ -12,6 +19,7 @@ import {
   stubSessionRepository,
   stubChunkRepository,
   stubReviewPersistence,
+  stubSessionQuestionRepository,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
@@ -819,5 +827,344 @@ describe('submitAnswer', () => {
     if (result.status !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(5); // first attempt, passed
     expect(result.attempt).toBe(1);
+  });
+});
+
+// ── Session Question Flow Tests ─────────────────────────────────
+
+function makeQuestion(overrides?: Partial<SessionQuestion>): SessionQuestion {
+  return {
+    id: 'sq-1',
+    sessionChunkId: 'sc-1',
+    questionIndex: 1,
+    promptText: 'What is X?',
+    status: 'pending',
+    createdAt: NOW,
+    updatedAt: NOW,
+    ...overrides,
+  };
+}
+
+function makeQuestionAttempt(overrides?: Partial<SessionQuestionAttempt>): SessionQuestionAttempt {
+  return {
+    id: 'sqa-1',
+    sessionQuestionId: 'sq-1',
+    attemptNumber: 1,
+    response: 'X is Y',
+    passed: true,
+    feedback: 'Correct!',
+    quality: 5,
+    timeSpentMs: 5000,
+    createdAt: NOW,
+    ...overrides,
+  };
+}
+
+function makeQuestionDeps(overrides?: {
+  sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
+  chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
+  reviewPersistence?: Partial<Parameters<typeof stubReviewPersistence>[0]>;
+  sessionQuestions?: Partial<Parameters<typeof stubSessionQuestionRepository>[0]>;
+}): TeachingDeps {
+  return {
+    sessions: stubSessionRepository({
+      getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+      getSessionChunks: vi
+        .fn()
+        .mockResolvedValue([
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      getSessionChunkById: vi
+        .fn()
+        .mockResolvedValue(makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' })),
+      getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+      updateSessionChunk: vi.fn().mockResolvedValue(1),
+      ...overrides?.sessions,
+    }),
+    chunks: stubChunkRepository({
+      getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+      ...overrides?.chunks,
+    }),
+    reviewPersistence: stubReviewPersistence({
+      getChunk: vi.fn().mockResolvedValue(makeLearningChunk()),
+      persistReviewUpdate: vi.fn().mockResolvedValue(1),
+      ...overrides?.reviewPersistence,
+    }),
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    sessionQuestions: stubSessionQuestionRepository({
+      ...overrides?.sessionQuestions,
+    }),
+  };
+}
+
+describe('aggregateQuestionQualities', () => {
+  it('returns 0 for empty array', () => {
+    expect(aggregateQuestionQualities([])).toBe(0);
+  });
+
+  it('returns exact value for single quality', () => {
+    expect(aggregateQuestionQualities([5])).toBe(5);
+  });
+
+  it('computes uniform average of multiple qualities', () => {
+    expect(aggregateQuestionQualities([5, 3, 1])).toBe(3);
+  });
+
+  it('rounds to 2 decimal places', () => {
+    expect(aggregateQuestionQualities([5, 5, 3])).toBeCloseTo(4.33, 2);
+  });
+});
+
+describe('createSessionQuestions', () => {
+  it('creates question rows and returns IDs', async () => {
+    const created = [
+      makeQuestion({ id: 'sq-1', questionIndex: 1 }),
+      makeQuestion({ id: 'sq-2', questionIndex: 2 }),
+    ];
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        createQuestions: vi.fn().mockResolvedValue(created),
+      },
+    });
+
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }, { promptText: 'Q2' }] },
+      deps
+    );
+
+    expect(result.sessionChunkId).toBe('sc-1');
+    expect(result.questionIds).toEqual(['sq-1', 'sq-2']);
+  });
+
+  it('throws when session chunk not found', async () => {
+    const deps = makeQuestionDeps({
+      sessions: { getSessionChunkById: vi.fn().mockResolvedValue(null) },
+    });
+
+    await expect(
+      createSessionQuestions(
+        { sessionChunkId: 'sc-missing', questions: [{ promptText: 'Q1' }] },
+        deps
+      )
+    ).rejects.toThrow('not found');
+  });
+
+  it('throws when session chunk is not in_progress', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        getSessionChunkById: vi
+          .fn()
+          .mockResolvedValue(makeSessionChunk({ id: 'sc-1', status: 'pending' })),
+      },
+    });
+
+    await expect(
+      createSessionQuestions({ sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] }, deps)
+    ).rejects.toThrow('in_progress');
+  });
+
+  it('throws when sessionQuestions port is not configured', async () => {
+    const deps = makeQuestionDeps();
+    deps.sessionQuestions = undefined;
+
+    await expect(
+      createSessionQuestions({ sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] }, deps)
+    ).rejects.toThrow('not configured');
+  });
+});
+
+describe('submitAnswer with session_question_id', () => {
+  it('writes to session_question_attempts and returns retry on first fail', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+      },
+    });
+
+    const result = await submitAnswer(
+      makeInput({ passed: false, sessionQuestionId: 'sq-1' }),
+      deps
+    );
+
+    expect(result.status).toBe('retry');
+    if (result.status !== 'retry') throw new Error('Expected retry');
+    expect(result.attempt).toBe(1);
+    expect(result.chunk_id).toBe('c1');
+    expect(deps.sessionQuestions!.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionQuestionId: 'sq-1',
+        attemptNumber: 1,
+        passed: false,
+        quality: null,
+      })
+    );
+  });
+
+  it('derives quality 5 on first attempt pass', async () => {
+    const allQuestions = [makeQuestion({ id: 'sq-1', status: 'pending' })];
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi.fn().mockResolvedValue(
+          // After updateQuestionStatus is called, this returns answered
+          allQuestions.map(q => ({ ...q, status: 'answered' }))
+        ),
+        getAllAttemptsForChunk: vi.fn().mockResolvedValue([makeQuestionAttempt({ quality: 5 })]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.quality).toBe(5);
+  });
+
+  it('derives quality 3 on second attempt pass', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: true, quality: 3 }),
+          ]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.quality).toBe(3);
+  });
+
+  it('returns blocked when unanswered questions remain', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'pending' }),
+          ]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.next.status).toBe('blocked');
+    if (result.next.status !== 'blocked') throw new Error('Expected blocked');
+    expect(result.next.message).toContain('1 question(s) remaining');
+  });
+
+  it('triggers SR update when all questions answered', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestionAttempt({ quality: 5, timeSpentMs: 3000 })]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.review_update.next_review_date).not.toBe('');
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalled();
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'completed' })
+    );
+  });
+
+  it('returns error when question not found', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(null),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-missing' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('not found');
+  });
+
+  it('returns error when max attempts exceeded', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1 }),
+            makeQuestionAttempt({ attemptNumber: 2 }),
+          ]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('Max 2 attempts');
+  });
+
+  it('falls through to legacy flow when session_question_id is absent', async () => {
+    const deps = makeQuestionDeps();
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    // Legacy flow: should look for in_progress chunk via getSessionChunks
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.quality).toBe(5);
+    // sessionQuestions methods should NOT have been called
+    expect(deps.sessionQuestions!.getQuestionById).not.toHaveBeenCalled();
+  });
+
+  it('returns error when SR persistence fails', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestionAttempt({ quality: 5, timeSpentMs: 3000 })]),
+      },
+      reviewPersistence: {
+        getChunk: vi.fn().mockResolvedValue(undefined), // triggers SR failure
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('spaced repetition');
   });
 });

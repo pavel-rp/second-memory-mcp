@@ -3,6 +3,7 @@ import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
 import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
 import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
+import type { SessionQuestionRepository } from '../ports/session-question-repository.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type {
@@ -11,8 +12,11 @@ import type {
   SubmitAnswerResult,
   StartLearningInput,
   StartLearningResult,
+  CreateSessionQuestionsInput,
+  CreateSessionQuestionsResult,
 } from '../domain/types/teaching.js';
 import type { ChunkAttempt } from '../domain/types/session.js';
+import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
@@ -32,6 +36,7 @@ export type TeachingDeps = {
   chunks: ChunkRepository;
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
+  sessionQuestions?: SessionQuestionRepository;
 };
 
 /**
@@ -241,6 +246,12 @@ export async function submitAnswer(
   input: SubmitAnswerInput,
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
+  // Branch: if session_question_id is provided, use the new explicit questions flow
+  if (input.sessionQuestionId) {
+    return submitAnswerForQuestion(input, input.sessionQuestionId, deps);
+  }
+
+  // Legacy flow: attemptsJson-based
   // 1. Get active session
   const session = await deps.sessions.getActiveSession();
   if (!session) {
@@ -359,6 +370,221 @@ export async function submitAnswer(
     quality,
     chunk_id: inProgressChunk.chunkId,
     review_update: reviewUpdate,
+    next: nextTeachStep,
+  };
+}
+
+// ── create_session_questions ─────────────────────────────────────
+
+/**
+ * Create explicit questions for a session chunk.
+ * Validates the chunk exists and is in_progress.
+ */
+export async function createSessionQuestions(
+  input: CreateSessionQuestionsInput,
+  deps: TeachingDeps
+): Promise<CreateSessionQuestionsResult> {
+  if (!deps.sessionQuestions) {
+    throw new Error('SessionQuestionRepository not configured.');
+  }
+
+  // Validate session chunk exists
+  const sessionChunk = await deps.sessions.getSessionChunkById(input.sessionChunkId);
+  if (!sessionChunk) {
+    throw new Error(`Session chunk ${input.sessionChunkId} not found.`);
+  }
+
+  if (sessionChunk.status !== 'in_progress') {
+    throw new Error(
+      `Session chunk ${input.sessionChunkId} is "${sessionChunk.status}", expected "in_progress".`
+    );
+  }
+
+  const created = await deps.sessionQuestions.createQuestions(
+    input.sessionChunkId,
+    input.questions
+  );
+
+  return {
+    sessionChunkId: input.sessionChunkId,
+    questionIds: created.map(q => q.id),
+  };
+}
+
+// ── Quality aggregation ─────────────────────────────────────────
+
+/**
+ * Compute weighted-average quality from per-question quality scores.
+ * Uses uniform weights (all questions weigh the same).
+ */
+export function aggregateQuestionQualities(qualities: number[]): number {
+  if (qualities.length === 0) return 0;
+  const sum = qualities.reduce((acc, q) => acc + q, 0);
+  return Math.round((sum / qualities.length) * 100) / 100;
+}
+
+// ── submit_answer with session_question_id flow ─────────────────
+
+/**
+ * New-flow submit_answer when session_question_id is provided.
+ * Writes to session_question_attempts, derives quality per question.
+ * When all questions for a chunk are answered, aggregates quality and triggers SR update.
+ */
+async function submitAnswerForQuestion(
+  input: SubmitAnswerInput,
+  sessionQuestionId: string,
+  deps: TeachingDeps
+): Promise<SubmitAnswerResult> {
+  if (!deps.sessionQuestions) {
+    return { status: 'error', message: 'SessionQuestionRepository not configured.' };
+  }
+
+  // 1. Look up the question
+  const question = await deps.sessionQuestions.getQuestionById(sessionQuestionId);
+  if (!question) {
+    return { status: 'error', message: `Session question ${sessionQuestionId} not found.` };
+  }
+
+  // 2. Get active session (needed for piggyback teach_next)
+  const session = await deps.sessions.getActiveSession();
+  if (!session) {
+    return { status: 'error', message: 'No active session. Call create_session first.' };
+  }
+
+  // 3. Look up the session chunk
+  const sessionChunk = await deps.sessions.getSessionChunkById(question.sessionChunkId);
+  if (!sessionChunk) {
+    return { status: 'error', message: `Session chunk ${question.sessionChunkId} not found.` };
+  }
+
+  // 4. Count existing attempts for this question
+  const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(sessionQuestionId);
+  if (existingAttempts.length >= 2) {
+    return {
+      status: 'error',
+      message: `Max 2 attempts per question. Question ${sessionQuestionId} already has ${existingAttempts.length} attempts.`,
+    };
+  }
+
+  const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
+  const quality = deriveQuality(attemptNumber, input.passed);
+
+  // 5. Persist attempt
+  await deps.sessionQuestions.createAttempt({
+    id: crypto.randomUUID(),
+    sessionQuestionId,
+    attemptNumber,
+    response: input.response,
+    passed: input.passed,
+    feedback: input.feedback,
+    quality,
+    timeSpentMs: input.timeSpentMs,
+    createdAt: Date.now(),
+  });
+
+  // 6. Update question status
+  if (quality !== null) {
+    await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
+  }
+
+  // 7. First attempt failed → retry
+  if (quality === null) {
+    return {
+      status: 'retry',
+      attempt: attemptNumber,
+      chunk_id: sessionChunk.chunkId,
+      message: 'Incorrect. Try again.',
+      feedback: input.feedback,
+    };
+  }
+
+  // 8. Check if all questions for this chunk are answered
+  const allQuestions = await deps.sessionQuestions.getQuestionsForChunk(question.sessionChunkId);
+  const unanswered = allQuestions.filter(q => q.status === 'pending');
+
+  if (unanswered.length > 0) {
+    // More questions remain — return recorded but no SR update yet
+    return {
+      status: 'recorded',
+      attempt: attemptNumber,
+      passed: input.passed,
+      quality,
+      chunk_id: sessionChunk.chunkId,
+      review_update: {
+        next_review_date: '',
+        interval_days: 0,
+        ease_factor: 0,
+        is_leech: false,
+      },
+      next: {
+        status: 'blocked',
+        message: `${unanswered.length} question(s) remaining for this chunk.`,
+        current_chunk_id: sessionChunk.chunkId,
+      },
+    };
+  }
+
+  // 9. All questions answered — aggregate quality
+  const allAttempts = await deps.sessionQuestions.getAllAttemptsForChunk(question.sessionChunkId);
+  const perQuestionQualities: number[] = [];
+  for (const q of allQuestions) {
+    const qAttempts = allAttempts.filter(a => a.sessionQuestionId === q.id);
+    // Take the quality from the last attempt (which has a non-null quality)
+    const scoredAttempt = qAttempts.find(a => a.quality !== null);
+    if (scoredAttempt?.quality !== null && scoredAttempt?.quality !== undefined) {
+      perQuestionQualities.push(scoredAttempt.quality);
+    }
+  }
+
+  const aggregatedQuality = aggregateQuestionQualities(perQuestionQualities);
+
+  // 10. SR update with aggregated quality
+  const reviewDeps: reviewWorkflows.ReviewDeps = {
+    reviewPersistence: deps.reviewPersistence,
+    algorithmConfig: deps.algorithmConfig,
+  };
+
+  const accumulatedTimeMs =
+    sessionChunk.timeSpentMs + allAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
+
+  const reviewResult = await reviewWorkflows.processReviewResult(
+    sessionChunk.chunkId,
+    Math.round(aggregatedQuality),
+    { timeSpentMs: accumulatedTimeMs },
+    reviewDeps
+  );
+
+  if (!reviewResult.success) {
+    return {
+      status: 'error',
+      message: 'Failed to persist spaced repetition review result.',
+    };
+  }
+
+  // 11. Mark chunk completed (only after SR persistence succeeds)
+  await deps.sessions.updateSessionChunk(sessionChunk.id, {
+    status: 'completed',
+    qualityScoresJson: (sessionChunk.qualityScoresJson ?? []).concat(Math.round(aggregatedQuality)),
+    timeSpentMs: accumulatedTimeMs,
+    updatedAt: Date.now(),
+  });
+
+  const nextTeachStep = await getNextTeachingStep(deps);
+
+  return {
+    status: 'recorded',
+    attempt: attemptNumber,
+    passed: input.passed,
+    quality: Math.round(aggregatedQuality),
+    chunk_id: sessionChunk.chunkId,
+    review_update: {
+      next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
+        .toISOString()
+        .split('T')[0],
+      interval_days: reviewResult.data.updated.intervalDays,
+      ease_factor: reviewResult.data.updated.easeFactor,
+      is_leech: reviewResult.data.isLeech,
+    },
     next: nextTeachStep,
   };
 }

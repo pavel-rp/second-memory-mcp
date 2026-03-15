@@ -225,4 +225,104 @@ describe('teaching-tools', () => {
     expect(parsed.error.message).toContain('DB timeout');
     expect(parsed.error.retryable).toBe(true);
   });
+
+  // ── create_session_questions ──────────────────────────────────
+
+  it('registers create_session_questions tool', () => {
+    registerTeachingTools(server as any, ctx);
+    expect(server.tools.has('create_session_questions')).toBe(true);
+  });
+
+  it('create_session_questions returns orchestration result on success', async () => {
+    const createResult = { sessionChunkId: 'sc-1', questionIds: ['sq-1', 'sq-2'] };
+    ctx.createSessionQuestions = vi.fn().mockResolvedValue(createResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('create_session_questions')!.handler;
+
+    const result = await handler({
+      session_chunk_id: 'sc-1',
+      questions: [{ prompt_text: 'What is X?' }, { prompt_text: 'Explain Y' }],
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.sessionChunkId).toBe('sc-1');
+    expect(parsed.questionIds).toEqual(['sq-1', 'sq-2']);
+  });
+
+  it('create_session_questions maps snake_case input to camelCase', async () => {
+    ctx.createSessionQuestions = vi
+      .fn()
+      .mockResolvedValue({ sessionChunkId: 'sc-1', questionIds: ['sq-1'] });
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('create_session_questions')!.handler;
+
+    await handler({
+      session_chunk_id: 'sc-1',
+      questions: [{ prompt_text: 'What is X?' }],
+    });
+
+    expect(ctx.createSessionQuestions).toHaveBeenCalledWith({
+      sessionChunkId: 'sc-1',
+      questions: [{ promptText: 'What is X?' }],
+    });
+  });
+
+  it('create_session_questions returns validation error for invalid input', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('create_session_questions')!.handler;
+
+    const result = await handler({
+      session_chunk_id: '', // min(1) violation
+      questions: [],
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+  });
+
+  it('create_session_questions returns session error when orchestration throws', async () => {
+    ctx.createSessionQuestions = vi.fn().mockRejectedValue(new Error('Chunk not found'));
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('create_session_questions')!.handler;
+
+    const result = await handler({
+      session_chunk_id: 'sc-1',
+      questions: [{ prompt_text: 'Q' }],
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('session');
+    expect(parsed.error.message).toContain('Chunk not found');
+    expect(parsed.error.retryable).toBe(true);
+  });
+
+  it('submit_answer accepts optional session_question_id', async () => {
+    ctx.submitAnswer = vi.fn().mockResolvedValue({
+      status: 'retry',
+      attempt: 1,
+      chunk_id: 'c1',
+      message: 'Try again',
+      feedback: 'Wrong',
+    });
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('submit_answer')!.handler;
+
+    await handler({
+      question: 'Q',
+      response: 'A',
+      passed: false,
+      feedback: 'Wrong',
+      time_spent_ms: 3000,
+      session_question_id: 'sq-1',
+    });
+
+    expect(ctx.submitAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionQuestionId: 'sq-1',
+      })
+    );
+  });
 });

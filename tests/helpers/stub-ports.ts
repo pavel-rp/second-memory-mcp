@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 import type { ChunkRepository } from '../../src/ports/chunk-repository.js';
 import type { TopicRepository } from '../../src/ports/topic-repository.js';
 import type { SessionRepository } from '../../src/ports/session-repository.js';
+import type { SessionQuestionRepository } from '../../src/ports/session-question-repository.js';
 import type { ReviewPersistencePort } from '../../src/ports/review-persistence-port.js';
 import type { UnitOfWorkPort, TransactionPorts } from '../../src/ports/unit-of-work-port.js';
 import type { PrerequisiteMasteryPort } from '../../src/ports/prerequisite-mastery-port.js';
@@ -188,6 +189,33 @@ export function stubEmbeddingPort(overrides?: Partial<EmbeddingPort>): Embedding
     embedText: vi.fn().mockResolvedValue(null),
     embedTexts: vi.fn().mockResolvedValue([]),
     getDimensions: vi.fn().mockReturnValue(256),
+    ...overrides,
+  };
+}
+
+// ── SessionQuestionRepository ──────────────────────────────────
+
+export function stubSessionQuestionRepository(
+  overrides?: Partial<SessionQuestionRepository>
+): SessionQuestionRepository {
+  return {
+    createQuestions: vi.fn().mockResolvedValue([]),
+    getQuestionsForChunk: vi.fn().mockResolvedValue([]),
+    getQuestionById: vi.fn().mockResolvedValue(null),
+    updateQuestionStatus: vi.fn().mockResolvedValue(1),
+    createAttempt: vi.fn().mockResolvedValue({
+      id: 'sqa-stub',
+      sessionQuestionId: 'sq-stub',
+      attemptNumber: 1,
+      response: '',
+      passed: false,
+      feedback: '',
+      quality: null,
+      timeSpentMs: 0,
+      createdAt: 0,
+    }),
+    getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+    getAllAttemptsForChunk: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
