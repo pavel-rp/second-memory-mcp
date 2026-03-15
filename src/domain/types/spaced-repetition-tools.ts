@@ -71,7 +71,9 @@ export const RankCandidateShape = {
 export const RankCandidateSchema = z.object(RankCandidateShape).transform(toCamelCaseKeys);
 
 export const RankCandidatesInputShape = {
-  candidates: z.array(RankCandidateSchema).describe('Learning items to rank for review priority'),
+  candidates: z
+    .array(z.object(RankCandidateShape))
+    .describe('Learning items to rank for review priority'),
   timebox_minutes: z
     .number()
     .int()

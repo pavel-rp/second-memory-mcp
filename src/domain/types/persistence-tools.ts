@@ -75,31 +75,30 @@ const TopicChunkShape = {
 
 export const TopicChunkSchema = z.object(TopicChunkShape).transform(toCamelCaseKeys);
 
+const TopicUserPreferencesShape = {
+  preferred_difficulty: z
+    .number()
+    .int()
+    .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
+    .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
+    .optional()
+    .describe('Preferred difficulty level'),
+  learning_style: z
+    .enum(['visual', 'auditory', 'kinesthetic', 'reading'])
+    .optional()
+    .describe('Preferred learning style'),
+  max_chunk_duration: z
+    .number()
+    .int()
+    .min(1)
+    .max(120)
+    .optional()
+    .describe('Maximum chunk duration in minutes'),
+  include_prerequisites: z.boolean().optional().describe('Whether to include prerequisite content'),
+} as const;
+
 export const TopicUserPreferencesSchema = z
-  .object({
-    preferred_difficulty: z
-      .number()
-      .int()
-      .min(VALIDATION_CONSTANTS.MIN_DIFFICULTY)
-      .max(VALIDATION_CONSTANTS.MAX_DIFFICULTY)
-      .optional()
-      .describe('Preferred difficulty level'),
-    learning_style: z
-      .enum(['visual', 'auditory', 'kinesthetic', 'reading'])
-      .optional()
-      .describe('Preferred learning style'),
-    max_chunk_duration: z
-      .number()
-      .int()
-      .min(1)
-      .max(120)
-      .optional()
-      .describe('Maximum chunk duration in minutes'),
-    include_prerequisites: z
-      .boolean()
-      .optional()
-      .describe('Whether to include prerequisite content'),
-  })
+  .object(TopicUserPreferencesShape)
   .describe('Optional user preference overrides')
   .transform(toCamelCaseKeys);
 
@@ -135,11 +134,14 @@ export const CreateTopicWithChunksInputShape = {
     .optional()
     .describe('Summary content for the topic'),
   chunks: z
-    .array(TopicChunkSchema)
+    .array(z.object(TopicChunkShape))
     .min(1, 'At least one chunk is required')
     .max(20, 'Maximum 20 chunks per topic')
     .describe('Array of chunk definitions'),
-  user_preferences: TopicUserPreferencesSchema.optional(),
+  user_preferences: z
+    .object(TopicUserPreferencesShape)
+    .describe('Optional user preference overrides')
+    .optional(),
 } as const;
 
 export const CreateTopicWithChunksInputSchema = z

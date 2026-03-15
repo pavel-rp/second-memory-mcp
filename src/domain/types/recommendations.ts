@@ -187,14 +187,16 @@ export type PaginatedLearningItemsResponse = {
   };
 };
 
+const SessionConstraintsShape = {
+  max_duration: z.number().min(0).optional(),
+  max_cognitive_load: z.number().min(0).optional(),
+  max_new_items: z.number().int().min(0).optional(),
+  subject_filter: z.string().optional(),
+  exclude_ids: z.array(z.string()).optional(),
+} as const;
+
 export const SessionConstraintsSchema = z
-  .object({
-    max_duration: z.number().min(0).optional(),
-    max_cognitive_load: z.number().min(0).optional(),
-    max_new_items: z.number().int().min(0).optional(),
-    subject_filter: z.string().optional(),
-    exclude_ids: z.array(z.string()).optional(),
-  })
+  .object(SessionConstraintsShape)
   .transform(toCamelCaseKeys);
 
 export const LearningRecommendationSchema = z
@@ -224,30 +226,30 @@ export const ConversationGuidanceSchema = z.object({
   progress_update: z.string().optional(),
 });
 
+const LearningPatternsShape = {
+  average_session_duration: z.number().min(0),
+  preferred_difficulty: z.number().min(1).max(10),
+  success_rate: z.number().min(0).max(1),
+  fatigue_threshold: z.number().min(0),
+  subject_preferences: z.record(z.number()),
+  optimal_session_time: z.string().optional(),
+} as const;
+
 export const LearningPatternsSchema = z
-  .object({
-    average_session_duration: z.number().min(0),
-    preferred_difficulty: z.number().min(1).max(10),
-    success_rate: z.number().min(0).max(1),
-    fatigue_threshold: z.number().min(0),
-    subject_preferences: z.record(z.number()),
-    optimal_session_time: z.string().optional(),
-  })
+  .object(LearningPatternsShape)
   .transform(toCamelCaseKeysExcept(new Set(['subject_preferences'])));
+
+const RecentSessionShape = {
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
+  duration: z.number().min(0),
+  items_completed: z.number().int().min(0),
+  average_quality: z.number().min(0).max(5),
+  cognitive_load: z.number().min(0),
+} as const;
 
 export const SessionHistorySchema = z
   .object({
-    recent_sessions: z.array(
-      z
-        .object({
-          date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
-          duration: z.number().min(0),
-          items_completed: z.number().int().min(0),
-          average_quality: z.number().min(0).max(5),
-          cognitive_load: z.number().min(0),
-        })
-        .transform(toCamelCaseKeys)
-    ),
+    recent_sessions: z.array(z.object(RecentSessionShape).transform(toCamelCaseKeys)),
     patterns: LearningPatternsSchema,
   })
   .transform(toCamelCaseKeysExcept(new Set(['patterns'])));
@@ -264,14 +266,38 @@ export const SessionContextSchema = z
   })
   .transform(toCamelCaseKeysExcept(new Set(['user_preferences'])));
 
+// Raw (transform-free) schemas for InputShape — the MCP SDK pre-parses through these
+const LearningRecommendationRawSchema = z.object({
+  item: LearningItemObjectSchema,
+  priority: z.number(),
+  reason: z.string().min(1),
+  order: z.number().int().min(1),
+  cognitive_load: z.number().min(0),
+});
+
+const SessionHistoryRawSchema = z.object({
+  recent_sessions: z.array(z.object(RecentSessionShape)),
+  patterns: z.object(LearningPatternsShape),
+});
+
+const SessionContextRawSchema = z.object({
+  current_session_id: z.string().optional(),
+  active_items: z.array(z.string()).optional(),
+  session_start_time: z.number().optional(),
+  last_activity: z.number().optional(),
+  user_preferences: z.record(z.unknown()).optional(),
+  current_recommendations: z.array(LearningRecommendationRawSchema).optional(),
+  current_item_index: z.number().optional(),
+});
+
 export const RecommendationInputShape = {
   mode: RecommendationModeSchema.optional(),
   time_available: z.number().min(0).optional(),
   subject_preference: SubjectPreferenceSchema.optional(),
-  learning_items: z.array(LearningItemSchema).optional(),
-  user_history: SessionHistorySchema.optional(),
-  session_context: SessionContextSchema.optional(),
-  constraints: SessionConstraintsSchema.optional(),
+  learning_items: z.array(LearningItemObjectSchema).optional(),
+  user_history: SessionHistoryRawSchema.optional(),
+  session_context: SessionContextRawSchema.optional(),
+  constraints: z.object(SessionConstraintsShape).optional(),
   fetch_from_database: z.boolean().optional().default(false),
   subject_filter: z.string().optional(),
   due_only: z.boolean().optional(),
@@ -283,7 +309,13 @@ export const RecommendationInputShape = {
 };
 
 export const RecommendationInputSchema = z
-  .object(RecommendationInputShape)
+  .object({
+    ...RecommendationInputShape,
+    learning_items: z.array(LearningItemSchema).optional(),
+    user_history: SessionHistorySchema.optional(),
+    session_context: SessionContextSchema.optional(),
+    constraints: SessionConstraintsSchema.optional(),
+  })
   .superRefine((val, ctx) => {
     if (val.fetch_from_database && (val.learning_items?.length ?? 0) > 0) {
       ctx.addIssue({
