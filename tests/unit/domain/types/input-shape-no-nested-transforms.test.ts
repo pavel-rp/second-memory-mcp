@@ -30,23 +30,23 @@ import * as analytics from '../../../../src/domain/types/analytics.js';
 
 /**
  * Recursively check if a Zod schema contains a `.transform()` effect.
- * Unwraps ZodArray, ZodOptional, ZodDefault, and ZodNullable wrappers.
+ * Unwraps ZodArray, ZodOptional, ZodDefault, ZodNullable, and ZodObject wrappers.
  */
 function hasTransform(schema: z.ZodTypeAny): boolean {
   if (schema instanceof z.ZodEffects && schema._def.effect.type === 'transform') {
     return true;
   }
   if (schema instanceof z.ZodArray) {
-    return hasTransform(schema._def.type);
+    return hasTransform(schema.element);
   }
-  if (schema instanceof z.ZodOptional) {
-    return hasTransform(schema._def.innerType);
+  if (schema instanceof z.ZodOptional || schema instanceof z.ZodNullable) {
+    return hasTransform(schema.unwrap());
   }
   if (schema instanceof z.ZodDefault) {
-    return hasTransform(schema._def.innerType);
+    return hasTransform(schema.removeDefault());
   }
-  if (schema instanceof z.ZodNullable) {
-    return hasTransform(schema._def.innerType);
+  if (schema instanceof z.ZodObject) {
+    return Object.values(schema.shape).some(field => hasTransform(field as z.ZodTypeAny));
   }
   return false;
 }
@@ -198,6 +198,68 @@ describe('RecommendationInputShape round-trip', () => {
     expect(result.userHistory!.patterns.subjectPreferences).toEqual({
       machine_learning: 5,
     });
+  });
+
+  it('preserves snake_case fields in nested session_context after double-parse', () => {
+    const input = {
+      fetch_from_database: true,
+      session_context: {
+        current_session_id: 'sess-1',
+        active_items: ['item1'],
+        session_start_time: 1000,
+        last_activity: 2000,
+        user_preferences: { theme: 'dark' },
+        current_recommendations: [
+          {
+            item: {
+              id: 'item1',
+              title: 'Test',
+              subject: 'Math',
+              difficulty: 5,
+              next_review_date: '2026-03-15',
+              ease_factor: 2.5,
+              repetitions: 3,
+              estimated_duration: 10,
+              chunk_type: 'review' as const,
+            },
+            priority: 1,
+            reason: 'overdue',
+            order: 1,
+            cognitive_load: 3,
+          },
+        ],
+        current_item_index: 0,
+      },
+    };
+
+    const preParsed = z.object(RecommendationInputShape).parse(input);
+    const result = RecommendationInputSchema.parse(preParsed);
+
+    expect(result.sessionContext!.currentSessionId).toBe('sess-1');
+    expect(result.sessionContext!.currentRecommendations![0].cognitiveLoad).toBe(3);
+    expect(result.sessionContext!.currentRecommendations![0].item.nextReviewDate).toBe(
+      '2026-03-15'
+    );
+  });
+
+  it('preserves snake_case fields in nested constraints after double-parse', () => {
+    const input = {
+      fetch_from_database: true,
+      constraints: {
+        max_duration: 60,
+        max_cognitive_load: 8,
+        max_new_items: 5,
+        subject_filter: 'Math',
+        exclude_ids: ['id1'],
+      },
+    };
+
+    const preParsed = z.object(RecommendationInputShape).parse(input);
+    const result = RecommendationInputSchema.parse(preParsed);
+
+    expect(result.constraints!.maxDuration).toBe(60);
+    expect(result.constraints!.maxCognitiveLoad).toBe(8);
+    expect(result.constraints!.maxNewItems).toBe(5);
   });
 });
 
