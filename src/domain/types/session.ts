@@ -198,9 +198,12 @@ export const BatchOperationSchema = z
 
 export const BatchUpdateInputShape = {
   session_id: z.string().min(1),
-  operations: z.array(BatchOperationSchema).min(1).max(50),
+  operations: z.array(z.object(BatchOperationShape)).min(1).max(50),
 } as const;
 
 export const BatchUpdateInputSchema = z
-  .object(BatchUpdateInputShape)
+  .object({
+    ...BatchUpdateInputShape,
+    operations: z.array(BatchOperationSchema).min(1).max(50),
+  })
   .transform(toCamelCaseKeysExcept(new Set(['operations'])));
