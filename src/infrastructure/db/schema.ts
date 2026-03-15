@@ -7,6 +7,7 @@ import {
   boolean,
   jsonb,
   index,
+  uniqueIndex,
   check,
   vector,
 } from 'drizzle-orm/pg-core';
@@ -141,6 +142,7 @@ export const sessionQuestions = pgTable(
   },
   table => [
     index('idx_session_questions_session_chunk_id').on(table.sessionChunkId),
+    uniqueIndex('uq_session_questions_chunk_index').on(table.sessionChunkId, table.questionIndex),
     check(
       'chk_session_question_status',
       sql`${table.status} IN ('pending', 'answered', 'skipped')`
@@ -163,7 +165,14 @@ export const sessionQuestionAttempts = pgTable(
     timeSpentMs: integer('time_spent_ms').notNull(),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
   },
-  table => [index('idx_session_question_attempts_session_question_id').on(table.sessionQuestionId)]
+  table => [
+    index('idx_session_question_attempts_session_question_id').on(table.sessionQuestionId),
+    uniqueIndex('uq_session_question_attempts_question_number').on(
+      table.sessionQuestionId,
+      table.attemptNumber
+    ),
+    check('chk_attempt_number', sql`${table.attemptNumber} IN (1, 2)`),
+  ]
 );
 
 // Types

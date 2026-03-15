@@ -400,6 +400,14 @@ export async function createSessionQuestions(
     );
   }
 
+  // Guard: reject if questions already exist for this chunk
+  const existing = await deps.sessionQuestions.getQuestionsForChunk(input.sessionChunkId);
+  if (existing.length > 0) {
+    throw new Error(
+      `Session chunk ${input.sessionChunkId} already has ${existing.length} question(s). Cannot create duplicates.`
+    );
+  }
+
   const created = await deps.sessionQuestions.createQuestions(
     input.sessionChunkId,
     input.questions
@@ -445,6 +453,14 @@ async function submitAnswerForQuestion(
     return { status: 'error', message: `Session question ${sessionQuestionId} not found.` };
   }
 
+  // 1b. Guard: question must still be answerable
+  if (question.status !== 'pending') {
+    return {
+      status: 'error',
+      message: `Question ${sessionQuestionId} is "${question.status}", expected "pending".`,
+    };
+  }
+
   // 2. Get active session (needed for piggyback teach_next)
   const session = await deps.sessions.getActiveSession();
   if (!session) {
@@ -455,6 +471,14 @@ async function submitAnswerForQuestion(
   const sessionChunk = await deps.sessions.getSessionChunkById(question.sessionChunkId);
   if (!sessionChunk) {
     return { status: 'error', message: `Session chunk ${question.sessionChunkId} not found.` };
+  }
+
+  // 3b. Guard: chunk must still be in_progress
+  if (sessionChunk.status !== 'in_progress') {
+    return {
+      status: 'error',
+      message: `Session chunk ${question.sessionChunkId} is "${sessionChunk.status}", expected "in_progress".`,
+    };
   }
 
   // 4. Count existing attempts for this question
@@ -562,8 +586,21 @@ async function submitAnswerForQuestion(
   }
 
   // 11. Mark chunk completed (only after SR persistence succeeds)
+  // Write a synthetic attemptsJson entry for backward compatibility with buildCompleteResponse()
+  const syntheticAttempt: ChunkAttempt = {
+    timestamp: new Date().toISOString(),
+    question: `[aggregated from ${allQuestions.length} session question(s)]`,
+    response: '',
+    passed: aggregatedQuality >= 3,
+    feedback: '',
+    quality: Math.round(aggregatedQuality),
+    time_spent_ms: accumulatedTimeMs,
+  };
+  const updatedAttempts = (sessionChunk.attemptsJson ?? []).concat(syntheticAttempt);
+
   await deps.sessions.updateSessionChunk(sessionChunk.id, {
     status: 'completed',
+    attemptsJson: updatedAttempts,
     qualityScoresJson: (sessionChunk.qualityScoresJson ?? []).concat(Math.round(aggregatedQuality)),
     timeSpentMs: accumulatedTimeMs,
     updatedAt: Date.now(),

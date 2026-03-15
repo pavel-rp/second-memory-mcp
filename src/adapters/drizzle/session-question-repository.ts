@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -74,7 +74,8 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
     return await this.db
       .select()
       .from(sessionQuestionAttempts)
-      .where(eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestionId));
+      .where(eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestionId))
+      .orderBy(asc(sessionQuestionAttempts.attemptNumber));
   }
 
   async getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]> {
@@ -84,6 +85,10 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
     return await this.db
       .select()
       .from(sessionQuestionAttempts)
-      .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds));
+      .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds))
+      .orderBy(
+        asc(sessionQuestionAttempts.sessionQuestionId),
+        asc(sessionQuestionAttempts.attemptNumber)
+      );
   }
 }

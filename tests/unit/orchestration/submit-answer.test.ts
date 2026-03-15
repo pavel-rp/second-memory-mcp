@@ -964,6 +964,20 @@ describe('createSessionQuestions', () => {
     ).rejects.toThrow('in_progress');
   });
 
+  it('throws when chunk already has questions', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestion({ id: 'sq-existing', questionIndex: 1 })]),
+      },
+    });
+
+    await expect(
+      createSessionQuestions({ sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] }, deps)
+    ).rejects.toThrow('already has');
+  });
+
   it('throws when sessionQuestions port is not configured', async () => {
     const deps = makeQuestionDeps();
     deps.sessionQuestions = undefined;
@@ -1100,6 +1114,68 @@ describe('submitAnswer with session_question_id', () => {
     );
   });
 
+  it('returns error when question is already answered', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion({ status: 'answered' })),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('expected "pending"');
+  });
+
+  it('returns error when chunk is not in_progress', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        ...makeQuestionDeps().sessions,
+        getSessionChunkById: vi
+          .fn()
+          .mockResolvedValue(makeSessionChunk({ id: 'sc-1', status: 'completed' })),
+      },
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('expected "in_progress"');
+  });
+
+  it('populates attemptsJson when completing chunk via question flow', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestionAttempt({ quality: 5, timeSpentMs: 3000 })]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({
+        status: 'completed',
+        attemptsJson: [
+          expect.objectContaining({
+            passed: true,
+            quality: 5,
+          }),
+        ],
+      })
+    );
+  });
+
   it('returns error when question not found', async () => {
     const deps = makeQuestionDeps({
       sessionQuestions: {
@@ -1130,6 +1206,52 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toContain('Max 2 attempts');
+  });
+
+  it('returns error when sessionQuestions port is not configured', async () => {
+    const deps = makeQuestionDeps();
+    deps.sessionQuestions = undefined;
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('not configured');
+  });
+
+  it('returns error when session chunk not found in question flow', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunkById: vi.fn().mockResolvedValue(null),
+      },
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('not found');
+  });
+
+  it('returns error when no active session in question flow', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(null),
+        getSessionChunkById: vi
+          .fn()
+          .mockResolvedValue(makeSessionChunk({ id: 'sc-1', status: 'in_progress' })),
+      },
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('No active session');
   });
 
   it('falls through to legacy flow when session_question_id is absent', async () => {

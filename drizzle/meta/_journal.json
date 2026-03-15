@@ -22,6 +22,13 @@
       "when": 1773586822461,
       "tag": "0002_little_vanisher",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1773608693294,
+      "tag": "0003_kind_wild_pack",
+      "breakpoints": true
     }
   ]
 }
