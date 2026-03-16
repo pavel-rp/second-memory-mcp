@@ -326,17 +326,24 @@ export async function submitAnswer(
   // 5. Derive quality and persist attempt
   const quality = deriveQuality(attemptNumber, input.passed);
 
-  await deps.sessionQuestions.createAttempt({
-    id: crypto.randomUUID(),
-    sessionQuestionId: currentQuestion.id,
-    attemptNumber,
-    response: input.response,
-    passed: input.passed,
-    feedback: input.feedback,
-    quality,
-    timeSpentMs: input.timeSpentMs,
-    createdAt: Date.now(),
-  });
+  try {
+    await deps.sessionQuestions.createAttempt({
+      id: crypto.randomUUID(),
+      sessionQuestionId: currentQuestion.id,
+      attemptNumber,
+      response: input.response,
+      passed: input.passed,
+      feedback: input.feedback,
+      quality,
+      timeSpentMs: input.timeSpentMs,
+      createdAt: Date.now(),
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+      return { status: 'error', message: 'Attempt already recorded' };
+    }
+    throw err;
+  }
 
   // Count total attempts across all questions for this chunk (for re-queue logic)
   const [allChunkQuestions, allChunkAttempts] = await Promise.all([
@@ -349,10 +356,16 @@ export async function submitAnswer(
 
   // 6. First attempt failed → retry (no SR update)
   if (quality === null) {
-    await deps.sessions.updateSessionChunk(inProgressChunk.id, {
+    const retryUpdatedRows = await deps.sessions.updateSessionChunk(inProgressChunk.id, {
       timeSpentMs: accumulatedTimeMs,
       updatedAt: Date.now(),
     });
+    if (retryUpdatedRows === 0) {
+      return {
+        status: 'error',
+        message: 'Failed to update session chunk status',
+      };
+    }
 
     return {
       status: 'retry',
@@ -389,17 +402,23 @@ export async function submitAnswer(
     newStatus = 'completed';
   }
 
-  await deps.sessions.updateSessionChunk(inProgressChunk.id, {
-    status: newStatus,
-    timeSpentMs: accumulatedTimeMs,
-    updatedAt: Date.now(),
-  });
-
   // If SR persistence failed, surface this explicitly
   if (!reviewResult.success) {
     return {
       status: 'error',
       message: 'Failed to persist spaced repetition review result.',
+    };
+  }
+
+  const updatedRows = await deps.sessions.updateSessionChunk(inProgressChunk.id, {
+    status: newStatus,
+    timeSpentMs: accumulatedTimeMs,
+    updatedAt: Date.now(),
+  });
+  if (updatedRows === 0) {
+    return {
+      status: 'error',
+      message: 'Failed to update session chunk status',
     };
   }
 
@@ -560,17 +579,24 @@ async function submitAnswerForQuestion(
   const quality = deriveQuality(attemptNumber, input.passed);
 
   // 5. Persist attempt
-  await deps.sessionQuestions.createAttempt({
-    id: crypto.randomUUID(),
-    sessionQuestionId,
-    attemptNumber,
-    response: input.response,
-    passed: input.passed,
-    feedback: input.feedback,
-    quality,
-    timeSpentMs: input.timeSpentMs,
-    createdAt: Date.now(),
-  });
+  try {
+    await deps.sessionQuestions.createAttempt({
+      id: crypto.randomUUID(),
+      sessionQuestionId,
+      attemptNumber,
+      response: input.response,
+      passed: input.passed,
+      feedback: input.feedback,
+      quality,
+      timeSpentMs: input.timeSpentMs,
+      createdAt: Date.now(),
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+      return { status: 'error', message: 'Attempt already recorded' };
+    }
+    throw err;
+  }
 
   // 6. Update question status
   if (quality !== null) {
@@ -647,11 +673,17 @@ async function submitAnswerForQuestion(
   }
 
   // 11. Mark chunk completed (only after SR persistence succeeds)
-  await deps.sessions.updateSessionChunk(sessionChunk.id, {
+  const updatedRows = await deps.sessions.updateSessionChunk(sessionChunk.id, {
     status: 'completed',
     timeSpentMs: accumulatedTimeMs,
     updatedAt: Date.now(),
   });
+  if (updatedRows === 0) {
+    return {
+      status: 'error',
+      message: 'Failed to update session chunk status',
+    };
+  }
 
   const nextTeachStep = await getNextTeachingStep(deps);
 
