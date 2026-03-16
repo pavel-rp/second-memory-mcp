@@ -1037,6 +1037,8 @@ describe('submitAnswer', () => {
   it('returns error when createAttempt throws unique constraint violation (23505)', async () => {
     const pgError = new Error('duplicate key value violates unique constraint');
     (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint =
+      'uq_session_question_attempts_question_number';
 
     const deps = makeDeps({
       sessionQuestions: {
@@ -1048,6 +1050,23 @@ describe('submitAnswer', () => {
 
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toBe('Attempt already recorded');
+  });
+
+  // NEU-128: Legacy submitAnswer re-throws 23505 from a different constraint
+  it('re-throws 23505 from non-attempt-number constraint', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'session_question_attempts_pkey';
+
+    const deps = makeDeps({
+      sessionQuestions: {
+        createAttempt: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    await expect(submitAnswer(makeInput({ passed: true }), deps)).rejects.toThrow(
+      'duplicate key value violates unique constraint'
+    );
   });
 
   // NEU-128: Legacy submitAnswer re-throws non-23505 errors from createAttempt
@@ -1625,6 +1644,8 @@ describe('submitAnswer with session_question_id', () => {
   it('returns error when createAttempt throws unique constraint violation (23505)', async () => {
     const pgError = new Error('duplicate key value violates unique constraint');
     (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint =
+      'uq_session_question_attempts_question_number';
 
     const deps = makeQuestionDeps({
       sessionQuestions: {
@@ -1638,6 +1659,25 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toBe('Attempt already recorded');
+  });
+
+  // NEU-128: Question flow re-throws 23505 from a different constraint
+  it('re-throws 23505 from non-attempt-number constraint', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'session_question_attempts_pkey';
+
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        createAttempt: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    await expect(
+      submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps)
+    ).rejects.toThrow('duplicate key value violates unique constraint');
   });
 
   // NEU-128: Question flow re-throws non-23505 errors from createAttempt

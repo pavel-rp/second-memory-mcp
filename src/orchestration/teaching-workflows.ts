@@ -339,7 +339,13 @@ export async function submitAnswer(
       createdAt: Date.now(),
     });
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+    if (
+      err instanceof Error &&
+      'code' in err &&
+      (err as { code: string }).code === '23505' &&
+      'constraint' in err &&
+      (err as { constraint: string }).constraint === 'uq_session_question_attempts_question_number'
+    ) {
       return { status: 'error', message: 'Attempt already recorded' };
     }
     throw err;
@@ -363,7 +369,7 @@ export async function submitAnswer(
     if (retryUpdatedRows === 0) {
       return {
         status: 'error',
-        message: 'Failed to update session chunk status',
+        message: 'Failed to update session chunk time tracking',
       };
     }
 
@@ -592,7 +598,13 @@ async function submitAnswerForQuestion(
       createdAt: Date.now(),
     });
   } catch (err: unknown) {
-    if (err instanceof Error && 'code' in err && (err as { code: string }).code === '23505') {
+    if (
+      err instanceof Error &&
+      'code' in err &&
+      (err as { code: string }).code === '23505' &&
+      'constraint' in err &&
+      (err as { constraint: string }).constraint === 'uq_session_question_attempts_question_number'
+    ) {
       return { status: 'error', message: 'Attempt already recorded' };
     }
     throw err;
