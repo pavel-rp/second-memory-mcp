@@ -1176,6 +1176,42 @@ describe('submitAnswer with session_question_id', () => {
     );
   });
 
+  it('derives syntheticAttempt.passed from rounded quality consistently', async () => {
+    // aggregatedQuality = (2 + 3) / 2 = 2.5, rounds to 3 → passed should be true
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ id: 'a1', sessionQuestionId: 'sq-1', quality: 2 }),
+            makeQuestionAttempt({ id: 'a2', sessionQuestionId: 'sq-2', quality: 3 }),
+          ]),
+      },
+    });
+
+    await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({
+        attemptsJson: [
+          expect.objectContaining({
+            passed: true,
+            quality: 3,
+          }),
+        ],
+      })
+    );
+  });
+
   it('returns error when question not found', async () => {
     const deps = makeQuestionDeps({
       sessionQuestions: {

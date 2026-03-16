@@ -553,7 +553,7 @@ async function submitAnswerForQuestion(
   const perQuestionQualities: number[] = [];
   for (const q of allQuestions) {
     const qAttempts = allAttempts.filter(a => a.sessionQuestionId === q.id);
-    // Take the quality from the last attempt (which has a non-null quality)
+    // Take the quality from the first scored attempt (earliest with a non-null quality)
     const scoredAttempt = qAttempts.find(a => a.quality !== null);
     if (scoredAttempt?.quality !== null && scoredAttempt?.quality !== undefined) {
       perQuestionQualities.push(scoredAttempt.quality);
@@ -591,7 +591,7 @@ async function submitAnswerForQuestion(
     timestamp: new Date().toISOString(),
     question: `[aggregated from ${allQuestions.length} session question(s)]`,
     response: '',
-    passed: aggregatedQuality >= 3,
+    passed: Math.round(aggregatedQuality) >= 3,
     feedback: '',
     quality: Math.round(aggregatedQuality),
     time_spent_ms: accumulatedTimeMs,

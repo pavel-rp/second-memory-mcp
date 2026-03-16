@@ -38,7 +38,8 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
     return await this.db
       .select()
       .from(sessionQuestions)
-      .where(eq(sessionQuestions.sessionChunkId, sessionChunkId));
+      .where(eq(sessionQuestions.sessionChunkId, sessionChunkId))
+      .orderBy(asc(sessionQuestions.questionIndex));
   }
 
   async getQuestionById(id: string): Promise<SessionQuestion | null> {
