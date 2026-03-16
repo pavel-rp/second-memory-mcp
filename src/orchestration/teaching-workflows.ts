@@ -388,10 +388,22 @@ export async function createSessionQuestions(
     return { status: 'error', message: 'SessionQuestionRepository not configured.' };
   }
 
-  // Validate session chunk exists
+  // Validate active session exists and chunk belongs to it
+  const session = await deps.sessions.getActiveSession();
+  if (!session) {
+    return { status: 'error', message: 'No active session. Call create_session first.' };
+  }
+
   const sessionChunk = await deps.sessions.getSessionChunkById(input.sessionChunkId);
   if (!sessionChunk) {
     return { status: 'error', message: `Session chunk ${input.sessionChunkId} not found.` };
+  }
+
+  if (sessionChunk.sessionId !== session.id) {
+    return {
+      status: 'error',
+      message: `Session chunk ${input.sessionChunkId} does not belong to the active session.`,
+    };
   }
 
   if (sessionChunk.status !== 'in_progress') {
@@ -464,7 +476,7 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // 2. Get active session (needed for piggyback teach_next)
+  // 2. Get active session and verify scoping
   const session = await deps.sessions.getActiveSession();
   if (!session) {
     return { status: 'error', message: 'No active session. Call create_session first.' };
@@ -474,6 +486,14 @@ async function submitAnswerForQuestion(
   const sessionChunk = await deps.sessions.getSessionChunkById(question.sessionChunkId);
   if (!sessionChunk) {
     return { status: 'error', message: `Session chunk ${question.sessionChunkId} not found.` };
+  }
+
+  // 3a. Guard: chunk must belong to the active session
+  if (sessionChunk.sessionId !== session.id) {
+    return {
+      status: 'error',
+      message: `Question ${sessionQuestionId} belongs to a different session.`,
+    };
   }
 
   // 3b. Guard: chunk must still be in_progress

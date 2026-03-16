@@ -1014,6 +1014,48 @@ describe('createSessionQuestions', () => {
       })
     );
   });
+
+  it('returns error when no active session', async () => {
+    const deps = makeQuestionDeps({
+      sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
+    });
+
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] },
+      deps
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'error',
+        message: expect.stringContaining('No active session'),
+      })
+    );
+  });
+
+  it('returns error when chunk belongs to a different session', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        getSessionChunkById: vi
+          .fn()
+          .mockResolvedValue(
+            makeSessionChunk({ id: 'sc-1', sessionId: 'other-session', status: 'in_progress' })
+          ),
+      },
+    });
+
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] },
+      deps
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'error',
+        message: expect.stringContaining('does not belong to the active session'),
+      })
+    );
+  });
 });
 
 describe('submitAnswer with session_question_id', () => {
@@ -1289,6 +1331,26 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
+  });
+
+  it('returns error when question belongs to a different session', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        getSessionChunkById: vi
+          .fn()
+          .mockResolvedValue(
+            makeSessionChunk({ id: 'sc-1', sessionId: 'other-session', status: 'in_progress' })
+          ),
+      },
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('different session');
   });
 
   it('returns error when max attempts exceeded', async () => {
