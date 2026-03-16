@@ -8,6 +8,8 @@ import {
   learningChunks,
   learningSessions,
   sessionChunks,
+  sessionQuestions,
+  sessionQuestionAttempts,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 
@@ -359,26 +361,38 @@ describe('Integration: Session Management Tools', () => {
     const createParsed = parseToolResult(createResult);
     const sessionId = createParsed.session_id;
 
+    const scId = `session-chunk-${now}`;
     await db.insert(sessionChunks).values({
-      id: `session-chunk-${now}`,
+      id: scId,
       sessionId: sessionId,
       chunkId: chunkId,
       status: 'completed',
-      attemptsJson: [
-        {
-          timestamp: new Date(now).toISOString(),
-          quality: 5,
-          time_spent_ms: 3000,
-          question: 'Test question',
-          response: 'Test response',
-          passed: true,
-          feedback: 'Test feedback',
-        },
-      ],
-      qualityScoresJson: [5],
       timeSpentMs: 3000,
       createdAt: now,
       updatedAt: now,
+    });
+
+    // Insert normalized question + attempt
+    const sqId = `sq-mgmt-${now}`;
+    await db.insert(sessionQuestions).values({
+      id: sqId,
+      sessionChunkId: scId,
+      questionIndex: 1,
+      promptText: 'Test question',
+      status: 'answered',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(sessionQuestionAttempts).values({
+      id: `sqa-mgmt-${now}`,
+      sessionQuestionId: sqId,
+      attemptNumber: 1,
+      response: 'Test response',
+      passed: true,
+      feedback: 'Test feedback',
+      quality: 5,
+      timeSpentMs: 3000,
+      createdAt: now,
     });
 
     const getResult = await getSessionTool.handler({

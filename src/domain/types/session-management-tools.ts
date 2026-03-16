@@ -36,20 +36,6 @@ export const CreateSessionChunkToolInputShape = {
   session_id: z.string().min(1),
   chunk_id: z.string().min(1),
   status: z.enum(['pending', 'in_progress', 'completed']).default('pending'),
-  attempts: z
-    .array(
-      z.object({
-        timestamp: z.number(),
-        question: z.string().min(1),
-        response: z.string().min(1),
-        passed: z.boolean(),
-        feedback: z.string().min(1),
-        quality: z.number().min(0).max(5),
-        time_spent_ms: z.number().min(0),
-      })
-    )
-    .optional(),
-  quality_scores: z.array(z.number().min(0).max(5)).optional(),
   time_spent_ms: z.number().min(0).default(0),
 } as const;
 

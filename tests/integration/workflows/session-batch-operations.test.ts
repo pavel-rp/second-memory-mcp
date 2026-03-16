@@ -93,8 +93,6 @@ describe('Integration: batch session chunk operations', () => {
       sessionId,
       chunkId: 'c1',
       status: 'pending',
-      attemptsJson: null,
-      qualityScoresJson: null,
       timeSpentMs: 0,
       createdAt: now,
       updatedAt: now,
@@ -104,25 +102,11 @@ describe('Integration: batch session chunk operations', () => {
       {
         chunkId: 'c1',
         status: 'completed' as const,
-        attempts: [
-          {
-            timestamp: new Date(now).toISOString(),
-            question: 'Test question',
-            response: 'Test response',
-            passed: true,
-            feedback: 'Test feedback',
-            quality: 5,
-            time_spent_ms: 1000,
-          },
-        ],
-        qualityScores: [5],
         timeSpentMs: 1000,
       },
       {
         chunkId: 'c2',
         status: 'pending' as const,
-        attempts: [],
-        qualityScores: [],
         timeSpentMs: 0,
       },
     ];

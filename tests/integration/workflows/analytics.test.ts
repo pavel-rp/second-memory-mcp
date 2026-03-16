@@ -6,6 +6,8 @@ import {
   learningChunks,
   learningSessions,
   sessionChunks,
+  sessionQuestions,
+  sessionQuestionAttempts,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 
@@ -70,11 +72,58 @@ describe('analytics workflows', () => {
       sessionId,
       chunkId,
       status: 'completed',
-      qualityScoresJson: [4, 5],
       timeSpentMs: 30000,
       createdAt: now,
       updatedAt: now,
     });
+
+    // Insert normalized questions + attempts (replaces qualityScoresJson: [4, 5])
+    const sqId1 = 'sq-analytics-1';
+    const sqId2 = 'sq-analytics-2';
+    await db.insert(sessionQuestions).values([
+      {
+        id: sqId1,
+        sessionChunkId,
+        questionIndex: 1,
+        promptText: 'Q1',
+        status: 'answered',
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: sqId2,
+        sessionChunkId,
+        questionIndex: 2,
+        promptText: 'Q2',
+        status: 'answered',
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+    await db.insert(sessionQuestionAttempts).values([
+      {
+        id: 'sqa-analytics-1',
+        sessionQuestionId: sqId1,
+        attemptNumber: 1,
+        response: 'r1',
+        passed: true,
+        feedback: 'f1',
+        quality: 4,
+        timeSpentMs: 15000,
+        createdAt: now,
+      },
+      {
+        id: 'sqa-analytics-2',
+        sessionQuestionId: sqId2,
+        attemptNumber: 1,
+        response: 'r2',
+        passed: true,
+        feedback: 'f2',
+        quality: 5,
+        timeSpentMs: 15000,
+        createdAt: now,
+      },
+    ]);
   });
 
   afterAll(teardownTestDb);
@@ -84,7 +133,7 @@ describe('analytics workflows', () => {
       const result = await ctx.computeDailyAnalytics('2026-01-15');
 
       expect(result.date).toBe('2026-01-15');
-      expect(result.reviews_completed).toBe(2); // qualityScoresJson [4,5] expands to 2 entries
+      expect(result.reviews_completed).toBe(2); // 2 attempts with non-null quality
       expect(result.new_chunks_learned).toBe(2); // both entries have isNew (chunkType='new')
       expect(result.average_quality).toBe(4.5);
     });

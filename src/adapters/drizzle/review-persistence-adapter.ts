@@ -4,6 +4,8 @@ import {
   learningChunks,
   learningSessions,
   sessionChunks,
+  sessionQuestions,
+  sessionQuestionAttempts,
   learningTopics,
 } from '../../infrastructure/db/schema.js';
 import type { LearningChunk } from '../../domain/types/entities.js';
@@ -47,41 +49,34 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
     const rows = await this.db
       .select({
         startTime: learningSessions.startTime,
-        qualityScoresJson: sessionChunks.qualityScoresJson,
+        quality: sessionQuestionAttempts.quality,
         chunkType: learningChunks.chunkType,
         tagsJson: learningChunks.tagsJson,
         topicTitle: learningTopics.title,
       })
-      .from(sessionChunks)
+      .from(sessionQuestionAttempts)
+      .innerJoin(
+        sessionQuestions,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+      )
+      .innerJoin(sessionChunks, eq(sessionQuestions.sessionChunkId, sessionChunks.id))
       .innerJoin(learningSessions, eq(sessionChunks.sessionId, learningSessions.id))
       .innerJoin(learningChunks, eq(sessionChunks.chunkId, learningChunks.id))
       .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
       .where(
         and(
-          isNotNull(sessionChunks.qualityScoresJson),
+          isNotNull(sessionQuestionAttempts.quality),
           gte(learningSessions.startTime, fromMs),
           lt(learningSessions.startTime, toMs)
         )
       );
 
-    const entries: PersistedReviewEntry[] = [];
-
-    for (const row of rows) {
-      const scores = row.qualityScoresJson;
-      if (!scores || scores.length === 0) continue;
-
-      const date = new Date(row.startTime).toISOString().split('T')[0];
-      const isNew = row.chunkType === 'new';
-      const topic = row.topicTitle ?? '(unknown)';
-      const tags = row.tagsJson ?? [];
-
-      // A single session_chunk can have multiple quality scores (e.g. retries within a session),
-      // so each score becomes its own PersistedReviewEntry.
-      for (const quality of scores) {
-        entries.push({ date, quality, isNew, topic, tags });
-      }
-    }
-
-    return entries;
+    return rows.map(row => ({
+      date: new Date(row.startTime).toISOString().split('T')[0] as string,
+      quality: row.quality as number,
+      isNew: row.chunkType === 'new',
+      topic: row.topicTitle ?? '(unknown)',
+      tags: row.tagsJson ?? [],
+    }));
   }
 }

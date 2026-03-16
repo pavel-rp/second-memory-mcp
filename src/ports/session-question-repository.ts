@@ -24,7 +24,8 @@ export type CreateQuestionAttemptInput = {
 export interface SessionQuestionRepository {
   createQuestions(
     sessionChunkId: string,
-    questions: { promptText: string }[]
+    questions: { promptText: string }[],
+    startIndex?: number
   ): Promise<SessionQuestion[]>;
 
   getQuestionsForChunk(sessionChunkId: string): Promise<SessionQuestion[]>;
@@ -38,4 +39,10 @@ export interface SessionQuestionRepository {
   getAttemptsForQuestion(sessionQuestionId: string): Promise<SessionQuestionAttempt[]>;
 
   getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]>;
+
+  /** Batch: get all questions for multiple chunks in one query. */
+  getQuestionsForChunks(sessionChunkIds: string[]): Promise<SessionQuestion[]>;
+
+  /** Batch: get all attempts for multiple chunks (via their questions) in one query. */
+  getAllAttemptsForChunks(sessionChunkIds: string[]): Promise<SessionQuestionAttempt[]>;
 }

@@ -15,7 +15,7 @@ import type {
   CreateSessionQuestionsInput,
   CreateSessionQuestionsResult,
 } from '../domain/types/teaching.js';
-import type { ChunkAttempt } from '../domain/types/session.js';
+import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/entities.js';
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
@@ -36,7 +36,7 @@ export type TeachingDeps = {
   chunks: ChunkRepository;
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
-  sessionQuestions?: SessionQuestionRepository;
+  sessionQuestions: SessionQuestionRepository;
 };
 
 /**
@@ -72,8 +72,56 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   }
   const sessionChunks = orderBySessionChunkIds(rawChunks, session.chunkIds);
 
+  // 2b. Batch-prefetch questions + attempts for all chunks (one query each)
+  const chunkIds = sessionChunks.map(sc => sc.id);
+  const [allQuestions, allAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForChunks(chunkIds),
+    deps.sessionQuestions.getAllAttemptsForChunks(chunkIds),
+  ]);
+
+  // Build lookup maps: chunkId → questions, questionId → attempts
+  const questionsByChunk = new Map<string, SessionQuestion[]>();
+  for (const q of allQuestions) {
+    const list = questionsByChunk.get(q.sessionChunkId) ?? [];
+    list.push(q);
+    questionsByChunk.set(q.sessionChunkId, list);
+  }
+  const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
+  for (const a of allAttempts) {
+    const list = attemptsByQuestion.get(a.sessionQuestionId) ?? [];
+    list.push(a);
+    attemptsByQuestion.set(a.sessionQuestionId, list);
+  }
+
+  /** Check if a chunk has any recorded attempts (via normalized tables). */
+  const chunkHasAttempts = (scId: string): boolean => {
+    const questions = questionsByChunk.get(scId) ?? [];
+    if (questions.length === 0) return false;
+    // Has attempts if any question has at least one attempt
+    return questions.some(q => (attemptsByQuestion.get(q.id) ?? []).length > 0);
+  };
+
+  /** Check if a chunk is a re-queued failure (last attempt was a failure). */
+  const chunkIsRequeuedFailure = (scId: string): boolean => {
+    const questions = questionsByChunk.get(scId) ?? [];
+    if (questions.length === 0) return false;
+    // Explicitly find the question with the highest questionIndex (don't assume ordering)
+    const lastQuestion = questions.reduce((max, q) =>
+      q.questionIndex > max.questionIndex ? q : max
+    );
+    const attempts = attemptsByQuestion.get(lastQuestion.id) ?? [];
+    if (attempts.length === 0) return false;
+    // Find the attempt with the highest attemptNumber
+    const lastAttempt = attempts.reduce((max, a) =>
+      a.attemptNumber > max.attemptNumber ? a : max
+    );
+    return !lastAttempt.passed;
+  };
+
   // 3. Gating: refuse if any in_progress chunk has no recorded attempts
-  const inProgressChunk = sessionChunks.find(sc => sc.status === 'in_progress' && !hasAttempts(sc));
+  const inProgressChunk = sessionChunks.find(
+    sc => sc.status === 'in_progress' && !chunkHasAttempts(sc.id)
+  );
   if (inProgressChunk) {
     return {
       status: 'blocked',
@@ -86,9 +134,9 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const pendingChunks = sessionChunks.filter(sc => sc.status === 'pending');
 
   // Re-queued failures: pending chunks that have previous failed attempts
-  const requeued = pendingChunks.filter(sc => isRequeuedFailure(sc));
+  const requeued = pendingChunks.filter(sc => chunkIsRequeuedFailure(sc.id));
   // Fresh pending: pending chunks with no prior attempts
-  const freshPending = pendingChunks.filter(sc => !hasAttempts(sc));
+  const freshPending = pendingChunks.filter(sc => !chunkHasAttempts(sc.id));
 
   const selected = freshPending[0] ?? requeued[0];
 
@@ -96,7 +144,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     // No candidates — check if all completed
     const allCompleted = sessionChunks.every(sc => sc.status === 'completed');
     if (allCompleted) {
-      return buildCompleteResponse(sessionChunks);
+      return buildCompleteResponse(sessionChunks, questionsByChunk, attemptsByQuestion);
     }
     // Some in_progress remain — blocked on that chunk
     const blockedChunk = sessionChunks.find(sc => sc.status === 'in_progress');
@@ -125,7 +173,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   }
 
   // 6. Determine mode
-  const isRequeued = hasAttempts(selected);
+  const isRequeued = chunkHasAttempts(selected.id);
   const mode: 'learning' | 'retrieval' = isRequeued ? 'retrieval' : 'learning';
   const drillFormat: DrillFormat = mode === 'retrieval' ? 'open_ended' : 'explanation';
 
@@ -196,27 +244,6 @@ function orderBySessionChunkIds(
   });
 }
 
-function hasAttempts(sc: SessionChunk): boolean {
-  return Array.isArray(sc.attemptsJson) && sc.attemptsJson.length > 0;
-}
-
-/** Resolve `passed` with legacy `completed` fallback for raw DB attempts. */
-function attemptPassed(attempt: unknown): boolean {
-  if (attempt === null || typeof attempt !== 'object') return false;
-  const obj = attempt as Record<string, unknown>;
-  if ('passed' in obj) return Boolean(obj.passed);
-  // Legacy rows may have `completed` instead of `passed`
-  if ('completed' in obj) return Boolean(obj.completed);
-  return false;
-}
-
-function isRequeuedFailure(sc: SessionChunk): boolean {
-  if (!hasAttempts(sc)) return false;
-  const attempts = sc.attemptsJson as unknown[];
-  const lastAttempt = attempts[attempts.length - 1];
-  return !attemptPassed(lastAttempt);
-}
-
 // ── submit_answer ────────────────────────────────────────────────
 
 /**
@@ -236,10 +263,10 @@ function deriveQuality(attemptNumber: 1 | 2, passed: boolean): number | null {
  * Flow:
  * 1. Get active session → error if none
  * 2. Find in-progress chunk → error if none
- * 3. Count existing attempts → reject if >= 2
- * 4. Derive quality from attempt number + passed
- * 5. Build ChunkAttempt, append to attemptsJson
- * 6. If attempt 1 failed → persist, return retry
+ * 3. Auto-create or find current session_question for this presentation
+ * 4. Count existing attempts on that question → reject if >= 2
+ * 5. Derive quality, persist attempt to session_question_attempts
+ * 6. If attempt 1 failed → retry
  * 7. If completed → SR update, mark completed/re-queued, piggyback teach_next
  */
 export async function submitAnswer(
@@ -251,7 +278,7 @@ export async function submitAnswer(
     return submitAnswerForQuestion(input, input.sessionQuestionId, deps);
   }
 
-  // Legacy flow: attemptsJson-based
+  // Legacy flow: auto-create session_question, write to session_question_attempts
   // 1. Get active session
   const session = await deps.sessions.getActiveSession();
   if (!session) {
@@ -265,41 +292,64 @@ export async function submitAnswer(
     return { status: 'error', message: 'No in-progress chunk. Call teach_next first.' };
   }
 
-  // 3. Count attempts for the *current presentation* (chunks can be re-presented
-  //    after failures+re-queuing, so attempts are grouped into pairs).
-  const existingAttempts = inProgressChunk.attemptsJson ?? [];
-  const attemptsInCurrentPresentation = existingAttempts.length % 2;
+  // 3. Find or create the current session_question for this presentation.
+  //    Each presentation gets one question. Look for a pending question first;
+  //    if none exists, create one.
+  const existingQuestions = await deps.sessionQuestions.getQuestionsForChunk(inProgressChunk.id);
+  let currentQuestion = existingQuestions.find(q => q.status === 'pending');
 
-  if (attemptsInCurrentPresentation >= 2) {
+  if (!currentQuestion) {
+    // All existing questions are answered/skipped — this is a new presentation.
+    const newQuestionIndex = existingQuestions.length + 1;
+    const created = await deps.sessionQuestions.createQuestions(
+      inProgressChunk.id,
+      [{ promptText: input.question }],
+      newQuestionIndex
+    );
+    if (!created[0]) {
+      return { status: 'error', message: 'Failed to create session question.' };
+    }
+    currentQuestion = created[0];
+  }
+
+  // 4. Count existing attempts on this question
+  const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(currentQuestion.id);
+  if (existingAttempts.length >= 2) {
     return {
       status: 'error',
-      message: `Max 2 attempts per chunk presentation. Chunk ${inProgressChunk.chunkId} already has ${attemptsInCurrentPresentation} attempts in this presentation.`,
+      message: `Max 2 attempts per chunk presentation. Chunk ${inProgressChunk.chunkId} already has ${existingAttempts.length} attempts in this presentation.`,
     };
   }
 
-  const attemptNumber = (attemptsInCurrentPresentation + 1) as 1 | 2;
+  const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
 
-  // 4. Derive quality based on the attempt number within the current presentation
+  // 5. Derive quality and persist attempt
   const quality = deriveQuality(attemptNumber, input.passed);
 
-  // 5. Build attempt record (omit quality for unscored retry attempts)
-  const attempt: ChunkAttempt = {
-    timestamp: new Date().toISOString(),
-    question: input.question,
+  await deps.sessionQuestions.createAttempt({
+    id: crypto.randomUUID(),
+    sessionQuestionId: currentQuestion.id,
+    attemptNumber,
     response: input.response,
     passed: input.passed,
     feedback: input.feedback,
-    ...(quality !== null ? { quality } : {}),
-    time_spent_ms: input.timeSpentMs,
-  };
+    quality,
+    timeSpentMs: input.timeSpentMs,
+    createdAt: Date.now(),
+  });
 
-  const updatedAttempts = [...existingAttempts, attempt];
-  const accumulatedTimeMs = inProgressChunk.timeSpentMs + input.timeSpentMs;
+  // Count total attempts across all questions for this chunk (for re-queue logic)
+  const [allChunkQuestions, allChunkAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForChunk(inProgressChunk.id),
+    deps.sessionQuestions.getAllAttemptsForChunk(inProgressChunk.id),
+  ]);
+  // Use only the sum of attempt times — do NOT add inProgressChunk.timeSpentMs,
+  // which already includes prior attempt times from the retry-path update.
+  const accumulatedTimeMs = allChunkAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
 
   // 6. First attempt failed → retry (no SR update)
   if (quality === null) {
     await deps.sessions.updateSessionChunk(inProgressChunk.id, {
-      attemptsJson: updatedAttempts,
       timeSpentMs: accumulatedTimeMs,
       updatedAt: Date.now(),
     });
@@ -312,6 +362,9 @@ export async function submitAnswer(
       feedback: input.feedback,
     };
   }
+
+  // Mark question as answered
+  await deps.sessionQuestions.updateQuestionStatus(currentQuestion.id, 'answered');
 
   // 7. Completed (attempt 1 pass, or attempt 2 pass/fail)
   const reviewDeps: reviewWorkflows.ReviewDeps = {
@@ -329,17 +382,15 @@ export async function submitAnswer(
   // Determine chunk status: re-queue on attempt-2 failure, unless retries exhausted
   let newStatus: 'completed' | 'pending';
   if (attemptNumber === 2 && !input.passed) {
-    const presentationCount = Math.ceil(updatedAttempts.length / 2);
+    // Each question = one presentation, so count questions
+    const presentationCount = allChunkQuestions.length;
     newStatus = presentationCount > MAX_RETRIES ? 'completed' : 'pending';
   } else {
     newStatus = 'completed';
   }
-  const updatedQualityScores = (inProgressChunk.qualityScoresJson ?? []).concat(quality);
 
   await deps.sessions.updateSessionChunk(inProgressChunk.id, {
     status: newStatus,
-    attemptsJson: updatedAttempts,
-    qualityScoresJson: updatedQualityScores,
     timeSpentMs: accumulatedTimeMs,
     updatedAt: Date.now(),
   });
@@ -384,10 +435,6 @@ export async function createSessionQuestions(
   input: CreateSessionQuestionsInput,
   deps: TeachingDeps
 ): Promise<CreateSessionQuestionsResult> {
-  if (!deps.sessionQuestions) {
-    return { status: 'error', message: 'SessionQuestionRepository not configured.' };
-  }
-
   // Validate active session exists and chunk belongs to it
   const session = await deps.sessions.getActiveSession();
   if (!session) {
@@ -458,10 +505,6 @@ async function submitAnswerForQuestion(
   sessionQuestionId: string,
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
-  if (!deps.sessionQuestions) {
-    return { status: 'error', message: 'SessionQuestionRepository not configured.' };
-  }
-
   // 1. Look up the question
   const question = await deps.sessionQuestions.getQuestionById(sessionQuestionId);
   if (!question) {
@@ -585,8 +628,9 @@ async function submitAnswerForQuestion(
     algorithmConfig: deps.algorithmConfig,
   };
 
-  const accumulatedTimeMs =
-    sessionChunk.timeSpentMs + allAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
+  // Use only the sum of attempt times — sessionChunk.timeSpentMs may already
+  // include prior attempt times, so adding it would double-count.
+  const accumulatedTimeMs = allAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
 
   const reviewResult = await reviewWorkflows.processReviewResult(
     sessionChunk.chunkId,
@@ -603,22 +647,8 @@ async function submitAnswerForQuestion(
   }
 
   // 11. Mark chunk completed (only after SR persistence succeeds)
-  // Write a synthetic attemptsJson entry for backward compatibility with buildCompleteResponse()
-  const syntheticAttempt: ChunkAttempt = {
-    timestamp: new Date().toISOString(),
-    question: `[aggregated from ${allQuestions.length} session question(s)]`,
-    response: '',
-    passed: Math.round(aggregatedQuality) >= 3,
-    feedback: '',
-    quality: Math.round(aggregatedQuality),
-    time_spent_ms: accumulatedTimeMs,
-  };
-  const updatedAttempts = (sessionChunk.attemptsJson ?? []).concat(syntheticAttempt);
-
   await deps.sessions.updateSessionChunk(sessionChunk.id, {
     status: 'completed',
-    attemptsJson: updatedAttempts,
-    qualityScoresJson: (sessionChunk.qualityScoresJson ?? []).concat(Math.round(aggregatedQuality)),
     timeSpentMs: accumulatedTimeMs,
     updatedAt: Date.now(),
   });
@@ -643,21 +673,26 @@ async function submitAnswerForQuestion(
   };
 }
 
-function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse {
+function buildCompleteResponse(
+  sessionChunks: SessionChunk[],
+  questionsByChunk: Map<string, SessionQuestion[]>,
+  attemptsByQuestion: Map<string, SessionQuestionAttempt[]>
+): TeachNextResponse {
   const total = sessionChunks.length;
   let passedFirstTry = 0;
   let neededRetry = 0;
   let exhaustedRetries = 0;
 
   for (const sc of sessionChunks) {
-    const attempts = sc.attemptsJson ?? [];
-    if (attempts.length === 0) continue;
-    if (attempts.length === 1 && attemptPassed(attempts[0])) {
+    const questions = questionsByChunk.get(sc.id) ?? [];
+    const allAttempts = questions.flatMap(q => attemptsByQuestion.get(q.id) ?? []);
+    if (allAttempts.length === 0) continue;
+
+    if (allAttempts.length === 1 && (allAttempts[0] as SessionQuestionAttempt).passed) {
       passedFirstTry++;
-    } else if (attempts.some(a => attemptPassed(a))) {
+    } else if (allAttempts.some(a => a.passed)) {
       neededRetry++;
     } else {
-      // No attempt passed — either exhausted retries (legacy) or low-quality question-flow completion
       exhaustedRetries++;
     }
   }
@@ -683,6 +718,7 @@ export type StartLearningDeps = {
   chunkIdLookup: ChunkIdLookupPort;
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
+  sessionQuestions: SessionQuestionRepository;
   maxDependencyDepth: number;
 };
 
@@ -780,6 +816,7 @@ export async function startLearning(
     chunks: deps.chunks,
     reviewPersistence: deps.reviewPersistence,
     algorithmConfig: deps.algorithmConfig,
+    sessionQuestions: deps.sessionQuestions,
   };
   const firstChunk = await getNextTeachingStep(teachingDeps);
 

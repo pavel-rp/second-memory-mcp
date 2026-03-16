@@ -1,10 +1,12 @@
-import { eq, desc, inArray } from 'drizzle-orm';
+import { eq, desc, asc, inArray } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, withTx, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningSessions,
   sessionChunks,
   learningChunks,
+  sessionQuestions,
+  sessionQuestionAttempts,
   type NewLearningSessionRow,
   type NewSessionChunkRow,
 } from '../../infrastructure/db/schema.js';
@@ -58,8 +60,6 @@ export class DrizzleSessionRepository implements SessionRepository {
         sessionId: input.id,
         chunkId,
         status: 'pending',
-        attemptsJson: null,
-        qualityScoresJson: null,
         timeSpentMs: 0,
         createdAt: input.createdAt,
         updatedAt: input.updatedAt,
@@ -126,8 +126,6 @@ export class DrizzleSessionRepository implements SessionRepository {
       sessionId: input.sessionId,
       chunkId: input.chunkId,
       status: input.status || 'pending',
-      attemptsJson: input.attemptsJson ?? null,
-      qualityScoresJson: input.qualityScoresJson ?? null,
       timeSpentMs: input.timeSpentMs ?? 0,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
@@ -163,8 +161,6 @@ export class DrizzleSessionRepository implements SessionRepository {
       sessionId: input.sessionId,
       chunkId: input.chunkId,
       status: input.status || 'pending',
-      attemptsJson: input.attemptsJson ?? null,
-      qualityScoresJson: input.qualityScoresJson ?? null,
       timeSpentMs: input.timeSpentMs ?? 0,
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
@@ -198,14 +194,73 @@ export class DrizzleSessionRepository implements SessionRepository {
         : [];
     const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
 
+    // Fetch normalized questions + attempts for all session chunks
+    const scIds = sessionChunkRows.map(sc => sc.id);
+    const questionRows =
+      scIds.length > 0
+        ? await this.db
+            .select()
+            .from(sessionQuestions)
+            .where(inArray(sessionQuestions.sessionChunkId, scIds))
+            .orderBy(asc(sessionQuestions.sessionChunkId), asc(sessionQuestions.questionIndex))
+        : [];
+    const questionIds = questionRows.map(q => q.id);
+    const attemptRows =
+      questionIds.length > 0
+        ? await this.db
+            .select()
+            .from(sessionQuestionAttempts)
+            .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds))
+            .orderBy(
+              asc(sessionQuestionAttempts.sessionQuestionId),
+              asc(sessionQuestionAttempts.attemptNumber)
+            )
+        : [];
+
+    // Build lookup maps
+    const questionsByChunk = new Map<string, typeof questionRows>();
+    for (const q of questionRows) {
+      const list = questionsByChunk.get(q.sessionChunkId) ?? [];
+      list.push(q);
+      questionsByChunk.set(q.sessionChunkId, list);
+    }
+    const attemptsByQuestion = new Map<string, typeof attemptRows>();
+    for (const a of attemptRows) {
+      const list = attemptsByQuestion.get(a.sessionQuestionId) ?? [];
+      list.push(a);
+      attemptsByQuestion.set(a.sessionQuestionId, list);
+    }
+
     const chunks = sessionChunkRows.map(sc => {
       const detail = chunkMap.get(sc.chunkId);
+      const scQuestions = questionsByChunk.get(sc.id) ?? [];
+      const attempts: ChunkAttempt[] = [];
+      const qualityScores: number[] = [];
+
+      for (const q of scQuestions) {
+        const qAttempts = attemptsByQuestion.get(q.id) ?? [];
+        for (const a of qAttempts) {
+          attempts.push({
+            timestamp: new Date(a.createdAt).toISOString(),
+            question: q.promptText,
+            response: a.response,
+            passed: a.passed,
+            feedback: a.feedback,
+            quality: a.quality ?? undefined,
+            time_spent_ms: a.timeSpentMs,
+          });
+          if (a.quality !== null) {
+            qualityScores.push(a.quality);
+          }
+        }
+      }
+
       return {
         chunk_id: sc.chunkId,
         title: detail?.title || 'Unknown',
         status: sc.status as 'pending' | 'in_progress' | 'completed',
-        attempts: (sc.attemptsJson as ChunkAttempt[]) || [],
-        quality_scores: (sc.qualityScoresJson as number[]) || [],
+        attempts,
+        quality_scores: qualityScores,
         time_spent_ms: sc.timeSpentMs,
         ...(detail && {
           repetitions: detail.repetitions,
@@ -294,14 +349,6 @@ export class DrizzleSessionRepository implements SessionRepository {
             changes.status = op.status;
             hasChanges = true;
           }
-          if (op.attempts) {
-            changes.attemptsJson = op.attempts;
-            hasChanges = true;
-          }
-          if (op.qualityScores) {
-            changes.qualityScoresJson = op.qualityScores;
-            hasChanges = true;
-          }
           if (op.timeSpentMs !== undefined) {
             changes.timeSpentMs = op.timeSpentMs;
             hasChanges = true;
@@ -320,8 +367,6 @@ export class DrizzleSessionRepository implements SessionRepository {
             sessionId,
             chunkId: op.chunkId,
             status: op.status || 'pending',
-            attemptsJson: op.attempts || null,
-            qualityScoresJson: op.qualityScores || null,
             timeSpentMs: op.timeSpentMs || 0,
             createdAt: now,
             updatedAt: now,

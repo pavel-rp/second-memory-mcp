@@ -1,5 +1,3 @@
-import type { ChunkAttempt } from './session.js';
-
 // ── Learning Topics ──────────────────────────────────────────────
 
 export type LearningTopic = {
@@ -97,8 +95,6 @@ export type SessionChunk = {
   sessionId: string;
   chunkId: string;
   status: string;
-  attemptsJson: ChunkAttempt[] | null;
-  qualityScoresJson: number[] | null;
   timeSpentMs: number;
   createdAt: number;
   updatedAt: number;

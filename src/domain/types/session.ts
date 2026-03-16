@@ -178,8 +178,6 @@ export type BatchOperation = {
   chunkId: string;
   title?: string;
   status?: 'pending' | 'in_progress' | 'completed';
-  attempts?: ChunkAttempt[];
-  qualityScores?: number[];
   timeSpentMs?: number;
 };
 
@@ -187,14 +185,12 @@ export const BatchOperationShape = {
   chunk_id: z.string().min(1),
   title: z.string().min(1).optional(),
   status: z.enum(['pending', 'in_progress', 'completed']).optional(),
-  attempts: z.array(ChunkAttemptSchema).optional(),
-  quality_scores: z.array(z.number().min(0).max(5)).optional(),
   time_spent_ms: z.number().min(0).optional(),
 } as const;
 
 export const BatchOperationSchema = z
   .object(BatchOperationShape)
-  .transform(toCamelCaseKeysExcept(new Set(['attempts'])));
+  .transform(toCamelCaseKeysExcept(new Set()));
 
 export const BatchUpdateInputShape = {
   session_id: z.string().min(1),
