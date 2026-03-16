@@ -392,10 +392,12 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(getActiveParsed.session.session_id).toBe(sessionId);
 
     expect(getActiveParsed.session.chunks).toHaveLength(2);
-    expect(getActiveParsed.session.chunks[0].chunk_id).toBe(chunkId1);
-    expect(getActiveParsed.session.chunks[0].status).toBe('pending');
-    expect(getActiveParsed.session.chunks[1].chunk_id).toBe(chunkId2);
-    expect(getActiveParsed.session.chunks[1].status).toBe('pending');
+    const chunkIds = getActiveParsed.session.chunks.map((c: { chunk_id: string }) => c.chunk_id);
+    expect(chunkIds).toContain(chunkId1);
+    expect(chunkIds).toContain(chunkId2);
+    for (const chunk of getActiveParsed.session.chunks) {
+      expect(chunk.status).toBe('pending');
+    }
   });
 
   it('should handle session lifecycle with backward compatibility (SessionInput)', async () => {

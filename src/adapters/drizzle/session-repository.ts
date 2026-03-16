@@ -136,7 +136,11 @@ export class DrizzleSessionRepository implements SessionRepository {
   }
 
   async getSessionChunks(sessionId: string): Promise<SessionChunk[]> {
-    return await this.db.select().from(sessionChunks).where(eq(sessionChunks.sessionId, sessionId));
+    return await this.db
+      .select()
+      .from(sessionChunks)
+      .where(eq(sessionChunks.sessionId, sessionId))
+      .orderBy(asc(sessionChunks.createdAt), asc(sessionChunks.id));
   }
 
   async getSessionChunkById(id: string): Promise<SessionChunk | null> {

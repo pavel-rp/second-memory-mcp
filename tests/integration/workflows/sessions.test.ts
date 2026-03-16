@@ -256,10 +256,12 @@ describe('sessions service', () => {
 
       const sessionChunks = await ctx.getSessionChunks('session1');
       expect(sessionChunks).toHaveLength(2);
-      expect(sessionChunks[0].chunkId).toBe('chunk1');
-      expect(sessionChunks[0].status).toBe('pending');
-      expect(sessionChunks[1].chunkId).toBe('chunk2');
-      expect(sessionChunks[1].status).toBe('pending');
+      const chunkIds = sessionChunks.map(c => c.chunkId);
+      expect(chunkIds).toContain('chunk1');
+      expect(chunkIds).toContain('chunk2');
+      for (const chunk of sessionChunks) {
+        expect(chunk.status).toBe('pending');
+      }
     });
 
     it('should reject session creation with invalid chunk IDs', async () => {

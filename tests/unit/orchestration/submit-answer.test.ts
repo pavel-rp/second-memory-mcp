@@ -220,6 +220,29 @@ describe('submitAnswer', () => {
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
   });
 
+  // NEU-128: Retry path returns error when updateSessionChunk returns 0 rows
+  it('returns error when retry-path updateSessionChunk returns 0 rows', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+          }),
+        ]),
+        updateSessionChunk: vi.fn().mockResolvedValue(0),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: false }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain(
+      'Failed to update session chunk time tracking'
+    );
+  });
+
   // VC-02: Second attempt pass → quality 3
   it('returns recorded with quality 3 on second attempt pass', async () => {
     const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
@@ -998,6 +1021,89 @@ describe('submitAnswer', () => {
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toContain('Max 2 attempts');
   });
+
+  // NEU-128: Legacy submitAnswer does NOT update chunk status when SR persistence fails
+  it('does not update chunk status when SR persistence fails', async () => {
+    const deps = makeDeps({
+      reviewPersistence: {
+        getChunk: vi.fn().mockResolvedValue(undefined), // triggers SR failure
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('spaced repetition');
+    // updateSessionChunk should NOT have been called with a status change
+    const calls = vi.mocked(deps.sessions.updateSessionChunk).mock.calls;
+    const statusCalls = calls.filter(([, changes]) => 'status' in changes);
+    expect(statusCalls).toHaveLength(0);
+  });
+
+  // NEU-128: Legacy submitAnswer returns error when updateSessionChunk returns 0
+  it('returns error when updateSessionChunk returns 0 rows after SR success', async () => {
+    const deps = makeDeps({
+      sessions: {
+        updateSessionChunk: vi.fn().mockResolvedValue(0),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain(
+      'Failed to update session chunk status'
+    );
+  });
+
+  // NEU-128: Legacy submitAnswer returns error when createAttempt throws unique violation
+  it('returns error when createAttempt throws unique constraint violation (23505)', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint =
+      'uq_session_question_attempts_question_number';
+
+    const deps = makeDeps({
+      sessionQuestions: {
+        createAttempt: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toBe('Attempt already recorded');
+  });
+
+  // NEU-128: Legacy submitAnswer re-throws 23505 from a different constraint
+  it('re-throws 23505 from non-attempt-number constraint', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'session_question_attempts_pkey';
+
+    const deps = makeDeps({
+      sessionQuestions: {
+        createAttempt: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    await expect(submitAnswer(makeInput({ passed: true }), deps)).rejects.toThrow(
+      'duplicate key value violates unique constraint'
+    );
+  });
+
+  // NEU-128: Legacy submitAnswer re-throws non-23505 errors from createAttempt
+  it('re-throws non-unique-violation errors from createAttempt', async () => {
+    const deps = makeDeps({
+      sessionQuestions: {
+        createAttempt: vi.fn().mockRejectedValue(new Error('connection lost')),
+      },
+    });
+
+    await expect(submitAnswer(makeInput({ passed: true }), deps)).rejects.toThrow(
+      'connection lost'
+    );
+  });
 });
 
 // ── Session Question Flow Tests ─────────────────────────────────
@@ -1529,5 +1635,86 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toContain('spaced repetition');
+  });
+
+  // NEU-128: Question flow returns error when updateSessionChunk returns 0
+  it('returns error when updateSessionChunk returns 0 rows after SR success', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        updateSessionChunk: vi.fn().mockResolvedValue(0),
+      },
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([makeQuestionAttempt({ quality: 5, timeSpentMs: 3000 })]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain(
+      'Failed to update session chunk status'
+    );
+  });
+
+  // NEU-128: Question flow returns error when createAttempt throws unique violation
+  it('returns error when createAttempt throws unique constraint violation (23505)', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint =
+      'uq_session_question_attempts_question_number';
+
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        createAttempt: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toBe('Attempt already recorded');
+  });
+
+  // NEU-128: Question flow re-throws 23505 from a different constraint
+  it('re-throws 23505 from non-attempt-number constraint', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'session_question_attempts_pkey';
+
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        createAttempt: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    await expect(
+      submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps)
+    ).rejects.toThrow('duplicate key value violates unique constraint');
+  });
+
+  // NEU-128: Question flow re-throws non-23505 errors from createAttempt
+  it('re-throws non-unique-violation errors from createAttempt', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        createAttempt: vi.fn().mockRejectedValue(new Error('connection lost')),
+      },
+    });
+
+    await expect(
+      submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps)
+    ).rejects.toThrow('connection lost');
   });
 });
