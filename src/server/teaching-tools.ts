@@ -124,6 +124,13 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       try {
         const parsed = CreateSessionQuestionsInputSchema.parse(input);
         const result = await ctx.createSessionQuestions(parsed);
+        if (result.status === 'error') {
+          return toolError(`Failed to create session questions: ${result.message}`, {
+            type: 'session',
+            message: result.message,
+            retryable: false,
+          });
+        }
         return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);

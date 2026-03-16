@@ -481,10 +481,10 @@ describe('submitAnswer', () => {
     expect(result.review_update).toHaveProperty('interval_days');
     expect(result.review_update).toHaveProperty('ease_factor');
     expect(result.review_update).toHaveProperty('is_leech');
-    expect(typeof result.review_update.next_review_date).toBe('string');
-    expect(typeof result.review_update.interval_days).toBe('number');
-    expect(typeof result.review_update.ease_factor).toBe('number');
-    expect(typeof result.review_update.is_leech).toBe('boolean');
+    expect(typeof result.review_update!.next_review_date).toBe('string');
+    expect(typeof result.review_update!.interval_days).toBe('number');
+    expect(typeof result.review_update!.ease_factor).toBe('number');
+    expect(typeof result.review_update!.is_leech).toBe('boolean');
   });
 
   // VC-08: timeSpentMs accumulated across attempts
@@ -933,24 +933,28 @@ describe('createSessionQuestions', () => {
       deps
     );
 
+    expect(result.status).toBe('created');
+    if (result.status !== 'created') throw new Error('Expected created');
     expect(result.sessionChunkId).toBe('sc-1');
     expect(result.questionIds).toEqual(['sq-1', 'sq-2']);
   });
 
-  it('throws when session chunk not found', async () => {
+  it('returns error when session chunk not found', async () => {
     const deps = makeQuestionDeps({
       sessions: { getSessionChunkById: vi.fn().mockResolvedValue(null) },
     });
 
-    await expect(
-      createSessionQuestions(
-        { sessionChunkId: 'sc-missing', questions: [{ promptText: 'Q1' }] },
-        deps
-      )
-    ).rejects.toThrow('not found');
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-missing', questions: [{ promptText: 'Q1' }] },
+      deps
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({ status: 'error', message: expect.stringContaining('not found') })
+    );
   });
 
-  it('throws when session chunk is not in_progress', async () => {
+  it('returns error when session chunk is not in_progress', async () => {
     const deps = makeQuestionDeps({
       sessions: {
         getSessionChunkById: vi
@@ -959,12 +963,20 @@ describe('createSessionQuestions', () => {
       },
     });
 
-    await expect(
-      createSessionQuestions({ sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] }, deps)
-    ).rejects.toThrow('in_progress');
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] },
+      deps
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'error',
+        message: expect.stringContaining('in_progress'),
+      })
+    );
   });
 
-  it('throws when chunk already has questions', async () => {
+  it('returns error when chunk already has questions', async () => {
     const deps = makeQuestionDeps({
       sessionQuestions: {
         getQuestionsForChunk: vi
@@ -973,18 +985,34 @@ describe('createSessionQuestions', () => {
       },
     });
 
-    await expect(
-      createSessionQuestions({ sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] }, deps)
-    ).rejects.toThrow('already has');
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] },
+      deps
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'error',
+        message: expect.stringContaining('already has'),
+      })
+    );
   });
 
-  it('throws when sessionQuestions port is not configured', async () => {
+  it('returns error when sessionQuestions port is not configured', async () => {
     const deps = makeQuestionDeps();
     deps.sessionQuestions = undefined;
 
-    await expect(
-      createSessionQuestions({ sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] }, deps)
-    ).rejects.toThrow('not configured');
+    const result = await createSessionQuestions(
+      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] },
+      deps
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'error',
+        message: expect.stringContaining('not configured'),
+      })
+    );
   });
 });
 
@@ -1106,7 +1134,7 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('recorded');
     if (result.status !== 'recorded') throw new Error('Expected recorded');
-    expect(result.review_update.next_review_date).not.toBe('');
+    expect(result.review_update?.next_review_date).not.toBe('');
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalled();
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',

@@ -106,6 +106,8 @@ export type SessionChunk = {
 
 // ── Session Questions ─────────────────────────────────────────
 
+export type SessionQuestionStatus = 'pending' | 'answered' | 'skipped';
+
 export type SessionQuestion = {
   id: string;
   sessionChunkId: string;

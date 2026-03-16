@@ -7,7 +7,11 @@ import {
   type NewSessionQuestionRow,
   type NewSessionQuestionAttemptRow,
 } from '../../infrastructure/db/schema.js';
-import type { SessionQuestion, SessionQuestionAttempt } from '../../domain/types/entities.js';
+import type {
+  SessionQuestion,
+  SessionQuestionAttempt,
+  SessionQuestionStatus,
+} from '../../domain/types/entities.js';
 import type {
   SessionQuestionRepository,
   CreateQuestionAttemptInput,
@@ -47,7 +51,7 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
     return row ?? null;
   }
 
-  async updateQuestionStatus(id: string, status: string): Promise<number> {
+  async updateQuestionStatus(id: string, status: SessionQuestionStatus): Promise<number> {
     const res = await this.db
       .update(sessionQuestions)
       .set({ status, updatedAt: Date.now() })

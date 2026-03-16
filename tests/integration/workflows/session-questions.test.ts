@@ -89,6 +89,8 @@ describe('session question workflows', () => {
       questions: [{ promptText: 'What is 2+2?' }, { promptText: 'Explain addition' }],
     });
 
+    expect(result.status).toBe('created');
+    if (result.status !== 'created') throw new Error('Expected created');
     expect(result.sessionChunkId).toBe(sessionChunkId);
     expect(result.questionIds).toHaveLength(2);
 
@@ -110,12 +112,13 @@ describe('session question workflows', () => {
       questions: [{ promptText: 'Q1' }],
     });
 
-    await expect(
-      ctx.createSessionQuestions({
-        sessionChunkId,
-        questions: [{ promptText: 'Q2' }],
-      })
-    ).rejects.toThrow('already has');
+    const duplicateResult = await ctx.createSessionQuestions({
+      sessionChunkId,
+      questions: [{ promptText: 'Q2' }],
+    });
+    expect(duplicateResult.status).toBe('error');
+    if (duplicateResult.status !== 'error') throw new Error('Expected error');
+    expect(duplicateResult.message).toContain('already has');
   });
 
   it('submits answer via session question flow — retry then pass', async () => {
@@ -125,6 +128,7 @@ describe('session question workflows', () => {
       sessionChunkId,
       questions: [{ promptText: 'What is 2+2?' }],
     });
+    if (createResult.status !== 'created') throw new Error('Expected created');
     const questionId = createResult.questionIds[0]!;
 
     // First attempt — fail → retry
@@ -156,7 +160,7 @@ describe('session question workflows', () => {
     expect(recordedResult.status).toBe('recorded');
     if (recordedResult.status !== 'recorded') throw new Error('Expected recorded');
     expect(recordedResult.quality).toBe(3); // second attempt pass
-    expect(recordedResult.review_update.next_review_date).not.toBe('');
+    expect(recordedResult.review_update?.next_review_date).not.toBe('');
   });
 
   it('getQuestionById returns null for nonexistent ID', async () => {
@@ -170,6 +174,7 @@ describe('session question workflows', () => {
       sessionChunkId,
       questions: [{ promptText: 'Q' }],
     });
+    if (createResult.status !== 'created') throw new Error('Expected created');
     const questionId = createResult.questionIds[0]!;
 
     await questionRepo.updateQuestionStatus(questionId, 'answered');
@@ -183,6 +188,7 @@ describe('session question workflows', () => {
       sessionChunkId,
       questions: [{ promptText: 'Q1' }, { promptText: 'Q2' }],
     });
+    if (createResult.status !== 'created') throw new Error('Expected created');
     const [q1Id, q2Id] = createResult.questionIds;
 
     // Submit answers for both questions (first attempt pass for each)

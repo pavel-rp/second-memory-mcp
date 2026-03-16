@@ -65,7 +65,7 @@ export type SubmitAnswerRecorded = {
   passed: boolean;
   quality: number;
   chunk_id: string;
-  review_update: {
+  review_update?: {
     next_review_date: string;
     interval_days: number;
     ease_factor: number;
@@ -161,10 +161,20 @@ export type CreateSessionQuestionsInput = {
   questions: { promptText: string }[];
 };
 
-export type CreateSessionQuestionsResult = {
+export type CreateSessionQuestionsSuccess = {
+  status: 'created';
   sessionChunkId: string;
   questionIds: string[];
 };
+
+export type CreateSessionQuestionsError = {
+  status: 'error';
+  message: string;
+};
+
+export type CreateSessionQuestionsResult =
+  | CreateSessionQuestionsSuccess
+  | CreateSessionQuestionsError;
 
 export const CreateSessionQuestionsInputShape = {
   session_chunk_id: z.string().min(1).describe('The session chunk ID to attach questions to'),

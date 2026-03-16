@@ -385,27 +385,29 @@ export async function createSessionQuestions(
   deps: TeachingDeps
 ): Promise<CreateSessionQuestionsResult> {
   if (!deps.sessionQuestions) {
-    throw new Error('SessionQuestionRepository not configured.');
+    return { status: 'error', message: 'SessionQuestionRepository not configured.' };
   }
 
   // Validate session chunk exists
   const sessionChunk = await deps.sessions.getSessionChunkById(input.sessionChunkId);
   if (!sessionChunk) {
-    throw new Error(`Session chunk ${input.sessionChunkId} not found.`);
+    return { status: 'error', message: `Session chunk ${input.sessionChunkId} not found.` };
   }
 
   if (sessionChunk.status !== 'in_progress') {
-    throw new Error(
-      `Session chunk ${input.sessionChunkId} is "${sessionChunk.status}", expected "in_progress".`
-    );
+    return {
+      status: 'error',
+      message: `Session chunk ${input.sessionChunkId} is "${sessionChunk.status}", expected "in_progress".`,
+    };
   }
 
   // Guard: reject if questions already exist for this chunk
   const existing = await deps.sessionQuestions.getQuestionsForChunk(input.sessionChunkId);
   if (existing.length > 0) {
-    throw new Error(
-      `Session chunk ${input.sessionChunkId} already has ${existing.length} question(s). Cannot create duplicates.`
-    );
+    return {
+      status: 'error',
+      message: `Session chunk ${input.sessionChunkId} already has ${existing.length} question(s). Cannot create duplicates.`,
+    };
   }
 
   const created = await deps.sessionQuestions.createQuestions(
@@ -414,6 +416,7 @@ export async function createSessionQuestions(
   );
 
   return {
+    status: 'created' as const,
     sessionChunkId: input.sessionChunkId,
     questionIds: created.map(q => q.id),
   };
@@ -527,19 +530,13 @@ async function submitAnswerForQuestion(
   const unanswered = allQuestions.filter(q => q.status === 'pending');
 
   if (unanswered.length > 0) {
-    // More questions remain — return recorded but no SR update yet
+    // More questions remain — return recorded but no SR update yet (review_update omitted)
     return {
       status: 'recorded',
       attempt: attemptNumber,
       passed: input.passed,
       quality,
       chunk_id: sessionChunk.chunkId,
-      review_update: {
-        next_review_date: '',
-        interval_days: 0,
-        ease_factor: 0,
-        is_leech: false,
-      },
       next: {
         status: 'blocked',
         message: `${unanswered.length} question(s) remaining for this chunk.`,
@@ -639,8 +636,8 @@ function buildCompleteResponse(sessionChunks: SessionChunk[]): TeachNextResponse
       passedFirstTry++;
     } else if (attempts.some(a => attemptPassed(a))) {
       neededRetry++;
-    } else if (attempts.length >= (MAX_RETRIES + 1) * 2) {
-      // No attempt passed and reached the retry cap — retried and exhausted
+    } else {
+      // No attempt passed — either exhausted retries (legacy) or low-quality question-flow completion
       exhaustedRetries++;
     }
   }

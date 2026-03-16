@@ -234,7 +234,11 @@ describe('teaching-tools', () => {
   });
 
   it('create_session_questions returns orchestration result on success', async () => {
-    const createResult = { sessionChunkId: 'sc-1', questionIds: ['sq-1', 'sq-2'] };
+    const createResult = {
+      status: 'created',
+      sessionChunkId: 'sc-1',
+      questionIds: ['sq-1', 'sq-2'],
+    };
     ctx.createSessionQuestions = vi.fn().mockResolvedValue(createResult);
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
@@ -252,7 +256,7 @@ describe('teaching-tools', () => {
   it('create_session_questions maps snake_case input to camelCase', async () => {
     ctx.createSessionQuestions = vi
       .fn()
-      .mockResolvedValue({ sessionChunkId: 'sc-1', questionIds: ['sq-1'] });
+      .mockResolvedValue({ status: 'created', sessionChunkId: 'sc-1', questionIds: ['sq-1'] });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
@@ -282,8 +286,10 @@ describe('teaching-tools', () => {
     expect(parsed.error.retryable).toBe(false);
   });
 
-  it('create_session_questions returns session error when orchestration throws', async () => {
-    ctx.createSessionQuestions = vi.fn().mockRejectedValue(new Error('Chunk not found'));
+  it('create_session_questions returns non-retryable error for expected failures', async () => {
+    ctx.createSessionQuestions = vi
+      .fn()
+      .mockResolvedValue({ status: 'error', message: 'Session chunk sc-1 not found.' });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
@@ -295,7 +301,24 @@ describe('teaching-tools', () => {
 
     expect(parsed.success).toBe(false);
     expect(parsed.error.type).toBe('session');
-    expect(parsed.error.message).toContain('Chunk not found');
+    expect(parsed.error.message).toContain('not found');
+    expect(parsed.error.retryable).toBe(false);
+  });
+
+  it('create_session_questions returns retryable error for unexpected throws', async () => {
+    ctx.createSessionQuestions = vi.fn().mockRejectedValue(new Error('DB connection lost'));
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('create_session_questions')!.handler;
+
+    const result = await handler({
+      session_chunk_id: 'sc-1',
+      questions: [{ prompt_text: 'Q' }],
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('session');
+    expect(parsed.error.message).toContain('DB connection lost');
     expect(parsed.error.retryable).toBe(true);
   });
 
