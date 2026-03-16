@@ -12,7 +12,6 @@ import type {
   SessionQuestion,
   SessionQuestionAttempt,
 } from '../../../src/domain/types/entities.js';
-import type { ChunkAttempt } from '../../../src/domain/types/session.js';
 import type { SubmitAnswerInput } from '../../../src/domain/types/teaching.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import {
@@ -50,24 +49,9 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
     sessionId: 'sess-1',
     chunkId: 'c1',
     status: 'pending',
-    attemptsJson: null,
-    qualityScoresJson: null,
     timeSpentMs: 0,
     createdAt: NOW,
     updatedAt: NOW,
-    ...overrides,
-  };
-}
-
-function makeAttempt(overrides?: Partial<ChunkAttempt>): ChunkAttempt {
-  return {
-    timestamp: '2026-03-10T10:00:00Z',
-    question: 'What is X?',
-    response: 'X is Y',
-    passed: true,
-    feedback: 'Correct!',
-    quality: 4,
-    time_spent_ms: 5000,
     ...overrides,
   };
 }
@@ -120,6 +104,7 @@ function makeDeps(overrides?: {
   sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
   reviewPersistence?: Partial<Parameters<typeof stubReviewPersistence>[0]>;
+  sessionQuestions?: Partial<Parameters<typeof stubSessionQuestionRepository>[0]>;
 }): TeachingDeps {
   return {
     sessions: stubSessionRepository({
@@ -144,6 +129,9 @@ function makeDeps(overrides?: {
       ...overrides?.reviewPersistence,
     }),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    sessionQuestions: stubSessionQuestionRepository({
+      ...overrides?.sessionQuestions,
+    }),
   };
 }
 
@@ -191,7 +179,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -217,7 +204,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
         ]),
       },
@@ -236,6 +222,7 @@ describe('submitAnswer', () => {
 
   // VC-02: Second attempt pass → quality 3
   it('returns recorded with quality 3 on second attempt pass', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -243,10 +230,28 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        // One pending question already exists (created on first attempt)
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion]) // find current question
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]), // after marking answered
+        // One prior attempt exists (the first failed attempt)
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: true, quality: 3 }),
+          ]),
       },
     });
 
@@ -261,6 +266,7 @@ describe('submitAnswer', () => {
 
   // VC-02 + VC-04: Second attempt fail → quality 1, SR update triggered
   it('returns recorded with quality 1 on second attempt fail and triggers SR update', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -268,10 +274,26 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion])
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: false, quality: 1 }),
+          ]),
       },
     });
 
@@ -289,6 +311,7 @@ describe('submitAnswer', () => {
 
   // VC-05: Second attempt fail → re-queues chunk to 'pending'
   it('re-queues chunk to pending on second attempt fail', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -296,10 +319,26 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion])
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: false, quality: 1 }),
+          ]),
       },
     });
 
@@ -321,7 +360,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -338,6 +376,7 @@ describe('submitAnswer', () => {
 
   // VC-05: Second attempt pass → marks chunk 'completed'
   it('marks chunk completed on second attempt pass', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -345,10 +384,26 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion])
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: true, quality: 3 }),
+          ]),
       },
     });
 
@@ -362,6 +417,7 @@ describe('submitAnswer', () => {
 
   // VC-07: Re-queued chunk starts a new presentation (per-presentation attempt counting)
   it('allows new attempts on re-queued chunk (new presentation)', async () => {
+    // 2 prior answered questions (prior presentations); no pending question → new one created
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -369,13 +425,37 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [
-              makeAttempt({ passed: false, quality: undefined }),
-              makeAttempt({ passed: false, quality: 1 }),
-            ],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        // No pending question → legacy flow creates a new one
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-old-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-old-2', status: 'answered' }),
+          ])
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-old-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-old-2', status: 'answered' }),
+            makeQuestion({ id: 'sq-new', status: 'answered' }),
+          ]),
+        createQuestions: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestion({ id: 'sq-new', sessionChunkId: 'sc-1', status: 'pending' }),
+          ]),
+        // New question has 0 existing attempts
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ id: 'a1', sessionQuestionId: 'sq-old-1', quality: 1 }),
+            makeQuestionAttempt({ id: 'a2', sessionQuestionId: 'sq-old-2', quality: 1 }),
+            makeQuestionAttempt({ id: 'a3', sessionQuestionId: 'sq-new', quality: 5 }),
+          ]),
       },
     });
 
@@ -387,8 +467,8 @@ describe('submitAnswer', () => {
     expect(result.quality).toBe(5); // first-attempt pass
   });
 
-  // VC-08: Attempt persisted in attemptsJson
-  it('persists attempt data in attemptsJson', async () => {
+  // VC-08: Attempt persisted via sessionQuestions.createAttempt
+  it('persists attempt data via createAttempt', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -396,7 +476,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -414,19 +493,14 @@ describe('submitAnswer', () => {
       deps
     );
 
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
+    expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
       expect.objectContaining({
-        attemptsJson: [
-          expect.objectContaining({
-            question: 'What is closure?',
-            response: 'A function that captures scope',
-            passed: true,
-            feedback: 'Correct explanation',
-            quality: 5,
-            time_spent_ms: 8000,
-          }),
-        ],
+        attemptNumber: 1,
+        response: 'A function that captures scope',
+        passed: true,
+        feedback: 'Correct explanation',
+        quality: 5,
+        timeSpentMs: 8000,
       })
     );
   });
@@ -440,7 +514,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -465,7 +538,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -489,6 +561,7 @@ describe('submitAnswer', () => {
 
   // VC-08: timeSpentMs accumulated across attempts
   it('accumulates timeSpentMs across attempts', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -496,10 +569,32 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined, time_spent_ms: 3000 })],
             timeSpentMs: 3000,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion])
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([
+          makeQuestionAttempt({
+            attemptNumber: 1,
+            passed: false,
+            quality: null,
+            timeSpentMs: 3000,
+          }),
+        ]),
+        getAllAttemptsForChunk: vi.fn().mockResolvedValue([
+          makeQuestionAttempt({
+            attemptNumber: 1,
+            passed: false,
+            quality: null,
+            timeSpentMs: 3000,
+          }),
+          makeQuestionAttempt({ attemptNumber: 2, passed: true, quality: 3, timeSpentMs: 4000 }),
         ]),
       },
     });
@@ -509,7 +604,7 @@ describe('submitAnswer', () => {
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
       expect.objectContaining({
-        timeSpentMs: 7000, // 3000 + 4000
+        timeSpentMs: 7000, // 3000 + 4000 (sum of all attempt times)
       })
     );
   });
@@ -523,7 +618,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
         ]),
       },
@@ -531,17 +625,21 @@ describe('submitAnswer', () => {
 
     await submitAnswer(makeInput({ passed: false }), deps);
 
+    // createAttempt should have been called
+    expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ attemptNumber: 1, passed: false, quality: null })
+    );
     // updateSessionChunk called without status change (retry keeps in_progress)
     const call = (deps.sessions.updateSessionChunk as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(call[0]).toBe('sc-1');
     expect(call[1]).not.toHaveProperty('status');
-    expect(call[1]).toHaveProperty('attemptsJson');
+    expect(call[1]).not.toHaveProperty('attemptsJson');
     expect(call[1]).toHaveProperty('timeSpentMs');
   });
 
-  // VC-08: Attempt appended to existing attemptsJson on second attempt
-  it('appends second attempt to existing attemptsJson', async () => {
-    const firstAttempt = makeAttempt({ passed: false, quality: undefined, time_spent_ms: 2000 });
+  // VC-08: Second attempt persisted via createAttempt
+  it('persists second attempt via createAttempt', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -549,10 +647,32 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [firstAttempt],
             timeSpentMs: 2000,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion])
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([
+          makeQuestionAttempt({
+            attemptNumber: 1,
+            passed: false,
+            quality: null,
+            timeSpentMs: 2000,
+          }),
+        ]),
+        getAllAttemptsForChunk: vi.fn().mockResolvedValue([
+          makeQuestionAttempt({
+            attemptNumber: 1,
+            passed: false,
+            quality: null,
+            timeSpentMs: 2000,
+          }),
+          makeQuestionAttempt({ attemptNumber: 2, passed: true, quality: 3, timeSpentMs: 3000 }),
         ]),
       },
     });
@@ -562,19 +682,13 @@ describe('submitAnswer', () => {
       deps
     );
 
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
+    expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
       expect.objectContaining({
-        attemptsJson: [
-          firstAttempt,
-          expect.objectContaining({
-            question: 'Q2',
-            response: 'A2',
-            passed: true,
-            quality: 3,
-            time_spent_ms: 3000,
-          }),
-        ],
+        attemptNumber: 2,
+        response: 'A2',
+        passed: true,
+        quality: 3,
+        timeSpentMs: 3000,
       })
     );
   });
@@ -588,7 +702,6 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
@@ -606,8 +719,10 @@ describe('submitAnswer', () => {
     );
   });
 
-  // SR failure still persists the chunk update (attempt + qualityScoresJson)
-  it('persists chunk update even when SR fails', async () => {
+  // Grind loop: 3rd presentation still re-queues (presentationCount=3 ≤ MAX_RETRIES=3)
+  it('re-queues chunk on 3rd presentation', async () => {
+    // 3 questions total = 3 presentations; current is the 3rd (pending)
+    const pendingQuestion = makeQuestion({ id: 'sq-3', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -615,118 +730,46 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
-          }),
-          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
-        ]),
-      },
-      reviewPersistence: {
-        getChunk: vi.fn().mockResolvedValue(undefined),
-      },
-    });
-
-    await submitAnswer(makeInput({ passed: true }), deps);
-
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
-      expect.objectContaining({
-        status: 'completed',
-        qualityScoresJson: [5],
-      })
-    );
-  });
-
-  // qualityScoresJson is persisted with derived quality
-  it('persists qualityScoresJson on completion', async () => {
-    const deps = makeDeps({
-      sessions: {
-        getSessionChunks: vi.fn().mockResolvedValue([
-          makeSessionChunk({
-            id: 'sc-1',
-            chunkId: 'c1',
-            status: 'in_progress',
-            attemptsJson: null,
-            qualityScoresJson: null,
-          }),
-          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
-        ]),
-      },
-    });
-
-    await submitAnswer(makeInput({ passed: true }), deps);
-
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
-      expect.objectContaining({
-        qualityScoresJson: [5],
-      })
-    );
-  });
-
-  // qualityScoresJson appends to existing scores
-  it('appends to existing qualityScoresJson', async () => {
-    const deps = makeDeps({
-      sessions: {
-        getSessionChunks: vi.fn().mockResolvedValue([
-          makeSessionChunk({
-            id: 'sc-1',
-            chunkId: 'c1',
-            status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
-            qualityScoresJson: [2],
-          }),
-          makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
-        ]),
-      },
-    });
-
-    await submitAnswer(makeInput({ passed: true }), deps);
-
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
-      expect.objectContaining({
-        qualityScoresJson: [2, 3],
-      })
-    );
-  });
-
-  // Grind loop: 3rd presentation (6 total attempts) still re-queues
-  it('re-queues chunk on 3rd presentation (6 total attempts)', async () => {
-    // 5 prior attempts → attemptNumber=2 of 3rd presentation
-    // After submission: 6 total → presentationCount=3 ≤ MAX_RETRIES=3 → re-queue
-    const priorAttempts = Array.from({ length: 5 }, (_, i) =>
-      makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
-    );
-    const deps = makeDeps({
-      sessions: {
-        getSessionChunks: vi.fn().mockResolvedValue([
-          makeSessionChunk({
-            id: 'sc-1',
-            chunkId: 'c1',
-            status: 'in_progress',
-            attemptsJson: priorAttempts, // 5 existing → this is attempt 2 of 3rd presentation
             timeSpentMs: 15000,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
       },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+            pendingQuestion,
+          ])
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+            { ...pendingQuestion, status: 'answered' },
+          ]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi.fn().mockResolvedValue([]),
+      },
     });
 
     await submitAnswer(makeInput({ passed: false }), deps);
 
-    // 6 total attempts → presentationCount = 3 ≤ MAX_RETRIES → re-queue
+    // presentationCount = 3 ≤ MAX_RETRIES → re-queue
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
       expect.objectContaining({ status: 'pending' })
     );
   });
 
-  // Grind loop: 4th presentation (8 total attempts) force-completes
-  it('force-completes chunk after exhausting retries (8 total attempts)', async () => {
-    // 7 existing attempts = attempt 1 of 4th presentation already failed; this is attempt 2
-    const priorAttempts = Array.from({ length: 7 }, (_, i) =>
-      makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
-    );
+  // Grind loop: 4th presentation force-completes (presentationCount=4 > MAX_RETRIES=3)
+  it('force-completes chunk after exhausting retries (4th presentation)', async () => {
+    // 4 questions = 4 presentations; current is the 4th (pending), attempt 2 fails
+    const pendingQuestion = makeQuestion({ id: 'sq-4', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -734,17 +777,45 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: priorAttempts,
             timeSpentMs: 35000,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+            makeQuestion({ id: 'sq-3', status: 'answered' }),
+            pendingQuestion,
+          ])
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+            makeQuestion({ id: 'sq-3', status: 'answered' }),
+            { ...pendingQuestion, status: 'answered' },
+          ]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi.fn().mockResolvedValue([
+          makeQuestionAttempt({
+            id: 'a1',
+            sessionQuestionId: 'sq-4',
+            quality: 1,
+            timeSpentMs: 5000,
+          }),
         ]),
       },
     });
 
     const result = await submitAnswer(makeInput({ passed: false }), deps);
 
-    // 8 total attempts → presentationCount = 4 > MAX_RETRIES = 3 → force-complete
+    // presentationCount = 4 > MAX_RETRIES = 3 → force-complete
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
       expect.objectContaining({ status: 'completed' })
@@ -757,9 +828,7 @@ describe('submitAnswer', () => {
 
   // Grind loop: force-completed chunk still triggers SR update with quality 1
   it('triggers SR update with quality 1 on force-completion', async () => {
-    const priorAttempts = Array.from({ length: 7 }, (_, i) =>
-      makeAttempt({ passed: false, quality: i % 2 === 0 ? undefined : 1 })
-    );
+    const pendingQuestion = makeQuestion({ id: 'sq-4', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -767,10 +836,38 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: priorAttempts,
             timeSpentMs: 35000,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+        ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+            makeQuestion({ id: 'sq-3', status: 'answered' }),
+            pendingQuestion,
+          ])
+          .mockResolvedValueOnce([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+            makeQuestion({ id: 'sq-3', status: 'answered' }),
+            { ...pendingQuestion, status: 'answered' },
+          ]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi.fn().mockResolvedValue([
+          makeQuestionAttempt({
+            id: 'a1',
+            sessionQuestionId: 'sq-4',
+            quality: 1,
+            timeSpentMs: 5000,
+          }),
         ]),
       },
     });
@@ -783,6 +880,7 @@ describe('submitAnswer', () => {
 
   // Grind loop: 1st presentation double fail still re-queues (regression guard)
   it('re-queues on 1st presentation double fail (existing behavior)', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -790,10 +888,26 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: false, quality: undefined })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValueOnce([pendingQuestion])
+          .mockResolvedValueOnce([{ ...pendingQuestion, status: 'answered' }]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: false, quality: 1 }),
+          ]),
       },
     });
 
@@ -805,8 +919,8 @@ describe('submitAnswer', () => {
     );
   });
 
-  // Empty attemptsJson array treated as no attempts (same as null)
-  it('treats empty attemptsJson array as no attempts', async () => {
+  // No existing questions → first attempt behavior
+  it('treats no existing questions as first attempt', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -814,10 +928,14 @@ describe('submitAnswer', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
+      },
+      sessionQuestions: {
+        // No existing questions for this chunk
+        getQuestionsForChunk: vi.fn().mockResolvedValue([]),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
       },
     });
 
@@ -998,23 +1116,6 @@ describe('createSessionQuestions', () => {
     );
   });
 
-  it('returns error when sessionQuestions port is not configured', async () => {
-    const deps = makeQuestionDeps();
-    deps.sessionQuestions = undefined;
-
-    const result = await createSessionQuestions(
-      { sessionChunkId: 'sc-1', questions: [{ promptText: 'Q1' }] },
-      deps
-    );
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        status: 'error',
-        message: expect.stringContaining('not configured'),
-      })
-    );
-  });
-
   it('returns error when no active session', async () => {
     const deps = makeQuestionDeps({
       sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
@@ -1076,7 +1177,7 @@ describe('submitAnswer with session_question_id', () => {
     if (result.status !== 'retry') throw new Error('Expected retry');
     expect(result.attempt).toBe(1);
     expect(result.chunk_id).toBe('c1');
-    expect(deps.sessionQuestions!.createAttempt).toHaveBeenCalledWith(
+    expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionQuestionId: 'sq-1',
         attemptNumber: 1,
@@ -1216,72 +1317,6 @@ describe('submitAnswer with session_question_id', () => {
     expect((result as { message: string }).message).toContain('expected "in_progress"');
   });
 
-  it('populates attemptsJson when completing chunk via question flow', async () => {
-    const deps = makeQuestionDeps({
-      sessionQuestions: {
-        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
-        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
-        getQuestionsForChunk: vi
-          .fn()
-          .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
-        getAllAttemptsForChunk: vi
-          .fn()
-          .mockResolvedValue([makeQuestionAttempt({ quality: 5, timeSpentMs: 3000 })]),
-      },
-    });
-
-    await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
-
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
-      expect.objectContaining({
-        status: 'completed',
-        attemptsJson: [
-          expect.objectContaining({
-            passed: true,
-            quality: 5,
-          }),
-        ],
-      })
-    );
-  });
-
-  it('derives syntheticAttempt.passed from rounded quality consistently', async () => {
-    // aggregatedQuality = (2 + 3) / 2 = 2.5, rounds to 3 → passed should be true
-    const deps = makeQuestionDeps({
-      sessionQuestions: {
-        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
-        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
-        getQuestionsForChunk: vi
-          .fn()
-          .mockResolvedValue([
-            makeQuestion({ id: 'sq-1', status: 'answered' }),
-            makeQuestion({ id: 'sq-2', status: 'answered' }),
-          ]),
-        getAllAttemptsForChunk: vi
-          .fn()
-          .mockResolvedValue([
-            makeQuestionAttempt({ id: 'a1', sessionQuestionId: 'sq-1', quality: 2 }),
-            makeQuestionAttempt({ id: 'a2', sessionQuestionId: 'sq-2', quality: 3 }),
-          ]),
-      },
-    });
-
-    await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
-
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
-      expect.objectContaining({
-        attemptsJson: [
-          expect.objectContaining({
-            passed: true,
-            quality: 3,
-          }),
-        ],
-      })
-    );
-  });
-
   it('derives response.passed from aggregated quality, not input.passed', async () => {
     // Second attempt on last question fails (input.passed = false, quality = 1),
     // but other questions scored high so aggregated quality rounds to >= 3.
@@ -1372,16 +1407,6 @@ describe('submitAnswer with session_question_id', () => {
     expect((result as { message: string }).message).toContain('Max 2 attempts');
   });
 
-  it('returns error when sessionQuestions port is not configured', async () => {
-    const deps = makeQuestionDeps();
-    deps.sessionQuestions = undefined;
-
-    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
-
-    expect(result.status).toBe('error');
-    expect((result as { message: string }).message).toContain('not configured');
-  });
-
   it('returns error when session chunk not found in question flow', async () => {
     const deps = makeQuestionDeps({
       sessions: {
@@ -1428,7 +1453,7 @@ describe('submitAnswer with session_question_id', () => {
     if (result.status !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(5);
     // sessionQuestions methods should NOT have been called
-    expect(deps.sessionQuestions!.getQuestionById).not.toHaveBeenCalled();
+    expect(deps.sessionQuestions.getQuestionById).not.toHaveBeenCalled();
   });
 
   it('returns error when SR persistence fails', async () => {

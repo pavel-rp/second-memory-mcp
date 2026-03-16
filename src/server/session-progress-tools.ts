@@ -26,23 +26,11 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
         const validatedInput = CreateSessionChunkToolInputSchema.parse(input);
         const now = Date.now();
 
-        const mappedAttempts = validatedInput.attempts?.map(a => ({
-          timestamp: new Date(a.timestamp).toISOString(),
-          question: a.question,
-          response: a.response,
-          passed: a.passed,
-          feedback: a.feedback,
-          quality: a.quality,
-          time_spent_ms: a.timeSpentMs,
-        }));
-
         const sessionChunk = await ctx.createSessionChunk({
           id: crypto.randomUUID(),
           sessionId: validatedInput.sessionId,
           chunkId: validatedInput.chunkId,
           status: validatedInput.status,
-          attemptsJson: mappedAttempts ?? undefined,
-          qualityScoresJson: validatedInput.qualityScores ?? undefined,
           timeSpentMs: validatedInput.timeSpentMs,
           createdAt: now,
           updatedAt: now,

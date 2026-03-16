@@ -357,6 +357,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     chunkIdLookup: ports.chunkIdLookup,
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
+    sessionQuestions: ports.sessionQuestions,
     maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
   };
 

@@ -24,8 +24,6 @@ export type CreateSessionChunkInput = {
   sessionId: string;
   chunkId: string;
   status?: string;
-  attemptsJson?: SessionChunk['attemptsJson'];
-  qualityScoresJson?: SessionChunk['qualityScoresJson'];
   timeSpentMs?: number;
   createdAt: number;
   updatedAt: number;
@@ -33,7 +31,7 @@ export type CreateSessionChunkInput = {
 
 /** Input for updating a session chunk. */
 export type UpdateSessionChunkInput = Partial<
-  Pick<SessionChunk, 'status' | 'attemptsJson' | 'qualityScoresJson' | 'timeSpentMs' | 'updatedAt'>
+  Pick<SessionChunk, 'status' | 'timeSpentMs' | 'updatedAt'>
 >;
 
 /** Result of chunk ID validation. */

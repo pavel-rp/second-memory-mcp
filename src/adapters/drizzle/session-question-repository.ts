@@ -22,13 +22,15 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
 
   async createQuestions(
     sessionChunkId: string,
-    questions: { promptText: string }[]
+    questions: { promptText: string }[],
+    startIndex?: number
   ): Promise<SessionQuestion[]> {
     const now = Date.now();
+    const base = startIndex ?? 1;
     const rows: NewSessionQuestionRow[] = questions.map((q, i) => ({
       id: crypto.randomUUID(),
       sessionChunkId,
-      questionIndex: i + 1,
+      questionIndex: base + i,
       promptText: q.promptText,
       status: 'pending',
       createdAt: now,
@@ -85,6 +87,33 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
 
   async getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]> {
     const questions = await this.getQuestionsForChunk(sessionChunkId);
+    if (questions.length === 0) return [];
+    const questionIds = questions.map(q => q.id);
+    return (await this.db
+      .select()
+      .from(sessionQuestionAttempts)
+      .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds))
+      .orderBy(
+        asc(sessionQuestionAttempts.sessionQuestionId),
+        asc(sessionQuestionAttempts.attemptNumber)
+      )) as SessionQuestionAttempt[];
+  }
+
+  async getQuestionsForChunks(sessionChunkIds: string[]): Promise<SessionQuestion[]> {
+    if (sessionChunkIds.length === 0) return [];
+    return (await this.db
+      .select()
+      .from(sessionQuestions)
+      .where(inArray(sessionQuestions.sessionChunkId, sessionChunkIds))
+      .orderBy(
+        asc(sessionQuestions.sessionChunkId),
+        asc(sessionQuestions.questionIndex)
+      )) as SessionQuestion[];
+  }
+
+  async getAllAttemptsForChunks(sessionChunkIds: string[]): Promise<SessionQuestionAttempt[]> {
+    if (sessionChunkIds.length === 0) return [];
+    const questions = await this.getQuestionsForChunks(sessionChunkIds);
     if (questions.length === 0) return [];
     const questionIds = questions.map(q => q.id);
     return (await this.db

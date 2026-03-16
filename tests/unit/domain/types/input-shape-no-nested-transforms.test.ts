@@ -271,7 +271,6 @@ describe('BatchUpdateInputShape round-trip', () => {
         {
           chunk_id: 'c1',
           time_spent_ms: 5000,
-          quality_scores: [4, 5],
         },
       ],
     };
@@ -281,7 +280,6 @@ describe('BatchUpdateInputShape round-trip', () => {
 
     expect(result.operations[0].chunkId).toBe('c1');
     expect(result.operations[0].timeSpentMs).toBe(5000);
-    expect(result.operations[0].qualityScores).toEqual([4, 5]);
   });
 });
 

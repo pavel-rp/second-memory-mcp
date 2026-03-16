@@ -12,8 +12,6 @@ import {
   vector,
 } from 'drizzle-orm/pg-core';
 import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
-import type { ChunkAttempt } from '../../domain/types/session.js';
-
 // Tables
 export const learningTopics = pgTable(
   'learning_topics',
@@ -111,8 +109,6 @@ export const sessionChunks = pgTable(
       .notNull()
       .references(() => learningChunks.id, { onDelete: 'cascade' }),
     status: text('status').notNull().default('pending'), // CHECK('pending','in_progress','completed') — enforced at DB level
-    attemptsJson: jsonb('attempts_json').$type<ChunkAttempt[]>(),
-    qualityScoresJson: jsonb('quality_scores_json').$type<number[]>(),
     timeSpentMs: integer('time_spent_ms').notNull().default(0),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms

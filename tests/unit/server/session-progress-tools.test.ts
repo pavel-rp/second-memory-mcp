@@ -54,25 +54,13 @@ describe('session-progress-tools', () => {
       await handler({
         session_id: 's1',
         chunk_id: 'c1',
-        attempts: [
-          {
-            timestamp: 1000000,
-            question: 'Test question',
-            response: 'Test response',
-            passed: true,
-            feedback: 'Test feedback',
-            quality: 4,
-            time_spent_ms: 5000,
-          },
-        ],
-        quality_scores: [4],
         time_spent_ms: 5000,
       });
 
       const call = mockFn.mock.calls[0][0];
-      expect(call.attemptsJson[0].timestamp).toBeDefined();
-      expect(call.attemptsJson[0].quality).toBe(4);
-      expect(call.qualityScoresJson).toEqual([4]);
+      expect(call.sessionId).toBe('s1');
+      expect(call.chunkId).toBe('c1');
+      expect(call.timeSpentMs).toBe(5000);
     });
 
     it('returns database error when ctx throws', async () => {

@@ -29,6 +29,20 @@
       "when": 1773608693294,
       "tag": "0003_kind_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773883200000,
+      "tag": "0004_migrate_attempts_json_to_normalized",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773969600000,
+      "tag": "0005_drop_attempts_json_columns",
+      "breakpoints": true
     }
   ]
 }

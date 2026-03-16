@@ -88,8 +88,6 @@ function stubDeps(): SessionDeps {
         sessionId: 'sess-1',
         chunkId: 'c1',
         status: 'pending',
-        attemptsJson: null,
-        qualityScoresJson: null,
         timeSpentMs: 0,
         createdAt: NOW,
         updatedAt: NOW,

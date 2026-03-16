@@ -7,10 +7,16 @@ import {
 } from '../../../src/orchestration/teaching-workflows.js';
 import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
 import * as recommendationWorkflows from '../../../src/orchestration/recommendation-workflows.js';
-import type { LearningSession, SessionChunk } from '../../../src/domain/types/entities.js';
+import type {
+  LearningSession,
+  SessionChunk,
+  SessionQuestion,
+  SessionQuestionAttempt,
+} from '../../../src/domain/types/entities.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
-import type { ChunkAttempt, HistoricalFeedback } from '../../../src/domain/types/session.js';
+import type { HistoricalFeedback } from '../../../src/domain/types/session.js';
 import type { RecommendationOutput } from '../../../src/domain/types/recommendations.js';
+import type { SessionQuestionRepository } from '../../../src/ports/session-question-repository.js';
 import { serviceOk, serviceFail } from '../../../src/domain/types/service-result.js';
 import {
   stubSessionRepository,
@@ -18,6 +24,7 @@ import {
   stubReviewPersistence,
   stubPrerequisiteMastery,
   stubChunkIdLookup,
+  stubSessionQuestionRepository,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
@@ -48,24 +55,9 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
     sessionId: 'sess-1',
     chunkId: 'c1',
     status: 'pending',
-    attemptsJson: null,
-    qualityScoresJson: null,
     timeSpentMs: 0,
     createdAt: NOW,
     updatedAt: NOW,
-    ...overrides,
-  };
-}
-
-function makeAttempt(overrides?: Partial<ChunkAttempt>): ChunkAttempt {
-  return {
-    timestamp: '2026-03-10T10:00:00Z',
-    question: 'What is X?',
-    response: 'X is Y',
-    passed: true,
-    feedback: 'Correct!',
-    quality: 4,
-    time_spent_ms: 5000,
     ...overrides,
   };
 }
@@ -96,9 +88,56 @@ function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopic
   };
 }
 
+/**
+ * Mock normalized questions + attempts on a SessionQuestionRepository.
+ * Replaces what was previously inline `attemptsJson` on SessionChunk objects.
+ *
+ * Each entry in `data` maps a session-chunk ID to a list of attempts.
+ * Attempts are grouped into questions (max 2 attempts per question).
+ */
+function mockQuestionsAndAttempts(
+  sqRepo: SessionQuestionRepository,
+  data: { scId: string; attempts: { passed: boolean; quality?: number | null }[] }[]
+) {
+  const allQuestions: SessionQuestion[] = [];
+  const allAttempts: SessionQuestionAttempt[] = [];
+  for (const chunk of data) {
+    for (let i = 0; i < chunk.attempts.length; i += 2) {
+      const q: SessionQuestion = {
+        id: `sq-${chunk.scId}-${Math.floor(i / 2)}`,
+        sessionChunkId: chunk.scId,
+        questionIndex: Math.floor(i / 2) + 1,
+        promptText: 'test question',
+        status: 'answered',
+        createdAt: NOW,
+        updatedAt: NOW,
+      };
+      allQuestions.push(q);
+
+      for (let j = i; j < Math.min(i + 2, chunk.attempts.length); j++) {
+        const a: SessionQuestionAttempt = {
+          id: `sqa-${chunk.scId}-${j}`,
+          sessionQuestionId: q.id,
+          attemptNumber: (j - i + 1) as 1 | 2,
+          response: 'test response',
+          passed: chunk.attempts[j]!.passed,
+          feedback: 'test feedback',
+          quality: chunk.attempts[j]!.quality ?? (chunk.attempts[j]!.passed ? 5 : 1),
+          timeSpentMs: 1000,
+          createdAt: NOW,
+        };
+        allAttempts.push(a);
+      }
+    }
+  }
+  vi.mocked(sqRepo.getQuestionsForChunks).mockResolvedValue(allQuestions);
+  vi.mocked(sqRepo.getAllAttemptsForChunks).mockResolvedValue(allAttempts);
+}
+
 function makeDeps(overrides?: {
   sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
+  sessionQuestions?: SessionQuestionRepository;
 }): TeachingDeps {
   return {
     sessions: stubSessionRepository({
@@ -120,6 +159,7 @@ function makeDeps(overrides?: {
     }),
     reviewPersistence: stubReviewPersistence(),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    sessionQuestions: overrides?.sessionQuestions ?? stubSessionQuestionRepository(),
   };
 }
 
@@ -160,12 +200,12 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: null,
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
       },
     });
+    // No attempts mocked — default stub returns empty arrays
 
     const result = await getNextTeachingStep(deps);
 
@@ -175,6 +215,7 @@ describe('getNextTeachingStep', () => {
 
   // VC-03: Gating — in_progress chunk WITH attempts → does NOT block
   it('does not block when in_progress chunk has attempts', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -182,12 +223,13 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: true })],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -212,6 +254,7 @@ describe('getNextTeachingStep', () => {
 
   // VC-02, VC-05: Fresh pending prioritized over re-queued failure (interleaving)
   it('prioritizes fresh pending over re-queued failure', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -219,15 +262,16 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'pending',
-            attemptsJson: [makeAttempt({ passed: false })], // re-queued failure
-          }),
+          }), // re-queued failure (has failed attempt)
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }), // fresh
         ]),
       },
       chunks: {
         getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -239,6 +283,7 @@ describe('getNextTeachingStep', () => {
 
   // VC-04: Re-queued chunk uses retrieval mode
   it('uses retrieval mode for re-queued chunk', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -246,11 +291,12 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'pending',
-            attemptsJson: [makeAttempt({ passed: false })],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -299,6 +345,7 @@ describe('getNextTeachingStep', () => {
 
   // VC-06: All chunks completed → complete signal
   it('returns complete when all chunks are completed', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -306,17 +353,20 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: true })],
           }),
           makeSessionChunk({
             id: 'sc-2',
             chunkId: 'c2',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: false }), makeAttempt({ passed: true })],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: true }] },
+      { scId: 'sc-2', attempts: [{ passed: false }, { passed: true }] },
+    ]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -329,6 +379,7 @@ describe('getNextTeachingStep', () => {
 
   // VC-06: Summary counts computed correctly
   it('computes summary counts correctly with mixed outcomes', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -336,27 +387,26 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: true })], // first try
           }),
           makeSessionChunk({
             id: 'sc-2',
             chunkId: 'c2',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: true })], // first try
           }),
           makeSessionChunk({
             id: 'sc-3',
             chunkId: 'c3',
             status: 'completed',
-            attemptsJson: [
-              makeAttempt({ passed: false }),
-              makeAttempt({ passed: false }),
-              makeAttempt({ passed: true }),
-            ], // needed retry
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: true }] }, // first try
+      { scId: 'sc-2', attempts: [{ passed: true }] }, // first try
+      { scId: 'sc-3', attempts: [{ passed: false }, { passed: false }, { passed: true }] }, // needed retry
+    ]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -411,6 +461,7 @@ describe('getNextTeachingStep', () => {
 
   // VC-02: chunk_index and total_chunks correct
   it('returns correct chunk_index and total_chunks', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -418,7 +469,6 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [makeAttempt()],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
           makeSessionChunk({ id: 'sc-3', chunkId: 'c3', status: 'pending' }),
@@ -427,7 +477,9 @@ describe('getNextTeachingStep', () => {
       chunks: {
         getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -439,6 +491,7 @@ describe('getNextTeachingStep', () => {
 
   // No pending, some in_progress → blocked (not complete)
   it('returns blocked when no pending but some in_progress remain', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -446,17 +499,20 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [makeAttempt()],
           }),
           makeSessionChunk({
             id: 'sc-2',
             chunkId: 'c2',
             status: 'in_progress',
-            attemptsJson: [makeAttempt({ passed: true })],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: true }] },
+      { scId: 'sc-2', attempts: [{ passed: true }] },
+    ]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -523,8 +579,8 @@ describe('getNextTeachingStep', () => {
     expect(result.instruction).toBeTruthy();
   });
 
-  // Branch: empty attemptsJson array treated same as null
-  it('treats empty attemptsJson array as no attempts', async () => {
+  // Branch: empty questions (no attempts) treated same as null
+  it('treats no attempts as blocked for in_progress chunk', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -532,22 +588,23 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'in_progress',
-            attemptsJson: [],
           }),
           makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
         ]),
       },
     });
+    // Default stub returns empty arrays — no questions/attempts
 
     const result = await getNextTeachingStep(deps);
 
-    // Empty array = no attempts → gating blocks
+    // Empty = no attempts → gating blocks
     expect(result.status).toBe('blocked');
     expect(result).toHaveProperty('current_chunk_id', 'c1');
   });
 
   // Branch: completed chunk with no attempts in summary
   it('handles completed chunks with no attempts in summary', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -555,17 +612,18 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: null,
           }),
           makeSessionChunk({
             id: 'sc-2',
             chunkId: 'c2',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: true })],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    // sc-1 has no attempts, sc-2 has a passed attempt
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-2', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -578,6 +636,7 @@ describe('getNextTeachingStep', () => {
 
   // Branch: completed chunk where all attempts failed (no pass) — counts as exhausted
   it('counts single-presentation all-fail as exhausted_retries', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -585,11 +644,14 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: false }), makeAttempt({ passed: false })],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: false }, { passed: false }] },
+    ]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -602,7 +664,7 @@ describe('getNextTeachingStep', () => {
 
   // Grind loop: exhausted_retries counted for force-completed chunks
   it('counts exhausted_retries for force-completed chunks at retry cap', async () => {
-    const exhaustedAttempts = Array.from({ length: 8 }, () => makeAttempt({ passed: false }));
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -610,11 +672,13 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: exhaustedAttempts,
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    const exhaustedAttempts = Array.from({ length: 8 }, () => ({ passed: false }));
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: exhaustedAttempts }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -627,7 +691,8 @@ describe('getNextTeachingStep', () => {
 
   // Grind loop: summary with mixed outcomes (passed, retried, exhausted)
   it('computes summary correctly with passed, retried, and exhausted chunks', async () => {
-    const exhaustedAttempts = Array.from({ length: 8 }, () => makeAttempt({ passed: false }));
+    const sqRepo = stubSessionQuestionRepository();
+    const exhaustedAttempts = Array.from({ length: 8 }, () => ({ passed: false }));
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -636,29 +701,28 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [makeAttempt({ passed: true })],
           }),
           // Needed retry (failed then passed)
           makeSessionChunk({
             id: 'sc-2',
             chunkId: 'c2',
             status: 'completed',
-            attemptsJson: [
-              makeAttempt({ passed: false }),
-              makeAttempt({ passed: false }),
-              makeAttempt({ passed: true }),
-            ],
           }),
           // Exhausted retries (all failed, reached retry cap)
           makeSessionChunk({
             id: 'sc-3',
             chunkId: 'c3',
             status: 'completed',
-            attemptsJson: exhaustedAttempts,
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: true }] },
+      { scId: 'sc-2', attempts: [{ passed: false }, { passed: false }, { passed: true }] },
+      { scId: 'sc-3', attempts: exhaustedAttempts },
+    ]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -697,17 +761,9 @@ describe('getNextTeachingStep', () => {
     expect(result.chunk_index).toBe(1); // 1-based position in ordered list
   });
 
-  // Legacy: re-queued detection with `completed` instead of `passed`
-  it('treats legacy completed:false attempt as re-queued failure', async () => {
-    const legacyAttempt = {
-      timestamp: '2026-03-10T10:00:00Z',
-      question: 'What is X?',
-      response: 'X is Y',
-      completed: false,
-      feedback: 'Wrong',
-      quality: 2,
-      time_spent_ms: 5000,
-    };
+  // Re-queued detection with failed attempts in normalized tables
+  it('treats chunk with failed attempts as re-queued failure', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -715,11 +771,12 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'pending',
-            attemptsJson: [legacyAttempt as unknown as ChunkAttempt],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -729,30 +786,22 @@ describe('getNextTeachingStep', () => {
     expect(result.chunk_id).toBe('c1');
   });
 
-  // Legacy: completed:true not treated as re-queued failure
-  it('treats legacy completed:true attempt as passed (not re-queued)', async () => {
-    const legacyPassedAttempt = {
-      timestamp: '2026-03-10T10:00:00Z',
-      question: 'What is X?',
-      response: 'X is Y',
-      completed: true,
-      feedback: 'Correct!',
-      quality: 4,
-      time_spent_ms: 5000,
-    };
+  // Chunk with passed attempts treated as non-requeued in summary
+  it('treats chunk with passed attempts as passed in summary', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
-          // Only chunk is completed with a passed legacy attempt
           makeSessionChunk({
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [legacyPassedAttempt as unknown as ChunkAttempt],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -761,26 +810,9 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.passed_first_try).toBe(1);
   });
 
-  // Legacy: buildCompleteResponse with mixed legacy + modern attempts
-  it('computes summary correctly with legacy completed field', async () => {
-    const legacyPassedAttempt = {
-      timestamp: '2026-03-10T10:00:00Z',
-      question: 'Q1',
-      response: 'A1',
-      completed: true,
-      feedback: 'OK',
-      quality: 4,
-      time_spent_ms: 3000,
-    };
-    const legacyFailedAttempt = {
-      timestamp: '2026-03-10T10:01:00Z',
-      question: 'Q2',
-      response: 'A2',
-      completed: false,
-      feedback: 'Wrong',
-      quality: 1,
-      time_spent_ms: 2000,
-    };
+  // Summary with mixed legacy + modern attempts (passed + retry)
+  it('computes summary correctly with mixed first-try and retry', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -788,20 +820,20 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [legacyPassedAttempt as unknown as ChunkAttempt],
           }),
           makeSessionChunk({
             id: 'sc-2',
             chunkId: 'c2',
             status: 'completed',
-            attemptsJson: [
-              legacyFailedAttempt as unknown as ChunkAttempt,
-              makeAttempt({ passed: true }),
-            ],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: true }] },
+      { scId: 'sc-2', attempts: [{ passed: false }, { passed: true }] },
+    ]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -885,6 +917,7 @@ describe('getNextTeachingStep', () => {
 
   // Ordering: tie-breaker by chunkId when unknown chunks share createdAt
   it('breaks ties by chunkId when unknown chunks have same createdAt', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         // chunkIds only contains c3 — c1 and c2 are unknown, both pending with same createdAt
@@ -896,11 +929,12 @@ describe('getNextTeachingStep', () => {
             id: 'sc-3',
             chunkId: 'c3',
             status: 'completed',
-            attemptsJson: [makeAttempt()],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-3', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -912,6 +946,7 @@ describe('getNextTeachingStep', () => {
 
   // Ordering: unknown chunks with different createdAt sort by createdAt
   it('sorts unknown chunks by createdAt before chunkId tie-breaker', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c3'] })),
@@ -927,14 +962,15 @@ describe('getNextTeachingStep', () => {
             id: 'sc-3',
             chunkId: 'c3',
             status: 'completed',
-            attemptsJson: [makeAttempt()],
           }),
         ]),
       },
       chunks: {
         getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-3', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -944,8 +980,8 @@ describe('getNextTeachingStep', () => {
     expect(result.chunk_id).toBe('c2');
   });
 
-  // attemptPassed: null attempt handled defensively
-  it('treats null attempt in attemptsJson as not passed', async () => {
+  // Completed chunk with no questions/attempts — summary counts 0 for it
+  it('treats completed chunk with no attempts as neither passed nor retried', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -953,11 +989,11 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [null as unknown as ChunkAttempt],
           }),
         ]),
       },
     });
+    // No attempts mocked — default stub returns empty
 
     const result = await getNextTeachingStep(deps);
 
@@ -966,16 +1002,9 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.passed_first_try).toBe(0);
   });
 
-  // attemptPassed: returns false for attempt with neither passed nor completed
-  it('treats attempt without passed or completed as not passed in summary', async () => {
-    const bareAttempt = {
-      timestamp: '2026-03-10T10:00:00Z',
-      question: 'Q',
-      response: 'A',
-      feedback: 'Noted',
-      quality: 3,
-      time_spent_ms: 1000,
-    };
+  // Attempt without passed field defaults to false in normalized data
+  it('treats attempt without passed as not passed in summary', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -983,11 +1012,12 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'completed',
-            attemptsJson: [bareAttempt as unknown as ChunkAttempt],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -999,6 +1029,7 @@ describe('getNextTeachingStep', () => {
 
   // Edge case: pending chunk with passed attempts is neither fresh nor requeued
   it('returns error for inconsistent state when pending chunk has passed attempts', async () => {
+    const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -1006,11 +1037,12 @@ describe('getNextTeachingStep', () => {
             id: 'sc-1',
             chunkId: 'c1',
             status: 'pending',
-            attemptsJson: [makeAttempt({ passed: true })],
           }),
         ]),
       },
+      sessionQuestions: sqRepo,
     });
+    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1111,6 +1143,7 @@ function makeStartLearningDeps(overrides?: {
     chunkIdLookup: stubChunkIdLookup(),
     reviewPersistence: stubReviewPersistence(),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    sessionQuestions: stubSessionQuestionRepository(),
     maxDependencyDepth: 5,
   };
 }
