@@ -35,7 +35,9 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              topic: result.topic,
+              topicId: result.topic.topicId,
+              chunkIds: result.topic.chunks.map(c => c.id),
+              createdAt: result.topic.createdAt,
               message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
             })
           );
@@ -80,7 +82,8 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              topic: result.topic,
+              topicId: result.topic.id,
+              updatedAt: result.topic.updatedAt,
               message: `Successfully updated topic "${result.topic.title}"`,
             })
           );
@@ -117,7 +120,9 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              topic: result.topic,
+              topicId: result.topic.id,
+              summaryVersion: result.topic.summaryVersion,
+              updatedAt: result.topic.updatedAt,
               message: `Successfully updated summary for topic "${result.topic.title}"`,
             })
           );

@@ -53,7 +53,8 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.topic).toBeDefined();
+      expect(parsed.topic_id).toBeDefined();
+      expect(parsed.chunk_ids).toBeDefined();
       expect(parsed.message).toContain('Algebra Basics');
     });
   });
@@ -73,7 +74,8 @@ describe('topic-tools', () => {
       const result = await handler({ topic_id: 'topic-1', title: 'Updated Title' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.topic.title).toBe('Updated Title');
+      expect(parsed.topic_id).toBe('topic-1');
+      expect(parsed.updated_at).toBeDefined();
     });
 
     it('returns error for nonexistent topic', async () => {
@@ -104,8 +106,9 @@ describe('topic-tools', () => {
       const result = await handler({ topic_id: 'topic-s', summary: 'A great summary' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.topic.summary).toBe('A great summary');
-      expect(parsed.topic.summary_version).toBe(2);
+      expect(parsed.topic_id).toBe('topic-s');
+      expect(parsed.summary_version).toBe(2);
+      expect(parsed.updated_at).toBeDefined();
     });
 
     it('returns error for nonexistent topic', async () => {
