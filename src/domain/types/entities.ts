@@ -113,7 +113,7 @@ export type SessionQuestion = {
   sessionChunkId: string;
   questionIndex: number;
   promptText: string;
-  status: string;
+  status: SessionQuestionStatus;
   createdAt: number;
   updatedAt: number;
 };
@@ -121,7 +121,7 @@ export type SessionQuestion = {
 export type SessionQuestionAttempt = {
   id: string;
   sessionQuestionId: string;
-  attemptNumber: number;
+  attemptNumber: 1 | 2;
   response: string;
   passed: boolean;
   feedback: string;

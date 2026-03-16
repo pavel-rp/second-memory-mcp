@@ -39,16 +39,16 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
   }
 
   async getQuestionsForChunk(sessionChunkId: string): Promise<SessionQuestion[]> {
-    return await this.db
+    return (await this.db
       .select()
       .from(sessionQuestions)
       .where(eq(sessionQuestions.sessionChunkId, sessionChunkId))
-      .orderBy(asc(sessionQuestions.questionIndex));
+      .orderBy(asc(sessionQuestions.questionIndex))) as SessionQuestion[];
   }
 
   async getQuestionById(id: string): Promise<SessionQuestion | null> {
     const [row] = await this.db.select().from(sessionQuestions).where(eq(sessionQuestions.id, id));
-    return row ?? null;
+    return (row as SessionQuestion | undefined) ?? null;
   }
 
   async updateQuestionStatus(id: string, status: SessionQuestionStatus): Promise<number> {
@@ -76,24 +76,24 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
   }
 
   async getAttemptsForQuestion(sessionQuestionId: string): Promise<SessionQuestionAttempt[]> {
-    return await this.db
+    return (await this.db
       .select()
       .from(sessionQuestionAttempts)
       .where(eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestionId))
-      .orderBy(asc(sessionQuestionAttempts.attemptNumber));
+      .orderBy(asc(sessionQuestionAttempts.attemptNumber))) as SessionQuestionAttempt[];
   }
 
   async getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]> {
     const questions = await this.getQuestionsForChunk(sessionChunkId);
     if (questions.length === 0) return [];
     const questionIds = questions.map(q => q.id);
-    return await this.db
+    return (await this.db
       .select()
       .from(sessionQuestionAttempts)
       .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds))
       .orderBy(
         asc(sessionQuestionAttempts.sessionQuestionId),
         asc(sessionQuestionAttempts.attemptNumber)
-      );
+      )) as SessionQuestionAttempt[];
   }
 }
