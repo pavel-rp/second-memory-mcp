@@ -6,8 +6,11 @@ import {
   SubmitAnswerInputSchema,
   StartLearningInputShape,
   StartLearningInputSchema,
+  CreateSessionQuestionsInputShape,
+  CreateSessionQuestionsInputSchema,
 } from '../domain/types/teaching.js';
 import { logger } from '../shared/logger.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerTeachingTools(server: McpServer, ctx: AppContext): void {
@@ -99,6 +102,48 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         }
         logger.error('start_learning failed:', error);
         return toolError(`Failed to start learning: ${msg}`, {
+          type: 'session',
+          message: msg,
+          retryable: true,
+        });
+      }
+    }
+  );
+
+  server.registerTool(
+    'create_session_questions',
+    {
+      title: 'Create Session Questions',
+      description:
+        'Create explicit drill questions for a session chunk. ' +
+        'The chunk must be in_progress. Returns the created question IDs. ' +
+        'Use submit_answer with session_question_id to answer each question.',
+      inputSchema: CreateSessionQuestionsInputShape,
+    },
+    async input => {
+      try {
+        const parsed = CreateSessionQuestionsInputSchema.parse(input);
+        const result = await ctx.createSessionQuestions(parsed);
+        if (result.status === 'error') {
+          return toolError(`Failed to create session questions: ${result.message}`, {
+            type: 'session',
+            message: result.message,
+            retryable: false,
+          });
+        }
+        return toolJson(toSnakeCase(result));
+      } catch (error) {
+        const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          logger.error('Invalid create_session_questions input:', error);
+          return toolError(`Failed to create session questions: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
+        logger.error('create_session_questions failed:', error);
+        return toolError(`Failed to create session questions: ${msg}`, {
           type: 'session',
           message: msg,
           retryable: true,

@@ -576,8 +576,8 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.needed_retry).toBe(0);
   });
 
-  // Branch: completed chunk where all attempts failed (no pass) — single presentation
-  it('counts single-presentation all-fail as neither first_try, retry, nor exhausted', async () => {
+  // Branch: completed chunk where all attempts failed (no pass) — counts as exhausted
+  it('counts single-presentation all-fail as exhausted_retries', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -597,7 +597,7 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(0);
     expect(result.summary.needed_retry).toBe(0);
-    expect(result.summary.exhausted_retries).toBe(0);
+    expect(result.summary.exhausted_retries).toBe(1);
   });
 
   // Grind loop: exhausted_retries counted for force-completed chunks

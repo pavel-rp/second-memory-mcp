@@ -4,8 +4,10 @@ import {
   integer,
   bigint,
   real,
+  boolean,
   jsonb,
   index,
+  uniqueIndex,
   check,
   vector,
 } from 'drizzle-orm/pg-core';
@@ -125,6 +127,54 @@ export const sessionChunks = pgTable(
   ]
 );
 
+export const sessionQuestions = pgTable(
+  'session_questions',
+  {
+    id: text('id').primaryKey().notNull(),
+    sessionChunkId: text('session_chunk_id')
+      .notNull()
+      .references(() => sessionChunks.id, { onDelete: 'cascade' }),
+    questionIndex: integer('question_index').notNull(), // 1-based position
+    promptText: text('prompt_text').notNull(), // the drill question
+    status: text('status').notNull().default('pending'), // CHECK('pending','answered','skipped')
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+    updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  table => [
+    index('idx_session_questions_session_chunk_id').on(table.sessionChunkId),
+    uniqueIndex('uq_session_questions_chunk_index').on(table.sessionChunkId, table.questionIndex),
+    check(
+      'chk_session_question_status',
+      sql`${table.status} IN ('pending', 'answered', 'skipped')`
+    ),
+  ]
+);
+
+export const sessionQuestionAttempts = pgTable(
+  'session_question_attempts',
+  {
+    id: text('id').primaryKey().notNull(),
+    sessionQuestionId: text('session_question_id')
+      .notNull()
+      .references(() => sessionQuestions.id, { onDelete: 'cascade' }),
+    attemptNumber: integer('attempt_number').notNull(), // 1 or 2
+    response: text('response').notNull(),
+    passed: boolean('passed').notNull(),
+    feedback: text('feedback').notNull(),
+    quality: integer('quality'), // nullable — null for first-attempt failure
+    timeSpentMs: integer('time_spent_ms').notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  table => [
+    index('idx_session_question_attempts_session_question_id').on(table.sessionQuestionId),
+    uniqueIndex('uq_session_question_attempts_question_number').on(
+      table.sessionQuestionId,
+      table.attemptNumber
+    ),
+    check('chk_attempt_number', sql`${table.attemptNumber} IN (1, 2)`),
+  ]
+);
+
 // Types
 export type NewLearningTopicRow = InferInsertModel<typeof learningTopics>;
 
@@ -134,3 +184,7 @@ export type NewLearningChunkRow = InferInsertModel<typeof learningChunks>;
 export type NewLearningSessionRow = InferInsertModel<typeof learningSessions>;
 
 export type NewSessionChunkRow = InferInsertModel<typeof sessionChunks>;
+
+export type NewSessionQuestionRow = InferInsertModel<typeof sessionQuestions>;
+
+export type NewSessionQuestionAttemptRow = InferInsertModel<typeof sessionQuestionAttempts>;

@@ -48,6 +48,7 @@ export type SubmitAnswerInput = {
   passed: boolean;
   feedback: string;
   timeSpentMs: number;
+  sessionQuestionId?: string;
 };
 
 export type SubmitAnswerRetry = {
@@ -64,7 +65,7 @@ export type SubmitAnswerRecorded = {
   passed: boolean;
   quality: number;
   chunk_id: string;
-  review_update: {
+  review_update?: {
     next_review_date: string;
     interval_days: number;
     ease_factor: number;
@@ -86,13 +87,19 @@ export const SubmitAnswerInputShape = {
   passed: z.boolean().describe("Agent's pass/fail judgment"),
   feedback: z.string().min(1).describe("Agent's explanation of why right/wrong"),
   time_spent_ms: z.number().int().min(0).describe('Time the learner spent in milliseconds'),
+  session_question_id: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Optional session question ID — when provided, uses the explicit questions flow'),
 } as const;
 
 export const SubmitAnswerInputSchema = z
   .object(SubmitAnswerInputShape)
-  .transform(({ time_spent_ms, ...rest }) => ({
+  .transform(({ time_spent_ms, session_question_id, ...rest }) => ({
     ...rest,
     timeSpentMs: time_spent_ms,
+    sessionQuestionId: session_question_id,
   }));
 
 // ── start_learning types ────────────────────────────────────────
@@ -145,4 +152,46 @@ export const StartLearningInputSchema = z
     ...rest,
     subjectFilter: subject_filter,
     timeAvailable: time_available,
+  }));
+
+// ── create_session_questions types ─────────────────────────────
+
+export type CreateSessionQuestionsInput = {
+  sessionChunkId: string;
+  questions: { promptText: string }[];
+};
+
+export type CreateSessionQuestionsSuccess = {
+  status: 'created';
+  sessionChunkId: string;
+  questionIds: string[];
+};
+
+export type CreateSessionQuestionsError = {
+  status: 'error';
+  message: string;
+};
+
+export type CreateSessionQuestionsResult =
+  | CreateSessionQuestionsSuccess
+  | CreateSessionQuestionsError;
+
+export const CreateSessionQuestionsInputShape = {
+  session_chunk_id: z.string().min(1).describe('The session chunk ID to attach questions to'),
+  questions: z
+    .array(
+      z.object({
+        prompt_text: z.string().min(1).describe('The drill question text'),
+      })
+    )
+    .min(1)
+    .max(10)
+    .describe('Array of questions to create for this chunk'),
+} as const;
+
+export const CreateSessionQuestionsInputSchema = z
+  .object(CreateSessionQuestionsInputShape)
+  .transform(({ session_chunk_id, questions }) => ({
+    sessionChunkId: session_chunk_id,
+    questions: questions.map(q => ({ promptText: q.prompt_text })),
   }));

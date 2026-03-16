@@ -103,3 +103,29 @@ export type SessionChunk = {
   createdAt: number;
   updatedAt: number;
 };
+
+// ── Session Questions ─────────────────────────────────────────
+
+export type SessionQuestionStatus = 'pending' | 'answered' | 'skipped';
+
+export type SessionQuestion = {
+  id: string;
+  sessionChunkId: string;
+  questionIndex: number;
+  promptText: string;
+  status: SessionQuestionStatus;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type SessionQuestionAttempt = {
+  id: string;
+  sessionQuestionId: string;
+  attemptNumber: 1 | 2;
+  response: string;
+  passed: boolean;
+  feedback: string;
+  quality: number | null;
+  timeSpentMs: number;
+  createdAt: number;
+};

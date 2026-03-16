@@ -7,6 +7,7 @@ import { DrizzleChunkIdLookupAdapter } from './adapters/drizzle/chunk-id-lookup-
 import { DrizzlePrerequisiteMasteryAdapter } from './adapters/drizzle/prerequisite-mastery-adapter.js';
 import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persistence-adapter.js';
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
+import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-question-repository.js';
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
 import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
 import { resolveEmbeddingConfig } from './config/resolve-embedding-config.js';
@@ -30,6 +31,7 @@ import type { PrerequisiteMasteryPort } from './ports/prerequisite-mastery-port.
 import type { ChunkMinimalMetadata } from './ports/chunk-repository.js';
 import type { ReviewPersistencePort, ReviewResultData } from './ports/review-persistence-port.js';
 import type { UnitOfWorkPort } from './ports/unit-of-work-port.js';
+import type { SessionQuestionRepository } from './ports/session-question-repository.js';
 import type {
   LearningItem,
   PaginatedLearningItemsResponse,
@@ -45,6 +47,8 @@ import type {
   SubmitAnswerResult,
   StartLearningInput,
   StartLearningResult,
+  CreateSessionQuestionsInput,
+  CreateSessionQuestionsResult,
 } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 
@@ -95,6 +99,7 @@ export interface AppPorts {
   prerequisiteMastery: PrerequisiteMasteryPort;
   reviewPersistence: ReviewPersistencePort;
   unitOfWork: UnitOfWorkPort;
+  sessionQuestions: SessionQuestionRepository;
   embedding?: EmbeddingPort;
 }
 
@@ -205,6 +210,9 @@ export interface AppContext {
   getNextTeachingStep: () => Promise<TeachNextResponse>;
   submitAnswer: (input: SubmitAnswerInput) => Promise<SubmitAnswerResult>;
   startLearning: (input: StartLearningInput) => Promise<StartLearningResult>;
+  createSessionQuestions: (
+    input: CreateSessionQuestionsInput
+  ) => Promise<CreateSessionQuestionsResult>;
 
   // Recommendation orchestration
   generateRecommendations: (input: RecommendationInput) => Promise<RecommendationOutput>;
@@ -271,6 +279,7 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
     prerequisiteMastery: new DrizzlePrerequisiteMasteryAdapter(db),
     reviewPersistence: new DrizzleReviewPersistenceAdapter(db),
     unitOfWork: new DrizzleUnitOfWorkAdapter(),
+    sessionQuestions: new DrizzleSessionQuestionRepository(db),
   };
 }
 
@@ -339,6 +348,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     chunks: ports.chunks,
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
+    sessionQuestions: ports.sessionQuestions,
   };
   const startLearningDeps: teachingWorkflows.StartLearningDeps = {
     sessions: ports.sessions,
@@ -399,6 +409,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     getNextTeachingStep: () => teachingWorkflows.getNextTeachingStep(teachingDeps),
     submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
     startLearning: input => teachingWorkflows.startLearning(input, startLearningDeps),
+    createSessionQuestions: input => teachingWorkflows.createSessionQuestions(input, teachingDeps),
 
     // Recommendation orchestration
     generateRecommendations: input =>

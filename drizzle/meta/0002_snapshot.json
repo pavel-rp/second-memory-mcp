@@ -1,0 +1,749 @@
+{
+  "id": "22457f1a-9014-4c26-bf01-e9078d3c4edf",
+  "prevId": "388ffe17-da87-4fe1-add9-a79d6f10197f",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.learning_chunks": {
+      "name": "learning_chunks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "topic_id": {
+          "name": "topic_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "difficulty": {
+          "name": "difficulty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "next_review_at": {
+          "name": "next_review_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ease_factor": {
+          "name": "ease_factor",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "repetitions": {
+          "name": "repetitions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_reviewed_at": {
+          "name": "last_reviewed_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estimated_duration": {
+          "name": "estimated_duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "interval_days": {
+          "name": "interval_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chunk_type": {
+          "name": "chunk_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prerequisites_json": {
+          "name": "prerequisites_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags_json": {
+          "name": "tags_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_version": {
+          "name": "content_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "content_updated_at": {
+          "name": "content_updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_embedding": {
+          "name": "content_embedding",
+          "type": "vector(1536)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_learning_chunks_next_review_at": {
+          "name": "idx_learning_chunks_next_review_at",
+          "columns": [
+            {
+              "expression": "next_review_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_learning_chunks_prerequisites_json": {
+          "name": "idx_learning_chunks_prerequisites_json",
+          "columns": [
+            {
+              "expression": "prerequisites_json",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        },
+        "idx_learning_chunks_content_embedding": {
+          "name": "idx_learning_chunks_content_embedding",
+          "columns": [
+            {
+              "expression": "content_embedding",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "vector_cosine_ops"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "hnsw",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "learning_chunks_topic_id_learning_topics_id_fk": {
+          "name": "learning_chunks_topic_id_learning_topics_id_fk",
+          "tableFrom": "learning_chunks",
+          "tableTo": "learning_topics",
+          "columnsFrom": ["topic_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_chunk_type": {
+          "name": "chk_chunk_type",
+          "value": "\"learning_chunks\".\"chunk_type\" IN ('new', 'review', 'remediation')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.learning_sessions": {
+      "name": "learning_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "topic_id": {
+          "name": "topic_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chunk_ids": {
+          "name": "chunk_ids",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "estimated_duration": {
+          "name": "estimated_duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "start_time": {
+          "name": "start_time",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_time": {
+          "name": "end_time",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "feedback": {
+          "name": "feedback",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_learning_sessions_status": {
+          "name": "idx_learning_sessions_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_learning_sessions_topic_id": {
+          "name": "idx_learning_sessions_topic_id",
+          "columns": [
+            {
+              "expression": "topic_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_learning_sessions_created_at": {
+          "name": "idx_learning_sessions_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "learning_sessions_topic_id_learning_topics_id_fk": {
+          "name": "learning_sessions_topic_id_learning_topics_id_fk",
+          "tableFrom": "learning_sessions",
+          "tableTo": "learning_topics",
+          "columnsFrom": ["topic_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_session_mode": {
+          "name": "chk_session_mode",
+          "value": "\"learning_sessions\".\"mode\" IN ('scaffolding', 'learning', 'retrieval', 'review')"
+        },
+        "chk_session_status": {
+          "name": "chk_session_status",
+          "value": "\"learning_sessions\".\"status\" IN ('active', 'completed')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.learning_topics": {
+      "name": "learning_topics",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "summary_version": {
+          "name": "summary_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "summary_updated_at": {
+          "name": "summary_updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "summary_embedding": {
+          "name": "summary_embedding",
+          "type": "vector(1536)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_learning_topics_summary_embedding": {
+          "name": "idx_learning_topics_summary_embedding",
+          "columns": [
+            {
+              "expression": "summary_embedding",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last",
+              "opclass": "vector_cosine_ops"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "hnsw",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session_chunks": {
+      "name": "session_chunks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chunk_id": {
+          "name": "chunk_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "attempts_json": {
+          "name": "attempts_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quality_scores_json": {
+          "name": "quality_scores_json",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_spent_ms": {
+          "name": "time_spent_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_session_chunks_session_id": {
+          "name": "idx_session_chunks_session_id",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_session_chunks_status": {
+          "name": "idx_session_chunks_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_chunks_session_id_learning_sessions_id_fk": {
+          "name": "session_chunks_session_id_learning_sessions_id_fk",
+          "tableFrom": "session_chunks",
+          "tableTo": "learning_sessions",
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "session_chunks_chunk_id_learning_chunks_id_fk": {
+          "name": "session_chunks_chunk_id_learning_chunks_id_fk",
+          "tableFrom": "session_chunks",
+          "tableTo": "learning_chunks",
+          "columnsFrom": ["chunk_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_session_chunk_status": {
+          "name": "chk_session_chunk_status",
+          "value": "\"session_chunks\".\"status\" IN ('pending', 'in_progress', 'completed')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.session_question_attempts": {
+      "name": "session_question_attempts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_question_id": {
+          "name": "session_question_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt_number": {
+          "name": "attempt_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "response": {
+          "name": "response",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "passed": {
+          "name": "passed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "feedback": {
+          "name": "feedback",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quality": {
+          "name": "quality",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_spent_ms": {
+          "name": "time_spent_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_session_question_attempts_session_question_id": {
+          "name": "idx_session_question_attempts_session_question_id",
+          "columns": [
+            {
+              "expression": "session_question_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_question_attempts_session_question_id_session_questions_id_fk": {
+          "name": "session_question_attempts_session_question_id_session_questions_id_fk",
+          "tableFrom": "session_question_attempts",
+          "tableTo": "session_questions",
+          "columnsFrom": ["session_question_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.session_questions": {
+      "name": "session_questions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_chunk_id": {
+          "name": "session_chunk_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question_index": {
+          "name": "question_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prompt_text": {
+          "name": "prompt_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "idx_session_questions_session_chunk_id": {
+          "name": "idx_session_questions_session_chunk_id",
+          "columns": [
+            {
+              "expression": "session_chunk_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "session_questions_session_chunk_id_session_chunks_id_fk": {
+          "name": "session_questions_session_chunk_id_session_chunks_id_fk",
+          "tableFrom": "session_questions",
+          "tableTo": "session_chunks",
+          "columnsFrom": ["session_chunk_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "chk_session_question_status": {
+          "name": "chk_session_question_status",
+          "value": "\"session_questions\".\"status\" IN ('pending', 'answered', 'skipped')"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

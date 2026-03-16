@@ -1,0 +1,3 @@
+CREATE UNIQUE INDEX "uq_session_question_attempts_question_number" ON "session_question_attempts" USING btree ("session_question_id","attempt_number");--> statement-breakpoint
+CREATE UNIQUE INDEX "uq_session_questions_chunk_index" ON "session_questions" USING btree ("session_chunk_id","question_index");--> statement-breakpoint
+ALTER TABLE "session_question_attempts" ADD CONSTRAINT "chk_attempt_number" CHECK ("session_question_attempts"."attempt_number" IN (1, 2));
