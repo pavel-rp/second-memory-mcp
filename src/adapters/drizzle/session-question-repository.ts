@@ -86,13 +86,24 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
   }
 
   async getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]> {
-    const questions = await this.getQuestionsForChunk(sessionChunkId);
-    if (questions.length === 0) return [];
-    const questionIds = questions.map(q => q.id);
     return (await this.db
-      .select()
+      .select({
+        id: sessionQuestionAttempts.id,
+        sessionQuestionId: sessionQuestionAttempts.sessionQuestionId,
+        attemptNumber: sessionQuestionAttempts.attemptNumber,
+        response: sessionQuestionAttempts.response,
+        passed: sessionQuestionAttempts.passed,
+        feedback: sessionQuestionAttempts.feedback,
+        quality: sessionQuestionAttempts.quality,
+        timeSpentMs: sessionQuestionAttempts.timeSpentMs,
+        createdAt: sessionQuestionAttempts.createdAt,
+      })
       .from(sessionQuestionAttempts)
-      .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds))
+      .innerJoin(
+        sessionQuestions,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+      )
+      .where(eq(sessionQuestions.sessionChunkId, sessionChunkId))
       .orderBy(
         asc(sessionQuestionAttempts.sessionQuestionId),
         asc(sessionQuestionAttempts.attemptNumber)
@@ -113,13 +124,24 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
 
   async getAllAttemptsForChunks(sessionChunkIds: string[]): Promise<SessionQuestionAttempt[]> {
     if (sessionChunkIds.length === 0) return [];
-    const questions = await this.getQuestionsForChunks(sessionChunkIds);
-    if (questions.length === 0) return [];
-    const questionIds = questions.map(q => q.id);
     return (await this.db
-      .select()
+      .select({
+        id: sessionQuestionAttempts.id,
+        sessionQuestionId: sessionQuestionAttempts.sessionQuestionId,
+        attemptNumber: sessionQuestionAttempts.attemptNumber,
+        response: sessionQuestionAttempts.response,
+        passed: sessionQuestionAttempts.passed,
+        feedback: sessionQuestionAttempts.feedback,
+        quality: sessionQuestionAttempts.quality,
+        timeSpentMs: sessionQuestionAttempts.timeSpentMs,
+        createdAt: sessionQuestionAttempts.createdAt,
+      })
       .from(sessionQuestionAttempts)
-      .where(inArray(sessionQuestionAttempts.sessionQuestionId, questionIds))
+      .innerJoin(
+        sessionQuestions,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+      )
+      .where(inArray(sessionQuestions.sessionChunkId, sessionChunkIds))
       .orderBy(
         asc(sessionQuestionAttempts.sessionQuestionId),
         asc(sessionQuestionAttempts.attemptNumber)

@@ -946,6 +946,58 @@ describe('submitAnswer', () => {
     expect(result.quality).toBe(5); // first attempt, passed
     expect(result.attempt).toBe(1);
   });
+
+  it('returns error when createQuestions returns empty array', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+          }),
+        ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi.fn().mockResolvedValue([]),
+        createQuestions: vi.fn().mockResolvedValue([]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('Failed to create session question');
+  });
+
+  it('returns error when question already has 2 attempts', async () => {
+    const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+          }),
+        ]),
+      },
+      sessionQuestions: {
+        getQuestionsForChunk: vi.fn().mockResolvedValue([pendingQuestion]),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: null }),
+            makeQuestionAttempt({ attemptNumber: 2, passed: false, quality: 1 }),
+          ]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain('Max 2 attempts');
+  });
 });
 
 // ── Session Question Flow Tests ─────────────────────────────────

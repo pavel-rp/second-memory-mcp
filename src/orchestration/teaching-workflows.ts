@@ -105,12 +105,16 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const chunkIsRequeuedFailure = (scId: string): boolean => {
     const questions = questionsByChunk.get(scId) ?? [];
     if (questions.length === 0) return false;
-    // Get the last question (highest index)
-    const lastQuestion = questions[questions.length - 1];
-    if (!lastQuestion) return false;
+    // Explicitly find the question with the highest questionIndex (don't assume ordering)
+    const lastQuestion = questions.reduce((max, q) =>
+      q.questionIndex > max.questionIndex ? q : max
+    );
     const attempts = attemptsByQuestion.get(lastQuestion.id) ?? [];
     if (attempts.length === 0) return false;
-    const lastAttempt = attempts[attempts.length - 1] as SessionQuestionAttempt;
+    // Find the attempt with the highest attemptNumber
+    const lastAttempt = attempts.reduce((max, a) =>
+      a.attemptNumber > max.attemptNumber ? a : max
+    );
     return !lastAttempt.passed;
   };
 

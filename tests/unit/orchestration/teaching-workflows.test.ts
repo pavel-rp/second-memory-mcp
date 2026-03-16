@@ -281,6 +281,38 @@ describe('getNextTeachingStep', () => {
     expect(result.mode).toBe('learning'); // fresh → learning mode
   });
 
+  // chunkIsRequeuedFailure returns false when last question has no attempts
+  it('treats chunk as fresh when last question has no attempts', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    // Question exists but has no attempts → chunkHasAttempts=false, chunkIsRequeuedFailure=false
+    const questionWithNoAttempts: SessionQuestion = {
+      id: 'sq-orphan',
+      sessionChunkId: 'sc-1',
+      questionIndex: 1,
+      promptText: 'test',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    vi.mocked(sqRepo.getQuestionsForChunks).mockResolvedValue([questionWithNoAttempts]);
+    vi.mocked(sqRepo.getAllAttemptsForChunks).mockResolvedValue([]);
+
+    const result = await getNextTeachingStep(deps);
+
+    // Chunk is treated as fresh (learning mode) since question has no attempts
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.mode).toBe('learning');
+  });
+
   // VC-04: Re-queued chunk uses retrieval mode
   it('uses retrieval mode for re-queued chunk', async () => {
     const sqRepo = stubSessionQuestionRepository();
@@ -415,6 +447,33 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.total).toBe(3);
     expect(result.summary.passed_first_try).toBe(2);
     expect(result.summary.needed_retry).toBe(1);
+  });
+
+  // Summary: exhausted_retries counted when no attempt passed
+  it('counts exhausted_retries when all attempts failed', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'completed' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    mockQuestionsAndAttempts(sqRepo, [
+      { scId: 'sc-1', attempts: [{ passed: true }] },
+      { scId: 'sc-2', attempts: [{ passed: false }, { passed: false }] }, // all failed
+    ]);
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.exhausted_retries).toBe(1);
   });
 
   // VC-07: Chunk not found in DB → error
