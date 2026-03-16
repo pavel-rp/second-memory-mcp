@@ -1212,6 +1212,44 @@ describe('submitAnswer with session_question_id', () => {
     );
   });
 
+  it('derives response.passed from aggregated quality, not input.passed', async () => {
+    // Second attempt on last question fails (input.passed = false, quality = 1),
+    // but other questions scored high so aggregated quality rounds to >= 3.
+    // quality scores: [5, 1] → avg = 3 → passed should be true (from aggregated quality)
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi
+          .fn()
+          .mockResolvedValue([makeQuestionAttempt({ attemptNumber: 1 })]),
+        getQuestionsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestion({ id: 'sq-1', status: 'answered' }),
+            makeQuestion({ id: 'sq-2', status: 'answered' }),
+          ]),
+        getAllAttemptsForChunk: vi
+          .fn()
+          .mockResolvedValue([
+            makeQuestionAttempt({ id: 'a1', sessionQuestionId: 'sq-1', quality: 5 }),
+            makeQuestionAttempt({ id: 'a2', sessionQuestionId: 'sq-2', quality: 1 }),
+          ]),
+      },
+    });
+
+    // Second attempt with passed=false (quality=1), but aggregated quality = (5+1)/2 = 3
+    const result = await submitAnswer(
+      makeInput({ passed: false, sessionQuestionId: 'sq-1' }),
+      deps
+    );
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    // passed should reflect aggregated quality (3 >= 3 → true), not input.passed (false)
+    expect(result.passed).toBe(true);
+    expect(result.quality).toBe(3);
+  });
+
   it('returns error when question not found', async () => {
     const deps = makeQuestionDeps({
       sessionQuestions: {

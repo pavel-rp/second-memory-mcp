@@ -245,8 +245,8 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.sessionChunkId).toBe('sc-1');
-    expect(parsed.questionIds).toEqual(['sq-1', 'sq-2']);
+    expect(parsed.session_chunk_id).toBe('sc-1');
+    expect(parsed.question_ids).toEqual(['sq-1', 'sq-2']);
   });
 
   it('create_session_questions maps snake_case input to camelCase', async () => {

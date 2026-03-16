@@ -611,7 +611,7 @@ async function submitAnswerForQuestion(
   return {
     status: 'recorded',
     attempt: attemptNumber,
-    passed: input.passed,
+    passed: Math.round(aggregatedQuality) >= 3,
     quality: Math.round(aggregatedQuality),
     chunk_id: sessionChunk.chunkId,
     review_update: {
