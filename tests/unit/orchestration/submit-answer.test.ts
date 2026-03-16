@@ -220,6 +220,29 @@ describe('submitAnswer', () => {
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
   });
 
+  // NEU-128: Retry path returns error when updateSessionChunk returns 0 rows
+  it('returns error when retry-path updateSessionChunk returns 0 rows', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+          }),
+        ]),
+        updateSessionChunk: vi.fn().mockResolvedValue(0),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: false }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toContain(
+      'Failed to update session chunk time tracking'
+    );
+  });
+
   // VC-02: Second attempt pass → quality 3
   it('returns recorded with quality 3 on second attempt pass', async () => {
     const pendingQuestion = makeQuestion({ id: 'sq-1', sessionChunkId: 'sc-1', status: 'pending' });
