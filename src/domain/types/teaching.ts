@@ -97,7 +97,14 @@ export type SubmitAnswerResult = SubmitAnswerRetry | SubmitAnswerRecorded | Subm
 export const SubmitAnswerInputShape = {
   question: z.string().min(1).describe('The drill question that was asked'),
   response: z.string().min(1).describe("The learner's answer"),
-  passed: z.boolean().describe("Agent's pass/fail judgment"),
+  passed: z
+    .boolean()
+    .describe(
+      'Whether the learner recalled the material correctly. ' +
+        'Pass = they answered without significant prompting or errors. ' +
+        "Fail = they couldn't answer, needed the answer revealed, or made a meaningful error. " +
+        'When in doubt, fail — spaced repetition benefits from honest assessment.'
+    ),
   feedback: z.string().min(1).describe("Agent's explanation of why right/wrong"),
   time_spent_ms: z.number().int().min(0).describe('Time the learner spent in milliseconds'),
   session_question_id: z

@@ -202,7 +202,9 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     {
       title: 'Record Review Result',
       description:
-        'Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date.',
+        'Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date. ' +
+        'Response includes the updated item with recalculated next_review_date and ease_factor. ' +
+        'Always read scheduling values from the response — do not hardcode or carry over previous values.',
       inputSchema: RecordReviewResultInputShape,
     },
     async (rawInput: unknown) => {

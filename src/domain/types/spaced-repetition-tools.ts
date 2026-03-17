@@ -3,7 +3,15 @@ import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
 import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 export const CalculateNextReviewInputShape = {
-  quality: z.number().min(0).max(5).describe('Quality score from the latest review (0-5)'),
+  quality: z
+    .number()
+    .min(0)
+    .max(5)
+    .describe(
+      'SM-2 quality score 0-5. 0-2 = failed recall (resets interval), ' +
+        '3 = correct with difficulty, 4-5 = confident correct. ' +
+        "Do NOT hardcode or guess — derive from the learner's actual response."
+    ),
   repetitions: z.number().int().min(0).describe('Number of successful repetitions completed'),
   ease_factor: z.number().min(1.3).describe('Current ease factor for the learning item'),
   interval: z.number().int().min(0).describe('Current review interval in days'),
@@ -32,7 +40,15 @@ export const CalculatePriorityScoreInputSchema = z
 export type CalculatePriorityScoreInput = z.infer<typeof CalculatePriorityScoreInputSchema>;
 
 export const CalculateNextReviewAdvancedInputShape = {
-  quality: z.number().min(0).max(5).describe('Quality score from the latest review (0-5)'),
+  quality: z
+    .number()
+    .min(0)
+    .max(5)
+    .describe(
+      'SM-2 quality score 0-5. 0-2 = failed recall (resets interval), ' +
+        '3 = correct with difficulty, 4-5 = confident correct. ' +
+        "Do NOT hardcode or guess — derive from the learner's actual response."
+    ),
   repetitions: z.number().int().min(0).describe('Number of successful repetitions completed'),
   ease_factor: z.number().min(1.3).describe('Current ease factor for the learning item'),
   interval: z.number().int().min(0).describe('Current review interval in days'),
@@ -101,7 +117,11 @@ export const RecordReviewResultInputShape = {
       VALIDATION_CONSTANTS.MAX_QUALITY_SCORE,
       `Quality score cannot exceed ${VALIDATION_CONSTANTS.MAX_QUALITY_SCORE}`
     )
-    .describe('Quality score from the review attempt (0-5)'),
+    .describe(
+      "SM-2 quality score 0-5. Do NOT guess — derive from the learner's actual response. " +
+        '0-2 = failed recall, 3 = correct with difficulty, 4-5 = confident correct. ' +
+        'Prefer submit_answer for teaching sessions; use this only for direct review recording.'
+    ),
   time_spent_ms: z
     .number()
     .int('Time spent must be an integer')

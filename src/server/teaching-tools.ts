@@ -21,7 +21,9 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       description:
         'Get the next teaching instruction for the active learning session. ' +
         'Automatically selects the next chunk, hydrates the appropriate prompt, ' +
-        'and returns a structured teaching instruction. No input needed — reads the active session.',
+        'and returns a structured teaching instruction. No input needed — reads the active session. ' +
+        "After presenting the instruction and receiving the learner's answer, call submit_answer " +
+        'with the question, response, and pass/fail assessment. The submit_answer response includes the next chunk automatically.',
       inputSchema: z.object({}).shape,
     },
     async () => {
@@ -82,7 +84,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       description:
         'One-call convenience tool: checks for active sessions, generates recommendations, ' +
         'creates a session, and returns the first teaching chunk. ' +
-        'Replaces the manual sequence of what_to_learn_today → create_session → teach_next.',
+        'Replaces the manual sequence of what_to_learn_today → create_session → teach_next. ' +
+        'Response includes first_chunk.instruction — follow it verbatim to teach the chunk. ' +
+        "After teaching and getting the learner's answer, call submit_answer to record the result. " +
+        'The response includes the next chunk — repeat until the session is complete.',
       inputSchema: StartLearningInputShape,
     },
     async input => {

@@ -5,13 +5,15 @@
 export const SERVER_INSTRUCTIONS = `\
 Second Memory is a spaced-repetition learning server. Follow these workflows:
 
-TEACHING FLOW
-1. Call start_learning to get the next chunk and session context.
-2. Present the chunk content to the learner, then call submit_answer with their response.
-3. The server scores the answer. If the result says "retry", ask the learner to try again and resubmit. If "recorded", move on.
-4. Call start_learning again for the next chunk. Repeat until the session is complete.
+TEACHING FLOW (start_learning → submit_answer → teach_next)
+1. Call start_learning to create a session and get the first chunk's teaching instruction.
+2. Present the instruction to the learner and collect their response.
+3. Call submit_answer with the question, response, pass/fail judgment, and feedback.
+4. If the result says "retry", ask the learner to try again and re-call submit_answer.
+5. If "recorded", the response piggybacks the next chunk via teach_next. Present it and repeat from step 3.
+6. When teach_next returns status "complete", call complete_session with optional feedback.
 
-ROLLING SESSION FLOW
+ROLLING SESSION FLOW (manual chunk-by-chunk control)
 1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
 2. Call create_session_chunk with the session_id, chunk_id, and status: "in_progress" to add and activate the chunk.
 3. Call get_chunk_content with the chunk_id to retrieve the chunk, then teach it.
@@ -24,7 +26,13 @@ CONTENT CREATION
 2. Use the chunk_generation prompt to produce chunk content.
 3. Call create_topic_with_chunks to persist the topic and all chunks in one operation.
 
-RULES
+TOOL DISAMBIGUATION
+- start_learning vs create_session: start_learning is the one-call convenience (recommendations + session + first chunk). Use create_session only when you need manual control over chunk_ids or modes.
+- session_workflow vs session_progress vs session_completion: session_workflow = what phase next, session_progress = metrics only, session_completion = should-I-end-now check.
+- submit_answer vs record_review_result: Use submit_answer during teaching sessions (server derives quality). Use record_review_result only for direct review recording outside a session.
+
+OPERATIONAL CONSTRAINTS
 - Never fabricate scores or call record_review_result during a teaching session — use submit_answer.
 - Never skip drills; the server decides when a chunk is mastered.
-- Do not manually hydrate prompt templates; call prompts through the MCP protocol.`;
+- Do not manually hydrate prompt templates; call prompts through the MCP protocol.
+- The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.`;

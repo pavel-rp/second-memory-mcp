@@ -21,7 +21,9 @@ export function registerNotesTools(server: McpServer, ctx: AppContext): void {
       description:
         'Create a typed annotation on a chunk, topic, or session. ' +
         'Notes capture learning insights, confusion patterns, connections, and deeper explorations ' +
-        'as structured, queryable data. They surface in teach_next for the agent to tailor teaching.',
+        'as structured, queryable data. They surface in teach_next for the agent to tailor teaching. ' +
+        'Add "insight" notes after successful retrieval. Add "confusion" notes when the learner struggles. ' +
+        'Add "connection" notes when cross-chunk links emerge.',
       inputSchema: AddNoteInputShape,
     },
     async input => {

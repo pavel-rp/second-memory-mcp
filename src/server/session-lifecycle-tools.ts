@@ -26,7 +26,10 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         'REQUIRED for recall/review/retrieval practice — you MUST create a session before teaching. ' +
         'Use mode "retrieval" for recall practice, "review" for spaced review sessions. ' +
         'After creation, call get_active_session to retrieve historical feedback from past sessions ' +
-        'showing what the learner found difficult previously.',
+        'showing what the learner found difficult previously. ' +
+        'Use this for manual session setup when you need specific chunk_ids or modes. ' +
+        'For the common case of "just start learning", prefer start_learning which handles ' +
+        'recommendations, session creation, and first chunk in one call.',
       inputSchema: CreateSessionToolInputShape,
     },
     async (input: unknown) => {
