@@ -1,3 +1,0 @@
-ALTER TABLE "notes" ADD CONSTRAINT "chk_note_target_type" CHECK ("notes"."target_type" IN ('chunk', 'topic', 'session'));--> statement-breakpoint
-ALTER TABLE "notes" ADD CONSTRAINT "chk_note_type" CHECK ("notes"."note_type" IN ('insight', 'confusion', 'connection', 'deeper_exploration'));--> statement-breakpoint
-ALTER TABLE "notes" ADD CONSTRAINT "chk_note_author" CHECK ("notes"."author" IN ('agent', 'user'));

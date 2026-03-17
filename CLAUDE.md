@@ -40,6 +40,13 @@ Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/help
 - **Server** (`src/server/*-tools.ts`): try/catch everything. `toolOk()`/`toolJson()` for success, `toolError()` for caught exceptions.
 - **Fail-open**: Log to stderr, always return valid MCP responses, never crash.
 
+## Drizzle Migrations
+
+- `drizzle/meta/_journal.json` `when` timestamps **must be monotonically increasing** with `idx`. Drizzle's migrator uses `when` (not `idx` or filename prefix) to determine applied vs. pending status. Out-of-order timestamps cause migrations to be **silently skipped** with no error.
+- When inserting manual migrations or reordering entries in `_journal.json`, always set `when` to be strictly greater than the previous entry's `when`.
+- If bumping an existing entry to a higher `idx`, update its `when` to be after the new predecessor's.
+- After any `_journal.json` edit, verify monotonicity: `jq '[.entries[] | .when] | . as $ws | [range(1; length) | select($ws[.] <= $ws[. - 1])] | if length == 0 then "OK" else "BAD at indices: \(.)" end' drizzle/meta/_journal.json`
+
 ## Workflow Specs
 
 - Follow spec-workflow from corresponding MCP server when explicitly asked.
