@@ -12,7 +12,7 @@ export const CreateSessionToolInputShape = {
       "'learning' = active study of new chunks, " +
       "'retrieval' = spaced recall practice, " +
       "'review' = revisit previously learned material. " +
-      "Default 'learning' if unsure."
+      "Use 'learning' if unsure."
   ),
   estimated_duration: z.number().min(1).max(480).optional(), // 1-480 minutes
 } as const;

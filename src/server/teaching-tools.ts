@@ -23,7 +23,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Automatically selects the next chunk, hydrates the appropriate prompt, ' +
         'and returns a structured teaching instruction. No input needed — reads the active session. ' +
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
-        'with the question, response, and pass/fail assessment. The submit_answer response includes the next chunk automatically.',
+        'with the question, response, pass/fail assessment, feedback, and time_spent_ms. ' +
+        "When submit_answer returns status 'recorded', its response includes the next chunk automatically.",
       inputSchema: z.object({}).shape,
     },
     async () => {

@@ -11,7 +11,7 @@ TEACHING FLOW (start_learning → submit_answer → teach_next)
 3. Call submit_answer with the question, response, pass/fail judgment, and feedback.
 4. If the result says "retry", ask the learner to try again and re-call submit_answer.
 5. If "recorded", the response piggybacks the next chunk via teach_next. Present it and repeat from step 3.
-6. When teach_next returns status "complete", call complete_session with optional feedback.
+6. When submit_answer's next field has status "complete", call complete_session with optional feedback.
 
 ROLLING SESSION FLOW (manual chunk-by-chunk control)
 1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
