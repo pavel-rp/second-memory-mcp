@@ -236,7 +236,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'chunk-prereq' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.removed_dependencies).toBeGreaterThanOrEqual(0);
+      expect(parsed.removed_dependency_count).toBeGreaterThanOrEqual(0);
     });
   });
 });

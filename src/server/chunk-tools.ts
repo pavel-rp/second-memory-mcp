@@ -255,7 +255,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             toSnakeCase({
               success: true,
               chunkId: chunkId,
-              removedDependencies: removedCount,
+              removedDependencyCount: removedCount,
               message: messageParts.join(' '),
             })
           );

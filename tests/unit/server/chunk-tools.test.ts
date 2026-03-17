@@ -480,7 +480,7 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.removed_dependencies).toBe(2);
+      expect(parsed.removed_dependency_count).toBe(2);
       expect(parsed.message).toContain('2 dependent chunks');
     });
 
@@ -498,7 +498,7 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.removed_dependencies).toBe(1);
+      expect(parsed.removed_dependency_count).toBe(1);
       expect(parsed.message).toContain('1 dependent chunk');
       expect(parsed.message).not.toContain('chunks.');
     });
@@ -516,7 +516,7 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.removed_dependencies).toBe(0);
+      expect(parsed.removed_dependency_count).toBe(0);
       expect(parsed.message).toContain('Arrays');
     });
 
@@ -532,7 +532,7 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.chunk_id).toBe('c-orphan');
-      expect(parsed.removed_dependencies).toBe(0);
+      expect(parsed.removed_dependency_count).toBe(0);
       expect(parsed.message).toContain('c-orphan');
     });
 
