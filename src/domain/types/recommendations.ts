@@ -153,6 +153,8 @@ export const ChunkTypeSchema = z.enum(['new', 'review', 'remediation']);
 
 export const SubjectPreferenceSchema = z.enum(['CS', 'Math', 'SWE', 'Language', 'Any']);
 
+export const ContentStatusSchema = z.enum(['draft', 'final']);
+
 const LearningItemObjectSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -171,6 +173,7 @@ const LearningItemObjectSchema = z.object({
   tags: z.array(z.string()).optional(),
   topic_id: z.string().min(1).optional(),
   topic_title: z.string().min(1).optional(),
+  content_status: ContentStatusSchema.optional(),
 });
 
 export const LearningItemSchema = LearningItemObjectSchema.transform(toCamelCaseKeys);
