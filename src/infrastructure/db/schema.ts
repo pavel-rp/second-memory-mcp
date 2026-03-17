@@ -174,10 +174,7 @@ export const sessionQuestionAttempts = pgTable(
 export const notes = pgTable(
   'notes',
   {
-    id: text('id')
-      .primaryKey()
-      .default(sql`gen_random_uuid()`)
-      .notNull(),
+    id: text('id').primaryKey().notNull(),
     targetType: text('target_type').notNull(), // 'chunk' | 'topic' | 'session'
     targetId: text('target_id').notNull(),
     noteType: text('note_type').notNull(), // 'insight' | 'confusion' | 'connection' | 'deeper_exploration'

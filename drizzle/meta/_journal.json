@@ -50,6 +50,13 @@
       "when": 1773737538432,
       "tag": "0006_mighty_devos",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773743307383,
+      "tag": "0007_exotic_mathemanic",
+      "breakpoints": true
     }
   ]
 }

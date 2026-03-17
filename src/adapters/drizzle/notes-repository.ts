@@ -1,4 +1,5 @@
 import { desc, eq, and, inArray } from 'drizzle-orm';
+import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { notes } from '../../infrastructure/db/schema.js';
 import type { NoteCreated, NoteRecord, NoteTargetType } from '../../domain/types/notes-tools.js';
@@ -12,6 +13,7 @@ export class DrizzleNotesRepository implements NotesRepository {
     const [row] = await this.db
       .insert(notes)
       .values({
+        id: crypto.randomUUID(),
         targetType: input.targetType,
         targetId: input.targetId,
         noteType: input.noteType,
@@ -20,7 +22,6 @@ export class DrizzleNotesRepository implements NotesRepository {
         createdAt: now,
       })
       .returning({ id: notes.id, createdAt: notes.createdAt });
-    if (!row) throw new Error('Insert returned no rows');
     return row as NoteCreated;
   }
 
@@ -57,6 +58,6 @@ export class DrizzleNotesRepository implements NotesRepository {
 
   async deleteNote(id: string): Promise<boolean> {
     const result = await this.db.delete(notes).where(eq(notes.id, id));
-    return (result.rowCount ?? 0) > 0;
+    return (result.rowCount as number) > 0;
   }
 }
