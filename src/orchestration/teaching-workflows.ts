@@ -4,6 +4,7 @@ import type { ReviewPersistencePort } from '../ports/review-persistence-port.js'
 import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
 import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
 import type { SessionQuestionRepository } from '../ports/session-question-repository.js';
+import type { NotesRepository } from '../ports/notes-repository.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type {
@@ -37,6 +38,7 @@ export type TeachingDeps = {
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
   sessionQuestions: SessionQuestionRepository;
+  notes?: NotesRepository;
 };
 
 /**
@@ -177,11 +179,14 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const mode: 'learning' | 'retrieval' = isRequeued ? 'retrieval' : 'learning';
   const drillFormat: DrillFormat = mode === 'retrieval' ? 'open_ended' : 'explanation';
 
-  // 7. Fetch historical feedback
-  const historicalFeedback = await deps.sessions.getHistoricalFeedbackForChunks(
-    [selected.chunkId],
-    { excludeSessionId: session.id, limit: 5 }
-  );
+  // 7. Fetch historical feedback and notes
+  const [historicalFeedback, chunkNotes] = await Promise.all([
+    deps.sessions.getHistoricalFeedbackForChunks([selected.chunkId], {
+      excludeSessionId: session.id,
+      limit: 5,
+    }),
+    deps.notes?.getNotesForChunkIds([selected.chunkId]) ?? Promise.resolve([]),
+  ]);
 
   const previousSessionFeedback: PromptFeedbackEntry[] = historicalFeedback.map(hf => ({
     sessionMode: hf.session_mode,
@@ -220,6 +225,15 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     instruction,
     drill_format: drillFormat,
     ...(previousFeedbackStrings.length > 0 && { previous_feedback: previousFeedbackStrings }),
+    ...(chunkNotes.length > 0 && {
+      notes: chunkNotes.map(n => ({
+        id: n.id,
+        note_type: n.noteType,
+        content: n.content,
+        author: n.author,
+        created_at: n.createdAt,
+      })),
+    }),
   };
 }
 
@@ -763,6 +777,7 @@ export type StartLearningDeps = {
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
   sessionQuestions: SessionQuestionRepository;
+  notes?: NotesRepository;
   maxDependencyDepth: number;
 };
 
@@ -861,6 +876,7 @@ export async function startLearning(
     reviewPersistence: deps.reviewPersistence,
     algorithmConfig: deps.algorithmConfig,
     sessionQuestions: deps.sessionQuestions,
+    notes: deps.notes,
   };
   const firstChunk = await getNextTeachingStep(teachingDeps);
 

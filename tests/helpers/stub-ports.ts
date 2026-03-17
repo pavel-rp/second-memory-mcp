@@ -9,6 +9,7 @@ import type { PrerequisiteMasteryPort } from '../../src/ports/prerequisite-maste
 import type { ChunkIdLookupPort } from '../../src/ports/chunk-id-lookup-port.js';
 import type { SearchPort } from '../../src/ports/search-port.js';
 import type { EmbeddingPort } from '../../src/ports/embedding-port.js';
+import type { NotesRepository } from '../../src/ports/notes-repository.js';
 
 // ── ChunkRepository ─────────────────────────────────────────────
 
@@ -226,6 +227,18 @@ export function stubSessionQuestionRepository(
     getAllAttemptsForChunk: vi.fn().mockResolvedValue([]),
     getQuestionsForChunks: vi.fn().mockResolvedValue([]),
     getAllAttemptsForChunks: vi.fn().mockResolvedValue([]),
+    ...overrides,
+  };
+}
+
+// ── NotesRepository ────────────────────────────────────────────
+
+export function stubNotesRepository(overrides?: Partial<NotesRepository>): NotesRepository {
+  return {
+    createNote: vi.fn().mockResolvedValue({ id: 'note-stub', createdAt: 1_700_000_000_000 }),
+    getNotesByTarget: vi.fn().mockResolvedValue([]),
+    getNotesForChunkIds: vi.fn().mockResolvedValue([]),
+    deleteNote: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
 }

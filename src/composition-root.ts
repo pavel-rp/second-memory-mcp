@@ -8,6 +8,7 @@ import { DrizzlePrerequisiteMasteryAdapter } from './adapters/drizzle/prerequisi
 import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persistence-adapter.js';
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
 import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-question-repository.js';
+import { DrizzleNotesRepository } from './adapters/drizzle/notes-repository.js';
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
 import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
 import { resolveEmbeddingConfig } from './config/resolve-embedding-config.js';
@@ -32,6 +33,7 @@ import type { ChunkMinimalMetadata } from './ports/chunk-repository.js';
 import type { ReviewPersistencePort, ReviewResultData } from './ports/review-persistence-port.js';
 import type { UnitOfWorkPort } from './ports/unit-of-work-port.js';
 import type { SessionQuestionRepository } from './ports/session-question-repository.js';
+import type { NotesRepository } from './ports/notes-repository.js';
 import type {
   LearningItem,
   PaginatedLearningItemsResponse,
@@ -51,6 +53,8 @@ import type {
   CreateSessionQuestionsResult,
 } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
+import type { NoteCreated, NoteListResult, NoteDeleted } from './domain/types/notes-tools.js';
+import type { CreateNoteInput } from './ports/notes-repository.js';
 
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
 import * as topicWorkflows from './orchestration/topic-workflows.js';
@@ -61,6 +65,7 @@ import * as searchWorkflows from './orchestration/search-workflows.js';
 import * as queryWorkflows from './orchestration/query-workflows.js';
 import * as analyticsWorkflows from './orchestration/analytics-workflows.js';
 import * as teachingWorkflows from './orchestration/teaching-workflows.js';
+import * as notesWorkflows from './orchestration/notes-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
 import {
@@ -100,6 +105,7 @@ export interface AppPorts {
   reviewPersistence: ReviewPersistencePort;
   unitOfWork: UnitOfWorkPort;
   sessionQuestions: SessionQuestionRepository;
+  notes: NotesRepository;
   embedding?: EmbeddingPort;
 }
 
@@ -217,6 +223,11 @@ export interface AppContext {
     input: CreateSessionQuestionsInput
   ) => Promise<CreateSessionQuestionsResult>;
 
+  // Notes orchestration
+  createNote: (input: CreateNoteInput) => Promise<NoteCreated>;
+  listNotes: (targetType: string, targetId: string) => Promise<NoteListResult>;
+  deleteNote: (noteId: string) => Promise<NoteDeleted>;
+
   // Recommendation orchestration
   generateRecommendations: (input: RecommendationInput) => Promise<RecommendationOutput>;
 
@@ -283,6 +294,7 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
     reviewPersistence: new DrizzleReviewPersistenceAdapter(db),
     unitOfWork: new DrizzleUnitOfWorkAdapter(),
     sessionQuestions: new DrizzleSessionQuestionRepository(db),
+    notes: new DrizzleNotesRepository(db),
   };
 }
 
@@ -352,6 +364,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
     sessionQuestions: ports.sessionQuestions,
+    notes: ports.notes,
   };
   const startLearningDeps: teachingWorkflows.StartLearningDeps = {
     sessions: ports.sessions,
@@ -361,7 +374,12 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
     sessionQuestions: ports.sessionQuestions,
+    notes: ports.notes,
     maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
+  };
+
+  const notesDeps: notesWorkflows.NotesDeps = {
+    notes: ports.notes,
   };
 
   const ctx: AppContext = {
@@ -414,6 +432,11 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
     startLearning: input => teachingWorkflows.startLearning(input, startLearningDeps),
     createSessionQuestions: input => teachingWorkflows.createSessionQuestions(input, teachingDeps),
+
+    // Notes orchestration
+    createNote: input => notesWorkflows.createNote(input, notesDeps),
+    listNotes: (targetType, targetId) => notesWorkflows.listNotes(targetType, targetId, notesDeps),
+    deleteNote: noteId => notesWorkflows.deleteNote(noteId, notesDeps),
 
     // Recommendation orchestration
     generateRecommendations: input =>

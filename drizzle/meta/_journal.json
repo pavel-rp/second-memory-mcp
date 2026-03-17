@@ -43,6 +43,13 @@
       "when": 1773969600000,
       "tag": "0005_drop_attempts_json_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773737538432,
+      "tag": "0006_mighty_devos",
+      "breakpoints": true
     }
   ]
 }
