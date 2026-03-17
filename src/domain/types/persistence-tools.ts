@@ -71,6 +71,17 @@ const TopicChunkShape = {
     })
     .default('new')
     .describe('Chunk classification'),
+  content_status: z
+    .enum(['draft', 'final'], {
+      errorMap: () => ({
+        message: 'Content status must be one of: draft, final',
+      }),
+    })
+    .optional()
+    .default('final')
+    .describe(
+      "Content readiness: 'draft' for placeholder content, 'final' for teaching-ready content"
+    ),
 } as const;
 
 export const TopicChunkSchema = z.object(TopicChunkShape).transform(toCamelCaseKeys);
@@ -195,6 +206,17 @@ export const CreateLearningItemInputShape = {
   prerequisites: z.array(z.string()).default([]).describe('Prerequisites for this learning item'),
   tags: z.array(z.string()).default([]).describe('Tags for categorization'),
   topic_title: z.string().optional().describe('Optional topic title; creates a topic if missing'),
+  content_status: z
+    .enum(['draft', 'final'], {
+      errorMap: () => ({
+        message: 'Content status must be one of: draft, final',
+      }),
+    })
+    .optional()
+    .default('final')
+    .describe(
+      "Content readiness: 'draft' for placeholder content, 'final' for teaching-ready content"
+    ),
 } as const;
 
 export const CreateLearningItemInputSchema = z

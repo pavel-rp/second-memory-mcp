@@ -1,5 +1,8 @@
 import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.js';
-import type { PaginatedLearningItemsResponse } from '../domain/types/recommendations.js';
+import type {
+  ContentStatus,
+  PaginatedLearningItemsResponse,
+} from '../domain/types/recommendations.js';
 
 /** Filter options for listing chunks. */
 export type ListChunksFilter = {
@@ -36,6 +39,7 @@ export type ChunkMinimalMetadata = {
   lastReviewedAt: number | null;
   prerequisitesJson: string[] | null;
   tagsJson: string[] | null;
+  contentStatus: ContentStatus;
   createdAt: number;
   updatedAt: number;
 };

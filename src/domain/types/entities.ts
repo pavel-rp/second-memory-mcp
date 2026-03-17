@@ -1,3 +1,5 @@
+import type { ContentStatus } from './recommendations.js';
+
 // ── Learning Topics ──────────────────────────────────────────────
 
 export type LearningTopic = {
@@ -46,6 +48,7 @@ export type LearningChunk = {
   content: string | null;
   contentVersion: number | null;
   contentUpdatedAt: number | null;
+  contentStatus: ContentStatus;
   createdAt: number;
   updatedAt: number;
 };
@@ -68,6 +71,7 @@ export type NewLearningChunk = {
   content?: string | null;
   contentVersion?: number | null;
   contentUpdatedAt?: number | null;
+  contentStatus?: ContentStatus;
   createdAt: number;
   updatedAt: number;
 };

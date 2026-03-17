@@ -53,6 +53,7 @@ describe('chunk-tools', () => {
         content: null,
         contentVersion: null,
         contentUpdatedAt: null,
+        contentStatus: 'final',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         topicTitle: 'Topic: CS - Arrays',
@@ -147,6 +148,43 @@ describe('chunk-tools', () => {
       expect(parsed.error.type).toBe('database');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('pool exhausted');
+    });
+
+    it('defaults contentStatus to final when not provided', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler(validInput);
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.contentStatus).toBe('final');
+    });
+
+    it('passes explicit content_status draft through', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler({ ...validInput, content_status: 'draft' });
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.contentStatus).toBe('draft');
+    });
+
+    it('throws ZodError for invalid content_status', async () => {
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await expect(handler({ ...validInput, content_status: 'invalid' })).rejects.toThrow(
+        'Content status must be one of: draft, final'
+      );
     });
 
     it('throws ZodError for missing required fields', async () => {

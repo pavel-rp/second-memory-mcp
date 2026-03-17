@@ -302,6 +302,68 @@ describe('chunks service', () => {
     expect(result.error?.type).toBe('not_found');
   });
 
+  it('updateChunkContent auto-sets contentStatus to final', async () => {
+    const now = Date.now();
+    const db = getSql();
+
+    await db.insert(learningTopics).values({
+      id: 'topic-status',
+      title: 'Status Topic',
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await insertChunkDirect({
+      id: 'chunk-status',
+      topicId: 'topic-status',
+      title: 'Draft Chunk',
+      subject: 'CS',
+      difficulty: 3,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      content: 'Placeholder',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Manually set to draft via direct DB update
+    const { eq } = await import('drizzle-orm');
+    await db
+      .update(learningChunks)
+      .set({ contentStatus: 'draft' })
+      .where(eq(learningChunks.id, 'chunk-status'));
+
+    // Verify it's draft
+    const [beforeRow] = await db
+      .select()
+      .from(learningChunks)
+      .where(eq(learningChunks.id, 'chunk-status'));
+    expect(beforeRow.contentStatus).toBe('draft');
+
+    // Update content via workflow
+    const result = await ctx.updateChunkContent('chunk-status', {
+      content: 'Finalized content',
+    });
+
+    expect(result.success).toBe(true);
+
+    // Verify auto-set to final
+    const [afterRow] = await db
+      .select()
+      .from(learningChunks)
+      .where(eq(learningChunks.id, 'chunk-status'));
+    expect(afterRow.contentStatus).toBe('final');
+  });
+
   it('batch fetches chunks with minimal metadata', async () => {
     const now = Date.now();
     const db = getSql();
@@ -961,6 +1023,7 @@ describe('Content Inclusion Functions', () => {
         estimatedDuration: 20,
         intervalDays: null,
         chunkType: 'new',
+        contentStatus: 'final' as const,
         prerequisitesJson: ['arrays'],
         tagsJson: ['test'],
         content: 'This is test content',
@@ -998,6 +1061,7 @@ describe('Content Inclusion Functions', () => {
         estimatedDuration: 20,
         intervalDays: null,
         chunkType: 'new',
+        contentStatus: 'final' as const,
         prerequisitesJson: [],
         tagsJson: [],
         content: null,

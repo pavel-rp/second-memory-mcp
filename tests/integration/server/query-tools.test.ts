@@ -163,5 +163,16 @@ describe('query-tools', () => {
       const parsed = parseResult(result);
       expect(parsed.count).toBe(1);
     });
+
+    it('includes content_status in chunk response', async () => {
+      await seedData();
+      const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
+      const result = await handler({});
+      const parsed = parseResult(result);
+      expect(parsed.count).toBe(2);
+      for (const chunk of parsed.chunks) {
+        expect(chunk.content_status).toBe('final');
+      }
+    });
   });
 });

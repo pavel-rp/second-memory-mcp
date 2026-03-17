@@ -33,6 +33,7 @@ const CHUNK_COLUMNS_WITH_TOPIC = {
   chunkType: learningChunks.chunkType,
   prerequisitesJson: learningChunks.prerequisitesJson,
   tagsJson: learningChunks.tagsJson,
+  contentStatus: learningChunks.contentStatus,
   createdAt: learningChunks.createdAt,
   updatedAt: learningChunks.updatedAt,
   topicTitle: learningTopics.title,
@@ -208,6 +209,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
         lastReviewedAt: learningChunks.lastReviewedAt,
         prerequisitesJson: learningChunks.prerequisitesJson,
         tagsJson: learningChunks.tagsJson,
+        contentStatus: learningChunks.contentStatus,
         createdAt: learningChunks.createdAt,
         updatedAt: learningChunks.updatedAt,
       })

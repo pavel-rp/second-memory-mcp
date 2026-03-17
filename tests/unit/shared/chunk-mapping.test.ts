@@ -18,6 +18,7 @@ function makeRow(overrides: Partial<ChunkWithTopicTitle> = {}): ChunkWithTopicTi
     estimatedDuration: 10,
     intervalDays: 3,
     chunkType: 'review',
+    contentStatus: 'final',
     prerequisitesJson: ['prereq-1'],
     tagsJson: ['data-structures'],
     content: 'Arrays are contiguous memory blocks.',
