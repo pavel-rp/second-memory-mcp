@@ -58,6 +58,6 @@ export class DrizzleNotesRepository implements NotesRepository {
 
   async deleteNote(id: string): Promise<boolean> {
     const result = await this.db.delete(notes).where(eq(notes.id, id));
-    return (result.rowCount as number) > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 }
