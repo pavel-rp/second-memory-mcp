@@ -1,5 +1,10 @@
 import type { NotesRepository, CreateNoteInput } from '../ports/notes-repository.js';
-import type { NoteCreated, NoteListResult, NoteDeleted } from '../domain/types/notes-tools.js';
+import type {
+  NoteCreated,
+  NoteListResult,
+  NoteDeleted,
+  NoteTargetType,
+} from '../domain/types/notes-tools.js';
 
 export type NotesDeps = {
   notes: NotesRepository;
@@ -10,7 +15,7 @@ export async function createNote(input: CreateNoteInput, deps: NotesDeps): Promi
 }
 
 export async function listNotes(
-  targetType: string,
+  targetType: NoteTargetType,
   targetId: string,
   deps: NotesDeps
 ): Promise<NoteListResult> {

@@ -16,7 +16,7 @@ export type CreateNoteInput = {
 
 export interface NotesRepository {
   createNote(input: CreateNoteInput): Promise<NoteCreated>;
-  getNotesByTarget(targetType: string, targetId: string): Promise<NoteRecord[]>;
+  getNotesByTarget(targetType: NoteTargetType, targetId: string): Promise<NoteRecord[]>;
   getNotesForChunkIds(chunkIds: string[]): Promise<NoteRecord[]>;
   deleteNote(id: string): Promise<boolean>;
 }

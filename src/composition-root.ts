@@ -53,7 +53,12 @@ import type {
   CreateSessionQuestionsResult,
 } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
-import type { NoteCreated, NoteListResult, NoteDeleted } from './domain/types/notes-tools.js';
+import type {
+  NoteCreated,
+  NoteListResult,
+  NoteDeleted,
+  NoteTargetType,
+} from './domain/types/notes-tools.js';
 import type { CreateNoteInput } from './ports/notes-repository.js';
 
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
@@ -225,7 +230,7 @@ export interface AppContext {
 
   // Notes orchestration
   createNote: (input: CreateNoteInput) => Promise<NoteCreated>;
-  listNotes: (targetType: string, targetId: string) => Promise<NoteListResult>;
+  listNotes: (targetType: NoteTargetType, targetId: string) => Promise<NoteListResult>;
   deleteNote: (noteId: string) => Promise<NoteDeleted>;
 
   // Recommendation orchestration

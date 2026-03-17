@@ -1,7 +1,7 @@
 import { desc, eq, and, inArray } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { notes } from '../../infrastructure/db/schema.js';
-import type { NoteCreated, NoteRecord } from '../../domain/types/notes-tools.js';
+import type { NoteCreated, NoteRecord, NoteTargetType } from '../../domain/types/notes-tools.js';
 import type { NotesRepository, CreateNoteInput } from '../../ports/notes-repository.js';
 
 export class DrizzleNotesRepository implements NotesRepository {
@@ -24,7 +24,7 @@ export class DrizzleNotesRepository implements NotesRepository {
     return row as NoteCreated;
   }
 
-  async getNotesByTarget(targetType: string, targetId: string): Promise<NoteRecord[]> {
+  async getNotesByTarget(targetType: NoteTargetType, targetId: string): Promise<NoteRecord[]> {
     const rows = await this.db
       .select({
         id: notes.id,

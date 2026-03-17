@@ -64,6 +64,6 @@ export async function clearAllTables(): Promise<void> {
   const { getSql } = await import('./operations.js');
   const db = getSql();
   await db.execute(
-    sql`TRUNCATE session_chunks, learning_sessions, learning_chunks, learning_topics CASCADE`
+    sql`TRUNCATE notes, session_question_attempts, session_questions, session_chunks, learning_sessions, learning_chunks, learning_topics CASCADE`
   );
 }
