@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerNotesTools } from '../../../src/server/notes-tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
+import { DrizzleNotesRepository } from '../../../src/adapters/drizzle/notes-repository.js';
+import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { CaptureServer, parseToolResult } from '../../helpers/capture-server.js';
 
@@ -201,5 +203,38 @@ describe('Integration: notes tools', () => {
     const result = await deleteNote.handler({ note_id: 'nonexistent-id' });
     const parsed = parseToolResult(result);
     expect(parsed.success).toBe(false);
+  });
+
+  // ── adapter: getNotesForChunkIds ──────────────────────────────
+
+  it('getNotesForChunkIds returns notes for given chunk IDs', async () => {
+    // Create notes via tool
+    await addNote.handler({
+      target_type: 'chunk',
+      target_id: 'chunk-A',
+      note_type: 'insight',
+      content: 'Chunk A note',
+      author: 'agent',
+    });
+    await addNote.handler({
+      target_type: 'chunk',
+      target_id: 'chunk-B',
+      note_type: 'confusion',
+      content: 'Chunk B note',
+      author: 'user',
+    });
+
+    const repo = new DrizzleNotesRepository(getSql());
+    const notes = await repo.getNotesForChunkIds(['chunk-A', 'chunk-B']);
+
+    expect(notes).toHaveLength(2);
+    expect(notes.map(n => n.content).sort()).toEqual(['Chunk A note', 'Chunk B note']);
+  });
+
+  it('getNotesForChunkIds returns empty array for empty input', async () => {
+    const repo = new DrizzleNotesRepository(getSql());
+    const notes = await repo.getNotesForChunkIds([]);
+
+    expect(notes).toEqual([]);
   });
 });
