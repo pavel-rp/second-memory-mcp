@@ -71,6 +71,7 @@ describe('session-lifecycle-tools', () => {
       ctx.resolveSessionChunkDependencies = vi.fn().mockResolvedValue({
         resolvedChunkIds: ['c0', 'c1'],
         addedPrerequisites: ['c0'],
+        skippedMasteredPrerequisites: [],
         message: ' (1 prerequisite added)',
       });
       ctx.validateChunkIds = vi.fn().mockResolvedValue({ valid: true, invalidIds: [] });
@@ -88,10 +89,33 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.message).toContain('2 chunks');
     });
 
+    it('creates session and logs skipped mastered prerequisites', async () => {
+      ctx.resolveSessionChunkDependencies = vi.fn().mockResolvedValue({
+        resolvedChunkIds: ['c1'],
+        addedPrerequisites: [],
+        skippedMasteredPrerequisites: ['p1', 'p2'],
+        message: ' Skipped 2 mastered prerequisites (Motivation, Structure).',
+      });
+      ctx.validateChunkIds = vi.fn().mockResolvedValue({ valid: true, invalidIds: [] });
+      ctx.createSession = vi.fn().mockResolvedValue({
+        success: true,
+        data: { sessionId: 's1' },
+      });
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('create_session')!.handler;
+
+      const result = await handler({ mode: 'retrieval', chunk_ids: ['c1'] });
+      const parsed = parseResult(result);
+
+      expect(parsed.session_id).toBe('s1');
+      expect(parsed.message).toContain('Skipped 2 mastered prerequisites');
+    });
+
     it('returns validation error for invalid chunk IDs', async () => {
       ctx.resolveSessionChunkDependencies = vi.fn().mockResolvedValue({
         resolvedChunkIds: ['c-bad'],
         addedPrerequisites: [],
+        skippedMasteredPrerequisites: [],
         message: '',
       });
       ctx.validateChunkIds = vi.fn().mockResolvedValue({

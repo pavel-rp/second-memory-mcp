@@ -413,10 +413,10 @@ describe('resolveSessionChunkDependencies', () => {
     expect(result.addedPrerequisites).toEqual([]);
   });
 
-  it('adds transitive prerequisites', async () => {
+  it('adds transitive prerequisites (non-mastered)', async () => {
     const deps = stubDeps();
     const c1 = stubChunk({ id: 'c1', prerequisitesJson: ['c2'] });
-    const c2 = stubChunk({ id: 'c2', prerequisitesJson: null });
+    const c2 = stubChunk({ id: 'c2', prerequisitesJson: null, repetitions: 0 });
     (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
       if (id === 'c1') return c1;
       if (id === 'c2') return c2;
@@ -484,12 +484,12 @@ describe('resolveSessionChunkDependencies', () => {
     expect(result.message).toBe('');
   });
 
-  it('pluralizes message when multiple prerequisites are added', async () => {
+  it('pluralizes message when multiple non-mastered prerequisites are added', async () => {
     const deps = stubDeps();
-    // c1 depends on c2, c2 depends on c3 → 2 prerequisites added
+    // c1 depends on c2, c2 depends on c3 → 2 non-mastered prerequisites added
     const c1 = stubChunk({ id: 'c1', prerequisitesJson: ['c2'] });
-    const c2 = stubChunk({ id: 'c2', prerequisitesJson: ['c3'] });
-    const c3 = stubChunk({ id: 'c3', prerequisitesJson: null });
+    const c2 = stubChunk({ id: 'c2', prerequisitesJson: ['c3'], repetitions: 0 });
+    const c3 = stubChunk({ id: 'c3', prerequisitesJson: null, repetitions: 0 });
     (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
       if (id === 'c1') return c1;
       if (id === 'c2') return c2;
@@ -541,5 +541,129 @@ describe('resolveSessionChunkDependencies', () => {
 
     expect(result.resolvedChunkIds).toContain('c1');
     expect(result.addedPrerequisites).toEqual([]);
+  });
+
+  // ── Mastery filtering ──────────────────────────────────────────
+
+  it('skips all mastered auto-added prerequisites', async () => {
+    const deps = stubDeps();
+    // target depends on p1, p2, p3 — all mastered (repetitions > 0)
+    const target = stubChunk({
+      id: 'target',
+      prerequisitesJson: ['p1', 'p2', 'p3'],
+      repetitions: 0,
+    });
+    const p1 = stubChunk({
+      id: 'p1',
+      title: 'Motivation',
+      prerequisitesJson: null,
+      repetitions: 3,
+    });
+    const p2 = stubChunk({ id: 'p2', title: 'Structure', prerequisitesJson: null, repetitions: 1 });
+    const p3 = stubChunk({ id: 'p3', title: 'Syntax', prerequisitesJson: null, repetitions: 5 });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, p1, p2, p3 };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.resolvedChunkIds).toEqual(['target']);
+    expect(result.addedPrerequisites).toEqual([]);
+    expect(result.skippedMasteredPrerequisites).toEqual(expect.arrayContaining(['p1', 'p2', 'p3']));
+    expect(result.skippedMasteredPrerequisites).toHaveLength(3);
+    expect(result.message).toContain('Skipped 3 mastered prerequisites');
+    expect(result.message).toContain('Motivation');
+    expect(result.message).toContain('Structure');
+  });
+
+  it('keeps non-mastered prereqs and skips mastered ones (mixed mastery)', async () => {
+    const deps = stubDeps();
+    // target depends on p1 (mastered) and p2 (not mastered)
+    const target = stubChunk({ id: 'target', prerequisitesJson: ['p1', 'p2'], repetitions: 0 });
+    const p1 = stubChunk({ id: 'p1', title: 'Mastered', prerequisitesJson: null, repetitions: 2 });
+    const p2 = stubChunk({ id: 'p2', title: 'New', prerequisitesJson: null, repetitions: 0 });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, p1, p2 };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.resolvedChunkIds).toContain('p2');
+    expect(result.resolvedChunkIds).toContain('target');
+    expect(result.resolvedChunkIds).not.toContain('p1');
+    expect(result.addedPrerequisites).toEqual(['p2']);
+    expect(result.skippedMasteredPrerequisites).toEqual(['p1']);
+    expect(result.message).toContain('1 prerequisite');
+    expect(result.message).toContain('Skipped 1 mastered prerequisite');
+  });
+
+  it('never skips explicitly requested mastered chunks', async () => {
+    const deps = stubDeps();
+    // Both target and p1 are explicitly requested; p1 is mastered
+    const target = stubChunk({ id: 'target', prerequisitesJson: ['p1'], repetitions: 0 });
+    const p1 = stubChunk({ id: 'p1', prerequisitesJson: null, repetitions: 5 });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, p1 };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target', 'p1'], deps);
+
+    // p1 is explicitly requested → not auto-added → not filtered
+    expect(result.resolvedChunkIds).toContain('p1');
+    expect(result.resolvedChunkIds).toContain('target');
+    expect(result.addedPrerequisites).toEqual([]);
+    expect(result.skippedMasteredPrerequisites).toEqual([]);
+  });
+
+  it('keeps explicitly requested mastered target chunk', async () => {
+    const deps = stubDeps();
+    // Target itself is mastered but explicitly requested → never skipped
+    const target = stubChunk({ id: 'target', prerequisitesJson: null, repetitions: 10 });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(target);
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.resolvedChunkIds).toEqual(['target']);
+    expect(result.skippedMasteredPrerequisites).toEqual([]);
+  });
+
+  it('preserves topo order among remaining chunks after mastered prereq is skipped', async () => {
+    const deps = stubDeps();
+    // target depends on p1 (mastered), p1 depends on p2 (non-mastered)
+    // After skipping p1, p2 should still appear before target
+    const target = stubChunk({ id: 'target', prerequisitesJson: ['p1'], repetitions: 0 });
+    const p1 = stubChunk({ id: 'p1', prerequisitesJson: ['p2'], repetitions: 3 });
+    const p2 = stubChunk({ id: 'p2', prerequisitesJson: null, repetitions: 0 });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, p1, p2 };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.resolvedChunkIds).toContain('p2');
+    expect(result.resolvedChunkIds).toContain('target');
+    expect(result.resolvedChunkIds).not.toContain('p1');
+    expect(result.resolvedChunkIds.indexOf('p2')).toBeLessThan(
+      result.resolvedChunkIds.indexOf('target')
+    );
+    expect(result.skippedMasteredPrerequisites).toEqual(['p1']);
+    expect(result.addedPrerequisites).toEqual(['p2']);
+  });
+
+  it('returns skippedMasteredPrerequisites: [] on all fallback paths', async () => {
+    const deps = stubDeps();
+
+    // Empty input
+    const empty = await resolveSessionChunkDependencies([], deps);
+    expect(empty.skippedMasteredPrerequisites).toEqual([]);
+
+    // Error path
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));
+    const errResult = await resolveSessionChunkDependencies(['c1'], deps);
+    expect(errResult.skippedMasteredPrerequisites).toEqual([]);
   });
 });
