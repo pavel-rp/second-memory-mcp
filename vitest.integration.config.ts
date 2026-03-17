@@ -8,7 +8,6 @@ export default defineConfig({
     include: ['tests/integration/**/*.test.ts', 'tests/performance/**/*.test.ts'],
     exclude: [...configDefaults.exclude, '**/.claude/**'],
     setupFiles: ['./vitest.setup.ts'],
-    globalTeardown: ['./vitest.global-teardown.ts'],
     fileParallelism: false,
   },
 });
