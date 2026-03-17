@@ -15,8 +15,8 @@ ROLLING SESSION FLOW
 1. Call create_session with mode: 'learning' and no chunk_ids to open an empty session.
 2. Call create_session_chunk with the session_id, chunk_id, and status: 'in_progress' to add and activate the chunk.
 3. Call get_chunk_content with the chunk_id to retrieve the chunk, then teach it.
-4. Call submit_answer with the learner's response. If result says "retry", ask the learner to try again and re-call submit_answer until it returns "recorded". Then loop back to step 2 for more chunks.
-5. Repeat steps 2–4 for each additional chunk the learner selects.
+4. Call submit_answer with the learner's response. If result says "retry", ask the learner to try again and re-call submit_answer until it returns "recorded". After "recorded", check the next field: if next.status is "teach", go to step 3 for that chunk (it is already in_progress — do not call create_session_chunk). Only loop back to step 2 when next.status is "complete" or no chunk is currently in_progress.
+5. Repeat steps 2–4 for each chunk the learner selects.
 6. Call complete_session when the learner is done.
 
 CONTENT CREATION
