@@ -4,6 +4,7 @@ import { z } from 'zod';
 export type TeachNextTeach = {
   status: 'teach';
   chunk_id: string;
+  session_chunk_id: string;
   chunk_index: number; // 1-based position in session
   total_chunks: number;
   mode: 'learning' | 'retrieval';

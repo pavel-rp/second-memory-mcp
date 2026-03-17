@@ -487,6 +487,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       chunks: [
         {
           chunk_id: chunkId,
+          session_chunk_id: 'sc-integration-1',
           title: 'Test Chunk',
           status: 'completed' as const,
           attempts: [

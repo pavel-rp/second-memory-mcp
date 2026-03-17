@@ -11,6 +11,7 @@ const makeSessionInput = () => ({
   chunks: [
     {
       chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
       title: 'Arrays',
       status: 'completed' as const,
       attempts: [
@@ -364,6 +365,7 @@ describe('session-lifecycle-tools', () => {
         chunks: [
           {
             chunk_id: 'c1',
+            session_chunk_id: 'sc-1',
             title: 'Arrays',
             status: 'completed',
             attempts: [

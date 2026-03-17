@@ -20,6 +20,7 @@ describe('Session Manager', () => {
     chunks: [
       {
         chunk_id: 'chunk-1',
+        session_chunk_id: 'sc-1',
         title: 'Introduction to Programming',
         status: 'completed',
         attempts: [
@@ -38,6 +39,7 @@ describe('Session Manager', () => {
       },
       {
         chunk_id: 'chunk-2',
+        session_chunk_id: 'sc-2',
         title: 'Variables and Data Types',
         status: 'in_progress',
         attempts: [
@@ -56,6 +58,7 @@ describe('Session Manager', () => {
       },
       {
         chunk_id: 'chunk-3',
+        session_chunk_id: 'sc-3',
         title: 'Control Flow',
         status: 'pending',
         attempts: [],
@@ -114,6 +117,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Test Chunk',
             status: 'completed',
             attempts: [
@@ -328,6 +332,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Test Chunk',
             status: 'completed',
             attempts: [
@@ -360,6 +365,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Legacy Chunk',
             status: 'completed',
             attempts: [
@@ -393,6 +399,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Legacy Chunk',
             status: 'pending',
             attempts: [
@@ -426,6 +433,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Test Chunk',
             status: 'completed',
             attempts: [
@@ -573,6 +581,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Chunk 1',
             status: 'completed',
             attempts: [
@@ -591,6 +600,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
             title: 'Chunk 2',
             status: 'completed',
             attempts: [
@@ -634,6 +644,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Chunk 1',
             status: 'completed',
             attempts: [
@@ -652,6 +663,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
             title: 'Chunk 2',
             status: 'in_progress',
             attempts: [
@@ -670,6 +682,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-3',
+            session_chunk_id: 'sc-3',
             title: 'Chunk 3',
             status: 'pending',
             attempts: [],
@@ -678,6 +691,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-4',
+            session_chunk_id: 'sc-4',
             title: 'Chunk 4',
             status: 'pending',
             attempts: [],
@@ -712,6 +726,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Chunk 1',
             status: 'completed',
             attempts: [
@@ -730,6 +745,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
             title: 'Chunk 2',
             status: 'completed',
             attempts: [
@@ -748,6 +764,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-3',
+            session_chunk_id: 'sc-3',
             title: 'Chunk 3',
             status: 'pending',
             attempts: [],
@@ -786,6 +803,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Chunk 1',
             status: 'completed',
             attempts: [
@@ -804,6 +822,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-2',
+            session_chunk_id: 'sc-2',
             title: 'Chunk 2',
             status: 'in_progress',
             attempts: [
@@ -822,6 +841,7 @@ describe('Session Manager', () => {
           },
           {
             chunk_id: 'chunk-3',
+            session_chunk_id: 'sc-3',
             title: 'Chunk 3',
             status: 'pending',
             attempts: [],
@@ -845,6 +865,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Bad Data',
             status: 'completed',
             attempts: [
@@ -876,6 +897,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'Over Max',
             status: 'completed',
             attempts: [
@@ -905,6 +927,7 @@ describe('Session Manager', () => {
         chunks: [
           {
             chunk_id: 'chunk-1',
+            session_chunk_id: 'sc-1',
             title: 'No Quality',
             status: 'completed',
             attempts: [
