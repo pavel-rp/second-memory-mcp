@@ -396,6 +396,20 @@ describe('createJwtMiddleware', () => {
     expect(res.locals.auth).toEqual({ sub: 'my-service-client', email: undefined });
   });
 
+  it('token with empty sub and valid azp still returns 401 (no azp fallback for empty sub)', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: '', azp: 'my-service-client' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer empty-sub-with-azp' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('token with null sub and empty azp returns 401', async () => {
     mockJwtVerify.mockResolvedValue({
       payload: { sub: null, azp: '' },

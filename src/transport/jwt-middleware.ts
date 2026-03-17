@@ -75,10 +75,11 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
         ...(authConfig.audience ? { audience: authConfig.audience } : {}),
       });
 
-      // For client_credentials grants, Rauthy sets sub=null and uses azp for the client identity
+      // For client_credentials grants, Rauthy sets sub=null and uses azp for the client identity.
+      // Only fall back to azp when sub is truly absent/null — empty string sub is still a 401.
       const subject =
         (typeof payload.sub === 'string' && payload.sub) ||
-        (typeof payload.azp === 'string' && payload.azp) ||
+        (payload.sub == null && typeof payload.azp === 'string' && payload.azp) ||
         undefined;
 
       if (!subject) {
