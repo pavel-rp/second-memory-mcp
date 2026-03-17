@@ -338,7 +338,7 @@ describe('createJwtMiddleware', () => {
 
   // ── Missing sub claim → 401 ───────────────────────────────
 
-  it('token without sub claim returns 401', async () => {
+  it('token without sub or azp claim returns 401', async () => {
     mockJwtVerify.mockResolvedValue({
       payload: { email: 'user@example.com' },
     });
@@ -352,12 +352,56 @@ describe('createJwtMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it('token with empty sub claim returns 401', async () => {
+  it('token with empty sub claim and no azp returns 401', async () => {
     mockJwtVerify.mockResolvedValue({
       payload: { sub: '', email: 'user@example.com' },
     });
 
     const req = createMockReq({ authorization: 'Bearer empty-sub-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // ── client_credentials: azp fallback when sub is null ─────
+
+  it('token with null sub but valid azp uses azp as subject (client_credentials)', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: null, azp: 'dyn$KndFIbVOBcgviRvp', typ: 'Bearer' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer client-creds-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'dyn$KndFIbVOBcgviRvp', email: undefined });
+  });
+
+  it('token with missing sub but valid azp uses azp as subject', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { azp: 'my-service-client' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer no-sub-with-azp' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'my-service-client', email: undefined });
+  });
+
+  it('token with null sub and empty azp returns 401', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: null, azp: '' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer null-sub-empty-azp' });
     const res = createMockRes();
 
     await middleware(req, res, next);
