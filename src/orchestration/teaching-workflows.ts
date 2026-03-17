@@ -214,6 +214,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   return {
     status: 'teach',
     chunk_id: selected.chunkId,
+    session_chunk_id: selected.id,
     chunk_index: chunkIndex,
     total_chunks: sessionChunks.length,
     mode,

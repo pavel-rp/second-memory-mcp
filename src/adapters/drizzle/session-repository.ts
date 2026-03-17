@@ -261,6 +261,7 @@ export class DrizzleSessionRepository implements SessionRepository {
 
       return {
         chunk_id: sc.chunkId,
+        session_chunk_id: sc.id,
         title: detail?.title || 'Unknown',
         status: sc.status as 'pending' | 'in_progress' | 'completed',
         attempts,

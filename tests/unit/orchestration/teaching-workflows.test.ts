@@ -235,6 +235,7 @@ describe('getNextTeachingStep', () => {
 
     expect(result.status).toBe('teach');
     expect(result).toHaveProperty('chunk_id', 'c2');
+    expect(result).toHaveProperty('session_chunk_id', 'sc-2');
   });
 
   // VC-02, VC-04: Fresh pending → learning mode with hydrated instruction
@@ -247,6 +248,7 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.mode).toBe('learning');
     expect(result.chunk_id).toBe('c1');
+    expect(result.session_chunk_id).toBe('sc-1');
     expect(result.instruction).toBeTruthy();
     expect(result.instruction.length).toBeGreaterThan(0);
     expect(result.drill_format).toBe('explanation');

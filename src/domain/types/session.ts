@@ -18,6 +18,7 @@ export type ChunkAttempt = {
 // Session chunk progress
 export type SessionChunk = {
   chunk_id: string;
+  session_chunk_id: string;
   title: string;
   status: 'pending' | 'in_progress' | 'completed';
   attempts: ChunkAttempt[];
@@ -120,6 +121,7 @@ export const ChunkAttemptSchema = z.preprocess(
 
 export const SessionChunkSchema = z.object({
   chunk_id: z.string().min(1),
+  session_chunk_id: z.string().min(1),
   title: z.string().min(1),
   status: z.enum(['pending', 'in_progress', 'completed']),
   attempts: z.array(ChunkAttemptSchema),
