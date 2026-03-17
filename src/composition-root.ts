@@ -202,9 +202,12 @@ export interface AppContext {
   createSessionChunk: (input: CreateSessionChunkInput) => Promise<SessionChunk>;
   validateChunkIds: (chunkIds: string[]) => Promise<ChunkValidationResult>;
   getSessionChunks: (sessionId: string) => Promise<SessionChunk[]>;
-  resolveSessionChunkDependencies: (
-    chunkIds: string[]
-  ) => Promise<{ resolvedChunkIds: string[]; addedPrerequisites: string[]; message: string }>;
+  resolveSessionChunkDependencies: (chunkIds: string[]) => Promise<{
+    resolvedChunkIds: string[];
+    addedPrerequisites: string[];
+    skippedMasteredPrerequisites: string[];
+    message: string;
+  }>;
 
   // Teaching orchestration
   getNextTeachingStep: () => Promise<TeachNextResponse>;

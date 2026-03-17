@@ -71,6 +71,7 @@ describe('session-lifecycle-tools', () => {
       ctx.resolveSessionChunkDependencies = vi.fn().mockResolvedValue({
         resolvedChunkIds: ['c0', 'c1'],
         addedPrerequisites: ['c0'],
+        skippedMasteredPrerequisites: [],
         message: ' (1 prerequisite added)',
       });
       ctx.validateChunkIds = vi.fn().mockResolvedValue({ valid: true, invalidIds: [] });
@@ -92,6 +93,7 @@ describe('session-lifecycle-tools', () => {
       ctx.resolveSessionChunkDependencies = vi.fn().mockResolvedValue({
         resolvedChunkIds: ['c-bad'],
         addedPrerequisites: [],
+        skippedMasteredPrerequisites: [],
         message: '',
       });
       ctx.validateChunkIds = vi.fn().mockResolvedValue({

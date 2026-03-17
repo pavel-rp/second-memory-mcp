@@ -185,10 +185,16 @@ export async function resolveSessionChunkDependencies(
 ): Promise<{
   resolvedChunkIds: string[];
   addedPrerequisites: string[];
+  skippedMasteredPrerequisites: string[];
   message: string;
 }> {
   if (!chunkIds || chunkIds.length === 0) {
-    return { resolvedChunkIds: [], addedPrerequisites: [], message: '' };
+    return {
+      resolvedChunkIds: [],
+      addedPrerequisites: [],
+      skippedMasteredPrerequisites: [],
+      message: '',
+    };
   }
 
   const inputChunkSet = new Set(chunkIds);
@@ -232,7 +238,12 @@ export async function resolveSessionChunkDependencies(
       logger.warn(
         `Cannot resolve dependencies for missing requested chunks: ${missingRequestedChunks.join(', ')}`
       );
-      return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+      return {
+        resolvedChunkIds: chunkIds,
+        addedPrerequisites: [],
+        skippedMasteredPrerequisites: [],
+        message: '',
+      };
     }
 
     const relevantItems = Array.from(chunkMap.entries())
@@ -240,7 +251,12 @@ export async function resolveSessionChunkDependencies(
       .map(([, item]) => item);
 
     if (relevantItems.length === 0) {
-      return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+      return {
+        resolvedChunkIds: chunkIds,
+        addedPrerequisites: [],
+        skippedMasteredPrerequisites: [],
+        message: '',
+      };
     }
 
     const resolver = new DependencyResolver(deps.maxDependencyDepth);
@@ -248,17 +264,48 @@ export async function resolveSessionChunkDependencies(
 
     if (!resolution.isValid) {
       logger.warn('Dependency resolution failed for session chunks:', resolution.errors.join(', '));
-      return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+      return {
+        resolvedChunkIds: chunkIds,
+        addedPrerequisites: [],
+        skippedMasteredPrerequisites: [],
+        message: '',
+      };
     }
 
     const existingResolvedChain = resolution.resolvedChain.filter((id: string) => chunkMap.has(id));
     const chunkIdSet = new Set(chunkIds);
-    const addedPrerequisites = existingResolvedChain.filter((id: string) => !chunkIdSet.has(id));
+    const allAddedPrerequisites = existingResolvedChain.filter((id: string) => !chunkIdSet.has(id));
+
+    // Partition auto-added prerequisites into mastered and non-mastered
+    const skippedMasteredPrerequisites: string[] = [];
+    const addedPrerequisites: string[] = [];
+    for (const id of allAddedPrerequisites) {
+      const item = chunkMap.get(id);
+      if (item && item.repetitions > 0) {
+        skippedMasteredPrerequisites.push(id);
+      } else {
+        addedPrerequisites.push(id);
+      }
+    }
+
+    // Remove mastered auto-added prerequisites from the resolved chain
+    const masteredSet = new Set(skippedMasteredPrerequisites);
+    const filteredResolvedChain = existingResolvedChain.filter(
+      (id: string) => !masteredSet.has(id)
+    );
 
     const messageParts: string[] = [];
     if (addedPrerequisites.length > 0) {
       messageParts.push(
         `Automatically included ${addedPrerequisites.length} prerequisite${addedPrerequisites.length > 1 ? 's' : ''} to ensure proper learning progression.`
+      );
+    }
+    if (skippedMasteredPrerequisites.length > 0) {
+      const titles = skippedMasteredPrerequisites
+        .map(id => chunkMap.get(id)?.title ?? id)
+        .join(', ');
+      messageParts.push(
+        `Skipped ${skippedMasteredPrerequisites.length} mastered prerequisite${skippedMasteredPrerequisites.length > 1 ? 's' : ''} (${titles}).`
       );
     }
     if (missingPrerequisites.length > 0) {
@@ -271,9 +318,19 @@ export async function resolveSessionChunkDependencies(
     }
 
     const message = messageParts.length > 0 ? ` ${messageParts.join(' ')}` : '';
-    return { resolvedChunkIds: existingResolvedChain, addedPrerequisites, message };
+    return {
+      resolvedChunkIds: filteredResolvedChain,
+      addedPrerequisites,
+      skippedMasteredPrerequisites,
+      message,
+    };
   } catch (error) {
     logger.error('Error resolving session chunk dependencies:', error);
-    return { resolvedChunkIds: chunkIds, addedPrerequisites: [], message: '' };
+    return {
+      resolvedChunkIds: chunkIds,
+      addedPrerequisites: [],
+      skippedMasteredPrerequisites: [],
+      message: '',
+    };
   }
 }

@@ -48,6 +48,11 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
               `Session ${sessionId}: Added ${resolution.addedPrerequisites.length} prerequisites: ${resolution.addedPrerequisites.join(', ')}`
             );
           }
+          if (resolution.skippedMasteredPrerequisites.length > 0) {
+            logger.info(
+              `Session ${sessionId}: Skipped ${resolution.skippedMasteredPrerequisites.length} mastered prerequisites: ${resolution.skippedMasteredPrerequisites.join(', ')}`
+            );
+          }
         }
 
         // Validate chunk IDs exist
