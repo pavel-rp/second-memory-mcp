@@ -38,6 +38,7 @@ export type TopicWithChunks = {
     prerequisites: string[];
     tags: string[];
     chunkType: string;
+    contentStatus: string;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -57,6 +58,7 @@ export type TopicCreationInput = {
     prerequisites?: string[];
     tags?: string[];
     chunkType: string;
+    contentStatus?: string;
   }>;
 };
 
@@ -89,6 +91,7 @@ function toTopicWithChunks(
       prerequisites: c.prerequisitesJson ?? [],
       tags: c.tagsJson ?? [],
       chunkType: c.chunkType,
+      contentStatus: c.contentStatus,
     })),
     createdAt: topic.createdAt,
     updatedAt: topic.updatedAt,
@@ -135,6 +138,7 @@ export async function createTopicWithChunks(
           content: chunkDef.content || null,
           contentVersion: chunkDef.content ? 1 : null,
           contentUpdatedAt: chunkDef.content ? now : null,
+          contentStatus: chunkDef.contentStatus ?? 'final',
           createdAt: now,
           updatedAt: now,
         };

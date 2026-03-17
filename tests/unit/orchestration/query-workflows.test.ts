@@ -33,6 +33,7 @@ function stubChunkRow(
     estimatedDuration: 10,
     intervalDays: 7,
     chunkType: 'review',
+    contentStatus: 'final',
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Some content',

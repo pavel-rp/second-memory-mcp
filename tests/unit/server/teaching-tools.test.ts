@@ -40,6 +40,29 @@ describe('teaching-tools', () => {
     expect(parsed.instruction).toBe('Teach this concept...');
   });
 
+  it('includes content_status in teach_next response', async () => {
+    const teachResult = {
+      status: 'teach',
+      chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
+      chunk_index: 1,
+      total_chunks: 3,
+      mode: 'learning',
+      instruction: 'Teach this concept...',
+      drill_format: 'explanation',
+      content_status: 'draft',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('teach');
+    expect(parsed.content_status).toBe('draft');
+  });
+
   it('returns structured error when orchestration throws', async () => {
     ctx.getNextTeachingStep = vi.fn().mockRejectedValue(new Error('DB connection lost'));
     registerTeachingTools(server as any, ctx);

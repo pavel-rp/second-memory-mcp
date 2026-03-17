@@ -38,6 +38,7 @@ export function mapChunkRowToLearningItem(
     tags: row.tagsJson ?? [],
     topicId: topicTitle !== null ? row.topicId : undefined,
     topicTitle: topicTitle ?? undefined,
+    contentStatus: row.contentStatus,
   };
 
   if (options?.includeContent) {

@@ -108,6 +108,7 @@ export async function updateChunkContent(
         content: input.content,
         contentVersion: (current.contentVersion || 1) + 1,
         contentUpdatedAt: now,
+        contentStatus: 'final',
         updatedAt: now,
       };
       const progressReset = input.resetProgress || false;
@@ -135,6 +136,7 @@ export async function updateChunkContentWithAutoReset(
         content: input.content,
         contentVersion: (current.contentVersion || 1) + 1,
         contentUpdatedAt: now,
+        contentStatus: 'final',
         updatedAt: now,
       };
       let progressReset = false;
@@ -198,6 +200,7 @@ export async function updateChunkWithProgressReset(
         fields.content = input.content;
         fields.contentVersion = (current.contentVersion || 1) + 1;
         fields.contentUpdatedAt = now;
+        fields.contentStatus = 'final';
       }
       if (input.title !== undefined) fields.title = input.title;
       if (input.difficulty !== undefined) fields.difficulty = input.difficulty;

@@ -78,6 +78,7 @@ function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopic
     estimatedDuration: 10,
     intervalDays: null,
     chunkType: 'new',
+    contentStatus: 'final',
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content about X...',
@@ -1155,6 +1156,20 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.needed_retry).toBe(0);
   });
 
+  it('includes content_status in teach response', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ contentStatus: 'draft' })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+    expect(result.status).toBe('teach');
+    if (result.status === 'teach') {
+      expect(result.content_status).toBe('draft');
+    }
+  });
+
   // Edge case: pending chunk with passed attempts is neither fresh nor requeued
   it('returns error for inconsistent state when pending chunk has passed attempts', async () => {
     const sqRepo = stubSessionQuestionRepository();
@@ -1197,6 +1212,7 @@ function makeChunkListRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTo
     estimatedDuration: 10,
     intervalDays: 1,
     chunkType: 'review',
+    contentStatus: 'final',
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content...',

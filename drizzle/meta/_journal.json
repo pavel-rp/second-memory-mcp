@@ -50,6 +50,13 @@
       "when": 1773969700000,
       "tag": "0006_safe_major_mapleleaf",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1773969800000,
+      "tag": "0007_add_content_status",
+      "breakpoints": true
     }
   ]
 }

@@ -67,6 +67,7 @@ function makeChunkRow(
     lastReviewedAt: overrides.lastReviewedAt ?? null,
     estimatedDuration: overrides.estimatedDuration ?? 10,
     chunkType: overrides.chunkType ?? 'new',
+    contentStatus: overrides.contentStatus ?? 'final',
     prerequisitesJson: JSON.stringify(prerequisites),
     tagsJson: JSON.stringify(overrides.tags ?? []),
     content: overrides.content ?? null,

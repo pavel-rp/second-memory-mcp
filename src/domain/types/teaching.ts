@@ -19,6 +19,7 @@ export type TeachNextTeach = {
   mode: 'learning' | 'retrieval';
   instruction: string; // hydrated prompt from PromptPack
   drill_format: DrillFormat;
+  content_status: string; // 'draft' | 'final'
   previous_feedback?: string[]; // feedback strings from past sessions
   notes?: TeachNextNote[];
 };

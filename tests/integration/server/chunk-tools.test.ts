@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerChunkTools } from '../../../src/server/chunk-tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { eq } from 'drizzle-orm';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 
@@ -59,6 +60,48 @@ describe('chunk-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.message).toContain('With Extras');
     });
+
+    it('creates item with content_status draft', async () => {
+      const handler = server.tools.get('create_learning_item')!.handler;
+      const result = await handler({
+        title: 'Draft Item',
+        subject: 'Math',
+        content: 'Placeholder content',
+        difficulty: 5,
+        estimated_duration: 15,
+        content_status: 'draft',
+      });
+      const parsed = parseResult(result);
+      expect(parsed.success).toBe(true);
+
+      // Verify persisted value via direct DB read
+      const db = getSql();
+      const [row] = await db
+        .select()
+        .from(learningChunks)
+        .where(eq(learningChunks.id, parsed.chunk_id));
+      expect(row.contentStatus).toBe('draft');
+    });
+
+    it('defaults content_status to final when omitted', async () => {
+      const handler = server.tools.get('create_learning_item')!.handler;
+      const result = await handler({
+        title: 'Default Status Item',
+        subject: 'Math',
+        content: 'Some content',
+        difficulty: 3,
+        estimated_duration: 10,
+      });
+      const parsed = parseResult(result);
+      expect(parsed.success).toBe(true);
+
+      const db = getSql();
+      const [row] = await db
+        .select()
+        .from(learningChunks)
+        .where(eq(learningChunks.id, parsed.chunk_id));
+      expect(row.contentStatus).toBe('final');
+    });
   });
 
   describe('update_chunk_content', () => {
@@ -93,6 +136,50 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.message).toContain('Successfully updated content');
+    });
+
+    it('auto-sets content_status to final on content update', async () => {
+      // Create a draft chunk first via direct DB insert
+      const db = getSql();
+      await db.insert(learningTopics).values({
+        id: 'topic-draft',
+        title: 'Draft Topic',
+        subject: 'Math',
+        createdAt: now,
+        updatedAt: now,
+      });
+      await db.insert(learningChunks).values({
+        id: 'chunk-draft',
+        topicId: 'topic-draft',
+        title: 'Draft Chunk',
+        subject: 'Math',
+        difficulty: 3,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        contentStatus: 'draft',
+        content: 'Placeholder',
+        contentVersion: 1,
+        contentUpdatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const handler = server.tools.get('update_chunk_content')!.handler;
+      const result = await handler({
+        chunk_id: 'chunk-draft',
+        content: 'Finalized teaching content',
+      });
+      const parsed = parseResult(result);
+      expect(parsed.success).toBe(true);
+
+      const [row] = await db
+        .select()
+        .from(learningChunks)
+        .where(eq(learningChunks.id, 'chunk-draft'));
+      expect(row.contentStatus).toBe('final');
     });
   });
 

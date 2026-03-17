@@ -225,6 +225,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     mode,
     instruction,
     drill_format: drillFormat,
+    content_status: chunkData.contentStatus,
     ...(previousFeedbackStrings.length > 0 && { previous_feedback: previousFeedbackStrings }),
     ...(chunkNotes.length > 0 && {
       notes: chunkNotes.map(n => ({

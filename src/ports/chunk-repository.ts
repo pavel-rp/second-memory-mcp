@@ -36,6 +36,7 @@ export type ChunkMinimalMetadata = {
   lastReviewedAt: number | null;
   prerequisitesJson: string[] | null;
   tagsJson: string[] | null;
+  contentStatus: string;
   createdAt: number;
   updatedAt: number;
 };

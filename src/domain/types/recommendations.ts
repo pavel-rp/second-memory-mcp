@@ -29,6 +29,7 @@ export type LearningItem = {
   tags?: string[];
   topicId?: string; // UUID of parent topic
   topicTitle?: string; // Human-readable topic title
+  contentStatus?: string; // 'draft' | 'final'
 };
 
 // Learning item with optional content fields
