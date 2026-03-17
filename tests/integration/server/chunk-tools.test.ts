@@ -39,8 +39,9 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.item).toBeDefined();
-      expect(parsed.item.title).toBe('Test Item');
+      expect(parsed.chunk_id).toBeDefined();
+      expect(parsed.topic_id).toBeDefined();
+      expect(parsed.created_at).toBeDefined();
     });
 
     it('creates item with optional fields', async () => {
@@ -82,7 +83,7 @@ describe('chunk-tools', () => {
         estimated_duration: 10,
       });
       const created = parseResult(createResult);
-      const chunkId = created.item.id;
+      const chunkId = created.chunk_id;
 
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
@@ -116,7 +117,7 @@ describe('chunk-tools', () => {
         estimated_duration: 10,
       });
       const created = parseResult(createResult);
-      const chunkId = created.item.id;
+      const chunkId = created.chunk_id;
 
       const handler = server.tools.get('update_chunk_metadata')!.handler;
       const result = await handler({
@@ -151,7 +152,7 @@ describe('chunk-tools', () => {
         estimated_duration: 15,
       });
       const created = parseResult(createResult);
-      const chunkId = created.item.id;
+      const chunkId = created.chunk_id;
 
       const handler = server.tools.get('update_chunk')!.handler;
       const result = await handler({
@@ -182,7 +183,7 @@ describe('chunk-tools', () => {
         estimated_duration: 10,
       });
       const created = parseResult(createResult);
-      const chunkId = created.item.id;
+      const chunkId = created.chunk_id;
 
       const handler = server.tools.get('delete_chunk')!.handler;
       const result = await handler({ chunk_id: chunkId });
@@ -235,7 +236,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'chunk-prereq' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.removed_dependencies.length).toBeGreaterThanOrEqual(0);
+      expect(parsed.removed_dependency_count).toBeGreaterThanOrEqual(0);
     });
   });
 });

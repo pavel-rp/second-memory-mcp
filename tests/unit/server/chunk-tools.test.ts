@@ -68,7 +68,9 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.item).toBeDefined();
+      expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.topic_id).toBe('t1');
+      expect(parsed.created_at).toBeDefined();
       expect(parsed.message).toContain('Arrays');
     });
 
@@ -162,7 +164,7 @@ describe('chunk-tools', () => {
     it('returns success with progress_reset flag', async () => {
       ctx.updateChunkContent = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays' },
+        chunk: { id: 'c1', title: 'Arrays', contentVersion: 2, updatedAt: Date.now() },
         progressReset: true,
       });
       registerChunkTools(server as any, ctx);
@@ -177,7 +179,9 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(true);
-      expect(parsed.chunk.id).toBe('c1');
+      expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.content_version).toBe(2);
+      expect(parsed.updated_at).toBeDefined();
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -266,7 +270,7 @@ describe('chunk-tools', () => {
     it('returns success on update', async () => {
       ctx.updateChunkMetadata = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Updated Arrays' },
+        chunk: { id: 'c1', title: 'Updated Arrays', updatedAt: Date.now() },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
@@ -280,7 +284,8 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.chunk.title).toBe('Updated Arrays');
+      expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.updated_at).toBeDefined();
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -357,7 +362,7 @@ describe('chunk-tools', () => {
     it('returns success with progress_reset', async () => {
       ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays' },
+        chunk: { id: 'c1', title: 'Arrays', contentVersion: 2, updatedAt: Date.now() },
         progressReset: true,
       });
       registerChunkTools(server as any, ctx);
@@ -372,13 +377,15 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(true);
+      expect(parsed.content_version).toBe(2);
+      expect(parsed.updated_at).toBeDefined();
       expect(parsed.message).toContain('progress reset');
     });
 
     it('returns success without progress_reset', async () => {
       ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays' },
+        chunk: { id: 'c1', title: 'Arrays', contentVersion: 1, updatedAt: Date.now() },
         progressReset: false,
       });
       registerChunkTools(server as any, ctx);
@@ -389,6 +396,8 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(false);
+      expect(parsed.content_version).toBe(1);
+      expect(parsed.updated_at).toBeDefined();
       expect(parsed.message).not.toContain('progress reset');
     });
 
@@ -476,7 +485,8 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.removed_dependencies).toEqual(['c2', 'c3']);
+      expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.removed_dependency_count).toBe(2);
       expect(parsed.message).toContain('2 dependent chunks');
     });
 
@@ -493,7 +503,8 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.removed_dependencies).toEqual(['c2']);
+      expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.removed_dependency_count).toBe(1);
       expect(parsed.message).toContain('1 dependent chunk');
       expect(parsed.message).not.toContain('chunks.');
     });
@@ -510,7 +521,8 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.removed_dependencies).toEqual([]);
+      expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.removed_dependency_count).toBe(0);
       expect(parsed.message).toContain('Arrays');
     });
 
@@ -525,6 +537,8 @@ describe('chunk-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
+      expect(parsed.chunk_id).toBe('c-orphan');
+      expect(parsed.removed_dependency_count).toBe(0);
       expect(parsed.message).toContain('c-orphan');
     });
 

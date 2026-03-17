@@ -53,8 +53,9 @@ describe('persistence-tools', () => {
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.item).toBeDefined();
-      expect(parsed.item.title).toBe('Test Item');
+      expect(parsed.chunk_id).toBeDefined();
+      expect(parsed.topic_id).toBeDefined();
+      expect(parsed.created_at).toBeDefined();
     });
   });
 
@@ -78,7 +79,9 @@ describe('persistence-tools', () => {
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
-      expect(parsed.topic).toBeDefined();
+      expect(parsed.topic_id).toBeDefined();
+      expect(parsed.chunk_ids).toBeDefined();
+      expect(parsed.created_at).toBeDefined();
     });
   });
 

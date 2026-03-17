@@ -42,7 +42,12 @@ describe('topic-tools', () => {
     it('returns success when ctx returns success', async () => {
       ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
         success: true,
-        topic: { id: 't1', title: 'Data Structures', chunks: [{ id: 'c1' }] },
+        topic: {
+          topicId: 't1',
+          topicTitle: 'Data Structures',
+          chunks: [{ id: 'c1' }],
+          createdAt: Date.now(),
+        },
       });
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('create_topic_with_chunks')!.handler;
@@ -51,14 +56,15 @@ describe('topic-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.topic.id).toBe('t1');
+      expect(parsed.topic_id).toBe('t1');
+      expect(parsed.chunk_ids).toEqual(['c1']);
       expect(parsed.message).toContain('Data Structures');
     });
 
     it('maps snake_case chunk fields to camelCase for ctx', async () => {
       const mockFn = vi.fn().mockResolvedValue({
         success: true,
-        topic: { id: 't1', title: 'T', chunks: [] },
+        topic: { topicId: 't1', topicTitle: 'T', chunks: [], createdAt: Date.now() },
       });
       ctx.createTopicWithChunks = mockFn;
       registerTopicTools(server as any, ctx);
@@ -171,7 +177,7 @@ describe('topic-tools', () => {
     it('returns success when ctx returns success', async () => {
       ctx.updateTopicMetadata = vi.fn().mockResolvedValue({
         success: true,
-        topic: { id: 't1', title: 'Updated Title' },
+        topic: { id: 't1', title: 'Updated Title', updatedAt: Date.now() },
       });
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic')!.handler;
@@ -180,7 +186,8 @@ describe('topic-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
-      expect(parsed.topic.title).toBe('Updated Title');
+      expect(parsed.topic_id).toBe('t1');
+      expect(parsed.updated_at).toBeDefined();
       expect(parsed.message).toContain('Updated Title');
     });
 
@@ -258,7 +265,7 @@ describe('topic-tools', () => {
     it('returns success when ctx returns success', async () => {
       ctx.updateTopicSummary = vi.fn().mockResolvedValue({
         success: true,
-        topic: { id: 't1', title: 'DS' },
+        topic: { id: 't1', title: 'DS', summaryVersion: 2, updatedAt: Date.now() },
       });
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic_summary')!.handler;
@@ -270,6 +277,8 @@ describe('topic-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
+      expect(parsed.topic_id).toBe('t1');
+      expect(parsed.summary_version).toBe(2);
       expect(parsed.message).toContain('DS');
     });
 

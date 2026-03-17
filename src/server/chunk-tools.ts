@@ -63,12 +63,12 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           );
         }
 
-        const learningItem = ctx.mapChunkRowToLearningItem(result.data);
-
         return toolJson(
           toSnakeCase({
             success: true,
-            item: learningItem,
+            chunkId: result.data.id,
+            topicId: result.data.topicId,
+            createdAt: result.data.createdAt,
             message: `Successfully created learning item "${input.title}"`,
           })
         );
@@ -103,8 +103,10 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              chunk: result.chunk,
+              chunkId: result.chunk.id,
+              contentVersion: result.chunk.contentVersion,
               progressReset: result.progressReset,
+              updatedAt: result.chunk.updatedAt,
               message: `Successfully updated content for chunk "${result.chunk.title}"`,
             })
           );
@@ -151,7 +153,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              chunk: result.chunk,
+              chunkId: result.chunk.id,
+              updatedAt: result.chunk.updatedAt,
               message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
             })
           );
@@ -200,8 +203,10 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              chunk: result.chunk,
+              chunkId: result.chunk.id,
+              contentVersion: result.chunk.contentVersion,
               progressReset: result.progressReset,
+              updatedAt: result.chunk.updatedAt,
               message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
             })
           );
@@ -249,8 +254,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           return toolJson(
             toSnakeCase({
               success: true,
-              chunk: result.chunk,
-              removedDependencies: result.removedDependencies ?? [],
+              chunkId: chunkId,
+              removedDependencyCount: removedCount,
               message: messageParts.join(' '),
             })
           );
