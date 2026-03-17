@@ -1,5 +1,5 @@
 {
-  "id": "acc51751-180d-437f-895e-b3dcac402abe",
+  "id": "ef3fd8a9-76b4-4dc2-ac4e-89b897a33b5a",
   "prevId": "3047dc36-3130-406a-8acf-24d957f8381b",
   "version": "7",
   "dialect": "postgresql",
@@ -438,8 +438,7 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "target_type": {
           "name": "target_type",
@@ -520,7 +519,20 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "chk_note_target_type": {
+          "name": "chk_note_target_type",
+          "value": "\"notes\".\"target_type\" IN ('chunk', 'topic', 'session')"
+        },
+        "chk_note_type": {
+          "name": "chk_note_type",
+          "value": "\"notes\".\"note_type\" IN ('insight', 'confusion', 'connection', 'deeper_exploration')"
+        },
+        "chk_note_author": {
+          "name": "chk_note_author",
+          "value": "\"notes\".\"author\" IN ('agent', 'user')"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.session_chunks": {
