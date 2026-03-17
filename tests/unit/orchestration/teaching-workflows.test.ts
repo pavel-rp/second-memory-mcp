@@ -25,7 +25,9 @@ import {
   stubPrerequisiteMastery,
   stubChunkIdLookup,
   stubSessionQuestionRepository,
+  stubNotesRepository,
 } from '../../helpers/stub-ports.js';
+import type { NotesRepository } from '../../../src/ports/notes-repository.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
@@ -138,6 +140,7 @@ function makeDeps(overrides?: {
   sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
   sessionQuestions?: SessionQuestionRepository;
+  notes?: NotesRepository;
 }): TeachingDeps {
   return {
     sessions: stubSessionRepository({
@@ -160,6 +163,7 @@ function makeDeps(overrides?: {
     reviewPersistence: stubReviewPersistence(),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
     sessionQuestions: overrides?.sessionQuestions ?? stubSessionQuestionRepository(),
+    notes: overrides?.notes,
   };
 }
 
@@ -588,6 +592,69 @@ describe('getNextTeachingStep', () => {
     expect(result.status).toBe('teach');
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.previous_feedback).toBeUndefined();
+  });
+
+  // Notes surfaced in teach_next when chunk has notes
+  it('includes notes array when chunk has notes attached', async () => {
+    const deps = makeDeps({
+      notes: stubNotesRepository({
+        getNotesForChunkIds: vi.fn().mockResolvedValue([
+          {
+            id: 'n1',
+            noteType: 'insight',
+            content: 'Derived proof',
+            author: 'agent',
+            createdAt: NOW,
+          },
+          {
+            id: 'n2',
+            noteType: 'confusion',
+            content: 'Index confusion',
+            author: 'user',
+            createdAt: NOW - 1000,
+          },
+        ]),
+      }),
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.notes).toHaveLength(2);
+    expect(result.notes![0]).toEqual({
+      id: 'n1',
+      note_type: 'insight',
+      content: 'Derived proof',
+      author: 'agent',
+      created_at: NOW,
+    });
+  });
+
+  // Notes omitted when chunk has no notes
+  it('omits notes when chunk has no notes', async () => {
+    const deps = makeDeps({
+      notes: stubNotesRepository({
+        getNotesForChunkIds: vi.fn().mockResolvedValue([]),
+      }),
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.notes).toBeUndefined();
+  });
+
+  // Notes omitted when notes port is not provided
+  it('omits notes when notes port is undefined', async () => {
+    const deps = makeDeps(); // no notes override
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.notes).toBeUndefined();
   });
 
   // Branch: null content handled gracefully
