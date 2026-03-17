@@ -8,6 +8,7 @@ import { registerPersistenceTools } from './persistence-tools.js';
 import { registerContentTools } from './content-tools.js';
 import { registerSearchTools } from './search-tools.js';
 import { registerTeachingTools } from './teaching-tools.js';
+import { registerNotesTools } from './notes-tools.js';
 import { registerServerInfoTools } from './server-info-tools.js';
 
 export function registerServerTools(server: McpServer, ctx: AppContext): void {
@@ -19,5 +20,6 @@ export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerContentTools(server, ctx);
   registerSearchTools(server, ctx);
   registerTeachingTools(server, ctx);
+  registerNotesTools(server, ctx);
   registerServerInfoTools(server);
 }

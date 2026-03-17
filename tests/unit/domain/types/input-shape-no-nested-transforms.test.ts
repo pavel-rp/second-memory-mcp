@@ -27,6 +27,7 @@ import * as searchTools from '../../../../src/domain/types/search-tools.js';
 import * as teaching from '../../../../src/domain/types/teaching.js';
 import * as contentTools from '../../../../src/domain/types/content-tools.js';
 import * as analytics from '../../../../src/domain/types/analytics.js';
+import * as notesTools from '../../../../src/domain/types/notes-tools.js';
 
 /**
  * Recursively check if a Zod schema contains a `.transform()` effect.
@@ -300,6 +301,7 @@ describe('InputShape structural guardrail', () => {
       teaching,
       contentTools,
       analytics,
+      notesTools,
     ];
 
     const violations: string[] = [];

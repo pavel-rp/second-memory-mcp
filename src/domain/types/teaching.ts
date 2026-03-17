@@ -11,6 +11,13 @@ export type TeachNextTeach = {
   instruction: string; // hydrated prompt from PromptPack
   drill_format: DrillFormat;
   previous_feedback?: string[]; // feedback strings from past sessions
+  notes?: Array<{
+    id: string;
+    note_type: string;
+    content: string;
+    author: string;
+    created_at: number;
+  }>;
 };
 
 export type TeachNextComplete = {

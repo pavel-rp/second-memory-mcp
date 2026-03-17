@@ -171,7 +171,28 @@ export const sessionQuestionAttempts = pgTable(
   ]
 );
 
+export const notes = pgTable(
+  'notes',
+  {
+    id: text('id').primaryKey().notNull(),
+    targetType: text('target_type').notNull(), // 'chunk' | 'topic' | 'session'
+    targetId: text('target_id').notNull(),
+    noteType: text('note_type').notNull(), // 'insight' | 'confusion' | 'connection' | 'deeper_exploration'
+    content: text('content').notNull(),
+    author: text('author').notNull(), // 'agent' | 'user'
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  /* v8 ignore next 4 -- Drizzle index definitions; executed internally, not reachable from app code */
+  table => [
+    index('idx_notes_target').on(table.targetType, table.targetId),
+    index('idx_notes_created_at').on(table.createdAt),
+  ]
+);
+
 // Types
+export type NoteRow = InferSelectModel<typeof notes>;
+export type NewNoteRow = InferInsertModel<typeof notes>;
+
 export type NewLearningTopicRow = InferInsertModel<typeof learningTopics>;
 
 export type LearningChunkRow = InferSelectModel<typeof learningChunks>;
