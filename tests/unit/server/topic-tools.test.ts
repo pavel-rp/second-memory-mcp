@@ -138,6 +138,29 @@ describe('topic-tools', () => {
       await expect(handler({ topic_title: 'T', subject: 'CS', chunks: [] })).rejects.toThrow();
     });
 
+    it('throws ZodError for invalid content_status in chunk', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      await expect(
+        handler({
+          topic_title: 'T',
+          subject: 'CS',
+          chunks: [
+            {
+              id: 'c1',
+              title: 'A',
+              content: 'Content that is long enough to pass validation.',
+              difficulty: 3,
+              estimated_duration: 10,
+              order: 1,
+              content_status: 'invalid',
+            },
+          ],
+        })
+      ).rejects.toThrow('Content status must be one of: draft, final');
+    });
+
     it('uses fallback defaults when error object has no fields', async () => {
       ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
         success: false,

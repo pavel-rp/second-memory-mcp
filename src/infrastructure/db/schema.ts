@@ -57,7 +57,7 @@ export const learningChunks = pgTable(
     contentVersion: integer('content_version').default(1), // versioning for content
     contentUpdatedAt: bigint('content_updated_at', { mode: 'number' }), // epoch ms, when content was last updated
     contentEmbedding: vector('content_embedding', { dimensions: 1536 }), // pgvector: content text embedding
-    contentStatus: text('content_status').notNull().default('final'), // CHECK('draft','final') — enforced at DB level
+    contentStatus: text('content_status').notNull().default('final').$type<'draft' | 'final'>(), // CHECK('draft','final') — enforced at DB level
     createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   },

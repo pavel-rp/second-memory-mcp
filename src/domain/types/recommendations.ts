@@ -10,6 +10,9 @@ export type RecommendationMode = 'guided' | 'explicit';
 // Learning item chunk types
 export type ChunkType = 'new' | 'review' | 'remediation';
 
+// Content readiness status
+export type ContentStatus = 'draft' | 'final';
+
 // Subject preference types
 export type SubjectPreference = 'CS' | 'Math' | 'SWE' | 'Language' | 'Any';
 
@@ -29,7 +32,7 @@ export type LearningItem = {
   tags?: string[];
   topicId?: string; // UUID of parent topic
   topicTitle?: string; // Human-readable topic title
-  contentStatus?: string; // 'draft' | 'final'
+  contentStatus?: ContentStatus;
 };
 
 // Learning item with optional content fields

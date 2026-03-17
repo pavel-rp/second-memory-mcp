@@ -4,6 +4,7 @@ import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
 import type { LearningChunk, LearningTopic } from '../domain/types/entities.js';
+import type { ContentStatus } from '../domain/types/recommendations.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
@@ -38,7 +39,7 @@ export type TopicWithChunks = {
     prerequisites: string[];
     tags: string[];
     chunkType: string;
-    contentStatus: string;
+    contentStatus: ContentStatus;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -58,7 +59,7 @@ export type TopicCreationInput = {
     prerequisites?: string[];
     tags?: string[];
     chunkType: string;
-    contentStatus?: string;
+    contentStatus?: ContentStatus;
   }>;
 };
 
