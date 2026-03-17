@@ -75,12 +75,18 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
         ...(authConfig.audience ? { audience: authConfig.audience } : {}),
       });
 
-      if (typeof payload.sub !== 'string' || !payload.sub) {
+      // For client_credentials grants, Rauthy sets sub=null and uses azp for the client identity
+      const subject =
+        (typeof payload.sub === 'string' && payload.sub) ||
+        (typeof payload.azp === 'string' && payload.azp) ||
+        undefined;
+
+      if (!subject) {
         return reply401(res, prmUrl);
       }
 
       res.locals.auth = {
-        sub: payload.sub,
+        sub: subject,
         email: typeof payload.email === 'string' ? payload.email : undefined,
       };
       next();
