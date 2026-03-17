@@ -180,6 +180,8 @@ describe('chunk-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(true);
       expect(parsed.chunk_id).toBe('c1');
+      expect(parsed.content_version).toBe(2);
+      expect(parsed.updated_at).toBeDefined();
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -375,6 +377,8 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(true);
+      expect(parsed.content_version).toBe(2);
+      expect(parsed.updated_at).toBeDefined();
       expect(parsed.message).toContain('progress reset');
     });
 
@@ -392,6 +396,8 @@ describe('chunk-tools', () => {
 
       expect(parsed.success).toBe(true);
       expect(parsed.progress_reset).toBe(false);
+      expect(parsed.content_version).toBe(1);
+      expect(parsed.updated_at).toBeDefined();
       expect(parsed.message).not.toContain('progress reset');
     });
 
