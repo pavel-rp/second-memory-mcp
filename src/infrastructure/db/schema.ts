@@ -182,6 +182,7 @@ export const notes = pgTable(
     author: text('author').notNull(), // 'agent' | 'user'
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
   },
+  /* v8 ignore next 4 -- Drizzle index definitions; executed internally, not reachable from app code */
   table => [
     index('idx_notes_target').on(table.targetType, table.targetId),
     index('idx_notes_created_at').on(table.createdAt),
