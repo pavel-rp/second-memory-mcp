@@ -8,7 +8,7 @@ Second Memory is a spaced-repetition learning server. Follow these workflows:
 TEACHING FLOW (start_learning → submit_answer → teach_next)
 1. Call start_learning to create a session and get the first chunk's teaching instruction.
 2. Present the instruction to the learner and collect their response.
-3. Call submit_answer with the question, response, pass/fail judgment, and feedback.
+3. Call submit_answer with the question, response, pass/fail judgment, feedback, and time_spent_ms.
 4. If the result says "retry", ask the learner to try again and re-call submit_answer.
 5. If "recorded", the response piggybacks the next chunk via teach_next. Present it and repeat from step 3.
 6. When submit_answer's next field has status "complete", call complete_session with optional feedback.
