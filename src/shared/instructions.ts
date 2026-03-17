@@ -11,6 +11,14 @@ TEACHING FLOW
 3. The server scores the answer. If the result says "retry", ask the learner to try again and resubmit. If "recorded", move on.
 4. Call start_learning again for the next chunk. Repeat until the session is complete.
 
+ROLLING SESSION FLOW
+1. Call create_session with mode: 'learning' and no chunk_ids to open an empty session.
+2. Call create_session_chunk with the session_id, chunk_id, and status: 'in_progress' to add and activate the chunk.
+3. Call get_chunk_content with the chunk_id to retrieve the chunk, then teach it.
+4. Call submit_answer with the learner's response. Ignore the embedded next field — loop back to step 2 for more chunks.
+5. Repeat steps 2–4 for each additional chunk the learner selects.
+6. Call complete_session when the learner is done.
+
 CONTENT CREATION
 1. Use the scaffolding prompt to plan a topic (5-9 chunks).
 2. Use the chunk_generation prompt to produce chunk content.

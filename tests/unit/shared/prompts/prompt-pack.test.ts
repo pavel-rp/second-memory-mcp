@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { promptPack } from '../../../../src/shared/prompts/prompt-pack.js';
+import { SERVER_INSTRUCTIONS } from '../../../../src/shared/instructions.js';
 
 describe('promptPack', () => {
   it('returns workflow guidance with tool names', () => {
@@ -315,6 +316,35 @@ describe('promptPack', () => {
       expect(text).toContain('"React Hooks" useState');
       expect(text).toContain('"React Hooks" useEffect');
       expect(text).toContain('"React Hooks" custom hooks');
+    });
+
+    describe('rolling session flow documentation', () => {
+      it('workflow_guidance contains rolling session flow section', () => {
+        const text = promptPack.getPrompt('workflow_guidance', {});
+        expect(text).toContain('Rolling Session Flow');
+        expect(text).toContain('create_session_chunk');
+        expect(text).toContain('status: "in_progress"');
+        expect(text).toContain('complete_session');
+      });
+
+      it('workflow_guidance retains existing fixed-session references', () => {
+        const text = promptPack.getPrompt('workflow_guidance', {});
+        expect(text).toContain('Review/Recall Flow');
+        expect(text).toContain('chunk_ids');
+        expect(text).toContain('get_active_session');
+      });
+
+      it('SERVER_INSTRUCTIONS contains ROLLING SESSION FLOW section', () => {
+        expect(SERVER_INSTRUCTIONS).toContain('ROLLING SESSION FLOW');
+        expect(SERVER_INSTRUCTIONS).toContain("mode: 'learning'");
+        expect(SERVER_INSTRUCTIONS).toContain("status: 'in_progress'");
+        expect(SERVER_INSTRUCTIONS).toContain('complete_session');
+      });
+
+      it('SERVER_INSTRUCTIONS retains TEACHING FLOW section', () => {
+        expect(SERVER_INSTRUCTIONS).toContain('TEACHING FLOW');
+        expect(SERVER_INSTRUCTIONS).toContain('start_learning');
+      });
     });
 
     it('chunk generation excludes research constraint when research disabled', () => {
