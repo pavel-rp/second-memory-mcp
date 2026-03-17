@@ -180,6 +180,7 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
             chunks: [
               {
                 chunk_id: 'smoke-chunk-1',
+                session_chunk_id: 'smoke-sc-1',
                 title: 'Smoke Test Chunk',
                 status: 'pending',
                 attempts: [],
