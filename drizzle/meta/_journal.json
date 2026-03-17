@@ -57,6 +57,13 @@
       "when": 1773743307383,
       "tag": "0007_exotic_mathemanic",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773760203170,
+      "tag": "0008_purple_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

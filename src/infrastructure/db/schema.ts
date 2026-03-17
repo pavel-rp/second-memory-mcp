@@ -171,6 +171,7 @@ export const sessionQuestionAttempts = pgTable(
   ]
 );
 
+// Notes are immutable: deleted and re-added, never updated in place — no updatedAt column.
 export const notes = pgTable(
   'notes',
   {
@@ -182,10 +183,16 @@ export const notes = pgTable(
     author: text('author').notNull(), // 'agent' | 'user'
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
   },
-  /* v8 ignore next 4 -- Drizzle index definitions; executed internally, not reachable from app code */
+  /* v8 ignore next 10 -- Drizzle index/check definitions; executed internally, not reachable from app code */
   table => [
     index('idx_notes_target').on(table.targetType, table.targetId),
     index('idx_notes_created_at').on(table.createdAt),
+    check('chk_note_target_type', sql`${table.targetType} IN ('chunk', 'topic', 'session')`),
+    check(
+      'chk_note_type',
+      sql`${table.noteType} IN ('insight', 'confusion', 'connection', 'deeper_exploration')`
+    ),
+    check('chk_note_author', sql`${table.author} IN ('agent', 'user')`),
   ]
 );
 
