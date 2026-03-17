@@ -1,5 +1,6 @@
 import type { DrillFormat } from '../../shared/prompts/prompt-pack.js';
 import type { NoteType, NoteAuthor } from './notes-tools.js';
+import type { ContentStatus } from './recommendations.js';
 import { z } from 'zod';
 
 export type TeachNextNote = {
@@ -19,7 +20,7 @@ export type TeachNextTeach = {
   mode: 'learning' | 'retrieval';
   instruction: string; // hydrated prompt from PromptPack
   drill_format: DrillFormat;
-  content_status: string; // 'draft' | 'final'
+  content_status: ContentStatus;
   previous_feedback?: string[]; // feedback strings from past sessions
   notes?: TeachNextNote[];
 };
