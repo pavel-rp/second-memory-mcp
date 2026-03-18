@@ -81,7 +81,9 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Determine Session Workflow Phase',
       description:
-        'Analyze session state and provide workflow guidance for next learning phase. Accepts either session_id (string) or session_data (SessionInput object) for backward compatibility.',
+        'Analyze session state and provide workflow guidance for next learning phase. Accepts either session_id (string) or session_data (SessionInput object) for backward compatibility. ' +
+        'Use mid-session to get guidance on what phase to enter next (teach, drill, complete). ' +
+        'Distinct from session_progress (metrics only) and session_completion (should-I-end-now check).',
       inputSchema: SessionAnalysisInputShape,
     },
     async (input: unknown) => {

@@ -7,7 +7,13 @@ import { toCamelCaseKeys } from '../../shared/case-convert.js';
 export const CreateSessionToolInputShape = {
   topic_id: z.string().optional(),
   chunk_ids: z.array(z.string()).optional(),
-  mode: SessionModeSchema,
+  mode: SessionModeSchema.describe(
+    "Session mode: 'scaffolding' = guided intro to new material, " +
+      "'learning' = active study of new chunks, " +
+      "'retrieval' = spaced recall practice, " +
+      "'review' = revisit previously learned material. " +
+      "Use 'learning' if unsure."
+  ),
   estimated_duration: z.number().min(1).max(480).optional(), // 1-480 minutes
 } as const;
 
