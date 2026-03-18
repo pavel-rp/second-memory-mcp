@@ -175,7 +175,7 @@ export class RecommendationEngine {
     now: Date
   ): LearningRecommendation[] {
     const constraints = input.constraints ?? {
-      maxDuration: input.timeAvailable ?? 30,
+      maxDuration: input.timeAvailable as number,
       maxCognitiveLoad: 20,
       maxNewItems: 3,
     };
