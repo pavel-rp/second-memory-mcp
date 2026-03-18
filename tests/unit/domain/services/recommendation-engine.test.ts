@@ -90,51 +90,15 @@ describe('RecommendationEngine', () => {
     const engine = createTestEngine();
     const out = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: [makeItem({ id: 'a', subject: 'Math' })],
         constraints: { subjectFilter: 'CS', maxDuration: 5 },
         timeAvailable: 5,
-      } as any,
+      },
       NOW
     );
 
     expect(out.recommendations.length).toBe(0);
     expect(out.estimatedDuration).toBe(0);
-  });
-
-  it('guided mode applies intelligent defaults (fills timeAvailable and constraints)', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({
-        id: 'r1',
-        chunkType: 'review',
-        estimatedDuration: 10,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({ id: 'n1', chunkType: 'new', estimatedDuration: 10 }),
-    ];
-
-    const out = await engine.generateRecommendations(
-      {
-        mode: 'guided',
-        learningItems: items,
-        userHistory: {
-          recentSessions: [],
-          patterns: {
-            averageSessionDuration: 25,
-            preferredDifficulty: 5,
-            successRate: 0.75,
-            fatigueThreshold: 18,
-            subjectPreferences: { CS: 1 },
-          },
-        },
-      } as any,
-      NOW
-    );
-
-    expect(out.recommendations.length).toBeGreaterThan(0);
-    expect(out.sessionSummary.totalItems).toBe(out.recommendations.length);
-    expect(out.rationale).toMatch(/spaced repetition/i);
   });
 
   it('respects maxNewItems constraint and session duration/cognitive load limits', async () => {
@@ -170,11 +134,10 @@ describe('RecommendationEngine', () => {
 
     const out = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 30,
         constraints: { maxDuration: 30, maxCognitiveLoad: 25, maxNewItems: 2 },
-      } as any,
+      },
       NOW
     );
 
@@ -202,7 +165,7 @@ describe('RecommendationEngine', () => {
     ];
 
     const out = await engine.generateRecommendations(
-      { mode: 'explicit', learningItems: items, timeAvailable: 60 },
+      { learningItems: items, timeAvailable: 60 },
       NOW
     );
 
@@ -235,11 +198,10 @@ describe('RecommendationEngine', () => {
 
     const out = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 40,
         constraints: { maxDuration: 40, maxCognitiveLoad: 100, maxNewItems: 6 },
-      } as any,
+      },
       NOW
     );
 
@@ -256,7 +218,6 @@ describe('RecommendationEngine', () => {
     const engine = createTestEngine();
     const result = await engine.generateRecommendations(
       {
-        mode: 'guided',
         learningItems: [],
         timeAvailable: 30,
       },
@@ -275,7 +236,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'guided',
         learningItems: items,
         timeAvailable: 30,
       },
@@ -289,7 +249,6 @@ describe('RecommendationEngine', () => {
     const engine = createTestEngine();
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: [],
         timeAvailable: 30,
       },
@@ -307,7 +266,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'guided',
         learningItems: items,
         timeAvailable: 30,
       },
@@ -355,7 +313,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -415,7 +372,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -460,7 +416,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -504,7 +459,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 30,
       },
@@ -543,7 +497,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -587,7 +540,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -612,11 +564,10 @@ describe('RecommendationEngine', () => {
     const engine = createTestEngine();
     const result = await engine.generateRecommendations(
       {
-        mode: 'guided',
         learningItems: [],
         timeAvailable: 30,
         fetchFromDatabase: true,
-      } as any,
+      },
       NOW
     );
 
@@ -657,7 +608,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -675,7 +625,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 30,
       },
@@ -683,70 +632,6 @@ describe('RecommendationEngine', () => {
     );
 
     expect(result.dependencyResolution).toBeUndefined();
-  });
-
-  it('applies subject preference from user history when not explicitly set', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({ id: 'cs-item', subject: 'CS', estimatedDuration: 10 }),
-      makeItem({ id: 'math-item', subject: 'Math', estimatedDuration: 10 }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        mode: 'guided',
-        learningItems: items,
-        timeAvailable: 30,
-        userHistory: {
-          recentSessions: [],
-          patterns: {
-            averageSessionDuration: 25,
-            preferredDifficulty: 5,
-            successRate: 0.75,
-            fatigueThreshold: 18,
-            subjectPreferences: { CS: 5, Math: 1 },
-          },
-        },
-      } as any,
-      NOW
-    );
-
-    // Exercises the isSubjectPreference(topSubject) === true branch (line 139).
-    // Note: derived preference is set on defaults but generateIntelligentConstraints
-    // reads from pre-merge input, so filtering isn't applied to results here.
-    expect(result.recommendations.length).toBeGreaterThan(0);
-  });
-
-  it('defaults subject preference to Any for unrecognized top subject', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({ id: 'bio-item', subject: 'Biology', estimatedDuration: 10 }),
-      makeItem({ id: 'cs-item', subject: 'CS', estimatedDuration: 10 }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        mode: 'guided',
-        learningItems: items,
-        timeAvailable: 60,
-        userHistory: {
-          recentSessions: [],
-          patterns: {
-            averageSessionDuration: 25,
-            preferredDifficulty: 5,
-            successRate: 0.75,
-            fatigueThreshold: 18,
-            subjectPreferences: { Biology: 5 },
-          },
-        },
-      } as any,
-      NOW
-    );
-
-    // "Any" means no subject filter — both subjects should appear
-    expect(result.recommendations.length).toBeGreaterThan(0);
-    const subjects = new Set(result.recommendations.map(r => r.item.subject));
-    expect(subjects.size).toBeGreaterThan(1);
   });
 
   it('handles missing prerequisite chunks gracefully without breaking topological order', async () => {
@@ -775,7 +660,6 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
       },
@@ -820,7 +704,7 @@ describe('RecommendationEngine', () => {
     ];
 
     const result = await engine.generateRecommendations(
-      { mode: 'explicit', learningItems: items, timeAvailable: 60 },
+      { learningItems: items, timeAvailable: 60 },
       NOW
     );
 
@@ -856,7 +740,7 @@ describe('RecommendationEngine', () => {
     const items = [makeItem({ id: 'item-x', chunkType: 'review', nextReviewDate: '2025-06-14' })];
 
     const result = await engine.generateRecommendations(
-      { mode: 'explicit', learningItems: items, timeAvailable: 60 },
+      { learningItems: items, timeAvailable: 60 },
       NOW
     );
 
@@ -864,26 +748,7 @@ describe('RecommendationEngine', () => {
     expect(result.dependencyResolution).toBeUndefined();
   });
 
-  it('defaults mode to guided when mode is falsy', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({
-        id: 'a',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        estimatedDuration: 10,
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { mode: undefined as any, learningItems: items, timeAvailable: 30 },
-      NOW
-    );
-
-    expect(result.recommendations.length).toBeGreaterThan(0);
-  });
-
-  it('infers timeAvailable from user history when not provided', async () => {
+  it('defaults timeAvailable to 30 when not provided', async () => {
     const engine = createTestEngine();
     const items = [
       makeItem({
@@ -896,30 +761,38 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'guided',
         learningItems: items,
-        userHistory: {
-          recentSessions: [],
-          patterns: {
-            averageSessionDuration: 45,
-            preferredDifficulty: 5,
-            successRate: 0.8,
-            fatigueThreshold: 20,
-            subjectPreferences: {},
-          },
-        },
-      } as any,
+      },
       NOW
     );
 
     expect(result.recommendations.length).toBeGreaterThan(0);
   });
 
+  it('defaults constraints to maxDuration=30, maxCognitiveLoad=20, maxNewItems=3 when not provided', async () => {
+    const engine = createTestEngine();
+    // 4 new items, but default maxNewItems=3 should cap them
+    const items = [
+      makeItem({ id: 'n1', chunkType: 'new', estimatedDuration: 5 }),
+      makeItem({ id: 'n2', chunkType: 'new', estimatedDuration: 5 }),
+      makeItem({ id: 'n3', chunkType: 'new', estimatedDuration: 5 }),
+      makeItem({ id: 'n4', chunkType: 'new', estimatedDuration: 5 }),
+    ];
+
+    const result = await engine.generateRecommendations(
+      { learningItems: items, timeAvailable: 60 },
+      NOW
+    );
+
+    const newCount = result.recommendations.filter(r => r.item.chunkType === 'new').length;
+    expect(newCount).toBeLessThanOrEqual(3);
+  });
+
   it('handles undefined learningItems gracefully', async () => {
     const engine = createTestEngine();
 
     const result = await engine.generateRecommendations(
-      { mode: 'explicit', learningItems: undefined as any, timeAvailable: 30 },
+      { learningItems: undefined as any, timeAvailable: 30 },
       NOW
     );
 
@@ -965,7 +838,7 @@ describe('RecommendationEngine', () => {
     ];
 
     const result = await engine.generateRecommendations(
-      { mode: 'guided', learningItems: items, timeAvailable: 120 },
+      { learningItems: items, timeAvailable: 120 },
       NOW
     );
 
@@ -998,7 +871,7 @@ describe('RecommendationEngine', () => {
     ];
 
     const result = await engine.generateRecommendations(
-      { mode: 'guided', learningItems: items, timeAvailable: 45 },
+      { learningItems: items, timeAvailable: 45 },
       NOW
     );
 
@@ -1063,11 +936,10 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
         constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
-      } as any,
+      },
       NOW
     );
 
@@ -1137,11 +1009,10 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
         constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
-      } as any,
+      },
       NOW
     );
 
@@ -1190,11 +1061,10 @@ describe('RecommendationEngine', () => {
 
     const result = await engine.generateRecommendations(
       {
-        mode: 'explicit',
         learningItems: items,
         timeAvailable: 60,
         constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
-      } as any,
+      },
       NOW
     );
 

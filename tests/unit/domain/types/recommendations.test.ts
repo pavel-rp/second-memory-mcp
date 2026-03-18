@@ -1,29 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  RecommendationInputSchema,
-  SessionHistorySchema,
-} from '../../../../src/domain/types/recommendations.js';
-
-describe('SessionHistorySchema - nested z.record() protection', () => {
-  it('preserves multi-word user-data keys in subject_preferences', () => {
-    const input = {
-      recent_sessions: [],
-      patterns: {
-        average_session_duration: 30,
-        preferred_difficulty: 5,
-        success_rate: 0.8,
-        fatigue_threshold: 10,
-        subject_preferences: { machine_learning: 5, data_science: 3 },
-      },
-    };
-
-    const result = SessionHistorySchema.parse(input);
-    expect(result.patterns.subjectPreferences).toEqual({
-      machine_learning: 5,
-      data_science: 3,
-    });
-  });
-});
+import { RecommendationInputSchema } from '../../../../src/domain/types/recommendations.js';
 
 describe('RecommendationInputSchema - self-fetch parameters', () => {
   it('validates fetch_from_database defaults to false when omitted', () => {
@@ -147,34 +123,25 @@ describe('RecommendationInputSchema - self-fetch parameters', () => {
     expect(result.limit).toBeUndefined();
   });
 
-  it('preserves multi-word user-data keys in nested z.record() fields', () => {
+  it('strips unknown fields like user_history and session_context', () => {
     const input = {
       learning_items: [],
-      user_history: {
-        recent_sessions: [],
-        patterns: {
-          average_session_duration: 30,
-          preferred_difficulty: 5,
-          success_rate: 0.8,
-          fatigue_threshold: 10,
-          subject_preferences: { machine_learning: 5, data_science: 3 },
-        },
-      },
-      session_context: {
-        user_preferences: { dark_mode: true, auto_advance: false },
-      },
+      fetch_from_database: true,
+      user_history: { recent_sessions: [], patterns: {} },
+      session_context: { current_session_id: 'sess-1' },
+      mode: 'guided',
+      subject_preference: 'CS',
     };
 
     const result = RecommendationInputSchema.parse(input);
-    // user-data keys must NOT be camelCased
-    expect(result.userHistory!.patterns.subjectPreferences).toEqual({
-      machine_learning: 5,
-      data_science: 3,
-    });
-    expect(result.sessionContext!.userPreferences).toEqual({
-      dark_mode: true,
-      auto_advance: false,
-    });
+    expect(result.fetchFromDatabase).toBe(true);
+    expect(result).not.toHaveProperty('userHistory');
+    expect(result).not.toHaveProperty('user_history');
+    expect(result).not.toHaveProperty('sessionContext');
+    expect(result).not.toHaveProperty('session_context');
+    expect(result).not.toHaveProperty('mode');
+    expect(result).not.toHaveProperty('subjectPreference');
+    expect(result).not.toHaveProperty('subject_preference');
   });
 
   it('validates backward compatibility - filters can be provided without fetch_from_database', () => {

@@ -43,9 +43,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
     ];
 
     const out = await tool.handler({
-      mode: 'explicit',
       time_available: 30,
-      subject_preference: 'Any',
       learning_items: items,
       constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
@@ -78,9 +76,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
     ];
 
     const out = await tool.handler({
-      mode: 'explicit',
       time_available: 30,
-      subject_preference: 'Any',
       learning_items: items,
       constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
@@ -123,9 +119,7 @@ describe('Integration: Prerequisite Recommendation Workflow', () => {
     ];
 
     const out = await tool.handler({
-      mode: 'explicit',
       time_available: 30,
-      subject_preference: 'Any',
       learning_items: items,
       constraints: { max_duration: 30, max_cognitive_load: 40 },
     });
