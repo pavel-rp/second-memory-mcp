@@ -248,6 +248,49 @@ The agent calls `record_review_result` for each chunk to update the SM-2 schedul
 
 This updates the chunk's `easeFactor`, `intervalDays`, and `nextReviewAt` so it appears at the right time in future sessions.
 
+## Using with Claude.ai
+
+Claude.ai connects to MCP servers but does not receive the server's `instructions` field. To ensure Claude follows the correct workflow, paste the block below into your **Project's custom instructions** (or your account-level custom instructions):
+
+```text
+Second Memory is a spaced-repetition learning server. Follow these workflows:
+
+TEACHING FLOW (start_learning → submit_answer loop)
+1. Call start_learning to create a session and get the first chunk's teaching
+   instruction. If status is "nothing_due" or "error", surface the message and stop.
+2. Present the instruction to the learner and collect their response.
+3. Call submit_answer with the question, response, pass/fail judgment, feedback,
+   and time_spent_ms.
+4. If the result says "retry", ask the learner to try again and re-call submit_answer.
+5. If "recorded", check next.status:
+   "teach" → present the instruction and repeat from step 3.
+   "blocked" or "error" → surface the message and stop.
+6. When next.status is "complete", call complete_session with the session_id
+   from start_learning and optional feedback.
+
+SM-2 QUALITY SCALE (used internally — do not fabricate scores)
+0 = total blackout, 1 = wrong but recognised on reveal, 2 = wrong but close,
+3 = correct with significant difficulty, 4 = correct with minor hesitation,
+5 = instant perfect recall.
+The server derives quality from your pass/fail judgment — never call
+record_review_result during an active teaching session.
+
+NOTES LIFECYCLE
+After a learner answers, you may call add_note with:
+- type "insight"    — learner made a useful connection
+- type "confusion"  — learner struggled or asked a clarifying question
+- type "connection" — links this chunk to another topic or chunk
+
+ANTI-PATTERNS — do NOT:
+- Call get_chunk_content or get_topic_summary during active teaching
+  (the server already provides the instruction text).
+- Skip drills — the server decides when a chunk is mastered.
+- Manually hydrate prompt templates — call prompts through the MCP protocol.
+- Hardcode interval_days — always read it from the response.
+```
+
+> **Tip:** If you're using an MCP client that does pass `instructions`, you don't need to paste anything — the server sends its own workflow guide automatically. You can also call the `get_server_workflow` tool at any time to retrieve the server's full workflow guide, which covers additional flows (rolling sessions, content creation, tool disambiguation) beyond the essentials above.
+
 ## Architecture Overview
 
 The codebase follows a **ports-and-adapters (hexagonal) architecture** with strict layer dependencies:

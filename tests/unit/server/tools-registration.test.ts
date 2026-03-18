@@ -29,5 +29,7 @@ describe('registerServerTools', () => {
     expect(stub.tools).toContain('what_to_learn_today');
     // Server info tools
     expect(stub.tools).toContain('get_server_info');
+    // Server workflow tools
+    expect(stub.tools).toContain('get_server_workflow');
   });
 });

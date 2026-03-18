@@ -88,7 +88,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Replaces the manual sequence of what_to_learn_today → create_session → teach_next. ' +
         'When status is "started", response includes first_chunk.instruction — follow it verbatim to teach the chunk. ' +
         'Status "nothing_due" or "error" means the session could not start — surface the message and stop. ' +
-        'After teaching, call submit_answer — check next.status for the next action (teach/complete/blocked/error).',
+        'After teaching, call submit_answer — check next.status for the next action (teach/complete/blocked/error). ' +
+        'If unsure about workflow, call get_server_workflow first.',
       inputSchema: StartLearningInputShape,
     },
     async input => {
