@@ -16,41 +16,20 @@ describe('session-tools', () => {
   });
   afterAll(teardownTestDb);
 
-  it('registers session analysis tools', () => {
-    expect(server.tools.has('session_progress')).toBe(true);
-    expect(server.tools.has('session_workflow')).toBe(true);
-    expect(server.tools.has('session_completion')).toBe(true);
+  it('registers session_status tool', () => {
+    expect(server.tools.has('session_status')).toBe(true);
   });
 
-  describe('session_progress', () => {
-    it('returns error for nonexistent session ID', async () => {
-      const handler = server.tools.get('session_progress')!.handler;
-      const result = await handler({ sessionId: 'nonexistent' });
-      const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
-    });
-
-    it('returns error when neither sessionId nor sessionData provided', async () => {
-      const handler = server.tools.get('session_progress')!.handler;
-      const result = await handler({});
-      const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
-    });
+  it('old tools are not registered', () => {
+    expect(server.tools.has('session_progress')).toBe(false);
+    expect(server.tools.has('session_workflow')).toBe(false);
+    expect(server.tools.has('session_completion')).toBe(false);
   });
 
-  describe('session_workflow', () => {
+  describe('session_status', () => {
     it('returns error for nonexistent session ID', async () => {
-      const handler = server.tools.get('session_workflow')!.handler;
-      const result = await handler({ sessionId: 'nonexistent' });
-      const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
-    });
-  });
-
-  describe('session_completion', () => {
-    it('returns error for nonexistent session ID', async () => {
-      const handler = server.tools.get('session_completion')!.handler;
-      const result = await handler({ sessionId: 'nonexistent' });
+      const handler = server.tools.get('session_status')!.handler;
+      const result = await handler({ session_id: 'nonexistent' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });

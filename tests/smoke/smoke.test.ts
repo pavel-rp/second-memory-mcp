@@ -163,32 +163,16 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     expect(Array.isArray(parsed)).toBe(true);
   });
 
-  // ── session_workflow ───────────────────────────────────
+  // ── session_status ───────────────────────────────────
 
-  it('session_workflow returns valid response with inline session_data', async () => {
+  it('session_status returns error for nonexistent session_id', async () => {
     expect(sessionId).toBeDefined();
 
-    const now = new Date().toISOString();
     const res = await mcpPost(
       jsonRpcRequest('tools/call', {
-        name: 'session_workflow',
+        name: 'session_status',
         arguments: {
-          session_data: {
-            session_id: 'smoke-test-session',
-            mode: 'learning',
-            start_time: now,
-            chunks: [
-              {
-                chunk_id: 'smoke-chunk-1',
-                session_chunk_id: 'smoke-sc-1',
-                title: 'Smoke Test Chunk',
-                status: 'pending',
-                attempts: [],
-                quality_scores: [],
-                time_spent_ms: 0,
-              },
-            ],
-          },
+          session_id: 'smoke-nonexistent-session',
         },
       }),
       sessionId
@@ -204,9 +188,9 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     expect(body.result!.content!.length).toBeGreaterThan(0);
 
     const parsed = JSON.parse(body.result!.content![0]!.text) as {
-      current_phase?: string;
+      success?: boolean;
     };
-    expect(parsed.current_phase).toBeDefined();
+    expect(parsed.success).toBe(false);
   });
 
   // ── Session cleanup ────────────────────────────────────

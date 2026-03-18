@@ -10,8 +10,7 @@ import {
 import { DEFAULT_ALGORITHM_CONFIG } from '../../src/domain/config/algorithm-defaults.js';
 import {
   calculateSessionProgress,
-  determineNextPhase,
-  checkSessionCompletion,
+  getSessionStatus,
   validateSessionContext,
   applyBatchSessionChunkOperations,
 } from '../../src/domain/services/session-analyzer.js';
@@ -34,8 +33,7 @@ export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z'
       calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, now),
     rankCandidates: input => rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG, now),
     calculateSessionProgress: data => calculateSessionProgress(data, now),
-    determineNextPhase: data => determineNextPhase(data, now),
-    checkSessionCompletion: data => checkSessionCompletion(data, DEFAULT_ALGORITHM_CONFIG, now),
+    getSessionStatus: data => getSessionStatus(data, DEFAULT_ALGORITHM_CONFIG, now),
     validateSessionContext: context => validateSessionContext(context, now),
     applyBatchSessionChunkOperations,
 

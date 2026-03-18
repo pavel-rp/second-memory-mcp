@@ -107,7 +107,7 @@ The server registers tools across eight categories:
 | Search             | `search_learning_content`                                                                                                                                                                                                                                      | Keyword, semantic, or hybrid search over topics and chunks (pgvector cosine similarity, HNSW index) |
 | Recommendations    | `what_to_learn_today`                                                                                                                                                                                                                                          | Graph-aware recommendation engine with prerequisite-resolved ranking                                |
 | Session management | `create_session`, `create_session_chunk`, `get_active_session`, `get_session`, `complete_session`, `batch_update_session_chunks`, `get_historical_feedback`                                                                                                    | Multi-step session lifecycle with automatic chunk initialization                                    |
-| Session analytics  | `session_progress`, `session_completion`, `session_workflow`                                                                                                                                                                                                   | Track session health and decision points                                                            |
+| Session analytics  | `session_status`                                                                                                                                                                                                                                               | Track session health and decision points                                                            |
 | Spaced repetition  | `calculate_next_review`, `calculate_next_review_advanced`, `calculate_priority_score`, `rank_candidates`, `record_review_result`, `get_leeches`, `resolve_leech`                                                                                               | SM-2 scheduling, priority scoring, review recording, and leech remediation                          |
 | Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_content`, `update_chunk_metadata`, `delete_chunk`, `batch_fetch_topics_minimal`, `batch_fetch_chunks_minimal`, `list_learning_items` | CRUD for topics and chunks with prerequisite graph edges                                            |
 | Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings                                |
@@ -207,7 +207,7 @@ Since `create_session` was called with `chunk_ids`, session-chunk rows already e
 
 **4. Check completion**
 
-The agent calls `session_completion` to decide whether to continue or wrap up:
+The agent calls `session_status` to decide whether to continue or wrap up:
 
 ```json
 { "session_id": "ses-abc-123" }
@@ -215,11 +215,13 @@ The agent calls `session_completion` to decide whether to continue or wrap up:
 
 ```json
 {
-  "is_complete": true,
-  "completion_reason": "All chunks completed with sufficient quality",
-  "quality_threshold_met": true,
-  "time_threshold_met": true,
-  "chunk_threshold_met": true,
+  "chunks_completed": 3,
+  "chunks_remaining": 0,
+  "overall_progress": 1.0,
+  "average_quality": 4.5,
+  "time_elapsed_ms": 1800000,
+  "should_complete": true,
+  "reason": "Learning goals achieved with high quality performance.",
   "recommendation": "complete"
 }
 ```

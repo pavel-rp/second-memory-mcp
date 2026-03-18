@@ -67,22 +67,15 @@ export type SessionProgress = {
   estimated_time_remaining_ms?: number;
 };
 
-// Workflow phase information
-export type WorkflowPhase = {
-  current_phase: string;
-  next_phase?: string;
-  phase_progress: number; // 0-1 progress within current phase
-  guidance: string; // next step instructions
-  can_advance: boolean;
-};
-
-// Session completion status
-export type CompletionStatus = {
-  is_complete: boolean;
-  completion_reason: string;
-  quality_threshold_met: boolean;
-  time_threshold_met: boolean;
-  chunk_threshold_met: boolean;
+// Unified session status (replaces WorkflowPhase + CompletionStatus)
+export type SessionStatus = {
+  chunks_completed: number;
+  chunks_remaining: number;
+  overall_progress: number; // 0-1
+  average_quality: number; // 0-5
+  time_elapsed_ms: number;
+  should_complete: boolean;
+  reason: string;
   recommendation: 'continue' | 'complete' | 'break';
 };
 
