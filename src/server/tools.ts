@@ -10,6 +10,7 @@ import { registerSearchTools } from './search-tools.js';
 import { registerTeachingTools } from './teaching-tools.js';
 import { registerNotesTools } from './notes-tools.js';
 import { registerServerInfoTools } from './server-info-tools.js';
+import { registerServerWorkflowTools } from './server-workflow-tools.js';
 
 export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerSpacedRepetitionTools(server, ctx);
@@ -22,4 +23,5 @@ export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerTeachingTools(server, ctx);
   registerNotesTools(server, ctx);
   registerServerInfoTools(server);
+  registerServerWorkflowTools(server);
 }
