@@ -226,7 +226,6 @@ describe('RecommendationInputShape round-trip', () => {
             priority: 1,
             reason: 'overdue',
             order: 1,
-            cognitive_load: 3,
           },
         ],
         current_item_index: 0,
@@ -237,7 +236,6 @@ describe('RecommendationInputShape round-trip', () => {
     const result = RecommendationInputSchema.parse(preParsed);
 
     expect(result.sessionContext!.currentSessionId).toBe('sess-1');
-    expect(result.sessionContext!.currentRecommendations![0].cognitiveLoad).toBe(3);
     expect(result.sessionContext!.currentRecommendations![0].item.nextReviewDate).toBe(
       '2026-03-15'
     );

@@ -134,7 +134,6 @@ describe('RecommendationEngine', () => {
 
     expect(out.recommendations.length).toBeGreaterThan(0);
     expect(out.sessionSummary.totalItems).toBe(out.recommendations.length);
-    expect(out.conversationGuidance).toBeDefined();
     expect(out.rationale).toMatch(/spaced repetition/i);
   });
 
@@ -182,7 +181,6 @@ describe('RecommendationEngine', () => {
     const newCount = out.recommendations.filter(r => r.item.chunkType === 'new').length;
     expect(newCount).toBeLessThanOrEqual(2);
     expect(out.sessionSummary.totalDuration).toBeLessThanOrEqual(30);
-    expect(out.sessionSummary.totalCognitiveLoad).toBeGreaterThan(0);
   });
 
   it('groups recommendations by topic and assigns sequential order', async () => {
@@ -224,30 +222,6 @@ describe('RecommendationEngine', () => {
     expect(orders[0]).toBe(1);
     for (let i = 1; i < orders.length; i++) {
       expect(orders[i]).toBe(orders[i - 1] + 1);
-    }
-  });
-
-  it('produces alternatives distinct from selected items', async () => {
-    const engine = createTestEngine();
-    const items = Array.from({ length: 8 }).map((_, i) =>
-      makeItem({ id: `id-${i}`, estimatedDuration: 5 + (i % 3), difficulty: 4 + (i % 5) })
-    );
-
-    const out = await engine.generateRecommendations(
-      {
-        mode: 'explicit',
-        learningItems: items,
-        timeAvailable: 20,
-        constraints: { maxDuration: 20, maxCognitiveLoad: 40, maxNewItems: 2 },
-      } as any,
-      NOW
-    );
-
-    if (out.alternatives && out.alternatives.length > 0) {
-      const selectedIds = new Set(out.recommendations.map(r => r.item.id));
-      for (const alt of out.alternatives) {
-        expect(selectedIds.has(alt.item.id)).toBe(false);
-      }
     }
   });
 
@@ -318,8 +292,6 @@ describe('RecommendationEngine', () => {
     expect(result).toHaveProperty('sessionSummary');
     expect(result).toHaveProperty('estimatedDuration');
     expect(result).toHaveProperty('rationale');
-    expect(result).toHaveProperty('nextActions');
-
     // orchestrationHint should be undefined when not needed
     expect(result.orchestrationHint).toBeUndefined();
   });
@@ -626,30 +598,6 @@ describe('RecommendationEngine', () => {
     expect(result.orchestrationHint).toContain('relaxing filters');
   });
 
-  it('generates encouragement for sessions with only review items (no overdue, no new)', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({
-        id: 'r1',
-        chunkType: 'review',
-        estimatedDuration: 10,
-        nextReviewDate: '2025-06-16', // Tomorrow — not overdue
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        mode: 'guided',
-        learningItems: items,
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    expect(result.conversationGuidance).toBeDefined();
-    expect(result.conversationGuidance!.encouragement).toContain('reinforcing');
-  });
-
   it('includes prerequisite filtering count in rationale when items are filtered', async () => {
     // Create an engine where prerequisite validation filters out items
     const mockValidator = new PrerequisiteValidator({
@@ -889,35 +837,6 @@ describe('RecommendationEngine', () => {
     expect(result.dependencyResolution).toBeUndefined();
   });
 
-  it('generates default encouragement for non-overdue review-only items', async () => {
-    const engine = createTestEngine();
-    // All review items with future nextReviewDate — no overdue, no new
-    const items = [
-      makeItem({
-        id: 'future-1',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-16',
-        estimatedDuration: 10,
-      }),
-      makeItem({
-        id: 'future-2',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-16',
-        estimatedDuration: 10,
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { mode: 'guided', learningItems: items, timeAvailable: 60 },
-      NOW
-    );
-
-    expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.conversationGuidance?.encouragement).toContain(
-      'Consistent review leads to lasting learning'
-    );
-  });
-
   it('defaults mode to guided when mode is falsy', async () => {
     const engine = createTestEngine();
     const items = [
@@ -1040,25 +959,6 @@ describe('RecommendationEngine', () => {
     }
   });
 
-  it('generates empty-recommendation guidance when no items pass constraints', async () => {
-    const engine = createTestEngine();
-    // Items with mismatched subject so all get filtered by subjectFilter
-    const items = [makeItem({ id: 'a', subject: 'Math', estimatedDuration: 10 })];
-
-    const result = await engine.generateRecommendations(
-      {
-        mode: 'guided',
-        learningItems: items,
-        constraints: { subjectFilter: 'CS' },
-        timeAvailable: 30,
-      } as any,
-      NOW
-    );
-
-    expect(result.recommendations).toEqual([]);
-    expect(result.conversationGuidance?.nextAction).toContain('No items are due');
-  });
-
   it('includes timeAvailable in rationale when set', async () => {
     const engine = createTestEngine();
     const items = [
@@ -1076,26 +976,6 @@ describe('RecommendationEngine', () => {
     );
 
     expect(result.rationale).toContain('45-minute time constraint');
-  });
-
-  it('generates new-item encouragement when only new items are recommended', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({
-        id: 'new-1',
-        chunkType: 'new',
-        nextReviewDate: '2025-06-16',
-        estimatedDuration: 10,
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { mode: 'guided', learningItems: items, timeAvailable: 60 },
-      NOW
-    );
-
-    expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.conversationGuidance?.encouragement).toContain('explore new concepts');
   });
 
   it('groups chunks from the same topic contiguously', async () => {

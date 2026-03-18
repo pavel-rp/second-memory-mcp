@@ -314,7 +314,6 @@ describe('spaced-repetition-tools', () => {
       sessionSummary: {
         totalItems: 0,
         totalDuration: 0,
-        totalCognitiveLoad: 0,
         newItems: 0,
         reviewItems: 0,
         remediationItems: 0,
@@ -504,7 +503,6 @@ describe('spaced-repetition-tools', () => {
               priority: 10,
               reason: 'overdue',
               order: 1,
-              cognitive_load: 5,
             },
           ],
         },
@@ -516,7 +514,6 @@ describe('spaced-repetition-tools', () => {
       expect(call.sessionContext.sessionStartTime).toBe(1000);
       expect(call.sessionContext.lastActivity).toBe(2000);
       expect(call.sessionContext.currentItemIndex).toBe(2);
-      expect(call.sessionContext.currentRecommendations[0].cognitiveLoad).toBe(5);
     });
 
     it('returns recommendation error when both fetch_from_database and learning_items provided', async () => {

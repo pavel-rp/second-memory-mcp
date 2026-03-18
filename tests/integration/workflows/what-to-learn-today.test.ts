@@ -78,7 +78,5 @@ describe('Integration: what_to_learn_today', () => {
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.conversation_guidance).toBeDefined();
-    expect(Array.isArray(result.next_actions)).toBe(true);
   });
 });
