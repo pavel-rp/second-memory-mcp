@@ -333,7 +333,7 @@ export class RecommendationEngine {
   }
 
   /**
-   * Create recommendation with priority and cognitive load calculation
+   * Create recommendation with priority calculation
    */
   private createRecommendation(
     item: LearningItem,

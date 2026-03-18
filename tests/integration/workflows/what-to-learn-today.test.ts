@@ -51,7 +51,7 @@ describe('Integration: what_to_learn_today', () => {
     expect(result.estimated_duration).toBeLessThanOrEqual(30);
   });
 
-  it('guided mode works with minimal inputs and produces guidance', async () => {
+  it('guided mode works with minimal inputs and omits dead fields', async () => {
     const server = new CaptureServer() as any;
     registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
@@ -78,5 +78,14 @@ describe('Integration: what_to_learn_today', () => {
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);
+
+    // Dead fields must be absent (NEU-175)
+    expect(result).not.toHaveProperty('conversation_guidance');
+    expect(result).not.toHaveProperty('next_actions');
+    expect(result).not.toHaveProperty('alternatives');
+    expect(result.session_summary).not.toHaveProperty('total_cognitive_load');
+    for (const rec of result.recommendations) {
+      expect(rec).not.toHaveProperty('cognitive_load');
+    }
   });
 });

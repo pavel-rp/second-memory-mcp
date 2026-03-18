@@ -183,6 +183,33 @@ describe('RecommendationEngine', () => {
     expect(out.sessionSummary.totalDuration).toBeLessThanOrEqual(30);
   });
 
+  it('includes non-overdue review items in session', async () => {
+    const engine = createTestEngine();
+    // Future nextReviewDate → classified as review (not overdue)
+    const items = [
+      makeItem({
+        id: 'r1',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-16',
+        estimatedDuration: 10,
+      }),
+      makeItem({
+        id: 'r2',
+        chunkType: 'review',
+        nextReviewDate: '2025-06-16',
+        estimatedDuration: 10,
+      }),
+    ];
+
+    const out = await engine.generateRecommendations(
+      { mode: 'explicit', learningItems: items, timeAvailable: 60 },
+      NOW
+    );
+
+    expect(out.recommendations.length).toBeGreaterThan(0);
+    expect(out.recommendations.every(r => r.reason === 'optimal review timing')).toBe(true);
+  });
+
   it('groups recommendations by topic and assigns sequential order', async () => {
     const engine = createTestEngine();
     const items = [
