@@ -41,45 +41,42 @@ describe('session-tools', () => {
     ctx = createMockAppContext();
   });
 
-  it('registers all 3 session tools', () => {
+  it('registers session_status tool', () => {
     registerSessionTools(server as any, ctx);
-    expect(server.tools.has('session_progress')).toBe(true);
-    expect(server.tools.has('session_workflow')).toBe(true);
-    expect(server.tools.has('session_completion')).toBe(true);
+    expect(server.tools.has('session_status')).toBe(true);
   });
 
-  // ---------------------------------------------------------------
-  // session_progress
-  // ---------------------------------------------------------------
-  describe('session_progress', () => {
-    it('computes progress with session_data', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
+  it('old tools are not registered', () => {
+    registerSessionTools(server as any, ctx);
+    expect(server.tools.has('session_progress')).toBe(false);
+    expect(server.tools.has('session_workflow')).toBe(false);
+    expect(server.tools.has('session_completion')).toBe(false);
+  });
 
-      const result = await handler({ session_data: makeSessionInput() });
-      const parsed = parseResult(result);
-
-      expect(parsed.session_id).toBe('s1');
-      expect(parsed.overall_progress).toBeDefined();
-      expect(parsed.chunks_completed).toBe(1);
-    });
-
-    it('computes progress with session_id', async () => {
+  describe('session_status', () => {
+    it('returns status with session_id', async () => {
       ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
       ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
       registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
+      const handler = server.tools.get('session_status')!.handler;
 
       const result = await handler({ session_id: 's1' });
       const parsed = parseResult(result);
 
-      expect(parsed.session_id).toBe('s1');
+      expect(parsed.chunks_completed).toBe(1);
+      expect(parsed.chunks_remaining).toBe(0);
+      expect(parsed.overall_progress).toBeDefined();
+      expect(parsed.average_quality).toBeDefined();
+      expect(parsed.time_elapsed_ms).toBeDefined();
+      expect(parsed.should_complete).toBeDefined();
+      expect(parsed.reason).toBeDefined();
+      expect(parsed.recommendation).toBeDefined();
     });
 
     it('returns error when session not found by id', async () => {
       ctx.getSessionById = vi.fn().mockResolvedValue(null);
       registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
+      const handler = server.tools.get('session_status')!.handler;
 
       const result = await handler({ session_id: 's-missing' });
       const parsed = parseResult(result);
@@ -93,7 +90,7 @@ describe('session-tools', () => {
       ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
       ctx.convertSessionToInput = vi.fn().mockResolvedValue(null);
       registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
+      const handler = server.tools.get('session_status')!.handler;
 
       const result = await handler({ session_id: 's1' });
       const parsed = parseResult(result);
@@ -103,190 +100,32 @@ describe('session-tools', () => {
     });
 
     it('returns validation error when session data is invalid', async () => {
+      const invalidInput = {
+        ...makeSessionInput(),
+        chunks: [], // empty chunks fails validation
+      };
+      ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(invalidInput);
       registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
+      const handler = server.tools.get('session_status')!.handler;
 
-      const result = await handler({
-        session_data: { ...makeSessionInput(), chunks: [] },
-      });
+      const result = await handler({ session_id: 's1' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('validation');
     });
 
-    it('returns error when neither session_id nor session_data', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
-
-      const result = await handler({});
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
-    });
-
     it('returns error when ctx throws', async () => {
       ctx.getSessionById = vi.fn().mockRejectedValue(new Error('db error'));
       registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_progress')!.handler;
+      const handler = server.tools.get('session_status')!.handler;
 
       const result = await handler({ session_id: 's1' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
       expect(parsed.error.message).toContain('db error');
-    });
-  });
-
-  // ---------------------------------------------------------------
-  // session_workflow
-  // ---------------------------------------------------------------
-  describe('session_workflow', () => {
-    it('determines workflow phase with session_data', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_workflow')!.handler;
-
-      const result = await handler({ session_data: makeSessionInput() });
-      const parsed = parseResult(result);
-
-      expect(parsed.current_phase).toBeDefined();
-      expect(parsed.guidance).toBeDefined();
-    });
-
-    it('determines workflow phase with session_id', async () => {
-      ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
-      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_workflow')!.handler;
-
-      const result = await handler({ session_id: 's1' });
-      const parsed = parseResult(result);
-
-      expect(parsed.current_phase).toBeDefined();
-    });
-
-    it('returns error when session not found', async () => {
-      ctx.getSessionById = vi.fn().mockResolvedValue(null);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_workflow')!.handler;
-
-      const result = await handler({ session_id: 's-missing' });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
-    });
-
-    it('returns error when convertSessionToInput returns null', async () => {
-      ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
-      ctx.convertSessionToInput = vi.fn().mockResolvedValue(null);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_workflow')!.handler;
-
-      const result = await handler({ session_id: 's1' });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-    });
-
-    it('returns validation error when session data is invalid', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_workflow')!.handler;
-
-      const result = await handler({
-        session_data: { ...makeSessionInput(), chunks: [] },
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('validation');
-    });
-
-    it('returns error when neither input provided', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_workflow')!.handler;
-
-      const result = await handler({});
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-    });
-  });
-
-  // ---------------------------------------------------------------
-  // session_completion
-  // ---------------------------------------------------------------
-  describe('session_completion', () => {
-    it('checks completion with session_data', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_completion')!.handler;
-
-      const result = await handler({ session_data: makeSessionInput() });
-      const parsed = parseResult(result);
-
-      expect(parsed.is_complete).toBeDefined();
-      expect(parsed.recommendation).toBeDefined();
-    });
-
-    it('checks completion with session_id', async () => {
-      ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
-      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_completion')!.handler;
-
-      const result = await handler({ session_id: 's1' });
-      const parsed = parseResult(result);
-
-      expect(parsed.is_complete).toBeDefined();
-    });
-
-    it('returns error when session not found', async () => {
-      ctx.getSessionById = vi.fn().mockResolvedValue(null);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_completion')!.handler;
-
-      const result = await handler({ session_id: 's-missing' });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
-    });
-
-    it('returns error when convertSessionToInput returns null', async () => {
-      ctx.getSessionById = vi.fn().mockResolvedValue({ id: 's1', mode: 'learning' });
-      ctx.convertSessionToInput = vi.fn().mockResolvedValue(null);
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_completion')!.handler;
-
-      const result = await handler({ session_id: 's1' });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
-    });
-
-    it('returns validation error when session data is invalid', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_completion')!.handler;
-
-      const result = await handler({
-        session_data: { ...makeSessionInput(), chunks: [] },
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('validation');
-    });
-
-    it('returns error when neither input provided', async () => {
-      registerSessionTools(server as any, ctx);
-      const handler = server.tools.get('session_completion')!.handler;
-
-      const result = await handler({});
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
     });
   });
 });

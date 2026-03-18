@@ -28,7 +28,7 @@ CONTENT CREATION
 
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience (recommendations + session + first chunk). Use create_session only when you need manual control over chunk_ids or modes.
-- session_workflow vs session_progress vs session_completion: session_workflow = what phase next, session_progress = metrics only, session_completion = should-I-end-now check.
+- session_status: single tool for session metrics and completion checks. Returns progress, quality, and a continue/complete/break recommendation.
 - submit_answer vs record_review_result: Use submit_answer during teaching sessions (server derives quality). Use record_review_result only for direct review recording outside a session.
 
 OPERATIONAL CONSTRAINTS

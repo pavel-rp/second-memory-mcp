@@ -17,9 +17,7 @@ describe('registerServerTools', () => {
     // Search tools
     expect(stub.tools).toContain('search_learning_content');
     // Session management tools
-    expect(stub.tools).toContain('session_progress');
-    expect(stub.tools).toContain('session_workflow');
-    expect(stub.tools).toContain('session_completion');
+    expect(stub.tools).toContain('session_status');
     // Chunk tools
     expect(stub.tools).toContain('create_learning_item');
     expect(stub.tools).toContain('delete_chunk');

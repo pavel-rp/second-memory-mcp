@@ -146,33 +146,21 @@ describe('Integration: Complete Session Lifecycle', () => {
       time_spent_ms: 3000,
     });
 
-    const sessionProgressTool = server.tools.get('session_progress');
-    expect(sessionProgressTool).toBeDefined();
-    if (!sessionProgressTool) throw new Error('session_progress tool not found');
+    const sessionStatusTool = server.tools.get('session_status');
+    expect(sessionStatusTool).toBeDefined();
+    if (!sessionStatusTool) throw new Error('session_status tool not found');
 
-    const progressResult = await sessionProgressTool.handler({
+    const statusResult = await sessionStatusTool.handler({
       session_id: sessionId,
     });
-    const progressParsed = parseToolResult(progressResult);
-    expect(progressParsed.session_id).toBe(sessionId);
-    expect(progressParsed.overall_progress).toBeDefined();
-    expect(progressParsed.chunks_completed).toBeGreaterThanOrEqual(0);
-    expect(progressParsed.total_chunks).toBeGreaterThan(0);
-    expect(progressParsed.average_quality).toBeDefined();
-    expect(progressParsed.time_elapsed_ms).toBeDefined();
-
-    const sessionWorkflowTool = server.tools.get('session_workflow');
-    expect(sessionWorkflowTool).toBeDefined();
-    if (!sessionWorkflowTool) throw new Error('session_workflow tool not found');
-
-    const workflowResult = await sessionWorkflowTool.handler({
-      session_id: sessionId,
-    });
-    const workflowParsed = parseToolResult(workflowResult);
-    expect(workflowParsed.current_phase).toBeDefined();
-    expect(workflowParsed.phase_progress).toBeDefined();
-    expect(workflowParsed.guidance).toBeDefined();
-    expect(typeof workflowParsed.can_advance).toBe('boolean');
+    const statusParsed = parseToolResult(statusResult);
+    expect(statusParsed.overall_progress).toBeDefined();
+    expect(statusParsed.chunks_completed).toBeGreaterThanOrEqual(0);
+    expect(statusParsed.chunks_remaining).toBeDefined();
+    expect(statusParsed.average_quality).toBeDefined();
+    expect(statusParsed.time_elapsed_ms).toBeDefined();
+    expect(statusParsed.should_complete).toBeDefined();
+    expect(statusParsed.recommendation).toBeDefined();
 
     const completeSessionTool = server.tools.get('complete_session');
     expect(completeSessionTool).toBeDefined();
@@ -199,17 +187,17 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(getActiveAfterCompleteParsed.status).toBe('not_found');
     expect(getActiveAfterCompleteParsed.session).toBeNull();
 
-    const sessionCompletionTool = server.tools.get('session_completion');
-    expect(sessionCompletionTool).toBeDefined();
-    if (!sessionCompletionTool) throw new Error('session_completion tool not found');
+    const sessionStatusToolAfterComplete = server.tools.get('session_status');
+    expect(sessionStatusToolAfterComplete).toBeDefined();
+    if (!sessionStatusToolAfterComplete) throw new Error('session_status tool not found');
 
-    const completionResult = await sessionCompletionTool.handler({
+    const statusAfterResult = await sessionStatusToolAfterComplete.handler({
       session_id: sessionId,
     });
-    const completionParsed = parseToolResult(completionResult);
-    expect(completionParsed.is_complete).toBeDefined();
-    expect(completionParsed.completion_reason).toBeDefined();
-    expect(completionParsed.recommendation).toBeDefined();
+    const statusAfterParsed = parseToolResult(statusAfterResult);
+    expect(statusAfterParsed.should_complete).toBeDefined();
+    expect(statusAfterParsed.reason).toBeDefined();
+    expect(statusAfterParsed.recommendation).toBeDefined();
   });
 
   it('should handle session lifecycle with multiple sessions', async () => {
@@ -461,74 +449,19 @@ describe('Integration: Complete Session Lifecycle', () => {
       time_spent_ms: 5000,
     });
 
-    const sessionProgressTool = server.tools.get('session_progress');
-    const sessionWorkflowTool = server.tools.get('session_workflow');
-    const sessionCompletionTool = server.tools.get('session_completion');
+    const sessionStatusTool = server.tools.get('session_status');
+    expect(sessionStatusTool).toBeDefined();
+    if (!sessionStatusTool) throw new Error('session_status tool not found');
 
-    expect(sessionProgressTool).toBeDefined();
-    expect(sessionWorkflowTool).toBeDefined();
-    expect(sessionCompletionTool).toBeDefined();
-
-    if (!sessionProgressTool || !sessionWorkflowTool || !sessionCompletionTool) {
-      throw new Error('Required session analysis tools not found');
-    }
-
-    const progressWithIdResult = await sessionProgressTool.handler({
+    const statusWithIdResult = await sessionStatusTool.handler({
       session_id: sessionId,
     });
-    const progressWithIdParsed = parseToolResult(progressWithIdResult);
-    expect(progressWithIdParsed.session_id).toBe(sessionId);
-
-    const sessionInput = {
-      session_id: sessionId,
-      mode: 'learning' as const,
-      start_time: new Date(now).toISOString(),
-      current_time: new Date(now + 10000).toISOString(),
-      chunks: [
-        {
-          chunk_id: chunkId,
-          session_chunk_id: 'sc-integration-1',
-          title: 'Test Chunk',
-          status: 'completed' as const,
-          attempts: [
-            {
-              timestamp: new Date(now + 1000).toISOString(),
-              time_spent_ms: 5000,
-              question: 'Test question',
-              response: 'Test response',
-              passed: true,
-              feedback: 'Test feedback',
-              quality: 4,
-            },
-          ],
-          quality_scores: [4],
-          time_spent_ms: 5000,
-        },
-      ],
-      context: { topicId: topicId },
-    };
-
-    const progressWithInputResult = await sessionProgressTool.handler({
-      session_data: sessionInput,
-    });
-    const progressWithInputParsed = parseToolResult(progressWithInputResult);
-    expect(progressWithInputParsed.session_id).toBe(sessionId);
-
-    const workflowWithInputResult = await sessionWorkflowTool.handler({
-      session_data: sessionInput,
-    });
-    const workflowWithInputParsed = parseToolResult(workflowWithInputResult);
-    expect(workflowWithInputParsed.current_phase).toBeDefined();
-    expect(workflowWithInputParsed.phase_progress).toBeDefined();
-    expect(workflowWithInputParsed.guidance).toBeDefined();
-    expect(typeof workflowWithInputParsed.can_advance).toBe('boolean');
-
-    const completionWithInputResult = await sessionCompletionTool.handler({
-      session_data: sessionInput,
-    });
-    const completionWithInputParsed = parseToolResult(completionWithInputResult);
-    expect(completionWithInputParsed.is_complete).toBeDefined();
-    expect(completionWithInputParsed.completion_reason).toBeDefined();
-    expect(completionWithInputParsed.recommendation).toBeDefined();
+    const statusWithIdParsed = parseToolResult(statusWithIdResult);
+    expect(statusWithIdParsed.chunks_completed).toBeDefined();
+    expect(statusWithIdParsed.chunks_remaining).toBeDefined();
+    expect(statusWithIdParsed.overall_progress).toBeDefined();
+    expect(statusWithIdParsed.average_quality).toBeDefined();
+    expect(statusWithIdParsed.should_complete).toBeDefined();
+    expect(statusWithIdParsed.recommendation).toBeDefined();
   });
 });

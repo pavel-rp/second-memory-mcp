@@ -81,8 +81,7 @@ import {
 } from './domain/algorithms/sr-calculator.js';
 import {
   calculateSessionProgress,
-  determineNextPhase,
-  checkSessionCompletion,
+  getSessionStatus,
   validateSessionContext,
   applyBatchSessionChunkOperations,
 } from './domain/services/session-analyzer.js';
@@ -96,7 +95,7 @@ import type {
   RankInput,
   RankOutput,
 } from './domain/types/sr.js';
-import type { SessionProgress, WorkflowPhase, CompletionStatus } from './domain/types/session.js';
+import type { SessionProgress, SessionStatus } from './domain/types/session.js';
 import type { DailyKpis, AnalyticsOutput } from './domain/types/analytics.js';
 
 /** Ports — injectable for testing */
@@ -280,8 +279,7 @@ export interface AppContext {
     options: { includeBreakdowns?: boolean }
   ) => Promise<AnalyticsOutput>;
   calculateSessionProgress: (sessionData: SessionInput) => SessionProgress;
-  determineNextPhase: (sessionData: SessionInput) => WorkflowPhase;
-  checkSessionCompletion: (sessionData: SessionInput) => CompletionStatus;
+  getSessionStatus: (sessionData: SessionInput) => SessionStatus;
   validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
 }
@@ -479,9 +477,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     computeWindowAnalytics: (from, to, options) =>
       analyticsWorkflows.computeWindowAnalytics(from, to, options, analyticsDeps),
     calculateSessionProgress: sessionData => calculateSessionProgress(sessionData, new Date()),
-    determineNextPhase: sessionData => determineNextPhase(sessionData, new Date()),
-    checkSessionCompletion: sessionData =>
-      checkSessionCompletion(sessionData, algorithmConfig, new Date()),
+    getSessionStatus: sessionData => getSessionStatus(sessionData, algorithmConfig, new Date()),
     validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
   };
