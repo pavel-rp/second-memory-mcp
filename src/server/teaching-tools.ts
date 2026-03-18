@@ -24,7 +24,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'and returns a structured teaching instruction. No input needed — reads the active session. ' +
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
         'with the question, response, pass/fail assessment, feedback, and time_spent_ms. ' +
-        "When submit_answer returns status 'recorded', its response includes the next chunk automatically.",
+        "When submit_answer returns status 'recorded', check next.status: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
       inputSchema: z.object({}).shape,
     },
     async () => {
@@ -50,7 +50,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       description:
         "Submit the learner's answer for the current in-progress chunk. " +
         'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
-        'After completion, the response includes the next teaching instruction (piggybacks teach_next).',
+        'When status is "recorded", check next.status for the next action: "teach" → present instruction, "complete" → end session, "blocked"/"error" → surface message.',
       inputSchema: SubmitAnswerInputShape,
     },
     async input => {
@@ -86,9 +86,9 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'One-call convenience tool: checks for active sessions, generates recommendations, ' +
         'creates a session, and returns the first teaching chunk. ' +
         'Replaces the manual sequence of what_to_learn_today → create_session → teach_next. ' +
-        'Response includes first_chunk.instruction — follow it verbatim to teach the chunk. ' +
-        "After teaching and getting the learner's answer, call submit_answer to record the result. " +
-        'The response includes the next chunk — repeat until the session is complete.',
+        'When status is "started", response includes first_chunk.instruction — follow it verbatim to teach the chunk. ' +
+        'Status "nothing_due" or "error" means there is nothing to teach — surface the message and stop. ' +
+        'After teaching, call submit_answer — check next.status for the next action (teach/complete/blocked/error).',
       inputSchema: StartLearningInputShape,
     },
     async input => {
