@@ -9,7 +9,6 @@ import type {
   LearningItem,
   LearningRecommendation,
   SessionSummary,
-  ConversationGuidance,
   SessionConstraints,
   LearningPatterns,
   SubjectPreference,
@@ -73,17 +72,8 @@ export class RecommendationEngine {
     // Generate session summary
     const sessionSummary = this.generateSessionSummary(recommendations);
 
-    // Generate conversation guidance for guided mode
-    const conversationGuidance =
-      processedInput.mode === 'guided'
-        ? this.generateConversationGuidance(processedInput, recommendations)
-        : undefined;
-
     // Generate rationale
     const rationale = this.generateRationale(recommendations, processedInput);
-
-    // Generate alternatives
-    const alternatives = this.generateAlternatives(candidates, recommendations, now);
 
     // Add orchestration hint if no learning items provided
     const orchestrationHint =
@@ -105,11 +95,8 @@ export class RecommendationEngine {
     return {
       recommendations,
       sessionSummary,
-      conversationGuidance,
       estimatedDuration: sessionSummary.totalDuration,
       rationale,
-      alternatives,
-      nextActions: this.generateNextActions(recommendations, processedInput),
       orchestrationHint,
       dependencyResolution,
     };
@@ -276,7 +263,7 @@ export class RecommendationEngine {
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
-        totalCognitiveLoad += recommendation.cognitiveLoad;
+        totalCognitiveLoad += calculateItemCognitiveLoad(item);
       }
     }
 
@@ -291,7 +278,7 @@ export class RecommendationEngine {
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
-        totalCognitiveLoad += recommendation.cognitiveLoad;
+        totalCognitiveLoad += calculateItemCognitiveLoad(item);
       }
     }
 
@@ -307,7 +294,7 @@ export class RecommendationEngine {
         );
         recommendations.push(recommendation);
         totalDuration += item.estimatedDuration;
-        totalCognitiveLoad += recommendation.cognitiveLoad;
+        totalCognitiveLoad += calculateItemCognitiveLoad(item);
         newItemCount++;
       }
     }
@@ -346,7 +333,7 @@ export class RecommendationEngine {
   }
 
   /**
-   * Create recommendation with priority and cognitive load calculation
+   * Create recommendation with priority calculation
    */
   private createRecommendation(
     item: LearningItem,
@@ -368,15 +355,7 @@ export class RecommendationEngine {
       priority,
       reason,
       order,
-      cognitiveLoad: this.calculateCognitiveLoad(item),
     };
-  }
-
-  /**
-   * Calculate cognitive load for an item
-   */
-  private calculateCognitiveLoad(item: LearningItem): number {
-    return calculateItemCognitiveLoad(item);
   }
 
   /**
@@ -560,68 +539,11 @@ export class RecommendationEngine {
     return {
       totalItems: recommendations.length,
       totalDuration: recommendations.reduce((sum, r) => sum + r.item.estimatedDuration, 0),
-      totalCognitiveLoad: recommendations.reduce((sum, r) => sum + r.cognitiveLoad, 0),
       newItems,
       reviewItems,
       remediationItems,
       subjects,
     };
-  }
-
-  /**
-   * Generate conversation guidance for guided mode
-   */
-  private generateConversationGuidance(
-    input: RecommendationInput,
-    recommendations: LearningRecommendation[]
-  ): ConversationGuidance {
-    if (recommendations.length === 0) {
-      return {
-        nextAction:
-          'No items are due for review right now. Consider studying new content or taking a break.',
-        encouragement: 'Great job staying on top of your learning schedule!',
-      };
-    }
-
-    const firstItem = recommendations[0];
-    const totalTime = recommendations.reduce((sum, r) => sum + r.item.estimatedDuration, 0);
-
-    let nextAction = `Start with "${firstItem.item.title}" (${firstItem.item.estimatedDuration} min, ${firstItem.reason}).`;
-
-    if (recommendations.length > 1) {
-      nextAction += ` Then continue with ${
-        recommendations.length - 1
-      } more items (~${totalTime} min total).`;
-    }
-
-    const encouragement = this.generateEncouragement(input, recommendations);
-
-    return {
-      nextAction,
-      encouragement,
-      progressUpdate: `You have ${recommendations.length} items ready for an optimal learning session.`,
-    };
-  }
-
-  /**
-   * Generate encouraging message based on context
-   */
-  private generateEncouragement(
-    input: RecommendationInput,
-    recommendations: LearningRecommendation[]
-  ): string {
-    const overdueCount = recommendations.filter(r => r.reason.includes('overdue')).length;
-    const newCount = recommendations.filter(r => r.item.chunkType === 'new').length;
-
-    if (overdueCount > 0) {
-      return "You're catching up on some overdue items - excellent work maintaining your learning momentum!";
-    }
-
-    if (newCount > 0) {
-      return 'Ready to explore new concepts! This session will expand your knowledge effectively.';
-    }
-
-    return 'Perfect timing for reinforcing your knowledge. Consistent review leads to lasting learning!';
   }
 
   /**
@@ -685,44 +607,6 @@ export class RecommendationEngine {
     }
 
     return rationale;
-  }
-
-  /**
-   * Generate alternative recommendations
-   */
-  private generateAlternatives(
-    candidates: LearningItem[],
-    selected: LearningRecommendation[],
-    now: Date
-  ): LearningRecommendation[] {
-    const selectedIds = new Set(selected.map(r => r.item.id));
-    const alternatives = candidates
-      .filter(item => !selectedIds.has(item.id))
-      .slice(0, 3) // Up to 3 alternatives
-      .map((item, index) => this.createRecommendation(item, index + 1, 'alternative option', now));
-
-    return alternatives;
-  }
-
-  /**
-   * Generate next actions for user
-   */
-  private generateNextActions(
-    recommendations: LearningRecommendation[],
-    input: RecommendationInput
-  ): string[] {
-    if (recommendations.length === 0) {
-      return ['Check for new content to study', 'Review your learning goals'];
-    }
-
-    const actions = ['Begin learning session with recommended items'];
-
-    if (input.mode === 'guided') {
-      actions.push("Say 'next' when ready for the next item");
-      actions.push('Ask questions if you need clarification');
-    }
-
-    return actions;
   }
 
   private isSubjectPreference(value: unknown): value is SubjectPreference {

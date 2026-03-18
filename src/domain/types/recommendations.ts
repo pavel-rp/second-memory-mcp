@@ -57,26 +57,16 @@ export type LearningRecommendation = {
   priority: number;
   reason: string; // "overdue", "optimal timing", "new content", etc.
   order: number; // sequence in session
-  cognitiveLoad: number; // estimated mental effort
 };
 
 // Session summary information
 export type SessionSummary = {
   totalItems: number;
   totalDuration: number; // minutes
-  totalCognitiveLoad: number;
   newItems: number;
   reviewItems: number;
   remediationItems: number;
   subjects: string[]; // unique subjects in session
-};
-
-// Conversation guidance for guided mode
-export type ConversationGuidance = {
-  nextAction: string; // what user should do next
-  clarifyingQuestions?: string[]; // questions to ask if needed
-  encouragement?: string; // motivational message
-  progressUpdate?: string; // where they are in learning journey
 };
 
 // Historical learning patterns for personalization
@@ -132,11 +122,8 @@ export type RecommendationInput = {
 export type RecommendationOutput = {
   recommendations: LearningRecommendation[];
   sessionSummary: SessionSummary;
-  conversationGuidance?: ConversationGuidance; // for guided mode
   estimatedDuration: number; // minutes
   rationale: string; // why these items were chosen
-  alternatives?: LearningRecommendation[]; // backup options
-  nextActions?: string[]; // suggested follow-up actions
   orchestrationHint?: string; // guidance for multi-server workflows when data is empty
   dependencyResolution?: {
     // info about automatically included prerequisites
@@ -212,25 +199,16 @@ export const LearningRecommendationSchema = z
     priority: z.number(),
     reason: z.string().min(1),
     order: z.number().int().min(1),
-    cognitive_load: z.number().min(0),
   })
   .transform(toCamelCaseKeys);
 
 export const SessionSummarySchema = z.object({
   total_items: z.number().int().min(0),
   total_duration: z.number().min(0),
-  total_cognitive_load: z.number().min(0),
   new_items: z.number().int().min(0),
   review_items: z.number().int().min(0),
   remediation_items: z.number().int().min(0),
   subjects: z.array(z.string()),
-});
-
-export const ConversationGuidanceSchema = z.object({
-  next_action: z.string().min(1),
-  clarifying_questions: z.array(z.string()).optional(),
-  encouragement: z.string().optional(),
-  progress_update: z.string().optional(),
 });
 
 const LearningPatternsShape = {
@@ -279,7 +257,6 @@ const LearningRecommendationRawSchema = z.object({
   priority: z.number(),
   reason: z.string().min(1),
   order: z.number().int().min(1),
-  cognitive_load: z.number().min(0),
 });
 
 const SessionHistoryRawSchema = z.object({

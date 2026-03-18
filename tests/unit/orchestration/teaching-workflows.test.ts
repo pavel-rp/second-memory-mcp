@@ -1243,13 +1243,11 @@ function makeRecommendationOutput(overrides?: Partial<RecommendationOutput>): Re
         priority: 10,
         reason: 'overdue',
         order: 1,
-        cognitiveLoad: 3,
       },
     ],
     sessionSummary: {
       totalItems: 1,
       totalDuration: 10,
-      totalCognitiveLoad: 3,
       newItems: 0,
       reviewItems: 1,
       remediationItems: 0,
@@ -1378,7 +1376,6 @@ describe('startLearning', () => {
             priority: 5,
             reason: 'new content',
             order: 1,
-            cognitiveLoad: 2,
           },
         ],
       })

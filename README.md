@@ -134,7 +134,7 @@ The agent calls `what_to_learn_today`:
 }
 ```
 
-The server responds with prioritized items, prerequisite-resolved ordering, and session guidance (some fields like `item` details and `sessionSummary` totals are abbreviated):
+The server responds with prioritized items and prerequisite-resolved ordering (some fields like `item` details and `sessionSummary` totals are abbreviated):
 
 ```json
 {
@@ -143,20 +143,17 @@ The server responds with prioritized items, prerequisite-resolved ordering, and 
       "item": { "id": "chunk-123", "title": "Matrix multiplication" },
       "priority": 0.94,
       "reason": "overdue",
-      "order": 1,
-      "cognitiveLoad": 0.6
+      "order": 1
     },
     {
       "item": { "id": "chunk-456", "title": "Determinants" },
       "priority": 0.81,
       "reason": "optimal timing",
-      "order": 2,
-      "cognitiveLoad": 0.5
+      "order": 2
     }
   ],
   "estimatedDuration": 28,
   "sessionSummary": { "totalItems": 2, "newItems": 0, "reviewItems": 2 },
-  "nextActions": ["Start a review session with these items"],
   "rationale": "Two overdue review items fit within 30-minute window"
 }
 ```
