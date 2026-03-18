@@ -10,8 +10,6 @@ import type {
   LearningRecommendation,
   SessionSummary,
   SessionConstraints,
-  LearningPatterns,
-  SubjectPreference,
 } from '../types/recommendations.js';
 import { logger } from '../../shared/logger.js';
 
@@ -49,23 +47,22 @@ export class RecommendationEngine {
     input: RecommendationInput,
     now: Date
   ): Promise<RecommendationOutput> {
-    // Apply intelligent defaults for guided mode
-    const processedInput = this.applyIntelligentDefaults(input);
+    const effectiveInput = { ...input, timeAvailable: input.timeAvailable ?? 30 };
 
     // Filter and prioritize learning items
     const candidates = await this.filterAndPrioritizeCandidates(
-      processedInput.learningItems,
-      processedInput.constraints,
+      effectiveInput.learningItems,
+      effectiveInput.constraints,
       now
     );
 
     // Compose balanced session
-    let recommendations = this.composeBalancedSession(candidates, processedInput, now);
+    let recommendations = this.composeBalancedSession(candidates, effectiveInput, now);
 
     // Resolve dependencies and include missing prerequisites
     recommendations = await this.resolveAndIncludePrerequisites(
       recommendations,
-      processedInput.learningItems || [],
+      effectiveInput.learningItems || [],
       now
     );
 
@@ -73,12 +70,12 @@ export class RecommendationEngine {
     const sessionSummary = this.generateSessionSummary(recommendations);
 
     // Generate rationale
-    const rationale = this.generateRationale(recommendations, processedInput);
+    const rationale = this.generateRationale(recommendations, effectiveInput);
 
     // Add orchestration hint if no learning items provided
     const orchestrationHint =
-      (processedInput.learningItems?.length ?? 0) === 0
-        ? processedInput.fetchFromDatabase
+      (effectiveInput.learningItems?.length ?? 0) === 0
+        ? effectiveInput.fetchFromDatabase
           ? 'No learning items found with current filters. Try relaxing filters (subjectFilter, dueOnly, limit) or add more learning content to the database.'
           : 'No learning items provided. RECOMMENDED: Use fetchFromDatabase: true to automatically fetch and generate recommendations in one call. Legacy: You can also use list_learning_items to fetch items manually and then pass them to this tool.'
         : undefined;
@@ -100,68 +97,6 @@ export class RecommendationEngine {
       orchestrationHint,
       dependencyResolution,
     };
-  }
-
-  /**
-   * Apply intelligent defaults based on user history and mode
-   */
-  private applyIntelligentDefaults(input: RecommendationInput): RecommendationInput {
-    const defaults: Partial<RecommendationInput> = {
-      mode: input.mode || 'guided',
-    };
-
-    // Time estimation based on history or system defaults
-    if (!input.timeAvailable) {
-      if (input.userHistory?.patterns.averageSessionDuration) {
-        defaults.timeAvailable = input.userHistory.patterns.averageSessionDuration;
-      } else {
-        defaults.timeAvailable = 30; // 30-minute default
-      }
-    }
-
-    // Subject preference from history
-    if (!input.subjectPreference && input.userHistory?.patterns.subjectPreferences) {
-      const preferences = input.userHistory.patterns.subjectPreferences;
-      const topSubject = Object.entries(preferences).sort(([, a], [, b]) => b - a)[0]?.[0];
-      if (this.isSubjectPreference(topSubject)) {
-        defaults.subjectPreference = topSubject;
-      } else {
-        defaults.subjectPreference = 'Any';
-      }
-    }
-
-    // Constraints based on cognitive load patterns
-    if (!input.constraints) {
-      defaults.constraints = this.generateIntelligentConstraints(input);
-    }
-
-    return { ...defaults, ...input };
-  }
-
-  /**
-   * Generate intelligent constraints based on user patterns
-   */
-  private generateIntelligentConstraints(input: RecommendationInput): SessionConstraints {
-    const patterns = input.userHistory?.patterns;
-
-    return {
-      maxDuration: input.timeAvailable || 30,
-      maxCognitiveLoad: patterns?.fatigueThreshold || 20,
-      maxNewItems: this.calculateOptimalNewItems(patterns),
-      subjectFilter: input.subjectPreference !== 'Any' ? input.subjectPreference : undefined,
-    };
-  }
-
-  /**
-   * Calculate optimal number of new items based on success patterns
-   */
-  private calculateOptimalNewItems(patterns?: LearningPatterns): number {
-    if (!patterns) return 3; // Conservative default
-
-    // Adjust new items based on success rate
-    const baseNewItems = 5;
-    const adjustment = (patterns.successRate - 0.7) * 5; // +/- based on 70% baseline
-    return Math.max(1, Math.min(9, Math.round(baseNewItems + adjustment)));
   }
 
   /**
@@ -239,7 +174,11 @@ export class RecommendationEngine {
     input: RecommendationInput,
     now: Date
   ): LearningRecommendation[] {
-    const constraints = input.constraints ?? this.generateIntelligentConstraints(input);
+    const constraints = input.constraints ?? {
+      maxDuration: input.timeAvailable ?? 30,
+      maxCognitiveLoad: 20,
+      maxNewItems: 3,
+    };
     const recommendations: LearningRecommendation[] = [];
     let totalDuration = 0;
     let totalCognitiveLoad = 0;
@@ -607,15 +546,5 @@ export class RecommendationEngine {
     }
 
     return rationale;
-  }
-
-  private isSubjectPreference(value: unknown): value is SubjectPreference {
-    return (
-      value === 'CS' ||
-      value === 'Math' ||
-      value === 'SWE' ||
-      value === 'Language' ||
-      value === 'Any'
-    );
   }
 }

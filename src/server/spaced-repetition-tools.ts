@@ -153,7 +153,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     {
       title: 'Get Learning Recommendations',
       description:
-        "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. RECOMMENDED: Use fetch_from_database: true to automatically fetch and recommend in one call - this is the primary and most convenient pattern. FILTERS: subject_filter, due_only, and limit apply only when fetch_from_database: true. EXAMPLES: (1) Single-call pattern: {fetch_from_database: true, subject_filter: 'Math', due_only: true} fetches due Math items and generates recommendations. (2) Legacy pattern: {learning_items: [...]} uses pre-fetched items (filters are ignored in this mode). Supports both guided 'teach me' mode and explicit parameter mode. The tool provides fast, local-first recommendations without external dependencies.",
+        "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. RECOMMENDED: Use fetch_from_database: true to automatically fetch and recommend in one call - this is the primary and most convenient pattern. FILTERS: subject_filter, due_only, and limit apply only when fetch_from_database: true. EXAMPLES: (1) Single-call pattern: {fetch_from_database: true, subject_filter: 'Math', due_only: true} fetches due Math items and generates recommendations. (2) Legacy pattern: {learning_items: [...]} uses pre-fetched items (filters are ignored in this mode). The tool provides fast, local-first recommendations without external dependencies.",
       inputSchema: RecommendationInputShape,
     },
     async (input: unknown) => {

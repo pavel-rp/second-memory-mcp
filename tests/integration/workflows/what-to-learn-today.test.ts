@@ -38,9 +38,7 @@ describe('Integration: what_to_learn_today', () => {
     ];
 
     const out = await tool.handler({
-      mode: 'explicit',
       time_available: 30,
-      subject_preference: 'Any',
       learning_items: items,
       constraints: { max_duration: 30, max_cognitive_load: 40, max_new_items: 1 },
     });
@@ -63,18 +61,7 @@ describe('Integration: what_to_learn_today', () => {
     ];
 
     const out = await tool.handler({
-      mode: 'guided',
       learning_items: items,
-      user_history: {
-        recent_sessions: [],
-        patterns: {
-          average_session_duration: 20,
-          preferred_difficulty: 5,
-          success_rate: 0.7,
-          fatigue_threshold: 15,
-          subject_preferences: { CS: 1 },
-        },
-      },
     });
     const result = parseToolResult(out);
     expect(result.recommendations.length).toBeGreaterThan(0);

@@ -84,7 +84,6 @@ describe('generateRecommendations', () => {
     const deps = stubDeps();
     const items = [stubItem()];
     const input: RecommendationInput = {
-      mode: 'guided',
       learningItems: items,
     };
 
@@ -99,7 +98,6 @@ describe('generateRecommendations', () => {
   it('fetches items from DB when learningItems is empty', async () => {
     const deps = stubDeps();
     const input: RecommendationInput = {
-      mode: 'guided',
       learningItems: [],
     };
 
@@ -113,9 +111,7 @@ describe('generateRecommendations', () => {
 
   it('fetches items from DB when learningItems is undefined', async () => {
     const deps = stubDeps();
-    const input: RecommendationInput = {
-      mode: 'guided',
-    };
+    const input: RecommendationInput = {};
 
     const result = await generateRecommendations(input, deps, NOW);
 
@@ -126,7 +122,6 @@ describe('generateRecommendations', () => {
   it('passes subjectFilter to DB query', async () => {
     const deps = stubDeps();
     const input: RecommendationInput = {
-      mode: 'guided',
       learningItems: [],
       subjectFilter: 'Math',
     };
@@ -141,7 +136,6 @@ describe('generateRecommendations', () => {
   it('respects dueOnly=false in input', async () => {
     const deps = stubDeps();
     const input: RecommendationInput = {
-      mode: 'guided',
       learningItems: [],
       dueOnly: false,
     };
@@ -160,7 +154,6 @@ describe('generateRecommendations', () => {
       new Set(['missing-chunk'])
     );
     const input: RecommendationInput = {
-      mode: 'guided',
       learningItems: items,
     };
 
@@ -182,7 +175,6 @@ describe('generateRecommendations', () => {
       new Set(['c2'])
     );
     const input: RecommendationInput = {
-      mode: 'guided',
       learningItems: items,
     };
 
