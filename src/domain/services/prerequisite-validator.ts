@@ -244,9 +244,9 @@ export class PrerequisiteValidator {
   }
 
   /**
-   * Check if an individual learning item has been mastered based on criteria
+   * Check if an individual learning item has been mastered
    * @param itemId Chunk ID to check mastery for
-   * @returns Mastery status with detailed metrics
+   * @returns Mastery status
    */
   async checkItemMastery(itemId: string): Promise<MasteryStatus> {
     return await this.masteryService.checkItemMastery(itemId);
