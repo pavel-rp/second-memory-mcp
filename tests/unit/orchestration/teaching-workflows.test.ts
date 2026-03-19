@@ -15,15 +15,13 @@ import type {
 } from '../../../src/domain/types/entities.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import type { HistoricalFeedback } from '../../../src/domain/types/session.js';
-import type { RecommendationOutput } from '../../../src/domain/types/recommendations.js';
+import type { TopicRecommendationOutput } from '../../../src/domain/types/recommendations.js';
 import type { SessionQuestionRepository } from '../../../src/ports/session-question-repository.js';
 import { serviceOk, serviceFail } from '../../../src/domain/types/service-result.js';
 import {
   stubSessionRepository,
   stubChunkRepository,
   stubReviewPersistence,
-  stubPrerequisiteMastery,
-  stubChunkIdLookup,
   stubSessionQuestionRepository,
   stubNotesRepository,
 } from '../../helpers/stub-ports.js';
@@ -1225,36 +1223,25 @@ function makeChunkListRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTo
   };
 }
 
-function makeRecommendationOutput(overrides?: Partial<RecommendationOutput>): RecommendationOutput {
+function makeRecommendationOutput(
+  overrides?: Partial<TopicRecommendationOutput>
+): TopicRecommendationOutput {
   return {
     recommendations: [
       {
-        item: {
-          id: 'c1',
-          title: 'Chunk 1',
-          subject: 'CS',
-          difficulty: 5,
-          nextReviewDate: '2026-03-10',
-          easeFactor: 2.5,
-          repetitions: 1,
-          estimatedDuration: 10,
-          chunkType: 'review',
-        },
-        priority: 10,
-        reason: 'overdue',
-        order: 1,
+        topicId: 'topic-1',
+        topicTitle: 'Topic 1',
+        urgencyScore: 0.5,
+        urgencyReason: '1 chunk overdue (max 1 day)',
+        dueChunkIds: ['c1'],
+        dueChunkCount: 1,
+        totalChunkCount: 3,
+        estimatedMinutes: 10,
+        hasNewChunks: false,
       },
     ],
-    sessionSummary: {
-      totalItems: 1,
-      totalDuration: 10,
-      newItems: 0,
-      reviewItems: 1,
-      remediationItems: 0,
-      subjects: ['CS'],
-    },
-    estimatedDuration: 10,
-    rationale: 'Review overdue items',
+    totalDueTopics: 1,
+    totalDueChunks: 1,
     ...overrides,
   };
 }
@@ -1281,12 +1268,9 @@ function makeStartLearningDeps(overrides?: {
       getWithContent: vi.fn().mockResolvedValue(makeChunkData()),
       ...overrides?.chunks,
     }),
-    mastery: stubPrerequisiteMastery(),
-    chunkIdLookup: stubChunkIdLookup(),
     reviewPersistence: stubReviewPersistence(),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
     sessionQuestions: stubSessionQuestionRepository(),
-    maxDependencyDepth: 5,
   };
 }
 
@@ -1315,10 +1299,13 @@ describe('startLearning', () => {
     expect((result as { message: string }).message).toContain('active session already exists');
   });
 
-  it('returns nothing_due when DB has no chunks', async () => {
-    const deps = makeStartLearningDeps({
-      chunks: { list: vi.fn().mockResolvedValue([]) },
+  it('returns nothing_due when no due chunks exist', async () => {
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue({
+      recommendations: [],
+      totalDueTopics: 0,
+      totalDueChunks: 0,
     });
+    const deps = makeStartLearningDeps();
 
     const result = await startLearning({}, deps);
 
@@ -1326,9 +1313,12 @@ describe('startLearning', () => {
   });
 
   it('returns nothing_due with subject hint when subject_filter used and no items', async () => {
-    const deps = makeStartLearningDeps({
-      chunks: { list: vi.fn().mockResolvedValue([]) },
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue({
+      recommendations: [],
+      totalDueTopics: 0,
+      totalDueChunks: 0,
     });
+    const deps = makeStartLearningDeps();
 
     const result = await startLearning({ subjectFilter: 'Math' }, deps);
 
@@ -1337,9 +1327,11 @@ describe('startLearning', () => {
   });
 
   it('returns nothing_due when no recommendations are available', async () => {
-    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
-      makeRecommendationOutput({ recommendations: [] })
-    );
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue({
+      recommendations: [],
+      totalDueTopics: 0,
+      totalDueChunks: 0,
+    });
     const deps = makeStartLearningDeps();
 
     const result = await startLearning({}, deps);
@@ -1357,25 +1349,20 @@ describe('startLearning', () => {
     expect(result.mode).toBe('review');
   });
 
-  it('auto-detects mode as learning when only new content is available', async () => {
+  it('auto-detects mode as learning when topic has new chunks', async () => {
     vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
       makeRecommendationOutput({
         recommendations: [
           {
-            item: {
-              id: 'c1',
-              title: 'New Chunk',
-              subject: 'CS',
-              difficulty: 3,
-              nextReviewDate: '2026-03-15',
-              easeFactor: 2.5,
-              repetitions: 0,
-              estimatedDuration: 10,
-              chunkType: 'new',
-            },
-            priority: 5,
-            reason: 'new content',
-            order: 1,
+            topicId: 'topic-1',
+            topicTitle: 'New Topic',
+            urgencyScore: 0.3,
+            urgencyReason: '2 chunks ready to learn',
+            dueChunkIds: ['c1'],
+            dueChunkCount: 1,
+            totalChunkCount: 3,
+            estimatedMinutes: 10,
+            hasNewChunks: true,
           },
         ],
       })
@@ -1383,16 +1370,6 @@ describe('startLearning', () => {
     const deps = makeStartLearningDeps();
 
     const result = await startLearning({}, deps);
-
-    expect(result.status).toBe('started');
-    if (result.status !== 'started') throw new Error('Expected started');
-    expect(result.mode).toBe('learning');
-  });
-
-  it('uses explicitly provided mode when specified', async () => {
-    const deps = makeStartLearningDeps();
-
-    const result = await startLearning({ mode: 'learning' }, deps);
 
     expect(result.status).toBe('started');
     if (result.status !== 'started') throw new Error('Expected started');
@@ -1411,7 +1388,7 @@ describe('startLearning', () => {
     expect(result.estimated_duration).toBe(10);
     expect(result.first_chunk).toBeDefined();
     expect(result.first_chunk.status).toBe('teach');
-    expect(result.recommendation_summary).toBe('Review overdue items');
+    expect(result.recommendation_summary).toContain('Topic 1');
   });
 
   it('returns error when session creation fails', async () => {
@@ -1426,31 +1403,13 @@ describe('startLearning', () => {
     expect((result as { message: string }).message).toContain('Race condition');
   });
 
-  it('passes subject_filter to chunks.list', async () => {
+  it('passes subject_filter to generateRecommendations', async () => {
     const deps = makeStartLearningDeps();
 
     await startLearning({ subjectFilter: 'Math' }, deps);
 
-    expect(deps.chunks.list).toHaveBeenCalledWith(
-      expect.objectContaining({ subjectFilter: 'Math' })
-    );
-  });
-
-  it('excludes leeches from candidate chunks by default', async () => {
-    const deps = makeStartLearningDeps();
-
-    await startLearning({}, deps);
-
-    expect(deps.chunks.list).toHaveBeenCalledWith(expect.objectContaining({ isLeech: false }));
-  });
-
-  it('passes time_available to generateRecommendations', async () => {
-    const deps = makeStartLearningDeps();
-
-    await startLearning({ timeAvailable: 15 }, deps);
-
     expect(recommendationWorkflows.generateRecommendations).toHaveBeenCalledWith(
-      expect.objectContaining({ timeAvailable: 15 }),
+      expect.objectContaining({ subjectFilter: 'Math' }),
       expect.anything(),
       expect.any(Date)
     );

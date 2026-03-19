@@ -212,27 +212,11 @@ describe('teaching-tools', () => {
 
     await handler({
       subject_filter: 'Math',
-      time_available: 20,
-      mode: 'review',
     });
 
     expect(ctx.startLearning).toHaveBeenCalledWith({
       subjectFilter: 'Math',
-      timeAvailable: 20,
-      mode: 'review',
     });
-  });
-
-  it('start_learning returns validation error for invalid input', async () => {
-    registerTeachingTools(server as any, ctx);
-    const handler = server.tools.get('start_learning')!.handler;
-
-    const result = await handler({ mode: 'invalid_mode' });
-    const parsed = parseResult(result);
-
-    expect(parsed.success).toBe(false);
-    expect(parsed.error.type).toBe('validation');
-    expect(parsed.error.retryable).toBe(false);
   });
 
   it('start_learning returns session error when orchestration throws', async () => {

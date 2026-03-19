@@ -38,7 +38,7 @@ import type {
   LearningItem,
   PaginatedLearningItemsResponse,
   RecommendationInput,
-  RecommendationOutput,
+  TopicRecommendationOutput,
 } from './domain/types/recommendations.js';
 import type { SessionInput, HistoricalFeedback, BatchOperation } from './domain/types/session.js';
 import type { SearchLearningContentInput, SearchResultSet } from './domain/types/search-tools.js';
@@ -233,7 +233,7 @@ export interface AppContext {
   deleteNote: (noteId: string) => Promise<NoteDeleted>;
 
   // Recommendation orchestration
-  generateRecommendations: (input: RecommendationInput) => Promise<RecommendationOutput>;
+  generateRecommendations: (input: RecommendationInput) => Promise<TopicRecommendationOutput>;
 
   // Search orchestration
   searchLearningContent: (input: SearchLearningContentInput) => Promise<SearchResultSet>;
@@ -350,9 +350,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   };
   const recommendationDeps: recommendationWorkflows.RecommendationDeps = {
     chunks: ports.chunks,
-    mastery: ports.prerequisiteMastery,
-    chunkIdLookup: ports.chunkIdLookup,
-    algorithmConfig,
   };
   const queryDeps: queryWorkflows.QueryDeps = {
     chunks: ports.chunks,
@@ -372,13 +369,10 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const startLearningDeps: teachingWorkflows.StartLearningDeps = {
     sessions: ports.sessions,
     chunks: ports.chunks,
-    mastery: ports.prerequisiteMastery,
-    chunkIdLookup: ports.chunkIdLookup,
     reviewPersistence: ports.reviewPersistence,
     algorithmConfig,
     sessionQuestions: ports.sessionQuestions,
     notes: ports.notes,
-    maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
   };
 
   const notesDeps: notesWorkflows.NotesDeps = {

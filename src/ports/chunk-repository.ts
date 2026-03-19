@@ -12,6 +12,7 @@ export type ListChunksFilter = {
   offset?: number;
   includeContent?: boolean;
   isLeech?: boolean;
+  excludeDraft?: boolean;
 };
 
 /** Filter options for listing chunks with content (paginated). */
@@ -85,6 +86,7 @@ export interface ChunkRepository {
     dueOnly?: boolean;
     limit?: number;
     isLeech?: boolean;
+    excludeDraft?: boolean;
   }): Promise<ChunkMinimalMetadata[]>;
   findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
 }

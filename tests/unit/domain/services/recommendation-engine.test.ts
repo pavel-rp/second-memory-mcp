@@ -1,1089 +1,203 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RecommendationEngine } from '../../../../src/domain/services/recommendation-engine.js';
-import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
-import { DependencyResolver } from '../../../../src/domain/algorithms/dependency-resolver.js';
-import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
-import { mapChunkRowToLearningItem } from '../../../../src/shared/chunk-mapping.js';
-import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
+import { describe, it, expect } from 'vitest';
+import {
+  aggregateTopicRecommendations,
+  type DueChunkInfo,
+} from '../../../../src/domain/services/recommendation-engine.js';
 
 const NOW = new Date('2025-06-15T12:00:00.000Z');
-const TODAY = NOW.toISOString().slice(0, 10);
+const NOW_MS = NOW.getTime();
+const MS_PER_DAY = 86_400_000;
 
-function createTestEngine(chunkLookupFn?: (id: string) => Promise<LearningItem | undefined>) {
-  const mockValidator = new PrerequisiteValidator({
-    referenceValidator: {
-      validateChunkPrerequisites: vi.fn().mockReturnValue({ isValid: true, invalidReferences: [] }),
-    },
-    masteryService: {
-      checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-    },
-    clock: () => NOW.getTime(),
-  });
-  const dependencyResolver = new DependencyResolver(
-    DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-  );
-  return new RecommendationEngine({
-    chunkLookupFn: chunkLookupFn ?? (async () => undefined),
-    prerequisiteValidator: mockValidator,
-    dependencyResolver,
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-  });
-}
-
-function makeItem(overrides: Partial<any> = {}): any {
+function makeDueChunk(overrides: Partial<DueChunkInfo> = {}): DueChunkInfo {
   return {
-    id: overrides.id ?? Math.random().toString(36).slice(2),
-    title: overrides.title ?? 'Item',
-    subject: overrides.subject ?? 'CS',
-    difficulty: overrides.difficulty ?? 5,
-    nextReviewDate: overrides.nextReviewDate ?? TODAY,
+    id: overrides.id ?? 'c1',
+    topicId: overrides.topicId ?? 'topic-1',
+    topicTitle: overrides.topicTitle ?? 'Topic 1',
+    nextReviewAt: overrides.nextReviewAt ?? NOW_MS - MS_PER_DAY,
     easeFactor: overrides.easeFactor ?? 2.5,
-    repetitions: overrides.repetitions ?? 2,
     estimatedDuration: overrides.estimatedDuration ?? 10,
-    chunkType: overrides.chunkType ?? 'review',
-    prerequisites: overrides.prerequisites,
-    tags: overrides.tags,
-    topicId: overrides.topicId,
-    topicTitle: overrides.topicTitle,
+    createdAt: overrides.createdAt ?? NOW_MS - 10 * MS_PER_DAY,
+    ...overrides,
   };
 }
 
-function makeChunkRow(
-  id: string,
-  prerequisites: string[] = [],
-  overrides: Partial<Record<string, unknown>> = {}
-): any {
-  const now = Date.now();
-  return {
-    id,
-    topicId: 'topic',
-    title: overrides.title ?? `Chunk ${id}`,
-    subject: overrides.subject ?? 'CS',
-    difficulty: overrides.difficulty ?? 5,
-    nextReviewAt: overrides.nextReviewAt ?? now,
-    easeFactor: overrides.easeFactor ?? 2.5,
-    repetitions: overrides.repetitions ?? 1,
-    lastReviewedAt: overrides.lastReviewedAt ?? null,
-    estimatedDuration: overrides.estimatedDuration ?? 10,
-    chunkType: overrides.chunkType ?? 'new',
-    contentStatus: overrides.contentStatus ?? 'final',
-    prerequisitesJson: JSON.stringify(prerequisites),
-    tagsJson: JSON.stringify(overrides.tags ?? []),
-    content: overrides.content ?? null,
-    contentVersion: overrides.contentVersion ?? null,
-    contentUpdatedAt: overrides.contentUpdatedAt ?? null,
-    createdAt: overrides.createdAt ?? now,
-    updatedAt: overrides.updatedAt ?? now,
-  };
-}
-
-describe('RecommendationEngine', () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
-  afterEach(() => {
-    vi.restoreAllMocks();
+describe('aggregateTopicRecommendations', () => {
+  it('returns empty array for no due chunks', () => {
+    const result = aggregateTopicRecommendations({
+      dueChunks: [],
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
+    expect(result).toEqual([]);
   });
 
-  it('returns empty when no items match constraints', async () => {
-    const engine = createTestEngine();
-    const out = await engine.generateRecommendations(
-      {
-        learningItems: [makeItem({ id: 'a', subject: 'Math' })],
-        constraints: { subjectFilter: 'CS', maxDuration: 5 },
-        timeAvailable: 5,
-      },
-      NOW
-    );
-
-    expect(out.recommendations.length).toBe(0);
-    expect(out.estimatedDuration).toBe(0);
-  });
-
-  it('respects maxNewItems constraint and session duration/cognitive load limits', async () => {
-    const engine = createTestEngine();
-    const items = [
-      // Overdue review items
-      makeItem({
-        id: 'o1',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-13',
-        estimatedDuration: 10,
-        difficulty: 6,
-        easeFactor: 1.8,
-      }),
-      makeItem({
-        id: 'o2',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        estimatedDuration: 10,
-        difficulty: 6,
-      }),
-      // New items
-      makeItem({
-        id: 'n1',
-        chunkType: 'new',
-        estimatedDuration: 10,
-        difficulty: 7,
-        easeFactor: 1.9,
-      }),
-      makeItem({ id: 'n2', chunkType: 'new', estimatedDuration: 10, difficulty: 7 }),
-      makeItem({ id: 'n3', chunkType: 'new', estimatedDuration: 10, difficulty: 7 }),
+  it('groups chunks by topic and returns topic-level recommendations', () => {
+    const chunks = [
+      makeDueChunk({ id: 'c1', topicId: 'topic-1', topicTitle: 'Segment Trees' }),
+      makeDueChunk({ id: 'c2', topicId: 'topic-1', topicTitle: 'Segment Trees' }),
+      makeDueChunk({ id: 'c3', topicId: 'topic-2', topicTitle: 'Graph Theory' }),
     ];
-
-    const out = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 30,
-        constraints: { maxDuration: 30, maxCognitiveLoad: 25, maxNewItems: 2 },
-      },
-      NOW
-    );
-
-    const newCount = out.recommendations.filter(r => r.item.chunkType === 'new').length;
-    expect(newCount).toBeLessThanOrEqual(2);
-    expect(out.sessionSummary.totalDuration).toBeLessThanOrEqual(30);
-  });
-
-  it('includes non-overdue review items in session', async () => {
-    const engine = createTestEngine();
-    // Future nextReviewDate → classified as review (not overdue)
-    const items = [
-      makeItem({
-        id: 'r1',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-16',
-        estimatedDuration: 10,
-      }),
-      makeItem({
-        id: 'r2',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-16',
-        estimatedDuration: 10,
-      }),
-    ];
-
-    const out = await engine.generateRecommendations(
-      { learningItems: items, timeAvailable: 60 },
-      NOW
-    );
-
-    expect(out.recommendations.length).toBeGreaterThan(0);
-    expect(out.recommendations.every(r => r.reason === 'optimal review timing')).toBe(true);
-  });
-
-  it('groups recommendations by topic and assigns sequential order', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({ id: 'e1', difficulty: 3, estimatedDuration: 5, topicId: 'topic-easy' }),
-      makeItem({ id: 'm1', difficulty: 6, estimatedDuration: 5, topicId: 'topic-med' }),
-      makeItem({
-        id: 'h1',
-        difficulty: 9,
-        estimatedDuration: 5,
-        easeFactor: 1.6,
-        topicId: 'topic-hard',
-      }),
-      makeItem({ id: 'e2', difficulty: 3, estimatedDuration: 5, topicId: 'topic-easy' }),
-      makeItem({ id: 'm2', difficulty: 6, estimatedDuration: 5, topicId: 'topic-med' }),
-      makeItem({
-        id: 'h2',
-        difficulty: 9,
-        estimatedDuration: 5,
-        easeFactor: 1.6,
-        topicId: 'topic-hard',
-      }),
-    ];
-
-    const out = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 40,
-        constraints: { maxDuration: 40, maxCognitiveLoad: 100, maxNewItems: 6 },
-      },
-      NOW
-    );
-
-    expect(out.recommendations.length).toBeGreaterThanOrEqual(4);
-    // Orders should be strictly increasing starting at 1
-    const orders = out.recommendations.map(r => r.order);
-    expect(orders[0]).toBe(1);
-    for (let i = 1; i < orders.length; i++) {
-      expect(orders[i]).toBe(orders[i - 1] + 1);
-    }
-  });
-
-  it('returns orchestrationHint when learningItems array is empty', async () => {
-    const engine = createTestEngine();
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: [],
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    expect(result.orchestrationHint).toBeDefined();
-    expect(result.orchestrationHint).toContain('No learning items provided');
-    expect(result.orchestrationHint).toContain('fetchFromDatabase: true');
-    expect(result.orchestrationHint).toContain('automatically fetch');
-  });
-
-  it('does not return orchestrationHint when learningItems are provided', async () => {
-    const engine = createTestEngine();
-    const items = [makeItem({ id: 'test-item', estimatedDuration: 10 })];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    expect(result.orchestrationHint).toBeUndefined();
-  });
-
-  it('handles empty learningItems in explicit mode', async () => {
-    const engine = createTestEngine();
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: [],
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    expect(result.orchestrationHint).toBeDefined();
-    expect(result.recommendations).toHaveLength(0);
-    expect(result.sessionSummary.totalItems).toBe(0);
-  });
-
-  it('maintains backward compatibility - orchestrationHint is optional', async () => {
-    const engine = createTestEngine();
-    const items = [makeItem({ id: 'test-item', estimatedDuration: 10 })];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    // Should have all required fields
-    expect(result).toHaveProperty('recommendations');
-    expect(result).toHaveProperty('sessionSummary');
-    expect(result).toHaveProperty('estimatedDuration');
-    expect(result).toHaveProperty('rationale');
-    // orchestrationHint should be undefined when not needed
-    expect(result.orchestrationHint).toBeUndefined();
-  });
-
-  it('automatically includes prerequisites when items have dependencies', async () => {
-    const engine = createTestEngine();
-
-    // Create items with prerequisite relationships:
-    // item-c requires item-b, item-b requires item-a
-    const items = [
-      makeItem({
-        id: 'item-a',
-        title: 'Prerequisite A',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: [],
-      }),
-      makeItem({
-        id: 'item-b',
-        title: 'Prerequisite B',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: ['item-a'],
-      }),
-      makeItem({
-        id: 'item-c',
-        title: 'Main Item C',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        nextReviewDate: '2025-06-14', // Overdue
-        prerequisites: ['item-b'],
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    // Should include all items with prerequisites ordered correctly
-    expect(result.recommendations.length).toBeGreaterThanOrEqual(1);
-
-    // Check if prerequisite items are marked correctly
-    const hasPrerequisiteReason = result.recommendations.some(r =>
-      r.reason.includes('prerequisite')
-    );
-
-    // Verify rationale mentions prerequisites if they were added
-    if (hasPrerequisiteReason) {
-      expect(result.rationale).toMatch(/prerequisite/i);
-    }
-
-    // Verify dependency resolution info is included
-    if (result.dependencyResolution && result.dependencyResolution.addedPrerequisites.length > 0) {
-      expect(result.dependencyResolution.addedPrerequisites).toBeDefined();
-      expect(result.dependencyResolution.resolvedOrder).toBeDefined();
-      expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
-    }
-  });
-
-  it('includes transitive prerequisites when only dependent item is provided', async () => {
-    const chunkRows: Record<string, any> = {
-      'item-a': makeChunkRow('item-a', []),
-    };
-
-    const engine = createTestEngine(async (id: string) => {
-      const row = chunkRows[id];
-      return row ? (mapChunkRowToLearningItem(row) as LearningItem) : undefined;
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map([
+        ['topic-1', 5],
+        ['topic-2', 3],
+      ]),
+      limit: 10,
+      now: NOW,
     });
 
-    const overdueDate = '2025-06-14';
-    const items = [
-      makeItem({
-        id: 'item-b',
-        title: 'Intermediate Item B',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        nextReviewDate: overdueDate,
-        prerequisites: ['item-a'],
-      }),
-      makeItem({
-        id: 'item-c',
-        title: 'Main Item C',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        nextReviewDate: overdueDate,
-        prerequisites: ['item-b'],
-      }),
-    ];
+    expect(result).toHaveLength(2);
+    const t1 = result.find(r => r.topicId === 'topic-1')!;
+    expect(t1.topicTitle).toBe('Segment Trees');
+    expect(t1.dueChunkCount).toBe(2);
+    expect(t1.totalChunkCount).toBe(5);
+    expect(t1.dueChunkIds).toEqual(['c1', 'c2']);
 
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    const orderedIds = result.recommendations.map(r => r.item.id);
-    expect(orderedIds).toEqual(['item-a', 'item-b', 'item-c']);
-
-    expect(result.dependencyResolution).toBeDefined();
-    expect(result.dependencyResolution?.addedPrerequisites).toContain('item-a');
+    const t2 = result.find(r => r.topicId === 'topic-2')!;
+    expect(t2.dueChunkCount).toBe(1);
+    expect(t2.totalChunkCount).toBe(3);
   });
 
-  it('orders items topologically when dependencies exist', async () => {
-    const engine = createTestEngine();
-
-    // Create a dependency chain: A <- B <- C
-    const items = [
-      makeItem({
-        id: 'item-a',
-        title: 'Foundation',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: [],
-      }),
-      makeItem({
-        id: 'item-b',
-        title: 'Intermediate',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: ['item-a'],
-      }),
-      makeItem({
-        id: 'item-c',
-        title: 'Advanced',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        nextReviewDate: '2025-06-14', // Make it high priority
-        prerequisites: ['item-b'],
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    // If prerequisites were included, they should come before dependent items
-    if (result.recommendations.length > 1) {
-      const itemIds = result.recommendations.map(r => r.item.id);
-
-      // Find positions of items in recommendation list
-      const posA = itemIds.indexOf('item-a');
-      const posB = itemIds.indexOf('item-b');
-      const posC = itemIds.indexOf('item-c');
-
-      // If all items are included, verify prerequisite order
-      if (posA !== -1 && posB !== -1 && posC !== -1) {
-        expect(posA).toBeLessThan(posB);
-        expect(posB).toBeLessThan(posC);
-      }
-    }
-  });
-
-  it('handles items without prerequisites normally', async () => {
-    const engine = createTestEngine();
-
-    const items = [
-      makeItem({
-        id: 'item-1',
-        estimatedDuration: 10,
-        chunkType: 'review',
-        prerequisites: [],
-      }),
-      makeItem({
-        id: 'item-2',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: [],
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    // Should work normally without dependency resolution
-    expect(result.recommendations.length).toBeGreaterThan(0);
-
-    // Dependency resolution info should be undefined or empty
-    if (result.dependencyResolution) {
-      expect(result.dependencyResolution.addedPrerequisites).toHaveLength(0);
-    }
-  });
-
-  it('includes dependencyResolution field in output when prerequisites are added', async () => {
-    const engine = createTestEngine();
-
-    const items = [
-      makeItem({
-        id: 'prereq',
-        title: 'Prerequisite',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: [],
-      }),
-      makeItem({
-        id: 'main',
-        title: 'Main Item',
-        estimatedDuration: 10,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14', // Overdue
-        prerequisites: ['prereq'],
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    // Type check: ensure dependencyResolution field exists in type
-    expect(result).toHaveProperty('recommendations');
-    expect(result).toHaveProperty('dependencyResolution');
-
-    // If prerequisites were added, verify the structure
-    if (result.dependencyResolution) {
-      expect(result.dependencyResolution).toHaveProperty('addedPrerequisites');
-      expect(result.dependencyResolution).toHaveProperty('resolvedOrder');
-      expect(Array.isArray(result.dependencyResolution.addedPrerequisites)).toBe(true);
-      expect(Array.isArray(result.dependencyResolution.resolvedOrder)).toBe(true);
-    }
-  });
-
-  it('ensures resolvedOrder only contains items actually present in recommendations', async () => {
-    const engine = createTestEngine();
-
-    // Create items with a simple prerequisite relationship
-    const items = [
-      makeItem({
-        id: 'existing-prereq',
-        title: 'Existing Prerequisite',
-        estimatedDuration: 10,
-        chunkType: 'new',
-        prerequisites: [],
-      }),
-      makeItem({
-        id: 'main-item',
-        title: 'Main Item',
-        estimatedDuration: 10,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        prerequisites: ['existing-prereq'],
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    // Verify that dependencyResolution is consistent with recommendations
-    if (result.dependencyResolution && result.dependencyResolution.resolvedOrder.length > 0) {
-      const recommendationIds = new Set(result.recommendations.map(r => r.item.id));
-
-      // Every item in resolvedOrder must be present in recommendations
-      for (const itemId of result.dependencyResolution.resolvedOrder) {
-        expect(recommendationIds.has(itemId)).toBe(true);
-      }
-
-      // The number of items should match
-      expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
-    }
-  });
-
-  it('returns fetchFromDatabase orchestrationHint when items empty and fetchFromDatabase is true', async () => {
-    const engine = createTestEngine();
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: [],
-        timeAvailable: 30,
-        fetchFromDatabase: true,
-      },
-      NOW
-    );
-
-    expect(result.orchestrationHint).toBeDefined();
-    expect(result.orchestrationHint).toContain('No learning items found');
-    expect(result.orchestrationHint).toContain('relaxing filters');
-  });
-
-  it('includes prerequisite filtering count in rationale when items are filtered', async () => {
-    // Create an engine where prerequisite validation filters out items
-    const mockValidator = new PrerequisiteValidator({
-      referenceValidator: {
-        validateChunkPrerequisites: vi
-          .fn()
-          .mockReturnValue({ isValid: true, invalidReferences: [] }),
-      },
-      masteryService: {
-        checkItemMastery: vi.fn().mockResolvedValue({ isMastered: false }),
-      },
-      clock: () => NOW.getTime(),
-    });
-    const dependencyResolver = new DependencyResolver(
-      DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-    );
-
-    const engine = new RecommendationEngine({
-      chunkLookupFn: async () => undefined,
-      prerequisiteValidator: mockValidator,
-      dependencyResolver,
-      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-    });
-
-    const items = [
-      makeItem({ id: 'no-prereqs', prerequisites: [], estimatedDuration: 10 }),
-      makeItem({ id: 'with-prereqs', prerequisites: ['missing-prereq'], estimatedDuration: 10 }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    // The item with unmastered prerequisites should be filtered, affecting the rationale
-    expect(result.rationale).toMatch(/spaced repetition/i);
-    expect(result.rationale).toMatch(/1 items? were filtered out due to unmet prerequisites/i);
-  });
-
-  it('does not include dependencyResolution when no prerequisites were added', async () => {
-    const engine = createTestEngine();
-    const items = [makeItem({ id: 'standalone', estimatedDuration: 10, prerequisites: [] })];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 30,
-      },
-      NOW
-    );
-
-    expect(result.dependencyResolution).toBeUndefined();
-  });
-
-  it('handles missing prerequisite chunks gracefully without breaking topological order', async () => {
-    const engine = createTestEngine();
-
-    // Create items where prerequisites exist but form a chain that's incomplete in database
-    // This tests the scenario where dependency resolution finds a missing chunk
-    const items = [
-      makeItem({
-        id: 'existing-item',
-        title: 'Existing Item',
-        estimatedDuration: 10,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        prerequisites: [], // No prerequisites, so will pass validation
-      }),
-      makeItem({
-        id: 'dependent-item',
-        title: 'Dependent Item',
-        estimatedDuration: 10,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        prerequisites: [], // No prerequisites to avoid validation filtering
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-      },
-      NOW
-    );
-
-    // Should return recommendations for items without prerequisite issues
-    expect(result.recommendations.length).toBeGreaterThan(0);
-
-    // Verify consistency between resolvedOrder and recommendations
-    if (result.dependencyResolution && result.dependencyResolution.resolvedOrder.length > 0) {
-      const recommendationIds = new Set(result.recommendations.map(r => r.item.id));
-
-      // All items in resolvedOrder should be in recommendations
-      for (const itemId of result.dependencyResolution.resolvedOrder) {
-        expect(recommendationIds.has(itemId)).toBe(true);
-      }
-
-      // Number of items in resolvedOrder should match recommendations
-      expect(result.dependencyResolution.resolvedOrder.length).toBe(result.recommendations.length);
-    }
-  });
-
-  it('returns original recommendations when dependency resolution finds circular deps', async () => {
-    const engine = createTestEngine();
-    // Items with circular prerequisites: A → B → A
-    const items = [
-      makeItem({
-        id: 'item-a',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        estimatedDuration: 10,
-        prerequisites: ['item-b'],
-      }),
-      makeItem({
-        id: 'item-b',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        estimatedDuration: 10,
-        prerequisites: ['item-a'],
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { learningItems: items, timeAvailable: 60 },
-      NOW
-    );
-
-    // Should still return recommendations despite circular deps
-    expect(result.recommendations.length).toBeGreaterThan(0);
-    // Dependency resolution should be undefined (invalid resolution → null internally)
-    expect(result.dependencyResolution).toBeUndefined();
-  });
-
-  it('returns original recommendations when dependency resolver throws', async () => {
-    const mockValidator = new PrerequisiteValidator({
-      referenceValidator: {
-        validateChunkPrerequisites: vi
-          .fn()
-          .mockReturnValue({ isValid: true, invalidReferences: [] }),
-      },
-      masteryService: {
-        checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
-      },
-      clock: () => NOW.getTime(),
-    });
-    const mockResolver = {
-      resolveDependencies: vi.fn().mockRejectedValue(new Error('resolver crash')),
-    };
-    const engine = new RecommendationEngine({
-      chunkLookupFn: async () => undefined,
-      prerequisiteValidator: mockValidator,
-      dependencyResolver: mockResolver as any,
-      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-    });
-
-    const items = [makeItem({ id: 'item-x', chunkType: 'review', nextReviewDate: '2025-06-14' })];
-
-    const result = await engine.generateRecommendations(
-      { learningItems: items, timeAvailable: 60 },
-      NOW
-    );
-
-    expect(result.recommendations.length).toBeGreaterThan(0);
-    expect(result.dependencyResolution).toBeUndefined();
-  });
-
-  it('defaults timeAvailable to 30 when not provided', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({
-        id: 'a',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        estimatedDuration: 10,
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-      },
-      NOW
-    );
-
-    expect(result.recommendations.length).toBeGreaterThan(0);
-  });
-
-  it('defaults constraints to maxDuration=30, maxCognitiveLoad=20, maxNewItems=3 when not provided', async () => {
-    const engine = createTestEngine();
-    // 4 new items, but default maxNewItems=3 should cap them
-    const items = [
-      makeItem({ id: 'n1', chunkType: 'new', estimatedDuration: 5 }),
-      makeItem({ id: 'n2', chunkType: 'new', estimatedDuration: 5 }),
-      makeItem({ id: 'n3', chunkType: 'new', estimatedDuration: 5 }),
-      makeItem({ id: 'n4', chunkType: 'new', estimatedDuration: 5 }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { learningItems: items, timeAvailable: 60 },
-      NOW
-    );
-
-    const newCount = result.recommendations.filter(r => r.item.chunkType === 'new').length;
-    expect(newCount).toBeLessThanOrEqual(3);
-  });
-
-  it('handles undefined learningItems gracefully', async () => {
-    const engine = createTestEngine();
-
-    const result = await engine.generateRecommendations(
-      { learningItems: undefined as any, timeAvailable: 30 },
-      NOW
-    );
-
-    expect(result.recommendations).toEqual([]);
-  });
-
-  it('groups easy and hard items by topic when no medium-difficulty items exist', async () => {
-    const engine = createTestEngine();
-    // All items either very easy (cogLoad < 10) or very hard (cogLoad >= 15)
-    const items = [
-      makeItem({
-        id: 'easy-1',
-        difficulty: 1,
-        estimatedDuration: 5,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        topicId: 'topic-easy',
-      }),
-      makeItem({
-        id: 'easy-2',
-        difficulty: 2,
-        estimatedDuration: 5,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        topicId: 'topic-easy',
-      }),
-      makeItem({
-        id: 'hard-1',
-        difficulty: 10,
-        estimatedDuration: 15,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        topicId: 'topic-hard',
-      }),
-      makeItem({
-        id: 'hard-2',
-        difficulty: 10,
-        estimatedDuration: 15,
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        topicId: 'topic-hard',
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { learningItems: items, timeAvailable: 120 },
-      NOW
-    );
-
-    expect(result.recommendations.length).toBeGreaterThan(0);
-
-    // Verify topic contiguity: items from the same topic must be adjacent
-    for (const topicId of ['topic-easy', 'topic-hard']) {
-      const indices = result.recommendations
-        .map((r, i) => (r.item.topicId === topicId ? i : -1))
-        .filter(i => i !== -1);
-      if (indices.length > 1) {
-        const min = indices[0];
-        const max = indices[indices.length - 1];
-        for (let i = min; i <= max; i++) {
-          expect(result.recommendations[i].item.topicId).toBe(topicId);
-        }
-      }
-    }
-  });
-
-  it('includes timeAvailable in rationale when set', async () => {
-    const engine = createTestEngine();
-    const items = [
-      makeItem({
-        id: 'a',
-        chunkType: 'review',
-        nextReviewDate: '2025-06-14',
-        estimatedDuration: 10,
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      { learningItems: items, timeAvailable: 45 },
-      NOW
-    );
-
-    expect(result.rationale).toContain('45-minute time constraint');
-  });
-
-  it('groups chunks from the same topic contiguously', async () => {
-    const engine = createTestEngine();
-    // 2 topics, 3 chunks each, varying difficulty — all overdue so they all get selected
-    const items = [
-      makeItem({
-        id: 'a1',
-        topicId: 'topic-a',
-        topicTitle: 'Topic A',
-        difficulty: 3,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 'a2',
-        topicId: 'topic-a',
-        topicTitle: 'Topic A',
-        difficulty: 7,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 'a3',
-        topicId: 'topic-a',
-        topicTitle: 'Topic A',
-        difficulty: 9,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-        easeFactor: 1.6,
-      }),
-      makeItem({
-        id: 'b1',
-        topicId: 'topic-b',
-        topicTitle: 'Topic B',
-        difficulty: 2,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 'b2',
-        topicId: 'topic-b',
-        topicTitle: 'Topic B',
-        difficulty: 6,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 'b3',
-        topicId: 'topic-b',
-        topicTitle: 'Topic B',
-        difficulty: 10,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-        easeFactor: 1.6,
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-        constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
-      },
-      NOW
-    );
-
-    // Assert all 6 items are present (prevents vacuous contiguity check)
-    const allIds = result.recommendations.map(r => r.item.id);
-    expect(allIds).toHaveLength(6);
-    for (const id of ['a1', 'a2', 'a3', 'b1', 'b2', 'b3']) {
-      expect(allIds).toContain(id);
-    }
-
-    // For each pair of chunks from the same topic, no chunk from a different topic appears between them
-    for (const topicId of ['topic-a', 'topic-b']) {
-      const indices = result.recommendations
-        .map((r, i) => (r.item.topicId === topicId ? i : -1))
-        .filter(i => i !== -1);
-      expect(indices.length).toBe(3);
-      if (indices.length > 1) {
-        const min = indices[0];
-        const max = indices[indices.length - 1];
-        // All items between min and max must belong to the same topic
-        for (let i = min; i <= max; i++) {
-          expect(result.recommendations[i].item.topicId).toBe(topicId);
-        }
-      }
-    }
-
-    // Orders should be sequential 1..N
-    const orders = result.recommendations.map(r => r.order);
-    for (let i = 0; i < orders.length; i++) {
-      expect(orders[i]).toBe(i + 1);
-    }
-  });
-
-  it('treats chunks without topicId as individual groups', async () => {
-    const engine = createTestEngine();
-    // Mix orphan chunks (no topicId) with multi-chunk topic
-    const items = [
-      makeItem({
-        id: 'orphan-1',
-        difficulty: 5,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 't1',
-        topicId: 'topic-x',
-        topicTitle: 'Topic X',
-        difficulty: 5,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 't2',
-        topicId: 'topic-x',
-        topicTitle: 'Topic X',
-        difficulty: 5,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-      makeItem({
-        id: 'orphan-2',
-        difficulty: 5,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-      }),
-    ];
-
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-        constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
-      },
-      NOW
-    );
-
-    // Topic-x chunks must be contiguous
-    const topicXIndices = result.recommendations
-      .map((r, i) => (r.item.topicId === 'topic-x' ? i : -1))
-      .filter(i => i !== -1);
-    if (topicXIndices.length === 2) {
-      expect(topicXIndices[1] - topicXIndices[0]).toBe(1);
-    }
-
-    // Orphans may or may not be adjacent — key assertion is that topic-x chunks are contiguous
-    expect(result.recommendations.length).toBe(4);
-  });
-
-  it('preserves intra-topic chunk order across difficulty levels', async () => {
-    const engine = createTestEngine();
-    // Single topic with easy + hard chunks — order from composeBalancedSession should be preserved within the group
-    const items = [
-      makeItem({
+  it('sorts topics by urgency score descending', () => {
+    const chunks = [
+      makeDueChunk({
         id: 'c1',
-        topicId: 'topic-c',
-        topicTitle: 'Topic C',
-        difficulty: 2,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
+        topicId: 'topic-low',
+        topicTitle: 'Low',
+        nextReviewAt: NOW_MS, // not overdue
       }),
-      makeItem({
+      makeDueChunk({
         id: 'c2',
-        topicId: 'topic-c',
-        topicTitle: 'Topic C',
-        difficulty: 9,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
-        easeFactor: 1.6,
-      }),
-      makeItem({
-        id: 'c3',
-        topicId: 'topic-c',
-        topicTitle: 'Topic C',
-        difficulty: 5,
-        estimatedDuration: 5,
-        nextReviewDate: '2025-06-14',
+        topicId: 'topic-high',
+        topicTitle: 'High',
+        nextReviewAt: NOW_MS - 10 * MS_PER_DAY, // 10 days overdue
       }),
     ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
 
-    const result = await engine.generateRecommendations(
-      {
-        learningItems: items,
-        timeAvailable: 60,
-        constraints: { maxDuration: 60, maxCognitiveLoad: 200 },
-      },
-      NOW
+    expect(result[0]!.topicId).toBe('topic-high');
+    expect(result[0]!.urgencyScore).toBeGreaterThan(result[1]!.urgencyScore);
+  });
+
+  it('orders dueChunkIds by createdAt within topic', () => {
+    const chunks = [
+      makeDueChunk({ id: 'c-later', topicId: 't1', createdAt: NOW_MS - MS_PER_DAY }),
+      makeDueChunk({ id: 'c-earlier', topicId: 't1', createdAt: NOW_MS - 5 * MS_PER_DAY }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
+
+    expect(result[0]!.dueChunkIds).toEqual(['c-earlier', 'c-later']);
+  });
+
+  it('computes estimatedMinutes from chunk durations, defaults 5 for null', () => {
+    const chunks = [
+      makeDueChunk({ id: 'c1', topicId: 't1', estimatedDuration: 10 }),
+      makeDueChunk({ id: 'c2', topicId: 't1', estimatedDuration: null as unknown as number }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
+
+    expect(result[0]!.estimatedMinutes).toBe(15); // 10 + 5 (default)
+  });
+
+  it('detects hasNewChunks when a chunk has never been rescheduled', () => {
+    const createdAt = NOW_MS - MS_PER_DAY;
+    const chunks = [
+      makeDueChunk({
+        id: 'c-new',
+        topicId: 't1',
+        nextReviewAt: createdAt, // same as createdAt = never rescheduled
+        createdAt,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
+
+    expect(result[0]!.hasNewChunks).toBe(true);
+  });
+
+  it('sets hasNewChunks false when all chunks have been reviewed', () => {
+    const chunks = [
+      makeDueChunk({
+        id: 'c1',
+        topicId: 't1',
+        nextReviewAt: NOW_MS - MS_PER_DAY, // rescheduled to a different time than createdAt
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
+
+    expect(result[0]!.hasNewChunks).toBe(false);
+  });
+
+  it('respects the limit parameter', () => {
+    const chunks = Array.from({ length: 5 }, (_, i) =>
+      makeDueChunk({ id: `c${i}`, topicId: `t${i}`, topicTitle: `Topic ${i}` })
     );
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 3,
+      now: NOW,
+    });
 
-    // All chunks belong to same topic — output order should match the order
-    // they were selected (from composeBalancedSession), since they're all in one group
-    const ids = result.recommendations.map(r => r.item.id);
-    expect(ids.length).toBe(3);
+    expect(result).toHaveLength(3);
+  });
 
-    // Verify intra-topic order: the relative order of topic-c chunks in the
-    // output should match the order they entered groupByTopic
-    // (which is the composeBalancedSession order). Since all are overdue and
-    // same topic, they should remain in their input-priority order.
-    const topicCIds = result.recommendations
-      .filter(r => r.item.topicId === 'topic-c')
-      .map(r => r.item.id);
-    // They should be contiguous and in the same relative order as input priority
-    expect(topicCIds).toEqual(['c1', 'c2', 'c3']);
+  it('falls back to dueChunkCount when topicChunkCounts has no entry', () => {
+    const chunks = [
+      makeDueChunk({ id: 'c1', topicId: 't1' }),
+      makeDueChunk({ id: 'c2', topicId: 't1' }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(), // no entry for t1
+      limit: 10,
+      now: NOW,
+    });
 
-    // Orders should be sequential 1..N
-    const orders = result.recommendations.map(r => r.order);
-    for (let i = 0; i < orders.length; i++) {
-      expect(orders[i]).toBe(i + 1);
-    }
+    expect(result[0]!.totalChunkCount).toBe(2); // falls back to due count
+  });
+
+  it('uses stable tiebreaker (topicTitle) when scores are equal', () => {
+    const chunks = [
+      makeDueChunk({ id: 'c1', topicId: 't-b', topicTitle: 'Bravo', nextReviewAt: NOW_MS }),
+      makeDueChunk({ id: 'c2', topicId: 't-a', topicTitle: 'Alpha', nextReviewAt: NOW_MS }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+    });
+
+    // Same score, sorted by title alphabetically
+    expect(result[0]!.topicTitle).toBe('Alpha');
+    expect(result[1]!.topicTitle).toBe('Bravo');
   });
 });
