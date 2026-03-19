@@ -55,12 +55,6 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     },
   },
   prerequisiteConfig: {
-    mastery: {
-      minimumQualityScore: 4.0,
-      requiredAttempts: 2,
-      recencyDays: 30,
-      successRate: 0.8,
-    },
     validation: {
       strictValidation: false,
       maxDependencyDepth: 5,

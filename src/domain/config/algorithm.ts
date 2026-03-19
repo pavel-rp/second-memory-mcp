@@ -57,12 +57,6 @@ export type AlgorithmConfig = {
   };
   // Prerequisite validation configuration
   prerequisiteConfig: {
-    mastery: {
-      minimumQualityScore: number; // minimum average quality score for mastery (0-5)
-      requiredAttempts: number; // minimum successful attempts required
-      recencyDays: number; // max age in days for attempts to be considered recent
-      successRate: number; // minimum success rate required (0-1)
-    };
     validation: {
       strictValidation: boolean; // fail on any invalid prerequisite references
       maxDependencyDepth: number; // max depth for dependency graph traversal

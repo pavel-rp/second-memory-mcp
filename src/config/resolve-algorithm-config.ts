@@ -154,24 +154,6 @@ export function resolveAlgorithmConfig(
       },
     },
     prerequisiteConfig: {
-      mastery: {
-        minimumQualityScore: parseNumber(
-          env.SM_PREREQ_MIN_QUALITY,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.mastery.minimumQualityScore
-        ),
-        requiredAttempts: parseNumber(
-          env.SM_PREREQ_REQUIRED_ATTEMPTS,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.mastery.requiredAttempts
-        ),
-        recencyDays: parseNumber(
-          env.SM_PREREQ_RECENCY_DAYS,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.mastery.recencyDays
-        ),
-        successRate: parseNumber(
-          env.SM_PREREQ_SUCCESS_RATE,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.mastery.successRate
-        ),
-      },
       validation: {
         strictValidation: parseBoolean(
           env.SM_PREREQ_STRICT_VALIDATION,

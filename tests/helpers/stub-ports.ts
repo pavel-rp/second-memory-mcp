@@ -135,10 +135,8 @@ export function stubPrerequisiteMastery(
     checkItemMastery: vi.fn().mockResolvedValue({
       itemId: '',
       isMastered: true,
-      averageQuality: 4,
       attemptCount: 3,
       daysSinceLastReview: 1,
-      successRate: 0.9,
     }),
     checkMultipleItemsMastery: vi.fn().mockResolvedValue(new Map()),
     ...overrides,

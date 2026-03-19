@@ -51,7 +51,6 @@ export async function generateRecommendations(
     masteryService: {
       checkItemMastery: (id: string) => deps.mastery.checkItemMastery(id),
     },
-    algorithmConfig: deps.algorithmConfig,
     clock: () => now.getTime(),
   });
 

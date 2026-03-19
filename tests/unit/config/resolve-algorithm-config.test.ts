@@ -227,23 +227,6 @@ describe('resolveAlgorithmConfig', () => {
     );
   });
 
-  // ── Nested: prerequisiteConfig.mastery ──────────────────────
-
-  it('overrides prerequisite mastery fields', () => {
-    const result = resolveAlgorithmConfig({
-      SM_PREREQ_MIN_QUALITY: '3.5',
-      SM_PREREQ_REQUIRED_ATTEMPTS: '3',
-      SM_PREREQ_RECENCY_DAYS: '60',
-      SM_PREREQ_SUCCESS_RATE: '0.9',
-    });
-    expect(result.prerequisiteConfig.mastery).toEqual({
-      minimumQualityScore: 3.5,
-      requiredAttempts: 3,
-      recencyDays: 60,
-      successRate: 0.9,
-    });
-  });
-
   // ── Nested: prerequisiteConfig.validation ───────────────────
 
   it('overrides prerequisite validation booleans', () => {
