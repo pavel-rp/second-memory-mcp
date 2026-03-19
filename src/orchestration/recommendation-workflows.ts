@@ -29,7 +29,6 @@ export async function generateRecommendations(
     excludeDraft: true,
     subjectFilter: input.subjectFilter,
     limit: MAX_DUE_CHUNKS,
-    includeContent: false,
   });
 
   if (dueRows.length === 0) {

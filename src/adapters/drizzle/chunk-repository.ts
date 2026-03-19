@@ -134,21 +134,15 @@ export class DrizzleChunkRepository implements ChunkRepository {
 
   async list(filter: ListChunksFilter = {}): Promise<ChunkWithTopicTitle[]> {
     const whereClause = buildChunkWhereClause(filter);
-    const columns =
-      filter.includeContent !== false
-        ? { ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS }
-        : CHUNK_COLUMNS_WITH_TOPIC;
     let query = this.db
-      .select(columns)
+      .select({ ...CHUNK_COLUMNS_WITH_TOPIC, ...CHUNK_CONTENT_COLUMNS })
       .from(learningChunks)
       .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
       .$dynamic();
     if (whereClause) query = query.where(whereClause);
     query = query.orderBy(learningChunks.nextReviewAt, learningChunks.id) as typeof query;
     if (filter.limit && filter.limit > 0) query = query.limit(filter.limit);
-    // Cast: when includeContent=false, content columns are omitted from the SELECT.
-    // Callers using includeContent=false must not access content/contentVersion/contentUpdatedAt.
-    return (await query) as unknown as ChunkWithTopicTitle[];
+    return await query;
   }
 
   async countByTopicIds(
