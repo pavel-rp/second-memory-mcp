@@ -4,7 +4,6 @@ import {
   type RecommendationDeps,
 } from '../../../src/orchestration/recommendation-workflows.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
-import type { ChunkMinimalMetadata } from '../../../src/ports/chunk-repository.js';
 import { stubChunkRepository } from '../../helpers/stub-ports.js';
 
 const NOW = new Date('2025-06-15T12:00:00Z');
@@ -38,28 +37,6 @@ function stubChunkRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicT
   };
 }
 
-function stubMinimalChunk(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
-  return {
-    id: 'c1',
-    topicId: 'topic-1',
-    title: 'Chunk 1',
-    subject: 'CS',
-    difficulty: 5,
-    chunkType: 'review',
-    nextReviewAt: NOW_MS,
-    easeFactor: 2.5,
-    repetitions: 2,
-    intervalDays: 7,
-    lastReviewedAt: NOW_MS - MS_PER_DAY,
-    prerequisitesJson: null,
-    tagsJson: null,
-    contentStatus: 'final',
-    createdAt: NOW_MS - 30 * MS_PER_DAY,
-    updatedAt: NOW_MS,
-    ...overrides,
-  };
-}
-
 function makeDeps(
   overrides?: Partial<Parameters<typeof stubChunkRepository>[0]>
 ): RecommendationDeps {
@@ -84,17 +61,14 @@ describe('generateRecommendations', () => {
       stubChunkRow({ id: 'c2', topicId: 'topic-1', topicTitle: 'Topic A' }),
       stubChunkRow({ id: 'c3', topicId: 'topic-2', topicTitle: 'Topic B' }),
     ];
-    const allChunks = [
-      stubMinimalChunk({ id: 'c1', topicId: 'topic-1' }),
-      stubMinimalChunk({ id: 'c2', topicId: 'topic-1' }),
-      stubMinimalChunk({ id: 'c3', topicId: 'topic-2' }),
-      stubMinimalChunk({ id: 'c4', topicId: 'topic-1' }), // not due
-      stubMinimalChunk({ id: 'c5', topicId: 'topic-2' }), // not due
-    ];
+    const topicCounts = new Map([
+      ['topic-1', 3], // 3 total chunks in topic-1
+      ['topic-2', 2], // 2 total chunks in topic-2
+    ]);
 
     const deps = makeDeps({
       list: vi.fn().mockResolvedValue(dueChunks),
-      batchFetchMinimal: vi.fn().mockResolvedValue(allChunks),
+      countByTopicIds: vi.fn().mockResolvedValue(topicCounts),
     });
 
     const result = await generateRecommendations({}, deps, NOW);
@@ -136,7 +110,7 @@ describe('generateRecommendations', () => {
     );
     const deps = makeDeps({
       list: vi.fn().mockResolvedValue(chunks),
-      batchFetchMinimal: vi.fn().mockResolvedValue([]),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
     });
 
     const result = await generateRecommendations({ limit: 2 }, deps, NOW);
@@ -149,7 +123,7 @@ describe('generateRecommendations', () => {
     const chunks = [stubChunkRow({ id: 'c-orphan', topicId: '' })];
     const deps = makeDeps({
       list: vi.fn().mockResolvedValue(chunks),
-      batchFetchMinimal: vi.fn().mockResolvedValue([]),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
     });
 
     const result = await generateRecommendations({}, deps, NOW);

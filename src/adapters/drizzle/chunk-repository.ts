@@ -1,4 +1,4 @@
-import { and, eq, lte, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, lte, ne, sql } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -140,8 +140,31 @@ export class DrizzleChunkRepository implements ChunkRepository {
       .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
       .$dynamic();
     if (whereClause) query = query.where(whereClause);
+    query = query.orderBy(learningChunks.nextReviewAt, learningChunks.id) as typeof query;
     if (filter.limit && filter.limit > 0) query = query.limit(filter.limit);
     return await query;
+  }
+
+  async countByTopicIds(
+    topicIds: string[],
+    opts?: { excludeDraft?: boolean }
+  ): Promise<Map<string, number>> {
+    if (topicIds.length === 0) return new Map();
+    const conditions = [inArray(learningChunks.topicId, topicIds)];
+    if (opts?.excludeDraft) conditions.push(ne(learningChunks.contentStatus, 'draft'));
+    const rows = await this.db
+      .select({
+        topicId: learningChunks.topicId,
+        count: sql<number>`count(*)`,
+      })
+      .from(learningChunks)
+      .where(and(...conditions))
+      .groupBy(learningChunks.topicId);
+    const result = new Map<string, number>();
+    for (const row of rows) {
+      result.set(row.topicId, Number(row.count));
+    }
+    return result;
   }
 
   async listWithContent(

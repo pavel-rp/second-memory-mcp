@@ -1190,7 +1190,7 @@ describe('getNextTeachingStep', () => {
     expect(result.status).toBe('error');
     expect(result).toHaveProperty('message');
     expect((result as { message: string }).message).toContain('inconsistent state');
-    expect((result as { message: string }).message).toContain('c1');
+    expect((result as { message: string }).message).toContain('1 pending chunk(s)');
   });
 });
 

@@ -101,10 +101,10 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.dueChunkIds).toEqual(['c-earlier', 'c-later']);
   });
 
-  it('computes estimatedMinutes from chunk durations, defaults 5 for null', () => {
+  it('computes estimatedMinutes from chunk durations', () => {
     const chunks = [
       makeDueChunk({ id: 'c1', topicId: 't1', estimatedDuration: 10 }),
-      makeDueChunk({ id: 'c2', topicId: 't1', estimatedDuration: null as unknown as number }),
+      makeDueChunk({ id: 'c2', topicId: 't1', estimatedDuration: 7 }),
     ];
     const result = aggregateTopicRecommendations({
       dueChunks: chunks,
@@ -113,7 +113,7 @@ describe('aggregateTopicRecommendations', () => {
       now: NOW,
     });
 
-    expect(result[0]!.estimatedMinutes).toBe(15); // 10 + 5 (default)
+    expect(result[0]!.estimatedMinutes).toBe(17); // 10 + 7
   });
 
   it('detects hasNewChunks when a chunk has never been rescheduled', () => {

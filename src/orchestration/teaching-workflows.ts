@@ -154,7 +154,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     // Inconsistent state: pending chunks exist but none are selectable and none are in_progress
     return {
       status: 'error',
-      message: `Session is in an inconsistent state: pending chunks cannot be advanced. Pending chunk ids: ${pendingChunks.map(sc => sc.chunkId).join(', ')}.`,
+      message: `Session is in an inconsistent state: ${pendingChunks.length} pending chunk(s) cannot be advanced.`,
     };
   }
 
@@ -815,7 +815,7 @@ export async function startLearning(
   }
 
   // 3. Pick highest-urgency topic
-  const topRec = recommendations.recommendations[0] as (typeof recommendations.recommendations)[0];
+  const topRec = recommendations.recommendations[0];
   const chunkIds = topRec.dueChunkIds;
   const mode: 'learning' | 'review' = topRec.hasNewChunks ? 'learning' : 'review';
 

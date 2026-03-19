@@ -80,6 +80,10 @@ export interface ChunkRepository {
   getWithContent(id: string): Promise<ChunkWithTopicTitle | null>;
   list(filter?: ListChunksFilter): Promise<ChunkWithTopicTitle[]>;
   listWithContent(filter?: ListChunksWithContentFilter): Promise<PaginatedLearningItemsResponse>;
+  countByTopicIds(
+    topicIds: string[],
+    opts?: { excludeDraft?: boolean }
+  ): Promise<Map<string, number>>;
   batchFetchMinimal(options?: {
     topicId?: string;
     subject?: string;

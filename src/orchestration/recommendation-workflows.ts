@@ -53,19 +53,11 @@ export async function generateRecommendations(
   }
 
   // 3. Fetch total chunk counts per topic (all non-draft chunks)
-  const topicIds = [...new Set(dueChunks.map(c => c.topicId))];
-  const allChunks = await deps.chunks.batchFetchMinimal({
-    excludeDraft: true,
-  });
-  const topicChunkCounts = new Map<string, number>();
-  for (const chunk of allChunks) {
-    if (topicIds.includes(chunk.topicId)) {
-      topicChunkCounts.set(chunk.topicId, (topicChunkCounts.get(chunk.topicId) ?? 0) + 1);
-    }
-  }
+  const topicIdSet = new Set(dueChunks.map(c => c.topicId));
+  const topicIds = [...topicIdSet];
+  const topicChunkCounts = await deps.chunks.countByTopicIds(topicIds, { excludeDraft: true });
 
   // 4. Count totals before limiting
-  const topicIdSet = new Set(dueChunks.map(c => c.topicId));
   const totalDueTopics = topicIdSet.size;
   const totalDueChunks = dueChunks.length;
 

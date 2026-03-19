@@ -8,7 +8,7 @@ export type DueChunkInfo = {
   topicTitle: string;
   nextReviewAt: number;
   easeFactor: number;
-  estimatedDuration: number | null;
+  estimatedDuration: number;
   createdAt: number;
 };
 
@@ -59,7 +59,7 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
       // We detect "new" by checking if the chunk has never been reviewed:
       // nextReviewAt <= createdAt + 1s means it was never rescheduled
       if (c.nextReviewAt <= c.createdAt + 1000) hasNewChunks = true;
-      totalMinutes += c.estimatedDuration ?? 5;
+      totalMinutes += c.estimatedDuration;
     }
 
     if (minEaseFactor === Infinity) minEaseFactor = 2.5;

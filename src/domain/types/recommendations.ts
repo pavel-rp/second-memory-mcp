@@ -45,7 +45,7 @@ export type TopicRecommendation = {
   dueChunkIds: string[]; // ordered by createdAt within topic
   dueChunkCount: number;
   totalChunkCount: number;
-  estimatedMinutes: number; // sum of chunk durations, default 5 per null
+  estimatedMinutes: number; // sum of chunk durations
   hasNewChunks: boolean; // true if any chunk has never been reviewed
 };
 
@@ -109,7 +109,7 @@ export type PaginatedLearningItemsResponse = {
 
 export const RecommendationInputShape = {
   subject_filter: z.string().optional().describe('Filter topics by subject'),
-  limit: z.number().int().min(1).optional().describe('Max topics returned (default 10)'),
+  limit: z.number().int().min(1).max(100).optional().describe('Max topics returned (default 10)'),
 };
 
 export const RecommendationInputSchema = z
