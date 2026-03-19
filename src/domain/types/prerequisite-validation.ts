@@ -1,21 +1,6 @@
-import { z } from 'zod';
 import type { LearningItem } from './recommendations.js';
 
 // Core validation types for prerequisite checking
-
-/**
- * Criteria used to determine if a prerequisite item has been mastered
- */
-export type MasteryCriteria = {
-  /** Minimum average quality score required (0-5) */
-  minimumQualityScore: number;
-  /** Minimum number of successful attempts required */
-  requiredAttempts: number;
-  /** Maximum age in days for attempts to be considered recent */
-  recencyDays: number;
-  /** Minimum success rate required (0-1) */
-  successRate: number;
-};
 
 /**
  * Result of validating prerequisites for a learning item
@@ -39,14 +24,10 @@ export type MasteryStatus = {
   itemId: string;
   /** Whether the item has been mastered */
   isMastered: boolean;
-  /** Current quality score average */
-  averageQuality: number;
   /** Number of attempts made */
   attemptCount: number;
   /** Days since last review */
   daysSinceLastReview: number;
-  /** Success rate (0-1) */
-  successRate: number;
 };
 
 /**
@@ -78,12 +59,3 @@ export type PrerequisiteReferenceValidationResult = {
   /** Error messages for invalid references */
   errors: string[];
 };
-
-// Zod schemas for runtime validation
-
-export const MasteryCriteriaSchema = z.object({
-  minimumQualityScore: z.number().min(0).max(5),
-  requiredAttempts: z.number().int().min(0),
-  recencyDays: z.number().int().min(0),
-  successRate: z.number().min(0).max(1),
-});

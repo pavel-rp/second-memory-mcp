@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrerequisiteValidator } from '../../../../src/domain/services/prerequisite-validator.js';
-import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
 import type { MasteryStatus } from '../../../../src/domain/types/prerequisite-validation.js';
 
@@ -23,7 +22,6 @@ describe('PrerequisiteValidator', () => {
     validator = new PrerequisiteValidator({
       referenceValidator: mockReferenceValidator,
       masteryService: mockMasteryService,
-      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       clock: () => NOW_MS,
     });
   });
@@ -47,10 +45,8 @@ describe('PrerequisiteValidator', () => {
   const createMasteryStatus = (itemId: string, isMastered: boolean = true): MasteryStatus => ({
     itemId,
     isMastered,
-    averageQuality: isMastered ? 4.5 : 2.5,
-    attemptCount: isMastered ? 3 : 1,
-    daysSinceLastReview: isMastered ? 5 : 45,
-    successRate: isMastered ? 0.85 : 0.4,
+    attemptCount: isMastered ? 3 : 0,
+    daysSinceLastReview: isMastered ? 5 : Infinity,
   });
 
   describe('filterByPrerequisites', () => {
@@ -249,27 +245,13 @@ describe('PrerequisiteValidator', () => {
     });
   });
 
-  describe('mastery criteria management', () => {
-    it('should update mastery criteria', () => {
-      const newCriteria = {
-        minimumQualityScore: 3.5,
-        requiredAttempts: 3,
-      };
-
-      validator.updateMasteryCriteria(newCriteria);
-      const currentCriteria = validator.getMasteryCriteria();
-
-      expect(currentCriteria.minimumQualityScore).toBe(3.5);
-      expect(currentCriteria.requiredAttempts).toBe(3);
+  describe('no longer exposes mastery criteria methods', () => {
+    it('does not have updateMasteryCriteria', () => {
+      expect((validator as any).updateMasteryCriteria).toBeUndefined();
     });
 
-    it('should return current mastery criteria', () => {
-      const criteria = validator.getMasteryCriteria();
-
-      expect(criteria).toHaveProperty('minimumQualityScore');
-      expect(criteria).toHaveProperty('requiredAttempts');
-      expect(criteria).toHaveProperty('recencyDays');
-      expect(criteria).toHaveProperty('successRate');
+    it('does not have getMasteryCriteria', () => {
+      expect((validator as any).getMasteryCriteria).toBeUndefined();
     });
   });
 
@@ -417,14 +399,7 @@ describe('PrerequisiteValidator Integration', () => {
     const validator = new PrerequisiteValidator({
       referenceValidator: localRefValidator,
       masteryService: localMasterySvc,
-      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       clock: () => NOW_MS,
-      customCriteria: {
-        minimumQualityScore: 4.0,
-        requiredAttempts: 2,
-        recencyDays: 30,
-        successRate: 0.8,
-      },
     });
 
     localRefValidator.validateChunkPrerequisites.mockResolvedValue({
@@ -434,14 +409,12 @@ describe('PrerequisiteValidator Integration', () => {
       errors: [],
     });
 
-    // Prerequisite not sufficiently mastered
+    // Prerequisite not mastered (repetitions = 0)
     localMasterySvc.checkItemMastery.mockResolvedValue({
       itemId: 'basic-concepts',
       isMastered: false,
-      averageQuality: 3.5, // Below threshold
-      attemptCount: 2,
-      daysSinceLastReview: 10,
-      successRate: 0.75, // Below threshold
+      attemptCount: 0,
+      daysSinceLastReview: Infinity,
     });
 
     const createTestItem = (id: string, prerequisites: string[] = []): LearningItem => ({

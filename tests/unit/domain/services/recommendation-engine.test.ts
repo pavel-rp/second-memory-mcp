@@ -17,7 +17,6 @@ function createTestEngine(chunkLookupFn?: (id: string) => Promise<LearningItem |
     masteryService: {
       checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
     },
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
     clock: () => NOW.getTime(),
   });
   const dependencyResolver = new DependencyResolver(
@@ -587,7 +586,6 @@ describe('RecommendationEngine', () => {
       masteryService: {
         checkItemMastery: vi.fn().mockResolvedValue({ isMastered: false }),
       },
-      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       clock: () => NOW.getTime(),
     });
     const dependencyResolver = new DependencyResolver(
@@ -724,7 +722,6 @@ describe('RecommendationEngine', () => {
       masteryService: {
         checkItemMastery: vi.fn().mockResolvedValue({ isMastered: true }),
       },
-      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
       clock: () => NOW.getTime(),
     });
     const mockResolver = {

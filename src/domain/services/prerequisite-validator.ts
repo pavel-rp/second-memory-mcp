@@ -1,6 +1,4 @@
-import type { AlgorithmConfig } from '../config/algorithm.js';
 import type {
-  MasteryCriteria,
   ValidationResult,
   FilteredResult,
   MasteryStatus,
@@ -25,7 +23,6 @@ export type MasteryServiceDep = {
 };
 
 export class PrerequisiteValidator {
-  private masteryCriteria: MasteryCriteria;
   private databaseAvailable: boolean | null = null;
   private lastDbCheck: number = 0;
   private readonly DB_CHECK_INTERVAL = 30000; // Check database availability every 30 seconds
@@ -36,21 +33,11 @@ export class PrerequisiteValidator {
   constructor(deps: {
     referenceValidator: ReferenceValidatorDep;
     masteryService: MasteryServiceDep;
-    algorithmConfig: AlgorithmConfig;
-    customCriteria?: Partial<MasteryCriteria>;
     clock: () => number;
   }) {
     this.referenceValidator = deps.referenceValidator;
     this.masteryService = deps.masteryService;
     this.clock = deps.clock;
-    // Use custom criteria or fall back to algorithm configuration
-    const config = deps.algorithmConfig.prerequisiteConfig.mastery;
-    this.masteryCriteria = {
-      minimumQualityScore: deps.customCriteria?.minimumQualityScore ?? config.minimumQualityScore,
-      requiredAttempts: deps.customCriteria?.requiredAttempts ?? config.requiredAttempts,
-      recencyDays: deps.customCriteria?.recencyDays ?? config.recencyDays,
-      successRate: deps.customCriteria?.successRate ?? config.successRate,
-    };
   }
 
   /**
@@ -311,24 +298,5 @@ export class PrerequisiteValidator {
     }
 
     return rationale;
-  }
-
-  /**
-   * Update mastery criteria for this validator instance
-   * @param newCriteria New mastery criteria to apply
-   */
-  updateMasteryCriteria(newCriteria: Partial<MasteryCriteria>): void {
-    this.masteryCriteria = {
-      ...this.masteryCriteria,
-      ...newCriteria,
-    };
-  }
-
-  /**
-   * Get current mastery criteria
-   * @returns Current mastery criteria
-   */
-  getMasteryCriteria(): MasteryCriteria {
-    return { ...this.masteryCriteria };
   }
 }
