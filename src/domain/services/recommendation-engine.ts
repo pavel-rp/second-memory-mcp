@@ -62,8 +62,6 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
       totalMinutes += c.estimatedDuration;
     }
 
-    if (minEaseFactor === Infinity) minEaseFactor = 2.5;
-
     const { score, reason } = calculateUrgencyScore({
       maxOverdueDays: Math.round(maxOverdueDays),
       dueCount: chunks.length,
@@ -81,7 +79,7 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
       dueChunkIds: orderedChunks.map(c => c.id),
       dueChunkCount: chunks.length,
       totalChunkCount: topicChunkCounts.get(topicId) ?? chunks.length,
-      estimatedMinutes: totalMinutes,
+      estimatedDuration: totalMinutes,
       hasNewChunks,
     });
   }

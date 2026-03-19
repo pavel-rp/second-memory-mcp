@@ -119,6 +119,20 @@ describe('generateRecommendations', () => {
     expect(result.totalDueTopics).toBe(5); // total still counts all
   });
 
+  it('falls back to chunk title when topicTitle is null', async () => {
+    const chunks = [
+      stubChunkRow({ id: 'c1', topicId: 'topic-1', topicTitle: null, title: 'Fallback Title' }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map([['topic-1', 1]])),
+    });
+
+    const result = await generateRecommendations({}, deps, NOW);
+
+    expect(result.recommendations[0]!.topicTitle).toBe('Fallback Title');
+  });
+
   it('skips chunks without a topicId', async () => {
     const chunks = [stubChunkRow({ id: 'c-orphan', topicId: '' })];
     const deps = makeDeps({

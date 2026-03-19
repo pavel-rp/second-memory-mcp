@@ -319,7 +319,7 @@ describe('spaced-repetition-tools', () => {
           dueChunkIds: ['c1', 'c2', 'c3'],
           dueChunkCount: 3,
           totalChunkCount: 8,
-          estimatedMinutes: 15,
+          estimatedDuration: 15,
           hasNewChunks: false,
         },
       ],

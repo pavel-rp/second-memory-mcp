@@ -824,7 +824,7 @@ export async function startLearning(
     {
       chunkIds,
       mode,
-      estimatedDuration: topRec.estimatedMinutes,
+      estimatedDuration: topRec.estimatedDuration,
     },
     sessionDeps
   );
@@ -853,7 +853,7 @@ export async function startLearning(
     session_id: sessionResult.data.sessionId,
     mode,
     total_chunks: chunkIds.length,
-    estimated_duration: topRec.estimatedMinutes,
+    estimated_duration: topRec.estimatedDuration,
     first_chunk: firstChunk,
     recommendation_summary: `Picked topic "${topRec.topicTitle}" (urgency ${topRec.urgencyScore}): ${topRec.urgencyReason}`,
   };

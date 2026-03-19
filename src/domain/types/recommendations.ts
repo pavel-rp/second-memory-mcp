@@ -45,7 +45,7 @@ export type TopicRecommendation = {
   dueChunkIds: string[]; // ordered by createdAt within topic
   dueChunkCount: number;
   totalChunkCount: number;
-  estimatedMinutes: number; // sum of chunk durations
+  estimatedDuration: number; // sum of chunk durations (minutes)
   hasNewChunks: boolean; // true if any chunk has never been reviewed
 };
 

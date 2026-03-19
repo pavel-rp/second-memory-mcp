@@ -219,6 +219,18 @@ describe('teaching-tools', () => {
     });
   });
 
+  it('start_learning returns validation error for invalid input', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('start_learning')!.handler;
+
+    const result = await handler({ subject_filter: 42 });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+  });
+
   it('start_learning returns session error when orchestration throws', async () => {
     ctx.startLearning = vi.fn().mockRejectedValue(new Error('DB timeout'));
     registerTeachingTools(server as any, ctx);
