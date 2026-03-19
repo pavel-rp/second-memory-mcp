@@ -21,7 +21,6 @@ function clamp01(v: number): number {
 
 /** Linearly normalize `value` from [min, max] into [0, 1], clamped. */
 function normalize(value: number, min: number, max: number): number {
-  if (max <= min) return 0;
   return clamp01((value - min) / (max - min));
 }
 

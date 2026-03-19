@@ -80,6 +80,15 @@ describe('calculateUrgencyScore', () => {
     expect(reason).toContain('struggling');
   });
 
+  it('pluralizes "ready to learn" fallback for multiple non-overdue chunks', () => {
+    const { reason } = calculateUrgencyScore({
+      maxOverdueDays: 0,
+      dueCount: 2,
+      minEaseFactor: 2.0,
+    });
+    expect(reason).toBe('2 chunks ready to learn');
+  });
+
   it('generates fallback reason for single non-overdue chunk', () => {
     const { reason } = calculateUrgencyScore({
       maxOverdueDays: 0,
