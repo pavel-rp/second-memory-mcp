@@ -99,6 +99,27 @@ describe('calculateUrgencyScore', () => {
     expect(decimalPlaces).toBeLessThanOrEqual(2);
   });
 
+  it('uses fallback overdue reason when ease dominates but minEaseFactor >= 2.0', () => {
+    // Ease weight is highest but minEaseFactor >= 2.0 skips the "struggling" branch,
+    // falling through to the overdue fallback at lines 70-72
+    const { reason } = calculateUrgencyScore({
+      maxOverdueDays: 1,
+      dueCount: 1,
+      minEaseFactor: 2.0,
+    });
+    expect(reason).toContain('overdue');
+  });
+
+  it('pluralizes fallback overdue reason for multiple chunks and days', () => {
+    // Same fallback path but with plural values
+    const { reason } = calculateUrgencyScore({
+      maxOverdueDays: 2,
+      dueCount: 3,
+      minEaseFactor: 2.0,
+    });
+    expect(reason).toBe('3 chunks overdue (max 2 days)');
+  });
+
   it('uses singular "chunk" and "day" for count 1', () => {
     const { reason } = calculateUrgencyScore({
       maxOverdueDays: 1,
