@@ -20,7 +20,6 @@ export const CalculateNextReviewInputShape = {
 export const CalculateNextReviewInputSchema = z
   .object(CalculateNextReviewInputShape)
   .transform(toCamelCaseKeys);
-export type CalculateNextReviewInput = z.infer<typeof CalculateNextReviewInputSchema>;
 
 export const CalculatePriorityScoreInputShape = {
   next_review_date: z.string().describe('Upcoming review date in ISO format (YYYY-MM-DD)'),
@@ -37,7 +36,6 @@ export const CalculatePriorityScoreInputShape = {
 export const CalculatePriorityScoreInputSchema = z
   .object(CalculatePriorityScoreInputShape)
   .transform(toCamelCaseKeys);
-export type CalculatePriorityScoreInput = z.infer<typeof CalculatePriorityScoreInputSchema>;
 
 export const CalculateNextReviewAdvancedInputShape = {
   quality: z
@@ -64,11 +62,8 @@ export const CalculateNextReviewAdvancedInputShape = {
 export const CalculateNextReviewAdvancedInputSchema = z
   .object(CalculateNextReviewAdvancedInputShape)
   .transform(toCamelCaseKeys);
-export type CalculateNextReviewAdvancedInput = z.infer<
-  typeof CalculateNextReviewAdvancedInputSchema
->;
 
-export const RankCandidateShape = {
+const RankCandidateShape = {
   id: z.string().describe('Unique identifier for the learning item'),
   next_review_date: z.string().describe('Scheduled review date in ISO format (YYYY-MM-DD)'),
   ease_factor: z.number().min(1.3).describe('Current ease factor for the learning item'),
@@ -84,8 +79,6 @@ export const RankCandidateShape = {
     .describe('Estimated study duration in minutes'),
 } as const;
 
-export const RankCandidateSchema = z.object(RankCandidateShape).transform(toCamelCaseKeys);
-
 export const RankCandidatesInputShape = {
   candidates: z
     .array(z.object(RankCandidateShape))
@@ -100,7 +93,6 @@ export const RankCandidatesInputShape = {
 export const RankCandidatesInputSchema = z
   .object(RankCandidatesInputShape)
   .transform(toCamelCaseKeys);
-export type RankCandidatesInput = z.infer<typeof RankCandidatesInputSchema>;
 
 export const RecordReviewResultInputShape = {
   item_id: z
@@ -148,7 +140,6 @@ export const RecordReviewResultInputShape = {
 export const RecordReviewResultInputSchema = z
   .object(RecordReviewResultInputShape)
   .transform(toCamelCaseKeys);
-export type RecordReviewResultInput = z.infer<typeof RecordReviewResultInputSchema>;
 
 export const GetLeechesInputShape = {
   subject_filter: z.string().optional().describe('Optional subject filter for leech items'),
@@ -156,7 +147,6 @@ export const GetLeechesInputShape = {
 } as const;
 
 export const GetLeechesInputSchema = z.object(GetLeechesInputShape).transform(toCamelCaseKeys);
-export type GetLeechesInput = z.infer<typeof GetLeechesInputSchema>;
 
 export const ResolveLeechInputShape = {
   chunk_id: z
@@ -171,4 +161,3 @@ export const ResolveLeechInputShape = {
 } as const;
 
 export const ResolveLeechInputSchema = z.object(ResolveLeechInputShape).transform(toCamelCaseKeys);
-export type ResolveLeechInput = z.infer<typeof ResolveLeechInputSchema>;

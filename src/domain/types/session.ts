@@ -133,7 +133,7 @@ export const SessionChunkSchema = z.object({
   chunk_type: z.enum(['new', 'review', 'remediation']).optional(),
 });
 
-export const HistoricalFeedbackSchema = z.object({
+const HistoricalFeedbackSchema = z.object({
   session_id: z.string().min(1),
   session_mode: SessionModeSchema,
   completed_at: z
@@ -177,14 +177,14 @@ export type BatchOperation = {
   timeSpentMs?: number;
 };
 
-export const BatchOperationShape = {
+const BatchOperationShape = {
   chunk_id: z.string().min(1),
   title: z.string().min(1).optional(),
   status: z.enum(['pending', 'in_progress', 'completed']).optional(),
   time_spent_ms: z.number().min(0).optional(),
 } as const;
 
-export const BatchOperationSchema = z.object(BatchOperationShape).transform(toCamelCaseKeys);
+const BatchOperationSchema = z.object(BatchOperationShape).transform(toCamelCaseKeys);
 
 export const BatchUpdateInputShape = {
   session_id: z.string().min(1),

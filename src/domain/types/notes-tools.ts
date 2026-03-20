@@ -33,7 +33,6 @@ export const AddNoteInputShape = {
 } as const;
 
 export const AddNoteInputSchema = z.object(AddNoteInputShape).transform(toCamelCaseKeys);
-export type AddNoteInput = z.infer<typeof AddNoteInputSchema>;
 
 // ── list_notes ──────────────────────────────────────────────────
 
@@ -43,7 +42,6 @@ export const ListNotesInputShape = {
 } as const;
 
 export const ListNotesInputSchema = z.object(ListNotesInputShape).transform(toCamelCaseKeys);
-export type ListNotesInput = z.infer<typeof ListNotesInputSchema>;
 
 // ── delete_note ─────────────────────────────────────────────────
 
@@ -52,7 +50,6 @@ export const DeleteNoteInputShape = {
 } as const;
 
 export const DeleteNoteInputSchema = z.object(DeleteNoteInputShape).transform(toCamelCaseKeys);
-export type DeleteNoteInput = z.infer<typeof DeleteNoteInputSchema>;
 
 // ── Output types (camelCase internal) ───────────────────────────
 

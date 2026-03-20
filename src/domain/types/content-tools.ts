@@ -11,7 +11,6 @@ export const GetChunkContentInputShape = {
 export const GetChunkContentInputSchema = z
   .object(GetChunkContentInputShape)
   .transform(toCamelCaseKeys);
-export type GetChunkContentInput = z.infer<typeof GetChunkContentInputSchema>;
 
 export const GetTopicSummaryInputShape = {
   topic_id: z
@@ -23,7 +22,6 @@ export const GetTopicSummaryInputShape = {
 export const GetTopicSummaryInputSchema = z
   .object(GetTopicSummaryInputShape)
   .transform(toCamelCaseKeys);
-export type GetTopicSummaryInput = z.infer<typeof GetTopicSummaryInputSchema>;
 
 export const ListItemsWithContentInputShape = {
   subject_filter: z.string().optional().describe('Filter by subject/category'),
@@ -54,4 +52,3 @@ export const ListItemsWithContentInputShape = {
 export const ListItemsWithContentInputSchema = z
   .object(ListItemsWithContentInputShape)
   .transform(toCamelCaseKeys);
-export type ListItemsWithContentInput = z.infer<typeof ListItemsWithContentInputSchema>;

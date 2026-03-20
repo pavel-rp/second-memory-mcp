@@ -64,13 +64,11 @@ export const CreateSessionResultSchema = z.object({
   status: z.literal('created'),
   message: z.string(),
 });
-export type CreateSessionResult = z.infer<typeof CreateSessionResultSchema>;
 
 export const GetActiveSessionResultSchema = z.object({
   session: SessionInputSchema.nullable(),
   status: z.enum(['found', 'not_found']),
 });
-export type GetActiveSessionResult = z.infer<typeof GetActiveSessionResultSchema>;
 
 export const CompleteSessionResultSchema = z.object({
   session_id: z.string(),
@@ -82,4 +80,3 @@ export const CompleteSessionResultSchema = z.object({
   }),
   message: z.string(),
 });
-export type CompleteSessionResult = z.infer<typeof CompleteSessionResultSchema>;

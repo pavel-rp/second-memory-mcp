@@ -3,7 +3,7 @@ import type { LearningItem } from '../types/recommendations.js';
 /**
  * Result of dependency resolution
  */
-export type DependencyResolutionResult = {
+type DependencyResolutionResult = {
   /** Resolved dependency chain in order (prerequisites first) */
   resolvedChain: string[];
   /** Items that have circular dependencies */

@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
-/** Default limit for fetching recommendation candidates from the DB. */
-export const DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT = 50;
-
 // Learning item chunk types
 export type ChunkType = 'new' | 'review' | 'remediation';
 
@@ -64,9 +61,9 @@ export type RecommendationInput = {
 
 // Zod schemas for runtime validation
 
-export const ChunkTypeSchema = z.enum(['new', 'review', 'remediation']);
+const ChunkTypeSchema = z.enum(['new', 'review', 'remediation']);
 
-export const ContentStatusSchema = z.enum(['draft', 'final']);
+const ContentStatusSchema = z.enum(['draft', 'final']);
 
 const LearningItemObjectSchema = z.object({
   id: z.string().min(1),
@@ -90,12 +87,6 @@ const LearningItemObjectSchema = z.object({
 });
 
 export const LearningItemSchema = LearningItemObjectSchema.transform(toCamelCaseKeys);
-
-export const LearningItemWithContentSchema = LearningItemObjectSchema.extend({
-  content: z.string().optional(),
-  content_version: z.number().int().min(1).optional(),
-  content_updated_at: z.number().int().min(0).optional(),
-}).transform(toCamelCaseKeys);
 
 export type PaginatedLearningItemsResponse = {
   items: LearningItemWithContent[];
