@@ -1,7 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
 import { ZodError } from 'zod';
-import { SessionStatusInputShape, SessionStatusInputSchema } from '../domain/types/session.js';
+import {
+  SessionStatusInputShape,
+  SessionStatusInputSchema,
+} from '../domain/types/session-management-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
@@ -38,7 +41,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
           });
         }
 
-        logger.info(`Session ${sessionId} retrieved and converted for status check`);
+        logger.info('Session retrieved and converted for status check', { sessionId });
 
         const validated = ctx.validateSessionContext(sessionInput);
         if (!validated.success) {
@@ -53,18 +56,17 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
       } catch (error) {
         if (error instanceof ZodError) {
           const msg = extractErrorMessage(error);
-          logger.error('Invalid session_status input:', error);
+          logger.error('Invalid session_status input:', msg);
           return toolError(`Failed to get session status: ${msg}`, {
             type: 'validation',
             message: msg,
             retryable: false,
           });
         }
-        const msg = extractErrorMessage(error);
         logger.error('Session status check failed:', error);
-        return toolError(`Failed to get session status: ${msg}`, {
-          type: 'session',
-          message: msg,
+        return toolError('Failed to get session status: internal error', {
+          type: 'database',
+          message: 'An unexpected error occurred',
           retryable: true,
         });
       }

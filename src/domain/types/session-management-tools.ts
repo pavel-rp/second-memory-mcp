@@ -4,6 +4,14 @@ import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 // Input schemas for session management tools
 
+export const SessionStatusInputShape = {
+  session_id: z.string().min(1),
+} as const;
+
+export const SessionStatusInputSchema = z
+  .object(SessionStatusInputShape)
+  .transform(toCamelCaseKeys);
+
 export const CreateSessionToolInputShape = {
   topic_id: z.string().optional(),
   chunk_ids: z.array(z.string()).optional(),

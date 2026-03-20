@@ -154,8 +154,8 @@ describe('session-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
-      expect(parsed.error.message).toContain('db error');
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('An unexpected error occurred');
       expect(parsed.error.retryable).toBe(true);
     });
   });

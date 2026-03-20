@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { toCamelCaseKeysExcept } from '../../shared/case-convert.js';
+import { toCamelCaseKeys, toCamelCaseKeysExcept } from '../../shared/case-convert.js';
 
 // Session mode types
 export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review';
@@ -69,25 +69,16 @@ export type SessionProgress = {
 
 // Unified session status (replaces WorkflowPhase + CompletionStatus)
 export type SessionStatus = {
-  session_id: string;
-  chunks_completed: number;
-  chunks_remaining: number;
-  overall_progress: number; // 0-1
-  average_quality: number; // 0-5
-  time_elapsed_ms: number;
-  should_complete: boolean;
+  sessionId: string;
+  chunksCompleted: number;
+  chunksRemaining: number;
+  overallProgress: number; // 0-1
+  averageQuality: number; // 0-5
+  timeElapsedMs: number;
+  shouldComplete: boolean;
   reason: string;
   recommendation: 'continue' | 'complete' | 'break';
 };
-
-// session_status tool input
-export const SessionStatusInputShape = {
-  session_id: z.string().min(1),
-} as const;
-
-export const SessionStatusInputSchema = z
-  .object(SessionStatusInputShape)
-  .transform(toCamelCaseKeysExcept(new Set()));
 
 // Zod schemas for runtime validation
 
@@ -193,9 +184,7 @@ export const BatchOperationShape = {
   time_spent_ms: z.number().min(0).optional(),
 } as const;
 
-export const BatchOperationSchema = z
-  .object(BatchOperationShape)
-  .transform(toCamelCaseKeysExcept(new Set()));
+export const BatchOperationSchema = z.object(BatchOperationShape).transform(toCamelCaseKeys);
 
 export const BatchUpdateInputShape = {
   session_id: z.string().min(1),

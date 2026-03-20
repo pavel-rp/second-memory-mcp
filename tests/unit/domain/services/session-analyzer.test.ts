@@ -146,12 +146,12 @@ describe('Session Manager', () => {
     it('returns basic metrics for a session', () => {
       const result = getSessionStatus(mockSessionInput, DEFAULT_ALGORITHM_CONFIG, NOW);
 
-      expect(result.chunks_completed).toBe(1);
-      expect(result.chunks_remaining).toBe(2);
-      expect(result.overall_progress).toBe(0.33);
-      expect(result.average_quality).toBe(3.5);
-      expect(result.time_elapsed_ms).toBe(1800000);
-      expect(result.should_complete).toBe(false);
+      expect(result.chunksCompleted).toBe(1);
+      expect(result.chunksRemaining).toBe(2);
+      expect(result.overallProgress).toBe(0.33);
+      expect(result.averageQuality).toBe(3.5);
+      expect(result.timeElapsedMs).toBe(1800000);
+      expect(result.shouldComplete).toBe(false);
       expect(result.recommendation).toBe('continue');
     });
 
@@ -163,7 +163,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(longSession, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(true);
+      expect(result.shouldComplete).toBe(true);
       expect(result.recommendation).toBe('break');
       expect(result.reason).toContain('Maximum session time');
     });
@@ -179,7 +179,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(highQualitySession, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(true);
+      expect(result.shouldComplete).toBe(true);
       expect(result.recommendation).toBe('complete');
       expect(result.reason).toContain('high quality');
     });
@@ -231,7 +231,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(true);
+      expect(result.shouldComplete).toBe(true);
       expect(result.recommendation).toBe('complete');
       expect(result.reason).toContain('objectives completed');
     });
@@ -303,7 +303,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(true);
+      expect(result.shouldComplete).toBe(true);
       expect(result.recommendation).toBe('complete');
       expect(result.reason).toContain('High quality');
     });
@@ -365,7 +365,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(session, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(true);
+      expect(result.shouldComplete).toBe(true);
       expect(result.recommendation).toBe('break');
       expect(result.reason).toContain('Good progress');
     });
@@ -382,7 +382,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(shortSession, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(false);
+      expect(result.shouldComplete).toBe(false);
       expect(result.recommendation).toBe('continue');
       expect(result.reason).toContain('just beginning');
     });
@@ -445,7 +445,7 @@ describe('Session Manager', () => {
       };
 
       const result = getSessionStatus(midSession, DEFAULT_ALGORITHM_CONFIG, NOW);
-      expect(result.should_complete).toBe(false);
+      expect(result.shouldComplete).toBe(false);
       expect(result.recommendation).toBe('continue');
       expect(result.reason).toContain('progressing normally');
     });
