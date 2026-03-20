@@ -264,6 +264,16 @@ describe('DependencyResolver', () => {
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toEqual(['base', 'middle']);
     });
+
+    it('handles target ID not present in the items list', async () => {
+      // 'ghost' is requested as a target but doesn't exist in items
+      const items = [createTestItem('base'), createTestItem('child', ['base'])];
+
+      const result = await resolver.resolveDependencies(items, ['ghost']);
+
+      expect(result.isValid).toBe(true);
+      expect(result.resolvedChain).toContain('ghost');
+    });
   });
 
   describe('performance and edge cases', () => {
