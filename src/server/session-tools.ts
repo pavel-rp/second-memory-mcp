@@ -21,22 +21,24 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
 
         const session = await ctx.getSessionById(sessionId);
         if (!session) {
-          return toolError(`Session ${sessionId} not found`, {
+          const msg = `Session ${sessionId} not found`;
+          return toolError(`Failed to get session status: ${msg}`, {
             type: 'not_found',
-            message: `Session ${sessionId} not found`,
+            message: msg,
             retryable: false,
           });
         }
         const sessionInput = await ctx.convertSessionToInput(session.id);
         if (!sessionInput) {
-          return toolError(`Failed to convert session ${sessionId} to SessionInput format`, {
+          const msg = `Failed to convert session ${sessionId} to SessionInput format`;
+          return toolError(`Failed to get session status: ${msg}`, {
             type: 'session',
-            message: `Failed to convert session ${sessionId} to SessionInput format`,
+            message: msg,
             retryable: false,
           });
         }
 
-        logger.info(`Retrieved session ${sessionId} for status check`);
+        logger.info(`Session ${sessionId} retrieved and converted for status check`);
 
         const validated = ctx.validateSessionContext(sessionInput);
         if (!validated.success) {
