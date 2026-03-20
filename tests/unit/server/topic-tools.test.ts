@@ -27,6 +27,7 @@ describe('topic-tools', () => {
     const validInput = {
       topic_title: 'Data Structures',
       subject: 'CS',
+      topic_summary: 'Overview of fundamental data structures in computer science',
       chunks: [
         {
           id: 'c1',
@@ -73,6 +74,7 @@ describe('topic-tools', () => {
       await handler({
         topic_title: 'T',
         subject: 'CS',
+        topic_summary: 'Topic summary for camelCase mapping test',
         chunks: [
           {
             id: 'c1',
@@ -135,7 +137,9 @@ describe('topic-tools', () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('create_topic_with_chunks')!.handler;
 
-      await expect(handler({ topic_title: 'T', subject: 'CS', chunks: [] })).rejects.toThrow();
+      await expect(
+        handler({ topic_title: 'T', subject: 'CS', topic_summary: 'Summary', chunks: [] })
+      ).rejects.toThrow();
     });
 
     it('throws ZodError for invalid content_status in chunk', async () => {
@@ -146,6 +150,7 @@ describe('topic-tools', () => {
         handler({
           topic_title: 'T',
           subject: 'CS',
+          topic_summary: 'Summary for content status test',
           chunks: [
             {
               id: 'c1',

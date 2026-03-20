@@ -203,11 +203,12 @@ describe('Content Persistence', () => {
       expect(topic?.summaryUpdatedAt).toBeTypeOf('number');
     });
 
-    it('should handle topic creation without summary', async () => {
+    it('should always persist summary since topic_summary is required', async () => {
       const result = await ctx.createTopicWithChunks({
-        topicTitle: 'Test Topic without Summary',
+        topicTitle: 'Test Topic with Required Summary',
         topicDescription: 'A test topic',
         subject: 'Testing',
+        topicSummary: 'Every topic must have a summary for embeddings',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -224,16 +225,16 @@ describe('Content Persistence', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.topic?.topicSummary).toBeUndefined();
+      expect(result.topic?.topicSummary).toBe('Every topic must have a summary for embeddings');
 
       const db = getSql();
       const [topic] = await db
         .select()
         .from(learningTopics)
         .where(eq(learningTopics.id, result.topic!.topicId));
-      expect(topic?.summary).toBeNull();
-      expect(topic?.summaryVersion).toBeNull();
-      expect(topic?.summaryUpdatedAt).toBeNull();
+      expect(topic?.summary).toBe('Every topic must have a summary for embeddings');
+      expect(topic?.summaryVersion).toBe(1);
+      expect(topic?.summaryUpdatedAt).toBeTypeOf('number');
     });
   });
 

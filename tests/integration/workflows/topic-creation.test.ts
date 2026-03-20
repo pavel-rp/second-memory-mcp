@@ -28,6 +28,7 @@ describe('topic creation service', () => {
         topicTitle: 'Test Topic',
         topicDescription: 'A test topic for learning',
         subject: 'Computer Science',
+        topicSummary: 'Overview of computer science fundamentals',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -71,6 +72,7 @@ describe('topic creation service', () => {
         topicTitle: 'Rollback Test',
         topicDescription: 'Test description',
         subject: 'Test',
+        topicSummary: 'Rollback test summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -105,6 +107,7 @@ describe('topic creation service', () => {
         topicTitle: 'Preference Test Topic',
         topicDescription: 'Testing user preferences',
         subject: 'Test',
+        topicSummary: 'User preferences test summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -132,6 +135,7 @@ describe('topic creation service', () => {
         topicTitle: 'Integrity Test',
         topicDescription: 'Testing referential integrity',
         subject: 'Test',
+        topicSummary: 'Referential integrity test summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -167,6 +171,7 @@ describe('topic creation service', () => {
           topicTitle: 'Concurrent Topic 1',
           topicDescription: 'First concurrent topic',
           subject: 'Test',
+          topicSummary: 'First concurrent topic summary',
           chunks: [
             {
               id: crypto.randomUUID(),
@@ -185,6 +190,7 @@ describe('topic creation service', () => {
           topicTitle: 'Concurrent Topic 2',
           topicDescription: 'Second concurrent topic',
           subject: 'Test',
+          topicSummary: 'Second concurrent topic summary',
           chunks: [
             {
               id: crypto.randomUUID(),
@@ -225,6 +231,7 @@ describe('topic creation service', () => {
       const createInput: TopicCreationInput = {
         topicTitle: 'Original Topic',
         subject: 'Test Subject',
+        topicSummary: 'Original topic summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -272,6 +279,7 @@ describe('topic creation service', () => {
       const createInput: TopicCreationInput = {
         topicTitle: 'Test Topic',
         subject: 'Test Subject',
+        topicSummary: 'Title validation test summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -314,6 +322,7 @@ describe('topic creation service', () => {
       const createInput: TopicCreationInput = {
         topicTitle: 'Test Topic',
         subject: 'Math',
+        topicSummary: 'Math topic summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -344,6 +353,7 @@ describe('topic creation service', () => {
       const createInput: TopicCreationInput = {
         topicTitle: 'Test Topic',
         subject: 'Math',
+        topicSummary: 'Subject validation test summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -386,6 +396,7 @@ describe('topic creation service', () => {
       const createInput: TopicCreationInput = {
         topicTitle: 'Test Topic',
         subject: 'Math',
+        topicSummary: 'Preserve subject test summary',
         chunks: [
           {
             id: crypto.randomUUID(),
@@ -457,6 +468,7 @@ describe('topic creation service', () => {
       const createInput: TopicCreationInput = {
         topicTitle: 'Test Topic',
         subject: 'Test Subject',
+        topicSummary: 'Summary validation test',
         chunks: [
           {
             id: crypto.randomUUID(),
