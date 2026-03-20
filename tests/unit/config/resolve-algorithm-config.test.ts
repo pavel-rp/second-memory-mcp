@@ -227,24 +227,9 @@ describe('resolveAlgorithmConfig', () => {
     );
   });
 
-  // ── Nested: prerequisiteConfig.validation ───────────────────
-
-  it('overrides prerequisite validation booleans', () => {
-    const result = resolveAlgorithmConfig({
-      SM_PREREQ_STRICT_VALIDATION: 'true',
-      SM_PREREQ_ENABLE_CACHE: 'false',
-    });
-    expect(result.prerequisiteConfig.validation.strictValidation).toBe(true);
-    expect(result.prerequisiteConfig.validation.enableCaching).toBe(false);
-  });
-
-  it('overrides prerequisite validation numerics', () => {
-    const result = resolveAlgorithmConfig({
-      SM_PREREQ_MAX_DEPTH: '10',
-      SM_PREREQ_CACHE_EXPIRY_MS: '600000',
-    });
-    expect(result.prerequisiteConfig.validation.maxDependencyDepth).toBe(10);
-    expect(result.prerequisiteConfig.validation.cacheExpiryMs).toBe(600000);
+  it('overrides maxDependencyDepth', () => {
+    const result = resolveAlgorithmConfig({ SM_PREREQ_MAX_DEPTH: '10' });
+    expect(result.maxDependencyDepth).toBe(10);
   });
 
   // ── parseRecord: tagWeights ─────────────────────────────────

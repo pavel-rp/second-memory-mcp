@@ -54,12 +54,5 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
       verbosity: 'medium',
     },
   },
-  prerequisiteConfig: {
-    validation: {
-      strictValidation: false,
-      maxDependencyDepth: 5,
-      enableCaching: true,
-      cacheExpiryMs: 5 * 60 * 1000, // 5 minutes default
-    },
-  },
+  maxDependencyDepth: 5,
 };

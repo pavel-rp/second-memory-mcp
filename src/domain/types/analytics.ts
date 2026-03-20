@@ -119,7 +119,6 @@ export const AnalyticsDailyInputShape = {
 export const AnalyticsDailyInputSchema = z
   .object(AnalyticsDailyInputShape)
   .refine(d => isValidCalendarDate(d.date), { message: 'Date must be a valid calendar date' });
-export type AnalyticsDailyInput = z.infer<typeof AnalyticsDailyInputSchema>;
 
 export const AnalyticsWindowInputShape = {
   from: z
@@ -144,7 +143,6 @@ export const AnalyticsWindowInputSchema = z
   // Lexicographic comparison works correctly for YYYY-MM-DD formatted strings
   .refine(d => d.from <= d.to, { message: '"from" must not be after "to"' })
   .transform(toCamelCaseKeys);
-export type AnalyticsWindowInput = z.infer<typeof AnalyticsWindowInputSchema>;
 
 export const DailyKpisSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),

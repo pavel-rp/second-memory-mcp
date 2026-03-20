@@ -1,4 +1,4 @@
-export type PromptName =
+type PromptName =
   | 'scaffolding'
   | 'learning'
   | 'retrieval'
@@ -22,7 +22,7 @@ export type PromptFeedbackEntry = {
   feedback: string;
 };
 
-export type PromptContext = {
+type PromptContext = {
   // Common
   problem?: string;
 
@@ -65,7 +65,7 @@ export type PromptContext = {
 /**
  * PromptPack centralizes standardized prompt strings used by the MCP server.
  */
-export class PromptPack {
+class PromptPack {
   private readonly promptHandlers: Record<PromptName, (context: PromptContext) => string> = {
     scaffolding: context => this.getScaffoldingPrompt(context),
     learning: context => this.getLearningPrompt(context),

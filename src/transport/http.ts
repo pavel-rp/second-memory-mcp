@@ -18,7 +18,7 @@ const JSON_RPC_PARSE_ERROR = -32700;
 const JSON_RPC_INTERNAL_ERROR = -32603;
 const JSON_RPC_SERVER_ERROR = -32000;
 
-export interface SessionIdentity {
+interface SessionIdentity {
   sub: string;
   email?: string;
 }
