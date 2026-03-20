@@ -164,12 +164,13 @@ export function getSessionStatus(
   });
 
   return {
-    chunks_completed: progress.chunks_completed,
-    chunks_remaining: progress.total_chunks - progress.chunks_completed,
-    overall_progress: progress.overall_progress,
-    average_quality: progress.average_quality,
-    time_elapsed_ms: progress.time_elapsed_ms,
-    should_complete: shouldComplete,
+    sessionId: progress.session_id,
+    chunksCompleted: progress.chunks_completed,
+    chunksRemaining: progress.total_chunks - progress.chunks_completed,
+    overallProgress: progress.overall_progress,
+    averageQuality: progress.average_quality,
+    timeElapsedMs: progress.time_elapsed_ms,
+    shouldComplete,
     reason,
     recommendation,
   };

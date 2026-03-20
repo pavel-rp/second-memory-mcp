@@ -63,6 +63,7 @@ describe('session-tools', () => {
       const result = await handler({ session_id: 's1' });
       const parsed = parseResult(result);
 
+      expect(parsed.session_id).toBe('s1');
       expect(parsed.chunks_completed).toBe(1);
       expect(parsed.chunks_remaining).toBe(0);
       expect(parsed.overall_progress).toBeDefined();
@@ -73,7 +74,7 @@ describe('session-tools', () => {
       expect(parsed.recommendation).toBeDefined();
     });
 
-    it('returns error when session not found by id', async () => {
+    it('returns not_found error when session not found by id', async () => {
       ctx.getSessionById = vi.fn().mockResolvedValue(null);
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
@@ -82,8 +83,9 @@ describe('session-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
+      expect(parsed.error.type).toBe('not_found');
       expect(parsed.error.message).toContain('not found');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('returns error when convertSessionToInput returns null', async () => {
@@ -96,7 +98,33 @@ describe('session-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('session');
       expect(parsed.error.message).toContain('Failed to convert');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for empty session_id', async () => {
+      registerSessionTools(server as any, ctx);
+      const handler = server.tools.get('session_status')!.handler;
+
+      const result = await handler({ session_id: '' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for missing session_id', async () => {
+      registerSessionTools(server as any, ctx);
+      const handler = server.tools.get('session_status')!.handler;
+
+      const result = await handler({});
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('returns validation error when session data is invalid', async () => {
@@ -114,9 +142,10 @@ describe('session-tools', () => {
 
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
     });
 
-    it('returns error when ctx throws', async () => {
+    it('returns retryable error for infrastructure failures', async () => {
       ctx.getSessionById = vi.fn().mockRejectedValue(new Error('db error'));
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
@@ -125,7 +154,9 @@ describe('session-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
-      expect(parsed.error.message).toContain('db error');
+      expect(parsed.error.type).toBe('database');
+      expect(parsed.error.message).toBe('An unexpected error occurred');
+      expect(parsed.error.retryable).toBe(true);
     });
   });
 });

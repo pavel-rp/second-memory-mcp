@@ -1,6 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
-import { z } from 'zod';
+import { ZodError } from 'zod';
+import {
+  SessionStatusInputShape,
+  SessionStatusInputSchema,
+} from '../domain/types/session-management-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { logger } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
@@ -12,40 +16,57 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
       title: 'Get Session Status',
       description:
         'Get session progress metrics and completion evaluation. Returns chunks completed/remaining, quality, time elapsed, and a continue/complete/break recommendation.',
-      inputSchema: {
-        session_id: z.string().describe('The session ID to check status for'),
-      },
+      inputSchema: SessionStatusInputShape,
     },
-    async (input: { session_id: string }) => {
+    async (input: unknown) => {
       try {
-        const sessionId = input.session_id;
+        const { sessionId } = SessionStatusInputSchema.parse(input);
 
         const session = await ctx.getSessionById(sessionId);
         if (!session) {
-          throw new Error(`Session ${sessionId} not found`);
+          const msg = `Session ${sessionId} not found`;
+          return toolError(`Failed to get session status: ${msg}`, {
+            type: 'not_found',
+            message: msg,
+            retryable: false,
+          });
         }
         const sessionInput = await ctx.convertSessionToInput(session.id);
         if (!sessionInput) {
-          throw new Error(`Failed to convert session ${sessionId} to SessionInput format`);
+          const msg = `Failed to convert session ${sessionId} to SessionInput format`;
+          return toolError(`Failed to get session status: ${msg}`, {
+            type: 'session',
+            message: msg,
+            retryable: false,
+          });
         }
 
-        logger.info(`Retrieved session ${sessionId} for status check`);
+        logger.info('Session retrieved and converted for status check', { sessionId });
 
         const validated = ctx.validateSessionContext(sessionInput);
         if (!validated.success) {
           return toolError(`Failed to get session status: ${validated.error.message}`, {
             type: validated.error.type,
             message: validated.error.message,
+            retryable: false,
           });
         }
         const result = ctx.getSessionStatus(validated.data);
         return toolJson(toSnakeCase(result));
       } catch (error) {
-        const msg = extractErrorMessage(error);
+        if (error instanceof ZodError) {
+          const msg = extractErrorMessage(error);
+          logger.error('Invalid session_status input:', msg);
+          return toolError(`Failed to get session status: ${msg}`, {
+            type: 'validation',
+            message: msg,
+            retryable: false,
+          });
+        }
         logger.error('Session status check failed:', error);
-        return toolError(`Failed to get session status: ${msg}`, {
-          type: 'session',
-          message: msg,
+        return toolError('Failed to get session status: internal error', {
+          type: 'database',
+          message: 'An unexpected error occurred',
           retryable: true,
         });
       }

@@ -9,7 +9,6 @@ import {
 } from '../../src/domain/algorithms/sr-calculator.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../src/domain/config/algorithm-defaults.js';
 import {
-  calculateSessionProgress,
   getSessionStatus,
   validateSessionContext,
   applyBatchSessionChunkOperations,
@@ -32,7 +31,6 @@ export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z'
     calculateNextReviewAdvanced: input =>
       calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, now),
     rankCandidates: input => rankCandidatesWithConstraints(input, DEFAULT_ALGORITHM_CONFIG, now),
-    calculateSessionProgress: data => calculateSessionProgress(data, now),
     getSessionStatus: data => getSessionStatus(data, DEFAULT_ALGORITHM_CONFIG, now),
     validateSessionContext: context => validateSessionContext(context, now),
     applyBatchSessionChunkOperations,
