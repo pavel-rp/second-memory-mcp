@@ -212,14 +212,10 @@ describe('teaching-tools', () => {
 
     await handler({
       subject_filter: 'Math',
-      time_available: 20,
-      mode: 'review',
     });
 
     expect(ctx.startLearning).toHaveBeenCalledWith({
       subjectFilter: 'Math',
-      timeAvailable: 20,
-      mode: 'review',
     });
   });
 
@@ -227,7 +223,7 @@ describe('teaching-tools', () => {
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
-    const result = await handler({ mode: 'invalid_mode' });
+    const result = await handler({ subject_filter: 42 });
     const parsed = parseResult(result);
 
     expect(parsed.success).toBe(false);

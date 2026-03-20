@@ -4,36 +4,23 @@ import {
   type RecommendationDeps,
 } from '../../../src/orchestration/recommendation-workflows.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
-import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
-import type {
-  LearningItem,
-  RecommendationInput,
-} from '../../../src/domain/types/recommendations.js';
-import type { LearningChunk } from '../../../src/domain/types/entities.js';
-import {
-  stubChunkRepository,
-  stubPrerequisiteMastery,
-  stubChunkIdLookup,
-} from '../../helpers/stub-ports.js';
-
-// ── Fixtures ────────────────────────────────────────────────────
+import { stubChunkRepository } from '../../helpers/stub-ports.js';
 
 const NOW = new Date('2025-06-15T12:00:00Z');
 const NOW_MS = NOW.getTime();
+const MS_PER_DAY = 86_400_000;
 
-function stubChunkRow(
-  overrides?: Partial<LearningChunk & { topicTitle?: string | null }>
-): ChunkWithTopicTitle {
+function stubChunkRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicTitle {
   return {
     id: 'c1',
     topicId: 'topic-1',
     title: 'Chunk 1',
     subject: 'CS',
     difficulty: 5,
-    nextReviewAt: NOW_MS - 86_400_000, // overdue
+    nextReviewAt: NOW_MS - MS_PER_DAY,
     easeFactor: 2.5,
     repetitions: 2,
-    lastReviewedAt: NOW_MS - 172_800_000,
+    lastReviewedAt: NOW_MS - 2 * MS_PER_DAY,
     estimatedDuration: 10,
     intervalDays: 7,
     chunkType: 'review',
@@ -43,147 +30,119 @@ function stubChunkRow(
     content: 'Content',
     contentVersion: 1,
     contentUpdatedAt: NOW_MS,
-    createdAt: NOW_MS - 1_000_000,
+    createdAt: NOW_MS - 30 * MS_PER_DAY,
     updatedAt: NOW_MS,
     topicTitle: 'Test Topic',
     ...overrides,
   };
 }
 
-function stubItem(overrides?: Partial<LearningItem>): LearningItem {
+function makeDeps(
+  overrides?: Partial<Parameters<typeof stubChunkRepository>[0]>
+): RecommendationDeps {
   return {
-    id: 'c1',
-    title: 'Chunk 1',
-    subject: 'CS',
-    difficulty: 5,
-    nextReviewDate: '2025-06-14',
-    easeFactor: 2.5,
-    repetitions: 2,
-    estimatedDuration: 10,
-    chunkType: 'review',
-    ...overrides,
+    chunks: stubChunkRepository(overrides),
   };
 }
-
-function stubDeps(): RecommendationDeps {
-  return {
-    chunks: stubChunkRepository({
-      list: vi.fn().mockResolvedValue([stubChunkRow()]),
-      getWithContent: vi.fn().mockResolvedValue(stubChunkRow()),
-    }),
-    mastery: stubPrerequisiteMastery(),
-    chunkIdLookup: stubChunkIdLookup(),
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
-  };
-}
-
-// ── generateRecommendations ─────────────────────────────────────
 
 describe('generateRecommendations', () => {
-  it('uses provided learning items when available', async () => {
-    const deps = stubDeps();
-    const items = [stubItem()];
-    const input: RecommendationInput = {
-      learningItems: items,
-    };
+  it('returns empty when no due chunks exist', async () => {
+    const deps = makeDeps({ list: vi.fn().mockResolvedValue([]) });
+    const result = await generateRecommendations({}, deps, NOW);
 
-    const result = await generateRecommendations(input, deps, NOW);
-
-    // Should NOT fetch from DB since items were provided
-    expect(deps.chunks.list).not.toHaveBeenCalled();
-    expect(result).toBeDefined();
-    expect(result.recommendations).toBeDefined();
+    expect(result.recommendations).toEqual([]);
+    expect(result.totalDueTopics).toBe(0);
+    expect(result.totalDueChunks).toBe(0);
   });
 
-  it('fetches items from DB when learningItems is empty', async () => {
-    const deps = stubDeps();
-    const input: RecommendationInput = {
-      learningItems: [],
-    };
+  it('returns topic-level recommendations for due chunks', async () => {
+    const dueChunks = [
+      stubChunkRow({ id: 'c1', topicId: 'topic-1', topicTitle: 'Topic A' }),
+      stubChunkRow({ id: 'c2', topicId: 'topic-1', topicTitle: 'Topic A' }),
+      stubChunkRow({ id: 'c3', topicId: 'topic-2', topicTitle: 'Topic B' }),
+    ];
+    const topicCounts = new Map([
+      ['topic-1', 3], // 3 total chunks in topic-1
+      ['topic-2', 2], // 2 total chunks in topic-2
+    ]);
 
-    const result = await generateRecommendations(input, deps, NOW);
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(dueChunks),
+      countByTopicIds: vi.fn().mockResolvedValue(topicCounts),
+    });
 
-    expect(deps.chunks.list).toHaveBeenCalledWith(
-      expect.objectContaining({ dueOnly: true, limit: 50 })
-    );
-    expect(result).toBeDefined();
+    const result = await generateRecommendations({}, deps, NOW);
+
+    expect(result.recommendations).toHaveLength(2);
+    expect(result.totalDueTopics).toBe(2);
+    expect(result.totalDueChunks).toBe(3);
+
+    const topicA = result.recommendations.find(r => r.topicId === 'topic-1')!;
+    expect(topicA.dueChunkCount).toBe(2);
+    expect(topicA.totalChunkCount).toBe(3); // 3 chunks in topic-1
   });
 
-  it('fetches items from DB when learningItems is undefined', async () => {
-    const deps = stubDeps();
-    const input: RecommendationInput = {};
-
-    const result = await generateRecommendations(input, deps, NOW);
-
-    expect(deps.chunks.list).toHaveBeenCalled();
-    expect(result).toBeDefined();
-  });
-
-  it('passes subjectFilter to DB query', async () => {
-    const deps = stubDeps();
-    const input: RecommendationInput = {
-      learningItems: [],
-      subjectFilter: 'Math',
-    };
-
-    await generateRecommendations(input, deps, NOW);
+  it('passes subject_filter to list query', async () => {
+    const deps = makeDeps({ list: vi.fn().mockResolvedValue([]) });
+    await generateRecommendations({ subjectFilter: 'Math' }, deps, NOW);
 
     expect(deps.chunks.list).toHaveBeenCalledWith(
       expect.objectContaining({ subjectFilter: 'Math' })
     );
   });
 
-  it('respects dueOnly=false in input', async () => {
-    const deps = stubDeps();
-    const input: RecommendationInput = {
-      learningItems: [],
-      dueOnly: false,
-    };
+  it('excludes drafts and leeches from due chunk query', async () => {
+    const deps = makeDeps({ list: vi.fn().mockResolvedValue([]) });
+    await generateRecommendations({}, deps, NOW);
 
-    await generateRecommendations(input, deps, NOW);
-
-    expect(deps.chunks.list).toHaveBeenCalledWith(expect.objectContaining({ dueOnly: false }));
+    expect(deps.chunks.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dueOnly: true,
+        isLeech: false,
+        excludeDraft: true,
+      })
+    );
   });
 
-  it('chunkLookupFn returns undefined when chunk is not found', async () => {
-    const deps = stubDeps();
-    const items = [stubItem({ id: 'c1', prerequisites: ['missing-chunk'] })];
-    // getWithContent returns null for the missing prerequisite
-    (deps.chunks.getWithContent as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    (deps.chunkIdLookup.getExistingIdsByIds as ReturnType<typeof vi.fn>).mockResolvedValue(
-      new Set(['missing-chunk'])
+  it('respects limit parameter', async () => {
+    const chunks = Array.from({ length: 5 }, (_, i) =>
+      stubChunkRow({ id: `c${i}`, topicId: `topic-${i}`, topicTitle: `Topic ${i}` })
     );
-    const input: RecommendationInput = {
-      learningItems: items,
-    };
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
+    });
 
-    const result = await generateRecommendations(input, deps, NOW);
+    const result = await generateRecommendations({ limit: 2 }, deps, NOW);
 
-    expect(result).toBeDefined();
-    expect(deps.chunks.getWithContent).toHaveBeenCalledWith('missing-chunk');
-    // Missing prereq should not appear in dependency resolution
-    const addedPrereqs = result.dependencyResolution?.addedPrerequisites ?? [];
-    expect(addedPrereqs).not.toContain('missing-chunk');
+    expect(result.recommendations).toHaveLength(2);
+    expect(result.totalDueTopics).toBe(5); // total still counts all
   });
 
-  it('chunkLookupFn delegates to chunks.getWithContent', async () => {
-    const deps = stubDeps();
-    const items = [stubItem({ id: 'c1', prerequisites: ['c2'] })];
-    const prereqRow = stubChunkRow({ id: 'c2' });
-    (deps.chunks.getWithContent as ReturnType<typeof vi.fn>).mockResolvedValue(prereqRow);
-    (deps.chunkIdLookup.getExistingIdsByIds as ReturnType<typeof vi.fn>).mockResolvedValue(
-      new Set(['c2'])
-    );
-    const input: RecommendationInput = {
-      learningItems: items,
-    };
+  it('falls back to chunk title when topicTitle is null', async () => {
+    const chunks = [
+      stubChunkRow({ id: 'c1', topicId: 'topic-1', topicTitle: null, title: 'Fallback Title' }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map([['topic-1', 1]])),
+    });
 
-    // This exercises the chunkLookupFn path inside the RecommendationEngine
-    const result = await generateRecommendations(input, deps, NOW);
+    const result = await generateRecommendations({}, deps, NOW);
 
-    expect(result).toBeDefined();
-    // Verify that the recommendation engine delegated prerequisite resolution
-    expect(deps.chunkIdLookup.getExistingIdsByIds).toHaveBeenCalled();
-    expect(deps.chunks.getWithContent).toHaveBeenCalled();
+    expect(result.recommendations[0]!.topicTitle).toBe('Fallback Title');
+  });
+
+  it('skips chunks without a topicId', async () => {
+    const chunks = [stubChunkRow({ id: 'c-orphan', topicId: '' })];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
+    });
+
+    const result = await generateRecommendations({}, deps, NOW);
+
+    expect(result.recommendations).toEqual([]);
+    expect(result.totalDueChunks).toBe(0);
   });
 });

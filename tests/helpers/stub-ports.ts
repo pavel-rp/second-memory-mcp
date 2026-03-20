@@ -28,6 +28,7 @@ export function stubChunkRepository(overrides?: Partial<ChunkRepository>): Chunk
       pagination: { total: 0, limit: 20, offset: 0, has_more: false },
     }),
     batchFetchMinimal: vi.fn().mockResolvedValue([]),
+    countByTopicIds: vi.fn().mockResolvedValue(new Map()),
     findDependents: vi.fn().mockResolvedValue([]),
     ...overrides,
   };

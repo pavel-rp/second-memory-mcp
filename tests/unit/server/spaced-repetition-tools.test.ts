@@ -309,154 +309,55 @@ describe('spaced-repetition-tools', () => {
   // what_to_learn_today
   // ---------------------------------------------------------------
   describe('what_to_learn_today', () => {
-    const mockRecommendationOutput = {
-      recommendations: [],
-      sessionSummary: {
-        totalItems: 0,
-        totalDuration: 0,
-        newItems: 0,
-        reviewItems: 0,
-        remediationItems: 0,
-        subjects: [],
-      },
-      estimatedDuration: 0,
-      rationale: 'No items available',
-    };
-
-    const validLearningItem = {
-      id: 'chunk-1',
-      title: 'Arrays',
-      subject: 'CS',
-      difficulty: 5,
-      next_review_date: '2025-06-15',
-      ease_factor: 2.5,
-      repetitions: 1,
-      estimated_duration: 10,
-      chunk_type: 'review' as const,
-    };
-
-    it('generates recommendations with provided learning_items', async () => {
-      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockRecommendationOutput);
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('what_to_learn_today')!.handler;
-
-      const result = await handler({
-        learning_items: [validLearningItem],
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.recommendations).toBeDefined();
-      expect(parsed.rationale).toBe('No items available');
-      expect(ctx.generateRecommendations).toHaveBeenCalledTimes(1);
-    });
-
-    it('fetches from database when fetch_from_database is true', async () => {
-      const mockItems = [
+    const mockTopicOutput = {
+      recommendations: [
         {
-          id: 'db-1',
-          title: 'Linked Lists',
-          subject: 'CS',
-          difficulty: 3,
-          nextReviewDate: '2025-06-10',
-          easeFactor: 2.5,
-          repetitions: 2,
+          topicId: 'topic-1',
+          topicTitle: 'Segment Trees',
+          urgencyScore: 0.87,
+          urgencyReason: '3 chunks overdue (max 5 days)',
+          dueChunkIds: ['c1', 'c2', 'c3'],
+          dueChunkCount: 3,
+          totalChunkCount: 8,
           estimatedDuration: 15,
-          chunkType: 'review' as const,
+          hasNewChunks: false,
         },
-      ];
-      ctx.listChunksAsLearningItems = vi.fn().mockResolvedValue(mockItems);
-      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockRecommendationOutput);
+      ],
+      totalDueTopics: 1,
+      totalDueChunks: 3,
+    };
+
+    it('returns topic-level recommendations', async () => {
+      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockTopicOutput);
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      const result = await handler({
-        fetch_from_database: true,
-        subject_filter: 'CS',
-        due_only: true,
-        limit: 50,
-      });
+      const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.recommendations).toBeDefined();
-      expect(ctx.listChunksAsLearningItems).toHaveBeenCalledWith({
-        subjectFilter: 'CS',
-        dueOnly: true,
-        limit: 50,
-        isLeech: false,
-      });
+      expect(parsed.recommendations).toHaveLength(1);
+      expect(parsed.recommendations[0].topic_id).toBe('topic-1');
+      expect(parsed.recommendations[0].urgency_score).toBe(0.87);
+      expect(parsed.total_due_topics).toBe(1);
+      expect(parsed.total_due_chunks).toBe(3);
     });
 
-    it('returns database error when listChunksAsLearningItems throws', async () => {
-      ctx.listChunksAsLearningItems = vi.fn().mockRejectedValue(new Error('connection refused'));
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('what_to_learn_today')!.handler;
-
-      const result = await handler({ fetch_from_database: true });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
-      expect(parsed.error.retryable).toBe(true);
-      expect(parsed.error.message).toContain('connection refused');
-    });
-
-    it('returns recommendation error when generateRecommendations throws', async () => {
-      ctx.generateRecommendations = vi.fn().mockRejectedValue(new Error('engine crash'));
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('what_to_learn_today')!.handler;
-
-      const result = await handler({
-        learning_items: [validLearningItem],
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('recommendation');
-      expect(parsed.error.message).toContain('engine crash');
-    });
-
-    it('passes constraints through in camelCase', async () => {
-      const mockGenerate = vi.fn().mockResolvedValue(mockRecommendationOutput);
+    it('passes subject_filter and limit to generateRecommendations', async () => {
+      const mockGenerate = vi.fn().mockResolvedValue(mockTopicOutput);
       ctx.generateRecommendations = mockGenerate;
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      await handler({
-        learning_items: [validLearningItem],
-        constraints: {
-          max_duration: 30,
-          max_cognitive_load: 7,
-          max_new_items: 3,
-          subject_filter: 'Math',
-          exclude_ids: ['skip-1'],
-        },
-      });
+      await handler({ subject_filter: 'Math', limit: 5 });
 
-      const call = mockGenerate.mock.calls[0][0];
-      expect(call.constraints).toEqual({
-        maxDuration: 30,
-        maxCognitiveLoad: 7,
-        maxNewItems: 3,
+      expect(mockGenerate).toHaveBeenCalledWith({
         subjectFilter: 'Math',
-        excludeIds: ['skip-1'],
+        limit: 5,
       });
     });
 
-    it('returns recommendation error when both fetch_from_database and learning_items provided', async () => {
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('what_to_learn_today')!.handler;
-
-      const result = await handler({
-        fetch_from_database: true,
-        learning_items: [validLearningItem],
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('recommendation');
-    });
-
-    it('returns recommendation error when neither fetch_from_database nor learning_items provided', async () => {
+    it('returns recommendation error when generateRecommendations throws', async () => {
+      ctx.generateRecommendations = vi.fn().mockRejectedValue(new Error('engine crash'));
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
@@ -465,32 +366,18 @@ describe('spaced-repetition-tools', () => {
 
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('recommendation');
+      expect(parsed.error.message).toContain('engine crash');
     });
 
-    it('uses empty array when fetchFromDatabase resolves and no items in DB', async () => {
-      ctx.listChunksAsLearningItems = vi.fn().mockResolvedValue([]);
-      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockRecommendationOutput);
+    it('accepts empty input (all optional)', async () => {
+      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockTopicOutput);
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      await handler({ fetch_from_database: true });
+      const result = await handler({});
+      const parsed = parseResult(result);
 
-      expect(ctx.generateRecommendations).toHaveBeenCalledWith(
-        expect.objectContaining({ learningItems: [] })
-      );
-    });
-
-    it('passes isLeech: undefined when include_leeches is true', async () => {
-      ctx.listChunksAsLearningItems = vi.fn().mockResolvedValue([]);
-      ctx.generateRecommendations = vi.fn().mockResolvedValue(mockRecommendationOutput);
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('what_to_learn_today')!.handler;
-
-      await handler({ fetch_from_database: true, include_leeches: true });
-
-      expect(ctx.listChunksAsLearningItems).toHaveBeenCalledWith(
-        expect.objectContaining({ isLeech: undefined })
-      );
+      expect(parsed.recommendations).toBeDefined();
     });
   });
 

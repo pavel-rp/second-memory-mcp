@@ -12,6 +12,7 @@ export type ListChunksFilter = {
   offset?: number;
   includeContent?: boolean;
   isLeech?: boolean;
+  excludeDraft?: boolean;
 };
 
 /** Filter options for listing chunks with content (paginated). */
@@ -79,12 +80,17 @@ export interface ChunkRepository {
   getWithContent(id: string): Promise<ChunkWithTopicTitle | null>;
   list(filter?: ListChunksFilter): Promise<ChunkWithTopicTitle[]>;
   listWithContent(filter?: ListChunksWithContentFilter): Promise<PaginatedLearningItemsResponse>;
+  countByTopicIds(
+    topicIds: string[],
+    opts?: { excludeDraft?: boolean }
+  ): Promise<Map<string, number>>;
   batchFetchMinimal(options?: {
     topicId?: string;
     subject?: string;
     dueOnly?: boolean;
     limit?: number;
     isLeech?: boolean;
+    excludeDraft?: boolean;
   }): Promise<ChunkMinimalMetadata[]>;
   findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
 }

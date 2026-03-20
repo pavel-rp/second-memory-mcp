@@ -1,73 +1,78 @@
-import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
-import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
-import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
-import {
-  DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
-  type LearningItem,
-  type RecommendationInput,
-  type RecommendationOutput,
+import type {
+  RecommendationInput,
+  TopicRecommendationOutput,
 } from '../domain/types/recommendations.js';
-import { RecommendationEngine } from '../domain/services/recommendation-engine.js';
-import { PrerequisiteValidator } from '../domain/services/prerequisite-validator.js';
-import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
-import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
+import {
+  aggregateTopicRecommendations,
+  type DueChunkInfo,
+} from '../domain/services/recommendation-engine.js';
 
 export type RecommendationDeps = {
   chunks: ChunkRepository;
-  mastery: PrerequisiteMasteryPort;
-  chunkIdLookup: ChunkIdLookupPort;
-  algorithmConfig: AlgorithmConfig;
 };
+
+const DEFAULT_TOPIC_LIMIT = 10;
+
+/** Upper bound on due chunks fetched per recommendation call. */
+const MAX_DUE_CHUNKS = 200;
 
 export async function generateRecommendations(
   input: RecommendationInput,
   deps: RecommendationDeps,
   now: Date
-): Promise<RecommendationOutput> {
-  let items = input.learningItems;
-  if (!items || items.length === 0) {
-    const rows = await deps.chunks.list({
-      dueOnly: input.dueOnly ?? true,
-      limit: DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
-      subjectFilter: input.subjectFilter,
-    });
-    items = rows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
+): Promise<TopicRecommendationOutput> {
+  // 1. Fetch due chunks (exclude drafts, exclude leeches, apply subject filter)
+  const dueRows = await deps.chunks.list({
+    dueOnly: true,
+    isLeech: false,
+    excludeDraft: true,
+    subjectFilter: input.subjectFilter,
+    limit: MAX_DUE_CHUNKS,
+  });
+
+  if (dueRows.length === 0) {
+    return { recommendations: [], totalDueTopics: 0, totalDueChunks: 0 };
   }
 
-  const chunkLookupFn = async (id: string): Promise<LearningItem | undefined> => {
-    const row = await deps.chunks.getWithContent(id);
-    return row ? (mapChunkRowToLearningItem(row) as LearningItem) : undefined;
+  // 2. Map to DueChunkInfo
+  const dueChunks: DueChunkInfo[] = dueRows
+    .filter(r => r.topicId) // skip orphan chunks without a topic
+    .map(r => ({
+      id: r.id,
+      topicId: r.topicId,
+      topicTitle: r.topicTitle ?? r.title,
+      nextReviewAt: r.nextReviewAt,
+      easeFactor: r.easeFactor,
+      estimatedDuration: r.estimatedDuration,
+      createdAt: r.createdAt,
+    }));
+
+  if (dueChunks.length === 0) {
+    return { recommendations: [], totalDueTopics: 0, totalDueChunks: 0 };
+  }
+
+  // 3. Fetch total chunk counts per topic (all non-draft chunks)
+  const topicIdSet = new Set(dueChunks.map(c => c.topicId));
+  const topicIds = [...topicIdSet];
+  const topicChunkCounts = await deps.chunks.countByTopicIds(topicIds, { excludeDraft: true });
+
+  // 4. Count totals before limiting
+  const totalDueTopics = topicIdSet.size;
+  const totalDueChunks = dueChunks.length;
+
+  // 5. Aggregate into topic-level recommendations
+  const limit = input.limit ?? DEFAULT_TOPIC_LIMIT;
+  const recommendations = aggregateTopicRecommendations({
+    dueChunks,
+    topicChunkCounts,
+    limit,
+    now,
+  });
+
+  return {
+    recommendations,
+    totalDueTopics,
+    totalDueChunks,
   };
-
-  const prerequisiteValidator = new PrerequisiteValidator({
-    referenceValidator: {
-      validateChunkPrerequisites: async (_chunkId: string, prerequisites: string[]) => {
-        const existing = await deps.chunkIdLookup.getExistingIdsByIds(prerequisites);
-        const invalidReferences = prerequisites.filter(id => !existing.has(id));
-        return { isValid: invalidReferences.length === 0, invalidReferences };
-      },
-    },
-    masteryService: {
-      checkItemMastery: (id: string) => deps.mastery.checkItemMastery(id),
-    },
-    clock: () => now.getTime(),
-  });
-
-  const dependencyResolver = new DependencyResolver(
-    deps.algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth
-  );
-  const engine = new RecommendationEngine({
-    chunkLookupFn,
-    prerequisiteValidator,
-    dependencyResolver,
-    algorithmConfig: deps.algorithmConfig,
-  });
-  return engine.generateRecommendations(
-    {
-      ...input,
-      learningItems: items,
-    },
-    now
-  );
 }

@@ -142,49 +142,17 @@ describe('RankCandidatesInputShape round-trip', () => {
 });
 
 describe('RecommendationInputShape round-trip', () => {
-  it('preserves snake_case fields in nested learning_items after double-parse', () => {
+  it('preserves subject_filter after double-parse', () => {
     const input = {
-      learning_items: [
-        {
-          id: 'item1',
-          title: 'Test Item',
-          subject: 'Math',
-          difficulty: 5,
-          next_review_date: '2026-03-15',
-          ease_factor: 2.5,
-          repetitions: 3,
-          estimated_duration: 10,
-          chunk_type: 'review' as const,
-        },
-      ],
+      subject_filter: 'Math',
+      limit: 5,
     };
 
     const preParsed = z.object(RecommendationInputShape).parse(input);
     const result = RecommendationInputSchema.parse(preParsed);
 
-    expect(result.learningItems![0].nextReviewDate).toBe('2026-03-15');
-    expect(result.learningItems![0].easeFactor).toBe(2.5);
-    expect(result.learningItems![0].estimatedDuration).toBe(10);
-  });
-
-  it('preserves snake_case fields in nested constraints after double-parse', () => {
-    const input = {
-      fetch_from_database: true,
-      constraints: {
-        max_duration: 60,
-        max_cognitive_load: 8,
-        max_new_items: 5,
-        subject_filter: 'Math',
-        exclude_ids: ['id1'],
-      },
-    };
-
-    const preParsed = z.object(RecommendationInputShape).parse(input);
-    const result = RecommendationInputSchema.parse(preParsed);
-
-    expect(result.constraints!.maxDuration).toBe(60);
-    expect(result.constraints!.maxCognitiveLoad).toBe(8);
-    expect(result.constraints!.maxNewItems).toBe(5);
+    expect(result.subjectFilter).toBe('Math');
+    expect(result.limit).toBe(5);
   });
 });
 

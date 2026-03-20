@@ -126,8 +126,6 @@ export const SubmitAnswerInputSchema = z
 
 export type StartLearningInput = {
   subjectFilter?: string;
-  timeAvailable?: number;
-  mode?: 'learning' | 'review';
 };
 
 export type StartLearningStarted = {
@@ -157,21 +155,12 @@ export type StartLearningResult =
 
 export const StartLearningInputShape = {
   subject_filter: z.string().optional().describe('Filter recommendations by subject'),
-  time_available: z.number().int().min(1).optional().describe('Available study time in minutes'),
-  mode: z
-    .enum(['learning', 'review'])
-    .optional()
-    .describe(
-      "Session mode: 'learning' for new content, 'review' for due items. Auto-detected if omitted."
-    ),
 } as const;
 
 export const StartLearningInputSchema = z
   .object(StartLearningInputShape)
-  .transform(({ subject_filter, time_available, ...rest }) => ({
-    ...rest,
+  .transform(({ subject_filter }) => ({
     subjectFilter: subject_filter,
-    timeAvailable: time_available,
   }));
 
 // ── create_session_questions types ─────────────────────────────

@@ -151,41 +151,17 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
   server.registerTool(
     'what_to_learn_today',
     {
-      title: 'Get Learning Recommendations',
+      title: 'Get Topic Recommendations',
       description:
-        "Generate intelligent learning recommendations based on spaced repetition priorities, available time, and preferences. RECOMMENDED: Use fetch_from_database: true to automatically fetch and recommend in one call - this is the primary and most convenient pattern. FILTERS: subject_filter, due_only, and limit apply only when fetch_from_database: true. EXAMPLES: (1) Single-call pattern: {fetch_from_database: true, subject_filter: 'Math', due_only: true} fetches due Math items and generates recommendations. (2) Legacy pattern: {learning_items: [...]} uses pre-fetched items (filters are ignored in this mode). The tool provides fast, local-first recommendations without external dependencies.",
+        'Returns topic-level recommendations ranked by urgency. Each topic includes urgency_score, urgency_reason, due_chunk_ids, estimated_duration, and has_new_chunks. ' +
+        'Canonical flow: (1) call this tool to get ranked topics, (2) present options to user, (3) user picks a topic, (4) create_session + create_session_chunk for each due_chunk_id. ' +
+        'For quick-start without topic selection, use start_learning instead.',
       inputSchema: RecommendationInputShape,
     },
     async (input: unknown) => {
       try {
         const parsed = RecommendationInputSchema.parse(input);
-
-        // Self-fetch mode: fetch from database
-        let itemsToProcess = parsed.learningItems;
-        if (parsed.fetchFromDatabase) {
-          try {
-            itemsToProcess = await ctx.listChunksAsLearningItems({
-              subjectFilter: parsed.subjectFilter,
-              dueOnly: parsed.dueOnly,
-              limit: parsed.limit,
-              // undefined = no filter (include all); false = exclude leeches from recommendations
-              isLeech: parsed.includeLeeches ? undefined : false,
-            });
-          } catch (dbError) {
-            const msg = extractErrorMessage(dbError);
-            return toolError(`Failed to fetch learning items from database: ${msg}`, {
-              type: 'database',
-              message: msg,
-              retryable: true,
-            });
-          }
-        }
-
-        // Generate recommendations with fetched or provided items
-        const result = await ctx.generateRecommendations({
-          ...parsed,
-          learningItems: itemsToProcess ?? [],
-        });
+        const result = await ctx.generateRecommendations(parsed);
         return toolJson(toSnakeCase(result));
       } catch (error) {
         const msg = extractErrorMessage(error);

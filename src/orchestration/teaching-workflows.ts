@@ -1,8 +1,6 @@
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
-import type { PrerequisiteMasteryPort } from '../ports/prerequisite-mastery-port.js';
-import type { ChunkIdLookupPort } from '../ports/chunk-id-lookup-port.js';
 import type { SessionQuestionRepository } from '../ports/session-question-repository.js';
 import type { NotesRepository } from '../ports/notes-repository.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
@@ -20,11 +18,6 @@ import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/en
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
-import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
-import {
-  DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
-  type LearningItem,
-} from '../domain/types/recommendations.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -161,7 +154,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     // Inconsistent state: pending chunks exist but none are selectable and none are in_progress
     return {
       status: 'error',
-      message: `Session is in an inconsistent state: pending chunks cannot be advanced. Pending chunk ids: ${pendingChunks.map(sc => sc.chunkId).join(', ')}.`,
+      message: `Session is in an inconsistent state: ${pendingChunks.length} pending chunk(s) cannot be advanced.`,
     };
   }
 
@@ -774,18 +767,14 @@ function buildCompleteResponse(
 export type StartLearningDeps = {
   sessions: SessionRepository;
   chunks: ChunkRepository;
-  mastery: PrerequisiteMasteryPort;
-  chunkIdLookup: ChunkIdLookupPort;
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
   sessionQuestions: SessionQuestionRepository;
   notes?: NotesRepository;
-  maxDependencyDepth: number;
 };
 
 /**
- * Convenience workflow: check for active session → recommend → create session → teach first chunk.
- * Collapses what_to_learn_today + create_session + teach_next into one call.
+ * Quick-start: check for active session → pick highest-urgency topic → create single-topic session → teach first chunk.
  */
 export async function startLearning(
   input: StartLearningInput,
@@ -795,7 +784,7 @@ export async function startLearning(
   const sessionDeps: sessionWorkflows.SessionDeps = {
     sessions: deps.sessions,
     chunks: deps.chunks,
-    maxDependencyDepth: deps.maxDependencyDepth,
+    maxDependencyDepth: 0, // not used for session creation from explicit chunkIds
   };
   const activeSession = await sessionWorkflows.getActiveSession(sessionDeps);
   if (activeSession) {
@@ -805,16 +794,18 @@ export async function startLearning(
     };
   }
 
-  // 2. Fetch learning items from DB
-  const rows = await deps.chunks.list({
-    dueOnly: true,
-    limit: DEFAULT_RECOMMENDATION_CANDIDATE_LIMIT,
-    subjectFilter: input.subjectFilter,
-    isLeech: false,
-  });
-  const items = rows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
+  // 2. Get topic-level recommendations
+  const recDeps: recommendationWorkflows.RecommendationDeps = {
+    chunks: deps.chunks,
+  };
+  const now = new Date();
+  const recommendations = await recommendationWorkflows.generateRecommendations(
+    { subjectFilter: input.subjectFilter, limit: 1 },
+    recDeps,
+    now
+  );
 
-  if (items.length === 0) {
+  if (recommendations.recommendations.length === 0) {
     return {
       status: 'nothing_due',
       message: input.subjectFilter
@@ -823,43 +814,17 @@ export async function startLearning(
     };
   }
 
-  // 3. Generate recommendations
-  const recDeps: recommendationWorkflows.RecommendationDeps = {
-    chunks: deps.chunks,
-    mastery: deps.mastery,
-    chunkIdLookup: deps.chunkIdLookup,
-    algorithmConfig: deps.algorithmConfig,
-  };
-  const now = new Date();
-  const recommendations = await recommendationWorkflows.generateRecommendations(
-    {
-      learningItems: items,
-      timeAvailable: input.timeAvailable,
-      subjectFilter: input.subjectFilter,
-    },
-    recDeps,
-    now
-  );
+  // 3. Pick highest-urgency topic
+  const topRec = recommendations.recommendations[0];
+  const chunkIds = topRec.dueChunkIds;
+  const mode: 'learning' | 'review' = topRec.hasNewChunks ? 'learning' : 'review';
 
-  if (recommendations.recommendations.length === 0) {
-    return {
-      status: 'nothing_due',
-      message: 'No recommendations available. All items may be up to date.',
-    };
-  }
-
-  // 4. Extract chunk IDs (already dependency-resolved and ordered by RecommendationEngine)
-  const resolvedChunkIds = recommendations.recommendations.map(r => r.item.id);
-
-  // 5. Auto-detect mode if not specified
-  const mode = input.mode ?? inferMode(recommendations.recommendations.map(r => r.item));
-
-  // 6. Create session
+  // 4. Create session
   const sessionResult = await sessionWorkflows.createSession(
     {
-      chunkIds: resolvedChunkIds,
+      chunkIds,
       mode,
-      estimatedDuration: recommendations.estimatedDuration,
+      estimatedDuration: topRec.estimatedDuration,
     },
     sessionDeps
   );
@@ -871,7 +836,7 @@ export async function startLearning(
     };
   }
 
-  // 7. Get first teaching step
+  // 5. Get first teaching step
   const teachingDeps: TeachingDeps = {
     sessions: deps.sessions,
     chunks: deps.chunks,
@@ -882,21 +847,14 @@ export async function startLearning(
   };
   const firstChunk = await getNextTeachingStep(teachingDeps);
 
-  // 8. Return combined result
+  // 6. Return combined result
   return {
     status: 'started',
     session_id: sessionResult.data.sessionId,
     mode,
-    total_chunks: resolvedChunkIds.length,
-    estimated_duration: recommendations.estimatedDuration,
+    total_chunks: chunkIds.length,
+    estimated_duration: topRec.estimatedDuration,
     first_chunk: firstChunk,
-    recommendation_summary: recommendations.rationale,
+    recommendation_summary: `Picked topic "${topRec.topicTitle}" (urgency ${topRec.urgencyScore}): ${topRec.urgencyReason}`,
   };
-}
-
-function inferMode(items: LearningItem[]): 'learning' | 'review' {
-  const hasReviewItems = items.some(
-    item => item.chunkType === 'review' || item.chunkType === 'remediation'
-  );
-  return hasReviewItems ? 'review' : 'learning';
 }
