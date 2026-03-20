@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
-import { learningChunks, type LearningChunkRow } from '../../infrastructure/db/schema.js';
+import { learningChunks } from '../../infrastructure/db/schema.js';
 import { MS_PER_DAY } from '../../shared/constants/time.js';
 import type { MasteryStatus } from '../../domain/types/prerequisite-validation.js';
 import type { PrerequisiteMasteryPort } from '../../ports/prerequisite-mastery-port.js';
@@ -53,10 +53,15 @@ export class DrizzlePrerequisiteMasteryAdapter implements PrerequisiteMasteryPor
     return results;
   }
 
-  private async getChunkData(itemId: string): Promise<LearningChunkRow | undefined> {
+  private async getChunkData(
+    itemId: string
+  ): Promise<{ repetitions: number; lastReviewedAt: number | null } | undefined> {
     try {
       const [row] = await this.db
-        .select()
+        .select({
+          repetitions: learningChunks.repetitions,
+          lastReviewedAt: learningChunks.lastReviewedAt,
+        })
         .from(learningChunks)
         .where(eq(learningChunks.id, itemId));
       return row;
