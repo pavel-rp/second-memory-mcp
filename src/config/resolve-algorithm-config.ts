@@ -153,25 +153,9 @@ export function resolveAlgorithmConfig(
         ),
       },
     },
-    prerequisiteConfig: {
-      validation: {
-        strictValidation: parseBoolean(
-          env.SM_PREREQ_STRICT_VALIDATION,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.strictValidation
-        ),
-        maxDependencyDepth: parseNumber(
-          env.SM_PREREQ_MAX_DEPTH,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.maxDependencyDepth
-        ),
-        enableCaching: parseBoolean(
-          env.SM_PREREQ_ENABLE_CACHE,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.enableCaching
-        ),
-        cacheExpiryMs: parseNumber(
-          env.SM_PREREQ_CACHE_EXPIRY_MS,
-          DEFAULT_ALGORITHM_CONFIG.prerequisiteConfig.validation.cacheExpiryMs
-        ),
-      },
-    },
+    maxDependencyDepth: parseNumber(
+      env.SM_PREREQ_MAX_DEPTH,
+      DEFAULT_ALGORITHM_CONFIG.maxDependencyDepth
+    ),
   };
 }

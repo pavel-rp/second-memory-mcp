@@ -3,8 +3,6 @@ import { DrizzleChunkRepository } from './adapters/drizzle/chunk-repository.js';
 import { DrizzleTopicRepository } from './adapters/drizzle/topic-repository.js';
 import { DrizzleSessionRepository } from './adapters/drizzle/session-repository.js';
 import { DrizzleSearchAdapter } from './adapters/drizzle/search-adapter.js';
-import { DrizzleChunkIdLookupAdapter } from './adapters/drizzle/chunk-id-lookup-adapter.js';
-import { DrizzlePrerequisiteMasteryAdapter } from './adapters/drizzle/prerequisite-mastery-adapter.js';
 import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persistence-adapter.js';
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
 import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-question-repository.js';
@@ -27,8 +25,6 @@ import type {
   ChunkValidationResult,
 } from './ports/session-repository.js';
 import type { SearchPort } from './ports/search-port.js';
-import type { ChunkIdLookupPort } from './ports/chunk-id-lookup-port.js';
-import type { PrerequisiteMasteryPort } from './ports/prerequisite-mastery-port.js';
 import type { ChunkMinimalMetadata } from './ports/chunk-repository.js';
 import type { ReviewPersistencePort, ReviewResultData } from './ports/review-persistence-port.js';
 import type { UnitOfWorkPort } from './ports/unit-of-work-port.js';
@@ -103,8 +99,6 @@ export interface AppPorts {
   topics: TopicRepository;
   sessions: SessionRepository;
   search: SearchPort;
-  chunkIdLookup: ChunkIdLookupPort;
-  prerequisiteMastery: PrerequisiteMasteryPort;
   reviewPersistence: ReviewPersistencePort;
   unitOfWork: UnitOfWorkPort;
   sessionQuestions: SessionQuestionRepository;
@@ -290,8 +284,6 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
     topics: new DrizzleTopicRepository(db),
     sessions: new DrizzleSessionRepository(db),
     search: new DrizzleSearchAdapter(db, vectorSimilarityThreshold),
-    chunkIdLookup: new DrizzleChunkIdLookupAdapter(db),
-    prerequisiteMastery: new DrizzlePrerequisiteMasteryAdapter(db),
     reviewPersistence: new DrizzleReviewPersistenceAdapter(db),
     unitOfWork: new DrizzleUnitOfWorkAdapter(),
     sessionQuestions: new DrizzleSessionQuestionRepository(db),
@@ -325,7 +317,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     topics: ports.topics,
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
-    maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
+    maxDependencyDepth: algorithmConfig.maxDependencyDepth,
   };
   const topicDeps: topicWorkflows.TopicDeps = {
     topics: ports.topics,
@@ -344,7 +336,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const sessionDeps: sessionWorkflows.SessionDeps = {
     sessions: ports.sessions,
     chunks: ports.chunks,
-    maxDependencyDepth: algorithmConfig.prerequisiteConfig.validation.maxDependencyDepth,
+    maxDependencyDepth: algorithmConfig.maxDependencyDepth,
   };
   const recommendationDeps: recommendationWorkflows.RecommendationDeps = {
     chunks: ports.chunks,

@@ -5,8 +5,6 @@ import type { SessionRepository } from '../../src/ports/session-repository.js';
 import type { SessionQuestionRepository } from '../../src/ports/session-question-repository.js';
 import type { ReviewPersistencePort } from '../../src/ports/review-persistence-port.js';
 import type { UnitOfWorkPort, TransactionPorts } from '../../src/ports/unit-of-work-port.js';
-import type { PrerequisiteMasteryPort } from '../../src/ports/prerequisite-mastery-port.js';
-import type { ChunkIdLookupPort } from '../../src/ports/chunk-id-lookup-port.js';
 import type { SearchPort } from '../../src/ports/search-port.js';
 import type { EmbeddingPort } from '../../src/ports/embedding-port.js';
 import type { NotesRepository } from '../../src/ports/notes-repository.js';
@@ -123,33 +121,6 @@ export function stubUnitOfWork(
   const execute: UnitOfWorkPort['execute'] = vi.fn(async cb => cb(ports));
   return {
     execute,
-    ...overrides,
-  };
-}
-
-// ── PrerequisiteMasteryPort ─────────────────────────────────────
-
-export function stubPrerequisiteMastery(
-  overrides?: Partial<PrerequisiteMasteryPort>
-): PrerequisiteMasteryPort {
-  return {
-    checkItemMastery: vi.fn().mockResolvedValue({
-      itemId: '',
-      isMastered: true,
-      attemptCount: 3,
-      daysSinceLastReview: 1,
-    }),
-    checkMultipleItemsMastery: vi.fn().mockResolvedValue(new Map()),
-    ...overrides,
-  };
-}
-
-// ── ChunkIdLookupPort ───────────────────────────────────────────
-
-export function stubChunkIdLookup(overrides?: Partial<ChunkIdLookupPort>): ChunkIdLookupPort {
-  return {
-    getExistingIdsByIds: vi.fn().mockResolvedValue(new Set<string>()),
-    getAllIds: vi.fn().mockResolvedValue(new Set<string>()),
     ...overrides,
   };
 }

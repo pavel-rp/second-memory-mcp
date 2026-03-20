@@ -55,15 +55,7 @@ export type AlgorithmConfig = {
       verbosity: 'low' | 'medium' | 'high'; // guidance verbosity level
     };
   };
-  // Prerequisite validation configuration
-  prerequisiteConfig: {
-    validation: {
-      strictValidation: boolean; // fail on any invalid prerequisite references
-      maxDependencyDepth: number; // max depth for dependency graph traversal
-      enableCaching: boolean; // cache mastery status results for performance
-      cacheExpiryMs: number; // cache expiry time in milliseconds
-    };
-  };
+  maxDependencyDepth: number; // max depth for dependency graph traversal
 };
 
 export function clampEaseFactor(
