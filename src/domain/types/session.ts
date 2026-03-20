@@ -69,6 +69,7 @@ export type SessionProgress = {
 
 // Unified session status (replaces WorkflowPhase + CompletionStatus)
 export type SessionStatus = {
+  session_id: string;
   chunks_completed: number;
   chunks_remaining: number;
   overall_progress: number; // 0-1
@@ -78,6 +79,15 @@ export type SessionStatus = {
   reason: string;
   recommendation: 'continue' | 'complete' | 'break';
 };
+
+// session_status tool input
+export const SessionStatusInputShape = {
+  session_id: z.string().min(1),
+} as const;
+
+export const SessionStatusInputSchema = z
+  .object(SessionStatusInputShape)
+  .transform(toCamelCaseKeysExcept(new Set()));
 
 // Zod schemas for runtime validation
 

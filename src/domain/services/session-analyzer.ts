@@ -164,6 +164,7 @@ export function getSessionStatus(
   });
 
   return {
+    session_id: progress.session_id,
     chunks_completed: progress.chunks_completed,
     chunks_remaining: progress.total_chunks - progress.chunks_completed,
     overall_progress: progress.overall_progress,

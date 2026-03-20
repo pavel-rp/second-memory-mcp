@@ -80,7 +80,6 @@ import {
   rankCandidatesWithConstraints,
 } from './domain/algorithms/sr-calculator.js';
 import {
-  calculateSessionProgress,
   getSessionStatus,
   validateSessionContext,
   applyBatchSessionChunkOperations,
@@ -95,7 +94,7 @@ import type {
   RankInput,
   RankOutput,
 } from './domain/types/sr.js';
-import type { SessionProgress, SessionStatus } from './domain/types/session.js';
+import type { SessionStatus } from './domain/types/session.js';
 import type { DailyKpis, AnalyticsOutput } from './domain/types/analytics.js';
 
 /** Ports — injectable for testing */
@@ -278,7 +277,6 @@ export interface AppContext {
     to: string,
     options: { includeBreakdowns?: boolean }
   ) => Promise<AnalyticsOutput>;
-  calculateSessionProgress: (sessionData: SessionInput) => SessionProgress;
   getSessionStatus: (sessionData: SessionInput) => SessionStatus;
   validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
@@ -470,7 +468,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     computeDailyAnalytics: date => analyticsWorkflows.computeDailyAnalytics(date, analyticsDeps),
     computeWindowAnalytics: (from, to, options) =>
       analyticsWorkflows.computeWindowAnalytics(from, to, options, analyticsDeps),
-    calculateSessionProgress: sessionData => calculateSessionProgress(sessionData, new Date()),
     getSessionStatus: sessionData => getSessionStatus(sessionData, algorithmConfig, new Date()),
     validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
