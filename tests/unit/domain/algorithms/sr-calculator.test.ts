@@ -180,6 +180,29 @@ describe('rankCandidatesWithConstraints', () => {
     expect(out.summary.totalCandidates).toBe(2);
     expect(out.summary.selectedCount).toBe(out.orderedIds.length);
   });
+
+  it('returns all candidates when maxReviews is zero', () => {
+    const config = {
+      ...DEFAULT_ALGORITHM_CONFIG,
+      dailyCaps: { ...DEFAULT_ALGORITHM_CONFIG.dailyCaps, maxReviews: 0 },
+    };
+    const out = rankCandidatesWithConstraints(
+      {
+        candidates: [
+          {
+            id: 'a',
+            nextReviewDate: TODAY,
+            easeFactor: 2,
+            repetitions: 0,
+            difficulty: 5,
+          },
+        ],
+      },
+      config,
+      NOW
+    );
+    expect(out.orderedIds).toEqual(['a']);
+  });
 });
 
 describe('TF-5: overdue penalty skipped for new items', () => {
