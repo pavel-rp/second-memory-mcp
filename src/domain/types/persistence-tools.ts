@@ -129,13 +129,14 @@ export const CreateTopicWithChunksInputShape = {
     .describe('Subject or category for the topic'),
   topic_summary: z
     .string()
-    .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Topic summary cannot be empty if provided')
+    .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Topic summary cannot be empty')
     .max(
       VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE,
       `Topic summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`
     )
-    .optional()
-    .describe('Summary content for the topic'),
+    .describe(
+      'Summary content for the topic (required — used to generate embeddings for semantic search)'
+    ),
   chunks: z
     .array(z.object(TopicChunkShape))
     .min(1, 'At least one chunk is required')

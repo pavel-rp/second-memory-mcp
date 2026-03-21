@@ -126,16 +126,17 @@ describe('createTopicWithChunks', () => {
     expect(result.topic).toBeDefined();
   });
 
-  it('skips embedding when no summary and no chunk content', async () => {
+  it('skips chunk embedding when chunks have no content', async () => {
     const embedding: EmbeddingPort = {
-      embedText: vi.fn(),
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
       embedTexts: vi.fn(),
-      getDimensions: vi.fn().mockReturnValue(3),
+      getDimensions: vi.fn().mockReturnValue(2),
     };
     const { deps } = stubDeps({ embedding });
     const input: TopicCreationInput = {
       topicTitle: 'No Content Topic',
       subject: 'Science',
+      topicSummary: 'A topic with no chunk content',
       chunks: [
         {
           id: 'c1',
@@ -150,7 +151,7 @@ describe('createTopicWithChunks', () => {
     const result = await createTopicWithChunks(input, deps);
 
     expect(result.success).toBe(true);
-    expect(embedding.embedText).not.toHaveBeenCalled();
+    expect(embedding.embedText).toHaveBeenCalledWith('A topic with no chunk content');
     expect(embedding.embedTexts).not.toHaveBeenCalled();
   });
 
@@ -210,6 +211,7 @@ describe('createTopicWithChunks', () => {
     const input: TopicCreationInput = {
       topicTitle: 'Null Chunk Vector',
       subject: 'Math',
+      topicSummary: 'Summary for null chunk vector test',
       chunks: [
         {
           id: 'c1',
@@ -240,6 +242,7 @@ describe('createTopicWithChunks', () => {
     const input: TopicCreationInput = {
       topicTitle: 'Zero Row Chunk',
       subject: 'Math',
+      topicSummary: 'Summary for zero row chunk test',
       chunks: [
         {
           id: 'c1',

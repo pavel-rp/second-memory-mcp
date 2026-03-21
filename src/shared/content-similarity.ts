@@ -77,10 +77,6 @@ export function calculateSimilarityRatio(str1: string, str2: string): number {
     return 1.0;
   }
 
-  if (str1.length === 0 && str2.length === 0) {
-    return 1.0;
-  }
-
   if (str1.length === 0 || str2.length === 0) {
     return 0.0;
   }

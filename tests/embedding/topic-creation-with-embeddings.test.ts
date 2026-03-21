@@ -20,6 +20,7 @@ describe.skipIf(!process.env.EMBEDDING_PROVIDER)(
         topicTitle: 'Neural Networks',
         topicDescription: 'Deep learning fundamentals',
         subject: 'AI',
+        topicSummary: 'Introduction to neural networks and deep learning fundamentals',
         chunks: [
           {
             id: crypto.randomUUID(),

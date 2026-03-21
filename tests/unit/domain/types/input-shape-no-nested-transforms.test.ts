@@ -63,6 +63,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
     const input = {
       topic_title: 'Test Topic',
       subject: 'Math',
+      topic_summary: 'Math topic summary for round-trip test',
       chunks: [
         {
           id: 'c1',
@@ -89,6 +90,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
     const input = {
       topic_title: 'Test Topic',
       subject: 'Math',
+      topic_summary: 'Math topic summary for preferences round-trip test',
       chunks: [
         {
           id: 'c1',

@@ -86,6 +86,10 @@ describe('parseRecord', () => {
     expect(parseRecord('{"a":1,"b":"nope","c":3}')).toEqual({ a: 1, c: 3 });
   });
 
+  it('skips boolean values in object', () => {
+    expect(parseRecord('{"a":1,"b":true,"c":false}')).toEqual({ a: 1 });
+  });
+
   it('skips non-finite numeric values in object', () => {
     expect(parseRecord('{"a":1e309,"b":2}')).toEqual({ b: 2 });
   });

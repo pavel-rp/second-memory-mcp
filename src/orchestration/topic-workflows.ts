@@ -49,7 +49,7 @@ export type TopicCreationInput = {
   topicTitle: string;
   subject: string;
   topicDescription?: string;
-  topicSummary?: string;
+  topicSummary: string;
   chunks: Array<{
     id: string;
     title: string;
@@ -111,9 +111,9 @@ export async function createTopicWithChunks(
         id: topicId,
         title: input.topicTitle,
         subject: input.subject,
-        summary: input.topicSummary || null,
-        summaryVersion: input.topicSummary ? 1 : null,
-        summaryUpdatedAt: input.topicSummary ? now : null,
+        summary: input.topicSummary,
+        summaryVersion: 1,
+        summaryUpdatedAt: now,
         createdAt: now,
         updatedAt: now,
       };
