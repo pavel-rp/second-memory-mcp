@@ -73,6 +73,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
           estimated_duration: 15,
           order: 1,
           chunk_type: 'new',
+          condensed_summary: 'Key takeaway from chunk 1.',
         },
       ],
     };
@@ -99,6 +100,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
           difficulty: 5,
           estimated_duration: 10,
           order: 1,
+          condensed_summary: 'Key takeaway from chunk 1.',
         },
       ],
       user_preferences: {

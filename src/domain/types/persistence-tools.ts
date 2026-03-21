@@ -85,7 +85,6 @@ const TopicChunkShape = {
     .string()
     .min(1, 'Condensed summary cannot be empty')
     .max(1000, 'Condensed summary cannot exceed 1000 characters')
-    .optional()
     .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
 } as const;
 
@@ -236,7 +235,6 @@ export const UpdateChunkContentInputShape = {
     .string()
     .min(1, 'Condensed summary cannot be empty')
     .max(1000, 'Condensed summary cannot exceed 1000 characters')
-    .optional()
     .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
 } as const;
 
