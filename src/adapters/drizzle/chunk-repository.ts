@@ -191,6 +191,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
 
     let query = baseQuery.$dynamic();
     if (whereClause) query = query.where(whereClause);
+    query = query.orderBy(learningChunks.nextReviewAt, learningChunks.id) as typeof query;
     const rows = await query.offset(offset).limit(limit);
 
     const items = rows.map(row =>
