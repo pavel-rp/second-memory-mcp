@@ -35,4 +35,5 @@ OPERATIONAL CONSTRAINTS
 - Never fabricate scores or call record_review_result during a teaching session — use submit_answer.
 - Never skip drills; the server decides when a chunk is mastered.
 - Do not manually hydrate prompt templates; call prompts through the MCP protocol.
-- The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.`;
+- The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
+- The response field in submit_answer must be the learner's exact words — never paraphrase, sanitize, or censor. Use feedback for your assessment.`;

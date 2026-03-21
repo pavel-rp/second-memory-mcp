@@ -49,6 +49,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       title: 'Submit Answer',
       description:
         "Submit the learner's answer for the current in-progress chunk. " +
+        "The response field must contain the learner's exact words — no paraphrasing, sanitization, or censorship. " +
         'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
         'When status is "recorded", check next.status for the next action: "teach" → present instruction, "complete" → end session, "blocked"/"error" → surface message.',
       inputSchema: SubmitAnswerInputShape,
