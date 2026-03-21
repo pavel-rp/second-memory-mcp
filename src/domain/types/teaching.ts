@@ -96,7 +96,17 @@ export type SubmitAnswerResult = SubmitAnswerRetry | SubmitAnswerRecorded | Subm
 
 export const SubmitAnswerInputShape = {
   question: z.string().min(1).describe('The drill question that was asked'),
-  response: z.string().min(1).describe("The learner's answer"),
+  response: z
+    .string()
+    .min(1)
+    .describe(
+      "The learner's answer — VERBATIM. Copy exactly as written: no paraphrasing, " +
+        'no sanitization, no censorship, no grammar fixes. Profanity, slang, errors, ' +
+        'tangential commentary — all preserved as-is. ' +
+        'For non-text artifacts (images, handwriting), append a clearly-delimited ' +
+        '"[Agent transcription of attached artifact]" block after the verbatim text. ' +
+        'Use the feedback field for your assessment, not this field.'
+    ),
   passed: z
     .boolean()
     .describe(
