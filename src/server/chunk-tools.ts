@@ -17,6 +17,22 @@ import {
 import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
+function buildConsistencyReminder(topicId: string) {
+  return {
+    topicId,
+    action: 'CONSISTENCY_CHECK' as const,
+    instruction:
+      'Content in this topic was just modified. Before moving on, verify topic-wide consistency.',
+    checklist: [
+      'Prerequisites: verify graph is correct — no orphans, no unintentional dead ends',
+      'Cross-references: check if sibling chunks reference concepts from the changed chunk',
+      'Topic summary: update if stale relative to this change',
+      'Assumption mismatches: scan sibling chunks for difficulty/knowledge assumptions not covered by prerequisites',
+      'Difficulty/duration coherence: verify the changed chunk fits the progression',
+    ],
+  };
+}
+
 export function registerChunkTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'create_learning_item',
@@ -71,6 +87,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             topicId: result.data.topicId,
             createdAt: result.data.createdAt,
             message: `Successfully created learning item "${input.title}"`,
+            consistencyReminder: buildConsistencyReminder(result.data.topicId),
           })
         );
       } catch (error) {
@@ -109,6 +126,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
               progressReset: result.progressReset,
               updatedAt: result.chunk.updatedAt,
               message: `Successfully updated content for chunk "${result.chunk.title}"`,
+              consistencyReminder: buildConsistencyReminder(result.chunk.topicId),
             })
           );
         } else {
@@ -157,6 +175,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
               chunkId: result.chunk.id,
               updatedAt: result.chunk.updatedAt,
               message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
+              consistencyReminder: buildConsistencyReminder(result.chunk.topicId),
             })
           );
         } else {
@@ -209,6 +228,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
               progressReset: result.progressReset,
               updatedAt: result.chunk.updatedAt,
               message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
+              consistencyReminder: buildConsistencyReminder(result.chunk.topicId),
             })
           );
         } else {
@@ -244,6 +264,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
         if (result.success) {
           const removedCount = result.removedDependencies?.length ?? 0;
           const chunkTitle = result.chunk?.title ?? chunkId;
+          const topicId = result.chunk?.topicId;
           const messageParts = [`Successfully deleted chunk "${chunkTitle}"`];
 
           if (removedCount > 0) {
@@ -258,6 +279,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
               chunkId: chunkId,
               removedDependencyCount: removedCount,
               message: messageParts.join(' '),
+              ...(topicId ? { consistencyReminder: buildConsistencyReminder(topicId) } : {}),
             })
           );
         }

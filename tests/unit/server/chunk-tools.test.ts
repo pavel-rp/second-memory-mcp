@@ -75,6 +75,39 @@ describe('chunk-tools', () => {
       expect(parsed.message).toContain('Arrays');
     });
 
+    it('includes consistency_reminder in success response', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeDefined();
+      expect(parsed.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.instruction).toBeDefined();
+      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+    });
+
+    it('does not include consistency_reminder in error response', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'database', message: 'duplicate chunk' },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
+    });
+
     it('passes prerequisites and tags when provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
@@ -202,7 +235,13 @@ describe('chunk-tools', () => {
     it('returns success with progress_reset flag', async () => {
       ctx.updateChunkContent = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays', contentVersion: 2, updatedAt: Date.now() },
+        chunk: {
+          id: 'c1',
+          topicId: 't1',
+          title: 'Arrays',
+          contentVersion: 2,
+          updatedAt: Date.now(),
+        },
         progressReset: true,
       });
       registerChunkTools(server as any, ctx);
@@ -293,6 +332,51 @@ describe('chunk-tools', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
+    it('includes consistency_reminder in success response', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: true,
+        chunk: {
+          id: 'c1',
+          topicId: 't1',
+          title: 'Arrays',
+          contentVersion: 2,
+          updatedAt: Date.now(),
+        },
+        progressReset: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content: 'Updated content for arrays that is long enough to pass validation.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeDefined();
+      expect(parsed.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+    });
+
+    it('does not include consistency_reminder in error response', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Chunk not found' },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c-missing',
+        content: 'Updated content for arrays that is long enough to pass validation.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
+    });
+
     it('throws ZodError for missing chunk_id', async () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_content')!.handler;
@@ -308,7 +392,7 @@ describe('chunk-tools', () => {
     it('returns success on update', async () => {
       ctx.updateChunkMetadata = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Updated Arrays', updatedAt: Date.now() },
+        chunk: { id: 'c1', topicId: 't1', title: 'Updated Arrays', updatedAt: Date.now() },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
@@ -385,6 +469,38 @@ describe('chunk-tools', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
+    it('includes consistency_reminder in success response', async () => {
+      ctx.updateChunkMetadata = vi.fn().mockResolvedValue({
+        success: true,
+        chunk: { id: 'c1', topicId: 't1', title: 'Arrays', updatedAt: Date.now() },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_metadata')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', difficulty: 7 });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeDefined();
+      expect(parsed.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+    });
+
+    it('does not include consistency_reminder in error response', async () => {
+      ctx.updateChunkMetadata = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Chunk not found' },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_metadata')!.handler;
+
+      const result = await handler({ chunk_id: 'c-missing' });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
+    });
+
     it('throws ZodError for missing chunk_id', async () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
@@ -400,7 +516,13 @@ describe('chunk-tools', () => {
     it('returns success with progress_reset', async () => {
       ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays', contentVersion: 2, updatedAt: Date.now() },
+        chunk: {
+          id: 'c1',
+          topicId: 't1',
+          title: 'Arrays',
+          contentVersion: 2,
+          updatedAt: Date.now(),
+        },
         progressReset: true,
       });
       registerChunkTools(server as any, ctx);
@@ -423,7 +545,13 @@ describe('chunk-tools', () => {
     it('returns success without progress_reset', async () => {
       ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays', contentVersion: 1, updatedAt: Date.now() },
+        chunk: {
+          id: 'c1',
+          topicId: 't1',
+          title: 'Arrays',
+          contentVersion: 1,
+          updatedAt: Date.now(),
+        },
         progressReset: false,
       });
       registerChunkTools(server as any, ctx);
@@ -498,6 +626,45 @@ describe('chunk-tools', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
+    it('includes consistency_reminder in success response', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: true,
+        chunk: {
+          id: 'c1',
+          topicId: 't1',
+          title: 'Arrays',
+          contentVersion: 1,
+          updatedAt: Date.now(),
+        },
+        progressReset: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', title: 'Arrays v2' });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeDefined();
+      expect(parsed.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+    });
+
+    it('does not include consistency_reminder in error response', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Chunk not found' },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c-missing' });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
+    });
+
     it('throws ZodError for missing chunk_id', async () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
@@ -513,7 +680,7 @@ describe('chunk-tools', () => {
     it('returns success with removed dependencies', async () => {
       ctx.deleteChunk = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays' },
+        chunk: { id: 'c1', topicId: 't1', title: 'Arrays' },
         removedDependencies: ['c2', 'c3'],
       });
       registerChunkTools(server as any, ctx);
@@ -531,7 +698,7 @@ describe('chunk-tools', () => {
     it('returns success with singular dependency message for exactly 1 removed', async () => {
       ctx.deleteChunk = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays' },
+        chunk: { id: 'c1', topicId: 't1', title: 'Arrays' },
         removedDependencies: ['c2'],
       });
       registerChunkTools(server as any, ctx);
@@ -550,7 +717,7 @@ describe('chunk-tools', () => {
     it('returns success without removed dependencies', async () => {
       ctx.deleteChunk = vi.fn().mockResolvedValue({
         success: true,
-        chunk: { id: 'c1', title: 'Arrays' },
+        chunk: { id: 'c1', topicId: 't1', title: 'Arrays' },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
@@ -635,6 +802,51 @@ describe('chunk-tools', () => {
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('system');
       expect(parsed.error.retryable).toBe(true);
+    });
+
+    it('includes consistency_reminder when chunk has topicId', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: true,
+        chunk: { id: 'c1', topicId: 't1', title: 'Arrays' },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1' });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeDefined();
+      expect(parsed.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+    });
+
+    it('does not include consistency_reminder when chunk is not available', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: true,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c-orphan' });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
+    });
+
+    it('does not include consistency_reminder in error response', async () => {
+      ctx.deleteChunk = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Chunk not found', retryable: false },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('delete_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c-missing' });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
     });
 
     it('throws ZodError for missing chunk_id', async () => {
