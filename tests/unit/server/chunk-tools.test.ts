@@ -89,7 +89,7 @@ describe('chunk-tools', () => {
       expect(parsed.consistency_reminder).toBeDefined();
       expect(parsed.consistency_reminder.topic_id).toBe('t1');
       expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.instruction).toBeDefined();
+      expect(parsed.consistency_reminder.instruction).toContain('new chunk was added');
       expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
       expect(parsed.consistency_reminder.checklist.length).toBe(5);
     });
@@ -356,6 +356,7 @@ describe('chunk-tools', () => {
       expect(parsed.consistency_reminder).toBeDefined();
       expect(parsed.consistency_reminder.topic_id).toBe('t1');
       expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.instruction).toContain('was just modified');
       expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
       expect(parsed.consistency_reminder.checklist.length).toBe(5);
     });

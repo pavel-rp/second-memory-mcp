@@ -17,18 +17,22 @@ import {
 import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
-function buildConsistencyReminder(topicId: string) {
+function buildConsistencyReminder(topicId: string, context: 'created' | 'modified' = 'modified') {
+  const instruction =
+    context === 'created'
+      ? 'A new chunk was added to this topic. If other chunks exist, verify topic-wide consistency.'
+      : 'Content in this topic was just modified. Before moving on, verify topic-wide consistency.';
+
   return {
     topicId,
-    action: 'CONSISTENCY_CHECK' as const,
-    instruction:
-      'Content in this topic was just modified. Before moving on, verify topic-wide consistency.',
+    action: 'CONSISTENCY_CHECK',
+    instruction,
     checklist: [
       'Prerequisites: verify graph is correct — no orphans, no unintentional dead ends',
-      'Cross-references: check if sibling chunks reference concepts from the changed chunk',
+      'Cross-references: check if sibling chunks reference concepts from the affected chunk',
       'Topic summary: update if stale relative to this change',
       'Assumption mismatches: scan sibling chunks for difficulty/knowledge assumptions not covered by prerequisites',
-      'Difficulty/duration coherence: verify the changed chunk fits the progression',
+      'Difficulty/duration coherence: verify the affected chunk fits the progression',
     ],
   };
 }
@@ -87,7 +91,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             topicId: result.data.topicId,
             createdAt: result.data.createdAt,
             message: `Successfully created learning item "${input.title}"`,
-            consistencyReminder: buildConsistencyReminder(result.data.topicId),
+            consistencyReminder: buildConsistencyReminder(result.data.topicId, 'created'),
           })
         );
       } catch (error) {
