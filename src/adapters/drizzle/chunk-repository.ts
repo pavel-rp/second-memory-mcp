@@ -263,7 +263,8 @@ export class DrizzleChunkRepository implements ChunkRepository {
       .where(
         and(eq(learningChunks.topicId, topicId), lt(learningChunks.createdAt, beforeCreatedAt))
       )
-      .orderBy(asc(learningChunks.createdAt), asc(learningChunks.id));
+      .orderBy(asc(learningChunks.createdAt), asc(learningChunks.id))
+      .limit(20);
   }
 
   async findDependents(chunkId: string): Promise<ChunkDependentRow[]> {

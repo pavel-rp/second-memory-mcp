@@ -83,6 +83,8 @@ const TopicChunkShape = {
     ),
   condensed_summary: z
     .string()
+    .min(1, 'Condensed summary cannot be empty')
+    .max(1000, 'Condensed summary cannot exceed 1000 characters')
     .optional()
     .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
 } as const;
@@ -232,6 +234,8 @@ export const UpdateChunkContentInputShape = {
   reset_progress: z.boolean().optional().describe('Whether to reset spaced repetition progress'),
   condensed_summary: z
     .string()
+    .min(1, 'Condensed summary cannot be empty')
+    .max(1000, 'Condensed summary cannot exceed 1000 characters')
     .optional()
     .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
 } as const;

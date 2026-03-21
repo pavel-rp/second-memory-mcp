@@ -62,6 +62,7 @@ describe('teaching workflows (composition-root wiring)', () => {
     const firstChunk = startResult.first_chunk;
     expect(firstChunk.status).toBe('teach');
     if (firstChunk.status !== 'teach') throw new Error('Expected teach');
+    expect(firstChunk.chunk_id).toBe('seg-1');
 
     const submitResult = await ctx.submitAnswer({
       question: 'What is the structure?',

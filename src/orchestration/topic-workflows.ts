@@ -145,7 +145,7 @@ export async function createTopicWithChunks(
           contentVersion: chunkDef.content ? 1 : null,
           contentUpdatedAt: chunkDef.content ? now : null,
           contentStatus: chunkDef.contentStatus ?? 'final',
-          condensedSummary: chunkDef.condensedSummary || null,
+          condensedSummary: chunkDef.condensedSummary ?? null,
           createdAt: chunkCreatedAt,
           updatedAt: now,
         };
