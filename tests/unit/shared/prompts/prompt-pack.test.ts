@@ -334,6 +334,41 @@ describe('promptPack', () => {
     });
   });
 
+  describe('learning_session prompt', () => {
+    it('includes session orchestration structure with defaults', () => {
+      const text = promptPack.getPrompt('learning_session', {});
+      expect(text).toContain('LEARNING SESSION ORCHESTRATION');
+      expect(text).toContain('Mode: start');
+      expect(text).toContain('## Starting a Session');
+      expect(text).toContain('what_to_learn_today({');
+      expect(text).toContain('limit: 10');
+      expect(text).toContain('## Conducting Reviews');
+      expect(text).toContain('## Completing a Session');
+    });
+
+    it('interpolates subject into recommendations call', () => {
+      const text = promptPack.getPrompt('learning_session', { subject: 'Math' });
+      expect(text).toContain('Focus area: Math.');
+      expect(text).toContain('subject_filter: "Math"');
+    });
+
+    it('includes time note when timeAvailable is provided', () => {
+      const text = promptPack.getPrompt('learning_session', { timeAvailable: 30 });
+      expect(text).toContain('The learner has 30 minutes available.');
+    });
+
+    it('omits subject_filter when no subject is given', () => {
+      const text = promptPack.getPrompt('learning_session', {});
+      expect(text).not.toContain('subject_filter');
+      expect(text).toContain('what_to_learn_today({ limit: 10 })');
+    });
+
+    it('uses provided sessionMode', () => {
+      const text = promptPack.getPrompt('learning_session', { sessionMode: 'review' });
+      expect(text).toContain('Mode: review');
+    });
+  });
+
   describe('rolling session flow documentation', () => {
     it('workflow_guidance contains rolling session flow section', () => {
       const text = promptPack.getPrompt('workflow_guidance', {});
@@ -342,6 +377,14 @@ describe('promptPack', () => {
       expect(text).toContain('status: "in_progress"');
       expect(text).toContain('complete_session');
       expect(text).toContain('"blocked" or "error"');
+    });
+
+    it('workflow_guidance contains updated recommendations section', () => {
+      const text = promptPack.getPrompt('workflow_guidance', {});
+      expect(text).toContain('## Getting Recommendations');
+      expect(text).toContain('what_to_learn_today({ subject_filter: "Math", limit: 10 })');
+      expect(text).toContain('topic-level recommendations ranked by urgency');
+      expect(text).toContain('subject_filter, limit');
     });
 
     it('workflow_guidance retains existing fixed-session references', () => {
