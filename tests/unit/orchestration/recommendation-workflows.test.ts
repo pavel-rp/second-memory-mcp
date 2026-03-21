@@ -132,17 +132,4 @@ describe('generateRecommendations', () => {
 
     expect(result.recommendations[0]!.topicTitle).toBe('Fallback Title');
   });
-
-  it('skips chunks without a topicId', async () => {
-    const chunks = [stubChunkRow({ id: 'c-orphan', topicId: '' })];
-    const deps = makeDeps({
-      list: vi.fn().mockResolvedValue(chunks),
-      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
-    });
-
-    const result = await generateRecommendations({}, deps, NOW);
-
-    expect(result.recommendations).toEqual([]);
-    expect(result.totalDueChunks).toBe(0);
-  });
 });

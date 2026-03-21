@@ -36,21 +36,15 @@ export async function generateRecommendations(
   }
 
   // 2. Map to DueChunkInfo
-  const dueChunks: DueChunkInfo[] = dueRows
-    .filter(r => r.topicId) // skip orphan chunks without a topic
-    .map(r => ({
-      id: r.id,
-      topicId: r.topicId,
-      topicTitle: r.topicTitle ?? r.title,
-      nextReviewAt: r.nextReviewAt,
-      easeFactor: r.easeFactor,
-      estimatedDuration: r.estimatedDuration,
-      createdAt: r.createdAt,
-    }));
-
-  if (dueChunks.length === 0) {
-    return { recommendations: [], totalDueTopics: 0, totalDueChunks: 0 };
-  }
+  const dueChunks: DueChunkInfo[] = dueRows.map(r => ({
+    id: r.id,
+    topicId: r.topicId,
+    topicTitle: r.topicTitle ?? r.title,
+    nextReviewAt: r.nextReviewAt,
+    easeFactor: r.easeFactor,
+    estimatedDuration: r.estimatedDuration,
+    createdAt: r.createdAt,
+  }));
 
   // 3. Fetch total chunk counts per topic (all non-draft chunks)
   const topicIdSet = new Set(dueChunks.map(c => c.topicId));
