@@ -250,6 +250,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
         reset_progress: true,
       });
       const parsed = parseResult(result);
@@ -272,6 +273,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
       });
       const parsed = parseResult(result);
 
@@ -290,6 +292,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
       });
       const parsed = parseResult(result);
 
@@ -309,6 +312,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c-missing',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
       });
       const parsed = parseResult(result);
 
@@ -324,6 +328,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
       });
       const parsed = parseResult(result);
 
@@ -350,6 +355,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
       });
       const parsed = parseResult(result);
 
@@ -372,6 +378,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'c-missing',
         content: 'Updated content for arrays that is long enough to pass validation.',
+        condensed_summary: 'Updated arrays summary.',
       });
       const parsed = parseResult(result);
 

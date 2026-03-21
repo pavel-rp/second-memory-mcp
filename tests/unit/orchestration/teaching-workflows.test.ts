@@ -77,6 +77,7 @@ function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopic
     intervalDays: null,
     chunkType: 'new',
     contentStatus: 'final',
+    condensedSummary: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content about X...',
@@ -1192,6 +1193,66 @@ describe('getNextTeachingStep', () => {
     expect((result as { message: string }).message).toContain('inconsistent state');
     expect((result as { message: string }).message).toContain('1 pending chunk(s)');
   });
+
+  // ── prerequisite_context ─────────────────────────────────────────
+
+  it('includes prerequisite_context with prior chunks summaries', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi
+          .fn()
+          .mockResolvedValue(
+            makeChunkData({ id: 'c1', topicId: 'topic-1', createdAt: NOW + 2000 })
+          ),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([
+          { id: 'c0a', title: 'Intro', condensedSummary: 'Key concept A.' },
+          { id: 'c0b', title: 'Basics', condensedSummary: null },
+        ]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.prerequisite_context).toEqual([
+      { chunk_id: 'c0a', title: 'Intro', condensed_summary: 'Key concept A.' },
+      { chunk_id: 'c0b', title: 'Basics', condensed_summary: null },
+    ]);
+  });
+
+  it('returns no prerequisite_context when chunk is first in topic', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData()),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.prerequisite_context).toBeUndefined();
+  });
+
+  it('preserves null condensed_summary in prerequisite_context', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ createdAt: NOW + 1000 })),
+        getPrerequisiteContext: vi
+          .fn()
+          .mockResolvedValue([{ id: 'prior-1', title: 'No Summary', condensedSummary: null }]),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.prerequisite_context).toHaveLength(1);
+    expect(result.prerequisite_context![0].condensed_summary).toBeNull();
+  });
 });
 
 // ── startLearning ─────────────────────────────────────────────────
@@ -1211,6 +1272,7 @@ function makeChunkListRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTo
     intervalDays: 1,
     chunkType: 'review',
     contentStatus: 'final',
+    condensedSummary: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content...',

@@ -24,4 +24,67 @@ describe('teaching workflows (composition-root wiring)', () => {
 
     expect(result.status).toBe('nothing_due');
   });
+
+  it('teach_next includes prerequisite_context for mid-topic chunk', async () => {
+    // Create topic with 2 chunks: first has condensedSummary, second does not
+    const topicResult = await ctx.createTopicWithChunks({
+      topicTitle: 'Segment Trees',
+      subject: 'Algorithms',
+      topicSummary: 'A data structure for range queries',
+      chunks: [
+        {
+          id: 'seg-1',
+          title: 'Structure',
+          content: 'Segment trees use a 1-indexed array of size 4n...',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'new',
+          condensedSummary: '1-indexed array of size 4n, leaves map to original elements.',
+        },
+        {
+          id: 'seg-2',
+          title: 'Build',
+          content: 'Building the tree is done recursively...',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'new',
+        },
+      ],
+    });
+    expect(topicResult.success).toBe(true);
+
+    // Start a session — recommendation engine should pick both chunks
+    const startResult = await ctx.startLearning({ subjectFilter: 'Algorithms' });
+    expect(startResult.status).toBe('started');
+    if (startResult.status !== 'started') throw new Error('Expected started');
+
+    // The first chunk should be served first — submit an answer to advance
+    const firstChunk = startResult.first_chunk;
+    expect(firstChunk.status).toBe('teach');
+    if (firstChunk.status !== 'teach') throw new Error('Expected teach');
+    expect(firstChunk.chunk_id).toBe('seg-1');
+
+    const submitResult = await ctx.submitAnswer({
+      question: 'What is the structure?',
+      response: '1-indexed array of size 4n',
+      passed: true,
+      feedback: 'Correct',
+      timeSpentMs: 5000,
+    });
+    expect(submitResult.status).toBe('recorded');
+    if (submitResult.status !== 'recorded') throw new Error('Expected recorded');
+
+    // The next chunk should include prerequisite_context from the first chunk
+    if (submitResult.next.status !== 'teach') throw new Error('Expected teach for next');
+    expect(submitResult.next.prerequisite_context).toBeDefined();
+    expect(submitResult.next.prerequisite_context).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          chunk_id: 'seg-1',
+          title: 'Structure',
+          condensed_summary: '1-indexed array of size 4n, leaves map to original elements.',
+        }),
+      ])
+    );
+  });
 });

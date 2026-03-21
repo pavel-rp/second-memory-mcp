@@ -41,6 +41,7 @@ describe('topic-tools', () => {
             difficulty: 2,
             estimated_duration: 10,
             order: 1,
+            condensed_summary: 'Variables represent unknown values.',
           },
           {
             id: 'c2',
@@ -49,6 +50,7 @@ describe('topic-tools', () => {
             difficulty: 3,
             estimated_duration: 15,
             order: 2,
+            condensed_summary: 'Equations express equality between expressions.',
           },
         ],
       });

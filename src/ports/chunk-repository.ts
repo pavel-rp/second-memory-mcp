@@ -93,4 +93,8 @@ export interface ChunkRepository {
     excludeDraft?: boolean;
   }): Promise<ChunkMinimalMetadata[]>;
   findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
+  getPrerequisiteContext(
+    topicId: string,
+    beforeCreatedAt: number
+  ): Promise<Array<{ id: string; title: string; condensedSummary: string | null }>>;
 }

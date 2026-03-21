@@ -36,6 +36,7 @@ describe('topic-tools', () => {
           difficulty: 3,
           estimated_duration: 10,
           order: 1,
+          condensed_summary: 'Arrays store elements in contiguous memory blocks.',
         },
       ],
     };
@@ -86,6 +87,7 @@ describe('topic-tools', () => {
             chunk_type: 'review',
             prerequisites: ['c0'],
             tags: ['ds'],
+            condensed_summary: 'Arrays and data structures overview.',
           },
         ],
       });
@@ -160,6 +162,7 @@ describe('topic-tools', () => {
               estimated_duration: 10,
               order: 1,
               content_status: 'invalid',
+              condensed_summary: 'Summary for validation test.',
             },
           ],
         })

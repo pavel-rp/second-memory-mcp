@@ -81,6 +81,11 @@ const TopicChunkShape = {
     .describe(
       "Content readiness: 'draft' for placeholder content, 'final' for teaching-ready content"
     ),
+  condensed_summary: z
+    .string()
+    .min(1, 'Condensed summary cannot be empty')
+    .max(1000, 'Condensed summary cannot exceed 1000 characters')
+    .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
 } as const;
 
 const TopicUserPreferencesShape = {
@@ -226,6 +231,11 @@ export const UpdateChunkContentInputShape = {
     )
     .describe('New content for the chunk'),
   reset_progress: z.boolean().optional().describe('Whether to reset spaced repetition progress'),
+  condensed_summary: z
+    .string()
+    .min(1, 'Condensed summary cannot be empty')
+    .max(1000, 'Condensed summary cannot exceed 1000 characters')
+    .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
 } as const;
 
 export const UpdateChunkContentInputSchema = z

@@ -11,6 +11,12 @@ export type TeachNextNote = {
   created_at: number;
 };
 
+export type PrerequisiteContextItem = {
+  chunk_id: string;
+  title: string;
+  condensed_summary: string | null;
+};
+
 export type TeachNextTeach = {
   status: 'teach';
   chunk_id: string;
@@ -21,6 +27,7 @@ export type TeachNextTeach = {
   instruction: string; // hydrated prompt from PromptPack
   drill_format: DrillFormat;
   content_status: ContentStatus;
+  prerequisite_context?: PrerequisiteContextItem[];
   previous_feedback?: string[]; // feedback strings from past sessions
   notes?: TeachNextNote[];
 };
