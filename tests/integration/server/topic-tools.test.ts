@@ -32,6 +32,7 @@ describe('topic-tools', () => {
         topic_title: 'Algebra Basics',
         topic_description: 'Fundamental algebra concepts',
         subject: 'Math',
+        topic_summary: 'Introduction to fundamental algebra concepts',
         chunks: [
           {
             id: 'c1',

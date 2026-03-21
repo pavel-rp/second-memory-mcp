@@ -66,6 +66,7 @@ describe('persistence-tools', () => {
         topic_title: 'Test Topic',
         topic_description: 'A test topic',
         subject: 'Science',
+        topic_summary: 'Science topic summary for integration test',
         chunks: [
           {
             id: crypto.randomUUID(),
