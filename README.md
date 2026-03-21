@@ -11,7 +11,7 @@ An MCP server that turns any compatible AI client into a full learning assistant
 - **Knowledge graph & prerequisite resolution** – Learning items form a directed graph of prerequisite relationships. `DependencyResolver` performs topological sorting, cycle detection, and transitive dependency resolution so the recommendation engine can sequence material in the right order (`src/domain/algorithms/dependency-resolver.ts`).
 - **Hybrid retrieval pipeline** – Three search modes — keyword (title + content text matching), semantic (cosine similarity over pgvector embeddings), and hybrid (weighted linear combination of normalized keyword + semantic scores). Embedding vectors are stored alongside content in Postgres with HNSW indexes for sub-linear lookups (`src/orchestration/search-workflows.ts`, `src/adapters/drizzle/search-adapter.ts`).
 - **Agentic session orchestration** – Multi-step learning workflows where the AI client creates sessions, walks through chunks, records review quality, and decides when to complete — all driven through MCP tool calls that maintain session state across turns (`src/orchestration/session-workflows.ts`).
-- **Context-aware recommendations** – `what_to_learn_today` fetches items from the database, applies prerequisite filtering via the knowledge graph, balances new vs. review work using cognitive load caps, and produces ranked suggestions with conversational guidance (`src/domain/services/recommendation-engine.ts`).
+- **Context-aware recommendations** – `what_to_learn_today` returns topic-level recommendations ranked by urgency, applying prerequisite filtering via the knowledge graph and sequencing due chunks by overdue status and review timing (`src/domain/services/recommendation-engine.ts`).
 - **Prompt engineering surface** – Three MCP prompt resources are registered (scaffolding, chunk generation, chunk management) that give the connected AI client structured context for content creation and maintenance; additional internal prompt templates are used by teaching tools (`src/shared/prompts/prompt-pack.ts`).
 - **Evidence-based scheduling** – Enhanced SM-2 algorithm with lapse handling, cognitive load modeling, candidate ranking, and automatic leech detection — items with repeated failures are flagged for remediation (`src/domain/algorithms/sr-calculator.ts`).
 - **Leech detection & remediation** – Items that a learner repeatedly fails are automatically flagged as leeches (`chunk_type: 'remediation'`). Dedicated tools (`get_leeches`, `resolve_leech`) let the agent list flagged items and apply resolution strategies: reset progress, archive, or mark as reviewed. Leeches are excluded from daily recommendations by default to keep the review queue productive (`src/orchestration/review-workflows.ts`).
@@ -121,40 +121,47 @@ The examples below show how an AI agent orchestrates a learning session through 
 
 **1. Get today's recommendations**
 
-The user says: _"I have 30 minutes to study math."_
+The user says: _"I want to study math."_
 
 The agent calls `what_to_learn_today`:
 
 ```json
 {
-  "fetch_from_database": true,
   "subject_filter": "Math",
-  "due_only": true,
-  "time_available": 30
+  "limit": 5
 }
 ```
 
-The server responds with prioritized items and prerequisite-resolved ordering (some fields like `item` details and `sessionSummary` totals are abbreviated):
+The server responds with topic-level recommendations ranked by urgency:
 
 ```json
 {
   "recommendations": [
     {
-      "item": { "id": "chunk-123", "title": "Matrix multiplication" },
-      "priority": 0.94,
-      "reason": "overdue",
-      "order": 1
+      "topic_id": "topic-001",
+      "topic_title": "Linear Algebra",
+      "urgency_score": 0.94,
+      "urgency_reason": "overdue",
+      "due_chunk_ids": ["chunk-123", "chunk-124"],
+      "due_chunk_count": 2,
+      "total_chunk_count": 5,
+      "estimated_duration": 15,
+      "has_new_chunks": false
     },
     {
-      "item": { "id": "chunk-456", "title": "Determinants" },
-      "priority": 0.81,
-      "reason": "optimal timing",
-      "order": 2
+      "topic_id": "topic-002",
+      "topic_title": "Calculus",
+      "urgency_score": 0.81,
+      "urgency_reason": "optimal timing",
+      "due_chunk_ids": ["chunk-456"],
+      "due_chunk_count": 1,
+      "total_chunk_count": 3,
+      "estimated_duration": 8,
+      "has_new_chunks": true
     }
   ],
-  "estimatedDuration": 28,
-  "sessionSummary": { "totalItems": 2, "newItems": 0, "reviewItems": 2 },
-  "rationale": "Two overdue review items fit within 30-minute window"
+  "total_due_topics": 2,
+  "total_due_chunks": 3
 }
 ```
 

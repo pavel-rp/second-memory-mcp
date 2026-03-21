@@ -18,7 +18,7 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'List Learning Items',
       description:
-        'Fetch learning items from the database via services layer. For single-call convenience, use what_to_learn_today with fetch_from_database: true instead, which automatically fetches and generates recommendations in one call.',
+        'Fetch learning items from the database via services layer. For topic-level recommendations ranked by urgency, use what_to_learn_today instead.',
       inputSchema: ListLearningItemsInputShape,
     },
     async (rawInput: unknown) => {

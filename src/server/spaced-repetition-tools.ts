@@ -154,7 +154,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
       title: 'Get Topic Recommendations',
       description:
         'Returns topic-level recommendations ranked by urgency. Each topic includes urgency_score, urgency_reason, due_chunk_ids, estimated_duration, and has_new_chunks. ' +
-        'Canonical flow: (1) call this tool to get ranked topics, (2) present options to user, (3) user picks a topic, (4) create_session + create_session_chunk for each due_chunk_id. ' +
+        'Canonical flow: (1) call this tool to get ranked topics, (2) present options to user, (3) user picks a topic, (4) call create_session with mode and the due_chunk_ids array. ' +
         'For quick-start without topic selection, use start_learning instead.',
       inputSchema: RecommendationInputShape,
     },
