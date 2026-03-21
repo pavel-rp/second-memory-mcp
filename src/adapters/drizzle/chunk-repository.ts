@@ -242,6 +242,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
       .from(learningChunks)
       .$dynamic();
     if (whereClause) query = query.where(whereClause);
+    query = query.orderBy(learningChunks.nextReviewAt, learningChunks.id) as typeof query;
     if (options?.limit && options.limit > 0) query = query.limit(options.limit);
     return await query;
   }

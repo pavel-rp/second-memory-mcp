@@ -211,6 +211,119 @@ describe('chunk-queries service', () => {
       expect(leeches[0].id).toBe('chunk-leech');
     });
 
+    it('returns chunks ordered by nextReviewAt ASC, id ASC when limit applied', async () => {
+      const db = getSql();
+      const now = Date.now();
+      const topicId = crypto.randomUUID();
+
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Order Topic',
+        subject: 'Math',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Insert chunks with deliberately out-of-order nextReviewAt values
+      const chunkValues = [
+        { id: 'order-c', nextReviewAt: now + 3000 },
+        { id: 'order-a', nextReviewAt: now + 1000 },
+        { id: 'order-b', nextReviewAt: now + 2000 },
+      ];
+      await db.insert(learningChunks).values(
+        chunkValues.map(c => ({
+          id: c.id,
+          topicId,
+          title: `Chunk ${c.id}`,
+          subject: 'Math',
+          difficulty: 5,
+          nextReviewAt: c.nextReviewAt,
+          easeFactor: 2.5,
+          repetitions: 0,
+          estimatedDuration: 10,
+          chunkType: 'new' as const,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      );
+
+      const chunks = await ctx.batchFetchChunksMinimal({ limit: 2 });
+      expect(chunks).toHaveLength(2);
+      expect(chunks[0].id).toBe('order-a');
+      expect(chunks[1].id).toBe('order-b');
+    });
+
+    it('returns earliest-due chunks when limit is smaller than total', async () => {
+      const db = getSql();
+      const now = Date.now();
+      const topicId = crypto.randomUUID();
+
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'Due Topic',
+        subject: 'Math',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await db.insert(learningChunks).values(
+        [1, 2, 3, 4, 5].map(i => ({
+          id: `due-${i}`,
+          topicId,
+          title: `Chunk ${i}`,
+          subject: 'Math',
+          difficulty: 5,
+          nextReviewAt: now + i * 1000,
+          easeFactor: 2.5,
+          repetitions: 0,
+          estimatedDuration: 10,
+          chunkType: 'new' as const,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      );
+
+      const chunks = await ctx.batchFetchChunksMinimal({ limit: 3 });
+      expect(chunks).toHaveLength(3);
+      // Should get the 3 earliest-due, in order
+      expect(chunks.map(c => c.id)).toEqual(['due-1', 'due-2', 'due-3']);
+    });
+
+    it('returns all chunks in deterministic order without limit', async () => {
+      const db = getSql();
+      const now = Date.now();
+      const topicId = crypto.randomUUID();
+
+      await db.insert(learningTopics).values({
+        id: topicId,
+        title: 'No Limit Topic',
+        subject: 'Math',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Same nextReviewAt — ties broken by id ASC
+      await db.insert(learningChunks).values(
+        ['z-chunk', 'a-chunk', 'm-chunk'].map(id => ({
+          id,
+          topicId,
+          title: `Chunk ${id}`,
+          subject: 'Math',
+          difficulty: 5,
+          nextReviewAt: now,
+          easeFactor: 2.5,
+          repetitions: 0,
+          estimatedDuration: 10,
+          chunkType: 'new' as const,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      );
+
+      const chunks = await ctx.batchFetchChunksMinimal();
+      expect(chunks.map(c => c.id)).toEqual(['a-chunk', 'm-chunk', 'z-chunk']);
+    });
+
     it('filters by isLeech: false to exclude remediation chunks', async () => {
       await seedData();
       const db = getSql();
