@@ -324,12 +324,12 @@ class PromptPack {
       '5) Repeat steps 2–4 for each chunk the learner selects',
       '6) Finish: complete_session({ session_id: "...", feedback: "..." })',
       '',
-      '## Getting Recommendations (Single Call)',
+      '## Getting Recommendations',
       '',
-      '- Use: what_to_learn_today({ fetchFromDatabase: true, timeAvailable: 30 })',
-      '- This automatically fetches and ranks items in one efficient call',
-      '- Supports filters: subjectFilter, dueOnly, limit',
-      '- Saves ~95% on token usage vs old two-step approach',
+      '- Use: what_to_learn_today({ subject_filter: "Math", limit: 10 })',
+      '- Returns topic-level recommendations ranked by urgency',
+      '- Each topic includes urgency_score, urgency_reason, due_chunk_ids, estimated_duration, and has_new_chunks',
+      '- Supports optional filters: subject_filter, limit',
       '',
       '## Content Persistence Best Practices',
       '',
@@ -454,10 +454,9 @@ class PromptPack {
       '',
       '## Starting a Session',
       '',
-      '1. Get recommendations: `what_to_learn_today({ fetch_from_database: true' +
-        (time ? `, time_available: ${time}` : '') +
-        (subject ? `, subject_filter: "${subject}"` : '') +
-        ' })`',
+      '1. Get recommendations: `what_to_learn_today({' +
+        (subject ? ` subject_filter: "${subject}",` : '') +
+        ' limit: 10 })`',
       '2. Review the recommendations and present them to the learner',
       '3. Create a session: `create_session({ mode: "learning", chunk_ids: [...recommended IDs...] })`',
       '4. Begin teaching the first chunk using the `learning` prompt',
