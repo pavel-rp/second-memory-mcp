@@ -788,10 +788,43 @@ export async function startLearning(
   };
   const activeSession = await sessionWorkflows.getActiveSession(sessionDeps);
   if (activeSession) {
-    return {
-      status: 'error',
-      message: 'An active session already exists. Complete or end it before starting a new one.',
-    };
+    // Check if all session chunks are completed (or session is empty)
+    const sessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
+    const allCompleted =
+      sessionChunks.length === 0 || sessionChunks.every(sc => sc.status === 'completed');
+
+    if (allCompleted) {
+      // Auto-complete the finished session, then fall through to start a fresh one
+      const completeResult = await sessionWorkflows.completeSession(
+        activeSession.id,
+        undefined,
+        sessionDeps
+      );
+      if (!completeResult.success) {
+        return {
+          status: 'error',
+          message: `Failed to auto-complete finished session: ${completeResult.error.message}`,
+        };
+      }
+    } else {
+      // Resume the active session — get the next teaching step
+      const teachingDeps: TeachingDeps = {
+        sessions: deps.sessions,
+        chunks: deps.chunks,
+        reviewPersistence: deps.reviewPersistence,
+        algorithmConfig: deps.algorithmConfig,
+        sessionQuestions: deps.sessionQuestions,
+        notes: deps.notes,
+      };
+      const firstChunk = await getNextTeachingStep(teachingDeps);
+      return {
+        status: 'resumed' as const,
+        session_id: activeSession.id,
+        mode: activeSession.mode as 'learning' | 'review',
+        total_chunks: sessionChunks.length,
+        first_chunk: firstChunk,
+      };
+    }
   }
 
   // 2. Get topic-level recommendations

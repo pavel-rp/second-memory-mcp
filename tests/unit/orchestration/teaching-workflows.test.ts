@@ -1289,14 +1289,132 @@ describe('startLearning', () => {
     vi.restoreAllMocks();
   });
 
-  it('returns error when an active session already exists', async () => {
-    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(makeSession());
-    const deps = makeStartLearningDeps();
+  it('resumes active session with pending chunks instead of erroring', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'active-sess', mode: 'review' })
+    );
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getActiveSession: vi
+          .fn()
+          .mockResolvedValue(makeSession({ id: 'active-sess', mode: 'review' })),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            sessionId: 'active-sess',
+          }),
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'pending',
+            sessionId: 'active-sess',
+          }),
+        ]),
+      },
+    });
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('resumed');
+    if (result.status !== 'resumed') throw new Error('Expected resumed');
+    expect(result.session_id).toBe('active-sess');
+    expect(result.mode).toBe('review');
+    expect(result.total_chunks).toBe(2);
+    expect(result.first_chunk).toBeDefined();
+  });
+
+  it('auto-completes active session when all chunks are completed and starts fresh', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'done-sess' })
+    );
+    const completeSpy = vi
+      .spyOn(sessionWorkflows, 'completeSession')
+      .mockResolvedValue(serviceOk());
+    const getSessionChunksMock = vi
+      .fn()
+      // First call: startLearning checks active session chunks — all completed
+      .mockResolvedValueOnce([
+        makeSessionChunk({
+          id: 'sc-1',
+          chunkId: 'c1',
+          status: 'completed',
+          sessionId: 'done-sess',
+        }),
+      ])
+      // Second call: getNextTeachingStep for the newly created session
+      .mockResolvedValue([
+        makeSessionChunk({ id: 'sc-new', chunkId: 'c1', status: 'pending', sessionId: 'new-sess' }),
+      ]);
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ id: 'new-sess' })),
+        getSessionChunks: getSessionChunksMock,
+      },
+    });
+
+    const result = await startLearning({}, deps);
+
+    expect(completeSpy).toHaveBeenCalledWith('done-sess', undefined, expect.anything());
+    expect(result.status).toBe('started');
+    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.session_id).toBe('new-sess');
+  });
+
+  it('does not call completeSession in the resume path', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'active-sess' })
+    );
+    const completeSpy = vi
+      .spyOn(sessionWorkflows, 'completeSession')
+      .mockResolvedValue(serviceOk());
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ id: 'active-sess' })),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'pending',
+            sessionId: 'active-sess',
+          }),
+        ]),
+      },
+    });
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('resumed');
+    expect(completeSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns error when auto-complete of finished session fails', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'done-sess' })
+    );
+    vi.spyOn(sessionWorkflows, 'completeSession').mockResolvedValue(
+      serviceFail({ type: 'database', message: 'DB connection lost' })
+    );
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'completed',
+            sessionId: 'done-sess',
+          }),
+        ]),
+      },
+    });
 
     const result = await startLearning({}, deps);
 
     expect(result.status).toBe('error');
-    expect((result as { message: string }).message).toContain('active session already exists');
+    if (result.status !== 'error') throw new Error('Expected error');
+    expect(result.message).toContain('auto-complete');
+    expect(result.message).toContain('DB connection lost');
   });
 
   it('returns nothing_due when no due chunks exist', async () => {

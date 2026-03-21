@@ -153,6 +153,14 @@ export type StartLearningNothingDue = {
   message: string;
 };
 
+export type StartLearningResumed = {
+  status: 'resumed';
+  session_id: string;
+  mode: 'learning' | 'review';
+  total_chunks: number;
+  first_chunk: TeachNextResponse;
+};
+
 export type StartLearningError = {
   status: 'error';
   message: string;
@@ -160,6 +168,7 @@ export type StartLearningError = {
 
 export type StartLearningResult =
   | StartLearningStarted
+  | StartLearningResumed
   | StartLearningNothingDue
   | StartLearningError;
 
