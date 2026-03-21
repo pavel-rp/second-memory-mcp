@@ -75,6 +75,7 @@ describe('persistence-tools', () => {
             difficulty: 3,
             estimated_duration: 10,
             order: 1,
+            condensed_summary: 'Key takeaway from chunk 1.',
           },
         ],
       });
@@ -112,6 +113,7 @@ describe('persistence-tools', () => {
       const result = await handler({
         chunk_id: 'nonexistent',
         content: 'New content',
+        condensed_summary: 'Summary for nonexistent chunk.',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);

@@ -110,6 +110,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'nonexistent',
         content: 'New content',
+        condensed_summary: 'Summary for nonexistent chunk.',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
@@ -132,6 +133,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: chunkId,
         content: 'Updated content',
+        condensed_summary: 'Updated content summary.',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -171,6 +173,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'chunk-draft',
         content: 'Finalized teaching content',
+        condensed_summary: 'Finalized teaching content summary.',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
