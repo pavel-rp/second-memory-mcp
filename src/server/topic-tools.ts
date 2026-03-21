@@ -11,6 +11,21 @@ import {
 import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
+function buildSummaryConsistencyReminder(topicId: string) {
+  return {
+    topicId,
+    action: 'CONSISTENCY_CHECK' as const,
+    instruction:
+      'Topic summary was just updated. Before moving on, verify it accurately reflects the current chunks.',
+    checklist: [
+      'Chunk coverage: verify the summary mentions all chunks and omits none that still exist',
+      'Prerequisite alignment: confirm the learning path described matches the actual prerequisite graph',
+      'Difficulty progression: check that the described progression matches chunk difficulty values',
+      'No phantom content: ensure the summary does not reference concepts or chunks that were removed',
+    ],
+  };
+}
+
 export function registerTopicTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
     'create_topic_with_chunks',
@@ -124,6 +139,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
               summaryVersion: result.topic.summaryVersion,
               updatedAt: result.topic.updatedAt,
               message: `Successfully updated summary for topic "${result.topic.title}"`,
+              consistencyReminder: buildSummaryConsistencyReminder(result.topic.id),
             })
           );
         } else {

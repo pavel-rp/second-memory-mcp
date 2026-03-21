@@ -310,6 +310,45 @@ describe('topic-tools', () => {
       expect(parsed.message).toContain('DS');
     });
 
+    it('includes consistency_reminder in success response', async () => {
+      ctx.updateTopicSummary = vi.fn().mockResolvedValue({
+        success: true,
+        topic: { id: 't1', title: 'DS', summaryVersion: 2, updatedAt: Date.now() },
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('update_topic_summary')!.handler;
+
+      const result = await handler({
+        topic_id: 't1',
+        summary: 'Updated summary content for the topic about data structures.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeDefined();
+      expect(parsed.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.consistency_reminder.instruction).toContain('summary');
+      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.consistency_reminder.checklist.length).toBe(4);
+    });
+
+    it('does not include consistency_reminder in error response', async () => {
+      ctx.updateTopicSummary = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'Topic not found' },
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('update_topic_summary')!.handler;
+
+      const result = await handler({
+        topic_id: 't-missing',
+        summary: 'Summary content that is long enough to pass validation checks.',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.consistency_reminder).toBeUndefined();
+    });
+
     it('returns toolError when ctx returns failure result', async () => {
       ctx.updateTopicSummary = vi.fn().mockResolvedValue({
         success: false,
