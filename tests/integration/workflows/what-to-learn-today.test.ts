@@ -14,7 +14,7 @@ describe('Integration: what_to_learn_today', () => {
   async function seedDueChunks() {
     const db = getSql();
     const now = Date.now();
-    const pastDay = now - 86_400_000;
+    const pastDay = now - 2 * 86_400_000;
 
     // Create two topics
     await db.insert(learningTopics).values([
