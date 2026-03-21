@@ -40,6 +40,7 @@ export type TopicWithChunks = {
     tags: string[];
     chunkType: string;
     contentStatus: ContentStatus;
+    condensedSummary: string | null;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -60,6 +61,7 @@ export type TopicCreationInput = {
     tags?: string[];
     chunkType: string;
     contentStatus?: ContentStatus;
+    condensedSummary?: string;
   }>;
 };
 
@@ -93,6 +95,7 @@ function toTopicWithChunks(
       tags: c.tagsJson ?? [],
       chunkType: c.chunkType,
       contentStatus: c.contentStatus,
+      condensedSummary: c.condensedSummary,
     })),
     createdAt: topic.createdAt,
     updatedAt: topic.updatedAt,
@@ -120,7 +123,9 @@ export async function createTopicWithChunks(
       await ports.topics.create(topic);
 
       const createdChunks: LearningChunk[] = [];
-      for (const chunkDef of input.chunks) {
+      for (let i = 0; i < input.chunks.length; i++) {
+        const chunkDef = input.chunks[i];
+        const chunkCreatedAt = now + i; // monotonic ordering within batch
         const chunkRow: LearningChunk = {
           id: chunkDef.id,
           topicId,
@@ -140,7 +145,8 @@ export async function createTopicWithChunks(
           contentVersion: chunkDef.content ? 1 : null,
           contentUpdatedAt: chunkDef.content ? now : null,
           contentStatus: chunkDef.contentStatus ?? 'final',
-          createdAt: now,
+          condensedSummary: chunkDef.condensedSummary || null,
+          createdAt: chunkCreatedAt,
           updatedAt: now,
         };
         await ports.chunks.create(chunkRow);

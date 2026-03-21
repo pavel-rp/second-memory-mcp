@@ -114,7 +114,7 @@ export interface AppContext {
   ) => Promise<ServiceResult<LearningChunk>>;
   updateChunkContent: (
     id: string,
-    input: { content: string; resetProgress?: boolean }
+    input: { content: string; resetProgress?: boolean; condensedSummary?: string }
   ) => Promise<chunkWorkflows.ChunkUpdateResult>;
   updateChunkContentWithAutoReset: (
     id: string,

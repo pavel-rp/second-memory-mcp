@@ -7,6 +7,7 @@ import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
 import type {
   TeachNextResponse,
+  PrerequisiteContextItem,
   SubmitAnswerInput,
   SubmitAnswerResult,
   StartLearningInput,
@@ -172,14 +173,20 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const mode: 'learning' | 'retrieval' = isRequeued ? 'retrieval' : 'learning';
   const drillFormat: DrillFormat = mode === 'retrieval' ? 'open_ended' : 'explanation';
 
-  // 7. Fetch historical feedback and notes
-  const [historicalFeedback, chunkNotes] = await Promise.all([
+  // 7. Fetch prerequisite context, historical feedback, and notes (parallel)
+  const [prerequisiteRows, historicalFeedback, chunkNotes] = await Promise.all([
+    deps.chunks.getPrerequisiteContext(chunkData.topicId, chunkData.createdAt),
     deps.sessions.getHistoricalFeedbackForChunks([selected.chunkId], {
       excludeSessionId: session.id,
       limit: 5,
     }),
     deps.notes?.getNotesForChunkIds([selected.chunkId]) ?? Promise.resolve([]),
   ]);
+  const prerequisiteContext: PrerequisiteContextItem[] = prerequisiteRows.map(r => ({
+    chunk_id: r.id,
+    title: r.title,
+    condensed_summary: r.condensedSummary,
+  }));
 
   const previousSessionFeedback: PromptFeedbackEntry[] = historicalFeedback.map(hf => ({
     sessionMode: hf.session_mode,
@@ -219,6 +226,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     instruction,
     drill_format: drillFormat,
     content_status: chunkData.contentStatus,
+    ...(prerequisiteContext.length > 0 && { prerequisite_context: prerequisiteContext }),
     ...(previousFeedbackStrings.length > 0 && { previous_feedback: previousFeedbackStrings }),
     ...(chunkNotes.length > 0 && {
       notes: chunkNotes.map(n => ({

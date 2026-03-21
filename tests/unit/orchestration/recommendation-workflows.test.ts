@@ -25,6 +25,7 @@ function stubChunkRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicT
     intervalDays: 7,
     chunkType: 'review',
     contentStatus: 'final',
+    condensedSummary: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content',

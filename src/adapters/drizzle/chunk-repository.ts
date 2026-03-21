@@ -1,4 +1,4 @@
-import { and, eq, inArray, lte, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, lt, lte, ne, sql } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -34,6 +34,7 @@ const CHUNK_COLUMNS_WITH_TOPIC = {
   prerequisitesJson: learningChunks.prerequisitesJson,
   tagsJson: learningChunks.tagsJson,
   contentStatus: learningChunks.contentStatus,
+  condensedSummary: learningChunks.condensedSummary,
   createdAt: learningChunks.createdAt,
   updatedAt: learningChunks.updatedAt,
   topicTitle: learningTopics.title,
@@ -246,6 +247,23 @@ export class DrizzleChunkRepository implements ChunkRepository {
     query = query.orderBy(learningChunks.nextReviewAt, learningChunks.id) as typeof query;
     if (options?.limit && options.limit > 0) query = query.limit(options.limit);
     return await query;
+  }
+
+  async getPrerequisiteContext(
+    topicId: string,
+    beforeCreatedAt: number
+  ): Promise<Array<{ id: string; title: string; condensedSummary: string | null }>> {
+    return await this.db
+      .select({
+        id: learningChunks.id,
+        title: learningChunks.title,
+        condensedSummary: learningChunks.condensedSummary,
+      })
+      .from(learningChunks)
+      .where(
+        and(eq(learningChunks.topicId, topicId), lt(learningChunks.createdAt, beforeCreatedAt))
+      )
+      .orderBy(asc(learningChunks.createdAt), asc(learningChunks.id));
   }
 
   async findDependents(chunkId: string): Promise<ChunkDependentRow[]> {

@@ -28,6 +28,7 @@ export function stubChunkRepository(overrides?: Partial<ChunkRepository>): Chunk
     batchFetchMinimal: vi.fn().mockResolvedValue([]),
     countByTopicIds: vi.fn().mockResolvedValue(new Map()),
     findDependents: vi.fn().mockResolvedValue([]),
+    getPrerequisiteContext: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

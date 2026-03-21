@@ -98,7 +98,7 @@ async function updateChunkFields(
 
 export async function updateChunkContent(
   id: string,
-  input: { content: string; resetProgress?: boolean },
+  input: { content: string; resetProgress?: boolean; condensedSummary?: string },
   deps: ChunkDeps
 ): Promise<ChunkUpdateResult> {
   return updateChunkFields(
@@ -111,6 +111,9 @@ export async function updateChunkContent(
         contentStatus: 'final',
         updatedAt: now,
       };
+      if (input.condensedSummary !== undefined) {
+        fields.condensedSummary = input.condensedSummary;
+      }
       const progressReset = input.resetProgress || false;
       if (progressReset) {
         fields.repetitions = 0;

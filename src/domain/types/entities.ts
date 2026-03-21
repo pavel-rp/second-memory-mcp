@@ -49,6 +49,7 @@ export type LearningChunk = {
   contentVersion: number | null;
   contentUpdatedAt: number | null;
   contentStatus: ContentStatus;
+  condensedSummary: string | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -72,6 +73,7 @@ export type NewLearningChunk = {
   contentVersion?: number | null;
   contentUpdatedAt?: number | null;
   contentStatus?: ContentStatus;
+  condensedSummary?: string | null;
   createdAt: number;
   updatedAt: number;
 };

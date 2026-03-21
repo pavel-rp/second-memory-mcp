@@ -57,6 +57,13 @@
       "when": 1773969800000,
       "tag": "0007_add_content_status",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773969900000,
+      "tag": "0008_add_chunk_condensed_summary",
+      "breakpoints": true
     }
   ]
 }

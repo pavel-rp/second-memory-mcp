@@ -37,6 +37,7 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     intervalDays: 7,
     chunkType: 'review',
     contentStatus: 'final',
+    condensedSummary: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Original content here for testing',
@@ -199,6 +200,38 @@ describe('updateChunkContent', () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('database');
+  });
+
+  it('persists condensedSummary when provided alongside content', async () => {
+    const deps = stubDeps();
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk({ condensedSummary: 'Key insight.' }));
+
+    const result = await updateChunkContent(
+      'chunk-1',
+      { content: 'New content', condensedSummary: 'Key insight.' },
+      deps
+    );
+
+    expect(result.success).toBe(true);
+    expect(deps.chunks.update).toHaveBeenCalledWith(
+      'chunk-1',
+      expect.objectContaining({ condensedSummary: 'Key insight.' })
+    );
+  });
+
+  it('does not overwrite condensedSummary when not provided in input', async () => {
+    const deps = stubDeps();
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ condensedSummary: 'Existing summary.' }))
+      .mockResolvedValueOnce(stubChunk({ condensedSummary: 'Existing summary.' }));
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content' }, deps);
+
+    expect(result.success).toBe(true);
+    const updateFields = (deps.chunks.update as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(updateFields).not.toHaveProperty('condensedSummary');
   });
 });
 

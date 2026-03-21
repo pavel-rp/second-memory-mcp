@@ -275,6 +275,43 @@ describe('createTopicWithChunks', () => {
       retryable: true,
     });
   });
+
+  it('persists condensedSummary when provided in chunk definitions', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input: TopicCreationInput = {
+      topicTitle: 'Algebra',
+      subject: 'Math',
+      topicSummary: 'Algebra summary',
+      chunks: [
+        {
+          id: 'chunk-a',
+          title: 'Variables',
+          content: 'Variables content',
+          difficulty: 3,
+          estimatedDuration: 15,
+          chunkType: 'new',
+          condensedSummary: 'Variables represent unknown values.',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    const createCall = (txPorts.chunks.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(createCall.condensedSummary).toBe('Variables represent unknown values.');
+  });
+
+  it('persists null condensedSummary when omitted from chunk definitions', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    const createCall = (txPorts.chunks.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(createCall.condensedSummary).toBeNull();
+  });
 });
 
 // --- updateTopicSummary ---

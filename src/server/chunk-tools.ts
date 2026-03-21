@@ -119,6 +119,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
         const result = await ctx.updateChunkContent(input.chunkId, {
           content: input.content,
           resetProgress: input.resetProgress,
+          condensedSummary: input.condensedSummary,
         });
 
         if (result.success && result.chunk) {
