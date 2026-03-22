@@ -1,6 +1,7 @@
 import type { DrillFormat } from '../../shared/prompts/prompt-pack.js';
 import type { NoteType, NoteAuthor } from './notes-tools.js';
 import type { ContentStatus } from './recommendations.js';
+import type { SessionMode } from './session.js';
 import { z } from 'zod';
 
 export type TeachNextNote = {
@@ -160,6 +161,14 @@ export type StartLearningNothingDue = {
   message: string;
 };
 
+export type StartLearningResumed = {
+  status: 'resumed';
+  session_id: string;
+  mode: SessionMode;
+  total_chunks: number;
+  first_chunk: TeachNextResponse;
+};
+
 export type StartLearningError = {
   status: 'error';
   message: string;
@@ -167,6 +176,7 @@ export type StartLearningError = {
 
 export type StartLearningResult =
   | StartLearningStarted
+  | StartLearningResumed
   | StartLearningNothingDue
   | StartLearningError;
 

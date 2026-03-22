@@ -85,8 +85,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       title: 'Start Learning Session',
       description:
         'Quick-start a session with the most urgent topic. Picks the highest-urgency topic automatically and creates a single-topic session. ' +
+        'If an active session exists with remaining chunks, it is resumed and status will be "resumed" with the next teaching step. ' +
+        'If the active session is fully completed, it is auto-completed and a fresh session is started (status: "started"). ' +
         'For interactive topic selection, use what_to_learn_today instead. ' +
-        'When status is "started", response includes first_chunk.instruction — follow it verbatim to teach the chunk. ' +
+        'When status is "started" or "resumed", check first_chunk.status: "teach" means follow first_chunk.instruction verbatim; "blocked" or "error" means surface first_chunk.message and stop. ' +
         'Status "nothing_due" or "error" means the session could not start — surface the message and stop. ' +
         'After teaching, call submit_answer — check next.status for the next action (teach/complete/blocked/error).',
       inputSchema: StartLearningInputShape,

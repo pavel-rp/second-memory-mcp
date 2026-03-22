@@ -5,6 +5,7 @@ import type { SessionQuestionRepository } from '../ports/session-question-reposi
 import type { NotesRepository } from '../ports/notes-repository.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
+import type { SessionMode } from '../domain/types/session.js';
 import type {
   TeachNextResponse,
   PrerequisiteContextItem,
@@ -19,6 +20,7 @@ import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/en
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
+import { logger } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -796,10 +798,46 @@ export async function startLearning(
   };
   const activeSession = await sessionWorkflows.getActiveSession(sessionDeps);
   if (activeSession) {
-    return {
-      status: 'error',
-      message: 'An active session already exists. Complete or end it before starting a new one.',
-    };
+    // Check if all session chunks are completed (or session is empty)
+    const sessionChunks = await deps.sessions.getSessionChunks(activeSession.id);
+    const allCompleted =
+      sessionChunks.length === 0 || sessionChunks.every(sc => sc.status === 'completed');
+
+    if (allCompleted) {
+      // Auto-complete the finished session, then fall through to start a fresh one
+      const completeResult = await sessionWorkflows.completeSession(
+        activeSession.id,
+        undefined,
+        sessionDeps
+      );
+      if (!completeResult.success) {
+        logger.error(
+          `Failed to auto-complete session ${activeSession.id}: ${completeResult.error.message}`
+        );
+        return {
+          status: 'error',
+          message: 'Failed to auto-complete finished session. Please try again.',
+        };
+      }
+    } else {
+      // Resume the active session — get the next teaching step
+      const teachingDeps: TeachingDeps = {
+        sessions: deps.sessions,
+        chunks: deps.chunks,
+        reviewPersistence: deps.reviewPersistence,
+        algorithmConfig: deps.algorithmConfig,
+        sessionQuestions: deps.sessionQuestions,
+        notes: deps.notes,
+      };
+      const firstChunk = await getNextTeachingStep(teachingDeps);
+      return {
+        status: 'resumed' as const,
+        session_id: activeSession.id,
+        mode: activeSession.mode as SessionMode,
+        total_chunks: sessionChunks.length,
+        first_chunk: firstChunk,
+      };
+    }
   }
 
   // 2. Get topic-level recommendations
