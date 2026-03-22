@@ -1,57 +1,66 @@
-/* eslint-disable no-console */
-/**
- * Minimal logger wrapper used to centralize console output.
- * Keeping console usage isolated allows the rest of the codebase
- * to remain free of direct console statements.
- *
- * For MCP servers, we redirect all output to stderr to avoid interfering
- * with JSON-RPC communication over stdout.
- */
+import pino from 'pino';
+import { getVersion } from './version.js';
 
-/**
- * Check if a stream is not a TTY (terminal)
- */
 function isNotTTY(stream: NodeJS.ReadStream | NodeJS.WriteStream): boolean {
   return stream.isTTY === false || stream.isTTY === undefined;
 }
 
-/**
- * Detect if we're running as an MCP server (stdio mode)
- * MCP servers run with stdin/stdout connected to Claude Desktop
- * When spawned by Claude Desktop, both stdin and stdout are pipes (not TTY)
- */
-function isMcpMode(): boolean {
+export function isMcpMode(): boolean {
   return isNotTTY(process.stdin) && isNotTTY(process.stdout);
 }
 
+const PINO_LEVELS = new Set(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']);
+
+function resolveLevel(): string {
+  const env = process.env.LOG_LEVEL;
+  if (env && PINO_LEVELS.has(env)) return env;
+  if (process.env.DEBUG) return 'debug';
+  return 'info';
+}
+
+export const pinoLogger = pino(
+  {
+    level: resolveLevel(),
+    base: { service: 'second-memory-mcp', version: getVersion() },
+    timestamp: pino.stdTimeFunctions.isoTime,
+  },
+  isMcpMode() ? pino.destination(2) : undefined
+);
+
 /**
- * Log a message with the appropriate method based on MCP mode
+ * Variadic adapter: maps `logger.info(msg, ...args)` call-site patterns
+ * to pino's `logger.info(mergingObject, msg)` convention.
+ *
+ * - Trailing Error → serialized as `err` merging object
+ * - Trailing plain object → merged into the log entry
+ * - Multiple string args → joined with spaces
  */
-function logMessage(
-  level: string,
-  messages: unknown[],
-  fallbackMethod: (...args: unknown[]) => void
-): void {
-  if (isMcpMode()) {
-    console.error(`[${level}]`, ...messages);
-  } else {
-    fallbackMethod(...messages);
-  }
+function adapt(method: pino.LogFn): (...messages: unknown[]) => void {
+  return (...messages: unknown[]): void => {
+    if (messages.length === 0) {
+      method('');
+      return;
+    }
+
+    const last = messages[messages.length - 1];
+    const init = messages.slice(0, -1);
+
+    if (last instanceof Error) {
+      const msg = init.map(String).join(' ');
+      method({ err: last }, msg || last.message);
+    } else if (typeof last === 'object' && last !== null && !Array.isArray(last)) {
+      const msg = init.map(String).join(' ');
+      method(last as Record<string, unknown>, msg);
+    } else {
+      method(messages.map(String).join(' '));
+    }
+  };
 }
 
 export const logger = {
-  info: (...messages: unknown[]): void => {
-    logMessage('INFO', messages, console.info);
-  },
-  warn: (...messages: unknown[]): void => {
-    logMessage('WARN', messages, console.warn);
-  },
-  error: (...messages: unknown[]): void => {
-    logMessage('ERROR', messages, console.error);
-  },
-  debug: (...messages: unknown[]): void => {
-    if (process.env.DEBUG) {
-      logMessage('DEBUG', messages, console.debug);
-    }
-  },
+  info: adapt(pinoLogger.info.bind(pinoLogger)),
+  warn: adapt(pinoLogger.warn.bind(pinoLogger)),
+  error: adapt(pinoLogger.error.bind(pinoLogger)),
+  debug: adapt(pinoLogger.debug.bind(pinoLogger)),
+  child: pinoLogger.child.bind(pinoLogger),
 };
