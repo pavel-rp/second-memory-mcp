@@ -1302,7 +1302,7 @@ describe('startLearning', () => {
           makeSessionChunk({
             id: 'sc-1',
             chunkId: 'c1',
-            status: 'in_progress',
+            status: 'pending',
             sessionId: 'active-sess',
           }),
           makeSessionChunk({
@@ -1322,7 +1322,7 @@ describe('startLearning', () => {
     expect(result.session_id).toBe('active-sess');
     expect(result.mode).toBe('review');
     expect(result.total_chunks).toBe(2);
-    expect(result.first_chunk).toBeDefined();
+    expect(result.first_chunk.status).toBe('teach');
   });
 
   it('auto-completes active session when all chunks are completed and starts fresh', async () => {
@@ -1415,6 +1415,41 @@ describe('startLearning', () => {
     if (result.status !== 'error') throw new Error('Expected error');
     expect(result.message).toContain('auto-complete');
     expect(result.message).toContain('DB connection lost');
+  });
+
+  it('auto-completes empty active session (zero chunks) and starts fresh', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'empty-sess' })
+    );
+    const completeSpy = vi
+      .spyOn(sessionWorkflows, 'completeSession')
+      .mockResolvedValue(serviceOk());
+    const getSessionChunksMock = vi
+      .fn()
+      // First call: startLearning checks active session chunks — empty
+      .mockResolvedValueOnce([])
+      // Second call: getNextTeachingStep for the newly created session
+      .mockResolvedValue([
+        makeSessionChunk({
+          id: 'sc-new',
+          chunkId: 'c1',
+          status: 'pending',
+          sessionId: 'new-sess',
+        }),
+      ]);
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ id: 'new-sess' })),
+        getSessionChunks: getSessionChunksMock,
+      },
+    });
+
+    const result = await startLearning({}, deps);
+
+    expect(completeSpy).toHaveBeenCalledWith('empty-sess', undefined, expect.anything());
+    expect(result.status).toBe('started');
+    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.session_id).toBe('new-sess');
   });
 
   it('returns nothing_due when no due chunks exist', async () => {
