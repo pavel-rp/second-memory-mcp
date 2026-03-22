@@ -30,6 +30,26 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
     async () => {
       try {
         const result = await ctx.getNextTeachingStep();
+        if (result.status === 'teach') {
+          return toolJson(
+            toSnakeCase({
+              ...result,
+              workflowHint: {
+                action: 'USE_STRUCTURED_QUESTIONS',
+                sessionChunkId: result.session_chunk_id,
+                mode: result.mode,
+                instruction:
+                  'Create drill questions using create_session_questions({ session_chunk_id, questions: [...] }), ' +
+                  'then call submit_answer({ session_question_id, ... }) for each question. ' +
+                  (result.mode === 'learning'
+                    ? 'For learning mode: create 2-3 comprehension questions.'
+                    : 'For retrieval mode: create 1 targeted recall question.') +
+                  ' Do NOT call create_session_questions more than once per chunk.',
+                nextStep: `create_session_questions({ session_chunk_id: "${result.session_chunk_id}", questions: [{ prompt_text: "..." }] })`,
+              },
+            })
+          );
+        }
         return toolJson(result);
       } catch (error) {
         const msg = extractErrorMessage(error);

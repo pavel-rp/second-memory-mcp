@@ -22,6 +22,7 @@ describe('teaching-tools', () => {
     const teachResult = {
       status: 'teach',
       chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
       chunk_index: 1,
       total_chunks: 3,
       mode: 'learning',
@@ -61,6 +62,109 @@ describe('teaching-tools', () => {
 
     expect(parsed.status).toBe('teach');
     expect(parsed.content_status).toBe('draft');
+  });
+
+  it('teach_next includes workflow_hint on teach status', async () => {
+    const teachResult = {
+      status: 'teach',
+      chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
+      chunk_index: 1,
+      total_chunks: 3,
+      mode: 'learning',
+      instruction: 'Teach this concept...',
+      drill_format: 'explanation',
+      content_status: 'active',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.workflow_hint).toBeDefined();
+    expect(parsed.workflow_hint.action).toBe('USE_STRUCTURED_QUESTIONS');
+    expect(parsed.workflow_hint.session_chunk_id).toBe('sc-1');
+    expect(parsed.workflow_hint.mode).toBe('learning');
+    expect(parsed.workflow_hint.instruction).toContain('create_session_questions');
+    expect(parsed.workflow_hint.instruction).toContain('submit_answer');
+    expect(parsed.workflow_hint.next_step).toContain('create_session_questions');
+    expect(parsed.workflow_hint.next_step).toContain('sc-1');
+  });
+
+  it('teach_next workflow_hint uses retrieval instruction for retrieval mode', async () => {
+    const teachResult = {
+      status: 'teach',
+      chunk_id: 'c1',
+      session_chunk_id: 'sc-2',
+      chunk_index: 1,
+      total_chunks: 2,
+      mode: 'retrieval',
+      instruction: 'Review this concept...',
+      drill_format: 'explanation',
+      content_status: 'active',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.workflow_hint.mode).toBe('retrieval');
+    expect(parsed.workflow_hint.instruction).toContain('For retrieval mode');
+    expect(parsed.workflow_hint.instruction).toContain('1 targeted recall question');
+  });
+
+  it('teach_next omits workflow_hint on blocked status', async () => {
+    const blockedResult = {
+      status: 'blocked',
+      message: 'Chunk not ready',
+      current_chunk_id: 'c1',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(blockedResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('blocked');
+    expect(parsed.workflow_hint).toBeUndefined();
+  });
+
+  it('teach_next omits workflow_hint on complete status', async () => {
+    const completeResult = {
+      status: 'complete',
+      message: 'Session done',
+      summary: { total: 3, passed_first_try: 2, needed_retry: 1, exhausted_retries: 0 },
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(completeResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('complete');
+    expect(parsed.workflow_hint).toBeUndefined();
+  });
+
+  it('teach_next omits workflow_hint on error status', async () => {
+    const errorResult = {
+      status: 'error',
+      message: 'No active session',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(errorResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.workflow_hint).toBeUndefined();
   });
 
   it('returns structured error when orchestration throws', async () => {
