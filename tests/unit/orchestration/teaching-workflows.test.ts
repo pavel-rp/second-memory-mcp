@@ -1325,6 +1325,41 @@ describe('startLearning', () => {
     expect(result.first_chunk.status).toBe('teach');
   });
 
+  it('resumes active session with blocked first_chunk when in_progress chunk has no attempts', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'active-sess', mode: 'learning' })
+    );
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getActiveSession: vi
+          .fn()
+          .mockResolvedValue(makeSession({ id: 'active-sess', mode: 'learning' })),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'in_progress',
+            sessionId: 'active-sess',
+          }),
+          makeSessionChunk({
+            id: 'sc-2',
+            chunkId: 'c2',
+            status: 'pending',
+            sessionId: 'active-sess',
+          }),
+        ]),
+      },
+    });
+
+    const result = await startLearning({}, deps);
+
+    expect(result.status).toBe('resumed');
+    if (result.status !== 'resumed') throw new Error('Expected resumed');
+    expect(result.first_chunk.status).toBe('blocked');
+    if (result.first_chunk.status !== 'blocked') throw new Error('Expected blocked');
+    expect(result.first_chunk.current_chunk_id).toBe('c1');
+  });
+
   it('auto-completes active session when all chunks are completed and starts fresh', async () => {
     vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
       makeSession({ id: 'done-sess' })
@@ -1414,7 +1449,7 @@ describe('startLearning', () => {
     expect(result.status).toBe('error');
     if (result.status !== 'error') throw new Error('Expected error');
     expect(result.message).toContain('auto-complete');
-    expect(result.message).toContain('DB connection lost');
+    expect(result.message).not.toContain('DB connection lost');
   });
 
   it('auto-completes empty active session (zero chunks) and starts fresh', async () => {

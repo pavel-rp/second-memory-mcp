@@ -5,6 +5,7 @@ import type { SessionQuestionRepository } from '../ports/session-question-reposi
 import type { NotesRepository } from '../ports/notes-repository.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
+import type { SessionMode } from '../domain/types/session.js';
 import type {
   TeachNextResponse,
   SubmitAnswerInput,
@@ -18,6 +19,7 @@ import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/en
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
+import { logger } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -801,9 +803,12 @@ export async function startLearning(
         sessionDeps
       );
       if (!completeResult.success) {
+        logger.error(
+          `Failed to auto-complete session ${activeSession.id}: ${completeResult.error.message}`
+        );
         return {
           status: 'error',
-          message: `Failed to auto-complete finished session: ${completeResult.error.message}`,
+          message: 'Failed to auto-complete finished session. Please try again.',
         };
       }
     } else {
@@ -820,7 +825,7 @@ export async function startLearning(
       return {
         status: 'resumed' as const,
         session_id: activeSession.id,
-        mode: activeSession.mode as 'learning' | 'review',
+        mode: activeSession.mode as SessionMode,
         total_chunks: sessionChunks.length,
         first_chunk: firstChunk,
       };
