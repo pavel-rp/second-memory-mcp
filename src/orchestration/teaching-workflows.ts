@@ -805,6 +805,7 @@ export async function startLearning(
   // 2. Get topic-level recommendations
   const recDeps: recommendationWorkflows.RecommendationDeps = {
     chunks: deps.chunks,
+    algorithmConfig: deps.algorithmConfig,
   };
   const now = new Date();
   const recommendations = await recommendationWorkflows.generateRecommendations(

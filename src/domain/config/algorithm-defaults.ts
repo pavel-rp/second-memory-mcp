@@ -53,6 +53,7 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
       enableProgressUpdates: true,
       verbosity: 'medium',
     },
+    recencyWindowMs: 172_800_000, // 48 hours
   },
   maxDependencyDepth: 5,
 };

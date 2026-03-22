@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   aggregateTopicRecommendations,
+  classifyRecommendation,
   type DueChunkInfo,
 } from '../../../../src/domain/services/recommendation-engine.js';
 
 const NOW = new Date('2025-06-15T12:00:00.000Z');
 const NOW_MS = NOW.getTime();
 const MS_PER_DAY = 86_400_000;
+
+const RECENCY_WINDOW_MS = 172_800_000; // 48h default
 
 function makeDueChunk(overrides: Partial<DueChunkInfo> = {}): DueChunkInfo {
   return {
@@ -17,6 +20,7 @@ function makeDueChunk(overrides: Partial<DueChunkInfo> = {}): DueChunkInfo {
     easeFactor: overrides.easeFactor ?? 2.5,
     estimatedDuration: overrides.estimatedDuration ?? 10,
     createdAt: overrides.createdAt ?? NOW_MS - 10 * MS_PER_DAY,
+    lastReviewedAt: overrides.lastReviewedAt ?? null,
     ...overrides,
   };
 }
@@ -28,6 +32,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
     expect(result).toEqual([]);
   });
@@ -46,6 +51,7 @@ describe('aggregateTopicRecommendations', () => {
       ]),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result).toHaveLength(2);
@@ -80,6 +86,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result[0]!.topicId).toBe('topic-high');
@@ -96,6 +103,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result[0]!.dueChunkIds).toEqual(['c-earlier', 'c-later']);
@@ -111,6 +119,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result[0]!.estimatedDuration).toBe(17); // 10 + 7
@@ -131,6 +140,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result[0]!.hasNewChunks).toBe(true);
@@ -150,6 +160,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result[0]!.hasNewChunks).toBe(false);
@@ -164,6 +175,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 3,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result).toHaveLength(3);
@@ -179,6 +191,7 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(), // no entry for t1
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     expect(result[0]!.totalChunkCount).toBe(2); // falls back to due count
@@ -194,10 +207,319 @@ describe('aggregateTopicRecommendations', () => {
       topicChunkCounts: new Map(),
       limit: 10,
       now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
     // Same score, sorted by title alphabetically
     expect(result[0]!.topicTitle).toBe('Alpha');
     expect(result[1]!.topicTitle).toBe('Bravo');
+  });
+});
+
+describe('classifyRecommendation', () => {
+  it('returns continue_learning when recent activity AND new chunks', () => {
+    expect(classifyRecommendation(true, true, true)).toBe('continue_learning');
+    expect(classifyRecommendation(true, true, false)).toBe('continue_learning');
+  });
+
+  it('returns overdue_review when has reviewed chunks but no recent activity', () => {
+    expect(classifyRecommendation(false, false, true)).toBe('overdue_review');
+    expect(classifyRecommendation(false, true, true)).toBe('overdue_review');
+  });
+
+  it('returns overdue_review when recent activity but no new chunks (all reviewed)', () => {
+    expect(classifyRecommendation(true, false, true)).toBe('overdue_review');
+  });
+
+  it('returns new_material when only unstudied chunks and no recent activity', () => {
+    expect(classifyRecommendation(false, true, false)).toBe('new_material');
+  });
+
+  it('returns new_material when no chunks of any kind (edge case)', () => {
+    expect(classifyRecommendation(false, false, false)).toBe('new_material');
+  });
+});
+
+describe('recommendation type classification in aggregation', () => {
+  it('classifies topic with recent review + new chunks as continue_learning', () => {
+    const createdAt = NOW_MS - MS_PER_DAY;
+    const chunks = [
+      // Reviewed chunk (recent)
+      makeDueChunk({
+        id: 'c-reviewed',
+        topicId: 't1',
+        nextReviewAt: NOW_MS - MS_PER_DAY,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 3_600_000, // 1 hour ago
+      }),
+      // New chunk (never reviewed)
+      makeDueChunk({
+        id: 'c-new',
+        topicId: 't1',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map([['t1', 5]]),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.recommendationType).toBe('continue_learning');
+  });
+
+  it('classifies topic with due chunks and no recent activity as overdue_review', () => {
+    const chunks = [
+      makeDueChunk({
+        id: 'c1',
+        topicId: 't1',
+        nextReviewAt: NOW_MS - 5 * MS_PER_DAY,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 10 * MS_PER_DAY, // 10 days ago, outside 48h window
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.recommendationType).toBe('overdue_review');
+  });
+
+  it('classifies topic with only new chunks and no recent activity as new_material', () => {
+    const createdAt = NOW_MS - MS_PER_DAY;
+    const chunks = [
+      makeDueChunk({
+        id: 'c-new',
+        topicId: 't1',
+        nextReviewAt: createdAt, // same as createdAt = new
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.recommendationType).toBe('new_material');
+  });
+
+  it('recency boost raises urgency score for continue_learning topics', () => {
+    const createdAt = NOW_MS - MS_PER_DAY;
+    // Topic with recent activity + new chunks
+    const boostedChunks = [
+      makeDueChunk({
+        id: 'c1',
+        topicId: 't-boosted',
+        topicTitle: 'Boosted',
+        nextReviewAt: NOW_MS - MS_PER_DAY,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 3_600_000, // 1 hour ago
+      }),
+      makeDueChunk({
+        id: 'c2',
+        topicId: 't-boosted',
+        topicTitle: 'Boosted',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    // Same topic without recent activity
+    const unboostedChunks = [
+      makeDueChunk({
+        id: 'c3',
+        topicId: 't-unboosted',
+        topicTitle: 'Unboosted',
+        nextReviewAt: NOW_MS - MS_PER_DAY,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 10 * MS_PER_DAY,
+      }),
+      makeDueChunk({
+        id: 'c4',
+        topicId: 't-unboosted',
+        topicTitle: 'Unboosted',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+
+    const result = aggregateTopicRecommendations({
+      dueChunks: [...boostedChunks, ...unboostedChunks],
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    const boosted = result.find(r => r.topicId === 't-boosted')!;
+    const unboosted = result.find(r => r.topicId === 't-unboosted')!;
+    expect(boosted.urgencyScore).toBeGreaterThan(unboosted.urgencyScore);
+    expect(boosted.recommendationType).toBe('continue_learning');
+  });
+
+  it('continue_learning topic (0 overdue days) ranks above overdue_review (5-10 days)', () => {
+    const createdAt = NOW_MS;
+    // continue_learning: just reviewed, has new chunks, 0 overdue days
+    const continueLearning = [
+      makeDueChunk({
+        id: 'c-cl-reviewed',
+        topicId: 't-continue',
+        topicTitle: 'Continue',
+        nextReviewAt: NOW_MS, // due now, 0 overdue
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 3_600_000, // recent
+      }),
+      makeDueChunk({
+        id: 'c-cl-new',
+        topicId: 't-continue',
+        topicTitle: 'Continue',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    // overdue_review: 7 days overdue, no recent activity
+    const overdueReview = [
+      makeDueChunk({
+        id: 'c-or',
+        topicId: 't-overdue',
+        topicTitle: 'Overdue',
+        nextReviewAt: NOW_MS - 7 * MS_PER_DAY,
+        createdAt: NOW_MS - 60 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 14 * MS_PER_DAY,
+      }),
+    ];
+
+    const result = aggregateTopicRecommendations({
+      dueChunks: [...continueLearning, ...overdueReview],
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.topicId).toBe('t-continue');
+    expect(result[0]!.recommendationType).toBe('continue_learning');
+    expect(result[1]!.topicId).toBe('t-overdue');
+    expect(result[1]!.recommendationType).toBe('overdue_review');
+  });
+
+  it('topic 150+ days overdue outranks continue_learning topic', () => {
+    const createdAt = NOW_MS;
+    // continue_learning topic
+    const continueLearning = [
+      makeDueChunk({
+        id: 'c-cl',
+        topicId: 't-continue',
+        topicTitle: 'Continue',
+        nextReviewAt: NOW_MS,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 3_600_000,
+      }),
+      makeDueChunk({
+        id: 'c-new',
+        topicId: 't-continue',
+        topicTitle: 'Continue',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    // Extremely overdue topic (150 days)
+    const extremeOverdue = [
+      makeDueChunk({
+        id: 'c-extreme',
+        topicId: 't-extreme',
+        topicTitle: 'Extreme',
+        nextReviewAt: NOW_MS - 150 * MS_PER_DAY,
+        createdAt: NOW_MS - 200 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 160 * MS_PER_DAY,
+      }),
+    ];
+
+    const result = aggregateTopicRecommendations({
+      dueChunks: [...continueLearning, ...extremeOverdue],
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.topicId).toBe('t-extreme');
+    expect(result[0]!.recommendationType).toBe('overdue_review');
+  });
+
+  it('no recency boost when reviewed outside 48h window', () => {
+    const createdAt = NOW_MS - MS_PER_DAY;
+    const chunks = [
+      makeDueChunk({
+        id: 'c-reviewed',
+        topicId: 't1',
+        nextReviewAt: NOW_MS - MS_PER_DAY,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 3 * MS_PER_DAY, // 3 days ago — outside 48h
+      }),
+      makeDueChunk({
+        id: 'c-new',
+        topicId: 't1',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    // Should NOT be continue_learning since outside recency window
+    expect(result[0]!.recommendationType).not.toBe('continue_learning');
+  });
+
+  it('boosted score is clamped to 1.0', () => {
+    const createdAt = NOW_MS;
+    const chunks = [
+      // Extremely overdue + recent → high base score + boost
+      makeDueChunk({
+        id: 'c1',
+        topicId: 't1',
+        nextReviewAt: NOW_MS - 100 * MS_PER_DAY,
+        easeFactor: 1.3,
+        createdAt: NOW_MS - 200 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 3_600_000,
+      }),
+      makeDueChunk({
+        id: 'c2',
+        topicId: 't1',
+        nextReviewAt: createdAt,
+        createdAt,
+        lastReviewedAt: null,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.urgencyScore).toBeLessThanOrEqual(1);
   });
 });

@@ -152,6 +152,10 @@ export function resolveAlgorithmConfig(
           DEFAULT_ALGORITHM_CONFIG.recommendationConfig.conversation.verbosity
         ),
       },
+      recencyWindowMs: parseNumber(
+        env.SM_REC_RECENCY_WINDOW_MS,
+        DEFAULT_ALGORITHM_CONFIG.recommendationConfig.recencyWindowMs
+      ),
     },
     maxDependencyDepth: parseNumber(
       env.SM_PREREQ_MAX_DEPTH,

@@ -316,6 +316,7 @@ describe('spaced-repetition-tools', () => {
           topicTitle: 'Segment Trees',
           urgencyScore: 0.87,
           urgencyReason: '3 chunks overdue (max 5 days)',
+          recommendationType: 'overdue_review' as const,
           dueChunkIds: ['c1', 'c2', 'c3'],
           dueChunkCount: 3,
           totalChunkCount: 8,

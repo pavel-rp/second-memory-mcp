@@ -340,6 +340,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   };
   const recommendationDeps: recommendationWorkflows.RecommendationDeps = {
     chunks: ports.chunks,
+    algorithmConfig,
   };
   const queryDeps: queryWorkflows.QueryDeps = {
     chunks: ports.chunks,
