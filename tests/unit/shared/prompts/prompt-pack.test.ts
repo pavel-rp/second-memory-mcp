@@ -407,4 +407,65 @@ describe('promptPack', () => {
       expect(SERVER_INSTRUCTIONS).toContain('start_learning');
     });
   });
+
+  describe('assessment-first scaffolding', () => {
+    it('SERVER_INSTRUCTIONS contains ASSESSMENT-FIRST SCAFFOLDING section', () => {
+      expect(SERVER_INSTRUCTIONS).toContain('ASSESSMENT-FIRST SCAFFOLDING');
+      expect(SERVER_INSTRUCTIONS).toContain('absence from DB does not mean ignorance');
+      expect(SERVER_INSTRUCTIONS).toContain('confirmed gaps');
+    });
+
+    it('scaffolding prompt includes search and assessment steps before chunk design', () => {
+      const text = promptPack.getPrompt('scaffolding', { problem: 'Binary Trees' });
+      expect(text).toContain('Before designing chunks:');
+      expect(text).toContain('SEARCH EXISTING CONTENT');
+      expect(text).toContain('search_learning_content');
+      expect(text).toContain('ASSESS PRIOR KNOWLEDGE');
+      expect(text).toContain('assess before assuming a gap');
+    });
+
+    it('scaffolding prompt includes mastery-skip and content_status constraints', () => {
+      const text = promptPack.getPrompt('scaffolding', { problem: 'Graphs' });
+      expect(text).toContain(
+        'Do not create chunks for concepts the learner has demonstrated mastery of'
+      );
+      expect(text).toContain('content_status');
+    });
+
+    it('workflow guidance includes proactive assessment-first scaffolding flow', () => {
+      const text = promptPack.getPrompt('workflow_guidance');
+      expect(text).toContain('Assessment-First Scaffolding (Proactive Flow)');
+      expect(text).toContain('search_learning_content for each prerequisite');
+      expect(text).toContain('prerequisite graph grows only where real gaps exist');
+    });
+
+    it('workflow guidance includes reactive gap detection flow', () => {
+      const text = promptPack.getPrompt('workflow_guidance');
+      expect(text).toContain('Reactive Gap Detection');
+      expect(text).toContain('probe to confirm the gap');
+      expect(text).toContain('note_type: "confusion"');
+      expect(text).toContain('complete_session with feedback describing the gap');
+    });
+
+    it('workflow guidance includes bootstrap workflow section', () => {
+      const text = promptPack.getPrompt('workflow_guidance');
+      expect(text).toContain('Bootstrap Workflow (New Topics from Scratch)');
+      expect(text).toContain("content_status: 'final'");
+      expect(text).toContain("content_status: 'draft'");
+    });
+
+    it('workflow guidance includes just-in-time content fill section', () => {
+      const text = promptPack.getPrompt('workflow_guidance');
+      expect(text).toContain('Just-in-Time Content Fill');
+      expect(text).toContain('update_chunk_content');
+      expect(text).toContain('adapted to the specific learner');
+    });
+
+    it('learning session prompt includes assessment step in creating new topics', () => {
+      const text = promptPack.getPrompt('learning_session', {});
+      expect(text).toContain('Creating New Topics');
+      expect(text).toContain('absence from the DB does not mean the learner lacks knowledge');
+      expect(text).toContain('If confirmed gap');
+    });
+  });
 });

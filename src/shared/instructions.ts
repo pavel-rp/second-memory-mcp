@@ -6,11 +6,11 @@ export const SERVER_INSTRUCTIONS = `\
 Second Memory is a spaced-repetition learning server. Follow these workflows:
 
 TEACHING FLOW (start_learning → submit_answer loop)
-1. Call start_learning to create or resume a session. If status is "nothing_due" or "error", surface the message and stop. If "started" or "resumed", check first_chunk.status: "teach" → present first_chunk.instruction and collect their response; "blocked"/"error" → surface the message and stop.
-2. Call submit_answer with the question, response, pass/fail judgment, feedback, and time_spent_ms.
-3. If the result says "retry", ask the learner to try again and re-call submit_answer.
-4. If "recorded", check next.status: "teach" → present the instruction and repeat from step 2. "blocked" or "error" → surface the message and stop.
-5. When next.status is "complete", call complete_session with the session_id from start_learning and optional feedback.
+1. Call start_learning. If status is "nothing_due"/"error", surface message and stop. If "started"/"resumed", check first_chunk.status: "teach" → present instruction and collect response; "blocked"/"error" → surface and stop.
+2. Call submit_answer with question, response, pass/fail, feedback, time_spent_ms.
+3. On "retry", ask learner to try again and re-call submit_answer.
+4. On "recorded", check next.status: "teach" → present instruction, repeat from step 2. "blocked"/"error" → stop.
+5. On next.status "complete", call complete_session with session_id and optional feedback.
 
 ROLLING SESSION FLOW (manual chunk-by-chunk control)
 1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
@@ -24,6 +24,9 @@ CONTENT CREATION
 1. Use the scaffolding prompt to plan a topic (5-9 chunks).
 2. Use the chunk_generation prompt to produce chunk content.
 3. Call create_topic_with_chunks to persist the topic and all chunks in one operation.
+
+ASSESSMENT-FIRST SCAFFOLDING
+Before creating a topic: search existing content, then assess the learner — absence from DB does not mean ignorance. Create only for confirmed gaps.
 
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
