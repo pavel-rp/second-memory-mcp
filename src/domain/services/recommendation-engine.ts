@@ -27,6 +27,11 @@ const RECENCY_BOOST = 0.3;
 /**
  * Classify a topic based on recency and chunk state.
  * Priority: continue_learning > overdue_review > new_material.
+ *
+ * Note: `continue_learning` requires new (unreviewed) chunks. A topic where
+ * all chunks have been reviewed recently but are already due again will be
+ * classified as `overdue_review` — the recency boost only applies when there
+ * is genuinely new material left to learn.
  */
 export function classifyRecommendation(
   hasRecentActivity: boolean,
@@ -77,10 +82,8 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
       const overdueDays = Math.max(0, (nowMs - c.nextReviewAt) / msPerDay);
       if (overdueDays > maxOverdueDays) maxOverdueDays = overdueDays;
       if (c.easeFactor < minEaseFactor) minEaseFactor = c.easeFactor;
-      // Never reviewed = nextReviewAt was set at creation, repetitions = 0
-      // We detect "new" by checking if the chunk has never been reviewed:
-      // nextReviewAt <= createdAt + 1s means it was never rescheduled
-      if (c.nextReviewAt <= c.createdAt + 1000) {
+      // Never reviewed = lastReviewedAt is null (no review recorded yet)
+      if (c.lastReviewedAt == null) {
         hasNewChunks = true;
       } else {
         hasReviewedChunks = true;

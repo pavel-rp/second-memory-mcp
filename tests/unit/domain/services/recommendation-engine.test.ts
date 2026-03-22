@@ -13,14 +13,14 @@ const RECENCY_WINDOW_MS = 172_800_000; // 48h default
 
 function makeDueChunk(overrides: Partial<DueChunkInfo> = {}): DueChunkInfo {
   return {
-    id: overrides.id ?? 'c1',
-    topicId: overrides.topicId ?? 'topic-1',
-    topicTitle: overrides.topicTitle ?? 'Topic 1',
-    nextReviewAt: overrides.nextReviewAt ?? NOW_MS - MS_PER_DAY,
-    easeFactor: overrides.easeFactor ?? 2.5,
-    estimatedDuration: overrides.estimatedDuration ?? 10,
-    createdAt: overrides.createdAt ?? NOW_MS - 10 * MS_PER_DAY,
-    lastReviewedAt: overrides.lastReviewedAt ?? null,
+    id: 'c1',
+    topicId: 'topic-1',
+    topicTitle: 'Topic 1',
+    nextReviewAt: NOW_MS - MS_PER_DAY,
+    easeFactor: 2.5,
+    estimatedDuration: 10,
+    createdAt: NOW_MS - 10 * MS_PER_DAY,
+    lastReviewedAt: null,
     ...overrides,
   };
 }
@@ -125,14 +125,15 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.estimatedDuration).toBe(17); // 10 + 7
   });
 
-  it('detects hasNewChunks when a chunk has never been rescheduled', () => {
+  it('detects hasNewChunks when a chunk has never been reviewed', () => {
     const createdAt = NOW_MS - MS_PER_DAY;
     const chunks = [
       makeDueChunk({
         id: 'c-new',
         topicId: 't1',
-        nextReviewAt: createdAt, // same as createdAt = never rescheduled
+        nextReviewAt: createdAt,
         createdAt,
+        lastReviewedAt: null,
       }),
     ];
     const result = aggregateTopicRecommendations({
@@ -151,8 +152,9 @@ describe('aggregateTopicRecommendations', () => {
       makeDueChunk({
         id: 'c1',
         topicId: 't1',
-        nextReviewAt: NOW_MS - MS_PER_DAY, // rescheduled to a different time than createdAt
+        nextReviewAt: NOW_MS - MS_PER_DAY,
         createdAt: NOW_MS - 30 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 10 * MS_PER_DAY,
       }),
     ];
     const result = aggregateTopicRecommendations({
@@ -237,6 +239,10 @@ describe('classifyRecommendation', () => {
 
   it('returns new_material when no chunks of any kind (edge case)', () => {
     expect(classifyRecommendation(false, false, false)).toBe('new_material');
+  });
+
+  it('returns new_material when recent activity but no new or reviewed chunks (edge case)', () => {
+    expect(classifyRecommendation(true, false, false)).toBe('new_material');
   });
 });
 
