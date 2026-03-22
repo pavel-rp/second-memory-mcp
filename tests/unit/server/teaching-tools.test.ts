@@ -22,6 +22,7 @@ describe('teaching-tools', () => {
     const teachResult = {
       status: 'teach',
       chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
       chunk_index: 1,
       total_chunks: 3,
       mode: 'learning',
