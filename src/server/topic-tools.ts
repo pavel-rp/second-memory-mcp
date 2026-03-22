@@ -32,7 +32,9 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Create Topic with Chunks',
       description:
-        'Create a new learning topic with multiple scaffolded chunks in a single atomic operation. This is the primary tool for guided learning workflows.',
+        'Create a new learning topic with multiple scaffolded chunks in a single atomic operation. This is the primary tool for guided learning workflows. ' +
+        'Always call search_learning_content first to check for existing coverage. ' +
+        'Absence from the database does not mean the learner lacks the knowledge — assess the learner before creating.',
       inputSchema: CreateTopicWithChunksInputShape,
     },
     async (rawInput: unknown) => {
