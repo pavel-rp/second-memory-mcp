@@ -1,5 +1,5 @@
 import { calculateUrgencyScore } from '../algorithms/urgency-calculator.js';
-import type { TopicRecommendation } from '../types/recommendations.js';
+import type { RecommendationType, TopicRecommendation } from '../types/recommendations.js';
 
 /** A due chunk with the fields needed for topic-level aggregation. */
 export type DueChunkInfo = {
@@ -10,6 +10,7 @@ export type DueChunkInfo = {
   easeFactor: number;
   estimatedDuration: number;
   createdAt: number;
+  lastReviewedAt: number | null;
 };
 
 export type TopicAggregationInput = {
@@ -17,14 +18,37 @@ export type TopicAggregationInput = {
   topicChunkCounts: Map<string, number>;
   limit: number;
   now: Date;
+  recencyWindowMs: number;
 };
+
+/** Additive boost for continue_learning topics. Enough to beat ~10 overdue days but not 150+. */
+const RECENCY_BOOST = 0.3;
+
+/**
+ * Classify a topic based on recency and chunk state.
+ * Priority: continue_learning > overdue_review > new_material.
+ *
+ * Note: `continue_learning` requires new (unreviewed) chunks. A topic where
+ * all chunks have been reviewed recently but are already due again will be
+ * classified as `overdue_review` — the recency boost only applies when there
+ * is genuinely new material left to learn.
+ */
+export function classifyRecommendation(
+  hasRecentActivity: boolean,
+  hasNewChunks: boolean,
+  hasReviewedChunks: boolean
+): RecommendationType {
+  if (hasRecentActivity && hasNewChunks) return 'continue_learning';
+  if (hasReviewedChunks) return 'overdue_review';
+  return 'new_material';
+}
 
 /**
  * Aggregate due chunks into topic-level recommendations with urgency scores.
  * Pure function — no I/O.
  */
 export function aggregateTopicRecommendations(input: TopicAggregationInput): TopicRecommendation[] {
-  const { dueChunks, topicChunkCounts, limit, now } = input;
+  const { dueChunks, topicChunkCounts, limit, now, recencyWindowMs } = input;
 
   if (dueChunks.length === 0) return [];
 
@@ -41,6 +65,7 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
 
   const nowMs = now.getTime();
   const msPerDay = 86_400_000;
+  const recencyCutoff = nowMs - recencyWindowMs;
 
   const recommendations: TopicRecommendation[] = [];
 
@@ -49,16 +74,23 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
     let maxOverdueDays = 0;
     let minEaseFactor = Infinity;
     let hasNewChunks = false;
+    let hasReviewedChunks = false;
+    let hasRecentActivity = false;
     let totalMinutes = 0;
 
     for (const c of chunks) {
       const overdueDays = Math.max(0, (nowMs - c.nextReviewAt) / msPerDay);
       if (overdueDays > maxOverdueDays) maxOverdueDays = overdueDays;
       if (c.easeFactor < minEaseFactor) minEaseFactor = c.easeFactor;
-      // Never reviewed = nextReviewAt was set at creation, repetitions = 0
-      // We detect "new" by checking if the chunk has never been reviewed:
-      // nextReviewAt <= createdAt + 1s means it was never rescheduled
-      if (c.nextReviewAt <= c.createdAt + 1000) hasNewChunks = true;
+      // Never reviewed = lastReviewedAt is null (no review recorded yet)
+      if (c.lastReviewedAt == null) {
+        hasNewChunks = true;
+      } else {
+        hasReviewedChunks = true;
+      }
+      if (c.lastReviewedAt != null && c.lastReviewedAt >= recencyCutoff) {
+        hasRecentActivity = true;
+      }
       totalMinutes += c.estimatedDuration;
     }
 
@@ -68,14 +100,27 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
       minEaseFactor,
     });
 
+    const recommendationType = classifyRecommendation(
+      hasRecentActivity,
+      hasNewChunks,
+      hasReviewedChunks
+    );
+
+    // Apply recency boost for continue_learning topics
+    const boostedScore =
+      recommendationType === 'continue_learning'
+        ? Math.min(1, Math.round((score + RECENCY_BOOST) * 100) / 100)
+        : score;
+
     // Order due chunk IDs by createdAt (topic creation order)
     const orderedChunks = [...chunks].sort((a, b) => a.createdAt - b.createdAt);
 
     recommendations.push({
       topicId,
       topicTitle: title,
-      urgencyScore: score,
+      urgencyScore: boostedScore,
       urgencyReason: reason,
+      recommendationType,
       dueChunkIds: orderedChunks.map(c => c.id),
       dueChunkCount: chunks.length,
       totalChunkCount: topicChunkCounts.get(topicId) ?? chunks.length,

@@ -5,6 +5,7 @@ import {
 } from '../../../src/orchestration/recommendation-workflows.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import { stubChunkRepository } from '../../helpers/stub-ports.js';
+import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 
 const NOW = new Date('2025-06-15T12:00:00Z');
 const NOW_MS = NOW.getTime();
@@ -43,6 +44,7 @@ function makeDeps(
 ): RecommendationDeps {
   return {
     chunks: stubChunkRepository(overrides),
+    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
   };
 }
 
@@ -132,5 +134,102 @@ describe('generateRecommendations', () => {
     const result = await generateRecommendations({}, deps, NOW);
 
     expect(result.recommendations[0]!.topicTitle).toBe('Fallback Title');
+  });
+
+  it('maps lastReviewedAt from chunk rows into recommendations', async () => {
+    const chunks = [
+      stubChunkRow({
+        id: 'c1',
+        topicId: 'topic-1',
+        topicTitle: 'Topic A',
+        lastReviewedAt: NOW_MS - 3_600_000, // 1 hour ago
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+      }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map([['topic-1', 3]])),
+    });
+
+    const result = await generateRecommendations({}, deps, NOW);
+
+    // The chunk was recently reviewed and has only reviewed chunks → overdue_review
+    expect(result.recommendations[0]!.recommendationType).toBe('overdue_review');
+  });
+
+  it('filters recommendations by recommendationType', async () => {
+    const createdAt = NOW_MS - MS_PER_DAY;
+    const chunks = [
+      // overdue_review topic
+      stubChunkRow({
+        id: 'c1',
+        topicId: 'topic-overdue',
+        topicTitle: 'Overdue',
+        nextReviewAt: NOW_MS - 5 * MS_PER_DAY,
+        lastReviewedAt: NOW_MS - 10 * MS_PER_DAY,
+        createdAt: NOW_MS - 30 * MS_PER_DAY,
+      }),
+      // new_material topic
+      stubChunkRow({
+        id: 'c2',
+        topicId: 'topic-new',
+        topicTitle: 'New Material',
+        nextReviewAt: createdAt,
+        lastReviewedAt: null,
+        createdAt,
+      }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
+    });
+
+    const result = await generateRecommendations({ recommendationType: 'new_material' }, deps, NOW);
+
+    expect(result.recommendations).toHaveLength(1);
+    expect(result.recommendations[0]!.topicId).toBe('topic-new');
+    expect(result.recommendations[0]!.recommendationType).toBe('new_material');
+    // Totals reflect unfiltered counts
+    expect(result.totalDueTopics).toBe(2);
+  });
+
+  it('filter with limit returns correct number of results', async () => {
+    // 5 overdue_review topics + 3 new_material topics
+    const chunks = [
+      ...Array.from({ length: 5 }, (_, i) =>
+        stubChunkRow({
+          id: `c-overdue-${i}`,
+          topicId: `topic-overdue-${i}`,
+          topicTitle: `Overdue ${i}`,
+          nextReviewAt: NOW_MS - (i + 1) * MS_PER_DAY,
+          lastReviewedAt: NOW_MS - 10 * MS_PER_DAY,
+          createdAt: NOW_MS - 30 * MS_PER_DAY,
+        })
+      ),
+      ...Array.from({ length: 3 }, (_, i) => {
+        const created = NOW_MS - (i + 1) * MS_PER_DAY;
+        return stubChunkRow({
+          id: `c-new-${i}`,
+          topicId: `topic-new-${i}`,
+          topicTitle: `New ${i}`,
+          nextReviewAt: created,
+          lastReviewedAt: null,
+          createdAt: created,
+        });
+      }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map()),
+    });
+
+    const result = await generateRecommendations(
+      { recommendationType: 'new_material', limit: 2 },
+      deps,
+      NOW
+    );
+
+    expect(result.recommendations).toHaveLength(2);
+    expect(result.recommendations.every(r => r.recommendationType === 'new_material')).toBe(true);
   });
 });

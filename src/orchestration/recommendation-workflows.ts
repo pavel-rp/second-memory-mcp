@@ -1,3 +1,4 @@
+import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type {
   RecommendationInput,
@@ -10,6 +11,7 @@ import {
 
 export type RecommendationDeps = {
   chunks: ChunkRepository;
+  algorithmConfig: AlgorithmConfig;
 };
 
 const DEFAULT_TOPIC_LIMIT = 10;
@@ -44,6 +46,7 @@ export async function generateRecommendations(
     easeFactor: r.easeFactor,
     estimatedDuration: r.estimatedDuration,
     createdAt: r.createdAt,
+    lastReviewedAt: r.lastReviewedAt,
   }));
 
   // 3. Fetch total chunk counts per topic (all non-draft chunks)
@@ -56,13 +59,23 @@ export async function generateRecommendations(
   const totalDueChunks = dueChunks.length;
 
   // 5. Aggregate into topic-level recommendations
-  const limit = input.limit ?? DEFAULT_TOPIC_LIMIT;
-  const recommendations = aggregateTopicRecommendations({
+  const requestedLimit = input.limit ?? DEFAULT_TOPIC_LIMIT;
+  const { recencyWindowMs } = deps.algorithmConfig.recommendationConfig;
+  // When filtering by type, aggregate all topics so the filter can pick from the full ranked list
+  const aggregationLimit = input.recommendationType ? topicIdSet.size : requestedLimit;
+  const allRecommendations = aggregateTopicRecommendations({
     dueChunks,
     topicChunkCounts,
-    limit,
+    limit: aggregationLimit,
     now,
+    recencyWindowMs,
   });
+
+  // 6. Apply recommendation_type filter (post-scoring), then limit
+  const filtered = input.recommendationType
+    ? allRecommendations.filter(r => r.recommendationType === input.recommendationType)
+    : allRecommendations;
+  const recommendations = filtered.slice(0, requestedLimit);
 
   return {
     recommendations,

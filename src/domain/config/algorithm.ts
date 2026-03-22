@@ -54,6 +54,7 @@ export type AlgorithmConfig = {
       enableProgressUpdates: boolean; // toggle progress updates
       verbosity: 'low' | 'medium' | 'high'; // guidance verbosity level
     };
+    recencyWindowMs: number; // ms window for "recent" session activity boost (default 48h)
   };
   maxDependencyDepth: number; // max depth for dependency graph traversal
 };
