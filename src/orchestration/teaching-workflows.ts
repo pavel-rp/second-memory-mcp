@@ -322,6 +322,10 @@ async function getNextAssessmentStep(
   const firstChunk = sessionChunks[0] as SessionChunk;
   const primaryChunkId = questionChunkIds[0] ?? firstChunk.chunkId;
   const matchedSessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
+
+  // Fetch actual content_status for the primary chunk
+  const chunkMeta = await deps.chunks.getById(primaryChunkId);
+
   return {
     status: 'teach',
     session_id: session.id,
@@ -329,10 +333,10 @@ async function getNextAssessmentStep(
     session_chunk_id: matchedSessionChunk?.id ?? firstChunk.id,
     chunk_index: nextQuestion.questionIndex,
     total_chunks: allQuestions.length,
-    mode: 'retrieval',
+    mode: 'assessment',
     instruction: nextQuestion.promptText,
     drill_format: 'open_ended',
-    content_status: 'final',
+    content_status: chunkMeta?.contentStatus ?? 'final',
   };
 }
 
@@ -480,14 +484,15 @@ export async function submitAnswer(
   // At least one question exists (we just created/answered one), so IDs are always non-empty.
   const updatedSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
   const updatedQIds = updatedSessionQuestions.map(q => q.id);
-  const updatedChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds);
+  const [updatedChunkMapping, allChunkAttempts] = await Promise.all([
+    deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
+  ]);
 
   const allChunkQuestions = updatedSessionQuestions.filter(q => {
     const mapped = mapGetList(updatedChunkMapping, q.id);
     return mapped.includes(inProgressChunk.chunkId);
   });
-
-  const allChunkAttempts = await deps.sessionQuestions.getAllAttemptsForSession(session.id);
   const chunkQuestionIds = new Set(allChunkQuestions.map(q => q.id));
   const chunkAttempts = allChunkAttempts.filter(a => chunkQuestionIds.has(a.sessionQuestionId));
 
@@ -825,7 +830,10 @@ async function submitAnswerForQuestion(
 
   // 8. Check if all questions for this chunk are answered
   //    Get all session questions, find those mapping to primaryChunkId
-  const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
+  const [allSessionQuestions, allSessionAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(session.id),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
+  ]);
   const allQIds = allSessionQuestions.map(q => q.id);
   const allChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(allQIds);
 
@@ -853,7 +861,6 @@ async function submitAnswerForQuestion(
   }
 
   // 9. All questions answered — aggregate quality
-  const allSessionAttempts = await deps.sessionQuestions.getAllAttemptsForSession(session.id);
   const chunkQuestionIds = new Set(questionsForChunk.map(q => q.id));
   const chunkAttempts = allSessionAttempts.filter(a => chunkQuestionIds.has(a.sessionQuestionId));
 
@@ -995,11 +1002,29 @@ async function submitAnswerForAssessmentQuestion(
       )
     )
   );
-  reviewResults.forEach((result, i) => {
-    if (!result.success) {
-      logger.error(`Failed to persist SR update for chunk ${questionChunkIds[i]}`);
-    }
-  });
+
+  // Align with teaching mode: surface SR persistence failures
+  const srFailures = reviewResults.filter(r => !r.success);
+  if (srFailures.length > 0) {
+    return {
+      status: 'error',
+      message: `Failed to persist SR update for ${srFailures.length} of ${questionChunkIds.length} chunk(s).`,
+    };
+  }
+
+  // Build review_update from the primary chunk's SR result
+  const primaryReview = reviewResults[0];
+  const reviewUpdate =
+    primaryReview && primaryReview.success
+      ? {
+          next_review_date: new Date(primaryReview.data.updated.nextReviewAt)
+            .toISOString()
+            .split('T')[0],
+          interval_days: primaryReview.data.updated.intervalDays,
+          ease_factor: primaryReview.data.updated.easeFactor,
+          is_leech: primaryReview.data.isLeech,
+        }
+      : undefined;
 
   // Mark session_chunks as completed when all their mapped questions are answered
   const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
@@ -1032,6 +1057,7 @@ async function submitAnswerForAssessmentQuestion(
     passed: input.passed,
     quality,
     chunk_id: questionChunkIds[0] as string,
+    review_update: reviewUpdate,
     next: nextTeachStep,
   };
 }

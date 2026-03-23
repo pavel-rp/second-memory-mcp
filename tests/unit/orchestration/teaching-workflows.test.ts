@@ -1329,9 +1329,46 @@ describe('getNextTeachingStep', () => {
     expect(result.chunk_id).toBe('c1');
     expect(result.chunk_index).toBe(2);
     expect(result.total_chunks).toBe(2);
-    expect(result.mode).toBe('retrieval');
+    expect(result.mode).toBe('assessment');
     expect(result.instruction).toBe('How does C relate to A?');
     expect(result.drill_format).toBe('open_ended');
+    // Defaults to 'final' when chunk not found (getById returns undefined)
+    expect(result.content_status).toBe('final');
+  });
+
+  it('assessment mode uses actual chunk content_status when available', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      chunks: {
+        getById: vi.fn().mockResolvedValue({ contentStatus: 'draft' }),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.content_status).toBe('draft');
   });
 
   it('assessment mode returns complete when all questions answered', async () => {

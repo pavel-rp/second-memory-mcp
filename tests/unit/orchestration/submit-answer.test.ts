@@ -1999,7 +1999,7 @@ describe('submitAnswer with session_question_id', () => {
       expect(result.message).toContain('Attempt already recorded');
     });
 
-    it('assessment logs warning when SR persistence fails for a chunk', async () => {
+    it('assessment returns error when SR persistence fails for a chunk', async () => {
       const deps = makeAssessmentDeps({
         reviewPersistence: {
           getChunk: vi.fn().mockResolvedValue(undefined),
@@ -2012,8 +2012,10 @@ describe('submitAnswer with session_question_id', () => {
         deps
       );
 
-      // Should still succeed — SR failures are logged, not fatal
-      expect(result.status).toBe('recorded');
+      // Aligned with teaching mode: SR failures are now fatal
+      expect(result.status).toBe('error');
+      if (result.status !== 'error') throw new Error('Expected error');
+      expect(result.message).toContain('Failed to persist SR update');
     });
 
     it('assessment skips chunk completion when chunk is already completed', async () => {

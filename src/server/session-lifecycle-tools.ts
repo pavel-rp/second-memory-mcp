@@ -41,7 +41,12 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         let finalChunkIds = validatedInput.chunkIds;
         let dependencyMessage = '';
 
-        if (validatedInput.chunkIds && validatedInput.chunkIds.length > 0) {
+        // Assessment evaluates exactly the provided chunks — skip dependency resolution
+        if (
+          validatedInput.chunkIds &&
+          validatedInput.chunkIds.length > 0 &&
+          validatedInput.mode !== 'assessment'
+        ) {
           const resolution = await ctx.resolveSessionChunkDependencies(validatedInput.chunkIds);
           finalChunkIds = resolution.resolvedChunkIds;
           dependencyMessage = resolution.message;

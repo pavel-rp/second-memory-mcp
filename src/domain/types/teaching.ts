@@ -23,10 +23,10 @@ export type TeachNextTeach = {
   session_id: string;
   chunk_id: string;
   session_chunk_id: string;
-  chunk_index: number; // 1-based position in session
-  total_chunks: number;
-  mode: 'learning' | 'retrieval';
-  instruction: string; // hydrated prompt from PromptPack
+  chunk_index: number; // 1-based: chunk position (teaching) or question index (assessment)
+  total_chunks: number; // chunk count (teaching) or question count (assessment)
+  mode: 'learning' | 'retrieval' | 'assessment';
+  instruction: string; // hydrated PromptPack prompt (teaching) or raw question text (assessment)
   drill_format: DrillFormat;
   content_status: ContentStatus;
   prerequisite_context?: PrerequisiteContextItem[];
