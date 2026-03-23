@@ -1380,6 +1380,87 @@ describe('getNextTeachingStep', () => {
     expect(result.summary.total).toBe(1);
     expect(result.summary.passed_first_try).toBe(1);
   });
+
+  it('assessment mode falls back gracefully when question has no chunk mapping', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Orphaned question',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    // Empty chunk mapping — question exists but has no junction rows
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    // Falls back to sessionChunks[0].chunkId
+    expect(result.chunk_id).toBe('c1');
+    expect(result.session_chunk_id).toBe('sc-1');
+  });
+
+  it('assessment complete path handles questions with missing chunk mappings', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const attempt: SessionQuestionAttempt = {
+      id: 'sqa-1',
+      sessionQuestionId: 'sq-1',
+      attemptNumber: 1,
+      response: 'answer',
+      passed: false,
+      feedback: 'wrong',
+      quality: 1,
+      timeSpentMs: 3000,
+      createdAt: NOW,
+    };
+    // Question has no chunk mapping — exercises the ?? [] fallback in complete path
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([attempt]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.exhausted_retries).toBe(0);
+  });
 });
 
 // ── startLearning ─────────────────────────────────────────────────

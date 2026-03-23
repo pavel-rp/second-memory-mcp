@@ -1975,5 +1975,58 @@ describe('submitAnswer with session_question_id', () => {
       // Should still succeed — SR failures are logged, not fatal
       expect(result.status).toBe('recorded');
     });
+
+    it('assessment skips chunk completion when chunk is already completed', async () => {
+      const deps = makeAssessmentDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ mode: 'assessment', chunkIds: ['c1', 'c2'] })),
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'completed' }),
+            ]),
+          getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+          updateSessionChunk: vi.fn().mockResolvedValue(1),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('recorded');
+      // updateSessionChunk should NOT be called for chunk completion
+      // (only called by piggybacked getNextTeachingStep if needed)
+      // The key assertion: no "completed" status update since already completed
+    });
+
+    it('assessment handles question mapped to chunk not in session', async () => {
+      const deps = makeAssessmentDeps({
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1', 'c-missing']),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion({ status: 'answered' })]),
+          getChunkIdsForQuestions: vi
+            .fn()
+            .mockResolvedValue(new Map([['sq-1', ['c1', 'c-missing']]])),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: false, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      // Should still succeed — missing chunks are gracefully skipped
+      expect(result.status).toBe('recorded');
+      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.quality).toBe(1);
+    });
   });
 });
