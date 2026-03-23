@@ -234,4 +234,92 @@ describe('session question workflows', () => {
     const attempts = await questionRepo.getAllAttemptsForSession(sessionId);
     expect(attempts).toEqual([]);
   });
+
+  // ── Assessment mode integration ──────────────────────────────
+
+  it('full assessment flow: create session, add cross-chunk questions, submit answers, verify completion', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2', 'c3'], now);
+
+    // 1. Create assessment session
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2', 'c3'],
+      mode: 'assessment',
+    });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    // 2. teach_next should block — no questions yet
+    const blockedStep = await ctx.getNextTeachingStep();
+    expect(blockedStep.status).toBe('blocked');
+
+    // 3. Create cross-chunk questions (each maps to 2 chunks)
+    const createResult = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [
+        { promptText: 'How do A and B relate?', chunkIds: ['c1', 'c2'] },
+        { promptText: 'Compare B and C', chunkIds: ['c2', 'c3'] },
+      ],
+    });
+    expect(createResult.status).toBe('created');
+    if (createResult.status !== 'created') throw new Error('Expected created');
+    const [q1Id, q2Id] = createResult.questionIds;
+
+    // 4. teach_next should return first question
+    const firstStep = await ctx.getNextTeachingStep();
+    expect(firstStep.status).toBe('teach');
+    if (firstStep.status !== 'teach') throw new Error('Expected teach');
+    expect(firstStep.session_id).toBe(sessionId);
+    expect(firstStep.instruction).toBe('How do A and B relate?');
+    expect(firstStep.mode).toBe('retrieval');
+    expect(firstStep.drill_format).toBe('open_ended');
+
+    // 5. Submit answer for first question (pass)
+    const answer1 = await ctx.submitAnswer({
+      question: 'How do A and B relate?',
+      response: 'They are related through X',
+      passed: true,
+      feedback: 'Good',
+      timeSpentMs: 8000,
+      sessionQuestionId: q1Id,
+    });
+    expect(answer1.status).toBe('recorded');
+    if (answer1.status !== 'recorded') throw new Error('Expected recorded');
+    expect(answer1.quality).toBe(5);
+    expect(answer1.attempt).toBe(1);
+
+    // 6. Submit answer for second question (fail)
+    const answer2 = await ctx.submitAnswer({
+      question: 'Compare B and C',
+      response: 'I do not know',
+      passed: false,
+      feedback: 'Incorrect',
+      timeSpentMs: 5000,
+      sessionQuestionId: q2Id,
+    });
+    expect(answer2.status).toBe('recorded');
+    if (answer2.status !== 'recorded') throw new Error('Expected recorded');
+    expect(answer2.quality).toBe(1);
+    // Next step should be complete — all questions answered
+    expect(answer2.next.status).toBe('complete');
+
+    // 7. Verify session chunks are marked completed
+    const chunks = await ctx.getSessionChunks(sessionId);
+    for (const sc of chunks) {
+      expect(sc.status).toBe('completed');
+    }
+
+    // 8. Verify junction table: each question maps to 2 chunks
+    const q1Chunks = await questionRepo.getChunkIdsForQuestion(q1Id!);
+    expect(q1Chunks.sort()).toEqual(['c1', 'c2']);
+    const q2Chunks = await questionRepo.getChunkIdsForQuestion(q2Id!);
+    expect(q2Chunks.sort()).toEqual(['c2', 'c3']);
+
+    // 9. Verify attempts persisted (1 each, no retry in assessment)
+    const allAttempts = await questionRepo.getAllAttemptsForSession(sessionId);
+    expect(allAttempts).toHaveLength(2);
+    expect(allAttempts[0]!.attemptNumber).toBe(1);
+    expect(allAttempts[1]!.attemptNumber).toBe(1);
+  });
 });
