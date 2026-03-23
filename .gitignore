@@ -68,3 +68,4 @@ AUDIT.md
 /docs/pg-migration/
 docs/wf-plans/
 wf-audit.md
+.claude/settings.json

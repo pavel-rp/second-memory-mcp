@@ -5,12 +5,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import { logger } from '../shared/logger.js';
+import { logger, createAuditPinoLogger } from '../shared/logger.js';
 import { getServerInfo } from '../shared/version.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
 import { createJwtMiddleware } from './jwt-middleware.js';
 import { createPrmHandler } from './prm-handler.js';
+import { createAuditMiddleware } from './audit-middleware.js';
 
 /** Standard JSON-RPC 2.0 error codes. */
 const JSON_RPC_INVALID_REQUEST = -32600;
@@ -105,6 +106,14 @@ export async function startHttpTransport(
   // JWT middleware (after CORS, before route handlers — only when auth is enabled)
   if (authConfig) {
     app.use('/mcp', await createJwtMiddleware(authConfig));
+  }
+
+  // Audit middleware (after CORS and JWT, before route handlers)
+  const auditDbUrl = process.env.AUDIT_DATABASE_URL ?? process.env.DATABASE_URL;
+  if (auditDbUrl) {
+    const auditPino = createAuditPinoLogger(auditDbUrl);
+    const auditChild = auditPino.child({ module: 'mcp-audit' });
+    app.use('/mcp', createAuditMiddleware(auditChild));
   }
 
   // POST /mcp

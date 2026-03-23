@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import pino from 'pino';
 import { getVersion } from './version.js';
 
@@ -64,3 +65,25 @@ export const logger = {
   debug: adapt(pinoLogger.debug.bind(pinoLogger)),
   child: pinoLogger.child.bind(pinoLogger),
 };
+
+/**
+ * Create a pino logger instance wired to the pg-audit-transport.
+ * Used by the HTTP transport to pipe audit middleware entries to Postgres.
+ */
+export function createAuditPinoLogger(connectionString: string): pino.Logger {
+  const transportPath = fileURLToPath(
+    new URL('../transport/pg-audit-transport.js', import.meta.url)
+  );
+  const transport = pino.transport({
+    target: transportPath,
+    options: { connectionString },
+  });
+  return pino(
+    {
+      level: 'info',
+      base: { service: 'second-memory-mcp', version: getVersion() },
+      timestamp: pino.stdTimeFunctions.isoTime,
+    },
+    transport
+  );
+}

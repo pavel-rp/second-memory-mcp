@@ -71,6 +71,13 @@
       "when": 1774000000000,
       "tag": "0009_restructure_session_questions",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1774070000000,
+      "tag": "0010_create_infrastructure_mcp_request_log",
+      "breakpoints": true
     }
   ]
 }
