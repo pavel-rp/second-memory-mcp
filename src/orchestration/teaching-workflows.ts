@@ -231,6 +231,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
   return {
     status: 'teach',
+    session_id: session.id,
     chunk_id: selected.chunkId,
     session_chunk_id: selected.id,
     chunk_index: chunkIndex,
@@ -256,7 +257,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 // ── Assessment mode ─────────────────────────────────────────────
 
 /**
- * Assessment mode: return the next unanswered question in insertion order.
+ * Assessment mode: return the next unanswered question in questionIndex order.
  * No teaching instruction — just the question and its mapped chunk IDs.
  */
 async function getNextAssessmentStep(
@@ -278,15 +279,19 @@ async function getNextAssessmentStep(
     };
   }
 
+  // Batch-fetch chunk mappings for all questions (used by both branches)
+  const questionIds = allQuestions.map(q => q.id);
+  const chunkMapping =
+    questionIds.length > 0
+      ? await deps.sessionQuestions.getChunkIdsForQuestions(questionIds)
+      : new Map<string, string[]>();
+
   // Find next unanswered question (ordered by questionIndex)
   const sorted = [...allQuestions].sort((a, b) => a.questionIndex - b.questionIndex);
   const nextQuestion = sorted.find(q => q.status === 'pending');
 
   if (!nextQuestion) {
     // All questions answered — build complete response
-    const questionIds = allQuestions.map(q => q.id);
-    const chunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(questionIds);
-
     const questionsByChunkId = new Map<string, SessionQuestion[]>();
     for (const q of allQuestions) {
       for (const cid of chunkMapping.get(q.id) ?? []) {
@@ -306,14 +311,15 @@ async function getNextAssessmentStep(
     return buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
   }
 
-  // Get chunk IDs for this question
-  const questionChunkIds = await deps.sessionQuestions.getChunkIdsForQuestion(nextQuestion.id);
+  // Use pre-fetched chunk mapping for this question
+  const questionChunkIds = chunkMapping.get(nextQuestion.id) ?? [];
 
   // Return the question without teaching instruction
   const primaryChunkId = questionChunkIds[0] ?? sessionChunks[0]?.chunkId ?? '';
   const matchedSessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
   return {
     status: 'teach',
+    session_id: session.id,
     chunk_id: primaryChunkId,
     session_chunk_id: matchedSessionChunk?.id ?? sessionChunks[0]?.id ?? '',
     chunk_index: nextQuestion.questionIndex,
@@ -622,7 +628,8 @@ export async function createSessionQuestions(
           message: `Teaching mode requires exactly 1 chunk_id per question, got ${q.chunkIds.length}.`,
         };
       }
-      const sc = sessionChunkMap.get(q.chunkIds[0]!);
+      const chunkId = q.chunkIds[0] as string; // length === 1 guaranteed by check above
+      const sc = sessionChunkMap.get(chunkId);
       if (sc && sc.status !== 'in_progress') {
         return {
           status: 'error',
@@ -985,11 +992,11 @@ async function submitAnswerForAssessmentQuestion(
       )
     )
   );
-  for (let i = 0; i < reviewResults.length; i++) {
-    if (!reviewResults[i]!.success) {
+  reviewResults.forEach((result, i) => {
+    if (!result.success) {
       logger.error(`Failed to persist SR update for chunk ${questionChunkIds[i]}`);
     }
-  }
+  });
 
   // Mark session_chunks as completed when all their mapped questions are answered
   const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);

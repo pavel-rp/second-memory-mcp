@@ -21,6 +21,7 @@ describe('teaching-tools', () => {
   it('returns orchestration result as JSON on success', async () => {
     const teachResult = {
       status: 'teach',
+      session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
       chunk_index: 1,
@@ -44,6 +45,7 @@ describe('teaching-tools', () => {
   it('includes content_status in teach_next response', async () => {
     const teachResult = {
       status: 'teach',
+      session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
       chunk_index: 1,
@@ -67,6 +69,7 @@ describe('teaching-tools', () => {
   it('teach_next includes workflow_hint on teach status', async () => {
     const teachResult = {
       status: 'teach',
+      session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
       chunk_index: 1,
@@ -85,7 +88,7 @@ describe('teaching-tools', () => {
 
     expect(parsed.workflow_hint).toBeDefined();
     expect(parsed.workflow_hint.action).toBe('USE_STRUCTURED_QUESTIONS');
-    expect(parsed.workflow_hint.session_id).toBe('sc-1');
+    expect(parsed.workflow_hint.session_id).toBe('sess-1');
     expect(parsed.workflow_hint.chunk_id).toBe('c1');
     expect(parsed.workflow_hint.mode).toBe('learning');
     expect(parsed.workflow_hint.instruction).toContain('create_session_questions');
@@ -97,6 +100,7 @@ describe('teaching-tools', () => {
   it('teach_next workflow_hint uses retrieval instruction for retrieval mode', async () => {
     const teachResult = {
       status: 'teach',
+      session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-2',
       chunk_index: 1,

@@ -38,23 +38,27 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       createdAt: now,
       updatedAt: now,
     }));
-    await this.db.insert(sessionQuestions).values(questionRows);
-
     // Insert junction rows for each question → chunk mapping
     const junctionRows: NewSessionQuestionChunkRow[] = [];
-    for (let i = 0; i < questions.length; i++) {
-      const questionId = questionRows[i]!.id;
-      for (const chunkId of questions[i]!.chunkIds) {
+    questions.forEach((q, i) => {
+      const questionId = questionRows[i]?.id;
+      if (!questionId) return;
+      for (const chunkId of q.chunkIds) {
         junctionRows.push({
           id: crypto.randomUUID(),
           sessionQuestionId: questionId,
           chunkId,
         });
       }
-    }
-    if (junctionRows.length > 0) {
-      await this.db.insert(sessionQuestionChunks).values(junctionRows);
-    }
+    });
+
+    // Atomic: question rows + junction rows in a single transaction
+    await this.db.transaction(async tx => {
+      await tx.insert(sessionQuestions).values(questionRows);
+      if (junctionRows.length > 0) {
+        await tx.insert(sessionQuestionChunks).values(junctionRows);
+      }
+    });
 
     return questionRows as SessionQuestion[];
   }

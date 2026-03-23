@@ -20,6 +20,7 @@ export type PrerequisiteContextItem = {
 
 export type TeachNextTeach = {
   status: 'teach';
+  session_id: string;
   chunk_id: string;
   session_chunk_id: string;
   chunk_index: number; // 1-based position in session

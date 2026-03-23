@@ -36,7 +36,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
               ...result,
               workflowHint: {
                 action: 'USE_STRUCTURED_QUESTIONS',
-                sessionId: result.session_chunk_id, // session_chunk_id used to derive session context
+                sessionId: result.session_id,
                 chunkId: result.chunk_id,
                 mode: result.mode,
                 instruction:
