@@ -13,6 +13,14 @@ vi.mock('../../../src/shared/logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   },
+  createAuditPinoLogger: vi.fn(() => ({
+    child: vi.fn(() => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    })),
+  })),
 }));
 
 const MCP_ACCEPT = 'application/json, text/event-stream';
