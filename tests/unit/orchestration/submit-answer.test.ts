@@ -1785,6 +1785,46 @@ describe('submitAnswer with session_question_id', () => {
     ).rejects.toThrow('connection lost');
   });
 
+  it('returns error when question has no chunk mapping', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getChunkIdsForQuestion: vi.fn().mockResolvedValue([]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('error');
+    if (result.status !== 'error') throw new Error('Expected error');
+    expect(result.message).toContain('no chunk mapping');
+  });
+
+  it('handles question where scored attempt has null quality', async () => {
+    // All questions answered, but the scored attempt has null quality (first-fail only)
+    const allQuestions = [makeQuestion({ id: 'sq-1', status: 'answered' })];
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+        getQuestionsForSession: vi
+          .fn()
+          .mockResolvedValue(allQuestions.map(q => ({ ...q, status: 'answered' }))),
+        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+        getAllAttemptsForSession: vi
+          .fn()
+          .mockResolvedValue([makeQuestionAttempt({ quality: null, passed: false })]),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    // Quality aggregated from zero scored attempts → 0
+    expect(result.quality).toBe(0);
+  });
+
   // ── Assessment mode submit_answer ──────────────────────────────
 
   describe('assessment mode', () => {

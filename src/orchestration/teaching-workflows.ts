@@ -271,20 +271,18 @@ async function getNextAssessmentStep(
   ]);
 
   if (allQuestions.length === 0) {
+    // sessionChunks guaranteed non-empty by caller's length check
     return {
       status: 'blocked',
       message:
         'Assessment session has no questions. Call create_session_questions to add questions.',
-      current_chunk_id: sessionChunks[0]?.chunkId ?? '',
+      current_chunk_id: (sessionChunks[0] as SessionChunk).chunkId,
     };
   }
 
-  // Batch-fetch chunk mappings for all questions (used by both branches)
+  // Batch-fetch chunk mappings — allQuestions.length > 0 guarantees non-empty IDs
   const questionIds = allQuestions.map(q => q.id);
-  const chunkMapping =
-    questionIds.length > 0
-      ? await deps.sessionQuestions.getChunkIdsForQuestions(questionIds)
-      : new Map<string, string[]>();
+  const chunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(questionIds);
 
   // Find next unanswered question (ordered by questionIndex)
   const sorted = [...allQuestions].sort((a, b) => a.questionIndex - b.questionIndex);
@@ -315,13 +313,15 @@ async function getNextAssessmentStep(
   const questionChunkIds = chunkMapping.get(nextQuestion.id) ?? [];
 
   // Return the question without teaching instruction
-  const primaryChunkId = questionChunkIds[0] ?? sessionChunks[0]?.chunkId ?? '';
+  // sessionChunks guaranteed non-empty by caller's length check
+  const firstChunk = sessionChunks[0] as SessionChunk;
+  const primaryChunkId = questionChunkIds[0] ?? firstChunk.chunkId;
   const matchedSessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
   return {
     status: 'teach',
     session_id: session.id,
     chunk_id: primaryChunkId,
-    session_chunk_id: matchedSessionChunk?.id ?? sessionChunks[0]?.id ?? '',
+    session_chunk_id: matchedSessionChunk?.id ?? firstChunk.id,
     chunk_index: nextQuestion.questionIndex,
     total_chunks: allQuestions.length,
     mode: 'retrieval',
@@ -471,13 +471,11 @@ export async function submitAnswer(
     throw err;
   }
 
-  // Re-fetch chunk questions + attempts after the new attempt (for time and re-queue logic)
+  // Re-fetch chunk questions + attempts after the new attempt (for time and re-queue logic).
+  // At least one question exists (we just created/answered one), so IDs are always non-empty.
   const updatedSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
   const updatedQIds = updatedSessionQuestions.map(q => q.id);
-  const updatedChunkMapping =
-    updatedQIds.length > 0
-      ? await deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds)
-      : new Map<string, string[]>();
+  const updatedChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds);
 
   const allChunkQuestions = updatedSessionQuestions.filter(q => {
     const mapped = updatedChunkMapping.get(q.id) ?? [];
