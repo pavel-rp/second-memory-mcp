@@ -272,7 +272,7 @@ describe('session question workflows', () => {
     if (firstStep.status !== 'teach') throw new Error('Expected teach');
     expect(firstStep.session_id).toBe(sessionId);
     expect(firstStep.instruction).toBe('How do A and B relate?');
-    expect(firstStep.mode).toBe('retrieval');
+    expect(firstStep.mode).toBe('assessment');
     expect(firstStep.drill_format).toBe('open_ended');
 
     // 5. Submit answer for first question (pass)
