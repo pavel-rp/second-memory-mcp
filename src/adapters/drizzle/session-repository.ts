@@ -6,6 +6,7 @@ import {
   sessionChunks,
   learningChunks,
   sessionQuestions,
+  sessionQuestionChunks,
   sessionQuestionAttempts,
   type NewLearningSessionRow,
   type NewSessionChunkRow,
@@ -198,16 +199,12 @@ export class DrizzleSessionRepository implements SessionRepository {
         : [];
     const chunkMap = new Map(chunkDetails.map(c => [c.id, c]));
 
-    // Fetch normalized questions + attempts for all session chunks
-    const scIds = sessionChunkRows.map(sc => sc.id);
-    const questionRows =
-      scIds.length > 0
-        ? await this.db
-            .select()
-            .from(sessionQuestions)
-            .where(inArray(sessionQuestions.sessionChunkId, scIds))
-            .orderBy(asc(sessionQuestions.sessionChunkId), asc(sessionQuestions.questionIndex))
-        : [];
+    // Fetch normalized questions + attempts for this session (session-scoped)
+    const questionRows = await this.db
+      .select()
+      .from(sessionQuestions)
+      .where(eq(sessionQuestions.sessionId, sessionId))
+      .orderBy(asc(sessionQuestions.questionIndex));
     const questionIds = questionRows.map(q => q.id);
     const attemptRows =
       questionIds.length > 0
@@ -221,13 +218,34 @@ export class DrizzleSessionRepository implements SessionRepository {
             )
         : [];
 
+    // Fetch junction rows to map questions → chunk IDs
+    const junctionRows =
+      questionIds.length > 0
+        ? await this.db
+            .select()
+            .from(sessionQuestionChunks)
+            .where(inArray(sessionQuestionChunks.sessionQuestionId, questionIds))
+        : [];
+
     // Build lookup maps
-    const questionsByChunk = new Map<string, typeof questionRows>();
-    for (const q of questionRows) {
-      const list = questionsByChunk.get(q.sessionChunkId) ?? [];
-      list.push(q);
-      questionsByChunk.set(q.sessionChunkId, list);
+    const chunkIdsByQuestion = new Map<string, string[]>();
+    for (const jr of junctionRows) {
+      const list = chunkIdsByQuestion.get(jr.sessionQuestionId) ?? [];
+      list.push(jr.chunkId);
+      chunkIdsByQuestion.set(jr.sessionQuestionId, list);
     }
+
+    // Group questions by chunk (via junction) — a question may map to multiple chunks
+    const questionsByChunkId = new Map<string, typeof questionRows>();
+    for (const q of questionRows) {
+      const mappedChunkIds = chunkIdsByQuestion.get(q.id) ?? [];
+      for (const cid of mappedChunkIds) {
+        const list = questionsByChunkId.get(cid) ?? [];
+        list.push(q);
+        questionsByChunkId.set(cid, list);
+      }
+    }
+
     const attemptsByQuestion = new Map<string, typeof attemptRows>();
     for (const a of attemptRows) {
       const list = attemptsByQuestion.get(a.sessionQuestionId) ?? [];
@@ -237,7 +255,7 @@ export class DrizzleSessionRepository implements SessionRepository {
 
     const chunks = sessionChunkRows.map(sc => {
       const detail = chunkMap.get(sc.chunkId);
-      const scQuestions = questionsByChunk.get(sc.id) ?? [];
+      const scQuestions = questionsByChunkId.get(sc.chunkId) ?? [];
       const attempts: ChunkAttempt[] = [];
       const qualityScores: number[] = [];
 

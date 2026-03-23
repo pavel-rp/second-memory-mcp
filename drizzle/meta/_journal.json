@@ -64,6 +64,13 @@
       "when": 1773969900000,
       "tag": "0008_add_chunk_condensed_summary",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1774000000000,
+      "tag": "0009_restructure_session_questions",
+      "breakpoints": true
     }
   ]
 }

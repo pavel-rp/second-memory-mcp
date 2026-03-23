@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { toCamelCaseKeys, toCamelCaseKeysExcept } from '../../shared/case-convert.js';
 
 // Session mode types
-export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review';
+export type SessionMode = 'scaffolding' | 'learning' | 'retrieval' | 'review' | 'assessment';
 
 // Chunk attempt record
 export type ChunkAttempt = {
@@ -82,7 +82,13 @@ export type SessionStatus = {
 
 // Zod schemas for runtime validation
 
-export const SessionModeSchema = z.enum(['scaffolding', 'learning', 'retrieval', 'review']);
+export const SessionModeSchema = z.enum([
+  'scaffolding',
+  'learning',
+  'retrieval',
+  'review',
+  'assessment',
+]);
 
 // Normalize legacy attempts: map `completed` → `passed`, default missing fields
 function normalizeLegacyAttempt(data: unknown): unknown {

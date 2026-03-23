@@ -3,8 +3,10 @@ import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   sessionQuestions,
+  sessionQuestionChunks,
   sessionQuestionAttempts,
   type NewSessionQuestionRow,
+  type NewSessionQuestionChunkRow,
   type NewSessionQuestionAttemptRow,
 } from '../../infrastructure/db/schema.js';
 import type {
@@ -21,31 +23,79 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
   constructor(private db: SqlDb = getSql()) {}
 
   async createQuestions(
-    sessionChunkId: string,
-    questions: { promptText: string }[],
+    sessionId: string,
+    questions: { promptText: string; chunkIds: string[] }[],
     startIndex?: number
   ): Promise<SessionQuestion[]> {
     const now = Date.now();
     const base = startIndex ?? 1;
-    const rows: NewSessionQuestionRow[] = questions.map((q, i) => ({
+    const questionRows: NewSessionQuestionRow[] = questions.map((q, i) => ({
       id: crypto.randomUUID(),
-      sessionChunkId,
+      sessionId,
       questionIndex: base + i,
       promptText: q.promptText,
       status: 'pending',
       createdAt: now,
       updatedAt: now,
     }));
-    await this.db.insert(sessionQuestions).values(rows);
-    return rows as SessionQuestion[];
+    // Insert junction rows for each question → chunk mapping
+    const junctionRows: NewSessionQuestionChunkRow[] = [];
+    questions.forEach((q, i) => {
+      const questionId = questionRows[i]?.id;
+      if (!questionId) return;
+      for (const chunkId of q.chunkIds) {
+        junctionRows.push({
+          id: crypto.randomUUID(),
+          sessionQuestionId: questionId,
+          chunkId,
+        });
+      }
+    });
+
+    // Atomic: question rows + junction rows in a single transaction
+    await this.db.transaction(async tx => {
+      await tx.insert(sessionQuestions).values(questionRows);
+      if (junctionRows.length > 0) {
+        await tx.insert(sessionQuestionChunks).values(junctionRows);
+      }
+    });
+
+    return questionRows as SessionQuestion[];
   }
 
-  async getQuestionsForChunk(sessionChunkId: string): Promise<SessionQuestion[]> {
+  async getQuestionsForSession(sessionId: string): Promise<SessionQuestion[]> {
     return (await this.db
       .select()
       .from(sessionQuestions)
-      .where(eq(sessionQuestions.sessionChunkId, sessionChunkId))
+      .where(eq(sessionQuestions.sessionId, sessionId))
       .orderBy(asc(sessionQuestions.questionIndex))) as SessionQuestion[];
+  }
+
+  async getChunkIdsForQuestion(questionId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ chunkId: sessionQuestionChunks.chunkId })
+      .from(sessionQuestionChunks)
+      .where(eq(sessionQuestionChunks.sessionQuestionId, questionId));
+    return rows.map(r => r.chunkId);
+  }
+
+  async getChunkIdsForQuestions(questionIds: string[]): Promise<Map<string, string[]>> {
+    if (questionIds.length === 0) return new Map();
+    const rows = await this.db
+      .select({
+        sessionQuestionId: sessionQuestionChunks.sessionQuestionId,
+        chunkId: sessionQuestionChunks.chunkId,
+      })
+      .from(sessionQuestionChunks)
+      .where(inArray(sessionQuestionChunks.sessionQuestionId, questionIds));
+
+    const map = new Map<string, string[]>();
+    for (const row of rows) {
+      const list = map.get(row.sessionQuestionId) ?? [];
+      list.push(row.chunkId);
+      map.set(row.sessionQuestionId, list);
+    }
+    return map;
   }
 
   async getQuestionById(id: string): Promise<SessionQuestion | null> {
@@ -85,7 +135,7 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       .orderBy(asc(sessionQuestionAttempts.attemptNumber))) as SessionQuestionAttempt[];
   }
 
-  async getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]> {
+  async getAllAttemptsForSession(sessionId: string): Promise<SessionQuestionAttempt[]> {
     return (await this.db
       .select({
         id: sessionQuestionAttempts.id,
@@ -103,45 +153,7 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
         sessionQuestions,
         eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
       )
-      .where(eq(sessionQuestions.sessionChunkId, sessionChunkId))
-      .orderBy(
-        asc(sessionQuestionAttempts.sessionQuestionId),
-        asc(sessionQuestionAttempts.attemptNumber)
-      )) as SessionQuestionAttempt[];
-  }
-
-  async getQuestionsForChunks(sessionChunkIds: string[]): Promise<SessionQuestion[]> {
-    if (sessionChunkIds.length === 0) return [];
-    return (await this.db
-      .select()
-      .from(sessionQuestions)
-      .where(inArray(sessionQuestions.sessionChunkId, sessionChunkIds))
-      .orderBy(
-        asc(sessionQuestions.sessionChunkId),
-        asc(sessionQuestions.questionIndex)
-      )) as SessionQuestion[];
-  }
-
-  async getAllAttemptsForChunks(sessionChunkIds: string[]): Promise<SessionQuestionAttempt[]> {
-    if (sessionChunkIds.length === 0) return [];
-    return (await this.db
-      .select({
-        id: sessionQuestionAttempts.id,
-        sessionQuestionId: sessionQuestionAttempts.sessionQuestionId,
-        attemptNumber: sessionQuestionAttempts.attemptNumber,
-        response: sessionQuestionAttempts.response,
-        passed: sessionQuestionAttempts.passed,
-        feedback: sessionQuestionAttempts.feedback,
-        quality: sessionQuestionAttempts.quality,
-        timeSpentMs: sessionQuestionAttempts.timeSpentMs,
-        createdAt: sessionQuestionAttempts.createdAt,
-      })
-      .from(sessionQuestionAttempts)
-      .innerJoin(
-        sessionQuestions,
-        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
-      )
-      .where(inArray(sessionQuestions.sessionChunkId, sessionChunkIds))
+      .where(eq(sessionQuestions.sessionId, sessionId))
       .orderBy(
         asc(sessionQuestionAttempts.sessionQuestionId),
         asc(sessionQuestionAttempts.attemptNumber)

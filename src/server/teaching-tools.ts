@@ -36,16 +36,17 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
               ...result,
               workflowHint: {
                 action: 'USE_STRUCTURED_QUESTIONS',
-                sessionChunkId: result.session_chunk_id,
+                sessionId: result.session_id,
+                chunkId: result.chunk_id,
                 mode: result.mode,
                 instruction:
-                  'Create drill questions using create_session_questions({ session_chunk_id, questions: [...] }), ' +
+                  'Create drill questions using create_session_questions({ session_id, questions: [{ prompt_text, chunk_ids }] }), ' +
                   'then call submit_answer({ session_question_id, ... }) for each question. ' +
                   (result.mode === 'learning'
                     ? 'For learning mode: create 2-3 comprehension questions.'
                     : 'For retrieval mode: create 1 targeted recall question.') +
                   ' Do NOT call create_session_questions more than once per chunk.',
-                nextStep: `create_session_questions({ session_chunk_id: "${result.session_chunk_id}", questions: [{ prompt_text: "..." }] })`,
+                nextStep: `create_session_questions({ session_id: "...", questions: [{ prompt_text: "...", chunk_ids: ["${result.chunk_id}"] }] })`,
               },
             })
           );
@@ -143,8 +144,11 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
     {
       title: 'Create Session Questions',
       description:
-        'Create explicit drill questions for a session chunk. ' +
-        'The chunk must be in_progress. Returns the created question IDs. ' +
+        'Create explicit drill questions for a session. ' +
+        'Each question maps to one or more chunk_ids via junction table. ' +
+        'Teaching mode: exactly 1 chunk_id per question (chunk must be in_progress). ' +
+        'Assessment mode: 1+ chunk_ids per question (cross-chunk evaluation). ' +
+        'Returns the created question IDs. ' +
         'Use submit_answer with session_question_id to answer each question.',
       inputSchema: CreateSessionQuestionsInputShape,
     },

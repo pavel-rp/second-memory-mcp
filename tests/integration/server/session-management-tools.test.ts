@@ -9,6 +9,7 @@ import {
   learningSessions,
   sessionChunks,
   sessionQuestions,
+  sessionQuestionChunks,
   sessionQuestionAttempts,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
@@ -376,12 +377,17 @@ describe('Integration: Session Management Tools', () => {
     const sqId = `sq-mgmt-${now}`;
     await db.insert(sessionQuestions).values({
       id: sqId,
-      sessionChunkId: scId,
+      sessionId: sessionId,
       questionIndex: 1,
       promptText: 'Test question',
       status: 'answered',
       createdAt: now,
       updatedAt: now,
+    });
+    await db.insert(sessionQuestionChunks).values({
+      id: `sqc-mgmt-${now}`,
+      sessionQuestionId: sqId,
+      chunkId: chunkId,
     });
     await db.insert(sessionQuestionAttempts).values({
       id: `sqa-mgmt-${now}`,

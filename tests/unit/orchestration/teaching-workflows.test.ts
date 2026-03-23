@@ -99,15 +99,16 @@ function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopic
  */
 function mockQuestionsAndAttempts(
   sqRepo: SessionQuestionRepository,
-  data: { scId: string; attempts: { passed: boolean; quality?: number | null }[] }[]
+  data: { chunkId: string; attempts: { passed: boolean; quality?: number | null }[] }[]
 ) {
   const allQuestions: SessionQuestion[] = [];
   const allAttempts: SessionQuestionAttempt[] = [];
+  const chunkMapping = new Map<string, string[]>();
   for (const chunk of data) {
     for (let i = 0; i < chunk.attempts.length; i += 2) {
       const q: SessionQuestion = {
-        id: `sq-${chunk.scId}-${Math.floor(i / 2)}`,
-        sessionChunkId: chunk.scId,
+        id: `sq-${chunk.chunkId}-${Math.floor(i / 2)}`,
+        sessionId: 'sess-1',
         questionIndex: Math.floor(i / 2) + 1,
         promptText: 'test question',
         status: 'answered',
@@ -115,10 +116,11 @@ function mockQuestionsAndAttempts(
         updatedAt: NOW,
       };
       allQuestions.push(q);
+      chunkMapping.set(q.id, [chunk.chunkId]);
 
       for (let j = i; j < Math.min(i + 2, chunk.attempts.length); j++) {
         const a: SessionQuestionAttempt = {
-          id: `sqa-${chunk.scId}-${j}`,
+          id: `sqa-${chunk.chunkId}-${j}`,
           sessionQuestionId: q.id,
           attemptNumber: (j - i + 1) as 1 | 2,
           response: 'test response',
@@ -132,8 +134,9 @@ function mockQuestionsAndAttempts(
       }
     }
   }
-  vi.mocked(sqRepo.getQuestionsForChunks).mockResolvedValue(allQuestions);
-  vi.mocked(sqRepo.getAllAttemptsForChunks).mockResolvedValue(allAttempts);
+  vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue(allQuestions);
+  vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(allAttempts);
+  vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(chunkMapping);
 }
 
 function makeDeps(overrides?: {
@@ -233,7 +236,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -277,7 +280,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -301,15 +304,16 @@ describe('getNextTeachingStep', () => {
     // Question exists but has no attempts → chunkHasAttempts=false, chunkIsRequeuedFailure=false
     const questionWithNoAttempts: SessionQuestion = {
       id: 'sq-orphan',
-      sessionChunkId: 'sc-1',
+      sessionId: 'sess-1',
       questionIndex: 1,
       promptText: 'test',
       status: 'pending',
       createdAt: NOW,
       updatedAt: NOW,
     };
-    vi.mocked(sqRepo.getQuestionsForChunks).mockResolvedValue([questionWithNoAttempts]);
-    vi.mocked(sqRepo.getAllAttemptsForChunks).mockResolvedValue([]);
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([questionWithNoAttempts]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([]);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(new Map([['sq-orphan', ['c1']]]));
 
     const result = await getNextTeachingStep(deps);
 
@@ -334,7 +338,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -402,8 +406,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: true }] },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: true }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -441,9 +445,9 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] }, // first try
-      { scId: 'sc-2', attempts: [{ passed: true }] }, // first try
-      { scId: 'sc-3', attempts: [{ passed: false }, { passed: false }, { passed: true }] }, // needed retry
+      { chunkId: 'c1', attempts: [{ passed: true }] }, // first try
+      { chunkId: 'c2', attempts: [{ passed: true }] }, // first try
+      { chunkId: 'c3', attempts: [{ passed: false }, { passed: false }, { passed: true }] }, // needed retry
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -470,8 +474,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: false }] }, // all failed
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: false }] }, // all failed
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -544,7 +548,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -575,8 +579,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: true }] },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: true }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -751,7 +755,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     // sc-1 has no attempts, sc-2 has a passed attempt
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-2', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c2', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -778,7 +782,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: false }, { passed: false }] },
+      { chunkId: 'c1', attempts: [{ passed: false }, { passed: false }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -806,7 +810,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     const exhaustedAttempts = Array.from({ length: 8 }, () => ({ passed: false }));
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: exhaustedAttempts }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: exhaustedAttempts }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -847,9 +851,9 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: false }, { passed: true }] },
-      { scId: 'sc-3', attempts: exhaustedAttempts },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: false }, { passed: true }] },
+      { chunkId: 'c3', attempts: exhaustedAttempts },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -904,7 +908,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -929,7 +933,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -959,8 +963,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: true }] },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: true }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -1062,7 +1066,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-3', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c3', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1098,7 +1102,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-3', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c3', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1145,7 +1149,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1184,7 +1188,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1252,6 +1256,247 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.prerequisite_context).toHaveLength(1);
     expect(result.prerequisite_context![0].condensed_summary).toBeNull();
+  });
+
+  // ── Assessment mode ─────────────────────────────────────────────
+
+  it('assessment mode returns blocked when session has no questions', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('blocked');
+    if (result.status !== 'blocked') throw new Error('Expected blocked');
+    expect(result.message).toContain('no questions');
+  });
+
+  it('assessment mode returns next pending question with chunk mapping', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Explain the relationship between A and B',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const q2: SessionQuestion = {
+      id: 'sq-2',
+      sessionId: 'sess-1',
+      questionIndex: 2,
+      promptText: 'How does C relate to A?',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const chunkMap = new Map([
+      ['sq-1', ['c1', 'c2']],
+      ['sq-2', ['c1', 'c3']],
+    ]);
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1, q2]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(chunkMap),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-3', chunkId: 'c3', status: 'pending' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.session_id).toBe('sess-1');
+    expect(result.chunk_id).toBe('c1');
+    expect(result.chunk_index).toBe(2);
+    expect(result.total_chunks).toBe(2);
+    expect(result.mode).toBe('assessment');
+    expect(result.instruction).toBe('How does C relate to A?');
+    expect(result.drill_format).toBe('open_ended');
+    // Defaults to 'final' when chunk not found (getById returns undefined)
+    expect(result.content_status).toBe('final');
+  });
+
+  it('assessment mode uses actual chunk content_status when available', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      chunks: {
+        getById: vi.fn().mockResolvedValue({ contentStatus: 'draft' }),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.content_status).toBe('draft');
+  });
+
+  it('assessment mode returns complete when all questions answered', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const attempt: SessionQuestionAttempt = {
+      id: 'sqa-1',
+      sessionQuestionId: 'sq-1',
+      attemptNumber: 1,
+      response: 'answer',
+      passed: true,
+      feedback: 'good',
+      quality: 5,
+      timeSpentMs: 3000,
+      createdAt: NOW,
+    };
+    const chunkMap = new Map([['sq-1', ['c1']]]);
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([attempt]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(chunkMap),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.total).toBe(1);
+    expect(result.summary.passed_first_try).toBe(1);
+  });
+
+  it('assessment mode falls back gracefully when question has no chunk mapping', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Orphaned question',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    // Empty chunk mapping — question exists but has no junction rows
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    // Falls back to sessionChunks[0].chunkId
+    expect(result.chunk_id).toBe('c1');
+    expect(result.session_chunk_id).toBe('sc-1');
+  });
+
+  it('assessment complete path handles questions with missing chunk mappings', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const attempt: SessionQuestionAttempt = {
+      id: 'sqa-1',
+      sessionQuestionId: 'sq-1',
+      attemptNumber: 1,
+      response: 'answer',
+      passed: false,
+      feedback: 'wrong',
+      quality: 1,
+      timeSpentMs: 3000,
+      createdAt: NOW,
+    };
+    // Question has no chunk mapping — exercises the ?? [] fallback in complete path
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([attempt]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.exhausted_retries).toBe(0);
   });
 });
 

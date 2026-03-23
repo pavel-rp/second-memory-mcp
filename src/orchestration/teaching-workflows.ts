@@ -28,6 +28,11 @@ import * as recommendationWorkflows from './recommendation-workflows.js';
 /** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
 const MAX_RETRIES = 3;
 
+/** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
+function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
+  return map.get(key) ?? [];
+}
+
 export type TeachingDeps = {
   sessions: SessionRepository;
   chunks: ChunkRepository;
@@ -70,46 +75,57 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   }
   const sessionChunks = orderBySessionChunkIds(rawChunks, session.chunkIds);
 
-  // 2b. Batch-prefetch questions + attempts for all chunks (one query each)
-  const chunkIds = sessionChunks.map(sc => sc.id);
+  // Assessment mode: return next unanswered question sequentially (no teaching instruction)
+  if (session.mode === 'assessment') {
+    return getNextAssessmentStep(session, sessionChunks, deps);
+  }
+
+  // 2b. Batch-prefetch questions + attempts for the session + junction mapping
   const [allQuestions, allAttempts] = await Promise.all([
-    deps.sessionQuestions.getQuestionsForChunks(chunkIds),
-    deps.sessionQuestions.getAllAttemptsForChunks(chunkIds),
+    deps.sessionQuestions.getQuestionsForSession(session.id),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
   ]);
 
-  // Build lookup maps: chunkId → questions, questionId → attempts
-  const questionsByChunk = new Map<string, SessionQuestion[]>();
+  // Fetch junction mapping: questionId → chunkId[]
+  const questionIds = allQuestions.map(q => q.id);
+  const chunkMapping =
+    questionIds.length > 0
+      ? await deps.sessionQuestions.getChunkIdsForQuestions(questionIds)
+      : new Map<string, string[]>();
+
+  // Build lookup maps: chunkId (learning chunk ID) → questions, questionId → attempts
+  const questionsByChunkId = new Map<string, SessionQuestion[]>();
   for (const q of allQuestions) {
-    const list = questionsByChunk.get(q.sessionChunkId) ?? [];
-    list.push(q);
-    questionsByChunk.set(q.sessionChunkId, list);
+    const mappedChunkIds = mapGetList(chunkMapping, q.id);
+    for (const cid of mappedChunkIds) {
+      const list = mapGetList(questionsByChunkId, cid);
+      list.push(q);
+      questionsByChunkId.set(cid, list);
+    }
   }
   const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
   for (const a of allAttempts) {
-    const list = attemptsByQuestion.get(a.sessionQuestionId) ?? [];
+    const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
     list.push(a);
     attemptsByQuestion.set(a.sessionQuestionId, list);
   }
 
-  /** Check if a chunk has any recorded attempts (via normalized tables). */
-  const chunkHasAttempts = (scId: string): boolean => {
-    const questions = questionsByChunk.get(scId) ?? [];
+  /** Check if a chunk has any recorded attempts (via junction-based resolution). */
+  const chunkHasAttempts = (sc: SessionChunk): boolean => {
+    const questions = mapGetList(questionsByChunkId, sc.chunkId);
     if (questions.length === 0) return false;
-    // Has attempts if any question has at least one attempt
-    return questions.some(q => (attemptsByQuestion.get(q.id) ?? []).length > 0);
+    return questions.some(q => mapGetList(attemptsByQuestion, q.id).length > 0);
   };
 
   /** Check if a chunk is a re-queued failure (last attempt was a failure). */
-  const chunkIsRequeuedFailure = (scId: string): boolean => {
-    const questions = questionsByChunk.get(scId) ?? [];
+  const chunkIsRequeuedFailure = (sc: SessionChunk): boolean => {
+    const questions = mapGetList(questionsByChunkId, sc.chunkId);
     if (questions.length === 0) return false;
-    // Explicitly find the question with the highest questionIndex (don't assume ordering)
     const lastQuestion = questions.reduce((max, q) =>
       q.questionIndex > max.questionIndex ? q : max
     );
-    const attempts = attemptsByQuestion.get(lastQuestion.id) ?? [];
+    const attempts = mapGetList(attemptsByQuestion, lastQuestion.id);
     if (attempts.length === 0) return false;
-    // Find the attempt with the highest attemptNumber
     const lastAttempt = attempts.reduce((max, a) =>
       a.attemptNumber > max.attemptNumber ? a : max
     );
@@ -118,7 +134,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
   // 3. Gating: refuse if any in_progress chunk has no recorded attempts
   const inProgressChunk = sessionChunks.find(
-    sc => sc.status === 'in_progress' && !chunkHasAttempts(sc.id)
+    sc => sc.status === 'in_progress' && !chunkHasAttempts(sc)
   );
   if (inProgressChunk) {
     return {
@@ -132,9 +148,9 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const pendingChunks = sessionChunks.filter(sc => sc.status === 'pending');
 
   // Re-queued failures: pending chunks that have previous failed attempts
-  const requeued = pendingChunks.filter(sc => chunkIsRequeuedFailure(sc.id));
+  const requeued = pendingChunks.filter(sc => chunkIsRequeuedFailure(sc));
   // Fresh pending: pending chunks with no prior attempts
-  const freshPending = pendingChunks.filter(sc => !chunkHasAttempts(sc.id));
+  const freshPending = pendingChunks.filter(sc => !chunkHasAttempts(sc));
 
   const selected = freshPending[0] ?? requeued[0];
 
@@ -142,7 +158,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     // No candidates — check if all completed
     const allCompleted = sessionChunks.every(sc => sc.status === 'completed');
     if (allCompleted) {
-      return buildCompleteResponse(sessionChunks, questionsByChunk, attemptsByQuestion);
+      return buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
     }
     // Some in_progress remain — blocked on that chunk
     const blockedChunk = sessionChunks.find(sc => sc.status === 'in_progress');
@@ -171,7 +187,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   }
 
   // 6. Determine mode
-  const isRequeued = chunkHasAttempts(selected.id);
+  const isRequeued = chunkHasAttempts(selected);
   const mode: 'learning' | 'retrieval' = isRequeued ? 'retrieval' : 'learning';
   const drillFormat: DrillFormat = mode === 'retrieval' ? 'open_ended' : 'explanation';
 
@@ -220,6 +236,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
   return {
     status: 'teach',
+    session_id: session.id,
     chunk_id: selected.chunkId,
     session_chunk_id: selected.id,
     chunk_index: chunkIndex,
@@ -239,6 +256,87 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         created_at: n.createdAt,
       })),
     }),
+  };
+}
+
+// ── Assessment mode ─────────────────────────────────────────────
+
+/**
+ * Assessment mode: return the next unanswered question in questionIndex order.
+ * No teaching instruction — just the question and its mapped chunk IDs.
+ */
+async function getNextAssessmentStep(
+  session: LearningSession,
+  sessionChunks: SessionChunk[],
+  deps: TeachingDeps
+): Promise<TeachNextResponse> {
+  const [allQuestions, allAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(session.id),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
+  ]);
+
+  if (allQuestions.length === 0) {
+    // sessionChunks guaranteed non-empty by caller's length check
+    return {
+      status: 'blocked',
+      message:
+        'Assessment session has no questions. Call create_session_questions to add questions.',
+      current_chunk_id: (sessionChunks[0] as SessionChunk).chunkId,
+    };
+  }
+
+  // Batch-fetch chunk mappings — allQuestions.length > 0 guarantees non-empty IDs
+  const questionIds = allQuestions.map(q => q.id);
+  const chunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(questionIds);
+
+  // Find next unanswered question (ordered by questionIndex)
+  const sorted = [...allQuestions].sort((a, b) => a.questionIndex - b.questionIndex);
+  const nextQuestion = sorted.find(q => q.status === 'pending');
+
+  if (!nextQuestion) {
+    // All questions answered — build complete response
+    const questionsByChunkId = new Map<string, SessionQuestion[]>();
+    for (const q of allQuestions) {
+      for (const cid of mapGetList(chunkMapping, q.id)) {
+        const list = mapGetList(questionsByChunkId, cid);
+        list.push(q);
+        questionsByChunkId.set(cid, list);
+      }
+    }
+
+    const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
+    for (const a of allAttempts) {
+      const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
+      list.push(a);
+      attemptsByQuestion.set(a.sessionQuestionId, list);
+    }
+
+    return buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+  }
+
+  // Use pre-fetched chunk mapping for this question
+  const questionChunkIds = mapGetList(chunkMapping, nextQuestion.id);
+
+  // Return the question without teaching instruction
+  // sessionChunks guaranteed non-empty by caller's length check
+  const firstChunk = sessionChunks[0] as SessionChunk;
+  const primaryChunkId = questionChunkIds[0] ?? firstChunk.chunkId;
+  const matchedSessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
+
+  // Fetch actual content_status for the primary chunk
+  const chunkMeta = await deps.chunks.getById(primaryChunkId);
+
+  return {
+    status: 'teach',
+    session_id: session.id,
+    chunk_id: primaryChunkId,
+    session_chunk_id: matchedSessionChunk?.id ?? firstChunk.id,
+    chunk_index: nextQuestion.questionIndex,
+    total_chunks: allQuestions.length,
+    mode: 'assessment',
+    instruction: nextQuestion.promptText,
+    drill_format: 'open_ended',
+    content_status: chunkMeta?.contentStatus ?? 'final',
   };
 }
 
@@ -312,17 +410,29 @@ export async function submitAnswer(
   }
 
   // 3. Find or create the current session_question for this presentation.
-  //    Each presentation gets one question. Look for a pending question first;
-  //    if none exists, create one.
-  const existingQuestions = await deps.sessionQuestions.getQuestionsForChunk(inProgressChunk.id);
-  let currentQuestion = existingQuestions.find(q => q.status === 'pending');
+  //    Questions are session-scoped — find those mapping to this chunk via junction.
+  const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
+  const allQuestionIds = allSessionQuestions.map(q => q.id);
+  const chunkMappingAll =
+    allQuestionIds.length > 0
+      ? await deps.sessionQuestions.getChunkIdsForQuestions(allQuestionIds)
+      : new Map<string, string[]>();
+
+  // Filter to questions that map to this chunk
+  const chunkQuestions = allSessionQuestions.filter(q => {
+    const mappedChunks = mapGetList(chunkMappingAll, q.id);
+    return mappedChunks.includes(inProgressChunk.chunkId);
+  });
+
+  let currentQuestion = chunkQuestions.find(q => q.status === 'pending');
 
   if (!currentQuestion) {
     // All existing questions are answered/skipped — this is a new presentation.
-    const newQuestionIndex = existingQuestions.length + 1;
+    // questionIndex is session-scoped, so use max across all session questions + 1
+    const newQuestionIndex = allSessionQuestions.length + 1;
     const created = await deps.sessionQuestions.createQuestions(
-      inProgressChunk.id,
-      [{ promptText: input.question }],
+      session.id,
+      [{ promptText: input.question, chunkIds: [inProgressChunk.chunkId] }],
       newQuestionIndex
     );
     if (!created[0]) {
@@ -370,14 +480,25 @@ export async function submitAnswer(
     throw err;
   }
 
-  // Count total attempts across all questions for this chunk (for re-queue logic)
-  const [allChunkQuestions, allChunkAttempts] = await Promise.all([
-    deps.sessionQuestions.getQuestionsForChunk(inProgressChunk.id),
-    deps.sessionQuestions.getAllAttemptsForChunk(inProgressChunk.id),
+  // Re-fetch chunk questions + attempts after the new attempt (for time and re-queue logic).
+  // At least one question exists (we just created/answered one), so IDs are always non-empty.
+  const updatedSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
+  const updatedQIds = updatedSessionQuestions.map(q => q.id);
+  const [updatedChunkMapping, allChunkAttempts] = await Promise.all([
+    deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
   ]);
+
+  const allChunkQuestions = updatedSessionQuestions.filter(q => {
+    const mapped = mapGetList(updatedChunkMapping, q.id);
+    return mapped.includes(inProgressChunk.chunkId);
+  });
+  const chunkQuestionIds = new Set(allChunkQuestions.map(q => q.id));
+  const chunkAttempts = allChunkAttempts.filter(a => chunkQuestionIds.has(a.sessionQuestionId));
+
   // Use only the sum of attempt times — do NOT add inProgressChunk.timeSpentMs,
   // which already includes prior attempt times from the retry-path update.
-  const accumulatedTimeMs = allChunkAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
+  const accumulatedTimeMs = chunkAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
 
   // 6. First attempt failed → retry (no SR update)
   if (quality === null) {
@@ -472,55 +593,92 @@ export async function submitAnswer(
 // ── create_session_questions ─────────────────────────────────────
 
 /**
- * Create explicit questions for a session chunk.
- * Validates the chunk exists and is in_progress.
+ * Create explicit questions for a session.
+ * Validates the session exists, is active, and chunk_ids are valid per mode.
  */
 export async function createSessionQuestions(
   input: CreateSessionQuestionsInput,
   deps: TeachingDeps
 ): Promise<CreateSessionQuestionsResult> {
-  // Validate active session exists and chunk belongs to it
+  // Validate active session exists
   const session = await deps.sessions.getActiveSession();
   if (!session) {
     return { status: 'error', message: 'No active session. Call create_session first.' };
   }
 
-  const sessionChunk = await deps.sessions.getSessionChunkById(input.sessionChunkId);
-  if (!sessionChunk) {
-    return { status: 'error', message: `Session chunk ${input.sessionChunkId} not found.` };
-  }
-
-  if (sessionChunk.sessionId !== session.id) {
+  if (session.id !== input.sessionId) {
     return {
       status: 'error',
-      message: `Session chunk ${input.sessionChunkId} does not belong to the active session.`,
+      message: `Session ${input.sessionId} is not the active session.`,
     };
   }
 
-  if (sessionChunk.status !== 'in_progress') {
-    return {
-      status: 'error',
-      message: `Session chunk ${input.sessionChunkId} is "${sessionChunk.status}", expected "in_progress".`,
-    };
+  // Fetch session chunks and existing questions for validation
+  const sessionChunks = await deps.sessions.getSessionChunks(session.id);
+  const sessionChunkMap = new Map(sessionChunks.map(sc => [sc.chunkId, sc]));
+  const existingQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
+
+  // Validate all chunk_ids across all questions exist in the session
+  const allChunkIds = new Set(input.questions.flatMap(q => q.chunkIds));
+  for (const chunkId of allChunkIds) {
+    if (!sessionChunkMap.has(chunkId)) {
+      return { status: 'error', message: `Chunk ${chunkId} not found in session.` };
+    }
   }
 
-  // Guard: reject if questions already exist for this chunk
-  const existing = await deps.sessionQuestions.getQuestionsForChunk(input.sessionChunkId);
-  if (existing.length > 0) {
-    return {
-      status: 'error',
-      message: `Session chunk ${input.sessionChunkId} already has ${existing.length} question(s). Cannot create duplicates.`,
-    };
+  const isTeachingMode = session.mode !== 'assessment';
+  if (isTeachingMode) {
+    // Teaching mode: each question must have exactly 1 chunk_id, chunk must be in_progress
+    for (const q of input.questions) {
+      if (q.chunkIds.length !== 1) {
+        return {
+          status: 'error',
+          message: `Teaching mode requires exactly 1 chunk_id per question, got ${q.chunkIds.length}.`,
+        };
+      }
+      const chunkId = q.chunkIds[0] as string; // length === 1 guaranteed by check above
+      const sc = sessionChunkMap.get(chunkId);
+      if (sc && sc.status !== 'in_progress') {
+        return {
+          status: 'error',
+          message: `Session chunk for ${q.chunkIds[0]} is "${sc.status}", expected "in_progress".`,
+        };
+      }
+    }
+
+    // Guard: reject if questions already exist for any targeted chunk
+    const existingQIds = existingQuestions.map(q => q.id);
+    const existingMapping =
+      existingQIds.length > 0
+        ? await deps.sessionQuestions.getChunkIdsForQuestions(existingQIds)
+        : new Map<string, string[]>();
+
+    for (const chunkId of allChunkIds) {
+      const existingForChunk = existingQuestions.filter(q => {
+        const mapped = mapGetList(existingMapping, q.id);
+        return mapped.includes(chunkId);
+      });
+      if (existingForChunk.length > 0) {
+        return {
+          status: 'error',
+          message: `Chunk ${chunkId} already has ${existingForChunk.length} question(s). Cannot create duplicates.`,
+        };
+      }
+    }
   }
+
+  // Compute startIndex: session-scoped, so use existing question count + 1
+  const startIndex = existingQuestions.length + 1;
 
   const created = await deps.sessionQuestions.createQuestions(
-    input.sessionChunkId,
-    input.questions
+    input.sessionId,
+    input.questions,
+    startIndex
   );
 
   return {
     status: 'created' as const,
-    sessionChunkId: input.sessionChunkId,
+    sessionId: input.sessionId,
     questionIds: created.map(q => q.id),
   };
 }
@@ -569,25 +727,50 @@ async function submitAnswerForQuestion(
     return { status: 'error', message: 'No active session. Call create_session first.' };
   }
 
-  // 3. Look up the session chunk
-  const sessionChunk = await deps.sessions.getSessionChunkById(question.sessionChunkId);
-  if (!sessionChunk) {
-    return { status: 'error', message: `Session chunk ${question.sessionChunkId} not found.` };
-  }
-
-  // 3a. Guard: chunk must belong to the active session
-  if (sessionChunk.sessionId !== session.id) {
+  // 2b. Verify question belongs to the active session
+  if (question.sessionId !== session.id) {
     return {
       status: 'error',
       message: `Question ${sessionQuestionId} belongs to a different session.`,
     };
   }
 
+  // 3. Resolve chunk(s) via junction
+  const questionChunkIds = await deps.sessionQuestions.getChunkIdsForQuestion(sessionQuestionId);
+  if (questionChunkIds.length === 0) {
+    return {
+      status: 'error',
+      message: `Question ${sessionQuestionId} has no chunk mapping.`,
+    };
+  }
+
+  const sessionChunks = await deps.sessions.getSessionChunks(session.id);
+
+  // Assessment mode: single attempt, fan-out SR to all mapped chunks
+  if (session.mode === 'assessment') {
+    return submitAnswerForAssessmentQuestion(
+      input,
+      question,
+      session,
+      sessionQuestionId,
+      questionChunkIds,
+      sessionChunks,
+      deps
+    );
+  }
+
+  // Teaching mode: find the single mapped session chunk
+  const primaryChunkId = questionChunkIds[0] as string;
+  const sessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
+  if (!sessionChunk) {
+    return { status: 'error', message: `Session chunk for ${primaryChunkId} not found.` };
+  }
+
   // 3b. Guard: chunk must still be in_progress
   if (sessionChunk.status !== 'in_progress') {
     return {
       status: 'error',
-      message: `Session chunk ${question.sessionChunkId} is "${sessionChunk.status}", expected "in_progress".`,
+      message: `Session chunk for ${primaryChunkId} is "${sessionChunk.status}", expected "in_progress".`,
     };
   }
 
@@ -639,15 +822,27 @@ async function submitAnswerForQuestion(
     return {
       status: 'retry',
       attempt: attemptNumber,
-      chunk_id: sessionChunk.chunkId,
+      chunk_id: primaryChunkId,
       message: 'Incorrect. Try again.',
       feedback: input.feedback,
     };
   }
 
   // 8. Check if all questions for this chunk are answered
-  const allQuestions = await deps.sessionQuestions.getQuestionsForChunk(question.sessionChunkId);
-  const unanswered = allQuestions.filter(q => q.status === 'pending');
+  //    Get all session questions, find those mapping to primaryChunkId
+  const [allSessionQuestions, allSessionAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(session.id),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
+  ]);
+  const allQIds = allSessionQuestions.map(q => q.id);
+  const allChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(allQIds);
+
+  const questionsForChunk = allSessionQuestions.filter(q => {
+    const mapped = mapGetList(allChunkMapping, q.id);
+    return mapped.includes(primaryChunkId);
+  });
+
+  const unanswered = questionsForChunk.filter(q => q.status === 'pending');
 
   if (unanswered.length > 0) {
     // More questions remain — return recorded but no SR update yet (review_update omitted)
@@ -656,21 +851,22 @@ async function submitAnswerForQuestion(
       attempt: attemptNumber,
       passed: input.passed,
       quality,
-      chunk_id: sessionChunk.chunkId,
+      chunk_id: primaryChunkId,
       next: {
         status: 'blocked',
         message: `${unanswered.length} question(s) remaining for this chunk.`,
-        current_chunk_id: sessionChunk.chunkId,
+        current_chunk_id: primaryChunkId,
       },
     };
   }
 
   // 9. All questions answered — aggregate quality
-  const allAttempts = await deps.sessionQuestions.getAllAttemptsForChunk(question.sessionChunkId);
+  const chunkQuestionIds = new Set(questionsForChunk.map(q => q.id));
+  const chunkAttempts = allSessionAttempts.filter(a => chunkQuestionIds.has(a.sessionQuestionId));
+
   const perQuestionQualities: number[] = [];
-  for (const q of allQuestions) {
-    const qAttempts = allAttempts.filter(a => a.sessionQuestionId === q.id);
-    // Take the quality from the first scored attempt (earliest with a non-null quality)
+  for (const q of questionsForChunk) {
+    const qAttempts = chunkAttempts.filter(a => a.sessionQuestionId === q.id);
     const scoredAttempt = qAttempts.find(a => a.quality !== null);
     if (scoredAttempt?.quality !== null && scoredAttempt?.quality !== undefined) {
       perQuestionQualities.push(scoredAttempt.quality);
@@ -687,10 +883,10 @@ async function submitAnswerForQuestion(
 
   // Use only the sum of attempt times — sessionChunk.timeSpentMs may already
   // include prior attempt times, so adding it would double-count.
-  const accumulatedTimeMs = allAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
+  const accumulatedTimeMs = chunkAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
 
   const reviewResult = await reviewWorkflows.processReviewResult(
-    sessionChunk.chunkId,
+    primaryChunkId,
     Math.round(aggregatedQuality),
     { timeSpentMs: accumulatedTimeMs },
     reviewDeps
@@ -723,7 +919,7 @@ async function submitAnswerForQuestion(
     attempt: attemptNumber,
     passed: Math.round(aggregatedQuality) >= 3,
     quality: Math.round(aggregatedQuality),
-    chunk_id: sessionChunk.chunkId,
+    chunk_id: primaryChunkId,
     review_update: {
       next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
         .toISOString()
@@ -736,9 +932,142 @@ async function submitAnswerForQuestion(
   };
 }
 
+// ── Assessment mode submit_answer ───────────────────────────────
+
+/**
+ * Assessment mode submit_answer: single attempt per question, SR fan-out to all mapped chunks.
+ * Pass → quality 5, fail → quality 1 (no retry).
+ */
+async function submitAnswerForAssessmentQuestion(
+  input: SubmitAnswerInput,
+  question: SessionQuestion,
+  session: LearningSession,
+  sessionQuestionId: string,
+  questionChunkIds: string[],
+  sessionChunks: SessionChunk[],
+  deps: TeachingDeps
+): Promise<SubmitAnswerResult> {
+  // Assessment: max 1 attempt per question
+  const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(sessionQuestionId);
+  if (existingAttempts.length >= 1) {
+    return {
+      status: 'error',
+      message: `Assessment allows 1 attempt per question. Question ${sessionQuestionId} already answered.`,
+    };
+  }
+
+  // Assessment quality: pass = 5, fail = 1 (no retry)
+  const quality = input.passed ? 5 : 1;
+
+  try {
+    await deps.sessionQuestions.createAttempt({
+      id: crypto.randomUUID(),
+      sessionQuestionId,
+      attemptNumber: 1,
+      response: input.response,
+      passed: input.passed,
+      feedback: input.feedback,
+      quality,
+      timeSpentMs: input.timeSpentMs,
+      createdAt: Date.now(),
+    });
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      'code' in err &&
+      (err as { code: string }).code === '23505' &&
+      'constraint' in err &&
+      (err as { constraint: string }).constraint === 'uq_session_question_attempts_question_number'
+    ) {
+      return { status: 'error', message: 'Attempt already recorded' };
+    }
+    throw err;
+  }
+
+  await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
+
+  // Fan out SR update to ALL mapped chunks
+  const reviewDeps: reviewWorkflows.ReviewDeps = {
+    reviewPersistence: deps.reviewPersistence,
+    algorithmConfig: deps.algorithmConfig,
+  };
+
+  const reviewResults = await Promise.all(
+    questionChunkIds.map(chunkId =>
+      reviewWorkflows.processReviewResult(
+        chunkId,
+        quality,
+        { timeSpentMs: Math.round(input.timeSpentMs / questionChunkIds.length) },
+        reviewDeps
+      )
+    )
+  );
+
+  // Align with teaching mode: surface SR persistence failures
+  const srFailures = reviewResults.filter(r => !r.success);
+  if (srFailures.length > 0) {
+    return {
+      status: 'error',
+      message: `Failed to persist SR update for ${srFailures.length} of ${questionChunkIds.length} chunk(s).`,
+    };
+  }
+
+  // Build review_update from the primary chunk's SR result
+  const primaryReview = reviewResults[0];
+  const reviewUpdate =
+    primaryReview && primaryReview.success
+      ? {
+          next_review_date: new Date(primaryReview.data.updated.nextReviewAt)
+            .toISOString()
+            .split('T')[0],
+          interval_days: primaryReview.data.updated.intervalDays,
+          ease_factor: primaryReview.data.updated.easeFactor,
+          is_leech: primaryReview.data.isLeech,
+        }
+      : undefined;
+
+  // Mark session_chunks as completed when all their mapped questions are answered
+  const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
+  const allQIds = allSessionQuestions.map(q => q.id);
+  const allChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(allQIds);
+
+  for (const chunkId of questionChunkIds) {
+    const questionsForChunk = allSessionQuestions.filter(q => {
+      const mapped = mapGetList(allChunkMapping, q.id);
+      return mapped.includes(chunkId);
+    });
+    const allAnswered = questionsForChunk.every(q => q.status !== 'pending');
+    if (allAnswered) {
+      const sc = sessionChunks.find(s => s.chunkId === chunkId);
+      if (sc && sc.status !== 'completed') {
+        await deps.sessions.updateSessionChunk(sc.id, {
+          status: 'completed',
+          updatedAt: Date.now(),
+        });
+      }
+    }
+  }
+
+  // Piggyback next step
+  const nextTeachStep = await getNextTeachingStep(deps);
+
+  return {
+    status: 'recorded',
+    attempt: 1,
+    passed: input.passed,
+    quality,
+    chunk_id: questionChunkIds[0] as string,
+    review_update: reviewUpdate,
+    next: nextTeachStep,
+  };
+}
+
+// Summary is chunk-centric: total = number of chunks, not questions.
+// A cross-chunk question (Q→[C1,C2]) that passes counts as "passed" for both C1 and C2,
+// which is intentional — each chunk's mastery is assessed by its mapped questions.
 function buildCompleteResponse(
   sessionChunks: SessionChunk[],
-  questionsByChunk: Map<string, SessionQuestion[]>,
+  questionsByChunkId: Map<string, SessionQuestion[]>,
   attemptsByQuestion: Map<string, SessionQuestionAttempt[]>
 ): TeachNextResponse {
   const total = sessionChunks.length;
@@ -747,8 +1076,8 @@ function buildCompleteResponse(
   let exhaustedRetries = 0;
 
   for (const sc of sessionChunks) {
-    const questions = questionsByChunk.get(sc.id) ?? [];
-    const allAttempts = questions.flatMap(q => attemptsByQuestion.get(q.id) ?? []);
+    const questions = mapGetList(questionsByChunkId, sc.chunkId);
+    const allAttempts = questions.flatMap(q => mapGetList(attemptsByQuestion, q.id));
     if (allAttempts.length === 0) continue;
 
     if (allAttempts.length === 1 && (allAttempts[0] as SessionQuestionAttempt).passed) {
