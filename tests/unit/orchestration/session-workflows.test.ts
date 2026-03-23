@@ -178,6 +178,30 @@ describe('createSession', () => {
     }
   });
 
+  it('returns validation error for assessment mode with empty chunkIds', async () => {
+    const deps = stubDeps();
+
+    const result = await createSession({ mode: 'assessment', chunkIds: [] }, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('validation');
+      expect(result.error.message).toContain('Assessment mode requires');
+    }
+  });
+
+  it('returns validation error for assessment mode with no chunkIds', async () => {
+    const deps = stubDeps();
+
+    const result = await createSession({ mode: 'assessment' }, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('validation');
+      expect(result.error.message).toContain('Assessment mode requires');
+    }
+  });
+
   it('returns fallback message when createSession throws a non-Error', async () => {
     const deps = stubDeps();
     (deps.sessions.createSession as ReturnType<typeof vi.fn>).mockRejectedValue('string error');

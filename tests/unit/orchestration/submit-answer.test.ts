@@ -1932,5 +1932,48 @@ describe('submitAnswer with session_question_id', () => {
       expect(result.next).toBeDefined();
       expect(result.next.status).toBe('complete');
     });
+
+    it('assessment returns error on duplicate constraint violation', async () => {
+      const dupeError = new Error('duplicate key') as Error & {
+        code: string;
+        constraint: string;
+      };
+      dupeError.code = '23505';
+      dupeError.constraint = 'uq_session_question_attempts_question_number';
+      const deps = makeAssessmentDeps({
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          createAttempt: vi.fn().mockRejectedValue(dupeError),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('error');
+      if (result.status !== 'error') throw new Error('Expected error');
+      expect(result.message).toContain('Attempt already recorded');
+    });
+
+    it('assessment logs warning when SR persistence fails for a chunk', async () => {
+      const deps = makeAssessmentDeps({
+        reviewPersistence: {
+          getChunk: vi.fn().mockResolvedValue(undefined),
+          persistReviewUpdate: vi.fn().mockResolvedValue(0),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      // Should still succeed — SR failures are logged, not fatal
+      expect(result.status).toBe('recorded');
+    });
   });
 });
