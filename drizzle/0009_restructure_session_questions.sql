@@ -30,8 +30,8 @@ JOIN session_chunks sc ON sq.session_chunk_id = sc.id;
 -- 5. Make session_id NOT NULL after backfill
 ALTER TABLE session_questions ALTER COLUMN session_id SET NOT NULL;
 
--- 6. Drop old unique constraint, index, and session_chunk_id column
-ALTER TABLE session_questions DROP CONSTRAINT uq_session_questions_chunk_index;
+-- 6. Drop old unique index, secondary index, and session_chunk_id column
+DROP INDEX IF EXISTS uq_session_questions_chunk_index;
 DROP INDEX IF EXISTS idx_session_questions_session_chunk_id;
 ALTER TABLE session_questions DROP COLUMN session_chunk_id;
 
