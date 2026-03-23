@@ -431,6 +431,38 @@ describe('startHttpTransport shutdown', () => {
   });
 });
 
+// ── Audit middleware wiring ────────────────────────────────────
+
+describe('startHttpTransport with audit logging', () => {
+  const auditConfig: TransportConfig = { mode: 'http', httpPort: 0, httpHost: '127.0.0.1' };
+  const ctx = createMockAppContext();
+  let auditHandle: HttpTransportHandle;
+  let processOnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeAll(async () => {
+    process.env.AUDIT_DATABASE_URL = 'postgresql://test:test@localhost:5432/audit';
+    processOnSpy = vi
+      .spyOn(process, 'on')
+      .mockImplementation(
+        (_event: string | symbol, _handler: (...args: unknown[]) => void) => process
+      );
+    auditHandle = await startHttpTransport(auditConfig, () => createMcpServer(ctx));
+  });
+
+  afterAll(async () => {
+    delete process.env.AUDIT_DATABASE_URL;
+    processOnSpy.mockRestore();
+    await auditHandle.close();
+  });
+
+  it('wires audit middleware when AUDIT_DATABASE_URL is set', async () => {
+    const { createAuditPinoLogger } = await import('../../../src/shared/logger.js');
+    expect(vi.mocked(createAuditPinoLogger)).toHaveBeenCalledWith(
+      'postgresql://test:test@localhost:5432/audit'
+    );
+  });
+});
+
 // ── Auth-enabled transport ─────────────────────────────────────
 
 vi.mock('jose', () => ({

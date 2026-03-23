@@ -238,6 +238,68 @@ describe('audit-middleware', () => {
     );
   });
 
+  it('handles null chunk in res.write without capturing', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    res.write(null as unknown as string);
+    res.end();
+
+    expect(auditLogger.info).toHaveBeenCalledWith(expect.objectContaining({ responseBody: '' }));
+  });
+
+  it('skips non-string non-Buffer chunk in res.write', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    res.write(12345 as unknown as string);
+    res.end();
+
+    expect(auditLogger.info).toHaveBeenCalledWith(expect.objectContaining({ responseBody: '' }));
+  });
+
+  it('skips non-string non-Buffer chunk in res.end', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    res.end(12345 as unknown as string);
+
+    expect(auditLogger.info).toHaveBeenCalledWith(expect.objectContaining({ responseBody: '' }));
+  });
+
+  it('captures string chunk with explicit encoding in res.write', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    res.write('encoded-data', 'utf8');
+    res.end();
+
+    expect(auditLogger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ responseBody: 'encoded-data' })
+    );
+  });
+
+  it('captures string chunk with explicit encoding in res.end', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    res.end('final-data', 'utf8');
+
+    expect(auditLogger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ responseBody: 'final-data' })
+    );
+  });
+
   it('emits audit log when res.end is called with no arguments', () => {
     const middleware = createAuditMiddleware(auditLogger);
     const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });

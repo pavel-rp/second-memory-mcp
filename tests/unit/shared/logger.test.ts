@@ -1,31 +1,50 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { mockInfo, mockWarn, mockError, mockDebug, mockChild, mockDestination, pinoFactory } =
-  vi.hoisted(() => {
-    const mockInfo = vi.fn();
-    const mockWarn = vi.fn();
-    const mockError = vi.fn();
-    const mockDebug = vi.fn();
-    const mockChild = vi.fn(() => ({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-    }));
-    const mockDestination = vi.fn((..._args: unknown[]) => ({ fd: 2 }));
-    const pinoFactory = vi.fn((..._args: unknown[]) => ({
-      info: mockInfo,
-      warn: mockWarn,
-      error: mockError,
-      debug: mockDebug,
-      child: mockChild,
-    }));
-    return { mockInfo, mockWarn, mockError, mockDebug, mockChild, mockDestination, pinoFactory };
-  });
+const {
+  mockInfo,
+  mockWarn,
+  mockError,
+  mockDebug,
+  mockChild,
+  mockDestination,
+  mockTransport,
+  pinoFactory,
+} = vi.hoisted(() => {
+  const mockInfo = vi.fn();
+  const mockWarn = vi.fn();
+  const mockError = vi.fn();
+  const mockDebug = vi.fn();
+  const mockChild = vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }));
+  const mockDestination = vi.fn((..._args: unknown[]) => ({ fd: 2 }));
+  const mockTransport = vi.fn((..._args: unknown[]) => ({ on: vi.fn() }));
+  const pinoFactory = vi.fn((..._args: unknown[]) => ({
+    info: mockInfo,
+    warn: mockWarn,
+    error: mockError,
+    debug: mockDebug,
+    child: mockChild,
+  }));
+  return {
+    mockInfo,
+    mockWarn,
+    mockError,
+    mockDebug,
+    mockChild,
+    mockDestination,
+    mockTransport,
+    pinoFactory,
+  };
+});
 
 vi.mock('pino', () => {
   const factory = Object.assign((...args: unknown[]) => pinoFactory(...args), {
     destination: (...args: unknown[]) => mockDestination(...args),
+    transport: (...args: unknown[]) => mockTransport(...args),
     stdTimeFunctions: { isoTime: () => ',"time":"2026-01-01T00:00:00.000Z"' },
   });
   return { default: factory };
@@ -54,6 +73,7 @@ describe('logger', () => {
     mockError.mockClear();
     mockDebug.mockClear();
     mockChild.mockClear();
+    mockTransport.mockClear();
   });
 
   function setTTY(value: boolean) {
@@ -223,6 +243,32 @@ describe('logger', () => {
       logger.debug('msg');
       expect(mockDebug).toHaveBeenCalled();
       expect(mockInfo).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createAuditPinoLogger', () => {
+    it('creates pino logger wired to pg-audit-transport', async () => {
+      setTTY(true);
+      const { createAuditPinoLogger } = await loadModule();
+      const connString = 'postgresql://test:test@localhost:5432/audit_db';
+
+      const result = createAuditPinoLogger(connString);
+
+      expect(mockTransport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.stringContaining('pg-audit-transport'),
+          options: { connectionString: connString },
+        })
+      );
+      // Called twice: once for module-level pinoLogger, once for createAuditPinoLogger
+      expect(pinoFactory).toHaveBeenCalledTimes(2);
+      const [opts, transport] = pinoFactory.mock.calls[1];
+      expect((opts as Record<string, unknown>).level).toBe('info');
+      expect((opts as Record<string, unknown>).base).toEqual(
+        expect.objectContaining({ service: 'second-memory-mcp' })
+      );
+      expect(transport).toBeDefined();
+      expect(result).toBeDefined();
     });
   });
 
