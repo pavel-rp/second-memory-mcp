@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response } from 'express';
-import { createAuditMiddleware } from '../../../src/transport/audit-middleware.js';
+import {
+  createAuditMiddleware,
+  MAX_CAPTURE_BYTES,
+} from '../../../src/transport/audit-middleware.js';
 import type pino from 'pino';
 
 function createMockLogger(): pino.Logger {
@@ -285,6 +288,28 @@ describe('audit-middleware', () => {
     expect(auditLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({ responseBody: 'encoded-data' })
     );
+  });
+
+  it('caps response capture at MAX_CAPTURE_BYTES', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+
+    // Write more than MAX_CAPTURE_BYTES across multiple chunks
+    const chunkSize = 1024;
+    const totalChunks = Math.ceil(MAX_CAPTURE_BYTES / chunkSize) + 10;
+    for (let i = 0; i < totalChunks; i++) {
+      res.write('x'.repeat(chunkSize));
+    }
+    res.end();
+
+    const logCall = (auditLogger.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect((logCall.responseBody as string).length).toBeLessThanOrEqual(MAX_CAPTURE_BYTES);
   });
 
   it('captures string chunk with explicit encoding in res.end', () => {

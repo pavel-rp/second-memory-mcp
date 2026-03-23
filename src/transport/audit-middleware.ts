@@ -8,6 +8,9 @@ interface JsonRpcRequest {
   params?: unknown;
 }
 
+/** Cap response capture to prevent unbounded memory growth on long-lived SSE connections. */
+const MAX_CAPTURE_BYTES = 65_536;
+
 /**
  * Creates Express middleware that captures JSON-RPC request/response data
  * for MCP audit logging.
@@ -29,8 +32,17 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
     // MCP uses SSE (res.write for data frames, res.end to close), so we
     // must capture chunks from both methods.
     const chunks: Buffer[] = [];
+    let capturedBytes = 0;
     const originalWrite = res.write.bind(res);
     const originalEnd = res.end.bind(res);
+
+    function pushChunk(data: Buffer): void {
+      if (capturedBytes >= MAX_CAPTURE_BYTES) return;
+      const remaining = MAX_CAPTURE_BYTES - capturedBytes;
+      const slice = data.length > remaining ? data.subarray(0, remaining) : data;
+      chunks.push(slice);
+      capturedBytes += slice.length;
+    }
 
     res.write = function captureWrite(
       chunk: unknown,
@@ -39,10 +51,10 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
     ): boolean {
       if (chunk != null) {
         if (Buffer.isBuffer(chunk)) {
-          chunks.push(chunk);
+          pushChunk(chunk);
         } else if (typeof chunk === 'string') {
           const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
-          chunks.push(Buffer.from(chunk, encoding));
+          pushChunk(Buffer.from(chunk, encoding));
         }
       }
       if (typeof encodingOrCallback === 'function') {
@@ -58,10 +70,10 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
     ): Response {
       if (chunk != null) {
         if (Buffer.isBuffer(chunk)) {
-          chunks.push(chunk);
+          pushChunk(chunk);
         } else if (typeof chunk === 'string') {
           const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
-          chunks.push(Buffer.from(chunk, encoding));
+          pushChunk(Buffer.from(chunk, encoding));
         }
       }
 
@@ -97,3 +109,5 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
     next();
   };
 }
+
+export { MAX_CAPTURE_BYTES };

@@ -30,6 +30,9 @@ const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
 const DEFAULT_CIRCUIT_BREAKER_THRESHOLD = 5;
 const DEFAULT_CIRCUIT_BREAKER_RESET_MS = 60_000;
 
+/** Truncate response bodies beyond this size before DB insertion. */
+const MAX_RESPONSE_BODY_BYTES = 65_536;
+
 export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
   const batchSize = opts.batchSize ?? DEFAULT_BATCH_SIZE;
   const flushIntervalMs = opts.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS;
@@ -128,7 +131,12 @@ export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
       rpcId: typeof obj.rpcId === 'string' ? obj.rpcId : undefined,
       params: obj.params,
       responseStatus: typeof obj.responseStatus === 'number' ? obj.responseStatus : undefined,
-      responseBody: typeof obj.responseBody === 'string' ? obj.responseBody : undefined,
+      responseBody:
+        typeof obj.responseBody === 'string'
+          ? obj.responseBody.length > MAX_RESPONSE_BODY_BYTES
+            ? obj.responseBody.slice(0, MAX_RESPONSE_BODY_BYTES)
+            : obj.responseBody
+          : undefined,
       durationMs: typeof obj.durationMs === 'number' ? obj.durationMs : undefined,
     };
   }
@@ -168,5 +176,6 @@ export {
   DEFAULT_FLUSH_INTERVAL_MS,
   DEFAULT_CIRCUIT_BREAKER_THRESHOLD,
   DEFAULT_CIRCUIT_BREAKER_RESET_MS,
+  MAX_RESPONSE_BODY_BYTES,
 };
 export type { AuditLogEntry, CircuitBreakerState, PgAuditTransportOptions };

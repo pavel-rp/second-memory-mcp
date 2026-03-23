@@ -207,7 +207,6 @@ describe('pg-audit-transport', () => {
 
       // Create a controlled source
       let resolveNext: (() => void) | null = null;
-      const _entries: Record<string, unknown>[] = [];
 
       async function* controlledSource() {
         // Entry 1: fails
@@ -353,6 +352,21 @@ describe('pg-audit-transport', () => {
 
       // Pool should be closed
       expect(mockEnd).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('response body truncation', () => {
+    it('truncates response body exceeding MAX_RESPONSE_BODY_BYTES', async () => {
+      const { MAX_RESPONSE_BODY_BYTES } =
+        await import('../../../src/transport/pg-audit-transport.js');
+      const handler = await initTransport({ batchSize: 100 });
+      const oversized = 'x'.repeat(MAX_RESPONSE_BODY_BYTES + 1000);
+
+      await handler(asyncIterableFrom([createAuditEntry({ responseBody: oversized })]));
+
+      const [, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      // responseBody is the 6th param (index 5)
+      expect((params[5] as string).length).toBe(MAX_RESPONSE_BODY_BYTES);
     });
   });
 

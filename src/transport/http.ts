@@ -112,8 +112,7 @@ export async function startHttpTransport(
   const auditDbUrl = process.env.AUDIT_DATABASE_URL ?? process.env.DATABASE_URL;
   if (auditDbUrl) {
     const auditPino = createAuditPinoLogger(auditDbUrl);
-    const auditChild = auditPino.child({ module: 'mcp-audit' });
-    app.use('/mcp', createAuditMiddleware(auditChild));
+    app.use('/mcp', createAuditMiddleware(auditPino));
   }
 
   // POST /mcp

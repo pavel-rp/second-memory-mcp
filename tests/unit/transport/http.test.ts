@@ -14,12 +14,10 @@ vi.mock('../../../src/shared/logger.js', () => ({
     debug: vi.fn(),
   },
   createAuditPinoLogger: vi.fn(() => ({
-    child: vi.fn(() => ({
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-    })),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
