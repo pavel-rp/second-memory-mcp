@@ -1257,6 +1257,129 @@ describe('getNextTeachingStep', () => {
     expect(result.prerequisite_context).toHaveLength(1);
     expect(result.prerequisite_context![0].condensed_summary).toBeNull();
   });
+
+  // ── Assessment mode ─────────────────────────────────────────────
+
+  it('assessment mode returns blocked when session has no questions', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('blocked');
+    if (result.status !== 'blocked') throw new Error('Expected blocked');
+    expect(result.message).toContain('no questions');
+  });
+
+  it('assessment mode returns next pending question with chunk mapping', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Explain the relationship between A and B',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const q2: SessionQuestion = {
+      id: 'sq-2',
+      sessionId: 'sess-1',
+      questionIndex: 2,
+      promptText: 'How does C relate to A?',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const chunkMap = new Map([
+      ['sq-1', ['c1', 'c2']],
+      ['sq-2', ['c1', 'c3']],
+    ]);
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1, q2]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(chunkMap),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-3', chunkId: 'c3', status: 'pending' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.session_id).toBe('sess-1');
+    expect(result.chunk_id).toBe('c1');
+    expect(result.chunk_index).toBe(2);
+    expect(result.total_chunks).toBe(2);
+    expect(result.mode).toBe('retrieval');
+    expect(result.instruction).toBe('How does C relate to A?');
+    expect(result.drill_format).toBe('open_ended');
+  });
+
+  it('assessment mode returns complete when all questions answered', async () => {
+    const q1: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const attempt: SessionQuestionAttempt = {
+      id: 'sqa-1',
+      sessionQuestionId: 'sq-1',
+      attemptNumber: 1,
+      response: 'answer',
+      passed: true,
+      feedback: 'good',
+      quality: 5,
+      timeSpentMs: 3000,
+      createdAt: NOW,
+    };
+    const chunkMap = new Map([['sq-1', ['c1']]]);
+    const sqRepo = stubSessionQuestionRepository({
+      getQuestionsForSession: vi.fn().mockResolvedValue([q1]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([attempt]),
+      getChunkIdsForQuestions: vi.fn().mockResolvedValue(chunkMap),
+    });
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ mode: 'assessment' })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.summary.total).toBe(1);
+    expect(result.summary.passed_first_try).toBe(1);
+  });
 });
 
 // ── startLearning ─────────────────────────────────────────────────

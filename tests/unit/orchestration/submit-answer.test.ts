@@ -1784,4 +1784,153 @@ describe('submitAnswer with session_question_id', () => {
       submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps)
     ).rejects.toThrow('connection lost');
   });
+
+  // ── Assessment mode submit_answer ──────────────────────────────
+
+  describe('assessment mode', () => {
+    function makeAssessmentDeps(overrides?: {
+      sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
+      reviewPersistence?: Partial<Parameters<typeof stubReviewPersistence>[0]>;
+      sessionQuestions?: Partial<Parameters<typeof stubSessionQuestionRepository>[0]>;
+    }): TeachingDeps {
+      return {
+        sessions: stubSessionRepository({
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ mode: 'assessment', chunkIds: ['c1', 'c2'] })),
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            ]),
+          getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+          updateSessionChunk: vi.fn().mockResolvedValue(1),
+          ...overrides?.sessions,
+        }),
+        chunks: stubChunkRepository(),
+        reviewPersistence: stubReviewPersistence({
+          getChunk: vi.fn().mockResolvedValue(makeLearningChunk()),
+          persistReviewUpdate: vi.fn().mockResolvedValue(1),
+          ...overrides?.reviewPersistence,
+        }),
+        algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+        sessionQuestions: stubSessionQuestionRepository({
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1', 'c2']),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          // Post-submit: all questions answered → triggers chunk completion
+          getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion({ status: 'answered' })]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1', 'c2']]])),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+          ...overrides?.sessionQuestions,
+        }),
+      };
+    }
+
+    it('assessment pass records quality 5 with single attempt', async () => {
+      const deps = makeAssessmentDeps();
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1', timeSpentMs: 6000 }),
+        deps
+      );
+
+      expect(result.status).toBe('recorded');
+      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.attempt).toBe(1);
+      expect(result.passed).toBe(true);
+      expect(result.quality).toBe(5);
+    });
+
+    it('assessment fail records quality 1 with no retry', async () => {
+      const deps = makeAssessmentDeps();
+
+      const result = await submitAnswer(
+        makeInput({ passed: false, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('recorded');
+      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.attempt).toBe(1);
+      expect(result.passed).toBe(false);
+      expect(result.quality).toBe(1);
+    });
+
+    it('assessment rejects second attempt on same question', async () => {
+      const deps = makeAssessmentDeps({
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getAttemptsForQuestion: vi
+            .fn()
+            .mockResolvedValue([makeQuestionAttempt({ attemptNumber: 1 })]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('error');
+      if (result.status !== 'error') throw new Error('Expected error');
+      expect(result.message).toContain('1 attempt per question');
+    });
+
+    it('assessment fans out SR update to all mapped chunks', async () => {
+      const deps = makeAssessmentDeps();
+
+      await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1', timeSpentMs: 10000 }),
+        deps
+      );
+
+      // SR called once per mapped chunk (c1 and c2)
+      expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledTimes(2);
+    });
+
+    it('assessment marks session_chunks completed when all questions answered', async () => {
+      const deps = makeAssessmentDeps();
+
+      await submitAnswer(makeInput({ passed: true, sessionQuestionId: 'sq-1' }), deps);
+
+      // Both sc-1 (c1) and sc-2 (c2) should be marked completed
+      expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+        'sc-1',
+        expect.objectContaining({ status: 'completed' })
+      );
+      expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+        'sc-2',
+        expect.objectContaining({ status: 'completed' })
+      );
+    });
+
+    it('assessment piggybacks next teaching step after recording', async () => {
+      const deps = makeAssessmentDeps({
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          // After submit: all questions answered → complete
+          getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion({ status: 'answered' })]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+          getAllAttemptsForSession: vi
+            .fn()
+            .mockResolvedValue([makeQuestionAttempt({ quality: 5, passed: true })]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('recorded');
+      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.next).toBeDefined();
+      expect(result.next.status).toBe('complete');
+    });
+  });
 });
