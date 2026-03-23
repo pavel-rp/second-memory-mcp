@@ -80,7 +80,7 @@ export const learningSessions = pgTable(
     id: text('id').primaryKey().notNull(),
     topicId: text('topic_id').references(() => learningTopics.id, { onDelete: 'set null' }),
     chunkIds: jsonb('chunk_ids').$type<string[]>(),
-    mode: text('mode').notNull(), // CHECK('scaffolding','learning','retrieval','review') — enforced at DB level
+    mode: text('mode').notNull(), // CHECK('scaffolding','learning','retrieval','review','assessment') — enforced at DB level
     estimatedDuration: integer('estimated_duration'), // minutes
     status: text('status').notNull().default('active'), // CHECK('active','completed') — enforced at DB level
     startTime: bigint('start_time', { mode: 'number' }).notNull(), // epoch ms
@@ -95,7 +95,7 @@ export const learningSessions = pgTable(
     index('idx_learning_sessions_created_at').on(table.createdAt),
     check(
       'chk_session_mode',
-      sql`${table.mode} IN ('scaffolding', 'learning', 'retrieval', 'review')`
+      sql`${table.mode} IN ('scaffolding', 'learning', 'retrieval', 'review', 'assessment')`
     ),
     check('chk_session_status', sql`${table.status} IN ('active', 'completed')`),
   ]
@@ -130,22 +130,40 @@ export const sessionQuestions = pgTable(
   'session_questions',
   {
     id: text('id').primaryKey().notNull(),
-    sessionChunkId: text('session_chunk_id')
+    sessionId: text('session_id')
       .notNull()
-      .references(() => sessionChunks.id, { onDelete: 'cascade' }),
-    questionIndex: integer('question_index').notNull(), // 1-based position
+      .references(() => learningSessions.id, { onDelete: 'cascade' }),
+    questionIndex: integer('question_index').notNull(), // 1-based position (session-scoped)
     promptText: text('prompt_text').notNull(), // the drill question
     status: text('status').notNull().default('pending'), // CHECK('pending','answered','skipped')
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
   },
   table => [
-    index('idx_session_questions_session_chunk_id').on(table.sessionChunkId),
-    uniqueIndex('uq_session_questions_chunk_index').on(table.sessionChunkId, table.questionIndex),
+    index('idx_session_questions_session_id').on(table.sessionId),
+    uniqueIndex('uq_session_questions_session_index').on(table.sessionId, table.questionIndex),
     check(
       'chk_session_question_status',
       sql`${table.status} IN ('pending', 'answered', 'skipped')`
     ),
+  ]
+);
+
+export const sessionQuestionChunks = pgTable(
+  'session_question_chunks',
+  {
+    id: text('id').primaryKey().notNull(),
+    sessionQuestionId: text('session_question_id')
+      .notNull()
+      .references(() => sessionQuestions.id, { onDelete: 'cascade' }),
+    chunkId: text('chunk_id')
+      .notNull()
+      .references(() => learningChunks.id, { onDelete: 'cascade' }),
+  },
+  table => [
+    uniqueIndex('uq_session_question_chunks').on(table.sessionQuestionId, table.chunkId),
+    index('idx_sqc_session_question_id').on(table.sessionQuestionId),
+    index('idx_sqc_chunk_id').on(table.chunkId),
   ]
 );
 
@@ -213,5 +231,7 @@ export type NewLearningSessionRow = InferInsertModel<typeof learningSessions>;
 export type NewSessionChunkRow = InferInsertModel<typeof sessionChunks>;
 
 export type NewSessionQuestionRow = InferInsertModel<typeof sessionQuestions>;
+
+export type NewSessionQuestionChunkRow = InferInsertModel<typeof sessionQuestionChunks>;
 
 export type NewSessionQuestionAttemptRow = InferInsertModel<typeof sessionQuestionAttempts>;

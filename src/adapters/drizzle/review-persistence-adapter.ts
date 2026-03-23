@@ -3,8 +3,8 @@ import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
   learningSessions,
-  sessionChunks,
   sessionQuestions,
+  sessionQuestionChunks,
   sessionQuestionAttempts,
   learningTopics,
 } from '../../infrastructure/db/schema.js';
@@ -46,6 +46,8 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
     const fromMs = from.getTime();
     const toMs = to.getTime();
 
+    // Note: assessment questions with multiple chunk mappings produce one row per chunk.
+    // This is intentional — each chunk gets its own analytics entry.
     const rows = await this.db
       .select({
         startTime: learningSessions.startTime,
@@ -59,9 +61,12 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
         sessionQuestions,
         eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
       )
-      .innerJoin(sessionChunks, eq(sessionQuestions.sessionChunkId, sessionChunks.id))
-      .innerJoin(learningSessions, eq(sessionChunks.sessionId, learningSessions.id))
-      .innerJoin(learningChunks, eq(sessionChunks.chunkId, learningChunks.id))
+      .innerJoin(
+        sessionQuestionChunks,
+        eq(sessionQuestions.id, sessionQuestionChunks.sessionQuestionId)
+      )
+      .innerJoin(learningSessions, eq(sessionQuestions.sessionId, learningSessions.id))
+      .innerJoin(learningChunks, eq(sessionQuestionChunks.chunkId, learningChunks.id))
       .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
       .where(
         and(

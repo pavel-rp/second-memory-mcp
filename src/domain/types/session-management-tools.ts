@@ -19,7 +19,8 @@ export const CreateSessionToolInputShape = {
     "Session mode: 'scaffolding' = guided intro to new material, " +
       "'learning' = active study of new chunks, " +
       "'retrieval' = spaced recall practice, " +
-      "'review' = revisit previously learned material. " +
+      "'review' = revisit previously learned material, " +
+      "'assessment' = cross-chunk topic-level evaluation (requires chunk_ids). " +
       "Use 'learning' if unsure."
   ),
   estimated_duration: z.number().min(1).max(480).optional(), // 1-480 minutes

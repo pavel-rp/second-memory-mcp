@@ -85,12 +85,13 @@ describe('teaching-tools', () => {
 
     expect(parsed.workflow_hint).toBeDefined();
     expect(parsed.workflow_hint.action).toBe('USE_STRUCTURED_QUESTIONS');
-    expect(parsed.workflow_hint.session_chunk_id).toBe('sc-1');
+    expect(parsed.workflow_hint.session_id).toBe('sc-1');
+    expect(parsed.workflow_hint.chunk_id).toBe('c1');
     expect(parsed.workflow_hint.mode).toBe('learning');
     expect(parsed.workflow_hint.instruction).toContain('create_session_questions');
     expect(parsed.workflow_hint.instruction).toContain('submit_answer');
     expect(parsed.workflow_hint.next_step).toContain('create_session_questions');
-    expect(parsed.workflow_hint.next_step).toContain('sc-1');
+    expect(parsed.workflow_hint.next_step).toContain('session_id');
   });
 
   it('teach_next workflow_hint uses retrieval instruction for retrieval mode', async () => {
@@ -359,7 +360,7 @@ describe('teaching-tools', () => {
   it('create_session_questions returns orchestration result on success', async () => {
     const createResult = {
       status: 'created',
-      sessionChunkId: 'sc-1',
+      sessionId: 'sess-1',
       questionIds: ['sq-1', 'sq-2'],
     };
     ctx.createSessionQuestions = vi.fn().mockResolvedValue(createResult);
@@ -367,30 +368,33 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
-      session_chunk_id: 'sc-1',
-      questions: [{ prompt_text: 'What is X?' }, { prompt_text: 'Explain Y' }],
+      session_id: 'sess-1',
+      questions: [
+        { prompt_text: 'What is X?', chunk_ids: ['c1'] },
+        { prompt_text: 'Explain Y', chunk_ids: ['c1'] },
+      ],
     });
     const parsed = parseResult(result);
 
-    expect(parsed.session_chunk_id).toBe('sc-1');
+    expect(parsed.session_id).toBe('sess-1');
     expect(parsed.question_ids).toEqual(['sq-1', 'sq-2']);
   });
 
   it('create_session_questions maps snake_case input to camelCase', async () => {
     ctx.createSessionQuestions = vi
       .fn()
-      .mockResolvedValue({ status: 'created', sessionChunkId: 'sc-1', questionIds: ['sq-1'] });
+      .mockResolvedValue({ status: 'created', sessionId: 'sess-1', questionIds: ['sq-1'] });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
     await handler({
-      session_chunk_id: 'sc-1',
-      questions: [{ prompt_text: 'What is X?' }],
+      session_id: 'sess-1',
+      questions: [{ prompt_text: 'What is X?', chunk_ids: ['c1'] }],
     });
 
     expect(ctx.createSessionQuestions).toHaveBeenCalledWith({
-      sessionChunkId: 'sc-1',
-      questions: [{ promptText: 'What is X?' }],
+      sessionId: 'sess-1',
+      questions: [{ promptText: 'What is X?', chunkIds: ['c1'] }],
     });
   });
 
@@ -399,7 +403,7 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
-      session_chunk_id: '', // min(1) violation
+      session_id: '', // min(1) violation
       questions: [],
     });
     const parsed = parseResult(result);
@@ -417,8 +421,8 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
-      session_chunk_id: 'sc-1',
-      questions: [{ prompt_text: 'Q' }],
+      session_id: 'sess-1',
+      questions: [{ prompt_text: 'Q', chunk_ids: ['c1'] }],
     });
     const parsed = parseResult(result);
 
@@ -434,8 +438,8 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('create_session_questions')!.handler;
 
     const result = await handler({
-      session_chunk_id: 'sc-1',
-      questions: [{ prompt_text: 'Q' }],
+      session_id: 'sess-1',
+      questions: [{ prompt_text: 'Q', chunk_ids: ['c1'] }],
     });
     const parsed = parseResult(result);
 

@@ -112,7 +112,7 @@ export type SessionQuestionStatus = 'pending' | 'answered' | 'skipped';
 
 export type SessionQuestion = {
   id: string;
-  sessionChunkId: string;
+  sessionId: string;
   questionIndex: number;
   promptText: string;
   status: SessionQuestionStatus;

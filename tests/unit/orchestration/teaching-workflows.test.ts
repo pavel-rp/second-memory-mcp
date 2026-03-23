@@ -99,15 +99,16 @@ function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopic
  */
 function mockQuestionsAndAttempts(
   sqRepo: SessionQuestionRepository,
-  data: { scId: string; attempts: { passed: boolean; quality?: number | null }[] }[]
+  data: { chunkId: string; attempts: { passed: boolean; quality?: number | null }[] }[]
 ) {
   const allQuestions: SessionQuestion[] = [];
   const allAttempts: SessionQuestionAttempt[] = [];
+  const chunkMapping = new Map<string, string[]>();
   for (const chunk of data) {
     for (let i = 0; i < chunk.attempts.length; i += 2) {
       const q: SessionQuestion = {
-        id: `sq-${chunk.scId}-${Math.floor(i / 2)}`,
-        sessionChunkId: chunk.scId,
+        id: `sq-${chunk.chunkId}-${Math.floor(i / 2)}`,
+        sessionId: 'sess-1',
         questionIndex: Math.floor(i / 2) + 1,
         promptText: 'test question',
         status: 'answered',
@@ -115,10 +116,11 @@ function mockQuestionsAndAttempts(
         updatedAt: NOW,
       };
       allQuestions.push(q);
+      chunkMapping.set(q.id, [chunk.chunkId]);
 
       for (let j = i; j < Math.min(i + 2, chunk.attempts.length); j++) {
         const a: SessionQuestionAttempt = {
-          id: `sqa-${chunk.scId}-${j}`,
+          id: `sqa-${chunk.chunkId}-${j}`,
           sessionQuestionId: q.id,
           attemptNumber: (j - i + 1) as 1 | 2,
           response: 'test response',
@@ -132,8 +134,9 @@ function mockQuestionsAndAttempts(
       }
     }
   }
-  vi.mocked(sqRepo.getQuestionsForChunks).mockResolvedValue(allQuestions);
-  vi.mocked(sqRepo.getAllAttemptsForChunks).mockResolvedValue(allAttempts);
+  vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue(allQuestions);
+  vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(allAttempts);
+  vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(chunkMapping);
 }
 
 function makeDeps(overrides?: {
@@ -233,7 +236,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -277,7 +280,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -301,15 +304,16 @@ describe('getNextTeachingStep', () => {
     // Question exists but has no attempts → chunkHasAttempts=false, chunkIsRequeuedFailure=false
     const questionWithNoAttempts: SessionQuestion = {
       id: 'sq-orphan',
-      sessionChunkId: 'sc-1',
+      sessionId: 'sess-1',
       questionIndex: 1,
       promptText: 'test',
       status: 'pending',
       createdAt: NOW,
       updatedAt: NOW,
     };
-    vi.mocked(sqRepo.getQuestionsForChunks).mockResolvedValue([questionWithNoAttempts]);
-    vi.mocked(sqRepo.getAllAttemptsForChunks).mockResolvedValue([]);
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([questionWithNoAttempts]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([]);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(new Map([['sq-orphan', ['c1']]]));
 
     const result = await getNextTeachingStep(deps);
 
@@ -334,7 +338,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -402,8 +406,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: true }] },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: true }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -441,9 +445,9 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] }, // first try
-      { scId: 'sc-2', attempts: [{ passed: true }] }, // first try
-      { scId: 'sc-3', attempts: [{ passed: false }, { passed: false }, { passed: true }] }, // needed retry
+      { chunkId: 'c1', attempts: [{ passed: true }] }, // first try
+      { chunkId: 'c2', attempts: [{ passed: true }] }, // first try
+      { chunkId: 'c3', attempts: [{ passed: false }, { passed: false }, { passed: true }] }, // needed retry
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -470,8 +474,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: false }] }, // all failed
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: false }] }, // all failed
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -544,7 +548,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -575,8 +579,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: true }] },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: true }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -751,7 +755,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     // sc-1 has no attempts, sc-2 has a passed attempt
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-2', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c2', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -778,7 +782,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: false }, { passed: false }] },
+      { chunkId: 'c1', attempts: [{ passed: false }, { passed: false }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -806,7 +810,7 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     const exhaustedAttempts = Array.from({ length: 8 }, () => ({ passed: false }));
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: exhaustedAttempts }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: exhaustedAttempts }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -847,9 +851,9 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: false }, { passed: true }] },
-      { scId: 'sc-3', attempts: exhaustedAttempts },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: false }, { passed: true }] },
+      { chunkId: 'c3', attempts: exhaustedAttempts },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -904,7 +908,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -929,7 +933,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -959,8 +963,8 @@ describe('getNextTeachingStep', () => {
       sessionQuestions: sqRepo,
     });
     mockQuestionsAndAttempts(sqRepo, [
-      { scId: 'sc-1', attempts: [{ passed: true }] },
-      { scId: 'sc-2', attempts: [{ passed: false }, { passed: true }] },
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: false }, { passed: true }] },
     ]);
 
     const result = await getNextTeachingStep(deps);
@@ -1062,7 +1066,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-3', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c3', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1098,7 +1102,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-3', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c3', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1145,7 +1149,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: false }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
 
     const result = await getNextTeachingStep(deps);
 
@@ -1184,7 +1188,7 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    mockQuestionsAndAttempts(sqRepo, [{ scId: 'sc-1', attempts: [{ passed: true }] }]);
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
 
     const result = await getNextTeachingStep(deps);
 

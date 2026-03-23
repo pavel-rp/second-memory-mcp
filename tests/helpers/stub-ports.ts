@@ -172,7 +172,7 @@ export function stubSessionQuestionRepository(
     createQuestions: vi.fn().mockResolvedValue([
       {
         id: 'sq-stub',
-        sessionChunkId: 'sc-stub',
+        sessionId: 'sess-stub',
         questionIndex: 1,
         promptText: '',
         status: 'pending',
@@ -180,7 +180,9 @@ export function stubSessionQuestionRepository(
         updatedAt: 0,
       },
     ]),
-    getQuestionsForChunk: vi.fn().mockResolvedValue([]),
+    getQuestionsForSession: vi.fn().mockResolvedValue([]),
+    getChunkIdsForQuestion: vi.fn().mockResolvedValue([]),
+    getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
     getQuestionById: vi.fn().mockResolvedValue(null),
     updateQuestionStatus: vi.fn().mockResolvedValue(1),
     createAttempt: vi.fn().mockResolvedValue({
@@ -195,9 +197,7 @@ export function stubSessionQuestionRepository(
       createdAt: 0,
     }),
     getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
-    getAllAttemptsForChunk: vi.fn().mockResolvedValue([]),
-    getQuestionsForChunks: vi.fn().mockResolvedValue([]),
-    getAllAttemptsForChunks: vi.fn().mockResolvedValue([]),
+    getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

@@ -7,6 +7,7 @@ import {
   learningSessions,
   sessionChunks,
   sessionQuestions,
+  sessionQuestionChunks,
   sessionQuestionAttempts,
 } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
@@ -83,7 +84,7 @@ describe('analytics workflows', () => {
     await db.insert(sessionQuestions).values([
       {
         id: sqId1,
-        sessionChunkId,
+        sessionId,
         questionIndex: 1,
         promptText: 'Q1',
         status: 'answered',
@@ -92,13 +93,17 @@ describe('analytics workflows', () => {
       },
       {
         id: sqId2,
-        sessionChunkId,
+        sessionId,
         questionIndex: 2,
         promptText: 'Q2',
         status: 'answered',
         createdAt: now,
         updatedAt: now,
       },
+    ]);
+    await db.insert(sessionQuestionChunks).values([
+      { id: 'sqc-analytics-1', sessionQuestionId: sqId1, chunkId },
+      { id: 'sqc-analytics-2', sessionQuestionId: sqId2, chunkId },
     ]);
     await db.insert(sessionQuestionAttempts).values([
       {

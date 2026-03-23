@@ -19,16 +19,21 @@ export type CreateQuestionAttemptInput = {
 
 /**
  * Port interface for session question data access.
- * Keeps question-specific CRUD separate from the existing SessionRepository.
+ * Questions are session-scoped (sessionId FK) with chunk mapping via junction table.
  */
 export interface SessionQuestionRepository {
   createQuestions(
-    sessionChunkId: string,
-    questions: { promptText: string }[],
+    sessionId: string,
+    questions: { promptText: string; chunkIds: string[] }[],
     startIndex?: number
   ): Promise<SessionQuestion[]>;
 
-  getQuestionsForChunk(sessionChunkId: string): Promise<SessionQuestion[]>;
+  getQuestionsForSession(sessionId: string): Promise<SessionQuestion[]>;
+
+  getChunkIdsForQuestion(questionId: string): Promise<string[]>;
+
+  /** Batch: get chunk IDs for multiple questions in one query. Returns questionId → chunkId[]. */
+  getChunkIdsForQuestions(questionIds: string[]): Promise<Map<string, string[]>>;
 
   getQuestionById(id: string): Promise<SessionQuestion | null>;
 
@@ -38,11 +43,6 @@ export interface SessionQuestionRepository {
 
   getAttemptsForQuestion(sessionQuestionId: string): Promise<SessionQuestionAttempt[]>;
 
-  getAllAttemptsForChunk(sessionChunkId: string): Promise<SessionQuestionAttempt[]>;
-
-  /** Batch: get all questions for multiple chunks in one query. */
-  getQuestionsForChunks(sessionChunkIds: string[]): Promise<SessionQuestion[]>;
-
-  /** Batch: get all attempts for multiple chunks (via their questions) in one query. */
-  getAllAttemptsForChunks(sessionChunkIds: string[]): Promise<SessionQuestionAttempt[]>;
+  /** Get all attempts for a session (questions → attempts). */
+  getAllAttemptsForSession(sessionId: string): Promise<SessionQuestionAttempt[]>;
 }

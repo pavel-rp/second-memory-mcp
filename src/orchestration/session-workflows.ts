@@ -40,6 +40,16 @@ export async function createSession(
       });
     }
 
+    // Assessment mode requires non-empty chunk_ids
+    if (input.mode === 'assessment') {
+      if (!input.chunkIds || input.chunkIds.length === 0) {
+        return serviceFail({
+          type: 'validation',
+          message: 'Assessment mode requires non-empty chunk_ids.',
+        });
+      }
+    }
+
     if (input.chunkIds && input.chunkIds.length > 0) {
       const validation = await deps.sessions.validateChunkIds(input.chunkIds);
       if (!validation.valid) {

@@ -193,13 +193,13 @@ export const StartLearningInputSchema = z
 // ── create_session_questions types ─────────────────────────────
 
 export type CreateSessionQuestionsInput = {
-  sessionChunkId: string;
-  questions: { promptText: string }[];
+  sessionId: string;
+  questions: { promptText: string; chunkIds: string[] }[];
 };
 
 export type CreateSessionQuestionsSuccess = {
   status: 'created';
-  sessionChunkId: string;
+  sessionId: string;
   questionIds: string[];
 };
 
@@ -213,21 +213,27 @@ export type CreateSessionQuestionsResult =
   | CreateSessionQuestionsError;
 
 export const CreateSessionQuestionsInputShape = {
-  session_chunk_id: z.string().min(1).describe('The session chunk ID to attach questions to'),
+  session_id: z.string().min(1).describe('The session ID to attach questions to'),
   questions: z
     .array(
       z.object({
         prompt_text: z.string().min(1).describe('The drill question text'),
+        chunk_ids: z
+          .array(z.string().min(1))
+          .min(1)
+          .describe(
+            'Chunk IDs this question evaluates. Teaching mode: exactly 1. Assessment mode: 1+.'
+          ),
       })
     )
     .min(1)
     .max(10)
-    .describe('Array of questions to create for this chunk'),
+    .describe('Array of questions to create'),
 } as const;
 
 export const CreateSessionQuestionsInputSchema = z
   .object(CreateSessionQuestionsInputShape)
-  .transform(({ session_chunk_id, questions }) => ({
-    sessionChunkId: session_chunk_id,
-    questions: questions.map(q => ({ promptText: q.prompt_text })),
+  .transform(({ session_id, questions }) => ({
+    sessionId: session_id,
+    questions: questions.map(q => ({ promptText: q.prompt_text, chunkIds: q.chunk_ids })),
   }));

@@ -58,8 +58,9 @@ describe('session question workflows', () => {
     }
   }
 
-  /** Create an active session with an in_progress chunk and return the session chunk ID. */
+  /** Create an active session with an in_progress chunk and return session + chunk IDs. */
   async function seedSessionWithInProgressChunk(): Promise<{
+    sessionId: string;
     sessionChunkId: string;
     chunkId: string;
   }> {
@@ -72,30 +73,34 @@ describe('session question workflows', () => {
     });
     if (!sessionResult.success) throw new Error('Failed to create session');
 
-    const chunks = await ctx.getSessionChunks(sessionResult.data.sessionId);
+    const sessionId = sessionResult.data.sessionId;
+    const chunks = await ctx.getSessionChunks(sessionId);
     const sc = chunks[0]!;
 
     // Mark chunk in_progress
     await sessionRepo.updateSessionChunk(sc.id, { status: 'in_progress' });
 
-    return { sessionChunkId: sc.id, chunkId: 'c1' };
+    return { sessionId, sessionChunkId: sc.id, chunkId: 'c1' };
   }
 
-  it('creates questions for a session chunk', async () => {
-    const { sessionChunkId } = await seedSessionWithInProgressChunk();
+  it('creates questions for a session', async () => {
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
 
     const result = await ctx.createSessionQuestions({
-      sessionChunkId,
-      questions: [{ promptText: 'What is 2+2?' }, { promptText: 'Explain addition' }],
+      sessionId,
+      questions: [
+        { promptText: 'What is 2+2?', chunkIds: [chunkId] },
+        { promptText: 'Explain addition', chunkIds: [chunkId] },
+      ],
     });
 
     expect(result.status).toBe('created');
     if (result.status !== 'created') throw new Error('Expected created');
-    expect(result.sessionChunkId).toBe(sessionChunkId);
+    expect(result.sessionId).toBe(sessionId);
     expect(result.questionIds).toHaveLength(2);
 
     // Verify persisted via adapter
-    const questions = await questionRepo.getQuestionsForChunk(sessionChunkId);
+    const questions = await questionRepo.getQuestionsForSession(sessionId);
     expect(questions).toHaveLength(2);
     expect(questions[0]!.promptText).toBe('What is 2+2?');
     expect(questions[1]!.promptText).toBe('Explain addition');
@@ -105,16 +110,16 @@ describe('session question workflows', () => {
   });
 
   it('rejects duplicate question creation for the same chunk', async () => {
-    const { sessionChunkId } = await seedSessionWithInProgressChunk();
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
 
     await ctx.createSessionQuestions({
-      sessionChunkId,
-      questions: [{ promptText: 'Q1' }],
+      sessionId,
+      questions: [{ promptText: 'Q1', chunkIds: [chunkId] }],
     });
 
     const duplicateResult = await ctx.createSessionQuestions({
-      sessionChunkId,
-      questions: [{ promptText: 'Q2' }],
+      sessionId,
+      questions: [{ promptText: 'Q2', chunkIds: [chunkId] }],
     });
     expect(duplicateResult.status).toBe('error');
     if (duplicateResult.status !== 'error') throw new Error('Expected error');
@@ -122,11 +127,11 @@ describe('session question workflows', () => {
   });
 
   it('submits answer via session question flow — retry then pass', async () => {
-    const { sessionChunkId } = await seedSessionWithInProgressChunk();
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
 
     const createResult = await ctx.createSessionQuestions({
-      sessionChunkId,
-      questions: [{ promptText: 'What is 2+2?' }],
+      sessionId,
+      questions: [{ promptText: 'What is 2+2?', chunkIds: [chunkId] }],
     });
     if (createResult.status !== 'created') throw new Error('Expected created');
     const questionId = createResult.questionIds[0]!;
@@ -169,10 +174,10 @@ describe('session question workflows', () => {
   });
 
   it('updateQuestionStatus changes status', async () => {
-    const { sessionChunkId } = await seedSessionWithInProgressChunk();
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
     const createResult = await ctx.createSessionQuestions({
-      sessionChunkId,
-      questions: [{ promptText: 'Q' }],
+      sessionId,
+      questions: [{ promptText: 'Q', chunkIds: [chunkId] }],
     });
     if (createResult.status !== 'created') throw new Error('Expected created');
     const questionId = createResult.questionIds[0]!;
@@ -182,11 +187,14 @@ describe('session question workflows', () => {
     expect(updated!.status).toBe('answered');
   });
 
-  it('getAllAttemptsForChunk returns ordered attempts across questions', async () => {
-    const { sessionChunkId } = await seedSessionWithInProgressChunk();
+  it('getAllAttemptsForSession returns ordered attempts across questions', async () => {
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
     const createResult = await ctx.createSessionQuestions({
-      sessionChunkId,
-      questions: [{ promptText: 'Q1' }, { promptText: 'Q2' }],
+      sessionId,
+      questions: [
+        { promptText: 'Q1', chunkIds: [chunkId] },
+        { promptText: 'Q2', chunkIds: [chunkId] },
+      ],
     });
     if (createResult.status !== 'created') throw new Error('Expected created');
     const [q1Id, q2Id] = createResult.questionIds;
@@ -209,7 +217,7 @@ describe('session question workflows', () => {
       sessionQuestionId: q2Id,
     });
 
-    const allAttempts = await questionRepo.getAllAttemptsForChunk(sessionChunkId);
+    const allAttempts = await questionRepo.getAllAttemptsForSession(sessionId);
     expect(allAttempts.length).toBeGreaterThanOrEqual(2);
     // Verify ordering: grouped by question, ordered by attempt_number
     for (let i = 1; i < allAttempts.length; i++) {
@@ -221,9 +229,9 @@ describe('session question workflows', () => {
     }
   });
 
-  it('getAllAttemptsForChunk returns empty array when no questions exist', async () => {
-    const { sessionChunkId } = await seedSessionWithInProgressChunk();
-    const attempts = await questionRepo.getAllAttemptsForChunk(sessionChunkId);
+  it('getAllAttemptsForSession returns empty array when no questions exist', async () => {
+    const { sessionId } = await seedSessionWithInProgressChunk();
+    const attempts = await questionRepo.getAllAttemptsForSession(sessionId);
     expect(attempts).toEqual([]);
   });
 });
