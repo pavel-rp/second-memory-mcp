@@ -32,11 +32,11 @@ function createMockRes(): Response {
 
 describe('audit-middleware', () => {
   let auditLogger: pino.Logger;
-  let next: ReturnType<typeof vi.fn>;
+  let next: ReturnType<typeof vi.fn<(err?: unknown) => void>>;
 
   beforeEach(() => {
     auditLogger = createMockLogger();
-    next = vi.fn();
+    next = vi.fn<(err?: unknown) => void>();
   });
 
   it('captures JSON-RPC method, id, and params from request body', () => {

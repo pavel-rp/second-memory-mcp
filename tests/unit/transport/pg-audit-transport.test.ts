@@ -331,9 +331,11 @@ describe('pg-audit-transport', () => {
       await handler(asyncIterableFrom([createAuditEntry()]));
 
       // At least one call to stderr should mention the failure
-      const stderrCalls = stderrSpy.mock.calls.map(c => String(c[0]));
-      expect(stderrCalls.some(msg => msg.includes('Failed to write audit batch'))).toBe(true);
-      expect(stderrCalls.some(msg => msg.includes('connection refused'))).toBe(true);
+      const stderrCalls = stderrSpy.mock.calls.map((c: unknown[]) => String(c[0]));
+      expect(stderrCalls.some((msg: string) => msg.includes('Failed to write audit batch'))).toBe(
+        true
+      );
+      expect(stderrCalls.some((msg: string) => msg.includes('connection refused'))).toBe(true);
     });
   });
 
@@ -401,7 +403,7 @@ describe('pg-audit-transport', () => {
         ])
       );
 
-      const [, params] = mockQuery.mock.calls[0];
+      const [, params] = mockQuery.mock.calls[0] as [string, unknown[]];
       // method, rpcId, timestamp, params, responseStatus, responseBody, durationMs
       expect(params[0]).toBeNull(); // method
       expect(params[1]).toBeNull(); // rpcId

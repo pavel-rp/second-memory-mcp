@@ -69,7 +69,7 @@ function makeRequest(
 describe('audit logging integration', () => {
   let handle: HttpTransportHandle;
   const config: TransportConfig = {
-    transport: 'http',
+    mode: 'http',
     httpHost: '127.0.0.1',
     httpPort: 0,
   };

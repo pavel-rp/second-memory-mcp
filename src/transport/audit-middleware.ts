@@ -48,7 +48,7 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       if (typeof encodingOrCallback === 'function') {
         return originalWrite(chunk, encodingOrCallback);
       }
-      return originalWrite(chunk, encodingOrCallback, callback);
+      return originalWrite(chunk, encodingOrCallback as BufferEncoding, callback);
     } as typeof res.write;
 
     res.end = function captureEnd(
@@ -87,7 +87,11 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       if (typeof encodingOrCallback === 'function') {
         return originalEnd(chunk, encodingOrCallback) as unknown as Response;
       }
-      return originalEnd(chunk, encodingOrCallback, callback) as unknown as Response;
+      return originalEnd(
+        chunk,
+        encodingOrCallback as BufferEncoding,
+        callback
+      ) as unknown as Response;
     } as typeof res.end;
 
     next();
