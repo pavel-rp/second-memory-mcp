@@ -28,6 +28,11 @@ import * as recommendationWorkflows from './recommendation-workflows.js';
 /** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
 const MAX_RETRIES = 3;
 
+/** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
+function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
+  return map.get(key) ?? [];
+}
+
 export type TeachingDeps = {
   sessions: SessionRepository;
   chunks: ChunkRepository;
@@ -91,35 +96,35 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   // Build lookup maps: chunkId (learning chunk ID) → questions, questionId → attempts
   const questionsByChunkId = new Map<string, SessionQuestion[]>();
   for (const q of allQuestions) {
-    const mappedChunkIds = chunkMapping.get(q.id) ?? [];
+    const mappedChunkIds = mapGetList(chunkMapping, q.id);
     for (const cid of mappedChunkIds) {
-      const list = questionsByChunkId.get(cid) ?? [];
+      const list = mapGetList(questionsByChunkId, cid);
       list.push(q);
       questionsByChunkId.set(cid, list);
     }
   }
   const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
   for (const a of allAttempts) {
-    const list = attemptsByQuestion.get(a.sessionQuestionId) ?? [];
+    const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
     list.push(a);
     attemptsByQuestion.set(a.sessionQuestionId, list);
   }
 
   /** Check if a chunk has any recorded attempts (via junction-based resolution). */
   const chunkHasAttempts = (sc: SessionChunk): boolean => {
-    const questions = questionsByChunkId.get(sc.chunkId) ?? [];
+    const questions = mapGetList(questionsByChunkId, sc.chunkId);
     if (questions.length === 0) return false;
-    return questions.some(q => (attemptsByQuestion.get(q.id) ?? []).length > 0);
+    return questions.some(q => mapGetList(attemptsByQuestion, q.id).length > 0);
   };
 
   /** Check if a chunk is a re-queued failure (last attempt was a failure). */
   const chunkIsRequeuedFailure = (sc: SessionChunk): boolean => {
-    const questions = questionsByChunkId.get(sc.chunkId) ?? [];
+    const questions = mapGetList(questionsByChunkId, sc.chunkId);
     if (questions.length === 0) return false;
     const lastQuestion = questions.reduce((max, q) =>
       q.questionIndex > max.questionIndex ? q : max
     );
-    const attempts = attemptsByQuestion.get(lastQuestion.id) ?? [];
+    const attempts = mapGetList(attemptsByQuestion, lastQuestion.id);
     if (attempts.length === 0) return false;
     const lastAttempt = attempts.reduce((max, a) =>
       a.attemptNumber > max.attemptNumber ? a : max
@@ -292,8 +297,8 @@ async function getNextAssessmentStep(
     // All questions answered — build complete response
     const questionsByChunkId = new Map<string, SessionQuestion[]>();
     for (const q of allQuestions) {
-      for (const cid of chunkMapping.get(q.id) ?? []) {
-        const list = questionsByChunkId.get(cid) ?? [];
+      for (const cid of mapGetList(chunkMapping, q.id)) {
+        const list = mapGetList(questionsByChunkId, cid);
         list.push(q);
         questionsByChunkId.set(cid, list);
       }
@@ -301,7 +306,7 @@ async function getNextAssessmentStep(
 
     const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
     for (const a of allAttempts) {
-      const list = attemptsByQuestion.get(a.sessionQuestionId) ?? [];
+      const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
       list.push(a);
       attemptsByQuestion.set(a.sessionQuestionId, list);
     }
@@ -310,7 +315,7 @@ async function getNextAssessmentStep(
   }
 
   // Use pre-fetched chunk mapping for this question
-  const questionChunkIds = chunkMapping.get(nextQuestion.id) ?? [];
+  const questionChunkIds = mapGetList(chunkMapping, nextQuestion.id);
 
   // Return the question without teaching instruction
   // sessionChunks guaranteed non-empty by caller's length check
@@ -411,7 +416,7 @@ export async function submitAnswer(
 
   // Filter to questions that map to this chunk
   const chunkQuestions = allSessionQuestions.filter(q => {
-    const mappedChunks = chunkMappingAll.get(q.id) ?? [];
+    const mappedChunks = mapGetList(chunkMappingAll, q.id);
     return mappedChunks.includes(inProgressChunk.chunkId);
   });
 
@@ -478,7 +483,7 @@ export async function submitAnswer(
   const updatedChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds);
 
   const allChunkQuestions = updatedSessionQuestions.filter(q => {
-    const mapped = updatedChunkMapping.get(q.id) ?? [];
+    const mapped = mapGetList(updatedChunkMapping, q.id);
     return mapped.includes(inProgressChunk.chunkId);
   });
 
@@ -645,7 +650,7 @@ export async function createSessionQuestions(
 
     for (const chunkId of allChunkIds) {
       const existingForChunk = existingQuestions.filter(q => {
-        const mapped = existingMapping.get(q.id) ?? [];
+        const mapped = mapGetList(existingMapping, q.id);
         return mapped.includes(chunkId);
       });
       if (existingForChunk.length > 0) {
@@ -825,7 +830,7 @@ async function submitAnswerForQuestion(
   const allChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(allQIds);
 
   const questionsForChunk = allSessionQuestions.filter(q => {
-    const mapped = allChunkMapping.get(q.id) ?? [];
+    const mapped = mapGetList(allChunkMapping, q.id);
     return mapped.includes(primaryChunkId);
   });
 
@@ -1003,7 +1008,7 @@ async function submitAnswerForAssessmentQuestion(
 
   for (const chunkId of questionChunkIds) {
     const questionsForChunk = allSessionQuestions.filter(q => {
-      const mapped = allChunkMapping.get(q.id) ?? [];
+      const mapped = mapGetList(allChunkMapping, q.id);
       return mapped.includes(chunkId);
     });
     const allAnswered = questionsForChunk.every(q => q.status !== 'pending');
@@ -1043,8 +1048,8 @@ function buildCompleteResponse(
   let exhaustedRetries = 0;
 
   for (const sc of sessionChunks) {
-    const questions = questionsByChunkId.get(sc.chunkId) ?? [];
-    const allAttempts = questions.flatMap(q => attemptsByQuestion.get(q.id) ?? []);
+    const questions = mapGetList(questionsByChunkId, sc.chunkId);
+    const allAttempts = questions.flatMap(q => mapGetList(attemptsByQuestion, q.id));
     if (allAttempts.length === 0) continue;
 
     if (allAttempts.length === 1 && (allAttempts[0] as SessionQuestionAttempt).passed) {
