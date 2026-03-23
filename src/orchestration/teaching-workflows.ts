@@ -1032,11 +1032,13 @@ async function submitAnswerForAssessmentQuestion(
     passed: input.passed,
     quality,
     chunk_id: questionChunkIds[0] as string,
-    review_update: undefined,
     next: nextTeachStep,
   };
 }
 
+// Summary is chunk-centric: total = number of chunks, not questions.
+// A cross-chunk question (Q→[C1,C2]) that passes counts as "passed" for both C1 and C2,
+// which is intentional — each chunk's mastery is assessed by its mapped questions.
 function buildCompleteResponse(
   sessionChunks: SessionChunk[],
   questionsByChunkId: Map<string, SessionQuestion[]>,
