@@ -81,19 +81,20 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       const endHrTime = process.hrtime.bigint();
       const durationMs = Number((endHrTime - startHrTime) / 1_000_000n);
 
-      // Build response body string
-      const responseBody = Buffer.concat(chunks).toString('utf8');
+      // Skip logging for non-RPC requests (SSE stream connections)
+      if (method) {
+        const responseBody = Buffer.concat(chunks).toString('utf8');
 
-      // Emit structured audit log entry
-      auditLogger.info({
-        module: 'mcp-audit',
-        method,
-        rpcId,
-        params,
-        responseStatus: res.statusCode,
-        responseBody,
-        durationMs,
-      });
+        auditLogger.info({
+          module: 'mcp-audit',
+          method,
+          rpcId,
+          params,
+          responseStatus: res.statusCode,
+          responseBody,
+          durationMs,
+        });
+      }
 
       // Call original end
       if (typeof encodingOrCallback === 'function') {
