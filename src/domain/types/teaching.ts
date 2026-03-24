@@ -94,6 +94,7 @@ export type SubmitAnswerRecorded = {
     is_leech: boolean;
   };
   next: TeachNextResponse;
+  late_submission?: boolean;
 };
 
 export type SubmitAnswerError = {
