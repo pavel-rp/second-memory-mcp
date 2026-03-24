@@ -158,10 +158,8 @@ export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
     }
 
     // Stream ended — flush remaining
-    if (flushTimer) {
-      clearInterval(flushTimer);
-      flushTimer = null;
-    }
+    clearInterval(flushTimer as NodeJS.Timeout);
+    flushTimer = null;
     await flushBuffer();
     await pool.end();
   });
