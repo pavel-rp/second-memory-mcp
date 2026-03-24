@@ -399,7 +399,11 @@ export async function submitAnswer(
   // 1. Get active session
   const session = await deps.sessions.getActiveSession();
   if (!session) {
-    return { status: 'error', message: 'No active session. Call create_session first.' };
+    return {
+      status: 'error',
+      message:
+        'No active session. It may have auto-completed or not been created yet. Start a new session to continue.',
+    };
   }
 
   // 2. Find the in-progress chunk
@@ -721,18 +725,10 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // 2. Get active session and verify scoping
-  const session = await deps.sessions.getActiveSession();
+  // 2. Look up the session that owns this question (not just the active one)
+  const session = await deps.sessions.getSessionById(question.sessionId);
   if (!session) {
-    return { status: 'error', message: 'No active session. Call create_session first.' };
-  }
-
-  // 2b. Verify question belongs to the active session
-  if (question.sessionId !== session.id) {
-    return {
-      status: 'error',
-      message: `Question ${sessionQuestionId} belongs to a different session.`,
-    };
+    return { status: 'error', message: 'Session not found for this question.' };
   }
 
   // 3. Resolve chunk(s) via junction
@@ -759,14 +755,19 @@ async function submitAnswerForQuestion(
     );
   }
 
-  // Teaching mode: find the single mapped session chunk
+  // Teaching mode
+  const isLateSubmission = session.status === 'completed';
+
+  // Find the single mapped session chunk
   const primaryChunkId = questionChunkIds[0] as string;
   const sessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
   if (!sessionChunk) {
     return { status: 'error', message: `Session chunk for ${primaryChunkId} not found.` };
   }
 
-  // 3b. Guard: chunk must still be in_progress
+  // 3b. Guard: chunk must still be in_progress.
+  // Late submissions are fine here — auto-complete only triggers when ALL chunks are completed,
+  // so a late submission's target chunk is always still in_progress.
   if (sessionChunk.status !== 'in_progress') {
     return {
       status: 'error',
@@ -857,6 +858,7 @@ async function submitAnswerForQuestion(
         message: `${unanswered.length} question(s) remaining for this chunk.`,
         current_chunk_id: primaryChunkId,
       },
+      ...(isLateSubmission && { late_submission: true }),
     };
   }
 
@@ -912,7 +914,14 @@ async function submitAnswerForQuestion(
     };
   }
 
-  const nextTeachStep = await getNextTeachingStep(deps);
+  // For late submissions, skip getNextTeachingStep (it uses getActiveSession which would fail)
+  const nextTeachStep: TeachNextResponse = isLateSubmission
+    ? {
+        status: 'complete',
+        message: 'Session was already completed.',
+        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
+      }
+    : await getNextTeachingStep(deps);
 
   return {
     status: 'recorded',
@@ -929,6 +938,7 @@ async function submitAnswerForQuestion(
       is_leech: reviewResult.data.isLeech,
     },
     next: nextTeachStep,
+    ...(isLateSubmission && { late_submission: true }),
   };
 }
 
@@ -1048,8 +1058,15 @@ async function submitAnswerForAssessmentQuestion(
     }
   }
 
-  // Piggyback next step
-  const nextTeachStep = await getNextTeachingStep(deps);
+  // Piggyback next step (skip for late submissions — getNextTeachingStep uses getActiveSession)
+  const isLateSubmission = session.status === 'completed';
+  const nextTeachStep: TeachNextResponse = isLateSubmission
+    ? {
+        status: 'complete',
+        message: 'Session was already completed.',
+        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
+      }
+    : await getNextTeachingStep(deps);
 
   return {
     status: 'recorded',
@@ -1059,6 +1076,7 @@ async function submitAnswerForAssessmentQuestion(
     chunk_id: questionChunkIds[0] as string,
     review_update: reviewUpdate,
     next: nextTeachStep,
+    ...(isLateSubmission && { late_submission: true }),
   };
 }
 
