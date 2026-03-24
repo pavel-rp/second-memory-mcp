@@ -141,33 +141,28 @@ export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
     };
   }
 
-  return build(
-    async function (source) {
-      flushTimer = setInterval(() => {
-        void flushBuffer();
-      }, flushIntervalMs);
+  return build(async function (source) {
+    flushTimer = setInterval(() => {
+      void flushBuffer();
+    }, flushIntervalMs);
 
-      for await (const obj of source) {
-        const entry = parseLogEntry(obj as Record<string, unknown>);
-        if (!entry) continue;
+    for await (const obj of source) {
+      const entry = parseLogEntry(obj as Record<string, unknown>);
+      if (!entry) continue;
 
-        buffer.push(entry);
+      buffer.push(entry);
 
-        if (buffer.length >= batchSize) {
-          await flushBuffer();
-        }
+      if (buffer.length >= batchSize) {
+        await flushBuffer();
       }
+    }
 
-      // Stream ended — flush remaining
-      if (flushTimer) {
-        clearInterval(flushTimer);
-        flushTimer = null;
-      }
-      await flushBuffer();
-      await pool.end();
-    },
-    { parse: 'lines' }
-  );
+    // Stream ended — flush remaining
+    clearInterval(flushTimer as NodeJS.Timeout);
+    flushTimer = null;
+    await flushBuffer();
+    await pool.end();
+  });
 }
 
 // Exported for testing
