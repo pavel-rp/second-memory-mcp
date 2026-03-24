@@ -50,9 +50,7 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       callback?: (error: Error | null | undefined) => void
     ): boolean {
       if (chunk != null) {
-        if (Buffer.isBuffer(chunk)) {
-          pushChunk(chunk);
-        } else if (chunk instanceof Uint8Array) {
+        if (chunk instanceof Uint8Array) {
           pushChunk(chunk);
         } else if (typeof chunk === 'string') {
           const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
@@ -71,9 +69,7 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       callback?: () => void
     ): Response {
       if (chunk != null) {
-        if (Buffer.isBuffer(chunk)) {
-          pushChunk(chunk);
-        } else if (chunk instanceof Uint8Array) {
+        if (chunk instanceof Uint8Array) {
           pushChunk(chunk);
         } else if (typeof chunk === 'string') {
           const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
