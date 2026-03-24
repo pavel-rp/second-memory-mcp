@@ -2077,6 +2077,48 @@ describe('submitAnswer with session_question_id', () => {
       if (result.status !== 'recorded') throw new Error('Expected recorded');
       expect(result.quality).toBe(1);
     });
+
+    it('assessment late submission returns late_submission flag and static complete next', async () => {
+      const deps = makeAssessmentDeps({
+        sessions: {
+          getSessionById: vi
+            .fn()
+            .mockResolvedValue(
+              makeSession({ mode: 'assessment', chunkIds: ['c1', 'c2'], status: 'completed' })
+            ),
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'completed' }),
+            ]),
+        },
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion({ status: 'answered' })]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('recorded');
+      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.late_submission).toBe(true);
+      expect(result.next).toEqual({
+        status: 'complete',
+        message: 'Session was already completed.',
+        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
+      });
+      // getActiveSession should NOT be called for late submissions
+      expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
+    });
   });
 
   // ── NEU-94: Late submission (completed session) ─────────────────
@@ -2189,6 +2231,49 @@ describe('submitAnswer with session_question_id', () => {
       });
       // getActiveSession should NOT have been called (late submission skips getNextTeachingStep)
       expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
+    });
+
+    it('includes late_submission when unanswered questions remain on completed session', async () => {
+      const deps = makeQuestionDeps({
+        sessions: {
+          getSessionById: vi.fn().mockResolvedValue(makeSession({ status: 'completed' })),
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            ]),
+        },
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+          // Two questions for this chunk, one still pending → unanswered remains
+          getQuestionsForSession: vi
+            .fn()
+            .mockResolvedValue([
+              makeQuestion({ id: 'sq-1', status: 'answered' }),
+              makeQuestion({ id: 'sq-2', status: 'pending' }),
+            ]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(
+            new Map([
+              ['sq-1', ['c1']],
+              ['sq-2', ['c1']],
+            ])
+          ),
+          getAllAttemptsForSession: vi
+            .fn()
+            .mockResolvedValue([makeQuestionAttempt({ quality: 5 })]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
+        deps
+      );
+
+      expect(result.status).toBe('recorded');
+      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.late_submission).toBe(true);
+      expect(result.next.status).toBe('blocked');
     });
 
     it('does not set late_submission on active session', async () => {
