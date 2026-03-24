@@ -2150,9 +2150,9 @@ describe('submitAnswer with session_question_id', () => {
             .mockResolvedValue([makeQuestionAttempt({ quality: 5 })]),
           ...overrides?.sessionQuestions,
         },
-        ...('reviewPersistence' in (overrides ?? {})
-          ? { reviewPersistence: overrides?.reviewPersistence }
-          : {}),
+        ...(overrides?.reviewPersistence !== undefined && {
+          reviewPersistence: overrides.reviewPersistence,
+        }),
       });
     }
 
