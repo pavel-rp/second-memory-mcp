@@ -128,7 +128,7 @@ describe('audit-middleware', () => {
     );
   });
 
-  it('handles missing body gracefully', () => {
+  it('skips logging when request has no JSON-RPC method (SSE stream)', () => {
     const middleware = createAuditMiddleware(auditLogger);
     const req = createMockReq(undefined);
     const res = createMockRes();
@@ -136,14 +136,7 @@ describe('audit-middleware', () => {
     middleware(req, res, next);
     res.end('{}');
 
-    expect(auditLogger.info).toHaveBeenCalledWith(
-      expect.objectContaining({
-        module: 'mcp-audit',
-        method: undefined,
-        rpcId: undefined,
-        params: undefined,
-      })
-    );
+    expect(auditLogger.info).not.toHaveBeenCalled();
   });
 
   it('handles null rpc_id', () => {
