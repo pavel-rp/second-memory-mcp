@@ -2124,9 +2124,11 @@ describe('submitAnswer with session_question_id', () => {
   // ── NEU-94: Late submission (completed session) ─────────────────
 
   describe('late submission (completed session)', () => {
-    it('records answer against a completed session with late_submission flag', async () => {
-      const allQuestions = [makeQuestion({ id: 'sq-1', status: 'pending' })];
-      const deps = makeQuestionDeps({
+    /** Shared deps for teaching-mode late submission: completed session, in_progress chunk */
+    function makeLateSubmissionDeps(
+      overrides?: Parameters<typeof makeQuestionDeps>[0]
+    ): TeachingDeps {
+      return makeQuestionDeps({
         sessions: {
           getSessionById: vi.fn().mockResolvedValue(makeSession({ status: 'completed' })),
           getSessionChunks: vi
@@ -2134,19 +2136,28 @@ describe('submitAnswer with session_question_id', () => {
             .mockResolvedValue([
               makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
             ]),
+          ...overrides?.sessions,
         },
         sessionQuestions: {
           getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
           getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
           getQuestionsForSession: vi
             .fn()
-            .mockResolvedValue(allQuestions.map(q => ({ ...q, status: 'answered' }))),
+            .mockResolvedValue([makeQuestion({ id: 'sq-1', status: 'answered' })]),
           getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
           getAllAttemptsForSession: vi
             .fn()
             .mockResolvedValue([makeQuestionAttempt({ quality: 5 })]),
+          ...overrides?.sessionQuestions,
         },
+        ...('reviewPersistence' in (overrides ?? {})
+          ? { reviewPersistence: overrides?.reviewPersistence }
+          : {}),
       });
+    }
+
+    it('records answer against a completed session with late_submission flag', async () => {
+      const deps = makeLateSubmissionDeps();
 
       const result = await submitAnswer(
         makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
@@ -2159,28 +2170,7 @@ describe('submitAnswer with session_question_id', () => {
     });
 
     it('triggers SR update on late submission', async () => {
-      const allQuestions = [makeQuestion({ id: 'sq-1', status: 'pending' })];
-      const deps = makeQuestionDeps({
-        sessions: {
-          getSessionById: vi.fn().mockResolvedValue(makeSession({ status: 'completed' })),
-          getSessionChunks: vi
-            .fn()
-            .mockResolvedValue([
-              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
-            ]),
-        },
-        sessionQuestions: {
-          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
-          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
-          getQuestionsForSession: vi
-            .fn()
-            .mockResolvedValue(allQuestions.map(q => ({ ...q, status: 'answered' }))),
-          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
-          getAllAttemptsForSession: vi
-            .fn()
-            .mockResolvedValue([makeQuestionAttempt({ quality: 5 })]),
-        },
-      });
+      const deps = makeLateSubmissionDeps();
 
       const result = await submitAnswer(
         makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
@@ -2194,28 +2184,7 @@ describe('submitAnswer with session_question_id', () => {
     });
 
     it('returns static complete response for next field on late submission', async () => {
-      const allQuestions = [makeQuestion({ id: 'sq-1', status: 'pending' })];
-      const deps = makeQuestionDeps({
-        sessions: {
-          getSessionById: vi.fn().mockResolvedValue(makeSession({ status: 'completed' })),
-          getSessionChunks: vi
-            .fn()
-            .mockResolvedValue([
-              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
-            ]),
-        },
-        sessionQuestions: {
-          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
-          getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
-          getQuestionsForSession: vi
-            .fn()
-            .mockResolvedValue(allQuestions.map(q => ({ ...q, status: 'answered' }))),
-          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
-          getAllAttemptsForSession: vi
-            .fn()
-            .mockResolvedValue([makeQuestionAttempt({ quality: 5 })]),
-        },
-      });
+      const deps = makeLateSubmissionDeps();
 
       const result = await submitAnswer(
         makeInput({ passed: true, sessionQuestionId: 'sq-1' }),
@@ -2234,15 +2203,7 @@ describe('submitAnswer with session_question_id', () => {
     });
 
     it('includes late_submission when unanswered questions remain on completed session', async () => {
-      const deps = makeQuestionDeps({
-        sessions: {
-          getSessionById: vi.fn().mockResolvedValue(makeSession({ status: 'completed' })),
-          getSessionChunks: vi
-            .fn()
-            .mockResolvedValue([
-              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
-            ]),
-        },
+      const deps = makeLateSubmissionDeps({
         sessionQuestions: {
           getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
           getAttemptsForQuestion: vi.fn().mockResolvedValue([]),

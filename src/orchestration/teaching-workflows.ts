@@ -731,8 +731,6 @@ async function submitAnswerForQuestion(
     return { status: 'error', message: 'Session not found for this question.' };
   }
 
-  const isLateSubmission = session.status === 'completed';
-
   // 3. Resolve chunk(s) via junction
   const questionChunkIds = await deps.sessionQuestions.getChunkIdsForQuestion(sessionQuestionId);
   if (questionChunkIds.length === 0) {
@@ -757,14 +755,19 @@ async function submitAnswerForQuestion(
     );
   }
 
-  // Teaching mode: find the single mapped session chunk
+  // Teaching mode
+  const isLateSubmission = session.status === 'completed';
+
+  // Find the single mapped session chunk
   const primaryChunkId = questionChunkIds[0] as string;
   const sessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
   if (!sessionChunk) {
     return { status: 'error', message: `Session chunk for ${primaryChunkId} not found.` };
   }
 
-  // 3b. Guard: chunk must still be in_progress
+  // 3b. Guard: chunk must still be in_progress.
+  // Late submissions are fine here — auto-complete only triggers when ALL chunks are completed,
+  // so a late submission's target chunk is always still in_progress.
   if (sessionChunk.status !== 'in_progress') {
     return {
       status: 'error',
