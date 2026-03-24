@@ -253,7 +253,38 @@ describe('audit-middleware', () => {
     expect(auditLogger.info).toHaveBeenCalledWith(expect.objectContaining({ responseBody: '' }));
   });
 
-  it('skips non-string non-Buffer chunk in res.write', () => {
+  it('captures Uint8Array chunks from res.write (Hono SSE adapter)', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'tools/call', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    const encoder = new TextEncoder();
+    res.write(encoder.encode('data: {"jsonrpc":"2.0","result":{}}\n\n') as unknown as string);
+    res.end();
+
+    expect(auditLogger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseBody: 'data: {"jsonrpc":"2.0","result":{}}\n\n',
+      })
+    );
+  });
+
+  it('captures Uint8Array chunk from res.end', () => {
+    const middleware = createAuditMiddleware(auditLogger);
+    const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+    const res = createMockRes();
+
+    middleware(req, res, next);
+    const encoder = new TextEncoder();
+    res.end(encoder.encode('done') as unknown as string);
+
+    expect(auditLogger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ responseBody: 'done' })
+    );
+  });
+
+  it('skips non-string non-Buffer non-Uint8Array chunk in res.write', () => {
     const middleware = createAuditMiddleware(auditLogger);
     const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
     const res = createMockRes();
@@ -265,7 +296,7 @@ describe('audit-middleware', () => {
     expect(auditLogger.info).toHaveBeenCalledWith(expect.objectContaining({ responseBody: '' }));
   });
 
-  it('skips non-string non-Buffer chunk in res.end', () => {
+  it('skips non-string non-Buffer non-Uint8Array chunk in res.end', () => {
     const middleware = createAuditMiddleware(auditLogger);
     const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
     const res = createMockRes();

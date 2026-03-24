@@ -31,12 +31,12 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
     // Intercept response body by patching both res.write and res.end.
     // MCP uses SSE (res.write for data frames, res.end to close), so we
     // must capture chunks from both methods.
-    const chunks: Buffer[] = [];
+    const chunks: (Buffer | Uint8Array)[] = [];
     let capturedBytes = 0;
     const originalWrite = res.write.bind(res);
     const originalEnd = res.end.bind(res);
 
-    function pushChunk(data: Buffer): void {
+    function pushChunk(data: Buffer | Uint8Array): void {
       if (capturedBytes >= MAX_CAPTURE_BYTES) return;
       const remaining = MAX_CAPTURE_BYTES - capturedBytes;
       const slice = data.length > remaining ? data.subarray(0, remaining) : data;
@@ -50,7 +50,7 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       callback?: (error: Error | null | undefined) => void
     ): boolean {
       if (chunk != null) {
-        if (Buffer.isBuffer(chunk)) {
+        if (chunk instanceof Uint8Array) {
           pushChunk(chunk);
         } else if (typeof chunk === 'string') {
           const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
@@ -69,7 +69,7 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       callback?: () => void
     ): Response {
       if (chunk != null) {
-        if (Buffer.isBuffer(chunk)) {
+        if (chunk instanceof Uint8Array) {
           pushChunk(chunk);
         } else if (typeof chunk === 'string') {
           const encoding = typeof encodingOrCallback === 'string' ? encodingOrCallback : 'utf8';
