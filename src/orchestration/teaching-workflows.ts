@@ -654,26 +654,6 @@ export async function createSessionQuestions(
         };
       }
     }
-
-    // Guard: reject if questions already exist for any targeted chunk
-    const existingQIds = existingQuestions.map(q => q.id);
-    const existingMapping =
-      existingQIds.length > 0
-        ? await deps.sessionQuestions.getChunkIdsForQuestions(existingQIds)
-        : new Map<string, string[]>();
-
-    for (const chunkId of allChunkIds) {
-      const existingForChunk = existingQuestions.filter(q => {
-        const mapped = mapGetList(existingMapping, q.id);
-        return mapped.includes(chunkId);
-      });
-      if (existingForChunk.length > 0) {
-        return {
-          status: 'error',
-          message: `Chunk ${chunkId} already has ${existingForChunk.length} question(s). Cannot create duplicates.`,
-        };
-      }
-    }
   }
 
   // Compute startIndex: session-scoped, so use existing question count + 1

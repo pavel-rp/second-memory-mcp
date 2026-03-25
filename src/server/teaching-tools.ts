@@ -45,7 +45,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                   (result.mode === 'learning'
                     ? 'For learning mode: create 2-3 comprehension questions.'
                     : 'For retrieval mode: create 1 targeted recall question.') +
-                  ' Do NOT call create_session_questions more than once per chunk.',
+                  ' You may call create_session_questions again to append follow-up questions.',
                 nextStep: `create_session_questions({ session_id: "...", questions: [{ prompt_text: "...", chunk_ids: ["${result.chunk_id}"] }] })`,
               },
             })
