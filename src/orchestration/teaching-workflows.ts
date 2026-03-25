@@ -24,6 +24,7 @@ import { logger } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
+import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 
 /** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
 const MAX_RETRIES = 3;
@@ -591,6 +592,7 @@ export async function submitAnswer(
     chunk_id: inProgressChunk.chunkId,
     review_update: reviewUpdate,
     next: nextTeachStep,
+    reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
 }
 
@@ -859,6 +861,7 @@ async function submitAnswerForQuestion(
         current_chunk_id: primaryChunkId,
       },
       ...(isLateSubmission && { late_submission: true }),
+      reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
     };
   }
 
@@ -939,6 +942,7 @@ async function submitAnswerForQuestion(
     },
     next: nextTeachStep,
     ...(isLateSubmission && { late_submission: true }),
+    reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
 }
 
@@ -1077,6 +1081,7 @@ async function submitAnswerForAssessmentQuestion(
     review_update: reviewUpdate,
     next: nextTeachStep,
     ...(isLateSubmission && { late_submission: true }),
+    reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
 }
 
