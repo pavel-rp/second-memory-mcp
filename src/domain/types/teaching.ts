@@ -95,6 +95,7 @@ export type SubmitAnswerRecorded = {
   };
   next: TeachNextResponse;
   late_submission?: boolean;
+  reflect: string;
 };
 
 export type SubmitAnswerError = {

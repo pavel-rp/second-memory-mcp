@@ -205,6 +205,7 @@ describe('teaching-tools', () => {
         is_leech: false,
       },
       next: { status: 'teach', chunk_id: 'c2' },
+      reflect: 'test reflect prompt',
     };
     ctx.submitAnswer = vi.fn().mockResolvedValue(submitResult);
     registerTeachingTools(server as any, ctx);

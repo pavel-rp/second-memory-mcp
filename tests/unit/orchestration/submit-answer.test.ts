@@ -3,6 +3,7 @@ import {
   submitAnswer,
   createSessionQuestions,
   aggregateQuestionQualities,
+  SUBMIT_ANSWER_REFLECT_PROMPT,
   type TeachingDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
 import type {
@@ -196,6 +197,7 @@ describe('submitAnswer', () => {
     expect(result.attempt).toBe(1);
     expect(result.passed).toBe(true);
     expect(result.chunk_id).toBe('c1');
+    expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
   // VC-03: First attempt fail → retry, no SR update
@@ -1421,6 +1423,7 @@ describe('submitAnswer with session_question_id', () => {
     expect(result.status).toBe('recorded');
     if (result.status !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(5);
+    expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
   it('derives quality 3 on second attempt pass', async () => {
@@ -1888,6 +1891,7 @@ describe('submitAnswer with session_question_id', () => {
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(true);
       expect(result.quality).toBe(5);
+      expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
     });
 
     it('assessment fail records quality 1 with no retry', async () => {
@@ -2278,5 +2282,45 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('error');
     expect((result as { message: string }).message).toContain('No active session');
+  });
+
+  // ── NEU-314: Reflect prompt on recorded responses ─────────────
+
+  it('retry response does not include reflect field', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
+      },
+    });
+
+    const result = await submitAnswer(
+      makeInput({ passed: false, sessionQuestionId: 'sq-1' }),
+      deps
+    );
+
+    expect(result.status).toBe('retry');
+    expect('reflect' in result).toBe(false);
+  });
+
+  it('error response does not include reflect field', async () => {
+    const deps = makeQuestionDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(null),
+      },
+    });
+
+    const result = await submitAnswer(makeInput(), deps);
+
+    expect(result.status).toBe('error');
+    expect('reflect' in result).toBe(false);
+  });
+
+  it('reflect string references add_note and all four note types', () => {
+    expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('add_note');
+    expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('insight');
+    expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('confusion');
+    expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('connection');
+    expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('deeper_exploration');
   });
 });
