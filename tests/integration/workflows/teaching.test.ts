@@ -65,7 +65,8 @@ describe('teaching workflows (composition-root wiring)', () => {
     expect(firstChunk.chunk_id).toBe('seg-1');
 
     const submitResult = await ctx.submitAnswer({
-      question: 'What is the structure?',
+      promptText: 'What is the structure?',
+      chunkIds: ['seg-1'],
       response: '1-indexed array of size 4n',
       passed: true,
       feedback: 'Correct',
@@ -73,6 +74,7 @@ describe('teaching workflows (composition-root wiring)', () => {
     });
     expect(submitResult.status).toBe('recorded');
     if (submitResult.status !== 'recorded') throw new Error('Expected recorded');
+    expect(submitResult.session_question_id).toBeDefined();
 
     // The next chunk should include prerequisite_context from the first chunk
     if (submitResult.next.status !== 'teach') throw new Error('Expected teach for next');
