@@ -150,7 +150,6 @@ describe('session question workflows', () => {
 
     // 2. Answer Q1 (pass)
     const a1 = await ctx.submitAnswer({
-      question: 'Q1',
       response: 'Answer 1',
       passed: true,
       feedback: 'Good',
@@ -177,7 +176,6 @@ describe('session question workflows', () => {
 
     // 4. Answer Q2 (pass)
     const a2 = await ctx.submitAnswer({
-      question: 'Q2',
       response: 'Answer 2',
       passed: true,
       feedback: 'Good',
@@ -191,7 +189,6 @@ describe('session question workflows', () => {
 
     // 5. Answer Q3 (pass) — this should complete the chunk with SR update
     const a3 = await ctx.submitAnswer({
-      question: 'Q3',
       response: 'Answer 3',
       passed: true,
       feedback: 'Good',
@@ -219,7 +216,6 @@ describe('session question workflows', () => {
 
     // First attempt — fail → retry
     const retryResult = await ctx.submitAnswer({
-      question: 'What is 2+2?',
       response: 'Wrong answer',
       passed: false,
       feedback: 'Incorrect',
@@ -236,7 +232,6 @@ describe('session question workflows', () => {
 
     // Second attempt — pass → recorded with SR update
     const recordedResult = await ctx.submitAnswer({
-      question: 'What is 2+2?',
       response: '4',
       passed: true,
       feedback: 'Correct',
@@ -282,7 +277,6 @@ describe('session question workflows', () => {
 
     // Submit answers for both questions (first attempt pass for each)
     await ctx.submitAnswer({
-      question: 'Q1',
       response: 'A1',
       passed: true,
       feedback: 'OK',
@@ -290,7 +284,6 @@ describe('session question workflows', () => {
       sessionQuestionId: q1Id,
     });
     await ctx.submitAnswer({
-      question: 'Q2',
       response: 'A2',
       passed: true,
       feedback: 'OK',
@@ -358,7 +351,6 @@ describe('session question workflows', () => {
 
     // 5. Submit answer for first question (pass)
     const answer1 = await ctx.submitAnswer({
-      question: 'How do A and B relate?',
       response: 'They are related through X',
       passed: true,
       feedback: 'Good',
@@ -372,7 +364,6 @@ describe('session question workflows', () => {
 
     // 6. Submit answer for second question (fail)
     const answer2 = await ctx.submitAnswer({
-      question: 'Compare B and C',
       response: 'I do not know',
       passed: false,
       feedback: 'Incorrect',

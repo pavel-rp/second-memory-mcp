@@ -23,7 +23,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Automatically selects the next chunk, hydrates the appropriate prompt, ' +
         'and returns a structured teaching instruction. No input needed — reads the active session. ' +
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
-        'with the question, response, pass/fail assessment, feedback, and time_spent_ms. ' +
+        'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
+        'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
         "When submit_answer returns status 'recorded', check next.status: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
       inputSchema: z.object({}).shape,
     },
@@ -35,18 +36,17 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
             toSnakeCase({
               ...result,
               workflowHint: {
-                action: 'USE_STRUCTURED_QUESTIONS',
+                action: 'USE_INLINE_SUBMIT',
                 sessionId: result.session_id,
                 chunkId: result.chunk_id,
                 mode: result.mode,
                 instruction:
-                  'Create drill questions using create_session_questions({ session_id, questions: [{ prompt_text, chunk_ids }] }), ' +
-                  'then call submit_answer({ session_question_id, ... }) for each question. ' +
+                  'Ask a drill question, then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }) to atomically create the question and record the answer. ' +
                   (result.mode === 'learning'
-                    ? 'For learning mode: create 2-3 comprehension questions.'
-                    : 'For retrieval mode: create 1 targeted recall question.') +
-                  ' You may call create_session_questions again to append follow-up questions.',
-                nextStep: `create_session_questions({ session_id: "...", questions: [{ prompt_text: "...", chunk_ids: ["${result.chunk_id}"] }] })`,
+                    ? 'For learning mode: ask 2-3 comprehension questions.'
+                    : 'For retrieval mode: ask 1 targeted recall question.') +
+                  ' If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
+                nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", passed: true/false, feedback: "...", time_spent_ms: ... })`,
               },
             })
           );
@@ -70,8 +70,11 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       title: 'Submit Answer',
       description:
         "Submit the learner's answer for the current in-progress chunk. " +
+        'Two modes: (1) Inline question creation — provide prompt_text + chunk_ids to atomically create a question and record the first attempt. ' +
+        '(2) Retry — provide session_question_id to record a subsequent attempt on an existing question. ' +
         "The response field must contain the learner's exact words — no paraphrasing, sanitization, or censorship. " +
         'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
+        'Returns session_question_id in retry and recorded responses for retry reference. ' +
         'When status is "recorded", check next.status for the next action: "teach" → present instruction, "complete" → end session, "blocked"/"error" → surface message.',
       inputSchema: SubmitAnswerInputShape,
     },

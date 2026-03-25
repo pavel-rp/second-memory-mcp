@@ -64,17 +64,28 @@ export type TeachNextResponse =
 
 // ── submit_answer types ──────────────────────────────────────────
 
-export type SubmitAnswerInput = {
-  question: string;
+export type SubmitAnswerInputInline = {
+  promptText: string;
+  chunkIds: string[];
   response: string;
   passed: boolean;
   feedback: string;
   timeSpentMs: number;
-  sessionQuestionId?: string;
 };
+
+export type SubmitAnswerInputRetry = {
+  sessionQuestionId: string;
+  response: string;
+  passed: boolean;
+  feedback: string;
+  timeSpentMs: number;
+};
+
+export type SubmitAnswerInput = SubmitAnswerInputInline | SubmitAnswerInputRetry;
 
 export type SubmitAnswerRetry = {
   status: 'retry';
+  session_question_id: string;
   attempt: number;
   chunk_id: string;
   message: string;
@@ -83,6 +94,7 @@ export type SubmitAnswerRetry = {
 
 export type SubmitAnswerRecorded = {
   status: 'recorded';
+  session_question_id: string;
   attempt: number;
   passed: boolean;
   quality: number;
@@ -106,7 +118,18 @@ export type SubmitAnswerError = {
 export type SubmitAnswerResult = SubmitAnswerRetry | SubmitAnswerRecorded | SubmitAnswerError;
 
 export const SubmitAnswerInputShape = {
-  question: z.string().min(1).describe('The drill question that was asked'),
+  prompt_text: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('The drill question text. Required for inline question creation (omit for retries).'),
+  chunk_ids: z
+    .array(z.string().min(1))
+    .min(1)
+    .optional()
+    .describe(
+      'Chunk IDs this question evaluates. Required for inline question creation (omit for retries). Teaching mode: exactly 1.'
+    ),
   response: z
     .string()
     .min(1)
@@ -132,16 +155,51 @@ export const SubmitAnswerInputShape = {
     .string()
     .min(1)
     .optional()
-    .describe('Optional session question ID — when provided, uses the explicit questions flow'),
+    .describe(
+      'Session question ID for retries (2nd+ attempts on an existing question). Omit for inline question creation.'
+    ),
 } as const;
 
 export const SubmitAnswerInputSchema = z
   .object(SubmitAnswerInputShape)
-  .transform(({ time_spent_ms, session_question_id, ...rest }) => ({
-    ...rest,
-    timeSpentMs: time_spent_ms,
-    sessionQuestionId: session_question_id,
-  }));
+  .superRefine((data, ctx) => {
+    const hasInline = data.prompt_text !== undefined && data.chunk_ids !== undefined;
+    const hasRetry = data.session_question_id !== undefined;
+    const hasPartialInline = (data.prompt_text !== undefined) !== (data.chunk_ids !== undefined);
+
+    if (hasInline && hasRetry) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Provide either (prompt_text + chunk_ids) for inline question creation OR session_question_id for retries, not both.',
+      });
+    }
+    if (hasPartialInline) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'prompt_text and chunk_ids must both be provided together for inline question creation.',
+      });
+    }
+    if (!hasInline && !hasRetry && !hasPartialInline) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Provide either (prompt_text + chunk_ids) for inline question creation OR session_question_id for retries.',
+      });
+    }
+  })
+  .transform(({ time_spent_ms, session_question_id, prompt_text, chunk_ids, ...rest }) => {
+    if (session_question_id !== undefined) {
+      return { ...rest, timeSpentMs: time_spent_ms, sessionQuestionId: session_question_id };
+    }
+    return {
+      ...rest,
+      timeSpentMs: time_spent_ms,
+      promptText: prompt_text as string,
+      chunkIds: chunk_ids as string[],
+    };
+  });
 
 // ── start_learning types ────────────────────────────────────────
 

@@ -27,9 +27,6 @@ import * as recommendationWorkflows from './recommendation-workflows.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 
-/** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
-const MAX_RETRIES = 3;
-
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
   return map.get(key) ?? [];
@@ -141,7 +138,8 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   if (inProgressChunk) {
     return {
       status: 'blocked',
-      message: 'Complete the current chunk before advancing.',
+      message:
+        'No questions submitted for the current chunk. Use submit_answer with prompt_text and chunk_ids to ask at least one question before advancing.',
       current_chunk_id: inProgressChunk.chunkId,
     };
   }
@@ -162,12 +160,13 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     if (allCompleted) {
       return buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
     }
-    // Some in_progress remain — blocked on that chunk
+    // Some in_progress remain — blocked on that chunk (has attempts but unanswered questions)
     const blockedChunk = sessionChunks.find(sc => sc.status === 'in_progress');
     if (blockedChunk) {
       return {
         status: 'blocked',
-        message: 'Complete the current chunk before advancing.',
+        message:
+          'Current chunk has unanswered questions. Use submit_answer to answer remaining questions before advancing.',
         current_chunk_id: blockedChunk.chunkId,
       };
     }
@@ -379,25 +378,26 @@ function deriveQuality(attemptNumber: 1 | 2, passed: boolean): number | null {
 /**
  * Submit the learner's answer for the current in-progress chunk.
  *
- * Flow:
- * 1. Get active session → error if none
- * 2. Find in-progress chunk → error if none
- * 3. Auto-create or find current session_question for this presentation
- * 4. Count existing attempts on that question → reject if >= 2
- * 5. Derive quality, persist attempt to session_question_attempts
- * 6. If attempt 1 failed → retry
- * 7. If completed → SR update, mark completed/re-queued, piggyback teach_next
+ * Two input paths (discriminated union):
+ * - Inline: `promptText` + `chunkIds` → atomically creates a SessionQuestion, then records the first attempt.
+ * - Retry: `sessionQuestionId` → records a subsequent attempt on an existing question.
+ *
+ * Both paths delegate to submitAnswerForQuestion() for shared attempt-recording, quality-derivation, and SR-update logic.
  */
 export async function submitAnswer(
   input: SubmitAnswerInput,
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
-  // Branch: if session_question_id is provided, use the new explicit questions flow
-  if (input.sessionQuestionId) {
+  // Retry path: delegate directly to submitAnswerForQuestion, which resolves
+  // the session via the question's own sessionId. This intentionally skips the
+  // active-session check, allowing retries on questions from completed sessions
+  // (late submissions) and avoiding redundant validation already performed by
+  // the inline path that created the question.
+  if ('sessionQuestionId' in input) {
     return submitAnswerForQuestion(input, input.sessionQuestionId, deps);
   }
 
-  // Legacy flow: auto-create session_question, write to session_question_attempts
+  // Inline path: create the question, then delegate
   // 1. Get active session
   const session = await deps.sessions.getActiveSession();
   if (!session) {
@@ -415,188 +415,38 @@ export async function submitAnswer(
     return { status: 'error', message: 'No in-progress chunk. Call teach_next first.' };
   }
 
-  // 3. Find or create the current session_question for this presentation.
-  //    Questions are session-scoped — find those mapping to this chunk via junction.
-  const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
-  const allQuestionIds = allSessionQuestions.map(q => q.id);
-  const chunkMappingAll =
-    allQuestionIds.length > 0
-      ? await deps.sessionQuestions.getChunkIdsForQuestions(allQuestionIds)
-      : new Map<string, string[]>();
-
-  // Filter to questions that map to this chunk
-  const chunkQuestions = allSessionQuestions.filter(q => {
-    const mappedChunks = mapGetList(chunkMappingAll, q.id);
-    return mappedChunks.includes(inProgressChunk.chunkId);
-  });
-
-  let currentQuestion = chunkQuestions.find(q => q.status === 'pending');
-
-  if (!currentQuestion) {
-    // All existing questions are answered/skipped — this is a new presentation.
-    // questionIndex is session-scoped, so use max across all session questions + 1
-    const newQuestionIndex = allSessionQuestions.length + 1;
-    let created;
-    try {
-      created = await deps.sessionQuestions.createQuestions(
-        session.id,
-        [{ promptText: input.question, chunkIds: [inProgressChunk.chunkId] }],
-        newQuestionIndex
-      );
-    } catch (err: unknown) {
-      if (isPgUniqueViolation(err, 'uq_session_questions_session_index')) {
-        return { status: 'error', message: 'Question already created (concurrent request).' };
-      }
-      throw err;
-    }
-    if (!created[0]) {
-      return { status: 'error', message: 'Failed to create session question.' };
-    }
-    currentQuestion = created[0];
-  }
-
-  // 4. Count existing attempts on this question
-  const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(currentQuestion.id);
-  if (existingAttempts.length >= 2) {
+  // 3. Validate chunkIds: teaching mode requires exactly 1 ID matching the in-progress chunk
+  if (input.chunkIds.length !== 1 || input.chunkIds[0] !== inProgressChunk.chunkId) {
     return {
       status: 'error',
-      message: `Max 2 attempts per chunk presentation. Chunk ${inProgressChunk.chunkId} already has ${existingAttempts.length} attempts in this presentation.`,
+      message: `In teaching mode, chunk_ids must contain exactly the in-progress chunk: ["${inProgressChunk.chunkId}"].`,
     };
   }
 
-  const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
+  // 4. Compute questionIndex = existing session questions count + 1
+  const allSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
+  const newQuestionIndex = allSessionQuestions.length + 1;
 
-  // 5. Derive quality and persist attempt
-  const quality = deriveQuality(attemptNumber, input.passed);
-
+  // 5. Atomically create the question
+  let created;
   try {
-    await deps.sessionQuestions.createAttempt({
-      id: crypto.randomUUID(),
-      sessionQuestionId: currentQuestion.id,
-      attemptNumber,
-      response: input.response,
-      passed: input.passed,
-      feedback: input.feedback,
-      quality,
-      timeSpentMs: input.timeSpentMs,
-      createdAt: Date.now(),
-    });
+    created = await deps.sessionQuestions.createQuestions(
+      session.id,
+      [{ promptText: input.promptText, chunkIds: input.chunkIds }],
+      newQuestionIndex
+    );
   } catch (err: unknown) {
-    if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
-      return { status: 'error', message: 'Attempt already recorded' };
+    if (isPgUniqueViolation(err, 'uq_session_questions_session_index')) {
+      return { status: 'error', message: 'Question already created (concurrent request).' };
     }
     throw err;
   }
-
-  // Re-fetch chunk questions + attempts after the new attempt (for time and re-queue logic).
-  // At least one question exists (we just created/answered one), so IDs are always non-empty.
-  const updatedSessionQuestions = await deps.sessionQuestions.getQuestionsForSession(session.id);
-  const updatedQIds = updatedSessionQuestions.map(q => q.id);
-  const [updatedChunkMapping, allChunkAttempts] = await Promise.all([
-    deps.sessionQuestions.getChunkIdsForQuestions(updatedQIds),
-    deps.sessionQuestions.getAllAttemptsForSession(session.id),
-  ]);
-
-  const allChunkQuestions = updatedSessionQuestions.filter(q => {
-    const mapped = mapGetList(updatedChunkMapping, q.id);
-    return mapped.includes(inProgressChunk.chunkId);
-  });
-  const chunkQuestionIds = new Set(allChunkQuestions.map(q => q.id));
-  const chunkAttempts = allChunkAttempts.filter(a => chunkQuestionIds.has(a.sessionQuestionId));
-
-  // Use only the sum of attempt times — do NOT add inProgressChunk.timeSpentMs,
-  // which already includes prior attempt times from the retry-path update.
-  const accumulatedTimeMs = chunkAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
-
-  // 6. First attempt failed → retry (no SR update)
-  if (quality === null) {
-    const retryUpdatedRows = await deps.sessions.updateSessionChunk(inProgressChunk.id, {
-      timeSpentMs: accumulatedTimeMs,
-      updatedAt: Date.now(),
-    });
-    if (retryUpdatedRows === 0) {
-      return {
-        status: 'error',
-        message: 'Failed to update session chunk time tracking',
-      };
-    }
-
-    return {
-      status: 'retry',
-      attempt: attemptNumber,
-      chunk_id: inProgressChunk.chunkId,
-      message: 'Incorrect. Try again.',
-      feedback: input.feedback,
-    };
+  if (!created[0]) {
+    return { status: 'error', message: 'Failed to create session question.' };
   }
 
-  // Mark question as answered
-  await deps.sessionQuestions.updateQuestionStatus(currentQuestion.id, 'answered');
-
-  // 7. Completed (attempt 1 pass, or attempt 2 pass/fail)
-  const reviewDeps: reviewWorkflows.ReviewDeps = {
-    reviewPersistence: deps.reviewPersistence,
-    algorithmConfig: deps.algorithmConfig,
-  };
-
-  const reviewResult = await reviewWorkflows.processReviewResult(
-    inProgressChunk.chunkId,
-    quality,
-    { timeSpentMs: accumulatedTimeMs },
-    reviewDeps
-  );
-
-  // Determine chunk status: re-queue on attempt-2 failure, unless retries exhausted
-  let newStatus: 'completed' | 'pending';
-  if (attemptNumber === 2 && !input.passed) {
-    // Each question = one presentation, so count questions
-    const presentationCount = allChunkQuestions.length;
-    newStatus = presentationCount > MAX_RETRIES ? 'completed' : 'pending';
-  } else {
-    newStatus = 'completed';
-  }
-
-  // If SR persistence failed, surface this explicitly
-  if (!reviewResult.success) {
-    return {
-      status: 'error',
-      message: 'Failed to persist spaced repetition review result.',
-    };
-  }
-
-  const updatedRows = await deps.sessions.updateSessionChunk(inProgressChunk.id, {
-    status: newStatus,
-    timeSpentMs: accumulatedTimeMs,
-    updatedAt: Date.now(),
-  });
-  if (updatedRows === 0) {
-    return {
-      status: 'error',
-      message: 'Failed to update session chunk status',
-    };
-  }
-
-  // Piggyback teach_next only when SR persistence succeeded
-  const nextTeachStep = await getNextTeachingStep(deps);
-
-  // Build review_update from SR result (now guaranteed successful)
-  const reviewUpdate = {
-    next_review_date: new Date(reviewResult.data.updated.nextReviewAt).toISOString().split('T')[0],
-    interval_days: reviewResult.data.updated.intervalDays,
-    ease_factor: reviewResult.data.updated.easeFactor,
-    is_leech: reviewResult.data.isLeech,
-  };
-
-  return {
-    status: 'recorded',
-    attempt: attemptNumber,
-    passed: input.passed,
-    quality,
-    chunk_id: inProgressChunk.chunkId,
-    review_update: reviewUpdate,
-    next: nextTeachStep,
-    reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
-  };
+  // 6. Delegate to shared explicit questions flow
+  return submitAnswerForQuestion(input, created[0].id, deps);
 }
 
 // ── create_session_questions ─────────────────────────────────────
@@ -809,6 +659,7 @@ async function submitAnswerForQuestion(
   if (quality === null) {
     return {
       status: 'retry',
+      session_question_id: sessionQuestionId,
       attempt: attemptNumber,
       chunk_id: primaryChunkId,
       message: 'Incorrect. Try again.',
@@ -836,6 +687,7 @@ async function submitAnswerForQuestion(
     // More questions remain — return recorded but no SR update yet (review_update omitted)
     return {
       status: 'recorded',
+      session_question_id: sessionQuestionId,
       attempt: attemptNumber,
       passed: input.passed,
       quality,
@@ -913,6 +765,7 @@ async function submitAnswerForQuestion(
 
   return {
     status: 'recorded',
+    session_question_id: sessionQuestionId,
     attempt: attemptNumber,
     passed: Math.round(aggregatedQuality) >= 3,
     quality: Math.round(aggregatedQuality),
@@ -1053,6 +906,7 @@ async function submitAnswerForAssessmentQuestion(
 
   return {
     status: 'recorded',
+    session_question_id: sessionQuestionId,
     attempt: 1,
     passed: input.passed,
     quality,

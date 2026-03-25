@@ -7,8 +7,8 @@ Second Memory is a spaced-repetition learning server. Follow these workflows:
 
 TEACHING FLOW (start_learning → submit_answer loop)
 1. Call start_learning. If status is "nothing_due"/"error", surface message and stop. If "started"/"resumed", check first_chunk.status: "teach" → present instruction and collect response; "blocked"/"error" → surface and stop.
-2. Call submit_answer with question, response, pass/fail, feedback, time_spent_ms.
-3. On "retry", ask learner to try again and re-call submit_answer.
+2. Call submit_answer with prompt_text, chunk_ids, response, pass/fail, feedback, time_spent_ms.
+3. On "retry", ask learner to try again and re-call submit_answer with session_question_id from the response.
 4. On "recorded", check next.status: "teach" → present instruction, repeat from step 2. "blocked"/"error" → stop.
 5. On next.status "complete", call complete_session with session_id and optional feedback.
 
@@ -16,7 +16,7 @@ ROLLING SESSION FLOW (manual chunk-by-chunk control)
 1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
 2. Call create_session_chunk with the session_id, chunk_id, and status: "in_progress" to add and activate the chunk.
 3. Call get_chunk_content with the chunk_id to retrieve the chunk, then teach it.
-4. Call submit_answer with the question, response, pass/fail judgment, feedback, and time_spent_ms. If result says "retry", ask the learner to try again and re-call submit_answer until it returns "recorded". After "recorded", check the next field: if next.status is "teach", go to step 3 for that chunk (it is already in_progress — do not call create_session_chunk). If next.status is "blocked" or "error", surface the message to the learner and stop. Only loop back to step 2 when next.status is "complete" or no chunk is currently in_progress.
+4. Call submit_answer with prompt_text, chunk_ids, response, pass/fail judgment, feedback, and time_spent_ms. If result says "retry", ask the learner to try again and re-call submit_answer with session_question_id from the response until it returns "recorded". After "recorded", check the next field: if next.status is "teach", go to step 3 for that chunk (it is already in_progress — do not call create_session_chunk). If next.status is "blocked" or "error", surface the message to the learner and stop. Only loop back to step 2 when next.status is "complete" or no chunk is currently in_progress.
 5. Repeat steps 2–4 for each chunk the learner selects.
 6. Call complete_session with the session_id from step 1 and optional feedback when the learner is done.
 

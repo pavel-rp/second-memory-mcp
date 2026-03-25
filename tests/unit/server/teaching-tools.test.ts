@@ -87,14 +87,14 @@ describe('teaching-tools', () => {
     const parsed = parseResult(result);
 
     expect(parsed.workflow_hint).toBeDefined();
-    expect(parsed.workflow_hint.action).toBe('USE_STRUCTURED_QUESTIONS');
+    expect(parsed.workflow_hint.action).toBe('USE_INLINE_SUBMIT');
     expect(parsed.workflow_hint.session_id).toBe('sess-1');
     expect(parsed.workflow_hint.chunk_id).toBe('c1');
     expect(parsed.workflow_hint.mode).toBe('learning');
-    expect(parsed.workflow_hint.instruction).toContain('create_session_questions');
     expect(parsed.workflow_hint.instruction).toContain('submit_answer');
-    expect(parsed.workflow_hint.next_step).toContain('create_session_questions');
-    expect(parsed.workflow_hint.next_step).toContain('session_id');
+    expect(parsed.workflow_hint.instruction).toContain('prompt_text');
+    expect(parsed.workflow_hint.next_step).toContain('submit_answer');
+    expect(parsed.workflow_hint.next_step).toContain('prompt_text');
   });
 
   it('teach_next workflow_hint uses retrieval instruction for retrieval mode', async () => {
@@ -191,9 +191,10 @@ describe('teaching-tools', () => {
     expect(server.tools.has('submit_answer')).toBe(true);
   });
 
-  it('submit_answer returns orchestration result as JSON on success', async () => {
+  it('submit_answer returns orchestration result as JSON on success (inline path)', async () => {
     const submitResult = {
       status: 'recorded',
+      session_question_id: 'sq-1',
       attempt: 1,
       passed: true,
       quality: 5,
@@ -212,7 +213,8 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
-      question: 'What is X?',
+      prompt_text: 'What is X?',
+      chunk_ids: ['c1'],
       response: 'X is Y',
       passed: true,
       feedback: 'Correct',
@@ -221,18 +223,20 @@ describe('teaching-tools', () => {
     const parsed = parseResult(result);
 
     expect(parsed.status).toBe('recorded');
+    expect(parsed.session_question_id).toBe('sq-1');
     expect(parsed.quality).toBe(5);
     expect(parsed.chunk_id).toBe('c1');
     expect(parsed.next.status).toBe('teach');
   });
 
-  it('submit_answer maps snake_case input to camelCase', async () => {
+  it('submit_answer maps snake_case inline input to camelCase', async () => {
     ctx.submitAnswer = vi.fn().mockResolvedValue({ status: 'retry', attempt: 1 });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     await handler({
-      question: 'Q',
+      prompt_text: 'Q',
+      chunk_ids: ['c1'],
       response: 'A',
       passed: false,
       feedback: 'Wrong',
@@ -240,7 +244,8 @@ describe('teaching-tools', () => {
     });
 
     expect(ctx.submitAnswer).toHaveBeenCalledWith({
-      question: 'Q',
+      promptText: 'Q',
+      chunkIds: ['c1'],
       response: 'A',
       passed: false,
       feedback: 'Wrong',
@@ -248,12 +253,12 @@ describe('teaching-tools', () => {
     });
   });
 
-  it('submit_answer returns validation error for invalid input', async () => {
+  it('submit_answer returns validation error when neither inline nor retry fields provided', async () => {
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
-      question: '', // min(1) violation
+      // Neither prompt_text+chunk_ids nor session_question_id
       response: 'A',
       passed: true,
       feedback: 'OK',
@@ -272,7 +277,8 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('submit_answer')!.handler;
 
     const result = await handler({
-      question: 'Q',
+      prompt_text: 'Q',
+      chunk_ids: ['c1'],
       response: 'A',
       passed: true,
       feedback: 'OK',
@@ -454,9 +460,10 @@ describe('teaching-tools', () => {
     expect(parsed.error.retryable).toBe(true);
   });
 
-  it('submit_answer accepts optional session_question_id', async () => {
+  it('submit_answer accepts session_question_id for retry path', async () => {
     ctx.submitAnswer = vi.fn().mockResolvedValue({
       status: 'retry',
+      session_question_id: 'sq-1',
       attempt: 1,
       chunk_id: 'c1',
       message: 'Try again',
@@ -466,7 +473,6 @@ describe('teaching-tools', () => {
     const handler = server.tools.get('submit_answer')!.handler;
 
     await handler({
-      question: 'Q',
       response: 'A',
       passed: false,
       feedback: 'Wrong',
@@ -479,5 +485,41 @@ describe('teaching-tools', () => {
         sessionQuestionId: 'sq-1',
       })
     );
+  });
+
+  it('submit_answer rejects when both inline and retry fields provided', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('submit_answer')!.handler;
+
+    const result = await handler({
+      prompt_text: 'Q',
+      chunk_ids: ['c1'],
+      session_question_id: 'sq-1',
+      response: 'A',
+      passed: true,
+      feedback: 'OK',
+      time_spent_ms: 1000,
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
+  });
+
+  it('submit_answer rejects partial inline (prompt_text without chunk_ids)', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('submit_answer')!.handler;
+
+    const result = await handler({
+      prompt_text: 'Q',
+      response: 'A',
+      passed: true,
+      feedback: 'OK',
+      time_spent_ms: 1000,
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
   });
 });
