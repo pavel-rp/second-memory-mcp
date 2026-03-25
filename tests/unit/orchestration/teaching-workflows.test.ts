@@ -218,6 +218,8 @@ describe('getNextTeachingStep', () => {
 
     expect(result.status).toBe('blocked');
     expect(result).toHaveProperty('current_chunk_id', 'c1');
+    expect((result as { message: string }).message).toContain('prompt_text');
+    expect((result as { message: string }).message).toContain('chunk_ids');
   });
 
   // VC-03: Gating — in_progress chunk WITH attempts → does NOT block
