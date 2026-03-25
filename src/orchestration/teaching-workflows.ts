@@ -435,11 +435,25 @@ export async function submitAnswer(
     // All existing questions are answered/skipped — this is a new presentation.
     // questionIndex is session-scoped, so use max across all session questions + 1
     const newQuestionIndex = allSessionQuestions.length + 1;
-    const created = await deps.sessionQuestions.createQuestions(
-      session.id,
-      [{ promptText: input.question, chunkIds: [inProgressChunk.chunkId] }],
-      newQuestionIndex
-    );
+    let created;
+    try {
+      created = await deps.sessionQuestions.createQuestions(
+        session.id,
+        [{ promptText: input.question, chunkIds: [inProgressChunk.chunkId] }],
+        newQuestionIndex
+      );
+    } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        'code' in err &&
+        (err as { code: string }).code === '23505' &&
+        'constraint' in err &&
+        (err as { constraint: string }).constraint === 'uq_session_questions_session_index'
+      ) {
+        return { status: 'error', message: 'Question already created (concurrent request).' };
+      }
+      throw err;
+    }
     if (!created[0]) {
       return { status: 'error', message: 'Failed to create session question.' };
     }
@@ -676,11 +690,25 @@ export async function createSessionQuestions(
   // Compute startIndex: session-scoped, so use existing question count + 1
   const startIndex = existingQuestions.length + 1;
 
-  const created = await deps.sessionQuestions.createQuestions(
-    input.sessionId,
-    input.questions,
-    startIndex
-  );
+  let created;
+  try {
+    created = await deps.sessionQuestions.createQuestions(
+      input.sessionId,
+      input.questions,
+      startIndex
+    );
+  } catch (err: unknown) {
+    if (
+      err instanceof Error &&
+      'code' in err &&
+      (err as { code: string }).code === '23505' &&
+      'constraint' in err &&
+      (err as { constraint: string }).constraint === 'uq_session_questions_session_index'
+    ) {
+      return { status: 'error', message: 'Questions already created (concurrent request).' };
+    }
+    throw err;
+  }
 
   return {
     status: 'created' as const,
