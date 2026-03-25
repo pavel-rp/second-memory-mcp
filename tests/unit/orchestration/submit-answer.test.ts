@@ -1373,26 +1373,60 @@ describe('createSessionQuestions', () => {
     );
   });
 
-  it('returns error when chunk already has questions', async () => {
+  it('appends questions when chunk already has questions', async () => {
+    const appended = [makeQuestion({ id: 'sq-new', questionIndex: 2 })];
     const deps = makeQuestionDeps({
       sessionQuestions: {
         getQuestionsForSession: vi
           .fn()
           .mockResolvedValue([makeQuestion({ id: 'sq-existing', questionIndex: 1 })]),
-        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-existing', ['c1']]])),
+        createQuestions: vi.fn().mockResolvedValue(appended),
       },
     });
 
     const result = await createSessionQuestions(
-      { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+      { sessionId: 'sess-1', questions: [{ promptText: 'Q2', chunkIds: ['c1'] }] },
       deps
     );
 
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'error',
-        message: expect.stringContaining('already has'),
+        status: 'created',
+        questionIds: ['sq-new'],
       })
+    );
+    // startIndex should be existingQuestions.length + 1 = 2
+    expect(deps.sessionQuestions.createQuestions).toHaveBeenCalledWith(
+      'sess-1',
+      expect.any(Array),
+      2
+    );
+  });
+
+  it('assigns continuous questionIndex when appending after partial answers', async () => {
+    const existing = [
+      makeQuestion({ id: 'sq-1', questionIndex: 1, status: 'answered' }),
+      makeQuestion({ id: 'sq-2', questionIndex: 2, status: 'pending' }),
+    ];
+    const appended = [makeQuestion({ id: 'sq-3', questionIndex: 3 })];
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionsForSession: vi.fn().mockResolvedValue(existing),
+        createQuestions: vi.fn().mockResolvedValue(appended),
+      },
+    });
+
+    const result = await createSessionQuestions(
+      { sessionId: 'sess-1', questions: [{ promptText: 'Q3', chunkIds: ['c1'] }] },
+      deps
+    );
+
+    expect(result.status).toBe('created');
+    // startIndex should be 3 (2 existing + 1)
+    expect(deps.sessionQuestions.createQuestions).toHaveBeenCalledWith(
+      'sess-1',
+      expect.any(Array),
+      3
     );
   });
 

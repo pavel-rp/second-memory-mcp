@@ -109,21 +109,102 @@ describe('session question workflows', () => {
     expect(questions[0]!.status).toBe('pending');
   });
 
-  it('rejects duplicate question creation for the same chunk', async () => {
+  it('appends questions to a chunk that already has questions', async () => {
     const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
 
-    await ctx.createSessionQuestions({
+    const first = await ctx.createSessionQuestions({
       sessionId,
       questions: [{ promptText: 'Q1', chunkIds: [chunkId] }],
     });
+    expect(first.status).toBe('created');
 
-    const duplicateResult = await ctx.createSessionQuestions({
+    const second = await ctx.createSessionQuestions({
       sessionId,
       questions: [{ promptText: 'Q2', chunkIds: [chunkId] }],
     });
-    expect(duplicateResult.status).toBe('error');
-    if (duplicateResult.status !== 'error') throw new Error('Expected error');
-    expect(duplicateResult.message).toContain('already has');
+    expect(second.status).toBe('created');
+    if (second.status !== 'created') throw new Error('Expected created');
+
+    // Verify all questions persisted with continuous indices
+    const questions = await questionRepo.getQuestionsForSession(sessionId);
+    expect(questions).toHaveLength(2);
+    expect(questions[0]!.questionIndex).toBe(1);
+    expect(questions[1]!.questionIndex).toBe(2);
+    expect(questions[0]!.promptText).toBe('Q1');
+    expect(questions[1]!.promptText).toBe('Q2');
+  });
+
+  it('append flow: create 2 questions, answer 1, append 1, answer remaining, chunk completes with aggregated quality', async () => {
+    const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
+
+    // 1. Create initial 2 questions
+    const create1 = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [
+        { promptText: 'Q1', chunkIds: [chunkId] },
+        { promptText: 'Q2', chunkIds: [chunkId] },
+      ],
+    });
+    if (create1.status !== 'created') throw new Error('Expected created');
+    const [q1Id, q2Id] = create1.questionIds;
+
+    // 2. Answer Q1 (pass)
+    const a1 = await ctx.submitAnswer({
+      question: 'Q1',
+      response: 'Answer 1',
+      passed: true,
+      feedback: 'Good',
+      timeSpentMs: 2000,
+      sessionQuestionId: q1Id,
+    });
+    expect(a1.status).toBe('recorded');
+    if (a1.status !== 'recorded') throw new Error('Expected recorded');
+    // Still has unanswered questions — should be blocked
+    expect(a1.next.status).toBe('blocked');
+
+    // 3. Append Q3
+    const create2 = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [{ promptText: 'Q3', chunkIds: [chunkId] }],
+    });
+    if (create2.status !== 'created') throw new Error('Expected created');
+    const q3Id = create2.questionIds[0]!;
+
+    // Verify continuous index
+    const questions = await questionRepo.getQuestionsForSession(sessionId);
+    expect(questions).toHaveLength(3);
+    expect(questions[2]!.questionIndex).toBe(3);
+
+    // 4. Answer Q2 (pass)
+    const a2 = await ctx.submitAnswer({
+      question: 'Q2',
+      response: 'Answer 2',
+      passed: true,
+      feedback: 'Good',
+      timeSpentMs: 2000,
+      sessionQuestionId: q2Id,
+    });
+    expect(a2.status).toBe('recorded');
+    if (a2.status !== 'recorded') throw new Error('Expected recorded');
+    // Q3 still unanswered — blocked
+    expect(a2.next.status).toBe('blocked');
+
+    // 5. Answer Q3 (pass) — this should complete the chunk with SR update
+    const a3 = await ctx.submitAnswer({
+      question: 'Q3',
+      response: 'Answer 3',
+      passed: true,
+      feedback: 'Good',
+      timeSpentMs: 2000,
+      sessionQuestionId: q3Id,
+    });
+    expect(a3.status).toBe('recorded');
+    if (a3.status !== 'recorded') throw new Error('Expected recorded');
+    // All 3 questions answered — chunk should complete
+    expect(a3.review_update).toBeDefined();
+    expect(a3.review_update?.next_review_date).not.toBe('');
+    // Quality should be aggregated from 3 first-attempt passes (quality 5 each) = 5
+    expect(a3.quality).toBe(5);
   });
 
   it('submits answer via session question flow — retry then pass', async () => {
