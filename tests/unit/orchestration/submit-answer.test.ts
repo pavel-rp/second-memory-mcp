@@ -3,9 +3,9 @@ import {
   submitAnswer,
   createSessionQuestions,
   aggregateQuestionQualities,
-  SUBMIT_ANSWER_REFLECT_PROMPT,
   type TeachingDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
+import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../../../src/shared/constants/prompts.js';
 import type {
   LearningSession,
   SessionChunk,
@@ -1482,6 +1482,7 @@ describe('submitAnswer with session_question_id', () => {
     expect(result.next.status).toBe('blocked');
     if (result.next.status !== 'blocked') throw new Error('Expected blocked');
     expect(result.next.message).toContain('1 question(s) remaining');
+    expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
   it('triggers SR update when all questions answered', async () => {

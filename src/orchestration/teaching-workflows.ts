@@ -24,18 +24,10 @@ import { logger } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
+import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 
 /** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
 const MAX_RETRIES = 3;
-
-/** Static reflect prompt included in every `recorded` submit_answer response. */
-export const SUBMIT_ANSWER_REFLECT_PROMPT =
-  'Based on the conversation so far, consider whether to call add_note on this chunk. ' +
-  'Note types: insight (mental models, analogies the learner developed), ' +
-  'confusion (misconceptions corrected, concepts that needed re-explanation), ' +
-  'connection (links the learner drew to other topics), ' +
-  'deeper_exploration (areas where the learner went beyond the stored content). ' +
-  'If nothing notable happened, move on.';
 
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
