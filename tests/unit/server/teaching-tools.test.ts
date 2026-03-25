@@ -505,4 +505,21 @@ describe('teaching-tools', () => {
     expect(parsed.success).toBe(false);
     expect(parsed.error.type).toBe('validation');
   });
+
+  it('submit_answer rejects partial inline (prompt_text without chunk_ids)', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('submit_answer')!.handler;
+
+    const result = await handler({
+      prompt_text: 'Q',
+      response: 'A',
+      passed: true,
+      feedback: 'OK',
+      time_spent_ms: 1000,
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.error.type).toBe('validation');
+  });
 });
