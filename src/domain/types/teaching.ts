@@ -165,6 +165,7 @@ export const SubmitAnswerInputSchema = z
   .superRefine((data, ctx) => {
     const hasInline = data.prompt_text !== undefined && data.chunk_ids !== undefined;
     const hasRetry = data.session_question_id !== undefined;
+    const hasPartialInline = (data.prompt_text !== undefined) !== (data.chunk_ids !== undefined);
 
     if (hasInline && hasRetry) {
       ctx.addIssue({
@@ -173,19 +174,18 @@ export const SubmitAnswerInputSchema = z
           'Provide either (prompt_text + chunk_ids) for inline question creation OR session_question_id for retries, not both.',
       });
     }
-    if (!hasInline && !hasRetry) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'Provide either (prompt_text + chunk_ids) for inline question creation OR session_question_id for retries.',
-      });
-    }
-    // Partial inline: one of prompt_text/chunk_ids provided without the other
-    if ((data.prompt_text !== undefined) !== (data.chunk_ids !== undefined)) {
+    if (hasPartialInline) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
           'prompt_text and chunk_ids must both be provided together for inline question creation.',
+      });
+    }
+    if (!hasInline && !hasRetry && !hasPartialInline) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'Provide either (prompt_text + chunk_ids) for inline question creation OR session_question_id for retries.',
       });
     }
   })

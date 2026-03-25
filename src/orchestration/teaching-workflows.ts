@@ -388,7 +388,11 @@ export async function submitAnswer(
   input: SubmitAnswerInput,
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
-  // Retry path: delegate directly
+  // Retry path: delegate directly to submitAnswerForQuestion, which resolves
+  // the session via the question's own sessionId. This intentionally skips the
+  // active-session check, allowing retries on questions from completed sessions
+  // (late submissions) and avoiding redundant validation already performed by
+  // the inline path that created the question.
   if ('sessionQuestionId' in input) {
     return submitAnswerForQuestion(input, input.sessionQuestionId, deps);
   }
