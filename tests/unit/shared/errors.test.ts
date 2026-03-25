@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorMessage } from '../../../src/shared/errors.js';
+import { extractErrorMessage, isPgUniqueViolation } from '../../../src/shared/errors.js';
 
 describe('extractErrorMessage', () => {
   it('extracts message from Error instance', () => {
@@ -29,5 +29,36 @@ describe('extractErrorMessage', () => {
 
   it('returns fallback for plain object', () => {
     expect(extractErrorMessage({ message: 'not an error' })).toBe('Unknown error occurred');
+  });
+});
+
+describe('isPgUniqueViolation', () => {
+  function makePgError(code: string, constraint: string): Error {
+    const err = new Error('duplicate key value violates unique constraint');
+    (err as Error & { code: string }).code = code;
+    (err as Error & { constraint: string }).constraint = constraint;
+    return err;
+  }
+
+  it('returns true for matching code and constraint', () => {
+    expect(isPgUniqueViolation(makePgError('23505', 'uq_foo'), 'uq_foo')).toBe(true);
+  });
+
+  it('returns false for different constraint', () => {
+    expect(isPgUniqueViolation(makePgError('23505', 'uq_bar'), 'uq_foo')).toBe(false);
+  });
+
+  it('returns false for non-23505 code', () => {
+    expect(isPgUniqueViolation(makePgError('23503', 'uq_foo'), 'uq_foo')).toBe(false);
+  });
+
+  it('returns false for plain Error without code/constraint', () => {
+    expect(isPgUniqueViolation(new Error('boom'), 'uq_foo')).toBe(false);
+  });
+
+  it('returns false for non-Error values', () => {
+    expect(isPgUniqueViolation('string error', 'uq_foo')).toBe(false);
+    expect(isPgUniqueViolation(null, 'uq_foo')).toBe(false);
+    expect(isPgUniqueViolation(undefined, 'uq_foo')).toBe(false);
   });
 });

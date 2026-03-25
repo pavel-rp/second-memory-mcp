@@ -1160,6 +1160,62 @@ describe('submitAnswer', () => {
       'connection lost'
     );
   });
+
+  // NEU-117: Legacy submitAnswer returns error when createQuestions throws unique violation
+  it('returns error when createQuestions throws 23505 on uq_session_questions_session_index', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'uq_session_questions_session_index';
+
+    const deps = makeDeps({
+      sessionQuestions: {
+        getQuestionsForSession: vi.fn().mockResolvedValue([]),
+        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+        createQuestions: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ passed: true }), deps);
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toBe(
+      'Question already created (concurrent request).'
+    );
+  });
+
+  // NEU-117: Legacy submitAnswer re-throws 23505 from a different constraint
+  it('re-throws createQuestions 23505 from non-session-index constraint', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'some_other_constraint';
+
+    const deps = makeDeps({
+      sessionQuestions: {
+        getQuestionsForSession: vi.fn().mockResolvedValue([]),
+        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+        createQuestions: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    await expect(submitAnswer(makeInput({ passed: true }), deps)).rejects.toThrow(
+      'duplicate key value violates unique constraint'
+    );
+  });
+
+  // NEU-117: Legacy submitAnswer re-throws non-23505 errors from createQuestions
+  it('re-throws non-23505 errors from createQuestions', async () => {
+    const deps = makeDeps({
+      sessionQuestions: {
+        getQuestionsForSession: vi.fn().mockResolvedValue([]),
+        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map()),
+        createQuestions: vi.fn().mockRejectedValue(new Error('connection lost')),
+      },
+    });
+
+    await expect(submitAnswer(makeInput({ passed: true }), deps)).rejects.toThrow(
+      'connection lost'
+    );
+  });
 });
 
 // ── Session Question Flow Tests ─────────────────────────────────
@@ -1372,6 +1428,65 @@ describe('createSessionQuestions', () => {
         message: expect.stringContaining('not the active session'),
       })
     );
+  });
+
+  // NEU-117: createSessionQuestions returns error when createQuestions throws unique violation
+  it('returns error when createQuestions throws 23505 on uq_session_questions_session_index', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'uq_session_questions_session_index';
+
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        createQuestions: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    const result = await createSessionQuestions(
+      { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+      deps
+    );
+
+    expect(result.status).toBe('error');
+    expect((result as { message: string }).message).toBe(
+      'Questions already created (concurrent request).'
+    );
+  });
+
+  // NEU-117: createSessionQuestions re-throws 23505 from a different constraint
+  it('re-throws createQuestions 23505 from non-session-index constraint', async () => {
+    const pgError = new Error('duplicate key value violates unique constraint');
+    (pgError as Error & { code: string }).code = '23505';
+    (pgError as Error & { constraint: string }).constraint = 'some_other_constraint';
+
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        createQuestions: vi.fn().mockRejectedValue(pgError),
+      },
+    });
+
+    await expect(
+      createSessionQuestions(
+        { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+        deps
+      )
+    ).rejects.toThrow('duplicate key value violates unique constraint');
+  });
+
+  // NEU-117: createSessionQuestions re-throws non-23505 errors from createQuestions
+  it('re-throws non-23505 errors from createQuestions', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        createQuestions: vi.fn().mockRejectedValue(new Error('connection lost')),
+      },
+    });
+
+    await expect(
+      createSessionQuestions(
+        { sessionId: 'sess-1', questions: [{ promptText: 'Q1', chunkIds: ['c1'] }] },
+        deps
+      )
+    ).rejects.toThrow('connection lost');
   });
 });
 

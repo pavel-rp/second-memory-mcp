@@ -25,6 +25,7 @@ import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
+import { isPgUniqueViolation } from '../shared/errors.js';
 
 /** Max re-presentations after the initial presentation. Each presentation allows up to 2 attempts, so 3 = up to 4 total presentations / 8 total attempts. */
 const MAX_RETRIES = 3;
@@ -435,11 +436,19 @@ export async function submitAnswer(
     // All existing questions are answered/skipped — this is a new presentation.
     // questionIndex is session-scoped, so use max across all session questions + 1
     const newQuestionIndex = allSessionQuestions.length + 1;
-    const created = await deps.sessionQuestions.createQuestions(
-      session.id,
-      [{ promptText: input.question, chunkIds: [inProgressChunk.chunkId] }],
-      newQuestionIndex
-    );
+    let created;
+    try {
+      created = await deps.sessionQuestions.createQuestions(
+        session.id,
+        [{ promptText: input.question, chunkIds: [inProgressChunk.chunkId] }],
+        newQuestionIndex
+      );
+    } catch (err: unknown) {
+      if (isPgUniqueViolation(err, 'uq_session_questions_session_index')) {
+        return { status: 'error', message: 'Question already created (concurrent request).' };
+      }
+      throw err;
+    }
     if (!created[0]) {
       return { status: 'error', message: 'Failed to create session question.' };
     }
@@ -473,13 +482,7 @@ export async function submitAnswer(
       createdAt: Date.now(),
     });
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      'code' in err &&
-      (err as { code: string }).code === '23505' &&
-      'constraint' in err &&
-      (err as { constraint: string }).constraint === 'uq_session_question_attempts_question_number'
-    ) {
+    if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
       return { status: 'error', message: 'Attempt already recorded' };
     }
     throw err;
@@ -676,11 +679,19 @@ export async function createSessionQuestions(
   // Compute startIndex: session-scoped, so use existing question count + 1
   const startIndex = existingQuestions.length + 1;
 
-  const created = await deps.sessionQuestions.createQuestions(
-    input.sessionId,
-    input.questions,
-    startIndex
-  );
+  let created;
+  try {
+    created = await deps.sessionQuestions.createQuestions(
+      input.sessionId,
+      input.questions,
+      startIndex
+    );
+  } catch (err: unknown) {
+    if (isPgUniqueViolation(err, 'uq_session_questions_session_index')) {
+      return { status: 'error', message: 'Questions already created (concurrent request).' };
+    }
+    throw err;
+  }
 
   return {
     status: 'created' as const,
@@ -803,13 +814,7 @@ async function submitAnswerForQuestion(
       createdAt: Date.now(),
     });
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      'code' in err &&
-      (err as { code: string }).code === '23505' &&
-      'constraint' in err &&
-      (err as { constraint: string }).constraint === 'uq_session_question_attempts_question_number'
-    ) {
+    if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
       return { status: 'error', message: 'Attempt already recorded' };
     }
     throw err;
@@ -986,13 +991,7 @@ async function submitAnswerForAssessmentQuestion(
       createdAt: Date.now(),
     });
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      'code' in err &&
-      (err as { code: string }).code === '23505' &&
-      'constraint' in err &&
-      (err as { constraint: string }).constraint === 'uq_session_question_attempts_question_number'
-    ) {
+    if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
       return { status: 'error', message: 'Attempt already recorded' };
     }
     throw err;
