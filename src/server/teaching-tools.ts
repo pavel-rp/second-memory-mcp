@@ -20,8 +20,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       title: 'Teach Next Chunk',
       description:
         'Get the next teaching instruction for the active learning session. ' +
-        'Automatically selects the next chunk, hydrates the appropriate prompt, ' +
-        'and returns a structured teaching instruction. No input needed — reads the active session. ' +
+        'Completes the current in-progress chunk (if any with recorded attempts): aggregates question qualities, ' +
+        'runs spaced-repetition update, marks it completed, and includes review_update in the response. ' +
+        'Then selects the next chunk, hydrates the appropriate prompt, and returns a structured teaching instruction. ' +
+        'No input needed — reads the active session. ' +
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
         'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
@@ -76,6 +78,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       title: 'Submit Answer',
       description:
         "Submit the learner's answer for the current in-progress chunk. " +
+        'Records the attempt but does NOT complete the chunk or trigger spaced-repetition updates — ' +
+        'chunk completion happens when teach_next is called to advance. ' +
         'Two modes: (1) Inline question creation — provide prompt_text + chunk_ids to atomically create a question and record the first attempt. ' +
         '(2) Retry — provide session_question_id to record a subsequent attempt on an existing question. ' +
         "The response field must contain the learner's exact words — no paraphrasing, sanitization, or censorship. " +

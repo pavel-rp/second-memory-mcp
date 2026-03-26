@@ -134,7 +134,7 @@ describe('session question workflows', () => {
     expect(questions[1]!.promptText).toBe('Q2');
   });
 
-  it('append flow: create 2 questions, answer 1, append 1, answer remaining, chunk completes with aggregated quality', async () => {
+  it('append flow: create 2 questions, answer 1, append 1, answer remaining, teach_next completes with aggregated quality', async () => {
     const { sessionId, chunkId } = await seedSessionWithInProgressChunk();
 
     // 1. Create initial 2 questions
@@ -158,6 +158,8 @@ describe('session question workflows', () => {
     });
     expect(a1.status).toBe('recorded');
     if (a1.status !== 'recorded') throw new Error('Expected recorded');
+    // NEU-347: submit_answer never returns review_update (deferred to teach_next)
+    expect(a1.review_update).toBeUndefined();
 
     // 3. Append Q3
     const create2 = await ctx.createSessionQuestions({
@@ -183,7 +185,7 @@ describe('session question workflows', () => {
     expect(a2.status).toBe('recorded');
     if (a2.status !== 'recorded') throw new Error('Expected recorded');
 
-    // 5. Answer Q3 (pass) — this should complete the chunk with SR update
+    // 5. Answer Q3 (pass) — chunk stays in_progress
     const a3 = await ctx.submitAnswer({
       response: 'Answer 3',
       passed: true,
@@ -193,11 +195,15 @@ describe('session question workflows', () => {
     });
     expect(a3.status).toBe('recorded');
     if (a3.status !== 'recorded') throw new Error('Expected recorded');
-    // All 3 questions answered — chunk should complete
-    expect(a3.review_update).toBeDefined();
-    expect(a3.review_update?.next_review_date).not.toBe('');
-    // Quality should be aggregated from 3 first-attempt passes (quality 5 each) = 5
-    expect(a3.quality).toBe(5);
+    expect(a3.quality).toBe(5); // per-question quality (first attempt pass)
+    expect(a3.review_update).toBeUndefined();
+
+    // 6. teach_next completes the chunk with aggregated quality and returns review_update
+    const nextStep = await ctx.getNextTeachingStep();
+    expect(nextStep.status).toBe('complete');
+    if (nextStep.status !== 'complete') throw new Error('Expected complete');
+    expect(nextStep.review_update).toBeDefined();
+    expect(nextStep.review_update?.next_review_date).not.toBe('');
   });
 
   it('submits answer via session question flow — retry then pass', async () => {
@@ -226,7 +232,7 @@ describe('session question workflows', () => {
     expect(attempts[0]!.attemptNumber).toBe(1);
     expect(attempts[0]!.passed).toBe(false);
 
-    // Second attempt — pass → recorded with SR update
+    // Second attempt — pass → recorded (no SR update — deferred to teach_next)
     const recordedResult = await ctx.submitAnswer({
       response: '4',
       passed: true,
@@ -237,7 +243,8 @@ describe('session question workflows', () => {
     expect(recordedResult.status).toBe('recorded');
     if (recordedResult.status !== 'recorded') throw new Error('Expected recorded');
     expect(recordedResult.quality).toBe(3); // second attempt pass
-    expect(recordedResult.review_update?.next_review_date).not.toBe('');
+    // NEU-347: review_update deferred to teach_next
+    expect(recordedResult.review_update).toBeUndefined();
   });
 
   it('getQuestionById returns null for nonexistent ID', async () => {
@@ -303,6 +310,128 @@ describe('session question workflows', () => {
     const { sessionId } = await seedSessionWithInProgressChunk();
     const attempts = await questionRepo.getAllAttemptsForSession(sessionId);
     expect(attempts).toEqual([]);
+  });
+
+  // ── NEU-347: Multi-question probing ──────────────────────────
+
+  it('multi-question probing: 3 inline submit_answers, then teach_next completes with aggregated quality', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2'], now);
+
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2'],
+      mode: 'learning',
+    });
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    // teach_next selects c1 and marks it in_progress
+    const step1 = await ctx.getNextTeachingStep();
+    expect(step1.status).toBe('teach');
+    if (step1.status !== 'teach') throw new Error('Expected teach');
+    expect(step1.chunk_id).toBe('c1');
+
+    // Submit 3 inline questions for c1 (recall → explain → analyze)
+    const q1 = await ctx.submitAnswer({
+      promptText: 'Recall: What is c1?',
+      chunkIds: ['c1'],
+      response: 'c1 is a concept',
+      passed: true,
+      feedback: 'Basic recall correct',
+      timeSpentMs: 3000,
+    });
+    expect(q1.status).toBe('recorded');
+    if (q1.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q1.review_update).toBeUndefined(); // chunk NOT completed yet
+
+    const q2 = await ctx.submitAnswer({
+      promptText: 'Explain: Why is c1 important?',
+      chunkIds: ['c1'],
+      response: 'c1 matters because...',
+      passed: true,
+      feedback: 'Good explanation',
+      timeSpentMs: 5000,
+    });
+    expect(q2.status).toBe('recorded');
+    if (q2.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q2.review_update).toBeUndefined();
+
+    const q3 = await ctx.submitAnswer({
+      promptText: 'Analyze: How does c1 relate to c2?',
+      chunkIds: ['c1'],
+      response: 'c1 and c2 connect through...',
+      passed: false,
+      feedback: 'Incomplete analysis',
+      timeSpentMs: 7000,
+    });
+    // First attempt fail → retry
+    expect(q3.status).toBe('retry');
+
+    // Retry the analysis question
+    if (q3.status !== 'retry') throw new Error('Expected retry');
+    const q3Retry = await ctx.submitAnswer({
+      sessionQuestionId: q3.session_question_id,
+      response: 'c1 and c2 connect through shared principles...',
+      passed: true,
+      feedback: 'Better analysis',
+      timeSpentMs: 4000,
+    });
+    expect(q3Retry.status).toBe('recorded');
+    if (q3Retry.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q3Retry.quality).toBe(3); // second attempt pass
+    expect(q3Retry.review_update).toBeUndefined();
+
+    // teach_next: completes c1 with aggregated quality, advances to c2
+    const step2 = await ctx.getNextTeachingStep();
+    expect(step2.status).toBe('teach');
+    if (step2.status !== 'teach') throw new Error('Expected teach');
+    expect(step2.chunk_id).toBe('c2');
+    expect(step2.review_update).toBeDefined();
+    expect(step2.review_update?.next_review_date).toBeDefined();
+
+    // Verify c1 was marked completed
+    const chunks = await ctx.getSessionChunks(sessionId);
+    const c1Chunk = chunks.find(sc => sc.chunkId === 'c1');
+    expect(c1Chunk?.status).toBe('completed');
+  });
+
+  it('single-question backward compat: submit 1 answer, teach_next completes', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2'], now);
+
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2'],
+      mode: 'learning',
+    });
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    // teach_next selects c1
+    const step1 = await ctx.getNextTeachingStep();
+    expect(step1.status).toBe('teach');
+    if (step1.status !== 'teach') throw new Error('Expected teach');
+
+    // Single inline submit_answer
+    const result = await ctx.submitAnswer({
+      promptText: 'What is c1?',
+      chunkIds: ['c1'],
+      response: 'c1 is...',
+      passed: true,
+      feedback: 'Correct',
+      timeSpentMs: 5000,
+    });
+    expect(result.status).toBe('recorded');
+
+    // teach_next completes c1 and advances to c2
+    const step2 = await ctx.getNextTeachingStep();
+    expect(step2.status).toBe('teach');
+    if (step2.status !== 'teach') throw new Error('Expected teach');
+    expect(step2.chunk_id).toBe('c2');
+    expect(step2.review_update).toBeDefined();
+
+    const chunks = await ctx.getSessionChunks(sessionId);
+    const c1Chunk = chunks.find(sc => sc.chunkId === 'c1');
+    expect(c1Chunk?.status).toBe('completed');
   });
 
   // ── Assessment mode integration ──────────────────────────────

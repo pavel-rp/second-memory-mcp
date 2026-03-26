@@ -8,7 +8,9 @@ import type { LearningSession, SessionChunk } from '../domain/types/entities.js'
 import type { SessionMode } from '../domain/types/session.js';
 import type {
   TeachNextResponse,
+  TeachNextComplete,
   PrerequisiteContextItem,
+  ReviewUpdate,
   SubmitAnswerInput,
   SubmitAnswerResult,
   StartLearningInput,
@@ -48,6 +50,7 @@ export type TeachingDeps = {
  * 1. Get active session
  * 2. Get session chunks
  * 3. Validate gating (refuse if in_progress chunk has no attempts)
+ * 3b. Complete in-progress chunk with recorded attempts (aggregate quality, SR update, mark completed)
  * 4. Select next chunk (fresh pending → re-queued failures → complete)
  * 5. Fetch chunk data from DB
  * 6. Determine mode (learning vs retrieval)
@@ -144,6 +147,72 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     };
   }
 
+  // 3b. Complete in-progress chunk that has recorded attempts
+  let completedChunkReviewUpdate: ReviewUpdate | undefined;
+  const completableChunk = sessionChunks.find(
+    sc => sc.status === 'in_progress' && chunkHasAttempts(sc)
+  );
+  if (completableChunk) {
+    const chunkQuestions = mapGetList(questionsByChunkId, completableChunk.chunkId);
+    const perQuestionQualities: number[] = [];
+    let accumulatedTimeMs = 0;
+
+    for (const q of chunkQuestions) {
+      const qAttempts = mapGetList(attemptsByQuestion, q.id);
+      accumulatedTimeMs += qAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
+      const scoredAttempt = qAttempts.find(a => a.quality !== null);
+      if (scoredAttempt?.quality !== null && scoredAttempt?.quality !== undefined) {
+        perQuestionQualities.push(scoredAttempt.quality);
+      }
+    }
+
+    const aggregatedQuality = aggregateQuestionQualities(perQuestionQualities);
+
+    const reviewDeps: reviewWorkflows.ReviewDeps = {
+      reviewPersistence: deps.reviewPersistence,
+      algorithmConfig: deps.algorithmConfig,
+    };
+
+    const reviewResult = await reviewWorkflows.processReviewResult(
+      completableChunk.chunkId,
+      Math.round(aggregatedQuality),
+      { timeSpentMs: accumulatedTimeMs },
+      reviewDeps
+    );
+
+    if (reviewResult.success) {
+      const updatedRows = await deps.sessions.updateSessionChunk(completableChunk.id, {
+        status: 'completed',
+        timeSpentMs: accumulatedTimeMs,
+        updatedAt: Date.now(),
+      });
+      if (updatedRows === 0) {
+        logger.error(`Failed to mark chunk ${completableChunk.chunkId} as completed (0 rows)`);
+      }
+      // Update local state so subsequent selection logic sees the chunk as completed
+      completableChunk.status = 'completed';
+
+      completedChunkReviewUpdate = {
+        next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
+          .toISOString()
+          .split('T')[0] as string,
+        interval_days: reviewResult.data.updated.intervalDays,
+        ease_factor: reviewResult.data.updated.easeFactor,
+        is_leech: reviewResult.data.isLeech,
+      };
+    } else {
+      logger.error(
+        `SR update failed for chunk ${completableChunk.chunkId} — completing without SR`
+      );
+      await deps.sessions.updateSessionChunk(completableChunk.id, {
+        status: 'completed',
+        timeSpentMs: accumulatedTimeMs,
+        updatedAt: Date.now(),
+      });
+      completableChunk.status = 'completed';
+    }
+  }
+
   // 4. Select next chunk
   const pendingChunks = sessionChunks.filter(sc => sc.status === 'pending');
 
@@ -158,7 +227,15 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     // No candidates — check if all completed
     const allCompleted = sessionChunks.every(sc => sc.status === 'completed');
     if (allCompleted) {
-      return buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+      const completeResponse = buildCompleteResponse(
+        sessionChunks,
+        questionsByChunkId,
+        attemptsByQuestion
+      );
+      if (completedChunkReviewUpdate) {
+        return { ...completeResponse, review_update: completedChunkReviewUpdate };
+      }
+      return completeResponse;
     }
     // Some in_progress remain — blocked on that chunk (has attempts but unanswered questions)
     const blockedChunk = sessionChunks.find(sc => sc.status === 'in_progress');
@@ -257,6 +334,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         created_at: n.createdAt,
       })),
     }),
+    ...(completedChunkReviewUpdate && { review_update: completedChunkReviewUpdate }),
   };
 }
 
@@ -545,9 +623,9 @@ export function aggregateQuestionQualities(qualities: number[]): number {
 // ── submit_answer with session_question_id flow ─────────────────
 
 /**
- * New-flow submit_answer when session_question_id is provided.
+ * Records an attempt for a session question (inline or retry path).
  * Writes to session_question_attempts, derives quality per question.
- * When all questions for a chunk are answered, aggregates quality and triggers SR update.
+ * Chunk completion and SR update are deferred to getNextTeachingStep.
  */
 async function submitAnswerForQuestion(
   input: SubmitAnswerInput,
@@ -667,103 +745,15 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // 8. Check if all questions for this chunk are answered
-  //    Get all session questions, find those mapping to primaryChunkId
-  const [allSessionQuestions, allSessionAttempts] = await Promise.all([
-    deps.sessionQuestions.getQuestionsForSession(session.id),
-    deps.sessionQuestions.getAllAttemptsForSession(session.id),
-  ]);
-  const allQIds = allSessionQuestions.map(q => q.id);
-  const allChunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(allQIds);
-
-  const questionsForChunk = allSessionQuestions.filter(q => {
-    const mapped = mapGetList(allChunkMapping, q.id);
-    return mapped.includes(primaryChunkId);
-  });
-
-  const unanswered = questionsForChunk.filter(q => q.status === 'pending');
-
-  if (unanswered.length > 0) {
-    // More questions remain — return recorded but no SR update yet (review_update omitted)
-    return {
-      status: 'recorded',
-      session_question_id: sessionQuestionId,
-      attempt: attemptNumber,
-      passed: input.passed,
-      quality,
-      chunk_id: primaryChunkId,
-      ...(isLateSubmission && { late_submission: true }),
-      reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
-    };
-  }
-
-  // 9. All questions answered — aggregate quality
-  const chunkQuestionIds = new Set(questionsForChunk.map(q => q.id));
-  const chunkAttempts = allSessionAttempts.filter(a => chunkQuestionIds.has(a.sessionQuestionId));
-
-  const perQuestionQualities: number[] = [];
-  for (const q of questionsForChunk) {
-    const qAttempts = chunkAttempts.filter(a => a.sessionQuestionId === q.id);
-    const scoredAttempt = qAttempts.find(a => a.quality !== null);
-    if (scoredAttempt?.quality !== null && scoredAttempt?.quality !== undefined) {
-      perQuestionQualities.push(scoredAttempt.quality);
-    }
-  }
-
-  const aggregatedQuality = aggregateQuestionQualities(perQuestionQualities);
-
-  // 10. SR update with aggregated quality
-  const reviewDeps: reviewWorkflows.ReviewDeps = {
-    reviewPersistence: deps.reviewPersistence,
-    algorithmConfig: deps.algorithmConfig,
-  };
-
-  // Use only the sum of attempt times — sessionChunk.timeSpentMs may already
-  // include prior attempt times, so adding it would double-count.
-  const accumulatedTimeMs = chunkAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
-
-  const reviewResult = await reviewWorkflows.processReviewResult(
-    primaryChunkId,
-    Math.round(aggregatedQuality),
-    { timeSpentMs: accumulatedTimeMs },
-    reviewDeps
-  );
-
-  if (!reviewResult.success) {
-    return {
-      status: 'error',
-      message: 'Failed to persist spaced repetition review result.',
-    };
-  }
-
-  // 11. Mark chunk completed (only after SR persistence succeeds)
-  const updatedRows = await deps.sessions.updateSessionChunk(sessionChunk.id, {
-    status: 'completed',
-    timeSpentMs: accumulatedTimeMs,
-    updatedAt: Date.now(),
-  });
-  if (updatedRows === 0) {
-    return {
-      status: 'error',
-      message: 'Failed to update session chunk status',
-    };
-  }
-
+  // 8. Return recorded — chunk stays in_progress.
+  // Completion and SR update are handled by teach_next when the agent advances.
   return {
     status: 'recorded',
     session_question_id: sessionQuestionId,
     attempt: attemptNumber,
-    passed: Math.round(aggregatedQuality) >= 3,
-    quality: Math.round(aggregatedQuality),
+    passed: input.passed,
+    quality,
     chunk_id: primaryChunkId,
-    review_update: {
-      next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
-        .toISOString()
-        .split('T')[0],
-      interval_days: reviewResult.data.updated.intervalDays,
-      ease_factor: reviewResult.data.updated.easeFactor,
-      is_leech: reviewResult.data.isLeech,
-    },
     ...(isLateSubmission && { late_submission: true }),
     reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
@@ -901,7 +891,7 @@ function buildCompleteResponse(
   sessionChunks: SessionChunk[],
   questionsByChunkId: Map<string, SessionQuestion[]>,
   attemptsByQuestion: Map<string, SessionQuestionAttempt[]>
-): TeachNextResponse {
+): TeachNextComplete {
   const total = sessionChunks.length;
   let passedFirstTry = 0;
   let neededRetry = 0;

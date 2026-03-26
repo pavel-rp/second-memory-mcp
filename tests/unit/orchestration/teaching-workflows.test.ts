@@ -561,7 +561,8 @@ describe('getNextTeachingStep', () => {
   });
 
   // No pending, some in_progress → blocked (not complete)
-  it('returns blocked when no pending but some in_progress remain', async () => {
+  it('completes in_progress chunk with attempts when no pending remain', async () => {
+    // NEU-347: teach_next now completes the in_progress chunk before selecting next
     const sqRepo = stubSessionQuestionRepository();
     const deps = makeDeps({
       sessions: {
@@ -577,6 +578,7 @@ describe('getNextTeachingStep', () => {
             status: 'in_progress',
           }),
         ]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
       },
       sessionQuestions: sqRepo,
     });
@@ -587,8 +589,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('blocked');
-    expect(result).toHaveProperty('current_chunk_id', 'c2');
+    // c2 was completed, all chunks done → session complete
+    expect(result.status).toBe('complete');
   });
 
   // No previous_feedback when no historical feedback exists
@@ -1499,6 +1501,268 @@ describe('getNextTeachingStep', () => {
     expect(result.status).toBe('complete');
     if (result.status !== 'complete') throw new Error('Expected complete');
     expect(result.summary.exhausted_retries).toBe(0);
+  });
+
+  // ── NEU-347: teach_next completes in-progress chunks ──────────
+
+  it('completes in-progress chunk with recorded attempts and returns review_update', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-3', chunkId: 'c3', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    // SR update requires a valid chunk
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c2');
+    expect(result.review_update).toBeDefined();
+    expect(result.review_update!.next_review_date).toBeDefined();
+    expect(typeof result.review_update!.interval_days).toBe('number');
+    expect(typeof result.review_update!.ease_factor).toBe('number');
+    expect(typeof result.review_update!.is_leech).toBe('boolean');
+
+    // Verify c1 was marked completed
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'completed' })
+    );
+    // Verify SR was called
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalled();
+  });
+
+  it('aggregates multiple question qualities when completing chunk', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    // Three questions for c1: quality 5, 3, 1 → avg = 3
+    mockQuestionsAndAttempts(sqRepo, [
+      {
+        chunkId: 'c1',
+        attempts: [
+          { passed: true, quality: 5 },
+          { passed: true, quality: 3 },
+        ],
+      },
+    ]);
+    // Add a third question manually
+    const existingQuestions = await sqRepo.getQuestionsForSession('sess-1');
+    const existingAttempts = await sqRepo.getAllAttemptsForSession('sess-1');
+    const existingMapping = await sqRepo.getChunkIdsForQuestions(existingQuestions.map(q => q.id));
+    const q3: SessionQuestion = {
+      id: 'sq-c1-extra',
+      sessionId: 'sess-1',
+      questionIndex: 3,
+      promptText: 'Q3',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const a3: SessionQuestionAttempt = {
+      id: 'sqa-c1-extra',
+      sessionQuestionId: 'sq-c1-extra',
+      attemptNumber: 1,
+      response: 'test',
+      passed: false,
+      feedback: 'wrong',
+      quality: 1,
+      timeSpentMs: 1000,
+      createdAt: NOW,
+    };
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([...existingQuestions, q3]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([...existingAttempts, a3]);
+    existingMapping.set('sq-c1-extra', ['c1']);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(existingMapping);
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    // SR was called for c1 with aggregated quality: (5+3+1)/3 = 3
+    expect(deps.reviewPersistence.getChunk).toHaveBeenCalledWith('c1');
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ repetitions: expect.any(Number) })
+    );
+  });
+
+  it('returns complete with review_update when completing the last chunk', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c1'] })),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+          ]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      sessionQuestions: sqRepo,
+    });
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('complete');
+    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.review_update).toBeDefined();
+    expect(result.review_update!.next_review_date).toBeDefined();
+    expect(result.summary.total).toBe(1);
+  });
+
+  it('does not return review_update when no chunk was completed', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    // No questions or attempts — all chunks pending, none in_progress
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([]);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(new Map());
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.review_update).toBeUndefined();
+    expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
+  });
+
+  it('completes chunk even when SR update fails (fail-open)', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    // getChunk returns undefined → SR fails
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(undefined);
+
+    const result = await getNextTeachingStep(deps);
+
+    // Should still succeed — chunk completed without SR
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c2');
+    expect(result.review_update).toBeUndefined();
+    // Chunk was still marked completed
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'completed' })
+    );
+  });
+
+  it('accumulates timeSpentMs from all chunk question attempts', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    // Two questions for c1: each with attempts of 3000ms and 4000ms
+    mockQuestionsAndAttempts(sqRepo, [
+      {
+        chunkId: 'c1',
+        attempts: [
+          { passed: false, quality: null },
+          { passed: true, quality: 3 },
+        ],
+      },
+    ]);
+    // Override timeSpentMs on the attempts
+    const attempts = await sqRepo.getAllAttemptsForSession('sess-1');
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(
+      attempts.map((a, i) => ({ ...a, timeSpentMs: i === 0 ? 3000 : 4000 }))
+    );
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
+
+    await getNextTeachingStep(deps);
+
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ timeSpentMs: 7000 })
+    );
   });
 });
 
