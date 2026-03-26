@@ -44,7 +44,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                   'Per-chunk probing algorithm: ' +
                   'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). ' +
                   'If correct → escalate one level if time permits → move to next chunk. ' +
-                  'If wrong → give feedback → retry same level (max 3 retries → quality 2, move on). ' +
+                  'If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on). ' +
                   'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk. ' +
                   (result.mode === 'learning'
                     ? 'Learning mode: start at Recall, escalate through levels.'

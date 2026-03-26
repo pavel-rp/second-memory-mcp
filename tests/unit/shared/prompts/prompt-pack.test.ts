@@ -539,8 +539,7 @@ describe('promptPack', () => {
       expect(text).toContain('Per-Chunk Probing Algorithm');
       expect(text).toContain('current taxonomy level');
       expect(text).toContain('escalate one level');
-      expect(text).toContain('max 3 retries');
-      expect(text).toContain('quality 2');
+      expect(text).toContain('max 3 attempts per level');
       expect(text).toContain('1 Recall + 1 Explain');
       expect(text).toContain('5–7 total attempts');
     });

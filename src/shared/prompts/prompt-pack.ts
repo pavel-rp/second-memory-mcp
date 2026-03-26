@@ -467,7 +467,7 @@ class PromptPack {
       'For each chunk in the session:',
       '1) Ask a question at the current taxonomy level (start at Recall)',
       '2) If correct → escalate one level if time permits (Recall → Explain/Apply → Analyze/Create)',
-      '3) If wrong → provide feedback → retry at the same level (max 3 retries → assign quality 2, move on)',
+      '3) If wrong → provide feedback → ask another question at the same level (max 3 attempts per level → move on)',
       '4) Guardrails: minimum 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 total attempts per chunk',
       '5) Scale attempt budget to chunk complexity — simple facts need fewer probes than multi-step procedures',
       '',
