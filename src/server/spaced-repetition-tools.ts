@@ -16,8 +16,6 @@ import {
   CalculateNextReviewAdvancedInputShape,
   RankCandidatesInputSchema,
   RankCandidatesInputShape,
-  RecordReviewResultInputSchema,
-  RecordReviewResultInputShape,
   GetLeechesInputSchema,
   GetLeechesInputShape,
   ResolveLeechInputSchema,
@@ -170,58 +168,6 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         return toolError(`Failed to generate recommendations: ${msg}`, {
           type: 'recommendation',
           message: msg,
-        });
-      }
-    }
-  );
-
-  server.registerTool(
-    'record_review_result',
-    {
-      title: 'Record Review Result',
-      description:
-        'Record study results with SM-2 algorithm integration and leech detection. Updates ease factor, repetitions, and next review date. ' +
-        'Response includes the updated item (when available) with recalculated next_review_date and ease_factor. ' +
-        'Always read scheduling values from the response — do not hardcode or carry over previous values.',
-      inputSchema: RecordReviewResultInputShape,
-    },
-    async (rawInput: unknown) => {
-      try {
-        const input = RecordReviewResultInputSchema.parse(rawInput);
-        const result = await ctx.processReviewResult(input.itemId, input.quality, {
-          timeSpentMs: input.timeSpentMs,
-          consecutiveFailures: input.consecutiveFailures,
-          daysOverdue: input.daysOverdue,
-        });
-
-        if (!result.success) {
-          return toolError(`Failed to record review result: ${result.error.message}`, {
-            type: result.error.type,
-            message: result.error.message,
-            retryable: result.error.type === 'database',
-          });
-        }
-
-        // Fetch updated chunk to return as learning item
-        const updatedChunk = await ctx.getChunkWithContent(input.itemId);
-        const learningItem = updatedChunk ? ctx.mapChunkRowToLearningItem(updatedChunk) : undefined;
-
-        return toolJson(
-          toSnakeCase({
-            success: true,
-            item: learningItem,
-            isLeech: result.data.isLeech,
-            message: result.data.isLeech
-              ? 'Item marked as leech due to consecutive failures'
-              : 'Review result recorded successfully',
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to record review result: ${msg}`, {
-          type: 'database',
-          message: msg,
-          retryable: true,
         });
       }
     }

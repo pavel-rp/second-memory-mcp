@@ -21,8 +21,6 @@ describe('registerServerTools', () => {
     // Chunk tools
     expect(stub.tools).toContain('create_learning_item');
     expect(stub.tools).toContain('delete_chunk');
-    // Write tools
-    expect(stub.tools).toContain('record_review_result');
     // Learning recommendation tools
     expect(stub.tools).toContain('what_to_learn_today');
     // Server info tools

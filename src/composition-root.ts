@@ -26,7 +26,7 @@ import type {
 } from './ports/session-repository.js';
 import type { SearchPort } from './ports/search-port.js';
 import type { ChunkMinimalMetadata } from './ports/chunk-repository.js';
-import type { ReviewPersistencePort, ReviewResultData } from './ports/review-persistence-port.js';
+import type { ReviewPersistencePort } from './ports/review-persistence-port.js';
 import type { UnitOfWorkPort } from './ports/unit-of-work-port.js';
 import type { SessionQuestionRepository } from './ports/session-question-repository.js';
 import type { NotesRepository } from './ports/notes-repository.js';
@@ -156,13 +156,6 @@ export interface AppContext {
     topicId: string,
     summary: string
   ) => Promise<topicWorkflows.TopicUpdateResult>;
-
-  // Review orchestration
-  processReviewResult: (
-    itemId: string,
-    quality: number,
-    options: { timeSpentMs?: number; consecutiveFailures?: number; daysOverdue?: number }
-  ) => Promise<ServiceResult<ReviewResultData>>;
 
   // Leech orchestration
   getLeeches: (options: {
@@ -325,10 +318,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
   };
-  const reviewDeps: reviewWorkflows.ReviewDeps = {
-    reviewPersistence: ports.reviewPersistence,
-    algorithmConfig,
-  };
   const leechDeps: reviewWorkflows.LeechDeps = {
     chunks: ports.chunks,
     reviewPersistence: ports.reviewPersistence,
@@ -385,10 +374,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     createTopicWithChunks: input => topicWorkflows.createTopicWithChunks(input, topicDeps),
     updateTopicMetadata: (id, input) => topicWorkflows.updateTopicMetadata(id, input, topicDeps),
     updateTopicSummary: (id, summary) => topicWorkflows.updateTopicSummary(id, summary, topicDeps),
-
-    // Review orchestration
-    processReviewResult: (itemId, quality, options) =>
-      reviewWorkflows.processReviewResult(itemId, quality, options, reviewDeps),
 
     // Leech orchestration
     getLeeches: options => reviewWorkflows.getLeeches(options, leechDeps),

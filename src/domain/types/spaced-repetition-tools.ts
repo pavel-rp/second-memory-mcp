@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { VALIDATION_CONSTANTS } from '../../shared/constants/validation.js';
 import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 export const CalculateNextReviewInputShape = {
@@ -92,53 +91,6 @@ export const RankCandidatesInputShape = {
 
 export const RankCandidatesInputSchema = z
   .object(RankCandidatesInputShape)
-  .transform(toCamelCaseKeys);
-
-export const RecordReviewResultInputShape = {
-  item_id: z
-    .string()
-    .min(1, 'Item ID cannot be empty')
-    .describe('ID of the learning item being reviewed'),
-  quality: z
-    .number()
-    .min(
-      VALIDATION_CONSTANTS.MIN_QUALITY_SCORE,
-      `Quality score must be at least ${VALIDATION_CONSTANTS.MIN_QUALITY_SCORE}`
-    )
-    .max(
-      VALIDATION_CONSTANTS.MAX_QUALITY_SCORE,
-      `Quality score cannot exceed ${VALIDATION_CONSTANTS.MAX_QUALITY_SCORE}`
-    )
-    .describe(
-      "SM-2 quality score 0-5. Do NOT guess — derive from the learner's actual response. " +
-        '0-2 = failed recall, 3 = correct with difficulty, 4-5 = confident correct. ' +
-        'Prefer submit_answer for teaching sessions; use this only for direct review recording.'
-    ),
-  time_spent_ms: z
-    .number()
-    .int('Time spent must be an integer')
-    .min(0, 'Time spent cannot be negative')
-    .optional()
-    .default(0)
-    .describe('Time spent studying in milliseconds'),
-  consecutive_failures: z
-    .number()
-    .int('Consecutive failures must be an integer')
-    .min(0, 'Consecutive failures cannot be negative')
-    .optional()
-    .default(0)
-    .describe('Number of consecutive failures for this item'),
-  days_overdue: z
-    .number()
-    .int('Days overdue must be an integer')
-    .min(0, 'Days overdue cannot be negative')
-    .optional()
-    .default(0)
-    .describe('Days past the scheduled review date'),
-} as const;
-
-export const RecordReviewResultInputSchema = z
-  .object(RecordReviewResultInputShape)
   .transform(toCamelCaseKeys);
 
 export const GetLeechesInputShape = {

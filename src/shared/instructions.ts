@@ -39,10 +39,10 @@ Before creating a topic: search existing content, then assess the learner — ab
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
 - session_status: session metrics and completion checks. Returns progress, quality, and a continue/complete/break recommendation.
-- submit_answer vs record_review_result: submit_answer during sessions (server derives quality). record_review_result only for direct recording outside a session.
+- submit_answer is the sole path for recording review data. The server derives quality from the learner's response.
 
 OPERATIONAL CONSTRAINTS
-- Never fabricate scores or call record_review_result during a teaching session — use submit_answer.
+- Never fabricate scores — always use submit_answer, which lets the server derive quality.
 - Never skip drills; the server decides when a chunk is mastered.
 - Do not manually hydrate prompt templates; call prompts through the MCP protocol.
 - The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
