@@ -558,9 +558,8 @@ describe('submitAnswer', () => {
     const result = await submitAnswer(makeInput({ passed: true }), deps);
 
     expect(result.status).toBe('recorded');
-    if (result.status === 'recorded') {
-      expect(result).not.toHaveProperty('next');
-    }
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result).not.toHaveProperty('next');
   });
 
   // VC-04: SR update has correct review_update fields
