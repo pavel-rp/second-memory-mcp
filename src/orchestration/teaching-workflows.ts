@@ -692,11 +692,6 @@ async function submitAnswerForQuestion(
       passed: input.passed,
       quality,
       chunk_id: primaryChunkId,
-      next: {
-        status: 'blocked',
-        message: `${unanswered.length} question(s) remaining for this chunk.`,
-        current_chunk_id: primaryChunkId,
-      },
       ...(isLateSubmission && { late_submission: true }),
       reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
     };
@@ -754,15 +749,6 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // For late submissions, skip getNextTeachingStep (it uses getActiveSession which would fail)
-  const nextTeachStep: TeachNextResponse = isLateSubmission
-    ? {
-        status: 'complete',
-        message: 'Session was already completed.',
-        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
-      }
-    : await getNextTeachingStep(deps);
-
   return {
     status: 'recorded',
     session_question_id: sessionQuestionId,
@@ -778,7 +764,6 @@ async function submitAnswerForQuestion(
       ease_factor: reviewResult.data.updated.easeFactor,
       is_leech: reviewResult.data.isLeech,
     },
-    next: nextTeachStep,
     ...(isLateSubmission && { late_submission: true }),
     reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
@@ -894,15 +879,7 @@ async function submitAnswerForAssessmentQuestion(
     }
   }
 
-  // Piggyback next step (skip for late submissions — getNextTeachingStep uses getActiveSession)
   const isLateSubmission = session.status === 'completed';
-  const nextTeachStep: TeachNextResponse = isLateSubmission
-    ? {
-        status: 'complete',
-        message: 'Session was already completed.',
-        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
-      }
-    : await getNextTeachingStep(deps);
 
   return {
     status: 'recorded',
@@ -912,7 +889,6 @@ async function submitAnswerForAssessmentQuestion(
     quality,
     chunk_id: questionChunkIds[0] as string,
     review_update: reviewUpdate,
-    next: nextTeachStep,
     ...(isLateSubmission && { late_submission: true }),
     reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };

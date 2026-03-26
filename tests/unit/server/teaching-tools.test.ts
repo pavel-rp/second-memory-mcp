@@ -205,7 +205,6 @@ describe('teaching-tools', () => {
         ease_factor: 2.6,
         is_leech: false,
       },
-      next: { status: 'teach', chunk_id: 'c2' },
       reflect: 'test reflect prompt',
     };
     ctx.submitAnswer = vi.fn().mockResolvedValue(submitResult);
@@ -226,7 +225,6 @@ describe('teaching-tools', () => {
     expect(parsed.session_question_id).toBe('sq-1');
     expect(parsed.quality).toBe(5);
     expect(parsed.chunk_id).toBe('c1');
-    expect(parsed.next.status).toBe('teach');
   });
 
   it('submit_answer maps snake_case inline input to camelCase', async () => {
