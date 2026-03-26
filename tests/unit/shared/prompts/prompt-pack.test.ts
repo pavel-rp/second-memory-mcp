@@ -80,6 +80,7 @@ describe('promptPack', () => {
     expect(text).toContain('taxonomy levels');
     expect(text).toContain('Recall');
     expect(text).toContain('Explain/Apply');
+    expect(text).toContain('Do not use Analyze/Create on re-queued chunks');
   });
 
   it('review prompt contains quality rubric and taxonomy-aware plan', () => {

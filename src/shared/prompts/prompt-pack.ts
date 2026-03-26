@@ -270,7 +270,7 @@ class PromptPack {
       '- Enforce a two-attempt policy before revealing answers',
       '- Provide immediate, constructive feedback',
       '- Include a near-transfer application if appropriate',
-      '- Use taxonomy levels: start at Recall, escalate to Explain/Apply for higher mastery targets',
+      '- Use taxonomy levels: start at Recall; escalate to Explain/Apply only if mastery target ≥ 3. Do not use Analyze/Create on re-queued chunks — save Level 3 for fresh review sessions.',
       feedbackSection
         ? '- Address previously reported difficulties with extra scaffolding or hints'
         : '',
