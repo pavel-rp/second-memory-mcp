@@ -229,19 +229,7 @@ class PromptPack {
       '- accuracy < 0.80 → Start at last successful level, escalate on correct answer',
       '- accuracy ≥ 0.80 → Interleave all levels',
       '',
-      '## Quality Rubric',
-      '',
-      'QUALITY 5: Immediate, confident, correct. No hints.',
-      'QUALITY 4: Correct after minor self-correction. No hints from tutor.',
-      'QUALITY 3: Correct with difficulty. OR: correct after 1 hint (CEILING — quality cannot exceed 3 with 1 hint).',
-      'QUALITY 2: Partially correct. OR: correct after 2+ hints (CEILING — quality cannot exceed 2 with 2+ hints).',
-      'QUALITY 1: Incorrect, no partial knowledge.',
-      'QUALITY 0: Complete blackout.',
-      '',
-      'Rules:',
-      '- Be a fair judge. Quality 3 is healthy — target 3–4 as the normal range.',
-      '- Quality must be based on demonstrated understanding, not self-report.',
-      '- If you hinted or reteaught, quality CANNOT exceed the ceiling (1 hint → max 3, 2+ hints → max 2).',
+      ...this.formatQualityRubric(),
       '',
       '## NEU-306 Teaching Approach Ceiling',
       '',
@@ -275,19 +263,7 @@ class PromptPack {
         ? '- Address previously reported difficulties with extra scaffolding or hints'
         : '',
       '',
-      '## Quality Rubric',
-      '',
-      'QUALITY 5: Immediate, confident, correct. No hints.',
-      'QUALITY 4: Correct after minor self-correction. No hints from tutor.',
-      'QUALITY 3: Correct with difficulty. OR: correct after 1 hint (CEILING — quality cannot exceed 3 with 1 hint).',
-      'QUALITY 2: Partially correct. OR: correct after 2+ hints (CEILING — quality cannot exceed 2 with 2+ hints).',
-      'QUALITY 1: Incorrect, no partial knowledge.',
-      'QUALITY 0: Complete blackout.',
-      '',
-      'Rules:',
-      '- Be a fair judge. Quality 3 is healthy — target 3–4 as the normal range.',
-      '- Quality must be based on demonstrated understanding, not self-report.',
-      '- If you hinted or reteaught, quality CANNOT exceed the ceiling (1 hint → max 3, 2+ hints → max 2).',
+      ...this.formatQualityRubric(),
     ]
       .filter(Boolean)
       .join('\n');
@@ -325,19 +301,7 @@ class PromptPack {
       '',
       ...basePlan,
       '',
-      '## Quality Rubric',
-      '',
-      'QUALITY 5: Immediate, confident, correct. No hints.',
-      'QUALITY 4: Correct after minor self-correction. No hints from tutor.',
-      'QUALITY 3: Correct with difficulty. OR: correct after 1 hint (CEILING — quality cannot exceed 3 with 1 hint).',
-      'QUALITY 2: Partially correct. OR: correct after 2+ hints (CEILING — quality cannot exceed 2 with 2+ hints).',
-      'QUALITY 1: Incorrect, no partial knowledge.',
-      'QUALITY 0: Complete blackout.',
-      '',
-      'Rules:',
-      '- Be a fair judge. Quality 3 is healthy — target 3–4 as the normal range.',
-      '- Quality must be based on demonstrated understanding, not self-report.',
-      '- If you hinted or reteaught, quality CANNOT exceed the ceiling (1 hint → max 3, 2+ hints → max 2).',
+      ...this.formatQualityRubric(),
     ]
       .filter(Boolean)
       .join('\n');
@@ -613,6 +577,24 @@ class PromptPack {
     ]
       .filter(Boolean)
       .join('\n');
+  }
+
+  private formatQualityRubric(): string[] {
+    return [
+      '## Quality Rubric',
+      '',
+      'QUALITY 5: Immediate, confident, correct. No hints.',
+      'QUALITY 4: Correct after minor self-correction. No hints from tutor.',
+      'QUALITY 3: Correct with difficulty. OR: correct after 1 hint (CEILING — quality cannot exceed 3 with 1 hint).',
+      'QUALITY 2: Partially correct. OR: correct after 2+ hints (CEILING — quality cannot exceed 2 with 2+ hints).',
+      'QUALITY 1: Incorrect, no partial knowledge.',
+      'QUALITY 0: Complete blackout.',
+      '',
+      'Rules:',
+      '- Be a fair judge. Quality 3 is healthy — target 3–4 as the normal range.',
+      '- Quality must be based on demonstrated understanding, not self-report.',
+      '- If you hinted or reteaught, quality CANNOT exceed the ceiling (1 hint → max 3, 2+ hints → max 2).',
+    ];
   }
 
   /**
