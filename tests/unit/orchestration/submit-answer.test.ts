@@ -540,8 +540,8 @@ describe('submitAnswer', () => {
     );
   });
 
-  // VC-06: Piggyback teach_next after completion
-  it('piggybacks teach_next result after completion', async () => {
+  // VC-06: Returns recorded status after all chunks answered
+  it('returns recorded status after completion', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi.fn().mockResolvedValue([
@@ -558,10 +558,9 @@ describe('submitAnswer', () => {
     const result = await submitAnswer(makeInput({ passed: true }), deps);
 
     expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
-    expect(result.next).toBeDefined();
-    // The piggyback result should be a valid TeachNextResponse
-    expect(['teach', 'complete', 'blocked', 'error']).toContain(result.next.status);
+    if (result.status === 'recorded') {
+      expect(result).not.toHaveProperty('next');
+    }
   });
 
   // VC-04: SR update has correct review_update fields
@@ -1617,9 +1616,6 @@ describe('submitAnswer with session_question_id', () => {
 
     expect(result.status).toBe('recorded');
     if (result.status !== 'recorded') throw new Error('Expected recorded');
-    expect(result.next.status).toBe('blocked');
-    if (result.next.status !== 'blocked') throw new Error('Expected blocked');
-    expect(result.next.message).toContain('1 question(s) remaining');
     expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
@@ -2096,7 +2092,7 @@ describe('submitAnswer with session_question_id', () => {
       );
     });
 
-    it('assessment piggybacks next teaching step after recording', async () => {
+    it('assessment returns recorded status after successful submission', async () => {
       const deps = makeAssessmentDeps({
         sessionQuestions: {
           getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
@@ -2117,9 +2113,6 @@ describe('submitAnswer with session_question_id', () => {
       );
 
       expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
-      expect(result.next).toBeDefined();
-      expect(result.next.status).toBe('complete');
     });
 
     it('assessment returns error on duplicate constraint violation', async () => {
@@ -2190,8 +2183,6 @@ describe('submitAnswer with session_question_id', () => {
       );
 
       expect(result.status).toBe('recorded');
-      // updateSessionChunk should NOT be called for chunk completion
-      // (only called by piggybacked getNextTeachingStep if needed)
       // The key assertion: no "completed" status update since already completed
     });
 
@@ -2253,11 +2244,6 @@ describe('submitAnswer with session_question_id', () => {
       expect(result.status).toBe('recorded');
       if (result.status !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBe(true);
-      expect(result.next).toEqual({
-        status: 'complete',
-        message: 'Session was already completed.',
-        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
-      });
       // getActiveSession should NOT be called for late submissions
       expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
     });
@@ -2335,11 +2321,6 @@ describe('submitAnswer with session_question_id', () => {
 
       expect(result.status).toBe('recorded');
       if (result.status !== 'recorded') throw new Error('Expected recorded');
-      expect(result.next).toEqual({
-        status: 'complete',
-        message: 'Session was already completed.',
-        summary: { total: 0, passed_first_try: 0, needed_retry: 0, exhausted_retries: 0 },
-      });
       // getActiveSession should NOT have been called (late submission skips getNextTeachingStep)
       expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
     });
@@ -2376,7 +2357,6 @@ describe('submitAnswer with session_question_id', () => {
       expect(result.status).toBe('recorded');
       if (result.status !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBe(true);
-      expect(result.next.status).toBe('blocked');
     });
 
     it('does not set late_submission on active session', async () => {

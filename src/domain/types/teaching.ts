@@ -105,7 +105,6 @@ export type SubmitAnswerRecorded = {
     ease_factor: number;
     is_leech: boolean;
   };
-  next: TeachNextResponse;
   late_submission?: boolean;
   reflect: string;
 };

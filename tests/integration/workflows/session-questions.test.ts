@@ -158,8 +158,6 @@ describe('session question workflows', () => {
     });
     expect(a1.status).toBe('recorded');
     if (a1.status !== 'recorded') throw new Error('Expected recorded');
-    // Still has unanswered questions — should be blocked
-    expect(a1.next.status).toBe('blocked');
 
     // 3. Append Q3
     const create2 = await ctx.createSessionQuestions({
@@ -184,8 +182,6 @@ describe('session question workflows', () => {
     });
     expect(a2.status).toBe('recorded');
     if (a2.status !== 'recorded') throw new Error('Expected recorded');
-    // Q3 still unanswered — blocked
-    expect(a2.next.status).toBe('blocked');
 
     // 5. Answer Q3 (pass) — this should complete the chunk with SR update
     const a3 = await ctx.submitAnswer({
@@ -373,8 +369,6 @@ describe('session question workflows', () => {
     expect(answer2.status).toBe('recorded');
     if (answer2.status !== 'recorded') throw new Error('Expected recorded');
     expect(answer2.quality).toBe(1);
-    // Next step should be complete — all questions answered
-    expect(answer2.next.status).toBe('complete');
 
     // 7. Verify session chunks are marked completed
     const chunks = await ctx.getSessionChunks(sessionId);

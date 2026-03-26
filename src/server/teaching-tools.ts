@@ -25,7 +25,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
         'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
-        "When submit_answer returns status 'recorded', check next.status: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
+        "When submit_answer returns status 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
       inputSchema: z.object({}).shape,
     },
     async () => {
@@ -75,7 +75,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         "The response field must contain the learner's exact words — no paraphrasing, sanitization, or censorship. " +
         'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
         'Returns session_question_id in retry and recorded responses for retry reference. ' +
-        'When status is "recorded", check next.status for the next action: "teach" → present instruction, "complete" → end session, "blocked"/"error" → surface message.',
+        'When status is "recorded", call teach_next to get the next action.',
       inputSchema: SubmitAnswerInputShape,
     },
     async input => {
@@ -114,7 +114,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'For interactive topic selection, use what_to_learn_today instead. ' +
         'When status is "started" or "resumed", check first_chunk.status: "teach" means follow first_chunk.instruction verbatim; "blocked" or "error" means surface first_chunk.message and stop. ' +
         'Status "nothing_due" or "error" means the session could not start — surface the message and stop. ' +
-        'After teaching, call submit_answer — check next.status for the next action (teach/complete/blocked/error).',
+        'After teaching, call submit_answer. When status is "recorded", call teach_next to get the next action.',
       inputSchema: StartLearningInputShape,
     },
     async input => {

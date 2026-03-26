@@ -76,10 +76,11 @@ describe('teaching workflows (composition-root wiring)', () => {
     if (submitResult.status !== 'recorded') throw new Error('Expected recorded');
     expect(submitResult.session_question_id).toBeDefined();
 
-    // The next chunk should include prerequisite_context from the first chunk
-    if (submitResult.next.status !== 'teach') throw new Error('Expected teach for next');
-    expect(submitResult.next.prerequisite_context).toBeDefined();
-    expect(submitResult.next.prerequisite_context).toEqual(
+    // Call teach_next explicitly to get the next chunk
+    const nextResult = await ctx.getNextTeachingStep();
+    if (nextResult.status !== 'teach') throw new Error('Expected teach for next');
+    expect(nextResult.prerequisite_context).toBeDefined();
+    expect(nextResult.prerequisite_context).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           chunk_id: 'seg-1',

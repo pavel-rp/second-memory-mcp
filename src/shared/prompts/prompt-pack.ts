@@ -326,7 +326,7 @@ class PromptPack {
       '1) Create an empty session: create_session({ mode: "learning" }) — no chunk_ids',
       '2) Add and activate the chunk: create_session_chunk({ session_id: "...", chunk_id: "...", status: "in_progress" })',
       '3) Retrieve and teach: get_chunk_content({ chunk_id: "..." })',
-      '4) Record: submit_answer({ prompt_text: "...", chunk_ids: ["..."], response: "...", passed: true, feedback: "...", time_spent_ms: 5000 }) — set passed and time_spent_ms to the actual result values. On "retry", ask the learner to try again and resubmit with session_question_id from the response until "recorded". After "recorded", check next: if next.status is "teach", go to step 3 for that chunk (already in_progress — do not call create_session_chunk). If next.status is "blocked" or "error", surface the message to the learner and stop. Loop to step 2 only when next.status is "complete" or no chunk is currently in_progress.',
+      '4) Record: submit_answer({ prompt_text: "...", chunk_ids: ["..."], response: "...", passed: true, feedback: "...", time_spent_ms: 5000 }) — set passed and time_spent_ms to the actual result values. On "retry", ask the learner to try again and resubmit with session_question_id from the response until "recorded". After "recorded", call teach_next to advance: if status is "teach", go to step 3 for that chunk (already in_progress — do not call create_session_chunk). If status is "blocked" or "error", surface the message to the learner and stop. Loop to step 2 only when status is "complete" or no chunk is currently in_progress.',
       '5) Repeat steps 2–4 for each chunk the learner selects',
       '6) Finish: complete_session({ session_id: "...", feedback: "..." })',
       '',
