@@ -3,15 +3,24 @@ import { createAppContext, type AppContext } from '../../../src/composition-root
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import * as reviewWorkflows from '../../../src/orchestration/review-workflows.js';
+import { DrizzleReviewPersistenceAdapter } from '../../../src/adapters/drizzle/review-persistence-adapter.js';
+import { resolveAlgorithmConfig } from '../../../src/config/resolve-algorithm-config.js';
 
 describe('chunk-reviews service', () => {
   let ctx: AppContext;
+  let reviewDeps: reviewWorkflows.ReviewDeps;
   const topicId = 'topic-1';
   const chunkId = 'chunk-1';
 
   beforeAll(async () => {
     await setupTestDb();
     ctx = createAppContext({ embedding: undefined });
+    const db = getSql();
+    reviewDeps = {
+      reviewPersistence: new DrizzleReviewPersistenceAdapter(db),
+      algorithmConfig: resolveAlgorithmConfig(),
+    };
   });
   beforeEach(async () => {
     await cleanupTestDb();
@@ -108,7 +117,7 @@ describe('chunk-reviews service', () => {
 
   describe('processReviewResult', () => {
     it('updates chunk with good quality review', async () => {
-      const result = await ctx.processReviewResult(chunkId, 4, {});
+      const result = await reviewWorkflows.processReviewResult(chunkId, 4, {}, reviewDeps);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.updated).toBeDefined();
@@ -118,7 +127,7 @@ describe('chunk-reviews service', () => {
     });
 
     it('updates chunk with poor quality review', async () => {
-      const result = await ctx.processReviewResult(chunkId, 1, {});
+      const result = await reviewWorkflows.processReviewResult(chunkId, 1, {}, reviewDeps);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.updated).toBeDefined();
@@ -127,7 +136,7 @@ describe('chunk-reviews service', () => {
     });
 
     it('returns error for nonexistent chunk', async () => {
-      const result = await ctx.processReviewResult('nonexistent', 4, {});
+      const result = await reviewWorkflows.processReviewResult('nonexistent', 4, {}, reviewDeps);
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error.type).toBe('not_found');
@@ -136,11 +145,16 @@ describe('chunk-reviews service', () => {
     });
 
     it('accepts optional parameters', async () => {
-      const result = await ctx.processReviewResult(chunkId, 4, {
-        timeSpentMs: 30000,
-        consecutiveFailures: 0,
-        daysOverdue: 2,
-      });
+      const result = await reviewWorkflows.processReviewResult(
+        chunkId,
+        4,
+        {
+          timeSpentMs: 30000,
+          consecutiveFailures: 0,
+          daysOverdue: 2,
+        },
+        reviewDeps
+      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.updated).toBeDefined();

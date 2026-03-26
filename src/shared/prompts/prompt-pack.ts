@@ -512,7 +512,7 @@ class PromptPack {
       '2. Create a review session: `create_session({ mode: "retrieval", chunk_ids: [...] })`',
       '3. Get session with feedback: `get_active_session()` — includes historical_feedback',
       '4. Use the `review` or `retrieval` prompt, adapting to past difficulties',
-      '5. After each chunk, record results with `record_review_result`',
+      '5. After each chunk, record results with `submit_answer`',
       '',
       '## Session Continuation',
       '',

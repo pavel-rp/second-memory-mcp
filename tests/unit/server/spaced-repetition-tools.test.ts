@@ -13,14 +13,13 @@ describe('spaced-repetition-tools', () => {
     ctx = createMockAppContext();
   });
 
-  it('registers all 8 spaced repetition tools', () => {
+  it('registers all 7 spaced repetition tools', () => {
     registerSpacedRepetitionTools(server as any, ctx);
     expect(server.tools.has('calculate_next_review')).toBe(true);
     expect(server.tools.has('calculate_priority_score')).toBe(true);
     expect(server.tools.has('calculate_next_review_advanced')).toBe(true);
     expect(server.tools.has('rank_candidates')).toBe(true);
     expect(server.tools.has('what_to_learn_today')).toBe(true);
-    expect(server.tools.has('record_review_result')).toBe(true);
     expect(server.tools.has('get_leeches')).toBe(true);
     expect(server.tools.has('resolve_leech')).toBe(true);
   });
@@ -379,188 +378,6 @@ describe('spaced-repetition-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.recommendations).toBeDefined();
-    });
-  });
-
-  // ---------------------------------------------------------------
-  // record_review_result
-  // ---------------------------------------------------------------
-  describe('record_review_result', () => {
-    it('returns success with updated learning item', async () => {
-      ctx.processReviewResult = vi.fn().mockResolvedValue({
-        success: true,
-        data: { isLeech: false },
-      });
-      const mockChunk = {
-        id: 'chunk-1',
-        topicId: 'topic-1',
-        title: 'Arrays',
-        subject: 'CS',
-        difficulty: 5,
-        nextReviewAt: new Date('2025-06-20').getTime(),
-        easeFactor: 2.6,
-        repetitions: 3,
-        lastReviewedAt: null,
-        estimatedDuration: 10,
-        intervalDays: 6,
-        chunkType: 'review',
-        prerequisitesJson: null,
-        tagsJson: ['ds'],
-        content: null,
-        contentVersion: null,
-        contentUpdatedAt: null,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        topicTitle: 'Data Structures',
-      };
-      ctx.getChunkWithContent = vi.fn().mockResolvedValue(mockChunk);
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-
-      const result = await handler({
-        item_id: 'chunk-1',
-        quality: 4,
-        time_spent_ms: 5000,
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(true);
-      expect(parsed.is_leech).toBe(false);
-      expect(parsed.item).toBeDefined();
-      expect(parsed.item.id).toBe('chunk-1');
-      expect(parsed.item.next_review_date).toBe('2025-06-20');
-      expect(parsed.item.ease_factor).toBe(2.6);
-      expect(typeof parsed.message).toBe('string');
-    });
-
-    it('returns leech message when item is a leech', async () => {
-      ctx.processReviewResult = vi.fn().mockResolvedValue({
-        success: true,
-        data: { isLeech: true },
-      });
-      ctx.getChunkWithContent = vi.fn().mockResolvedValue(null);
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-
-      const result = await handler({
-        item_id: 'chunk-leech',
-        quality: 1,
-        consecutive_failures: 5,
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(true);
-      expect(parsed.is_leech).toBe(true);
-      expect(parsed.item).toBeUndefined();
-      expect(typeof parsed.message).toBe('string');
-    });
-
-    it('returns error when processReviewResult reports failure', async () => {
-      ctx.processReviewResult = vi.fn().mockResolvedValue({
-        success: false,
-        error: { type: 'not_found', message: 'Chunk not found' },
-      });
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-
-      const result = await handler({
-        item_id: 'missing-chunk',
-        quality: 3,
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('not_found');
-      expect(parsed.error.message).toBe('Chunk not found');
-      expect(parsed.error.retryable).toBe(false);
-    });
-
-    it('returns retryable error when processReviewResult reports database failure', async () => {
-      ctx.processReviewResult = vi.fn().mockResolvedValue({
-        success: false,
-        error: { type: 'database', message: 'deadlock detected' },
-      });
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-
-      const result = await handler({
-        item_id: 'chunk-db',
-        quality: 3,
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
-      expect(parsed.error.retryable).toBe(true);
-    });
-
-    it('returns database error when processReviewResult throws', async () => {
-      ctx.processReviewResult = vi.fn().mockRejectedValue(new Error('connection lost'));
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-
-      const result = await handler({
-        item_id: 'chunk-throw',
-        quality: 3,
-      });
-      const parsed = parseResult(result);
-
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
-      expect(parsed.error.retryable).toBe(true);
-      expect(parsed.error.message).toContain('connection lost');
-    });
-
-    it('passes optional fields through to context in camelCase', async () => {
-      const mockProcess = vi.fn().mockResolvedValue({
-        success: true,
-        data: { isLeech: false },
-      });
-      ctx.processReviewResult = mockProcess;
-      ctx.getChunkWithContent = vi.fn().mockResolvedValue(null);
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-
-      await handler({
-        item_id: 'chunk-1',
-        quality: 4,
-        time_spent_ms: 12000,
-        consecutive_failures: 2,
-        days_overdue: 3,
-      });
-
-      expect(mockProcess).toHaveBeenCalledWith('chunk-1', 4, {
-        timeSpentMs: 12000,
-        consecutiveFailures: 2,
-        daysOverdue: 3,
-      });
-    });
-
-    it('returns database error for missing item_id', async () => {
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-      const result = await handler({ quality: 3 });
-      const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
-    });
-
-    it('returns database error for empty item_id', async () => {
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-      const result = await handler({ item_id: '', quality: 3 });
-      const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
-    });
-
-    it('returns database error for quality out of range', async () => {
-      registerSpacedRepetitionTools(server as any, ctx);
-      const handler = server.tools.get('record_review_result')!.handler;
-      const result = await handler({ item_id: 'chunk-1', quality: 6 });
-      const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
     });
   });
 
