@@ -20,6 +20,45 @@ describe('promptPack', () => {
     expect(text).toContain('Intro');
   });
 
+  it('learning prompt contains question taxonomy', () => {
+    const text = promptPack.getPrompt('learning', { chunkTitle: 'Test' });
+    expect(text).toContain('## Question Taxonomy');
+    expect(text).toContain('Recall');
+    expect(text).toContain('Explain/Apply');
+    expect(text).toContain('Analyze/Create');
+    expect(text).toContain('85–95%');
+    expect(text).toContain('70–80%');
+    expect(text).toContain('65–75%');
+  });
+
+  it('learning prompt contains quality rubric with scaffolding ceilings', () => {
+    const text = promptPack.getPrompt('learning', { chunkTitle: 'Test' });
+    expect(text).toContain('## Quality Rubric');
+    expect(text).toContain('QUALITY 5');
+    expect(text).toContain('QUALITY 0');
+    expect(text).toContain('CEILING');
+    expect(text).toContain('1 hint → max 3');
+    expect(text).toContain('2+ hints → max 2');
+    expect(text).toContain('Be a fair judge');
+  });
+
+  it('learning prompt contains adaptive difficulty selection', () => {
+    const text = promptPack.getPrompt('learning', { chunkTitle: 'Test' });
+    expect(text).toContain('## Adaptive Difficulty Selection');
+    expect(text).toContain('accuracy < 0.40');
+    expect(text).toContain('accuracy < 0.80');
+    expect(text).toContain('accuracy ≥ 0.80');
+    expect(text).toContain('Interleave all levels');
+  });
+
+  it('learning prompt contains NEU-306 teaching_approach ceiling', () => {
+    const text = promptPack.getPrompt('learning', { chunkTitle: 'Test' });
+    expect(text).toContain('teaching_approach');
+    expect(text).toContain('reteach');
+    expect(text).toContain('scaffold');
+    expect(text).toContain('Level 1 (Recall) only');
+  });
+
   it('retrieval and review prompts include key constraints', () => {
     const r = promptPack.getPrompt('retrieval', { chunkTitle: 'X', masteryLevel: 3 });
     expect(r).toContain('two-attempt');
@@ -30,6 +69,30 @@ describe('promptPack', () => {
       weakAreas: 'y',
     });
     expect(v).toContain('LAST REVIEWED');
+  });
+
+  it('retrieval prompt contains quality rubric and taxonomy reference', () => {
+    const text = promptPack.getPrompt('retrieval', { chunkTitle: 'Test', masteryLevel: 3 });
+    expect(text).toContain('## Quality Rubric');
+    expect(text).toContain('QUALITY 5');
+    expect(text).toContain('QUALITY 0');
+    expect(text).toContain('CEILING');
+    expect(text).toContain('taxonomy levels');
+    expect(text).toContain('Recall');
+    expect(text).toContain('Explain/Apply');
+  });
+
+  it('review prompt contains quality rubric and taxonomy-aware plan', () => {
+    const text = promptPack.getPrompt('review', {
+      lastReviewed: '2025-01-15',
+      masteryLevel: 3,
+    });
+    expect(text).toContain('## Quality Rubric');
+    expect(text).toContain('QUALITY 5');
+    expect(text).toContain('QUALITY 0');
+    expect(text).toContain('taxonomy-aware');
+    expect(text).toContain('Level 1 question');
+    expect(text).toContain('Level 2 (Explain/Apply)');
   });
 
   it('chunk generation prompt lists required fields', () => {
@@ -406,6 +469,16 @@ describe('promptPack', () => {
       expect(SERVER_INSTRUCTIONS).toContain('TEACHING FLOW');
       expect(SERVER_INSTRUCTIONS).toContain('start_learning');
     });
+
+    it('SERVER_INSTRUCTIONS contains QUESTION QUALITY section with taxonomy and rubric', () => {
+      expect(SERVER_INSTRUCTIONS).toContain('QUESTION QUALITY');
+      expect(SERVER_INSTRUCTIONS).toContain('three-level taxonomy');
+      expect(SERVER_INSTRUCTIONS).toContain('Level 1 (Recall)');
+      expect(SERVER_INSTRUCTIONS).toContain('Level 2 (Explain/Apply)');
+      expect(SERVER_INSTRUCTIONS).toContain('Level 3 (Analyze/Create)');
+      expect(SERVER_INSTRUCTIONS).toContain('quality rubric (0–5)');
+      expect(SERVER_INSTRUCTIONS).toContain('scaffolding ceilings');
+    });
   });
 
   describe('assessment-first scaffolding', () => {
@@ -459,6 +532,17 @@ describe('promptPack', () => {
       expect(text).toContain('Just-in-Time Content Fill');
       expect(text).toContain('update_chunk_content');
       expect(text).toContain('adapted to the specific learner');
+    });
+
+    it('workflow guidance contains per-chunk probing algorithm', () => {
+      const text = promptPack.getPrompt('workflow_guidance');
+      expect(text).toContain('Per-Chunk Probing Algorithm');
+      expect(text).toContain('current taxonomy level');
+      expect(text).toContain('escalate one level');
+      expect(text).toContain('max 3 retries');
+      expect(text).toContain('quality 2');
+      expect(text).toContain('1 Recall + 1 Explain');
+      expect(text).toContain('5–7 total attempts');
     });
 
     it('learning session prompt includes assessment step in creating new topics', () => {

@@ -41,11 +41,16 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                 chunkId: result.chunk_id,
                 mode: result.mode,
                 instruction:
-                  'Ask a drill question, then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }) to atomically create the question and record the answer. ' +
+                  'Per-chunk probing algorithm: ' +
+                  'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). ' +
+                  'If correct → escalate one level if time permits → move to next chunk. ' +
+                  'If wrong → give feedback → retry same level (max 3 retries → quality 2, move on). ' +
+                  'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk. ' +
                   (result.mode === 'learning'
-                    ? 'For learning mode: ask 2-3 comprehension questions.'
-                    : 'For retrieval mode: ask 1 targeted recall question.') +
-                  ' If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
+                    ? 'Learning mode: start at Recall, escalate through levels.'
+                    : 'Retrieval mode: start at Recall, escalate if mastery target allows.') +
+                  ' Then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }). ' +
+                  'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                 nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", passed: true/false, feedback: "...", time_spent_ms: ... })`,
               },
             })
