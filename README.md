@@ -108,7 +108,7 @@ The server registers tools across eight categories:
 | Recommendations    | `what_to_learn_today`                                                                                                                                                                                                                                          | Graph-aware recommendation engine with prerequisite-resolved ranking                                |
 | Session management | `create_session`, `create_session_chunk`, `get_active_session`, `get_session`, `complete_session`, `batch_update_session_chunks`, `get_historical_feedback`                                                                                                    | Multi-step session lifecycle with automatic chunk initialization                                    |
 | Session analytics  | `session_status`                                                                                                                                                                                                                                               | Track session health and decision points                                                            |
-| Spaced repetition  | `calculate_next_review`, `calculate_next_review_advanced`, `calculate_priority_score`, `rank_candidates`, `record_review_result`, `get_leeches`, `resolve_leech`                                                                                               | SM-2 scheduling, priority scoring, review recording, and leech remediation                          |
+| Spaced repetition  | `calculate_next_review`, `calculate_next_review_advanced`, `calculate_priority_score`, `rank_candidates`, `get_leeches`, `resolve_leech`                                                                                                                       | SM-2 scheduling, priority scoring, and leech remediation                                            |
 | Persistence        | `create_topic_with_chunks`, `create_learning_item`, `update_topic`, `update_topic_summary`, `update_chunk`, `update_chunk_content`, `update_chunk_metadata`, `delete_chunk`, `batch_fetch_topics_minimal`, `batch_fetch_chunks_minimal`, `list_learning_items` | CRUD for topics and chunks with prerequisite graph edges                                            |
 | Content            | `get_chunk_content`, `get_topic_summary`, `list_items_with_content`                                                                                                                                                                                            | Retrieve chunk content, topic summaries, and paginated item listings                                |
 | Analytics          | `analytics_daily`, `analytics_window`                                                                                                                                                                                                                          | Daily KPIs and date-range analytics from stored review history                                      |
@@ -244,15 +244,9 @@ Since `recommendation` is `"complete"`, the agent finishes the session:
 }
 ```
 
-**6. Persist spaced repetition data**
+**6. Spaced repetition scheduling**
 
-The agent calls `record_review_result` for each chunk to update the SM-2 scheduling:
-
-```json
-{ "item_id": "chunk-123", "quality": 4, "time_spent_ms": 480000 }
-```
-
-This updates the chunk's `easeFactor`, `intervalDays`, and `nextReviewAt` so it appears at the right time in future sessions.
+Spaced repetition scheduling is handled automatically — `submit_answer` (Teaching Flow) and `batch_update_session_chunks` (Rolling Session Flow) both update each chunk's SM-2 parameters (`easeFactor`, `intervalDays`, `nextReviewAt`) so it appears at the right time in future sessions.
 
 ## Using with Claude.ai
 
@@ -278,8 +272,7 @@ SM-2 QUALITY SCALE (used internally — do not fabricate scores)
 0 = total blackout, 1 = wrong but recognised on reveal, 2 = wrong but close,
 3 = correct with significant difficulty, 4 = correct with minor hesitation,
 5 = instant perfect recall.
-The server derives quality from your pass/fail judgment — never call
-record_review_result during an active teaching session.
+The server derives quality from your pass/fail judgment via submit_answer.
 
 NOTES LIFECYCLE
 After a learner answers, you may call add_note with:
