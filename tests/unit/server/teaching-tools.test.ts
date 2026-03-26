@@ -118,8 +118,8 @@ describe('teaching-tools', () => {
     const parsed = parseResult(result);
 
     expect(parsed.workflow_hint.mode).toBe('retrieval');
-    expect(parsed.workflow_hint.instruction).toContain('For retrieval mode');
-    expect(parsed.workflow_hint.instruction).toContain('1 targeted recall question');
+    expect(parsed.workflow_hint.instruction).toContain('Retrieval mode');
+    expect(parsed.workflow_hint.instruction).toContain('probing algorithm');
   });
 
   it('teach_next omits workflow_hint on blocked status', async () => {

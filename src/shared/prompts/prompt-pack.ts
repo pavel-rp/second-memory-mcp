@@ -210,7 +210,30 @@ class PromptPack {
       '2) Build understanding gradually with scaffolded explanations',
       '3) Use analogies or visual descriptions if helpful',
       '4) Check for understanding before moving on',
-      `5) End with a retrieval check using format: ${drillFormat}`,
+      `5) Conduct retrieval practice using format: ${drillFormat} (see taxonomy below)`,
+      '',
+      '## Question Taxonomy',
+      '',
+      "Use three levels of questions, matched to the learner's estimated accuracy:",
+      '',
+      '| Level | Label | Example stems | Target accuracy |',
+      '|-------|-------|---------------|-----------------|',
+      '| 1 | Recall | "What is...?" / "List the steps..." / "Write the function..." | 85–95% |',
+      '| 2 | Explain/Apply | "In your own words, why...?" / "Given this scenario, use X to..." | 70–80% |',
+      '| 3 | Analyze/Create | "What would break if...?" / "Design a solution for this novel problem..." | 65–75% |',
+      '',
+      '## Adaptive Difficulty Selection',
+      '',
+      'Estimate chunk_accuracy from available signals (previous_feedback, passed history, previous_attempts):',
+      '- accuracy < 0.40 → Recall only (Level 1)',
+      '- accuracy < 0.80 → Start at last successful level, escalate on correct answer',
+      '- accuracy ≥ 0.80 → Interleave all levels',
+      '',
+      ...this.formatQualityRubric(),
+      '',
+      '## NEU-306 Teaching Approach Ceiling',
+      '',
+      'If the response includes `teaching_approach` with value `reteach` or `scaffold`, stay at Level 1 (Recall) only. Save Explain/Apply for the next review session.',
       '',
       'Style: concise, supportive, and precise.',
     ].join('\n');
@@ -235,9 +258,12 @@ class PromptPack {
       '- Enforce a two-attempt policy before revealing answers',
       '- Provide immediate, constructive feedback',
       '- Include a near-transfer application if appropriate',
+      '- Use taxonomy levels: start at Recall; escalate to Explain/Apply only if mastery target ≥ 3. Do not use Analyze/Create on re-queued chunks — save Level 3 for fresh review sessions.',
       feedbackSection
         ? '- Address previously reported difficulties with extra scaffolding or hints'
         : '',
+      '',
+      ...this.formatQualityRubric(),
     ]
       .filter(Boolean)
       .join('\n');
@@ -251,12 +277,12 @@ class PromptPack {
     const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
 
     const basePlan = [
-      'Plan:',
-      '1) Quick recall check (no re-teaching)',
-      '2) If successful: brief reinforcement + harder application',
-      '3) If failed: targeted re-explanation + practice drill (two-attempt policy)',
+      'Plan (taxonomy-aware):',
+      '1) Quick recall check — Level 1 question (no re-teaching yet)',
+      '2) If successful → escalate to Level 2 (Explain/Apply) for reinforcement',
+      '3) If failed → targeted re-explanation + practice drill at same level (two-attempt policy)',
       '4) Use interleaving with related concepts when helpful',
-      '5) End with confidence assessment',
+      '5) Assess quality using the rubric below',
     ];
 
     // Add feedback-informed instruction if feedback exists
@@ -274,6 +300,8 @@ class PromptPack {
       feedbackSection,
       '',
       ...basePlan,
+      '',
+      ...this.formatQualityRubric(),
     ]
       .filter(Boolean)
       .join('\n');
@@ -397,6 +425,15 @@ class PromptPack {
       '- Only exposes prompts/resources/tools via MCP capabilities',
       '- Web search performed by client using their own capabilities',
       '- Write the data to the server as soon as you produce new artifacts like chunks or schedules',
+      '',
+      '## Per-Chunk Probing Algorithm',
+      '',
+      'For each chunk in the session:',
+      '1) Ask a question at the current taxonomy level (start at Recall)',
+      '2) If correct → escalate one level if time permits (Recall → Explain/Apply → Analyze/Create)',
+      '3) If wrong → provide feedback → ask another question at the same level (max 3 attempts per level → move on)',
+      '4) Guardrails: minimum 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 total attempts per chunk',
+      '5) Scale attempt budget to chunk complexity — simple facts need fewer probes than multi-step procedures',
       '',
       '## Style and pedagogy',
       '',
@@ -540,6 +577,24 @@ class PromptPack {
     ]
       .filter(Boolean)
       .join('\n');
+  }
+
+  private formatQualityRubric(): string[] {
+    return [
+      '## Quality Rubric',
+      '',
+      'QUALITY 5: Immediate, confident, correct. No hints.',
+      'QUALITY 4: Correct after minor self-correction. No hints from tutor.',
+      'QUALITY 3: Correct with difficulty. OR: correct after 1 hint (CEILING — quality cannot exceed 3 with 1 hint).',
+      'QUALITY 2: Partially correct. OR: correct after 2+ hints (CEILING — quality cannot exceed 2 with 2+ hints).',
+      'QUALITY 1: Incorrect, no partial knowledge.',
+      'QUALITY 0: Complete blackout.',
+      '',
+      'Rules:',
+      '- Be a fair judge. Quality 3 is healthy — target 3–4 as the normal range.',
+      '- Quality must be based on demonstrated understanding, not self-report.',
+      '- If you hinted or reteaught, quality CANNOT exceed the ceiling (1 hint → max 3, 2+ hints → max 2).',
+    ];
   }
 
   /**
