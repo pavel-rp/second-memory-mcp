@@ -207,11 +207,14 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       logger.error(
         `SR update failed for chunk ${completableChunk.chunkId} — completing without SR`
       );
-      await deps.sessions.updateSessionChunk(completableChunk.id, {
+      const updatedRows = await deps.sessions.updateSessionChunk(completableChunk.id, {
         status: 'completed',
         timeSpentMs: accumulatedTimeMs,
         updatedAt: Date.now(),
       });
+      if (updatedRows === 0) {
+        logger.error(`Failed to mark chunk ${completableChunk.chunkId} as completed (0 rows)`);
+      }
       completableChunk.status = 'completed';
     }
   }

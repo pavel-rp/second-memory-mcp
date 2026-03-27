@@ -1798,6 +1798,43 @@ describe('getNextTeachingStep', () => {
     // review_update still returned even though DB update returned 0 rows
     expect(result.review_update).toBeDefined();
   });
+
+  it('logs error when SR fails and updateSessionChunk returns 0 rows', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(0), // 0 rows affected
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    // SR fails (getChunk returns undefined)
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(undefined);
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.chunk_id).toBe('c2');
+    expect(result.review_update).toBeUndefined();
+    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
+      'sc-1',
+      expect.objectContaining({ status: 'completed' })
+    );
+  });
 });
 
 // ── startLearning ─────────────────────────────────────────────────
