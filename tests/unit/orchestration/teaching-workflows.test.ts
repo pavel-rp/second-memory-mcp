@@ -1542,10 +1542,11 @@ describe('getNextTeachingStep', () => {
     expect(typeof result.review_update!.ease_factor).toBe('number');
     expect(typeof result.review_update!.is_leech).toBe('boolean');
 
-    // Verify c1 was marked completed
+    // Verify c1 was claimed with optimistic lock
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
-      expect.objectContaining({ status: 'completed' })
+      expect.objectContaining({ status: 'completed' }),
+      'in_progress'
     );
     // Verify SR was called
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalled();
@@ -1712,10 +1713,11 @@ describe('getNextTeachingStep', () => {
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
     expect(result.review_update).toBeUndefined();
-    // Chunk was still marked completed
+    // Chunk was claimed with optimistic lock
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
-      expect.objectContaining({ status: 'completed' })
+      expect.objectContaining({ status: 'completed' }),
+      'in_progress'
     );
   });
 
@@ -1761,11 +1763,12 @@ describe('getNextTeachingStep', () => {
 
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
       'sc-1',
-      expect.objectContaining({ timeSpentMs: 7000 })
+      expect.objectContaining({ timeSpentMs: 7000 }),
+      'in_progress'
     );
   });
 
-  it('logs error but continues when updateSessionChunk returns 0 rows', async () => {
+  it('skips SR when concurrent call already completed the chunk (0 rows)', async () => {
     const sqRepo = stubSessionQuestionRepository();
     mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
 
@@ -1779,7 +1782,7 @@ describe('getNextTeachingStep', () => {
             makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
           ]),
         getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
-        updateSessionChunk: vi.fn().mockResolvedValue(0), // 0 rows affected
+        updateSessionChunk: vi.fn().mockResolvedValue(0), // concurrent call won
       },
       chunks: {
         getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
@@ -1787,53 +1790,16 @@ describe('getNextTeachingStep', () => {
       },
       sessionQuestions: sqRepo,
     });
-    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
-
-    // Should still succeed — fail-open approach
-    const result = await getNextTeachingStep(deps);
-
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
-    expect(result.chunk_id).toBe('c2');
-    // review_update still returned even though DB update returned 0 rows
-    expect(result.review_update).toBeDefined();
-  });
-
-  it('logs error when SR fails and updateSessionChunk returns 0 rows', async () => {
-    const sqRepo = stubSessionQuestionRepository();
-    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
-
-    const deps = makeDeps({
-      sessions: {
-        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
-        getSessionChunks: vi
-          .fn()
-          .mockResolvedValue([
-            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
-            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
-          ]),
-        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
-        updateSessionChunk: vi.fn().mockResolvedValue(0), // 0 rows affected
-      },
-      chunks: {
-        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
-        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
-      },
-      sessionQuestions: sqRepo,
-    });
-    // SR fails (getChunk returns undefined)
-    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(undefined);
 
     const result = await getNextTeachingStep(deps);
 
     expect(result.status).toBe('teach');
     if (result.status !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
+    // SR skipped entirely — no review_update
     expect(result.review_update).toBeUndefined();
-    expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith(
-      'sc-1',
-      expect.objectContaining({ status: 'completed' })
-    );
+    // SR was NOT called
+    expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
   });
 });
 

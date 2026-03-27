@@ -169,53 +169,48 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       }
     }
 
-    const aggregatedQuality = aggregateQuestionQualities(perQuestionQualities);
-
-    const reviewDeps: reviewWorkflows.ReviewDeps = {
-      reviewPersistence: deps.reviewPersistence,
-      algorithmConfig: deps.algorithmConfig,
-    };
-
-    const reviewResult = await reviewWorkflows.processReviewResult(
-      completableChunk.chunkId,
-      Math.round(aggregatedQuality),
-      { timeSpentMs: accumulatedTimeMs },
-      reviewDeps
+    // Optimistic lock: claim the chunk by setting status='completed' only if still 'in_progress'.
+    // If 0 rows updated, a concurrent call already completed it — skip SR to avoid double-update.
+    const claimedRows = await deps.sessions.updateSessionChunk(
+      completableChunk.id,
+      { status: 'completed', timeSpentMs: accumulatedTimeMs, updatedAt: Date.now() },
+      'in_progress'
     );
+    completableChunk.status = 'completed';
 
-    if (reviewResult.success) {
-      const updatedRows = await deps.sessions.updateSessionChunk(completableChunk.id, {
-        status: 'completed',
-        timeSpentMs: accumulatedTimeMs,
-        updatedAt: Date.now(),
-      });
-      if (updatedRows === 0) {
-        logger.error(`Failed to mark chunk ${completableChunk.chunkId} as completed (0 rows)`);
-      }
-      // Update local state so subsequent selection logic sees the chunk as completed
-      completableChunk.status = 'completed';
-
-      completedChunkReviewUpdate = {
-        next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
-          .toISOString()
-          .split('T')[0] as string,
-        interval_days: reviewResult.data.updated.intervalDays,
-        ease_factor: reviewResult.data.updated.easeFactor,
-        is_leech: reviewResult.data.isLeech,
-      };
-    } else {
-      logger.error(
-        `SR update failed for chunk ${completableChunk.chunkId} — completing without SR`
+    if (claimedRows === 0) {
+      logger.warn(
+        `Chunk ${completableChunk.chunkId} already completed by concurrent call — skipping SR`
       );
-      const updatedRows = await deps.sessions.updateSessionChunk(completableChunk.id, {
-        status: 'completed',
-        timeSpentMs: accumulatedTimeMs,
-        updatedAt: Date.now(),
-      });
-      if (updatedRows === 0) {
-        logger.error(`Failed to mark chunk ${completableChunk.chunkId} as completed (0 rows)`);
+    } else {
+      const aggregatedQuality = aggregateQuestionQualities(perQuestionQualities);
+
+      const reviewDeps: reviewWorkflows.ReviewDeps = {
+        reviewPersistence: deps.reviewPersistence,
+        algorithmConfig: deps.algorithmConfig,
+      };
+
+      const reviewResult = await reviewWorkflows.processReviewResult(
+        completableChunk.chunkId,
+        Math.round(aggregatedQuality),
+        { timeSpentMs: accumulatedTimeMs },
+        reviewDeps
+      );
+
+      if (reviewResult.success) {
+        completedChunkReviewUpdate = {
+          next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
+            .toISOString()
+            .split('T')[0] as string,
+          interval_days: reviewResult.data.updated.intervalDays,
+          ease_factor: reviewResult.data.updated.easeFactor,
+          is_leech: reviewResult.data.isLeech,
+        };
+      } else {
+        logger.error(
+          `SR update failed for chunk ${completableChunk.chunkId} — chunk already marked completed`
+        );
       }
-      completableChunk.status = 'completed';
     }
   }
 

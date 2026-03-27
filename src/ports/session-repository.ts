@@ -68,7 +68,11 @@ export interface SessionRepository {
   createSessionChunk(input: CreateSessionChunkInput): Promise<SessionChunk>;
   getSessionChunks(sessionId: string): Promise<SessionChunk[]>;
   getSessionChunkById(id: string): Promise<SessionChunk | null>;
-  updateSessionChunk(id: string, changes: UpdateSessionChunkInput): Promise<number>;
+  updateSessionChunk(
+    id: string,
+    changes: UpdateSessionChunkInput,
+    expectedStatus?: string
+  ): Promise<number>;
   deleteSessionChunk(id: string): Promise<number>;
   batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void>;
 
