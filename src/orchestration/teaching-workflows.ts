@@ -157,6 +157,9 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     const perQuestionQualities: number[] = [];
     let accumulatedTimeMs = 0;
 
+    // Questions with only a failed first attempt (quality: null) are excluded
+    // from aggregation. This can occur if teach_next is called mid-retry;
+    // the resulting quality reflects only fully-answered questions.
     for (const q of chunkQuestions) {
       const qAttempts = mapGetList(attemptsByQuestion, q.id);
       accumulatedTimeMs += qAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
@@ -745,8 +748,9 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // 8. Return recorded — chunk stays in_progress.
-  // Completion and SR update are handled by teach_next when the agent advances.
+  // 8. Return recorded — chunk stays in_progress, review_update is always
+  // undefined here; SR + completion are handled by teach_next when the agent
+  // advances. Assessment mode populates review_update in its own path.
   return {
     status: 'recorded',
     session_question_id: sessionQuestionId,
