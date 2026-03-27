@@ -71,7 +71,7 @@ export interface SessionRepository {
   updateSessionChunk(
     id: string,
     changes: UpdateSessionChunkInput,
-    expectedStatus?: string
+    expectedStatus?: 'pending' | 'in_progress' | 'completed'
   ): Promise<number>;
   deleteSessionChunk(id: string): Promise<number>;
   batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void>;

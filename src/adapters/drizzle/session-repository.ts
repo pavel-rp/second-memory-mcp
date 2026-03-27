@@ -152,7 +152,7 @@ export class DrizzleSessionRepository implements SessionRepository {
   async updateSessionChunk(
     id: string,
     changes: UpdateSessionChunkInput,
-    expectedStatus?: string
+    expectedStatus?: 'pending' | 'in_progress' | 'completed'
   ): Promise<number> {
     const condition = expectedStatus
       ? and(eq(sessionChunks.id, id), eq(sessionChunks.status, expectedStatus))

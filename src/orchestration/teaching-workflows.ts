@@ -176,6 +176,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       { status: 'completed', timeSpentMs: accumulatedTimeMs, updatedAt: Date.now() },
       'in_progress'
     );
+    // Always update local state — the chunk is completed regardless of which concurrent caller won.
     completableChunk.status = 'completed';
 
     if (claimedRows === 0) {
