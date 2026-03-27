@@ -18,6 +18,13 @@ export type PrerequisiteContextItem = {
   condensed_summary: string | null;
 };
 
+export type ReviewUpdate = {
+  next_review_date: string;
+  interval_days: number;
+  ease_factor: number;
+  is_leech: boolean;
+};
+
 export type TeachNextTeach = {
   status: 'teach';
   session_id: string;
@@ -32,6 +39,7 @@ export type TeachNextTeach = {
   prerequisite_context?: PrerequisiteContextItem[];
   previous_feedback?: string[]; // feedback strings from past sessions
   notes?: TeachNextNote[];
+  review_update?: ReviewUpdate; // SR result from completing the previous chunk
 };
 
 export type TeachNextComplete = {
@@ -43,6 +51,7 @@ export type TeachNextComplete = {
     needed_retry: number;
     exhausted_retries: number;
   };
+  review_update?: ReviewUpdate; // SR result from completing the last chunk
 };
 
 export type TeachNextBlocked = {
@@ -99,12 +108,7 @@ export type SubmitAnswerRecorded = {
   passed: boolean;
   quality: number;
   chunk_id: string;
-  review_update?: {
-    next_review_date: string;
-    interval_days: number;
-    ease_factor: number;
-    is_leech: boolean;
-  };
+  review_update?: ReviewUpdate;
   late_submission?: boolean;
   reflect: string;
 };

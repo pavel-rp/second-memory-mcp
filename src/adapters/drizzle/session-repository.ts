@@ -1,4 +1,4 @@
-import { eq, desc, asc, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, withTx, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -149,8 +149,15 @@ export class DrizzleSessionRepository implements SessionRepository {
     return row || null;
   }
 
-  async updateSessionChunk(id: string, changes: UpdateSessionChunkInput): Promise<number> {
-    const res = await this.db.update(sessionChunks).set(changes).where(eq(sessionChunks.id, id));
+  async updateSessionChunk(
+    id: string,
+    changes: UpdateSessionChunkInput,
+    expectedStatus?: 'pending' | 'in_progress' | 'completed'
+  ): Promise<number> {
+    const condition = expectedStatus
+      ? and(eq(sessionChunks.id, id), eq(sessionChunks.status, expectedStatus))
+      : eq(sessionChunks.id, id);
+    const res = await this.db.update(sessionChunks).set(changes).where(condition);
     return res.rowCount ?? 0;
   }
 
