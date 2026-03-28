@@ -1,6 +1,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-repository.js';
+import type { CreateSessionInput } from '../../../src/ports/session-repository.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
@@ -328,6 +329,45 @@ describe('sessions service', () => {
       if (!result.success) {
         expect(result.error.message).toContain('nonexistent');
       }
+    });
+
+    it('should preserve chunk insertion order when fetching session chunks', async () => {
+      const now = Date.now();
+      const orderedChunkIds = ['c-first', 'c-middle', 'c-last'];
+      await seedTopicAndChunks('topic-order', orderedChunkIds, now);
+
+      const input: CreateSessionInput = {
+        id: 'session-order',
+        topicId: 'topic-order',
+        chunkIds: orderedChunkIds,
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await sessionRepo.createSession(input);
+
+      const chunks = await sessionRepo.getSessionChunks('session-order');
+      expect(chunks.map(c => c.chunkId)).toEqual(orderedChunkIds);
+    });
+
+    it('should preserve insertion order for single-chunk session (index=0, no offset)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-single', ['c-only'], now);
+
+      const input: CreateSessionInput = {
+        id: 'session-single',
+        topicId: 'topic-single',
+        chunkIds: ['c-only'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await sessionRepo.createSession(input);
+
+      const chunks = await sessionRepo.getSessionChunks('session-single');
+      expect(chunks.map(c => c.chunkId)).toEqual(['c-only']);
     });
   });
 
