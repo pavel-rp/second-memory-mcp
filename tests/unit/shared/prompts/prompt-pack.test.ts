@@ -552,4 +552,40 @@ describe('promptPack', () => {
       expect(text).toContain('If confirmed gap');
     });
   });
+
+  describe('teaching content integrity', () => {
+    it('learning prompt contains TEACHING PRIORITY block with mandatory-presentation assertion', () => {
+      const text = promptPack.getPrompt('learning', {});
+      expect(text).toContain('## TEACHING PRIORITY');
+      expect(text).toContain(
+        'You MUST present EVERY content item the server provides before asking any question that references it.'
+      );
+    });
+
+    it("learning prompt contains YOUR CONTEXT ≠ LEARNER'S CONTEXT block with unpresented-content prohibition", () => {
+      const text = promptPack.getPrompt('learning', {});
+      expect(text).toContain("## YOUR CONTEXT ≠ LEARNER'S CONTEXT");
+      expect(text).toContain(
+        'Do NOT ask about content you have not explicitly shown to the learner in this conversation.'
+      );
+    });
+
+    it('TEACHING PRIORITY block appears before Approach section in learning prompt', () => {
+      const text = promptPack.getPrompt('learning', {});
+      expect(text.indexOf('## TEACHING PRIORITY')).toBeLessThan(text.indexOf('Approach:'));
+    });
+
+    it('SERVER_INSTRUCTIONS contains TEACHING CONTENT INTEGRITY section with key phrase', () => {
+      expect(SERVER_INSTRUCTIONS).toContain('TEACHING CONTENT INTEGRITY');
+      expect(SERVER_INSTRUCTIONS).toContain(
+        'do not ask about content the learner has not yet seen'
+      );
+    });
+
+    it('TEACHING CONTENT INTEGRITY appears before QUESTION QUALITY in SERVER_INSTRUCTIONS', () => {
+      expect(SERVER_INSTRUCTIONS.indexOf('TEACHING CONTENT INTEGRITY')).toBeLessThan(
+        SERVER_INSTRUCTIONS.indexOf('QUESTION QUALITY')
+      );
+    });
+  });
 });
