@@ -10,6 +10,7 @@ import {
 } from '../domain/types/persistence-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { ZodError } from 'zod';
+import { withRequestContext } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerQueryTools(server: McpServer, ctx: AppContext): void {
@@ -21,33 +22,34 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         'Fetch learning items from the database via services layer. For topic-level recommendations ranked by urgency, use what_to_learn_today instead.',
       inputSchema: ListLearningItemsInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { subjectFilter, dueOnly, limit, isLeech } =
-          ListLearningItemsInputSchema.parse(rawInput);
-        const items = await ctx.listChunksAsLearningItems({
-          subjectFilter,
-          dueOnly,
-          limit,
-          isLeech,
-        });
-        return toolJson(toSnakeCase(items));
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
+    async (rawInput: unknown) =>
+      withRequestContext('list_learning_items', async () => {
+        try {
+          const { subjectFilter, dueOnly, limit, isLeech } =
+            ListLearningItemsInputSchema.parse(rawInput);
+          const items = await ctx.listChunksAsLearningItems({
+            subjectFilter,
+            dueOnly,
+            limit,
+            isLeech,
+          });
+          return toolJson(toSnakeCase(items));
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            return toolError(`Failed to list learning items: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           return toolError(`Failed to list learning items: ${msg}`, {
-            type: 'validation',
+            type: 'database',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        return toolError(`Failed to list learning items: ${msg}`, {
-          type: 'database',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 
   server.registerTool(
@@ -58,34 +60,35 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         'Fetch topics with minimal metadata (IDs, title, subject, timestamps only). Efficient for listing and selection workflows.',
       inputSchema: BatchFetchTopicsMinimalInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
-        const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
-        return toolJson(
-          toSnakeCase({
-            success: true,
-            topics,
-            count: topics.length,
-            message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
+    async (rawInput: unknown) =>
+      withRequestContext('batch_fetch_topics_minimal', async () => {
+        try {
+          const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
+          const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              topics,
+              count: topics.length,
+              message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
+            })
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            return toolError(`Failed to fetch topics: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           return toolError(`Failed to fetch topics: ${msg}`, {
-            type: 'validation',
+            type: 'database',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        return toolError(`Failed to fetch topics: ${msg}`, {
-          type: 'database',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 
   server.registerTool(
@@ -99,52 +102,53 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         'create_session({ mode: "retrieval" or "review", chunk_ids: [...] }) before teaching.',
       inputSchema: BatchFetchChunksMinimalInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { topicId, subjectFilter, dueOnly, limit, isLeech } =
-          BatchFetchChunksMinimalInputSchema.parse(rawInput);
-        const chunks = await ctx.batchFetchChunksMinimal({
-          topicId,
-          subject: subjectFilter,
-          dueOnly,
-          limit,
-          isLeech,
-        });
-        const chunkIds = chunks.map((c: { id: string }) => c.id);
-        return toolJson(
-          toSnakeCase({
-            success: true,
-            chunks,
-            count: chunks.length,
-            message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
-            workflowHint:
-              chunks.length > 0
-                ? {
-                    action: 'REQUIRED_FOR_RECALL',
-                    instruction:
-                      'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
-                      'and include these chunk IDs before teaching. This loads historical feedback.',
-                    chunkIds,
-                    nextStep: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
-                  }
-                : undefined,
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
+    async (rawInput: unknown) =>
+      withRequestContext('batch_fetch_chunks_minimal', async () => {
+        try {
+          const { topicId, subjectFilter, dueOnly, limit, isLeech } =
+            BatchFetchChunksMinimalInputSchema.parse(rawInput);
+          const chunks = await ctx.batchFetchChunksMinimal({
+            topicId,
+            subject: subjectFilter,
+            dueOnly,
+            limit,
+            isLeech,
+          });
+          const chunkIds = chunks.map((c: { id: string }) => c.id);
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunks,
+              count: chunks.length,
+              message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,
+              workflowHint:
+                chunks.length > 0
+                  ? {
+                      action: 'REQUIRED_FOR_RECALL',
+                      instruction:
+                        'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                        'and include these chunk IDs before teaching. This loads historical feedback.',
+                      chunkIds,
+                      nextStep: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
+                    }
+                  : undefined,
+            })
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            return toolError(`Failed to fetch chunks: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           return toolError(`Failed to fetch chunks: ${msg}`, {
-            type: 'validation',
+            type: 'database',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        return toolError(`Failed to fetch chunks: ${msg}`, {
-          type: 'database',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 }

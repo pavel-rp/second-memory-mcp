@@ -8,7 +8,7 @@ import type { ContentStatus } from '../domain/types/recommendations.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
-import { logger } from '../shared/logger.js';
+import { getRequestLogger } from '../shared/logger.js';
 
 export type TopicDeps = {
   topics: TopicRepository;
@@ -164,7 +164,7 @@ export async function createTopicWithChunks(
       try {
         await generateTopicEmbeddings(result.topic, result.chunks, deps);
       } catch (err) {
-        logger.warn('Embedding generation failed for new topic:', err);
+        getRequestLogger().warn('Embedding generation failed for new topic:', err);
       }
     }
 
@@ -173,7 +173,7 @@ export async function createTopicWithChunks(
       topic: toTopicWithChunks(result.topic, result.chunks, input.topicDescription),
     };
   } catch (error) {
-    logger.error('Failed to create topic with chunks:', error);
+    getRequestLogger().error('Failed to create topic with chunks:', error);
     return {
       success: false,
       error: { type: 'database', message: extractErrorMessage(error), retryable: true },
@@ -305,7 +305,7 @@ export async function updateTopicSummary(
           await deps.topics.saveSummaryEmbedding(topicId, vector);
         }
       } catch (err) {
-        logger.warn('Embedding generation failed for topic summary:', err);
+        getRequestLogger().warn('Embedding generation failed for topic summary:', err);
       }
     }
 
@@ -334,7 +334,7 @@ async function generateTopicEmbeddings(
     if (summaryVector) {
       const rowCount = await deps.topics.saveSummaryEmbedding(topic.id, summaryVector);
       if (rowCount === 0) {
-        logger.warn(`Failed to save summary embedding for topic ${topic.id}`);
+        getRequestLogger().warn(`Failed to save summary embedding for topic ${topic.id}`);
       }
     }
   }
@@ -351,7 +351,7 @@ async function generateTopicEmbeddings(
       if (!vector) return;
       const result = await deps.chunks.saveContentEmbedding(chunk.id, vector);
       if (result === 0) {
-        logger.warn(`Failed to save content embedding for chunk ${chunk.id}`);
+        getRequestLogger().warn(`Failed to save content embedding for chunk ${chunk.id}`);
       }
     })
   );

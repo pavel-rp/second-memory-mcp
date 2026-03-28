@@ -22,7 +22,7 @@ import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/en
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
-import { logger } from '../shared/logger.js';
+import { getRequestLogger } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -180,7 +180,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     completableChunk.status = 'completed';
 
     if (claimedRows === 0) {
-      logger.warn(
+      getRequestLogger().warn(
         `Chunk ${completableChunk.chunkId} already completed by concurrent call — skipping SR`
       );
     } else {
@@ -208,7 +208,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
           is_leech: reviewResult.data.isLeech,
         };
       } else {
-        logger.error(
+        getRequestLogger().error(
           `SR update failed for chunk ${completableChunk.chunkId} — chunk already marked completed`
         );
       }
@@ -965,7 +965,7 @@ export async function startLearning(
         sessionDeps
       );
       if (!completeResult.success) {
-        logger.error(
+        getRequestLogger().error(
           `Failed to auto-complete session ${activeSession.id}: ${completeResult.error.message}`
         );
         return {

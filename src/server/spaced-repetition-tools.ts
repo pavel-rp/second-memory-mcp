@@ -6,6 +6,7 @@ import {
 } from '../domain/types/recommendations.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { ZodError } from 'zod';
+import { withRequestContext } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 import {
   CalculateNextReviewInputSchema,
@@ -31,28 +32,29 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         'SM-2 style scheduler: returns next interval/repetitions/ease_factor/next_review',
       inputSchema: CalculateNextReviewInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { quality, repetitions, easeFactor, interval } =
-          CalculateNextReviewInputSchema.parse(rawInput);
-        const result = ctx.calculateNextReview({ quality, repetitions, easeFactor, interval });
+    async (rawInput: unknown) =>
+      withRequestContext('calculate_next_review', async () => {
+        try {
+          const { quality, repetitions, easeFactor, interval } =
+            CalculateNextReviewInputSchema.parse(rawInput);
+          const result = ctx.calculateNextReview({ quality, repetitions, easeFactor, interval });
 
-        return toolJson(
-          toSnakeCase({
-            interval: result.interval,
-            repetitions: result.repetitions,
-            easeFactor: Number(result.easeFactor.toFixed(3)),
-            nextReview: result.nextReview,
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to calculate next review: ${msg}`, {
-          type: 'computation',
-          message: msg,
-        });
-      }
-    }
+          return toolJson(
+            toSnakeCase({
+              interval: result.interval,
+              repetitions: result.repetitions,
+              easeFactor: Number(result.easeFactor.toFixed(3)),
+              nextReview: result.nextReview,
+            })
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to calculate next review: ${msg}`, {
+            type: 'computation',
+            message: msg,
+          });
+        }
+      })
   );
 
   server.registerTool(
@@ -63,25 +65,26 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         'Rank review priority using next_review_date, ease_factor, repetitions, difficulty',
       inputSchema: CalculatePriorityScoreInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { nextReviewDate, easeFactor, repetitions, difficulty } =
-          CalculatePriorityScoreInputSchema.parse(rawInput);
-        const { priority } = ctx.calculatePriorityScore({
-          nextReviewDate,
-          easeFactor,
-          repetitions,
-          difficulty,
-        });
-        return toolJson({ priority });
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to calculate priority score: ${msg}`, {
-          type: 'computation',
-          message: msg,
-        });
-      }
-    }
+    async (rawInput: unknown) =>
+      withRequestContext('calculate_priority_score', async () => {
+        try {
+          const { nextReviewDate, easeFactor, repetitions, difficulty } =
+            CalculatePriorityScoreInputSchema.parse(rawInput);
+          const { priority } = ctx.calculatePriorityScore({
+            nextReviewDate,
+            easeFactor,
+            repetitions,
+            difficulty,
+          });
+          return toolJson({ priority });
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to calculate priority score: ${msg}`, {
+            type: 'computation',
+            message: msg,
+          });
+        }
+      })
   );
 
   server.registerTool(
@@ -92,36 +95,37 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         'Advanced scheduler with lapses/leech handling. Returns { interval, repetitions, ease_factor, next_review, leech }.',
       inputSchema: CalculateNextReviewAdvancedInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { quality, repetitions, easeFactor, interval, daysOverdue, consecutiveFailures } =
-          CalculateNextReviewAdvancedInputSchema.parse(rawInput);
-        const result = ctx.calculateNextReviewAdvanced({
-          quality,
-          repetitions,
-          easeFactor,
-          interval,
-          daysOverdue,
-          consecutiveFailures,
-        });
+    async (rawInput: unknown) =>
+      withRequestContext('calculate_next_review_advanced', async () => {
+        try {
+          const { quality, repetitions, easeFactor, interval, daysOverdue, consecutiveFailures } =
+            CalculateNextReviewAdvancedInputSchema.parse(rawInput);
+          const result = ctx.calculateNextReviewAdvanced({
+            quality,
+            repetitions,
+            easeFactor,
+            interval,
+            daysOverdue,
+            consecutiveFailures,
+          });
 
-        return toolJson(
-          toSnakeCase({
-            interval: result.interval,
-            repetitions: result.repetitions,
-            easeFactor: Number(result.easeFactor.toFixed(3)),
-            nextReview: result.nextReview,
-            leech: result.leech,
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to calculate advanced review: ${msg}`, {
-          type: 'computation',
-          message: msg,
-        });
-      }
-    }
+          return toolJson(
+            toSnakeCase({
+              interval: result.interval,
+              repetitions: result.repetitions,
+              easeFactor: Number(result.easeFactor.toFixed(3)),
+              nextReview: result.nextReview,
+              leech: result.leech,
+            })
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to calculate advanced review: ${msg}`, {
+            type: 'computation',
+            message: msg,
+          });
+        }
+      })
   );
 
   server.registerTool(
@@ -131,19 +135,20 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
       description: 'Rank learning items using priority, tag weights, and daily caps',
       inputSchema: RankCandidatesInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { candidates, timeboxMinutes } = RankCandidatesInputSchema.parse(rawInput);
-        const out = ctx.rankCandidates({ candidates, timeboxMinutes });
-        return toolJson(toSnakeCase(out));
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to rank candidates: ${msg}`, {
-          type: 'computation',
-          message: msg,
-        });
-      }
-    }
+    async (rawInput: unknown) =>
+      withRequestContext('rank_candidates', async () => {
+        try {
+          const { candidates, timeboxMinutes } = RankCandidatesInputSchema.parse(rawInput);
+          const out = ctx.rankCandidates({ candidates, timeboxMinutes });
+          return toolJson(toSnakeCase(out));
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to rank candidates: ${msg}`, {
+            type: 'computation',
+            message: msg,
+          });
+        }
+      })
   );
 
   server.registerTool(
@@ -158,19 +163,20 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         'For quick-start without topic selection, use start_learning instead.',
       inputSchema: RecommendationInputShape,
     },
-    async (input: unknown) => {
-      try {
-        const parsed = RecommendationInputSchema.parse(input);
-        const result = await ctx.generateRecommendations(parsed);
-        return toolJson(toSnakeCase(result));
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to generate recommendations: ${msg}`, {
-          type: 'recommendation',
-          message: msg,
-        });
-      }
-    }
+    async (input: unknown) =>
+      withRequestContext('what_to_learn_today', async () => {
+        try {
+          const parsed = RecommendationInputSchema.parse(input);
+          const result = await ctx.generateRecommendations(parsed);
+          return toolJson(toSnakeCase(result));
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to generate recommendations: ${msg}`, {
+            type: 'recommendation',
+            message: msg,
+          });
+        }
+      })
   );
 
   server.registerTool(
@@ -181,37 +187,38 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         'List learning items flagged as leeches (chunkType=remediation) — items with repeated failures that need remediation. Use resolve_leech to act on them.',
       inputSchema: GetLeechesInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { subjectFilter, limit } = GetLeechesInputSchema.parse(rawInput);
-        const leeches = await ctx.getLeeches({ subjectFilter, limit });
-        return toolJson(
-          toSnakeCase({
-            success: true,
-            leeches,
-            count: leeches.length,
-            message:
-              leeches.length > 0
-                ? `Found ${leeches.length} leech item${leeches.length === 1 ? '' : 's'}. Use resolve_leech to remediate.`
-                : 'No leech items found.',
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
+    async (rawInput: unknown) =>
+      withRequestContext('get_leeches', async () => {
+        try {
+          const { subjectFilter, limit } = GetLeechesInputSchema.parse(rawInput);
+          const leeches = await ctx.getLeeches({ subjectFilter, limit });
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              leeches,
+              count: leeches.length,
+              message:
+                leeches.length > 0
+                  ? `Found ${leeches.length} leech item${leeches.length === 1 ? '' : 's'}. Use resolve_leech to remediate.`
+                  : 'No leech items found.',
+            })
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            return toolError(`Failed to get leeches: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           return toolError(`Failed to get leeches: ${msg}`, {
-            type: 'validation',
+            type: 'database',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        return toolError(`Failed to get leeches: ${msg}`, {
-          type: 'database',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 
   server.registerTool(
@@ -222,42 +229,43 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         'Remediate a leech item. Resolutions: reset_progress (reset SR to fresh start), archive (move to far future — effectively remove from queue), mark_reviewed (clear leech flag, keep SR progress).',
       inputSchema: ResolveLeechInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const { chunkId, resolution } = ResolveLeechInputSchema.parse(rawInput);
-        const result = await ctx.resolveLeech(chunkId, resolution);
+    async (rawInput: unknown) =>
+      withRequestContext('resolve_leech', async () => {
+        try {
+          const { chunkId, resolution } = ResolveLeechInputSchema.parse(rawInput);
+          const result = await ctx.resolveLeech(chunkId, resolution);
 
-        if (!result.success) {
-          return toolError(`Failed to resolve leech: ${result.error.message}`, {
-            type: result.error.type,
-            message: result.error.message,
-            retryable: result.error.type === 'database',
-          });
-        }
+          if (!result.success) {
+            return toolError(`Failed to resolve leech: ${result.error.message}`, {
+              type: result.error.type,
+              message: result.error.message,
+              retryable: result.error.type === 'database',
+            });
+          }
 
-        return toolJson(
-          toSnakeCase({
-            success: true,
-            chunkId: result.data.chunkId,
-            resolution: result.data.resolution,
-            message: `Leech resolved with '${result.data.resolution}' strategy.`,
-          })
-        );
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
+          return toolJson(
+            toSnakeCase({
+              success: true,
+              chunkId: result.data.chunkId,
+              resolution: result.data.resolution,
+              message: `Leech resolved with '${result.data.resolution}' strategy.`,
+            })
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            return toolError(`Failed to resolve leech: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           return toolError(`Failed to resolve leech: ${msg}`, {
-            type: 'validation',
+            type: 'database',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        return toolError(`Failed to resolve leech: ${msg}`, {
-          type: 'database',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 }
