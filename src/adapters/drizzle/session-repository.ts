@@ -168,14 +168,14 @@ export class DrizzleSessionRepository implements SessionRepository {
 
   async batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void> {
     if (inputs.length === 0) return;
-    const rows: NewSessionChunkRow[] = inputs.map(input => ({
+    const rows: NewSessionChunkRow[] = inputs.map((input, index) => ({
       id: input.id,
       sessionId: input.sessionId,
       chunkId: input.chunkId,
       status: input.status || 'pending',
       timeSpentMs: input.timeSpentMs ?? 0,
-      createdAt: input.createdAt,
-      updatedAt: input.updatedAt,
+      createdAt: input.createdAt + index,
+      updatedAt: input.updatedAt + index,
     }));
     await this.db.insert(sessionChunks).values(rows);
     logger.info(`Created ${inputs.length} session chunks for session ${inputs[0]?.sessionId}`);
@@ -367,6 +367,7 @@ export class DrizzleSessionRepository implements SessionRepository {
     let unchanged = 0;
     const affectedChunkIds: string[] = [];
     const now = Date.now();
+    let createdIndex = 0;
 
     await withTx(async tx => {
       for (const op of operations) {
@@ -398,11 +399,12 @@ export class DrizzleSessionRepository implements SessionRepository {
             chunkId: op.chunkId,
             status: op.status || 'pending',
             timeSpentMs: op.timeSpentMs || 0,
-            createdAt: now,
-            updatedAt: now,
+            createdAt: now + createdIndex,
+            updatedAt: now + createdIndex,
           };
           await tx.insert(sessionChunks).values(newChunk);
           created++;
+          createdIndex++;
           affectedChunkIds.push(op.chunkId);
         }
       }
