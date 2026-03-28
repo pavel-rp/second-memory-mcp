@@ -575,6 +575,13 @@ describe('promptPack', () => {
       expect(text.indexOf('## TEACHING PRIORITY')).toBeLessThan(text.indexOf('Approach:'));
     });
 
+    it("YOUR CONTEXT ≠ LEARNER'S CONTEXT block appears before Approach section in learning prompt", () => {
+      const text = promptPack.getPrompt('learning', {});
+      expect(text.indexOf("## YOUR CONTEXT ≠ LEARNER'S CONTEXT")).toBeLessThan(
+        text.indexOf('Approach:')
+      );
+    });
+
     it('SERVER_INSTRUCTIONS contains TEACHING CONTENT INTEGRITY section with key phrase', () => {
       expect(SERVER_INSTRUCTIONS).toContain('TEACHING CONTENT INTEGRITY');
       expect(SERVER_INSTRUCTIONS).toContain(
