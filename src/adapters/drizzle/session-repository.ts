@@ -56,14 +56,14 @@ export class DrizzleSessionRepository implements SessionRepository {
 
     // Auto-create session chunks
     if (input.chunkIds && input.chunkIds.length > 0) {
-      const chunkRows: NewSessionChunkRow[] = input.chunkIds.map(chunkId => ({
+      const chunkRows: NewSessionChunkRow[] = input.chunkIds.map((chunkId, index) => ({
         id: crypto.randomUUID(),
         sessionId: input.id,
         chunkId,
         status: 'pending',
         timeSpentMs: 0,
-        createdAt: input.createdAt,
-        updatedAt: input.updatedAt,
+        createdAt: input.createdAt + index,
+        updatedAt: input.updatedAt + index,
       }));
       await this.db.insert(sessionChunks).values(chunkRows);
     }

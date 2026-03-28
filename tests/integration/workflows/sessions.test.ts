@@ -329,6 +329,45 @@ describe('sessions service', () => {
         expect(result.error.message).toContain('nonexistent');
       }
     });
+
+    it('should preserve chunk insertion order when fetching session chunks', async () => {
+      const now = Date.now();
+      const orderedChunkIds = ['c-first', 'c-middle', 'c-last'];
+      await seedTopicAndChunks('topic-order', orderedChunkIds, now);
+
+      const input: import('../../../src/ports/session-repository.js').CreateSessionInput = {
+        id: 'session-order',
+        topicId: 'topic-order',
+        chunkIds: orderedChunkIds,
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await sessionRepo.createSession(input);
+
+      const chunks = await sessionRepo.getSessionChunks('session-order');
+      expect(chunks.map(c => c.chunkId)).toEqual(orderedChunkIds);
+    });
+
+    it('should preserve insertion order for single-chunk session (index=0, no offset)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-single', ['c-only'], now);
+
+      const input: import('../../../src/ports/session-repository.js').CreateSessionInput = {
+        id: 'session-single',
+        topicId: 'topic-single',
+        chunkIds: ['c-only'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await sessionRepo.createSession(input);
+
+      const chunks = await sessionRepo.getSessionChunks('session-single');
+      expect(chunks.map(c => c.chunkId)).toEqual(['c-only']);
+    });
   });
 
   describe('validateChunkIds', () => {
