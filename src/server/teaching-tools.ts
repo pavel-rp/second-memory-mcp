@@ -52,10 +52,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                     result.mode === 'learning'
                       ? 'Learning mode: start at Recall, escalate through levels.'
                       : 'Retrieval mode: start at Recall, escalate if mastery target allows.',
-                    'Then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }).',
+                    'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
                     'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                   ].join(' '),
-                  nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", passed: true/false, feedback: "...", time_spent_ms: ... })`,
+                  nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                 },
               })
             );

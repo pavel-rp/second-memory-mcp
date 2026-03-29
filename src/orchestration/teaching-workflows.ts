@@ -697,7 +697,8 @@ async function submitAnswerForQuestion(
 
   const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
 
-  // Derive passed from quality when omitted
+  // Derive passed from quality when omitted; explicit passed overrides quality-based derivation
+  // (e.g. passed=true + quality=2 is valid — agent has discretion over the pass/fail judgment)
   const passed = input.passed ?? input.quality >= 3;
   const quality = input.quality;
 
@@ -782,7 +783,8 @@ async function submitAnswerForAssessmentQuestion(
     };
   }
 
-  // Assessment: derive passed, then use assessment-specific quality (pass=5, fail=1)
+  // Assessment: derive passed, then override quality to 5/1 for SR.
+  // Agent-provided quality is preserved separately in agentQuality for analytics.
   const passed = input.passed ?? input.quality >= 3;
   const quality = passed ? 5 : 1;
 

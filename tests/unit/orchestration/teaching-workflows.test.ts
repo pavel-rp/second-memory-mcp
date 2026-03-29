@@ -1698,10 +1698,11 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     expect(result.status).toBe('teach');
-    // SR called with quality 4 (only from the answered question; unanswered excluded)
+    // SR called with quality 4 (only from the answered question; unanswered excluded).
+    // SM-2 with quality=4, initial state (repetitions=0, easeFactor=2.5) → repetitions=1, easeFactor=2.6
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
       'c1',
-      expect.objectContaining({ repetitions: expect.any(Number) })
+      expect.objectContaining({ repetitions: 1, easeFactor: 2.6 })
     );
   });
 
