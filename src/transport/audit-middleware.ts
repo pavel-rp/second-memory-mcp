@@ -1,5 +1,7 @@
 import type { RequestHandler, Request, Response } from 'express';
 import type pino from 'pino';
+import { getCorrelationId } from '../shared/logger.js';
+import { redactParams } from '../shared/redact-params.js';
 
 interface JsonRpcRequest {
   jsonrpc?: string;
@@ -85,11 +87,24 @@ export function createAuditMiddleware(auditLogger: pino.Logger): RequestHandler 
       if (method) {
         const responseBody = Buffer.concat(chunks).toString('utf8');
 
+        const args =
+          params != null && typeof params === 'object'
+            ? (params as Record<string, unknown>).arguments
+            : undefined;
+        const sessionId =
+          args != null &&
+          typeof args === 'object' &&
+          'session_id' in (args as Record<string, unknown>)
+            ? String((args as Record<string, unknown>).session_id)
+            : undefined;
+
         auditLogger.info({
           module: 'mcp-audit',
           method,
           rpcId,
-          params,
+          params: redactParams(params),
+          correlationId: getCorrelationId(),
+          sessionId,
           responseStatus: res.statusCode,
           responseBody,
           durationMs,

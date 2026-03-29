@@ -113,7 +113,7 @@ export function withRequestContext<T>(
 }
 
 export function getCorrelationId(): string | undefined {
-  return asyncLocalStorage.getStore()?.correlationId;
+  return asyncLocalStorage.getStore()?.correlationId ?? httpCorrelationStorage.getStore();
 }
 
 /**
@@ -145,4 +145,69 @@ export function createAuditPinoLogger(connectionString: string): pino.Logger {
     },
     transport
   );
+}
+
+/**
+ * Create a pino logger instance wired to the pg-event-transport.
+ * Used by logEvent() to persist operation events to Postgres.
+ */
+export function createEventPinoLogger(connectionString: string): pino.Logger {
+  const transportPath = fileURLToPath(
+    new URL('../transport/pg-event-transport.js', import.meta.url)
+  );
+  const transport = pino.transport({
+    target: transportPath,
+    options: { connectionString },
+  });
+  return pino(
+    {
+      level: 'info',
+      base: { service: 'second-memory-mcp', version: getVersion() },
+      timestamp: pino.stdTimeFunctions.isoTime,
+    },
+    transport
+  );
+}
+
+// --- Event logging ---
+
+let eventPinoLogger: pino.Logger | null = null;
+
+/**
+ * Configure the event logger with a DB-backed pino instance.
+ * Call once during server startup when audit DB is available.
+ */
+export function setEventLogger(eventLogger: pino.Logger): void {
+  eventPinoLogger = eventLogger;
+}
+
+/**
+ * Emit a structured operation event. When a DB-backed event logger is configured,
+ * the entry is tagged `module: 'mcp-event'` and routed to pg-event-transport.
+ * When unconfigured, falls back to a plain stderr log.
+ */
+export function logEvent(
+  operation: string,
+  event: string,
+  data?: Record<string, unknown>,
+  durationMs?: number
+): void {
+  const store = asyncLocalStorage.getStore();
+  const correlationId = store?.correlationId;
+  const tool = store?.tool;
+
+  const entry: Record<string, unknown> = {
+    operation,
+    event,
+    ...(correlationId != null && { correlationId }),
+    ...(tool != null && { tool }),
+    ...(data != null && { data }),
+    ...(durationMs != null && { durationMs }),
+  };
+
+  if (eventPinoLogger) {
+    eventPinoLogger.info({ module: 'mcp-event', ...entry });
+  } else {
+    pinoLogger.info(entry, `[event] ${operation}:${event}`);
+  }
 }

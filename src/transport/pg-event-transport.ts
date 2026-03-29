@@ -1,15 +1,14 @@
 import build from 'pino-abstract-transport';
 import pg from 'pg';
 
-interface AuditLogEntry {
+interface EventLogEntry {
   timestamp: string;
-  method?: string;
-  rpcId?: string;
-  params?: unknown;
   correlationId?: string;
-  sessionId?: string;
-  responseStatus?: number;
-  responseBody?: string;
+  tool?: string;
+  level: string;
+  operation: string;
+  event: string;
+  data?: unknown;
   durationMs?: number;
 }
 
@@ -19,7 +18,7 @@ interface CircuitBreakerState {
   openedAt: number;
 }
 
-interface PgAuditTransportOptions {
+interface PgEventTransportOptions {
   connectionString: string;
   batchSize?: number;
   flushIntervalMs?: number;
@@ -32,17 +31,14 @@ const DEFAULT_FLUSH_INTERVAL_MS = 5_000;
 const DEFAULT_CIRCUIT_BREAKER_THRESHOLD = 5;
 const DEFAULT_CIRCUIT_BREAKER_RESET_MS = 60_000;
 
-/** Truncate response bodies beyond this size before DB insertion. */
-const MAX_RESPONSE_BODY_BYTES = 65_536;
-
-export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
+export default async function pgEventTransport(opts: PgEventTransportOptions) {
   const batchSize = opts.batchSize ?? DEFAULT_BATCH_SIZE;
   const flushIntervalMs = opts.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS;
   const cbThreshold = opts.circuitBreakerThreshold ?? DEFAULT_CIRCUIT_BREAKER_THRESHOLD;
   const cbResetMs = opts.circuitBreakerResetMs ?? DEFAULT_CIRCUIT_BREAKER_RESET_MS;
 
   const pool = new pg.Pool({ connectionString: opts.connectionString });
-  let buffer: AuditLogEntry[] = [];
+  let buffer: EventLogEntry[] = [];
   let flushTimer: ReturnType<typeof setInterval> | null = null;
 
   const cb: CircuitBreakerState = {
@@ -84,7 +80,7 @@ export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
       const dropped = buffer.length;
       buffer = [];
       process.stderr.write(
-        `[pg-audit-transport] Circuit breaker open — dropped ${dropped} audit entries\n`
+        `[pg-event-transport] Circuit breaker open — dropped ${dropped} event entries\n`
       );
       return;
     }
@@ -99,50 +95,44 @@ export default async function pgAuditTransport(opts: PgAuditTransportOptions) {
 
       for (const entry of batch) {
         placeholders.push(
-          `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}::jsonb, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`
+          `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}::jsonb, $${paramIdx++})`
         );
         values.push(
-          entry.method ?? null,
-          entry.rpcId ?? null,
           entry.timestamp,
-          entry.params != null ? JSON.stringify(entry.params) : null,
           entry.correlationId ?? null,
-          entry.sessionId ?? null,
-          entry.responseStatus ?? null,
-          entry.responseBody ?? null,
+          entry.tool ?? null,
+          entry.level,
+          entry.operation,
+          entry.event,
+          entry.data != null ? JSON.stringify(entry.data) : null,
           entry.durationMs ?? null
         );
       }
 
-      const sql = `INSERT INTO infrastructure.mcp_request_log (method, rpc_id, timestamp, params, correlation_id, session_id, response_status, response_body, duration_ms) VALUES ${placeholders.join(', ')}`;
+      const sql = `INSERT INTO infrastructure.operation_event_log (timestamp, correlation_id, tool, level, operation, event, data, duration_ms) VALUES ${placeholders.join(', ')}`;
       await pool.query(sql, values);
       recordSuccess();
     } catch (err) {
       recordFailure();
       const message = err instanceof Error ? err.message : String(err);
       process.stderr.write(
-        `[pg-audit-transport] Failed to write audit batch (${batch.length} entries): ${message}\n`
+        `[pg-event-transport] Failed to write event batch (${batch.length} entries): ${message}\n`
       );
     }
   }
 
-  function parseLogEntry(obj: Record<string, unknown>): AuditLogEntry | null {
-    // Only process entries tagged as mcp-audit
-    if (obj.module !== 'mcp-audit') return null;
+  function parseLogEntry(obj: Record<string, unknown>): EventLogEntry | null {
+    // Only process entries tagged as mcp-event
+    if (obj.module !== 'mcp-event') return null;
+    if (typeof obj.operation !== 'string' || typeof obj.event !== 'string') return null;
     return {
       timestamp: typeof obj.time === 'string' ? obj.time : new Date().toISOString(),
-      method: typeof obj.method === 'string' ? obj.method : undefined,
-      rpcId: typeof obj.rpcId === 'string' ? obj.rpcId : undefined,
-      params: obj.params,
       correlationId: typeof obj.correlationId === 'string' ? obj.correlationId : undefined,
-      sessionId: typeof obj.sessionId === 'string' ? obj.sessionId : undefined,
-      responseStatus: typeof obj.responseStatus === 'number' ? obj.responseStatus : undefined,
-      responseBody:
-        typeof obj.responseBody === 'string'
-          ? obj.responseBody.length > MAX_RESPONSE_BODY_BYTES
-            ? obj.responseBody.slice(0, MAX_RESPONSE_BODY_BYTES)
-            : obj.responseBody
-          : undefined,
+      tool: typeof obj.tool === 'string' ? obj.tool : undefined,
+      level: typeof obj.level === 'string' ? obj.level : String(obj.level ?? 'info'),
+      operation: obj.operation,
+      event: obj.event,
+      data: obj.data,
       durationMs: typeof obj.durationMs === 'number' ? obj.durationMs : undefined,
     };
   }
@@ -177,6 +167,5 @@ export {
   DEFAULT_FLUSH_INTERVAL_MS,
   DEFAULT_CIRCUIT_BREAKER_THRESHOLD,
   DEFAULT_CIRCUIT_BREAKER_RESET_MS,
-  MAX_RESPONSE_BODY_BYTES,
 };
-export type { AuditLogEntry, CircuitBreakerState, PgAuditTransportOptions };
+export type { EventLogEntry, CircuitBreakerState, PgEventTransportOptions };

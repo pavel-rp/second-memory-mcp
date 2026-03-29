@@ -89,7 +89,7 @@ describe('pg-audit-transport', () => {
 
       // Stream ended — should flush remaining
       expect(mockQuery).toHaveBeenCalledTimes(1);
-      expect(mockQuery.mock.calls[0][1]).toHaveLength(3 * 7); // 7 params per entry
+      expect(mockQuery.mock.calls[0][1]).toHaveLength(3 * 9); // 9 params per entry
     });
 
     it('flushes at batch size threshold', async () => {
@@ -155,7 +155,7 @@ describe('pg-audit-transport', () => {
 
       // Only 1 entry should be flushed (the audit one)
       expect(mockQuery).toHaveBeenCalledTimes(1);
-      expect(mockQuery.mock.calls[0][1]).toHaveLength(7); // 7 params for 1 entry
+      expect(mockQuery.mock.calls[0][1]).toHaveLength(9); // 9 params for 1 entry
     });
 
     it('skips flush when all entries are filtered out', async () => {
@@ -348,7 +348,7 @@ describe('pg-audit-transport', () => {
 
       // Buffer should have been flushed on stream end
       expect(mockQuery).toHaveBeenCalledTimes(1);
-      expect(mockQuery.mock.calls[0][1]).toHaveLength(5 * 7);
+      expect(mockQuery.mock.calls[0][1]).toHaveLength(5 * 9);
 
       // Pool should be closed
       expect(mockEnd).toHaveBeenCalledTimes(1);
@@ -365,8 +365,56 @@ describe('pg-audit-transport', () => {
       await handler(asyncIterableFrom([createAuditEntry({ responseBody: oversized })]));
 
       const [, params] = mockQuery.mock.calls[0] as [string, unknown[]];
-      // responseBody is the 6th param (index 5)
-      expect((params[5] as string).length).toBe(MAX_RESPONSE_BODY_BYTES);
+      // responseBody is the 8th param (index 7)
+      expect((params[7] as string).length).toBe(MAX_RESPONSE_BODY_BYTES);
+    });
+  });
+
+  describe('correlationId and sessionId extraction', () => {
+    it('parseLogEntry extracts correlationId and sessionId from log object', async () => {
+      const handler = await initTransport({ batchSize: 100 });
+
+      await handler(
+        asyncIterableFrom([
+          createAuditEntry({
+            correlationId: 'corr-abc-123',
+            sessionId: 'sess-456',
+          }),
+        ])
+      );
+
+      const [sql, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(sql).toContain('correlation_id');
+      expect(sql).toContain('session_id');
+      expect(params[4]).toBe('corr-abc-123'); // correlationId
+      expect(params[5]).toBe('sess-456'); // sessionId
+    });
+
+    it('handles missing correlationId and sessionId gracefully', async () => {
+      const handler = await initTransport({ batchSize: 100 });
+
+      await handler(asyncIterableFrom([createAuditEntry()]));
+
+      const [, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(params[4]).toBeNull(); // correlationId defaults to null
+      expect(params[5]).toBeNull(); // sessionId defaults to null
+    });
+
+    it('ignores non-string correlationId values', async () => {
+      const handler = await initTransport({ batchSize: 100 });
+
+      await handler(
+        asyncIterableFrom([
+          createAuditEntry({
+            correlationId: 42,
+            sessionId: true,
+          }),
+        ])
+      );
+
+      const [, params] = mockQuery.mock.calls[0] as [string, unknown[]];
+      expect(params[4]).toBeNull(); // non-string → null
+      expect(params[5]).toBeNull(); // non-string → null
     });
   });
 
@@ -395,6 +443,8 @@ describe('pg-audit-transport', () => {
         'req-1',
         '2026-03-22T15:00:00.000Z',
         '{"name":"get_info"}',
+        null, // correlationId
+        null, // sessionId
         200,
         '{"ok":true}',
         15,
@@ -418,14 +468,16 @@ describe('pg-audit-transport', () => {
       );
 
       const [, params] = mockQuery.mock.calls[0] as [string, unknown[]];
-      // method, rpcId, timestamp, params, responseStatus, responseBody, durationMs
+      // method, rpcId, timestamp, params, correlationId, sessionId, responseStatus, responseBody, durationMs
       expect(params[0]).toBeNull(); // method
       expect(params[1]).toBeNull(); // rpcId
       expect(typeof params[2]).toBe('string'); // timestamp always present
       expect(params[3]).toBeNull(); // params
-      expect(params[4]).toBeNull(); // responseStatus
-      expect(params[5]).toBeNull(); // responseBody
-      expect(params[6]).toBeNull(); // durationMs
+      expect(params[4]).toBeNull(); // correlationId
+      expect(params[5]).toBeNull(); // sessionId
+      expect(params[6]).toBeNull(); // responseStatus
+      expect(params[7]).toBeNull(); // responseBody
+      expect(params[8]).toBeNull(); // durationMs
     });
   });
 });

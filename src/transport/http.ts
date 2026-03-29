@@ -5,7 +5,13 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import { logger, createAuditPinoLogger, withHttpCorrelation } from '../shared/logger.js';
+import {
+  logger,
+  createAuditPinoLogger,
+  createEventPinoLogger,
+  setEventLogger,
+  withHttpCorrelation,
+} from '../shared/logger.js';
 import { getServerInfo } from '../shared/version.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
@@ -124,11 +130,12 @@ export async function startHttpTransport(
     app.use('/mcp', await createJwtMiddleware(authConfig));
   }
 
-  // Audit middleware (after CORS and JWT, before route handlers)
+  // Audit and event transports (after CORS and JWT, before route handlers)
   const auditDbUrl = process.env.AUDIT_DATABASE_URL ?? process.env.DATABASE_URL;
   if (auditDbUrl) {
     const auditPino = createAuditPinoLogger(auditDbUrl);
     app.use('/mcp', createAuditMiddleware(auditPino));
+    setEventLogger(createEventPinoLogger(auditDbUrl));
   }
 
   // POST /mcp
