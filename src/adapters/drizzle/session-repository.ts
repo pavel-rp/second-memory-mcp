@@ -168,6 +168,10 @@ export class DrizzleSessionRepository implements SessionRepository {
 
   async batchCreateSessionChunks(inputs: CreateSessionChunkInput[]): Promise<void> {
     if (inputs.length === 0) return;
+    // `+ index` staggers createdAt/updatedAt so getSessionChunks (ORDER BY createdAt, id)
+    // returns chunks in insertion order even when callers supply identical timestamps.
+    // Note: starts at index 0, so the first chunk gets the caller's exact timestamp.
+    // This only guarantees ordering within this batch — not relative to pre-existing chunks.
     const rows: NewSessionChunkRow[] = inputs.map((input, index) => ({
       id: input.id,
       sessionId: input.sessionId,
@@ -367,7 +371,9 @@ export class DrizzleSessionRepository implements SessionRepository {
     let unchanged = 0;
     const affectedChunkIds: string[] = [];
     const now = Date.now();
-    let createdIndex = 0;
+    // Start at 1 so new chunks always get createdAt > now, ensuring they sort after any
+    // pre-existing chunk that was created at the same `now` millisecond.
+    let createdIndex = 1;
 
     await withTx(async tx => {
       for (const op of operations) {
