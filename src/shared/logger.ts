@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
 import { getVersion } from './version.js';
@@ -65,6 +67,63 @@ export const logger = {
   debug: adapt(pinoLogger.debug.bind(pinoLogger)),
   child: pinoLogger.child.bind(pinoLogger),
 };
+
+// --- Correlation ID propagation via AsyncLocalStorage ---
+
+interface RequestContext {
+  correlationId: string;
+  tool: string;
+  _cachedLogger?: WrappedLogger;
+}
+
+const asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
+const httpCorrelationStorage = new AsyncLocalStorage<string>();
+
+export type WrappedLogger = {
+  info: (...messages: unknown[]) => void;
+  warn: (...messages: unknown[]) => void;
+  error: (...messages: unknown[]) => void;
+  debug: (...messages: unknown[]) => void;
+  child: typeof pinoLogger.child;
+};
+
+export function getRequestLogger(): WrappedLogger {
+  const store = asyncLocalStorage.getStore();
+  if (!store) return logger;
+  if (store._cachedLogger) return store._cachedLogger;
+  const child = pinoLogger.child({ tool: store.tool, correlationId: store.correlationId });
+  const wrapped: WrappedLogger = {
+    info: adapt(child.info.bind(child)),
+    warn: adapt(child.warn.bind(child)),
+    error: adapt(child.error.bind(child)),
+    debug: adapt(child.debug.bind(child)),
+    child: child.child.bind(child),
+  };
+  store._cachedLogger = wrapped;
+  return wrapped;
+}
+
+export function withRequestContext<T>(
+  toolName: string,
+  fn: () => Promise<T>,
+  correlationId?: string
+): Promise<T> {
+  const cid = correlationId ?? httpCorrelationStorage.getStore() ?? randomUUID();
+  return asyncLocalStorage.run({ correlationId: cid, tool: toolName }, fn);
+}
+
+export function getCorrelationId(): string | undefined {
+  return asyncLocalStorage.getStore()?.correlationId;
+}
+
+/**
+ * Run a function within an HTTP-level correlation ID context.
+ * Tool handlers that call `withRequestContext` will inherit this correlation ID
+ * instead of generating a new one.
+ */
+export function withHttpCorrelation<T>(correlationId: string, fn: () => T): T {
+  return httpCorrelationStorage.run(correlationId, fn);
+}
 
 /**
  * Create a pino logger instance wired to the pg-audit-transport.

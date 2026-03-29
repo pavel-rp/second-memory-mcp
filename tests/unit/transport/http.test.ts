@@ -19,6 +19,7 @@ vi.mock('../../../src/shared/logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
+  withHttpCorrelation: vi.fn((_id: string, fn: () => unknown) => fn()),
 }));
 
 const MCP_ACCEPT = 'application/json, text/event-stream';
@@ -190,6 +191,62 @@ describe('startHttpTransport', () => {
     expect(res.headers['access-control-allow-headers']).toContain('mcp-session-id');
     expect(res.headers['access-control-allow-headers']).toContain('Authorization');
     expect(res.headers['access-control-expose-headers']).toContain('mcp-session-id');
+  });
+
+  // ── Correlation ID ────────────────────────────────────────────
+
+  it('generates X-Correlation-ID when none provided', async () => {
+    const res = await makeRequest(port, { method: 'POST', body: INIT_BODY });
+    expect(res.headers['x-correlation-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
+  });
+
+  it('echoes client-provided X-Correlation-ID', async () => {
+    const clientId = 'client-trace-abc-123';
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': clientId },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toBe(clientId);
+  });
+
+  it('exposes X-Correlation-ID in CORS headers', async () => {
+    const res = await makeRequest(port, { method: 'OPTIONS' });
+    expect(res.headers['access-control-allow-headers']).toContain('X-Correlation-ID');
+    expect(res.headers['access-control-expose-headers']).toContain('X-Correlation-ID');
+  });
+
+  it('echoes comma-joined duplicate X-Correlation-ID as-is', async () => {
+    // Some reverse proxies merge duplicate headers with ", "
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': 'id-a, id-b' },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toBe('id-a, id-b');
+  });
+
+  it('truncates oversized X-Correlation-ID to 128 chars', async () => {
+    const oversized = 'a'.repeat(200);
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': oversized },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toBe('a'.repeat(128));
+  });
+
+  it('falls back to UUID when X-Correlation-ID is empty', async () => {
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': '' },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
   });
 
   // ── POST without session ──────────────────────────────────────

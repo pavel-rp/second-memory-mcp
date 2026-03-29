@@ -13,7 +13,7 @@ import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
-import { logger } from '../shared/logger.js';
+import { getRequestLogger } from '../shared/logger.js';
 
 export type SessionDeps = {
   sessions: SessionRepository;
@@ -229,7 +229,7 @@ export async function resolveSessionChunkDependencies(
           } else {
             missingPrerequisites.push(currentId);
           }
-          logger.warn(
+          getRequestLogger().warn(
             `Skipping chunk ${currentId} while resolving session dependencies - not found in database`
           );
           continue;
@@ -245,7 +245,7 @@ export async function resolveSessionChunkDependencies(
     }
 
     if (missingRequestedChunks.length > 0) {
-      logger.warn(
+      getRequestLogger().warn(
         `Cannot resolve dependencies for missing requested chunks: ${missingRequestedChunks.join(', ')}`
       );
       return {
@@ -273,7 +273,10 @@ export async function resolveSessionChunkDependencies(
     const resolution = await resolver.resolveDependencies(relevantItems, chunkIds);
 
     if (!resolution.isValid) {
-      logger.warn('Dependency resolution failed for session chunks:', resolution.errors.join(', '));
+      getRequestLogger().warn(
+        'Dependency resolution failed for session chunks:',
+        resolution.errors.join(', ')
+      );
       return {
         resolvedChunkIds: chunkIds,
         addedPrerequisites: [],
@@ -322,7 +325,7 @@ export async function resolveSessionChunkDependencies(
       messageParts.push(
         `Skipped ${missingPrerequisites.length} missing prerequisite${missingPrerequisites.length > 1 ? 's' : ''}: ${missingPrerequisites.join(', ')}.`
       );
-      logger.warn(
+      getRequestLogger().warn(
         `Skipped missing prerequisite chunks during session dependency resolution: ${missingPrerequisites.join(', ')}`
       );
     }
@@ -335,7 +338,7 @@ export async function resolveSessionChunkDependencies(
       message,
     };
   } catch (error) {
-    logger.error('Error resolving session chunk dependencies:', error);
+    getRequestLogger().error('Error resolving session chunk dependencies:', error);
     return {
       resolvedChunkIds: chunkIds,
       addedPrerequisites: [],

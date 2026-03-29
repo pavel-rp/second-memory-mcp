@@ -9,7 +9,7 @@ import {
   DEFAULT_HYBRID_KEYWORD_WEIGHT,
   DEFAULT_HYBRID_SEMANTIC_WEIGHT,
 } from '../domain/config/embedding-defaults.js';
-import { logger } from '../shared/logger.js';
+import { getRequestLogger } from '../shared/logger.js';
 
 export type SearchDeps = {
   search: SearchPort;
@@ -39,7 +39,7 @@ async function searchSemantic(
   deps: SearchDeps
 ): Promise<SearchResultSet> {
   if (!deps.embedding) {
-    logger.warn(
+    getRequestLogger().warn(
       'Semantic search requested but no embedding provider configured — falling back to keyword'
     );
     return deps.search.searchByQuery(input);
@@ -47,7 +47,7 @@ async function searchSemantic(
 
   const queryVector = await deps.embedding.embedText(input.query);
   if (!queryVector) {
-    logger.warn('Failed to embed search query — falling back to keyword');
+    getRequestLogger().warn('Failed to embed search query — falling back to keyword');
     return deps.search.searchByQuery(input);
   }
 
@@ -73,7 +73,7 @@ async function searchHybrid(
   deps: SearchDeps
 ): Promise<SearchResultSet> {
   if (!deps.embedding) {
-    logger.warn(
+    getRequestLogger().warn(
       'Hybrid search requested but no embedding provider — returning keyword results only'
     );
     return deps.search.searchByQuery(input);
@@ -86,7 +86,7 @@ async function searchHybrid(
   ]);
 
   if (!queryVector) {
-    logger.warn('Failed to embed search query — returning keyword results only');
+    getRequestLogger().warn('Failed to embed search query — returning keyword results only');
     return keywordResults;
   }
 

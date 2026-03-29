@@ -18,6 +18,7 @@ vi.mock('../../src/shared/logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
+  withHttpCorrelation: vi.fn((_id: string, fn: () => unknown) => fn()),
 }));
 
 const MCP_ACCEPT = 'application/json, text/event-stream';

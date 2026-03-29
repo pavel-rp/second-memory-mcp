@@ -5,7 +5,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
-import { logger, createAuditPinoLogger } from '../shared/logger.js';
+import { logger, createAuditPinoLogger, withHttpCorrelation } from '../shared/logger.js';
 import { getServerInfo } from '../shared/version.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
@@ -91,16 +91,32 @@ export async function startHttpTransport(
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id, Authorization');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, mcp-session-id, Authorization, X-Correlation-ID'
+    );
     res.setHeader(
       'Access-Control-Expose-Headers',
-      authConfig ? 'mcp-session-id, WWW-Authenticate' : 'mcp-session-id'
+      authConfig
+        ? 'mcp-session-id, WWW-Authenticate, X-Correlation-ID'
+        : 'mcp-session-id, X-Correlation-ID'
     );
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
       return;
     }
     next();
+  });
+
+  // Correlation ID middleware (after CORS, before JWT and route handlers).
+  // next() is called inside run() so async continuations inherit the context.
+  app.use('/mcp', (req, res, next) => {
+    const incoming = req.headers['x-correlation-id'];
+    const sanitized =
+      typeof incoming === 'string' ? incoming.replace(/[^\x20-\x7E]/g, '').slice(0, 128) : '';
+    const correlationId = sanitized.length > 0 ? sanitized : randomUUID();
+    res.setHeader('X-Correlation-ID', correlationId);
+    withHttpCorrelation(correlationId, () => next());
   });
 
   // JWT middleware (after CORS, before route handlers — only when auth is enabled)

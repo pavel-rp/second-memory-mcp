@@ -11,7 +11,7 @@ import { extractErrorMessage } from '../shared/errors.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import type { LearningItem } from '../domain/types/recommendations.js';
-import { logger } from '../shared/logger.js';
+import { getRequestLogger } from '../shared/logger.js';
 
 export type ChunkDeps = {
   chunks: ChunkRepository;
@@ -81,7 +81,7 @@ async function updateChunkFields(
           await deps.chunks.saveContentEmbedding(id, vector);
         }
       } catch (err) {
-        logger.warn('Embedding generation failed for chunk content:', err);
+        getRequestLogger().warn('Embedding generation failed for chunk content:', err);
       }
     }
     if (rowCount === 0) {
@@ -338,11 +338,11 @@ export async function createChunkWithTopic(
         if (vector) {
           const rowCount = await deps.chunks.saveContentEmbedding(created.id, vector);
           if (rowCount === 0) {
-            logger.warn(`Failed to save content embedding for chunk ${created.id}`);
+            getRequestLogger().warn(`Failed to save content embedding for chunk ${created.id}`);
           }
         }
       } catch (err) {
-        logger.warn('Embedding generation failed for new chunk:', err);
+        getRequestLogger().warn('Embedding generation failed for new chunk:', err);
       }
     }
 

@@ -6,6 +6,7 @@ import {
   AnalyticsWindowInputSchema,
   AnalyticsWindowInputShape,
 } from '../domain/types/analytics.js';
+import { withRequestContext } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void {
@@ -16,19 +17,20 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       description: 'Compute daily analytics KPIs from stored review history for a single day',
       inputSchema: AnalyticsDailyInputShape,
     },
-    async (rawInput: unknown) => {
-      const parsed = AnalyticsDailyInputSchema.parse(rawInput);
-      try {
-        const result = await ctx.computeDailyAnalytics(parsed.date);
-        return toolJson(result);
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to compute daily KPIs: ${msg}`, {
-          type: 'computation',
-          message: msg,
-        });
-      }
-    }
+    async (rawInput: unknown) =>
+      withRequestContext('analytics_daily', async () => {
+        const parsed = AnalyticsDailyInputSchema.parse(rawInput);
+        try {
+          const result = await ctx.computeDailyAnalytics(parsed.date);
+          return toolJson(result);
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to compute daily KPIs: ${msg}`, {
+            type: 'computation',
+            message: msg,
+          });
+        }
+      })
   );
 
   server.registerTool(
@@ -38,20 +40,21 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
       description: 'Compute analytics for a date range with optional topic/tag breakdowns',
       inputSchema: AnalyticsWindowInputShape,
     },
-    async (rawInput: unknown) => {
-      const parsed = AnalyticsWindowInputSchema.parse(rawInput);
-      try {
-        const result = await ctx.computeWindowAnalytics(parsed.from, parsed.to, {
-          includeBreakdowns: parsed.includeBreakdowns,
-        });
-        return toolJson(result);
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to compute window analytics: ${msg}`, {
-          type: 'computation',
-          message: msg,
-        });
-      }
-    }
+    async (rawInput: unknown) =>
+      withRequestContext('analytics_window', async () => {
+        const parsed = AnalyticsWindowInputSchema.parse(rawInput);
+        try {
+          const result = await ctx.computeWindowAnalytics(parsed.from, parsed.to, {
+            includeBreakdowns: parsed.includeBreakdowns,
+          });
+          return toolJson(result);
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to compute window analytics: ${msg}`, {
+            type: 'computation',
+            message: msg,
+          });
+        }
+      })
   );
 }

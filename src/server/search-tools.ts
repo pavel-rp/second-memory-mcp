@@ -5,6 +5,7 @@ import {
   SearchLearningContentInputShape,
   type SearchLearningContentInput,
 } from '../domain/types/search-tools.js';
+import { withRequestContext } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
 export function registerSearchTools(server: McpServer, ctx: AppContext): void {
@@ -24,41 +25,43 @@ export function registerSearchTools(server: McpServer, ctx: AppContext): void {
         'Always assess the learner before concluding there is a gap.',
       inputSchema: SearchLearningContentInputShape,
     },
-    async (rawInput: unknown) => {
-      try {
-        const input: SearchLearningContentInput = SearchLearningContentInputSchema.parse(rawInput);
-        const result = await ctx.searchLearningContent(input);
+    async (rawInput: unknown) =>
+      withRequestContext('search_learning_content', async () => {
+        try {
+          const input: SearchLearningContentInput =
+            SearchLearningContentInputSchema.parse(rawInput);
+          const result = await ctx.searchLearningContent(input);
 
-        const chunkResults = result.results.filter(item => item.resultType === 'chunk');
-        const hasChunks = chunkResults.length > 0;
-        const chunkIds = chunkResults.map(c => c.id);
+          const chunkResults = result.results.filter(item => item.resultType === 'chunk');
+          const hasChunks = chunkResults.length > 0;
+          const chunkIds = chunkResults.map(c => c.id);
 
-        return toolJson({
-          success: true,
-          message:
-            result.counts.total > 0
-              ? `Found ${result.counts.total} matching items.`
-              : 'No matching topics or chunks were found.',
-          ...result,
-          workflow_hint: hasChunks
-            ? {
-                action: 'REQUIRED_FOR_RECALL',
-                instruction:
-                  'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
-                  'and include the chunk IDs before teaching. This loads historical feedback from past sessions ' +
-                  'showing what the learner struggled with previously.',
-                suggested_chunk_ids: chunkIds,
-                next_step: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
-              }
-            : undefined,
-        });
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        return toolError(`Failed to search learning content: ${msg}`, {
-          type: 'database',
-          message: msg,
-        });
-      }
-    }
+          return toolJson({
+            success: true,
+            message:
+              result.counts.total > 0
+                ? `Found ${result.counts.total} matching items.`
+                : 'No matching topics or chunks were found.',
+            ...result,
+            workflow_hint: hasChunks
+              ? {
+                  action: 'REQUIRED_FOR_RECALL',
+                  instruction:
+                    'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                    'and include the chunk IDs before teaching. This loads historical feedback from past sessions ' +
+                    'showing what the learner struggled with previously.',
+                  suggested_chunk_ids: chunkIds,
+                  next_step: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
+                }
+              : undefined,
+          });
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`Failed to search learning content: ${msg}`, {
+            type: 'database',
+            message: msg,
+          });
+        }
+      })
   );
 }

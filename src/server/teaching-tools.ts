@@ -9,7 +9,7 @@ import {
   CreateSessionQuestionsInputShape,
   CreateSessionQuestionsInputSchema,
 } from '../domain/types/teaching.js';
-import { logger } from '../shared/logger.js';
+import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
 
@@ -30,46 +30,47 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         "When submit_answer returns status 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
       inputSchema: z.object({}).shape,
     },
-    async () => {
-      try {
-        const result = await ctx.getNextTeachingStep();
-        if (result.status === 'teach') {
-          return toolJson(
-            toSnakeCase({
-              ...result,
-              workflowHint: {
-                action: 'USE_INLINE_SUBMIT',
-                sessionId: result.session_id,
-                chunkId: result.chunk_id,
-                mode: result.mode,
-                instruction: [
-                  'Per-chunk probing algorithm:',
-                  'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create).',
-                  'If correct → escalate one level if time permits → move to next chunk.',
-                  'If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
-                  'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
-                  result.mode === 'learning'
-                    ? 'Learning mode: start at Recall, escalate through levels.'
-                    : 'Retrieval mode: start at Recall, escalate if mastery target allows.',
-                  'Then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }).',
-                  'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
-                ].join(' '),
-                nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", passed: true/false, feedback: "...", time_spent_ms: ... })`,
-              },
-            })
-          );
+    async () =>
+      withRequestContext('teach_next', async () => {
+        try {
+          const result = await ctx.getNextTeachingStep();
+          if (result.status === 'teach') {
+            return toolJson(
+              toSnakeCase({
+                ...result,
+                workflowHint: {
+                  action: 'USE_INLINE_SUBMIT',
+                  sessionId: result.session_id,
+                  chunkId: result.chunk_id,
+                  mode: result.mode,
+                  instruction: [
+                    'Per-chunk probing algorithm:',
+                    'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create).',
+                    'If correct → escalate one level if time permits → move to next chunk.',
+                    'If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
+                    'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
+                    result.mode === 'learning'
+                      ? 'Learning mode: start at Recall, escalate through levels.'
+                      : 'Retrieval mode: start at Recall, escalate if mastery target allows.',
+                    'Then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }).',
+                    'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
+                  ].join(' '),
+                  nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", passed: true/false, feedback: "...", time_spent_ms: ... })`,
+                },
+              })
+            );
+          }
+          return toolJson(result);
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          getRequestLogger().error('teach_next failed:', error);
+          return toolError(`Failed to get next teaching step: ${msg}`, {
+            type: 'session',
+            message: msg,
+            retryable: true,
+          });
         }
-        return toolJson(result);
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        logger.error('teach_next failed:', error);
-        return toolError(`Failed to get next teaching step: ${msg}`, {
-          type: 'session',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 
   server.registerTool(
@@ -88,29 +89,30 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'When status is "recorded", call teach_next to get the next action.',
       inputSchema: SubmitAnswerInputShape,
     },
-    async input => {
-      try {
-        const parsed = SubmitAnswerInputSchema.parse(input);
-        const result = await ctx.submitAnswer(parsed);
-        return toolJson(result);
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
-          logger.error('Invalid submit_answer input:', error);
+    async input =>
+      withRequestContext('submit_answer', async () => {
+        try {
+          const parsed = SubmitAnswerInputSchema.parse(input);
+          const result = await ctx.submitAnswer(parsed);
+          return toolJson(result);
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid submit_answer input:', error);
+            return toolError(`Failed to submit answer: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
+          getRequestLogger().error('submit_answer failed:', error);
           return toolError(`Failed to submit answer: ${msg}`, {
-            type: 'validation',
+            type: 'session',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        logger.error('submit_answer failed:', error);
-        return toolError(`Failed to submit answer: ${msg}`, {
-          type: 'session',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 
   server.registerTool(
@@ -127,29 +129,30 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'After teaching, call submit_answer. When status is "recorded", call teach_next to get the next action.',
       inputSchema: StartLearningInputShape,
     },
-    async input => {
-      try {
-        const parsed = StartLearningInputSchema.parse(input);
-        const result = await ctx.startLearning(parsed);
-        return toolJson(result);
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
-          logger.error('Invalid start_learning input:', error);
+    async input =>
+      withRequestContext('start_learning', async () => {
+        try {
+          const parsed = StartLearningInputSchema.parse(input);
+          const result = await ctx.startLearning(parsed);
+          return toolJson(result);
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid start_learning input:', error);
+            return toolError(`Failed to start learning: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
+          getRequestLogger().error('start_learning failed:', error);
           return toolError(`Failed to start learning: ${msg}`, {
-            type: 'validation',
+            type: 'session',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        logger.error('start_learning failed:', error);
-        return toolError(`Failed to start learning: ${msg}`, {
-          type: 'session',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 
   server.registerTool(
@@ -165,35 +168,36 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Use submit_answer with session_question_id to answer each question.',
       inputSchema: CreateSessionQuestionsInputShape,
     },
-    async input => {
-      try {
-        const parsed = CreateSessionQuestionsInputSchema.parse(input);
-        const result = await ctx.createSessionQuestions(parsed);
-        if (result.status === 'error') {
-          return toolError(`Failed to create session questions: ${result.message}`, {
-            type: 'session',
-            message: result.message,
-            retryable: false,
-          });
-        }
-        return toolJson(toSnakeCase(result));
-      } catch (error) {
-        const msg = extractErrorMessage(error);
-        if (error instanceof ZodError) {
-          logger.error('Invalid create_session_questions input:', error);
+    async input =>
+      withRequestContext('create_session_questions', async () => {
+        try {
+          const parsed = CreateSessionQuestionsInputSchema.parse(input);
+          const result = await ctx.createSessionQuestions(parsed);
+          if (result.status === 'error') {
+            return toolError(`Failed to create session questions: ${result.message}`, {
+              type: 'session',
+              message: result.message,
+              retryable: false,
+            });
+          }
+          return toolJson(toSnakeCase(result));
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid create_session_questions input:', error);
+            return toolError(`Failed to create session questions: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
+          getRequestLogger().error('create_session_questions failed:', error);
           return toolError(`Failed to create session questions: ${msg}`, {
-            type: 'validation',
+            type: 'session',
             message: msg,
-            retryable: false,
+            retryable: true,
           });
         }
-        logger.error('create_session_questions failed:', error);
-        return toolError(`Failed to create session questions: ${msg}`, {
-          type: 'session',
-          message: msg,
-          retryable: true,
-        });
-      }
-    }
+      })
   );
 }
