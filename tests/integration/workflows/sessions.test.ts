@@ -1,7 +1,11 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-repository.js';
-import type { CreateSessionInput } from '../../../src/ports/session-repository.js';
+import type {
+  CreateSessionInput,
+  CreateSessionChunkInput,
+} from '../../../src/ports/session-repository.js';
+import type { BatchOperation } from '../../../src/domain/types/session.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
@@ -491,6 +495,114 @@ describe('sessions service', () => {
       expect(result.valid).toBe(true);
       expect(result.validIds).toEqual(chunkIds);
       expect(result.invalidIds).toEqual([]);
+    });
+  });
+
+  describe('NEU-376: same-timestamp ordering in batch chunk operations', () => {
+    it('batchCreateSessionChunks preserves input order with identical timestamps', async () => {
+      const now = Date.now();
+      const chunkIds = ['bc-first', 'bc-second', 'bc-third'];
+      await seedTopicAndChunks('topic-batch', chunkIds, now);
+
+      await sessionRepo.createSession({
+        id: 'session-batch',
+        topicId: 'topic-batch',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const inputs: CreateSessionChunkInput[] = chunkIds.map((chunkId, i) => ({
+        id: `sc-batch-${i}`,
+        sessionId: 'session-batch',
+        chunkId,
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+      await sessionRepo.batchCreateSessionChunks(inputs);
+
+      const fetched = await sessionRepo.getSessionChunks('session-batch');
+      expect(fetched.map(c => c.chunkId)).toEqual(chunkIds);
+    });
+
+    it('persistBatchSessionChunkOperations preserves operation order for new chunks', async () => {
+      const now = Date.now();
+      const chunkIds = ['pb-first', 'pb-second', 'pb-third'];
+      await seedTopicAndChunks('topic-persist', chunkIds, now);
+
+      await sessionRepo.createSession({
+        id: 'session-persist',
+        topicId: 'topic-persist',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const operations: BatchOperation[] = chunkIds.map(chunkId => ({
+        chunkId,
+        status: 'pending' as const,
+      }));
+
+      const result = await sessionRepo.persistBatchSessionChunkOperations({
+        sessionId: 'session-persist',
+        operations,
+        existingChunks: [],
+      });
+
+      expect(result.created).toBe(3);
+
+      const fetched = await sessionRepo.getSessionChunks('session-persist');
+      expect(fetched.map(c => c.chunkId)).toEqual(chunkIds);
+    });
+
+    it('persistBatchSessionChunkOperations only staggers new chunks, not updates', async () => {
+      const now = Date.now();
+      const chunkIds = ['mx-existing', 'mx-new1', 'mx-new2'];
+      await seedTopicAndChunks('topic-mixed', chunkIds, now);
+
+      await sessionRepo.createSession({
+        id: 'session-mixed',
+        topicId: 'topic-mixed',
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Pre-create one chunk so it becomes an "existing" chunk for the batch operation
+      await sessionRepo.createSessionChunk({
+        id: 'sc-existing',
+        sessionId: 'session-mixed',
+        chunkId: 'mx-existing',
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      const existingChunks = await sessionRepo.getSessionChunks('session-mixed');
+
+      const operations: BatchOperation[] = [
+        { chunkId: 'mx-existing', status: 'in_progress' },
+        { chunkId: 'mx-new1', status: 'pending' },
+        { chunkId: 'mx-new2', status: 'pending' },
+      ];
+
+      const result = await sessionRepo.persistBatchSessionChunkOperations({
+        sessionId: 'session-mixed',
+        operations,
+        existingChunks,
+      });
+
+      expect(result.created).toBe(2);
+      expect(result.updated).toBe(1);
+
+      const fetched = await sessionRepo.getSessionChunks('session-mixed');
+      // Existing chunk was first (lowest createdAt), new chunks follow in operation order
+      expect(fetched.map(c => c.chunkId)).toEqual(['mx-existing', 'mx-new1', 'mx-new2']);
     });
   });
 
