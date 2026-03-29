@@ -19,6 +19,7 @@ vi.mock('../../src/shared/logger.js', () => ({
     debug: vi.fn(),
   })),
   withHttpCorrelation: vi.fn((_id: string, fn: () => unknown) => fn()),
+  getCorrelationId: vi.fn(() => undefined),
   createEventPinoLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
