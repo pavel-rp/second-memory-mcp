@@ -218,6 +218,37 @@ describe('startHttpTransport', () => {
     expect(res.headers['access-control-expose-headers']).toContain('X-Correlation-ID');
   });
 
+  it('echoes comma-joined duplicate X-Correlation-ID as-is', async () => {
+    // Some reverse proxies merge duplicate headers with ", "
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': 'id-a, id-b' },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toBe('id-a, id-b');
+  });
+
+  it('truncates oversized X-Correlation-ID to 128 chars', async () => {
+    const oversized = 'a'.repeat(200);
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': oversized },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toBe('a'.repeat(128));
+  });
+
+  it('falls back to UUID when X-Correlation-ID is empty', async () => {
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': '' },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
+  });
+
   // ── POST without session ──────────────────────────────────────
 
   it('returns 400 for POST with non-init body and no session', async () => {

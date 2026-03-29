@@ -108,10 +108,13 @@ export async function startHttpTransport(
     next();
   });
 
-  // Correlation ID middleware (after CORS, before JWT and route handlers)
+  // Correlation ID middleware (after CORS, before JWT and route handlers).
+  // next() is called inside run() so async continuations inherit the context.
   app.use('/mcp', (req, res, next) => {
     const incoming = req.headers['x-correlation-id'];
-    const correlationId = typeof incoming === 'string' ? incoming : randomUUID();
+    const sanitized =
+      typeof incoming === 'string' ? incoming.replace(/[^\x20-\x7E]/g, '').slice(0, 128) : '';
+    const correlationId = sanitized.length > 0 ? sanitized : randomUUID();
     res.setHeader('X-Correlation-ID', correlationId);
     withHttpCorrelation(correlationId, () => next());
   });
