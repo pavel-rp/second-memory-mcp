@@ -151,7 +151,8 @@ describe('session question workflows', () => {
     // 2. Answer Q1 (pass)
     const a1 = await ctx.submitAnswer({
       response: 'Answer 1',
-      passed: true,
+      quality: 5,
+      questionType: 'recall',
       feedback: 'Good',
       timeSpentMs: 2000,
       sessionQuestionId: q1Id,
@@ -177,7 +178,8 @@ describe('session question workflows', () => {
     // 4. Answer Q2 (pass)
     const a2 = await ctx.submitAnswer({
       response: 'Answer 2',
-      passed: true,
+      quality: 4,
+      questionType: 'explain_apply',
       feedback: 'Good',
       timeSpentMs: 2000,
       sessionQuestionId: q2Id,
@@ -188,14 +190,15 @@ describe('session question workflows', () => {
     // 5. Answer Q3 (pass) — chunk stays in_progress
     const a3 = await ctx.submitAnswer({
       response: 'Answer 3',
-      passed: true,
+      quality: 5,
+      questionType: 'recall',
       feedback: 'Good',
       timeSpentMs: 2000,
       sessionQuestionId: q3Id,
     });
     expect(a3.status).toBe('recorded');
     if (a3.status !== 'recorded') throw new Error('Expected recorded');
-    expect(a3.quality).toBe(5); // per-question quality (first attempt pass)
+    expect(a3.quality).toBe(5); // agent-provided quality
     expect(a3.review_update).toBeUndefined();
 
     // 6. teach_next completes the chunk with aggregated quality and returns review_update
@@ -219,7 +222,8 @@ describe('session question workflows', () => {
     // First attempt — fail → retry
     const retryResult = await ctx.submitAnswer({
       response: 'Wrong answer',
-      passed: false,
+      quality: 1,
+      questionType: 'recall',
       feedback: 'Incorrect',
       timeSpentMs: 3000,
       sessionQuestionId: questionId,
@@ -235,14 +239,15 @@ describe('session question workflows', () => {
     // Second attempt — pass → recorded (no SR update — deferred to teach_next)
     const recordedResult = await ctx.submitAnswer({
       response: '4',
-      passed: true,
+      quality: 3,
+      questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 2000,
       sessionQuestionId: questionId,
     });
     expect(recordedResult.status).toBe('recorded');
     if (recordedResult.status !== 'recorded') throw new Error('Expected recorded');
-    expect(recordedResult.quality).toBe(3); // second attempt pass
+    expect(recordedResult.quality).toBe(3); // agent-provided quality
     // NEU-347: review_update deferred to teach_next
     expect(recordedResult.review_update).toBeUndefined();
   });
@@ -281,14 +286,16 @@ describe('session question workflows', () => {
     // Submit answers for both questions (first attempt pass for each)
     await ctx.submitAnswer({
       response: 'A1',
-      passed: true,
+      quality: 5,
+      questionType: 'recall',
       feedback: 'OK',
       timeSpentMs: 1000,
       sessionQuestionId: q1Id,
     });
     await ctx.submitAnswer({
       response: 'A2',
-      passed: true,
+      quality: 4,
+      questionType: 'recall',
       feedback: 'OK',
       timeSpentMs: 1000,
       sessionQuestionId: q2Id,
@@ -336,7 +343,8 @@ describe('session question workflows', () => {
       promptText: 'Recall: What is c1?',
       chunkIds: ['c1'],
       response: 'c1 is a concept',
-      passed: true,
+      quality: 5,
+      questionType: 'recall',
       feedback: 'Basic recall correct',
       timeSpentMs: 3000,
     });
@@ -348,7 +356,8 @@ describe('session question workflows', () => {
       promptText: 'Explain: Why is c1 important?',
       chunkIds: ['c1'],
       response: 'c1 matters because...',
-      passed: true,
+      quality: 4,
+      questionType: 'explain_apply',
       feedback: 'Good explanation',
       timeSpentMs: 5000,
     });
@@ -360,7 +369,8 @@ describe('session question workflows', () => {
       promptText: 'Analyze: How does c1 relate to c2?',
       chunkIds: ['c1'],
       response: 'c1 and c2 connect through...',
-      passed: false,
+      quality: 1,
+      questionType: 'analyze_create',
       feedback: 'Incomplete analysis',
       timeSpentMs: 7000,
     });
@@ -372,13 +382,14 @@ describe('session question workflows', () => {
     const q3Retry = await ctx.submitAnswer({
       sessionQuestionId: q3.session_question_id,
       response: 'c1 and c2 connect through shared principles...',
-      passed: true,
+      quality: 3,
+      questionType: 'analyze_create',
       feedback: 'Better analysis',
       timeSpentMs: 4000,
     });
     expect(q3Retry.status).toBe('recorded');
     if (q3Retry.status !== 'recorded') throw new Error('Expected recorded');
-    expect(q3Retry.quality).toBe(3); // second attempt pass
+    expect(q3Retry.quality).toBe(3); // agent-provided quality
     expect(q3Retry.review_update).toBeUndefined();
 
     // teach_next: completes c1 with aggregated quality, advances to c2
@@ -416,7 +427,8 @@ describe('session question workflows', () => {
       promptText: 'What is c1?',
       chunkIds: ['c1'],
       response: 'c1 is...',
-      passed: true,
+      quality: 5,
+      questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 5000,
     });
@@ -477,27 +489,29 @@ describe('session question workflows', () => {
     // 5. Submit answer for first question (pass)
     const answer1 = await ctx.submitAnswer({
       response: 'They are related through X',
-      passed: true,
+      quality: 5,
+      questionType: 'analyze_create',
       feedback: 'Good',
       timeSpentMs: 8000,
       sessionQuestionId: q1Id,
     });
     expect(answer1.status).toBe('recorded');
     if (answer1.status !== 'recorded') throw new Error('Expected recorded');
-    expect(answer1.quality).toBe(5);
+    expect(answer1.quality).toBe(5); // assessment: passed → quality 5
     expect(answer1.attempt).toBe(1);
 
     // 6. Submit answer for second question (fail)
     const answer2 = await ctx.submitAnswer({
       response: 'I do not know',
-      passed: false,
+      quality: 1,
+      questionType: 'analyze_create',
       feedback: 'Incorrect',
       timeSpentMs: 5000,
       sessionQuestionId: q2Id,
     });
     expect(answer2.status).toBe('recorded');
     if (answer2.status !== 'recorded') throw new Error('Expected recorded');
-    expect(answer2.quality).toBe(1);
+    expect(answer2.quality).toBe(1); // assessment: failed → quality 1
 
     // 7. Verify session chunks are marked completed
     const chunks = await ctx.getSessionChunks(sessionId);

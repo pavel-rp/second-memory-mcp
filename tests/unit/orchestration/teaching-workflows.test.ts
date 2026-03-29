@@ -127,6 +127,8 @@ function mockQuestionsAndAttempts(
           passed: chunk.attempts[j]!.passed,
           feedback: 'test feedback',
           quality: chunk.attempts[j]!.quality ?? (chunk.attempts[j]!.passed ? 5 : 1),
+          agentQuality: null,
+          questionType: null,
           timeSpentMs: 1000,
           createdAt: NOW,
         };
@@ -1393,6 +1395,8 @@ describe('getNextTeachingStep', () => {
       passed: true,
       feedback: 'good',
       quality: 5,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 3000,
       createdAt: NOW,
     };
@@ -1475,6 +1479,8 @@ describe('getNextTeachingStep', () => {
       passed: false,
       feedback: 'wrong',
       quality: 1,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 3000,
       createdAt: NOW,
     };
@@ -1585,6 +1591,8 @@ describe('getNextTeachingStep', () => {
       passed: false,
       feedback: 'wrong',
       quality: 1,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 1000,
       createdAt: NOW,
     };

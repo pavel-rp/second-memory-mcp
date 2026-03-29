@@ -120,6 +120,8 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       passed: input.passed,
       feedback: input.feedback,
       quality: input.quality,
+      agentQuality: input.agentQuality,
+      questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
       createdAt: input.createdAt,
     };
@@ -145,6 +147,8 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
         passed: sessionQuestionAttempts.passed,
         feedback: sessionQuestionAttempts.feedback,
         quality: sessionQuestionAttempts.quality,
+        agentQuality: sessionQuestionAttempts.agentQuality,
+        questionType: sessionQuestionAttempts.questionType,
         timeSpentMs: sessionQuestionAttempts.timeSpentMs,
         createdAt: sessionQuestionAttempts.createdAt,
       })

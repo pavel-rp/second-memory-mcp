@@ -78,6 +78,13 @@
       "when": 1774070000000,
       "tag": "0010_create_infrastructure_mcp_request_log",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1774140000000,
+      "tag": "0011_add_agent_quality_and_question_type",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   integer,
+  smallint,
   bigint,
   real,
   boolean,
@@ -178,7 +179,9 @@ export const sessionQuestionAttempts = pgTable(
     response: text('response').notNull(),
     passed: boolean('passed').notNull(),
     feedback: text('feedback').notNull(),
-    quality: integer('quality'), // nullable — null for first-attempt failure
+    quality: integer('quality'), // nullable — null only in historical data; new records always have agent-provided quality
+    agentQuality: smallint('agent_quality'), // agent-provided quality 0–5 (nullable for historical data)
+    questionType: text('question_type'), // 'recall' | 'explain_apply' | 'analyze_create' (nullable for historical data)
     timeSpentMs: integer('time_spent_ms').notNull(),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
   },
@@ -189,6 +192,11 @@ export const sessionQuestionAttempts = pgTable(
       table.attemptNumber
     ),
     check('chk_attempt_number', sql`${table.attemptNumber} IN (1, 2)`),
+    check('chk_agent_quality', sql`${table.agentQuality} BETWEEN 0 AND 5`),
+    check(
+      'chk_question_type',
+      sql`${table.questionType} IN ('recall', 'explain_apply', 'analyze_create')`
+    ),
   ]
 );
 

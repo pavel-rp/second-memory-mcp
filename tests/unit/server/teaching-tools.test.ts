@@ -216,6 +216,8 @@ describe('teaching-tools', () => {
       chunk_ids: ['c1'],
       response: 'X is Y',
       passed: true,
+      quality: 5,
+      question_type: 'recall',
       feedback: 'Correct',
       time_spent_ms: 5000,
     });
@@ -237,6 +239,8 @@ describe('teaching-tools', () => {
       chunk_ids: ['c1'],
       response: 'A',
       passed: false,
+      quality: 2,
+      question_type: 'recall',
       feedback: 'Wrong',
       time_spent_ms: 3000,
     });
@@ -246,6 +250,8 @@ describe('teaching-tools', () => {
       chunkIds: ['c1'],
       response: 'A',
       passed: false,
+      quality: 2,
+      questionType: 'recall',
       feedback: 'Wrong',
       timeSpentMs: 3000,
     });
@@ -258,7 +264,8 @@ describe('teaching-tools', () => {
     const result = await handler({
       // Neither prompt_text+chunk_ids nor session_question_id
       response: 'A',
-      passed: true,
+      quality: 5,
+      question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
     });
@@ -278,7 +285,8 @@ describe('teaching-tools', () => {
       prompt_text: 'Q',
       chunk_ids: ['c1'],
       response: 'A',
-      passed: true,
+      quality: 5,
+      question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
     });
@@ -473,6 +481,8 @@ describe('teaching-tools', () => {
     await handler({
       response: 'A',
       passed: false,
+      quality: 1,
+      question_type: 'recall',
       feedback: 'Wrong',
       time_spent_ms: 3000,
       session_question_id: 'sq-1',
@@ -494,7 +504,8 @@ describe('teaching-tools', () => {
       chunk_ids: ['c1'],
       session_question_id: 'sq-1',
       response: 'A',
-      passed: true,
+      quality: 5,
+      question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
     });
@@ -511,7 +522,8 @@ describe('teaching-tools', () => {
     const result = await handler({
       prompt_text: 'Q',
       response: 'A',
-      passed: true,
+      quality: 5,
+      question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
     });
