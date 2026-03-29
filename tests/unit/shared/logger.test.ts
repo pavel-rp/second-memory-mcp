@@ -378,6 +378,74 @@ describe('logger', () => {
     });
   });
 
+  describe('getCorrelationId', () => {
+    it('returns undefined outside any context', async () => {
+      setTTY(true);
+      const { getCorrelationId } = await loadModule();
+      expect(getCorrelationId()).toBeUndefined();
+    });
+
+    it('returns the correlationId inside withRequestContext', async () => {
+      setTTY(true);
+      const { getCorrelationId, withRequestContext } = await loadModule();
+      await withRequestContext('test_tool', async () => {
+        const cid = getCorrelationId();
+        expect(cid).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        );
+      });
+    });
+  });
+
+  describe('withHttpCorrelation', () => {
+    it('withRequestContext inherits correlation ID from HTTP context', async () => {
+      setTTY(true);
+      const { getRequestLogger, withRequestContext, withHttpCorrelation } = await loadModule();
+      const httpCid = 'http-corr-id-from-header';
+      await withHttpCorrelation(httpCid, async () => {
+        await withRequestContext('my_tool', async () => {
+          getRequestLogger();
+        });
+      });
+      expect(mockChild).toHaveBeenCalledWith({
+        tool: 'my_tool',
+        correlationId: 'http-corr-id-from-header',
+      });
+    });
+
+    it('explicit correlationId parameter takes precedence over HTTP context', async () => {
+      setTTY(true);
+      const { getRequestLogger, withRequestContext, withHttpCorrelation } = await loadModule();
+      await withHttpCorrelation('http-id', async () => {
+        await withRequestContext(
+          'my_tool',
+          async () => {
+            getRequestLogger();
+          },
+          'explicit-id'
+        );
+      });
+      expect(mockChild).toHaveBeenCalledWith({
+        tool: 'my_tool',
+        correlationId: 'explicit-id',
+      });
+    });
+
+    it('generates new UUID when no HTTP context and no explicit ID', async () => {
+      setTTY(true);
+      const { getRequestLogger, withRequestContext } = await loadModule();
+      await withRequestContext('my_tool', async () => {
+        getRequestLogger();
+      });
+      expect(mockChild).toHaveBeenCalledWith({
+        tool: 'my_tool',
+        correlationId: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        ),
+      });
+    });
+  });
+
   describe('exports', () => {
     it('exports raw pino instance that supports child()', async () => {
       setTTY(true);

@@ -19,6 +19,7 @@ vi.mock('../../../src/shared/logger.js', () => ({
     error: vi.fn(),
     debug: vi.fn(),
   })),
+  withHttpCorrelation: vi.fn((_id: string, fn: () => unknown) => fn()),
 }));
 
 const MCP_ACCEPT = 'application/json, text/event-stream';
@@ -190,6 +191,31 @@ describe('startHttpTransport', () => {
     expect(res.headers['access-control-allow-headers']).toContain('mcp-session-id');
     expect(res.headers['access-control-allow-headers']).toContain('Authorization');
     expect(res.headers['access-control-expose-headers']).toContain('mcp-session-id');
+  });
+
+  // ── Correlation ID ────────────────────────────────────────────
+
+  it('generates X-Correlation-ID when none provided', async () => {
+    const res = await makeRequest(port, { method: 'POST', body: INIT_BODY });
+    expect(res.headers['x-correlation-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    );
+  });
+
+  it('echoes client-provided X-Correlation-ID', async () => {
+    const clientId = 'client-trace-abc-123';
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { 'x-correlation-id': clientId },
+      body: INIT_BODY,
+    });
+    expect(res.headers['x-correlation-id']).toBe(clientId);
+  });
+
+  it('exposes X-Correlation-ID in CORS headers', async () => {
+    const res = await makeRequest(port, { method: 'OPTIONS' });
+    expect(res.headers['access-control-allow-headers']).toContain('X-Correlation-ID');
+    expect(res.headers['access-control-expose-headers']).toContain('X-Correlation-ID');
   });
 
   // ── POST without session ──────────────────────────────────────

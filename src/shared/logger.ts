@@ -77,6 +77,7 @@ interface RequestContext {
 }
 
 const asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
+const httpCorrelationStorage = new AsyncLocalStorage<string>();
 
 export type WrappedLogger = {
   info: (...messages: unknown[]) => void;
@@ -102,8 +103,26 @@ export function getRequestLogger(): WrappedLogger {
   return wrapped;
 }
 
-export function withRequestContext<T>(toolName: string, fn: () => Promise<T>): Promise<T> {
-  return asyncLocalStorage.run({ correlationId: randomUUID(), tool: toolName }, fn);
+export function withRequestContext<T>(
+  toolName: string,
+  fn: () => Promise<T>,
+  correlationId?: string
+): Promise<T> {
+  const cid = correlationId ?? httpCorrelationStorage.getStore() ?? randomUUID();
+  return asyncLocalStorage.run({ correlationId: cid, tool: toolName }, fn);
+}
+
+export function getCorrelationId(): string | undefined {
+  return asyncLocalStorage.getStore()?.correlationId;
+}
+
+/**
+ * Run a function within an HTTP-level correlation ID context.
+ * Tool handlers that call `withRequestContext` will inherit this correlation ID
+ * instead of generating a new one.
+ */
+export function withHttpCorrelation<T>(correlationId: string, fn: () => T): T {
+  return httpCorrelationStorage.run(correlationId, fn);
 }
 
 /**
