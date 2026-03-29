@@ -73,13 +73,15 @@ export type TeachNextResponse =
 
 // ── submit_answer types ──────────────────────────────────────────
 
+export type QuestionType = 'recall' | 'explain_apply' | 'analyze_create';
+
 export type SubmitAnswerInputInline = {
   promptText: string;
   chunkIds: string[];
   response: string;
   passed?: boolean;
   quality: number;
-  questionType: string;
+  questionType: QuestionType;
   feedback: string;
   timeSpentMs: number;
 };
@@ -89,7 +91,7 @@ export type SubmitAnswerInputRetry = {
   response: string;
   passed?: boolean;
   quality: number;
-  questionType: string;
+  questionType: QuestionType;
   feedback: string;
   timeSpentMs: number;
 };
@@ -99,7 +101,7 @@ export type SubmitAnswerInput = SubmitAnswerInputInline | SubmitAnswerInputRetry
 export type SubmitAnswerRetry = {
   status: 'retry';
   session_question_id: string;
-  attempt: number;
+  attempt: 1 | 2;
   chunk_id: string;
   message: string;
   feedback: string;
@@ -108,9 +110,10 @@ export type SubmitAnswerRetry = {
 export type SubmitAnswerRecorded = {
   status: 'recorded';
   session_question_id: string;
-  attempt: number;
+  attempt: 1 | 2;
   passed: boolean;
   quality: number;
+  question_type: QuestionType;
   chunk_id: string;
   review_update?: ReviewUpdate;
   late_submission?: boolean;

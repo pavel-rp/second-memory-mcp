@@ -1,4 +1,5 @@
 import type { ContentStatus } from './recommendations.js';
+import type { QuestionType } from './teaching.js';
 
 // ── Learning Topics ──────────────────────────────────────────────
 
@@ -129,7 +130,7 @@ export type SessionQuestionAttempt = {
   feedback: string;
   quality: number | null;
   agentQuality: number | null;
-  questionType: string | null;
+  questionType: QuestionType | null;
   timeSpentMs: number;
   createdAt: number;
 };
