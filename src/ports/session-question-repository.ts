@@ -13,6 +13,8 @@ export type CreateQuestionAttemptInput = {
   passed: boolean;
   feedback: string;
   quality: number | null;
+  agentQuality: number | null;
+  questionType: string | null;
   timeSpentMs: number;
   createdAt: number;
 };

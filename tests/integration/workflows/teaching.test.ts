@@ -69,6 +69,8 @@ describe('teaching workflows (composition-root wiring)', () => {
       chunkIds: ['seg-1'],
       response: '1-indexed array of size 4n',
       passed: true,
+      quality: 5,
+      questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 5000,
     });

@@ -193,6 +193,8 @@ export function stubSessionQuestionRepository(
       passed: false,
       feedback: '',
       quality: null,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 0,
       createdAt: 0,
     }),

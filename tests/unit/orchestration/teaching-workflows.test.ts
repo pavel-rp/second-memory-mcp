@@ -127,6 +127,8 @@ function mockQuestionsAndAttempts(
           passed: chunk.attempts[j]!.passed,
           feedback: 'test feedback',
           quality: chunk.attempts[j]!.quality ?? (chunk.attempts[j]!.passed ? 5 : 1),
+          agentQuality: null,
+          questionType: null,
           timeSpentMs: 1000,
           createdAt: NOW,
         };
@@ -1393,6 +1395,8 @@ describe('getNextTeachingStep', () => {
       passed: true,
       feedback: 'good',
       quality: 5,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 3000,
       createdAt: NOW,
     };
@@ -1475,6 +1479,8 @@ describe('getNextTeachingStep', () => {
       passed: false,
       feedback: 'wrong',
       quality: 1,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 3000,
       createdAt: NOW,
     };
@@ -1585,6 +1591,8 @@ describe('getNextTeachingStep', () => {
       passed: false,
       feedback: 'wrong',
       quality: 1,
+      agentQuality: null,
+      questionType: null,
       timeSpentMs: 1000,
       createdAt: NOW,
     };
@@ -1621,6 +1629,80 @@ describe('getNextTeachingStep', () => {
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
       'c1',
       expect.objectContaining({ repetitions: expect.any(Number) })
+    );
+  });
+
+  it('excludes questions with no attempts from quality aggregation', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    // Two questions for c1: one answered, one with no attempts (mid-retry)
+    const answeredQ: SessionQuestion = {
+      id: 'sq-answered',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const unansweredQ: SessionQuestion = {
+      id: 'sq-unanswered',
+      sessionId: 'sess-1',
+      questionIndex: 2,
+      promptText: 'Q2',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const attempt: SessionQuestionAttempt = {
+      id: 'sqa-1',
+      sessionQuestionId: 'sq-answered',
+      attemptNumber: 1,
+      response: 'answer',
+      passed: true,
+      feedback: 'good',
+      quality: 4,
+      agentQuality: 4,
+      questionType: 'recall',
+      timeSpentMs: 3000,
+      createdAt: NOW,
+    };
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([answeredQ, unansweredQ]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([attempt]);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(
+      new Map([
+        ['sq-answered', ['c1']],
+        ['sq-unanswered', ['c1']],
+      ])
+    );
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        getHistoricalFeedbackForChunks: vi.fn().mockResolvedValue([]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2', title: 'Chunk 2' })),
+        getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.status).toBe('teach');
+    // SR called with quality 4 (only from the answered question; unanswered excluded).
+    // SM-2 with quality=4, initial state (repetitions=0, easeFactor=2.5) → repetitions=1, easeFactor=2.6
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ repetitions: 1, easeFactor: 2.6 })
     );
   });
 

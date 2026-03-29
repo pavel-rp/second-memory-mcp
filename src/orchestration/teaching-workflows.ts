@@ -157,15 +157,14 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     const perQuestionQualities: number[] = [];
     let accumulatedTimeMs = 0;
 
-    // Questions with only a failed first attempt (quality: null) are excluded
-    // from aggregation. This can occur if teach_next is called mid-retry;
-    // the resulting quality reflects only fully-answered questions.
+    // Use the final attempt's quality for each question.
+    // Questions with no scored attempt (e.g. teach_next called mid-retry) are excluded.
     for (const q of chunkQuestions) {
       const qAttempts = mapGetList(attemptsByQuestion, q.id);
       accumulatedTimeMs += qAttempts.reduce((sum, a) => sum + a.timeSpentMs, 0);
-      const scoredAttempt = qAttempts.find(a => a.quality !== null);
-      if (scoredAttempt?.quality !== null && scoredAttempt?.quality !== undefined) {
-        perQuestionQualities.push(scoredAttempt.quality);
+      const lastAttempt = qAttempts[qAttempts.length - 1];
+      if (lastAttempt?.quality !== null && lastAttempt?.quality !== undefined) {
+        perQuestionQualities.push(lastAttempt.quality);
       }
     }
 
@@ -445,24 +444,13 @@ function orderBySessionChunkIds(
 // ── submit_answer ────────────────────────────────────────────────
 
 /**
- * Deterministic quality derivation — no agent discretion.
- * Returns null when no quality should be recorded yet (first-attempt failure → retry).
- */
-function deriveQuality(attemptNumber: 1 | 2, passed: boolean): number | null {
-  if (attemptNumber === 1 && passed) return 5;
-  if (attemptNumber === 1 && !passed) return null;
-  if (passed) return 3;
-  return 1;
-}
-
-/**
  * Submit the learner's answer for the current in-progress chunk.
  *
  * Two input paths (discriminated union):
  * - Inline: `promptText` + `chunkIds` → atomically creates a SessionQuestion, then records the first attempt.
  * - Retry: `sessionQuestionId` → records a subsequent attempt on an existing question.
  *
- * Both paths delegate to submitAnswerForQuestion() for shared attempt-recording, quality-derivation, and SR-update logic.
+ * Quality is agent-provided (0–5). `passed` is derived from quality >= 3 when omitted.
  */
 export async function submitAnswer(
   input: SubmitAnswerInput,
@@ -708,7 +696,11 @@ async function submitAnswerForQuestion(
   }
 
   const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
-  const quality = deriveQuality(attemptNumber, input.passed);
+
+  // Derive passed from quality when omitted; explicit passed overrides quality-based derivation
+  // (e.g. passed=true + quality=2 is valid — agent has discretion over the pass/fail judgment)
+  const passed = input.passed ?? input.quality >= 3;
+  const quality = input.quality;
 
   // 5. Persist attempt
   try {
@@ -717,9 +709,11 @@ async function submitAnswerForQuestion(
       sessionQuestionId,
       attemptNumber,
       response: input.response,
-      passed: input.passed,
+      passed,
       feedback: input.feedback,
       quality,
+      agentQuality: input.quality,
+      questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
       createdAt: Date.now(),
     });
@@ -730,13 +724,13 @@ async function submitAnswerForQuestion(
     throw err;
   }
 
-  // 6. Update question status
-  if (quality !== null) {
+  // 6. Update question status when passed
+  if (passed) {
     await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
   }
 
   // 7. First attempt failed → retry
-  if (quality === null) {
+  if (!passed && attemptNumber === 1) {
     return {
       status: 'retry',
       session_question_id: sessionQuestionId,
@@ -747,14 +741,17 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // 8. Return recorded — chunk stays in_progress, review_update is always
-  // undefined here; SR + completion are handled by teach_next when the agent
-  // advances. Assessment mode populates review_update in its own path.
+  // 8. Second attempt or passed → recorded. If second attempt failed, still mark answered.
+  if (!passed && attemptNumber === 2) {
+    await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
+  }
+
+  // Chunk stays in_progress; SR + completion are handled by teach_next.
   return {
     status: 'recorded',
     session_question_id: sessionQuestionId,
     attempt: attemptNumber,
-    passed: input.passed,
+    passed,
     quality,
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
@@ -786,8 +783,10 @@ async function submitAnswerForAssessmentQuestion(
     };
   }
 
-  // Assessment quality: pass = 5, fail = 1 (no retry)
-  const quality = input.passed ? 5 : 1;
+  // Assessment: derive passed, then override quality to 5/1 for SR.
+  // Agent-provided quality is preserved separately in agentQuality for analytics.
+  const passed = input.passed ?? input.quality >= 3;
+  const quality = passed ? 5 : 1;
 
   try {
     await deps.sessionQuestions.createAttempt({
@@ -795,9 +794,11 @@ async function submitAnswerForAssessmentQuestion(
       sessionQuestionId,
       attemptNumber: 1,
       response: input.response,
-      passed: input.passed,
+      passed,
       feedback: input.feedback,
       quality,
+      agentQuality: input.quality,
+      questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
       createdAt: Date.now(),
     });
@@ -878,7 +879,7 @@ async function submitAnswerForAssessmentQuestion(
     status: 'recorded',
     session_question_id: sessionQuestionId,
     attempt: 1,
-    passed: input.passed,
+    passed,
     quality,
     chunk_id: questionChunkIds[0] as string,
     review_update: reviewUpdate,

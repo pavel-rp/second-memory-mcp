@@ -52,10 +52,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                     result.mode === 'learning'
                       ? 'Learning mode: start at Recall, escalate through levels.'
                       : 'Retrieval mode: start at Recall, escalate if mastery target allows.',
-                    'Then call submit_answer({ prompt_text, chunk_ids, response, passed, feedback, time_spent_ms }).',
+                    'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
                     'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                   ].join(' '),
-                  nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", passed: true/false, feedback: "...", time_spent_ms: ... })`,
+                  nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                 },
               })
             );
@@ -84,7 +84,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Two modes: (1) Inline question creation — provide prompt_text + chunk_ids to atomically create a question and record the first attempt. ' +
         '(2) Retry — provide session_question_id to record a subsequent attempt on an existing question. ' +
         "The response field must contain the learner's exact words — no paraphrasing, sanitization, or censorship. " +
-        'Server derives the quality score, records the attempt, and manages the two-attempt flow. ' +
+        'Agent provides quality (0–5) and question_type per the quality rubric. ' +
+        'passed is optional — derived from quality >= 3 when omitted. ' +
         'Returns session_question_id in retry and recorded responses for retry reference. ' +
         'When status is "recorded", call teach_next to get the next action.',
       inputSchema: SubmitAnswerInputShape,

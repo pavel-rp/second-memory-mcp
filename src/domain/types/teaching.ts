@@ -77,7 +77,9 @@ export type SubmitAnswerInputInline = {
   promptText: string;
   chunkIds: string[];
   response: string;
-  passed: boolean;
+  passed?: boolean;
+  quality: number;
+  questionType: string;
   feedback: string;
   timeSpentMs: number;
 };
@@ -85,7 +87,9 @@ export type SubmitAnswerInputInline = {
 export type SubmitAnswerInputRetry = {
   sessionQuestionId: string;
   response: string;
-  passed: boolean;
+  passed?: boolean;
+  quality: number;
+  questionType: string;
   feedback: string;
   timeSpentMs: number;
 };
@@ -146,11 +150,28 @@ export const SubmitAnswerInputShape = {
     ),
   passed: z
     .boolean()
+    .optional()
     .describe(
-      'Whether the learner recalled the material correctly. ' +
+      'Whether the learner recalled the material correctly. Optional — derived from quality >= 3 when omitted. ' +
         'Pass = they answered without significant prompting or errors. ' +
         "Fail = they couldn't answer, needed the answer revealed, or made a meaningful error. " +
         'When in doubt, fail — spaced repetition benefits from honest assessment.'
+    ),
+  quality: z
+    .number()
+    .int()
+    .min(0)
+    .max(5)
+    .describe(
+      'Agent-judged quality score (0–5) per the quality rubric. ' +
+        '0 = no recall, 1 = wrong but recognized, 2 = wrong but close, ' +
+        '3 = correct with difficulty, 4 = correct with minor hesitation, 5 = perfect instant recall.'
+    ),
+  question_type: z
+    .enum(['recall', 'explain_apply', 'analyze_create'])
+    .describe(
+      'The cognitive level of the question asked. ' +
+        'recall = factual retrieval, explain_apply = understanding + application, analyze_create = analysis + synthesis.'
     ),
   feedback: z.string().min(1).describe("Agent's explanation of why right/wrong"),
   time_spent_ms: z.number().int().min(0).describe('Time the learner spent in milliseconds'),
@@ -192,17 +213,19 @@ export const SubmitAnswerInputSchema = z
       });
     }
   })
-  .transform(({ time_spent_ms, session_question_id, prompt_text, chunk_ids, ...rest }) => {
-    if (session_question_id !== undefined) {
-      return { ...rest, timeSpentMs: time_spent_ms, sessionQuestionId: session_question_id };
+  .transform(
+    ({ time_spent_ms, session_question_id, prompt_text, chunk_ids, question_type, ...rest }) => {
+      const base = { ...rest, timeSpentMs: time_spent_ms, questionType: question_type };
+      if (session_question_id !== undefined) {
+        return { ...base, sessionQuestionId: session_question_id };
+      }
+      return {
+        ...base,
+        promptText: prompt_text as string,
+        chunkIds: chunk_ids as string[],
+      };
     }
-    return {
-      ...rest,
-      timeSpentMs: time_spent_ms,
-      promptText: prompt_text as string,
-      chunkIds: chunk_ids as string[],
-    };
-  });
+  );
 
 // ── start_learning types ────────────────────────────────────────
 
