@@ -3,6 +3,7 @@ import type {
   SessionQuestionAttempt,
   SessionQuestionStatus,
 } from '../domain/types/entities.js';
+import type { QuestionType } from '../domain/types/teaching.js';
 
 /** Input for creating a question attempt. */
 export type CreateQuestionAttemptInput = {
@@ -14,7 +15,7 @@ export type CreateQuestionAttemptInput = {
   feedback: string;
   quality: number | null;
   agentQuality: number | null;
-  questionType: string | null;
+  questionType: QuestionType | null;
   timeSpentMs: number;
   createdAt: number;
 };

@@ -3,6 +3,7 @@ import {
   submitAnswer,
   createSessionQuestions,
   aggregateQuestionQualities,
+  buildCompleteResponse,
   type TeachingDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../../../src/shared/constants/prompts.js';
@@ -1013,6 +1014,30 @@ describe('submitAnswer', () => {
     expect(result.attempt).toBe(2);
     expect(result.passed).toBe(false);
     expect(result.quality).toBe(0);
+  });
+
+  // ── NEU-391: question_type surfaced in recorded response ────────
+
+  it('includes question_type in recorded response matching input questionType', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+      },
+    });
+
+    const result = await submitAnswer(
+      makeInput({ quality: 4, questionType: 'analyze_create' }),
+      deps
+    );
+
+    expect(result.status).toBe('recorded');
+    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.question_type).toBe('analyze_create');
   });
 
   // ── NEU-342: agentQuality and questionType persisted ────────────
@@ -2110,5 +2135,208 @@ describe('submitAnswer with session_question_id', () => {
     expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('confusion');
     expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('connection');
     expect(SUBMIT_ANSWER_REFLECT_PROMPT).toContain('deeper_exploration');
+  });
+});
+
+// ── NEU-391: buildCompleteResponse multi-question classification ─
+
+describe('buildCompleteResponse', () => {
+  it('classifies single question × 1 passed attempt as passed_first_try', () => {
+    const sessionChunks = [makeSessionChunk({ chunkId: 'c1', status: 'completed' })];
+    const questionsByChunkId = new Map([['c1', [makeQuestion({ id: 'sq-1' })]]]);
+    const attemptsByQuestion = new Map([
+      ['sq-1', [makeQuestionAttempt({ passed: true, attemptNumber: 1 })]],
+    ]);
+
+    const result = buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.needed_retry).toBe(0);
+    expect(result.summary.exhausted_retries).toBe(0);
+  });
+
+  it('classifies 3 questions × 1 passed attempt each as passed_first_try', () => {
+    const sessionChunks = [makeSessionChunk({ chunkId: 'c1', status: 'completed' })];
+    const questionsByChunkId = new Map([
+      [
+        'c1',
+        [makeQuestion({ id: 'sq-1' }), makeQuestion({ id: 'sq-2' }), makeQuestion({ id: 'sq-3' })],
+      ],
+    ]);
+    const attemptsByQuestion = new Map([
+      [
+        'sq-1',
+        [
+          makeQuestionAttempt({
+            id: 'a1',
+            sessionQuestionId: 'sq-1',
+            passed: true,
+            attemptNumber: 1,
+          }),
+        ],
+      ],
+      [
+        'sq-2',
+        [
+          makeQuestionAttempt({
+            id: 'a2',
+            sessionQuestionId: 'sq-2',
+            passed: true,
+            attemptNumber: 1,
+          }),
+        ],
+      ],
+      [
+        'sq-3',
+        [
+          makeQuestionAttempt({
+            id: 'a3',
+            sessionQuestionId: 'sq-3',
+            passed: true,
+            attemptNumber: 1,
+          }),
+        ],
+      ],
+    ]);
+
+    const result = buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.needed_retry).toBe(0);
+    expect(result.summary.exhausted_retries).toBe(0);
+  });
+
+  it('classifies chunk with 2 questions where one needed retry as needed_retry', () => {
+    const sessionChunks = [makeSessionChunk({ chunkId: 'c1', status: 'completed' })];
+    const questionsByChunkId = new Map([
+      ['c1', [makeQuestion({ id: 'sq-1' }), makeQuestion({ id: 'sq-2' })]],
+    ]);
+    const attemptsByQuestion = new Map([
+      [
+        'sq-1',
+        [
+          makeQuestionAttempt({
+            id: 'a1',
+            sessionQuestionId: 'sq-1',
+            passed: true,
+            attemptNumber: 1,
+          }),
+        ],
+      ],
+      [
+        'sq-2',
+        [
+          makeQuestionAttempt({
+            id: 'a2',
+            sessionQuestionId: 'sq-2',
+            passed: false,
+            attemptNumber: 1,
+          }),
+          makeQuestionAttempt({
+            id: 'a3',
+            sessionQuestionId: 'sq-2',
+            passed: true,
+            attemptNumber: 2,
+          }),
+        ],
+      ],
+    ]);
+
+    const result = buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+
+    expect(result.summary.passed_first_try).toBe(0);
+    expect(result.summary.needed_retry).toBe(1);
+    expect(result.summary.exhausted_retries).toBe(0);
+  });
+
+  it('classifies chunk with all questions failed as exhausted_retries', () => {
+    const sessionChunks = [makeSessionChunk({ chunkId: 'c1', status: 'completed' })];
+    const questionsByChunkId = new Map([['c1', [makeQuestion({ id: 'sq-1' })]]]);
+    const attemptsByQuestion = new Map([
+      [
+        'sq-1',
+        [
+          makeQuestionAttempt({
+            id: 'a1',
+            sessionQuestionId: 'sq-1',
+            passed: false,
+            attemptNumber: 1,
+          }),
+          makeQuestionAttempt({
+            id: 'a2',
+            sessionQuestionId: 'sq-1',
+            passed: false,
+            attemptNumber: 2,
+          }),
+        ],
+      ],
+    ]);
+
+    const result = buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+
+    expect(result.summary.passed_first_try).toBe(0);
+    expect(result.summary.needed_retry).toBe(0);
+    expect(result.summary.exhausted_retries).toBe(1);
+  });
+
+  it('classifies multiple chunks independently', () => {
+    const sessionChunks = [
+      makeSessionChunk({ chunkId: 'c1', status: 'completed' }),
+      makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'completed' }),
+    ];
+    const questionsByChunkId = new Map([
+      ['c1', [makeQuestion({ id: 'sq-1' }), makeQuestion({ id: 'sq-2' })]],
+      ['c2', [makeQuestion({ id: 'sq-3' })]],
+    ]);
+    const attemptsByQuestion = new Map([
+      // c1: 2 questions, both passed first try → passed_first_try
+      [
+        'sq-1',
+        [
+          makeQuestionAttempt({
+            id: 'a1',
+            sessionQuestionId: 'sq-1',
+            passed: true,
+            attemptNumber: 1,
+          }),
+        ],
+      ],
+      [
+        'sq-2',
+        [
+          makeQuestionAttempt({
+            id: 'a2',
+            sessionQuestionId: 'sq-2',
+            passed: true,
+            attemptNumber: 1,
+          }),
+        ],
+      ],
+      // c2: 1 question, needed retry → needed_retry
+      [
+        'sq-3',
+        [
+          makeQuestionAttempt({
+            id: 'a3',
+            sessionQuestionId: 'sq-3',
+            passed: false,
+            attemptNumber: 1,
+          }),
+          makeQuestionAttempt({
+            id: 'a4',
+            sessionQuestionId: 'sq-3',
+            passed: true,
+            attemptNumber: 2,
+          }),
+        ],
+      ],
+    ]);
+
+    const result = buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+
+    expect(result.summary.total).toBe(2);
+    expect(result.summary.passed_first_try).toBe(1);
+    expect(result.summary.needed_retry).toBe(1);
+    expect(result.summary.exhausted_retries).toBe(0);
   });
 });

@@ -753,6 +753,7 @@ async function submitAnswerForQuestion(
     attempt: attemptNumber,
     passed,
     quality,
+    question_type: input.questionType,
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
     reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
@@ -881,6 +882,7 @@ async function submitAnswerForAssessmentQuestion(
     attempt: 1,
     passed,
     quality,
+    question_type: input.questionType,
     chunk_id: questionChunkIds[0] as string,
     review_update: reviewUpdate,
     ...(isLateSubmission && { late_submission: true }),
@@ -891,7 +893,7 @@ async function submitAnswerForAssessmentQuestion(
 // Summary is chunk-centric: total = number of chunks, not questions.
 // A cross-chunk question (Q→[C1,C2]) that passes counts as "passed" for both C1 and C2,
 // which is intentional — each chunk's mastery is assessed by its mapped questions.
-function buildCompleteResponse(
+export function buildCompleteResponse(
   sessionChunks: SessionChunk[],
   questionsByChunkId: Map<string, SessionQuestion[]>,
   attemptsByQuestion: Map<string, SessionQuestionAttempt[]>
@@ -906,7 +908,13 @@ function buildCompleteResponse(
     const allAttempts = questions.flatMap(q => mapGetList(attemptsByQuestion, q.id));
     if (allAttempts.length === 0) continue;
 
-    if (allAttempts.length === 1 && (allAttempts[0] as SessionQuestionAttempt).passed) {
+    // Per-question first-attempt check: each question must have exactly 1 attempt that passed.
+    const allPassedFirstTry = questions.every(q => {
+      const attempts = mapGetList(attemptsByQuestion, q.id);
+      return attempts.length === 1 && (attempts[0] as SessionQuestionAttempt).passed;
+    });
+
+    if (allPassedFirstTry) {
       passedFirstTry++;
     } else if (allAttempts.some(a => a.passed)) {
       neededRetry++;
