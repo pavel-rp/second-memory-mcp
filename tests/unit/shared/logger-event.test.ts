@@ -27,7 +27,7 @@ describe('logEvent', () => {
 
   afterEach(() => {
     // Reset event logger to null state
-    setEventLogger(null as unknown as pino.Logger);
+    setEventLogger(null);
     vi.restoreAllMocks();
   });
 
@@ -105,6 +105,18 @@ describe('logEvent', () => {
       >;
       expect(call).not.toHaveProperty('correlationId');
       expect(call).not.toHaveProperty('tool');
+    });
+
+    it('falls back to httpCorrelationStorage when not in request context', () => {
+      withHttpCorrelation('http-corr-event-123', () => {
+        logEvent('middleware', 'request_received');
+      });
+
+      expect(mockEventLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correlationId: 'http-corr-event-123',
+        })
+      );
     });
   });
 

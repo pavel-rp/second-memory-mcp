@@ -174,10 +174,10 @@ export function createEventPinoLogger(connectionString: string): pino.Logger {
 let eventPinoLogger: pino.Logger | null = null;
 
 /**
- * Configure the event logger with a DB-backed pino instance.
- * Call once during server startup when audit DB is available.
+ * Configure or clear the event logger.
+ * Pass a DB-backed pino instance to enable DB persistence, or null to disable it.
  */
-export function setEventLogger(eventLogger: pino.Logger): void {
+export function setEventLogger(eventLogger: pino.Logger | null): void {
   eventPinoLogger = eventLogger;
 }
 
@@ -192,9 +192,8 @@ export function logEvent(
   data?: Record<string, unknown>,
   durationMs?: number
 ): void {
-  const store = asyncLocalStorage.getStore();
-  const correlationId = store?.correlationId;
-  const tool = store?.tool;
+  const correlationId = getCorrelationId();
+  const tool = asyncLocalStorage.getStore()?.tool;
 
   const entry: Record<string, unknown> = {
     operation,
