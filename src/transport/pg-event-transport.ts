@@ -48,16 +48,13 @@ export default async function pgEventTransport(opts: PgEventTransportOptions) {
   };
 
   function shouldAllowWrite(): boolean {
-    if (cb.status === 'closed') return true;
-    if (cb.status === 'open') {
-      if (Date.now() - cb.openedAt >= cbResetMs) {
-        cb.status = 'half-open';
-        return true;
-      }
-      return false;
+    if (cb.status === 'closed' || cb.status === 'half-open') return true;
+    // status === 'open'
+    if (Date.now() - cb.openedAt >= cbResetMs) {
+      cb.status = 'half-open';
+      return true;
     }
-    // half-open: allow one attempt
-    return true;
+    return false;
   }
 
   function recordSuccess(): void {

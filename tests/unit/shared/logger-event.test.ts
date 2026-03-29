@@ -4,6 +4,9 @@ import {
   logEvent,
   setEventLogger,
   withRequestContext,
+  withHttpCorrelation,
+  getCorrelationId,
+  createEventPinoLogger,
   pinoLogger,
 } from '../../../src/shared/logger.js';
 
@@ -102,6 +105,33 @@ describe('logEvent', () => {
       >;
       expect(call).not.toHaveProperty('correlationId');
       expect(call).not.toHaveProperty('tool');
+    });
+  });
+
+  describe('getCorrelationId fallback', () => {
+    it('returns correlationId from httpCorrelationStorage when not in request context', () => {
+      const result = withHttpCorrelation('http-corr-456', () => getCorrelationId());
+      expect(result).toBe('http-corr-456');
+    });
+
+    it('prefers asyncLocalStorage over httpCorrelationStorage', async () => {
+      const result = await withHttpCorrelation('http-corr-789', () =>
+        withRequestContext('test_tool', async () => getCorrelationId(), 'tool-corr-123')
+      );
+      expect(result).toBe('tool-corr-123');
+    });
+
+    it('returns undefined when not in any context', () => {
+      expect(getCorrelationId()).toBeUndefined();
+    });
+  });
+
+  describe('createEventPinoLogger', () => {
+    it('returns a pino logger instance', () => {
+      const eventLogger = createEventPinoLogger('postgresql://test:test@localhost:5432/test');
+      expect(eventLogger).toBeDefined();
+      expect(typeof eventLogger.info).toBe('function');
+      expect(typeof eventLogger.error).toBe('function');
     });
   });
 
