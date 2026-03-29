@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response } from 'express';
+import type pino from 'pino';
+
+// Mock getCorrelationId before importing audit-middleware
+vi.mock('../../../src/shared/logger.js', () => ({
+  getCorrelationId: vi.fn(() => 'test-correlation-id'),
+}));
+
 import {
   createAuditMiddleware,
   MAX_CAPTURE_BYTES,
 } from '../../../src/transport/audit-middleware.js';
-import type pino from 'pino';
+import { getCorrelationId } from '../../../src/shared/logger.js';
 
 function createMockLogger(): pino.Logger {
   return {
@@ -364,5 +371,142 @@ describe('audit-middleware', () => {
         responseStatus: 200,
       })
     );
+  });
+
+  describe('correlationId and sessionId', () => {
+    it('includes correlationId from getCorrelationId()', () => {
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      expect(auditLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correlationId: 'test-correlation-id',
+        })
+      );
+    });
+
+    it('includes undefined correlationId when not in request context', () => {
+      vi.mocked(getCorrelationId).mockReturnValueOnce(undefined);
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({ jsonrpc: '2.0', method: 'test', id: 1 });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      expect(auditLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          correlationId: undefined,
+        })
+      );
+    });
+
+    it('extracts session_id from params.arguments when present', () => {
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 1,
+        params: { name: 'start_learning', arguments: { session_id: 'sess-abc-123' } },
+      });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      expect(auditLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'sess-abc-123',
+        })
+      );
+    });
+
+    it('sets sessionId to undefined when params.arguments has no session_id', () => {
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 1,
+        params: { name: 'get_server_info', arguments: {} },
+      });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      expect(auditLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: undefined,
+        })
+      );
+    });
+
+    it('sets sessionId to undefined when params has no arguments', () => {
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 1,
+        params: { name: 'get_server_info' },
+      });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      expect(auditLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: undefined,
+        })
+      );
+    });
+  });
+
+  describe('param redaction', () => {
+    it('redacts sensitive fields in params before emission', () => {
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({
+        jsonrpc: '2.0',
+        method: 'tools/call',
+        id: 1,
+        params: { name: 'test', token: 'secret-value', safe: 'ok' },
+      });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      const logCall = (auditLogger.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      const params = logCall.params as Record<string, unknown>;
+      expect(params.token).toBe('[REDACTED]');
+      expect(params.name).toBe('test');
+      expect(params.safe).toBe('ok');
+    });
+
+    it('handles null params without error', () => {
+      const middleware = createAuditMiddleware(auditLogger);
+      const req = createMockReq({
+        jsonrpc: '2.0',
+        method: 'notifications/initialized',
+        id: 1,
+      });
+      const res = createMockRes();
+
+      middleware(req, res, next);
+      res.end('{}');
+
+      const logCall = (auditLogger.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(logCall.params).toBeUndefined();
+    });
   });
 });
