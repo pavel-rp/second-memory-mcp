@@ -22,7 +22,7 @@ import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/en
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
-import { getRequestLogger } from '../shared/logger.js';
+import { getRequestLogger, logEvent } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -206,6 +206,19 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
           ease_factor: reviewResult.data.updated.easeFactor,
           is_leech: reviewResult.data.isLeech,
         };
+        logEvent('submitAnswer', 'chunk_completed', {
+          sessionId: session.id,
+          chunkId: completableChunk.chunkId,
+          finalQuality: aggregatedQuality,
+        });
+        logEvent('submitAnswer', 'sr_updated', {
+          chunkId: completableChunk.chunkId,
+          easeFactor: reviewResult.data.updated.easeFactor,
+          interval: reviewResult.data.updated.intervalDays,
+          nextReviewDate: new Date(reviewResult.data.updated.nextReviewAt)
+            .toISOString()
+            .split('T')[0],
+        });
       } else {
         getRequestLogger().error(
           `SR update failed for chunk ${completableChunk.chunkId} — chunk already marked completed`
@@ -228,6 +241,11 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     // No candidates — check if all completed
     const allCompleted = sessionChunks.every(sc => sc.status === 'completed');
     if (allCompleted) {
+      logEvent('teachNext', 'session_complete', {
+        sessionId: session.id,
+        chunksCompleted: sessionChunks.length,
+        totalChunks: sessionChunks.length,
+      });
       const completeResponse = buildCompleteResponse(
         sessionChunks,
         questionsByChunkId,
@@ -310,6 +328,14 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
   // Mark chunk as in_progress
   await deps.sessions.updateSessionChunk(selected.id, { status: 'in_progress' });
+
+  const reason = isRequeued ? 'requeued_failure' : 'fresh_pending';
+  logEvent('teachNext', 'next_chunk_selected', {
+    sessionId: session.id,
+    chunkId: selected.chunkId,
+    chunkTitle: chunkData.title,
+    reason,
+  });
 
   const previousFeedbackStrings = historicalFeedback.map(hf => hf.feedback);
 
@@ -724,6 +750,14 @@ async function submitAnswerForQuestion(
     throw err;
   }
 
+  logEvent('submitAnswer', 'answer_recorded', {
+    sessionId: session.id,
+    chunkId: primaryChunkId,
+    passed,
+    quality,
+    attemptNumber,
+  });
+
   // 6. Update question status when passed
   if (passed) {
     await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
@@ -993,6 +1027,7 @@ export async function startLearning(
         notes: deps.notes,
       };
       const firstChunk = await getNextTeachingStep(teachingDeps);
+      logEvent('startLearning', 'session_resumed', { sessionId: activeSession.id });
       return {
         status: 'resumed' as const,
         session_id: activeSession.id,
@@ -1056,6 +1091,12 @@ export async function startLearning(
     notes: deps.notes,
   };
   const firstChunk = await getNextTeachingStep(teachingDeps);
+
+  logEvent('startLearning', 'session_started', {
+    sessionId: sessionResult.data.sessionId,
+    mode,
+    chunkCount: chunkIds.length,
+  });
 
   // 6. Return combined result
   return {
