@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  logEvent: vi.fn(),
+}));
+
 import {
   getNextTeachingStep,
   startLearning,
+  submitAnswer,
   type TeachingDeps,
   type StartLearningDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
+import { logEvent } from '../../../src/shared/logger.js';
 import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
 import * as recommendationWorkflows from '../../../src/orchestration/recommendation-workflows.js';
 import type {
@@ -175,6 +183,10 @@ function makeDeps(overrides?: {
 // ── Tests ────────────────────────────────────────────────────────
 
 describe('getNextTeachingStep', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
   // VC-07: No active session
   it('returns error when no active session', async () => {
     const deps = makeDeps({
@@ -1883,6 +1895,112 @@ describe('getNextTeachingStep', () => {
     // SR was NOT called
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
   });
+
+  // ── logEvent assertions ──────────────────────────────────────────
+
+  it('emits chunk_completed and sr_updated when completing an in-progress chunk', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+          ]),
+        updateSessionChunk: vi.fn().mockResolvedValue(1),
+      },
+      sessionQuestions: sqRepo,
+    });
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
+    vi.mocked(deps.reviewPersistence.getChunk).mockResolvedValue(makeChunkData({ id: 'c1' }));
+
+    await getNextTeachingStep(deps);
+
+    expect(logEvent).toHaveBeenCalledWith('submitAnswer', 'chunk_completed', {
+      sessionId: 'sess-1',
+      chunkId: 'c1',
+      finalQuality: expect.any(Number),
+    });
+    expect(logEvent).toHaveBeenCalledWith('submitAnswer', 'sr_updated', {
+      chunkId: 'c1',
+      easeFactor: expect.any(Number),
+      interval: expect.any(Number),
+      nextReviewDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    });
+  });
+
+  it('emits session_complete when all chunks are completed', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'completed' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    mockQuestionsAndAttempts(sqRepo, [
+      { chunkId: 'c1', attempts: [{ passed: true }] },
+      { chunkId: 'c2', attempts: [{ passed: true }] },
+    ]);
+
+    await getNextTeachingStep(deps);
+
+    expect(logEvent).toHaveBeenCalledWith('teachNext', 'session_complete', {
+      sessionId: 'sess-1',
+      chunksCompleted: 2,
+      totalChunks: 2,
+    });
+  });
+
+  it('emits next_chunk_selected with fresh_pending reason for new chunk', async () => {
+    const deps = makeDeps();
+
+    await getNextTeachingStep(deps);
+
+    expect(logEvent).toHaveBeenCalledWith('teachNext', 'next_chunk_selected', {
+      sessionId: 'sess-1',
+      chunkId: 'c1',
+      chunkTitle: 'Introduction to X',
+      reason: 'fresh_pending',
+    });
+  });
+
+  it('emits next_chunk_selected with requeued_failure reason for re-queued chunk', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const deps = makeDeps({
+      sessions: {
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })]),
+      },
+      sessionQuestions: sqRepo,
+    });
+    mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: false }] }]);
+
+    await getNextTeachingStep(deps);
+
+    expect(logEvent).toHaveBeenCalledWith('teachNext', 'next_chunk_selected', {
+      sessionId: 'sess-1',
+      chunkId: 'c1',
+      chunkTitle: 'Introduction to X',
+      reason: 'requeued_failure',
+    });
+  });
+
+  it('does not emit logEvent on error paths', async () => {
+    const deps = makeDeps({
+      sessions: { getActiveSession: vi.fn().mockResolvedValue(null) },
+    });
+
+    await getNextTeachingStep(deps);
+
+    expect(logEvent).not.toHaveBeenCalled();
+  });
 });
 
 // ── startLearning ─────────────────────────────────────────────────
@@ -1969,6 +2087,7 @@ function makeStartLearningDeps(overrides?: {
 
 describe('startLearning', () => {
   beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
     vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(null);
     vi.spyOn(sessionWorkflows, 'createSession').mockResolvedValue(
       serviceOk({ sessionId: 'new-sess' })
@@ -2295,5 +2414,135 @@ describe('startLearning', () => {
       expect.anything(),
       expect.any(Date)
     );
+  });
+
+  // ── logEvent assertions ──────────────────────────────────────────
+
+  it('emits session_started after creating a new session', async () => {
+    const deps = makeStartLearningDeps();
+
+    await startLearning({}, deps);
+
+    expect(logEvent).toHaveBeenCalledWith('startLearning', 'session_started', {
+      sessionId: 'new-sess',
+      mode: 'review',
+      chunkCount: 1,
+    });
+  });
+
+  it('emits session_resumed when resuming an active session', async () => {
+    vi.spyOn(sessionWorkflows, 'getActiveSession').mockResolvedValue(
+      makeSession({ id: 'active-sess', mode: 'review' })
+    );
+    const deps = makeStartLearningDeps({
+      sessions: {
+        getActiveSession: vi
+          .fn()
+          .mockResolvedValue(makeSession({ id: 'active-sess', mode: 'review' })),
+        getSessionChunks: vi.fn().mockResolvedValue([
+          makeSessionChunk({
+            id: 'sc-1',
+            chunkId: 'c1',
+            status: 'pending',
+            sessionId: 'active-sess',
+          }),
+        ]),
+      },
+    });
+
+    await startLearning({}, deps);
+
+    expect(logEvent).toHaveBeenCalledWith('startLearning', 'session_resumed', {
+      sessionId: 'active-sess',
+    });
+  });
+
+  it('does not emit session_started on error paths', async () => {
+    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue({
+      recommendations: [],
+      totalDueTopics: 0,
+      totalDueChunks: 0,
+    });
+    const deps = makeStartLearningDeps();
+
+    await startLearning({}, deps);
+
+    expect(logEvent).not.toHaveBeenCalledWith(
+      'startLearning',
+      'session_started',
+      expect.anything()
+    );
+  });
+});
+
+// ── submitAnswer logEvent ──────────────────────────────────────────
+
+describe('submitAnswer logEvent', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
+  it('emits answer_recorded after persisting attempt', async () => {
+    const sqRepo = stubSessionQuestionRepository();
+    const question: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'test question',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    vi.mocked(sqRepo.getQuestionById).mockResolvedValue(question);
+    vi.mocked(sqRepo.getChunkIdsForQuestion).mockResolvedValue(['c1']);
+    vi.mocked(sqRepo.getAttemptsForQuestion).mockResolvedValue([]);
+    vi.mocked(sqRepo.createAttempt).mockResolvedValue({
+      id: 'att-1',
+      sessionQuestionId: 'sq-1',
+      attemptNumber: 1,
+      response: 'my answer',
+      passed: true,
+      feedback: 'good',
+      quality: 4,
+      agentQuality: 4,
+      questionType: 'recall',
+      timeSpentMs: 5000,
+      createdAt: NOW,
+    });
+    vi.mocked(sqRepo.updateQuestionStatus).mockResolvedValue(1);
+
+    const deps = makeDeps({
+      sessions: {
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionById: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    const result = await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'my answer',
+        quality: 4,
+        questionType: 'recall',
+        feedback: 'good',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(result.status).toBe('recorded');
+    expect(logEvent).toHaveBeenCalledWith('submitAnswer', 'answer_recorded', {
+      sessionId: 'sess-1',
+      chunkId: 'c1',
+      passed: true,
+      quality: 4,
+      attemptNumber: 1,
+    });
   });
 });
