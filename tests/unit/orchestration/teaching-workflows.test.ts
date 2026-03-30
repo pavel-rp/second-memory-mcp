@@ -2513,7 +2513,6 @@ describe('submitAnswer logEvent', () => {
 
     const deps = makeDeps({
       sessions: {
-        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
         getSessionById: vi.fn().mockResolvedValue(makeSession()),
         getSessionChunks: vi
           .fn()
