@@ -139,11 +139,25 @@ describe('logEvent', () => {
   });
 
   describe('createEventPinoLogger', () => {
-    it('returns a pino logger instance', () => {
-      const eventLogger = createEventPinoLogger('postgresql://test:test@localhost:5432/test');
-      expect(eventLogger).toBeDefined();
-      expect(typeof eventLogger.info).toBe('function');
-      expect(typeof eventLogger.error).toBe('function');
+    it('returns a pino logger instance', async () => {
+      const pino = await import('pino');
+      const transportSpy = vi
+        .spyOn(pino.default, 'transport')
+        .mockReturnValue({ on: vi.fn() } as unknown as ReturnType<typeof pino.default.transport>);
+
+      try {
+        const eventLogger = createEventPinoLogger('postgresql://test:test@localhost:5432/test');
+        expect(eventLogger).toBeDefined();
+        expect(typeof eventLogger.info).toBe('function');
+        expect(typeof eventLogger.error).toBe('function');
+        expect(transportSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            options: { connectionString: 'postgresql://test:test@localhost:5432/test' },
+          })
+        );
+      } finally {
+        transportSpy.mockRestore();
+      }
     });
   });
 
