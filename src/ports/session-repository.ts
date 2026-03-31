@@ -15,7 +15,7 @@ export type CreateSessionInput = {
 
 /** Input for updating a session. */
 export type UpdateSessionInput = Partial<
-  Pick<LearningSession, 'status' | 'endTime' | 'feedback' | 'updatedAt'>
+  Pick<LearningSession, 'status' | 'endTime' | 'feedback' | 'updatedAt' | 'chunkIds'>
 >;
 
 /** Input for creating a session chunk. */

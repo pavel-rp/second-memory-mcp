@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/shared/logger.js', () => ({
-  getRequestLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
   logEvent: vi.fn(),
 }));
 
@@ -12,7 +12,7 @@ import {
   type TeachingDeps,
   type StartLearningDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
-import { logEvent } from '../../../src/shared/logger.js';
+import { logEvent, getRequestLogger } from '../../../src/shared/logger.js';
 import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
 import * as recommendationWorkflows from '../../../src/orchestration/recommendation-workflows.js';
 import type {
@@ -2375,6 +2375,328 @@ describe('getNextTeachingStep', () => {
         'next_chunk_selected',
         expect.objectContaining({ teachingApproach: 'recall' })
       );
+    });
+  });
+
+  // ── NEU-313: Prerequisite staleness-aware reordering ────
+
+  describe('NEU-313: prerequisite staleness-aware reordering', () => {
+    const MS_PER_DAY = 86_400_000;
+
+    function makeMinimalChunkMeta(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
+      return {
+        id: 'c1',
+        title: 'Chunk 1',
+        subject: 'CS',
+        difficulty: 5,
+        chunkType: 'new',
+        topicId: 'topic-1',
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        intervalDays: null,
+        lastReviewedAt: null,
+        prerequisitesJson: null,
+        tagsJson: null,
+        contentStatus: 'final' as const,
+        createdAt: NOW,
+        updatedAt: NOW,
+        ...overrides,
+      };
+    }
+
+    /** Make a stale chunk: 200 days overdue on 10-day interval → R ≈ 0.42 */
+    function makeStalePrereqMeta(id: string, prereqs?: string[]): ChunkMinimalMetadata {
+      return makeMinimalChunkMeta({
+        id,
+        repetitions: 3,
+        easeFactor: 2.5,
+        intervalDays: 10,
+        nextReviewAt: NOW - 200 * MS_PER_DAY,
+        prerequisitesJson: prereqs ?? null,
+      });
+    }
+
+    it('inserts stale prerequisite and serves it first', async () => {
+      const prereqChunkData = makeChunkData({
+        id: 'prereq-1',
+        title: 'Prerequisite Chunk',
+        prerequisitesJson: null,
+      });
+
+      const batchFetchMinimal = vi
+        .fn()
+        // First call: prereq metadata fetch (step 5b)
+        .mockResolvedValueOnce([makeStalePrereqMeta('prereq-1')])
+        // Second call: topic chunks for topic profile (step 7)
+        .mockResolvedValueOnce([makeMinimalChunkMeta({ id: 'prereq-1' })]);
+
+      // getWithContent: first call returns original chunk with prereqs, second returns prereq chunk
+      const getWithContent = vi
+        .fn()
+        .mockResolvedValueOnce(makeChunkData({ prerequisitesJson: ['prereq-1'] }))
+        .mockResolvedValueOnce(prereqChunkData);
+
+      const getSessionChunks = vi
+        .fn()
+        // First call: original session chunks
+        .mockResolvedValueOnce([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })])
+        // Second call: after stale prereq insertion (re-fetch)
+        .mockResolvedValueOnce([
+          makeSessionChunk({ id: 'sc-prereq-1', chunkId: 'prereq-1', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+        ]);
+
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c1'] })),
+          getSessionChunks,
+          batchCreateSessionChunks: vi.fn().mockResolvedValue(undefined),
+          updateSession: vi.fn().mockResolvedValue(1),
+        },
+        chunks: {
+          getWithContent,
+          batchFetchMinimal,
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      // Should serve the stale prerequisite, not the original chunk
+      expect(result.chunk_id).toBe('prereq-1');
+      expect(result.prerequisite_reteach_needed).toEqual(['prereq-1']);
+      // Instruction should include prerequisite reteach note
+      expect(result.instruction).toContain('prerequisite is being revisited');
+      // Should have created session chunks
+      expect(deps.sessions.batchCreateSessionChunks).toHaveBeenCalled();
+      // Should have updated session chunkIds ordering
+      expect(deps.sessions.updateSession).toHaveBeenCalled();
+    });
+
+    it('skips prerequisites already in session', async () => {
+      const batchFetchMinimal = vi
+        .fn()
+        // First call: prereq metadata fetch (step 5b) — prereq-1 is stale
+        .mockResolvedValueOnce([makeStalePrereqMeta('prereq-1')])
+        // Second call: topic chunks for topic profile (step 7)
+        .mockResolvedValueOnce([makeMinimalChunkMeta()]);
+
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ chunkIds: ['prereq-1', 'c1'] })),
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-prereq', chunkId: 'prereq-1', status: 'completed' }),
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+            ]),
+        },
+        chunks: {
+          getWithContent: vi
+            .fn()
+            .mockResolvedValue(makeChunkData({ prerequisitesJson: ['prereq-1'] })),
+          batchFetchMinimal,
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      // Should serve original chunk since prereq is already in session
+      expect(result.chunk_id).toBe('c1');
+      expect(result.prerequisite_reteach_needed).toBeUndefined();
+    });
+
+    it('proceeds normally when staleness check throws (fail-open)', async () => {
+      const batchFetchMinimal = vi
+        .fn()
+        // First call: prereq metadata fetch (step 5b) — throws
+        .mockRejectedValueOnce(new Error('DB timeout'))
+        // Second call: topic chunks for topic profile (step 7)
+        .mockResolvedValueOnce([makeMinimalChunkMeta()]);
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi
+            .fn()
+            .mockResolvedValue(makeChunkData({ prerequisitesJson: ['prereq-1'] })),
+          batchFetchMinimal,
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      // Should fall through to original chunk
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.chunk_id).toBe('c1');
+      expect(result.prerequisite_reteach_needed).toBeUndefined();
+    });
+
+    it('serves original chunk when all prerequisites are fresh', async () => {
+      const freshPrereq = makeMinimalChunkMeta({
+        id: 'prereq-1',
+        repetitions: 3,
+        easeFactor: 2.5,
+        intervalDays: 10,
+        nextReviewAt: Date.now() + 86_400_000, // due tomorrow → R ≈ 1.0
+      });
+
+      const batchFetchMinimal = vi
+        .fn()
+        // First call: prereq metadata fetch (step 5b)
+        .mockResolvedValueOnce([freshPrereq])
+        // Second call: topic chunks for topic profile (step 7)
+        .mockResolvedValueOnce([makeMinimalChunkMeta()]);
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi
+            .fn()
+            .mockResolvedValue(makeChunkData({ prerequisitesJson: ['prereq-1'] })),
+          batchFetchMinimal,
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.chunk_id).toBe('c1');
+      expect(result.prerequisite_reteach_needed).toBeUndefined();
+    });
+
+    it('logs warning when circular dependency detected in prerequisites', async () => {
+      const warnSpy = vi.fn();
+      vi.mocked(getRequestLogger).mockReturnValue({
+        warn: warnSpy,
+        error: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      } as unknown as ReturnType<typeof getRequestLogger>);
+
+      // A → B → A (circular), both stale
+      const prereqA = makeStalePrereqMeta('prereq-a', ['prereq-b']);
+      const prereqB = makeStalePrereqMeta('prereq-b', ['prereq-a']);
+      const prereqBChunkData = makeChunkData({ id: 'prereq-b', title: 'Prereq B' });
+
+      const batchFetchMinimal = vi
+        .fn()
+        // Level 0: fetch prereq-a
+        .mockResolvedValueOnce([prereqA])
+        // Level 1: fetch prereq-b
+        .mockResolvedValueOnce([prereqB])
+        // Topic chunks for profile
+        .mockResolvedValueOnce([makeMinimalChunkMeta({ id: 'prereq-b' })]);
+
+      const getWithContent = vi
+        .fn()
+        .mockResolvedValueOnce(makeChunkData({ prerequisitesJson: ['prereq-a'] }))
+        .mockResolvedValueOnce(prereqBChunkData);
+
+      const getSessionChunks = vi
+        .fn()
+        .mockResolvedValueOnce([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })])
+        .mockResolvedValueOnce([
+          makeSessionChunk({ id: 'sc-prereq-b', chunkId: 'prereq-b', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-prereq-a', chunkId: 'prereq-a', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+        ]);
+
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c1'] })),
+          getSessionChunks,
+          batchCreateSessionChunks: vi.fn().mockResolvedValue(undefined),
+          updateSession: vi.fn().mockResolvedValue(1),
+        },
+        chunks: { getWithContent, batchFetchMinimal },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ targetPrerequisiteIds: ['prereq-a'] }),
+        'Circular dependency detected in prerequisite graph'
+      );
+    });
+
+    it('logs warning when prerequisite depth cap is reached', async () => {
+      const warnSpy = vi.fn();
+      vi.mocked(getRequestLogger).mockReturnValue({
+        warn: warnSpy,
+        error: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      } as unknown as ReturnType<typeof getRequestLogger>);
+
+      // A is stale with deeper prereqs, but maxDepth=1 caps traversal
+      const prereqA = makeStalePrereqMeta('prereq-a', ['prereq-deep']);
+      const prereqAChunkData = makeChunkData({ id: 'prereq-a', title: 'Prereq A' });
+
+      const batchFetchMinimal = vi
+        .fn()
+        // Level 0: fetch prereq-a
+        .mockResolvedValueOnce([prereqA])
+        // Topic chunks for profile
+        .mockResolvedValueOnce([makeMinimalChunkMeta({ id: 'prereq-a' })]);
+
+      const getWithContent = vi
+        .fn()
+        .mockResolvedValueOnce(makeChunkData({ prerequisitesJson: ['prereq-a'] }))
+        .mockResolvedValueOnce(prereqAChunkData);
+
+      const getSessionChunks = vi
+        .fn()
+        .mockResolvedValueOnce([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })])
+        .mockResolvedValueOnce([
+          makeSessionChunk({ id: 'sc-prereq-a', chunkId: 'prereq-a', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+        ]);
+
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c1'] })),
+          getSessionChunks,
+          batchCreateSessionChunks: vi.fn().mockResolvedValue(undefined),
+          updateSession: vi.fn().mockResolvedValue(1),
+        },
+        chunks: { getWithContent, batchFetchMinimal },
+      });
+      deps.algorithmConfig = { ...DEFAULT_ALGORITHM_CONFIG, maxDependencyDepth: 1 };
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ maxDepth: 1, targetPrerequisiteIds: ['prereq-a'] }),
+        'Prerequisite depth cap reached — deeper prerequisites were not evaluated'
+      );
+    });
+
+    it('does not check prerequisites when chunk has none', async () => {
+      const batchFetchMinimal = vi.fn().mockResolvedValue([makeMinimalChunkMeta()]);
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(makeChunkData({ prerequisitesJson: null })),
+          batchFetchMinimal,
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.prerequisite_reteach_needed).toBeUndefined();
+      // batchFetchMinimal should only be called for topic profile, not prereq fetch
+      expect(batchFetchMinimal).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -33,6 +33,10 @@ import {
   computeTopicProfile,
   type TopicChunkInput,
 } from '../domain/algorithms/compute-topic-profile.js';
+import {
+  resolveStalePrerequisites,
+  type PrerequisiteChunkMeta,
+} from '../domain/algorithms/resolve-stale-prerequisites.js';
 
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
@@ -80,7 +84,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       message: 'Session has no chunks.',
     };
   }
-  const sessionChunks = orderBySessionChunkIds(rawChunks, session.chunkIds);
+  let sessionChunks = orderBySessionChunkIds(rawChunks, session.chunkIds);
 
   // Assessment mode: return next unanswered question sequentially (no teaching instruction)
   if (session.mode === 'assessment') {
@@ -240,7 +244,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   // Fresh pending: pending chunks with no prior attempts
   const freshPending = pendingChunks.filter(sc => !chunkHasAttempts(sc));
 
-  const selected = freshPending[0] ?? requeued[0];
+  let selected = freshPending[0] ?? requeued[0];
 
   if (!selected) {
     // No candidates — check if all completed
@@ -280,12 +284,136 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   }
 
   // 5. Fetch chunk data from DB
-  const chunkData = await deps.chunks.getWithContent(selected.chunkId);
+  let chunkData = await deps.chunks.getWithContent(selected.chunkId);
   if (!chunkData) {
     return {
       status: 'error',
       message: `Chunk ${selected.chunkId} not found in database.`,
     };
+  }
+
+  // 5b. Prerequisite staleness check — fail-open
+  let stalePrereqIds: string[] = [];
+  try {
+    const prereqIds = chunkData.prerequisitesJson ?? [];
+    if (prereqIds.length > 0) {
+      // Collect prerequisite metadata level-by-level up to maxDependencyDepth
+      const maxDepth = deps.algorithmConfig.maxDependencyDepth;
+      const metadataMap = new Map<string, PrerequisiteChunkMeta>();
+      let frontier = [...prereqIds];
+
+      // Matches resolver's walk(depth=1..maxDepth) — both process exactly maxDepth levels
+      for (let level = 0; level < maxDepth && frontier.length > 0; level++) {
+        const unknownIds = frontier.filter(id => !metadataMap.has(id));
+        if (unknownIds.length === 0) break;
+
+        const fetched = await deps.chunks.batchFetchMinimal({ chunkIds: unknownIds });
+        const nextFrontier: string[] = [];
+        for (const c of fetched) {
+          metadataMap.set(c.id, {
+            easeFactor: c.easeFactor,
+            repetitions: c.repetitions,
+            nextReviewAt: c.nextReviewAt,
+            intervalDays: c.intervalDays,
+            prerequisiteIds: c.prerequisitesJson ?? [],
+          });
+          nextFrontier.push(...(c.prerequisitesJson ?? []));
+        }
+        frontier = nextFrontier;
+      }
+
+      const sessionChunkIdSet = new Set(sessionChunks.map(sc => sc.chunkId));
+      const result = resolveStalePrerequisites({
+        chunkMetadata: metadataMap,
+        targetPrerequisiteIds: prereqIds,
+        sessionChunkIds: sessionChunkIdSet,
+        maxDepth,
+        now: new Date(),
+      });
+
+      stalePrereqIds = result.stalePrereqIds;
+
+      if (result.circularDetected) {
+        getRequestLogger().warn(
+          { targetPrerequisiteIds: prereqIds },
+          'Circular dependency detected in prerequisite graph'
+        );
+      }
+      if (result.depthCapReached) {
+        getRequestLogger().warn(
+          { maxDepth, targetPrerequisiteIds: prereqIds },
+          'Prerequisite depth cap reached — deeper prerequisites were not evaluated'
+        );
+      }
+
+      if (stalePrereqIds.length > 0) {
+        const originalChunkId = selected.chunkId;
+        // Create pending session chunks for each stale prerequisite
+        const nowMs = Date.now();
+        const newSessionChunks = stalePrereqIds.map((chunkId, i) => ({
+          id: crypto.randomUUID(),
+          sessionId: session.id,
+          chunkId,
+          status: 'pending',
+          timeSpentMs: 0,
+          createdAt: nowMs + i,
+          updatedAt: nowMs + i,
+        }));
+        await deps.sessions.batchCreateSessionChunks(newSessionChunks);
+
+        // Update session chunkIds ordering: insert stale prereqs before the dependent chunk
+        const currentChunkIds = session.chunkIds ?? sessionChunks.map(sc => sc.chunkId);
+        const dependentIdx = currentChunkIds.indexOf(selected.chunkId);
+        const updatedChunkIds = [...currentChunkIds];
+        const insertAt = dependentIdx >= 0 ? dependentIdx : updatedChunkIds.length;
+        updatedChunkIds.splice(insertAt, 0, ...stalePrereqIds);
+        await deps.sessions.updateSession(session.id, {
+          chunkIds: updatedChunkIds,
+          updatedAt: nowMs,
+        });
+
+        // Redirect: serve the first stale prerequisite instead
+        const firstNewSc = newSessionChunks[0];
+        selected = {
+          id: firstNewSc.id,
+          sessionId: firstNewSc.sessionId,
+          chunkId: firstNewSc.chunkId,
+          status: firstNewSc.status,
+          timeSpentMs: firstNewSc.timeSpentMs,
+          createdAt: firstNewSc.createdAt,
+          updatedAt: firstNewSc.updatedAt,
+        };
+
+        // Re-fetch sessionChunks and reorder by updated chunkIds for correct chunk_index
+        sessionChunks = orderBySessionChunkIds(
+          await deps.sessions.getSessionChunks(session.id),
+          updatedChunkIds
+        );
+
+        // Re-fetch chunk data for the new selection
+        const newChunkData = await deps.chunks.getWithContent(selected.chunkId);
+        if (!newChunkData) {
+          return {
+            status: 'error',
+            message: `Stale prerequisite chunk ${selected.chunkId} not found in database.`,
+          };
+        }
+        chunkData = newChunkData;
+
+        logEvent('teachNext', 'stale_prereqs_inserted', {
+          sessionId: session.id,
+          dependentChunkId: originalChunkId,
+          stalePrereqIds,
+          count: stalePrereqIds.length,
+        });
+      }
+    }
+  } catch (err) {
+    stalePrereqIds = [];
+    getRequestLogger().error(
+      { err },
+      'Prerequisite staleness check failed — proceeding with original chunk'
+    );
   }
 
   // 6. Determine mode
@@ -393,6 +521,13 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       instruction;
   }
 
+  // Prepend prerequisite reteach context when stale prereqs were inserted
+  if (stalePrereqIds.length > 0) {
+    instruction =
+      'This prerequisite is being revisited because its retrievability has decayed below the cued-recall threshold. Focus on rebuilding the foundation before advancing to dependent material.\n\n' +
+      instruction;
+  }
+
   // Mark chunk as in_progress
   await deps.sessions.updateSessionChunk(selected.id, { status: 'in_progress' });
 
@@ -430,6 +565,8 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       })),
     }),
     ...(completedChunkReviewUpdate && { review_update: completedChunkReviewUpdate }),
+    // NEU-313: prerequisite reteach IDs when stale prereqs were inserted
+    ...(stalePrereqIds.length > 0 && { prerequisite_reteach_needed: stalePrereqIds }),
     // NEU-312: per-chunk retrievability + tier assignment
     teaching_approach: teachingDecision.teachingApproach,
     estimated_retrievability: teachingDecision.estimatedRetrievability,

@@ -56,6 +56,7 @@ type ChunkFilterOptions = {
   dueOnly?: boolean;
   isLeech?: boolean;
   excludeDraft?: boolean;
+  chunkIds?: string[];
 };
 
 function buildChunkWhereClause(options: ChunkFilterOptions) {
@@ -67,6 +68,8 @@ function buildChunkWhereClause(options: ChunkFilterOptions) {
   if (options.isLeech === true) conditions.push(eq(learningChunks.chunkType, LEECH_CHUNK_TYPE));
   if (options.isLeech === false) conditions.push(ne(learningChunks.chunkType, LEECH_CHUNK_TYPE));
   if (options.excludeDraft) conditions.push(ne(learningChunks.contentStatus, 'draft'));
+  if (options.chunkIds && options.chunkIds.length > 0)
+    conditions.push(inArray(learningChunks.id, options.chunkIds));
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
@@ -219,6 +222,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
     limit?: number;
     isLeech?: boolean;
     excludeDraft?: boolean;
+    chunkIds?: string[];
   }): Promise<ChunkMinimalMetadata[]> {
     const whereClause = buildChunkWhereClause(options ?? {});
     let query = this.db
