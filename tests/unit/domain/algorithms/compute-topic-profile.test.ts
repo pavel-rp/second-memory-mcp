@@ -133,13 +133,24 @@ describe('computeTopicProfile', () => {
   });
 
   describe('median computation', () => {
-    it('returns middle value for odd chunk count', () => {
-      // 3 fresh chunks — all have similar high R
-      const chunks = [freshChunk('c1'), freshChunk('c2'), freshChunk('c3')];
+    it('returns middle value for odd chunk count with distinct R values', () => {
+      // 1 fresh (~0.98) + 1 mid-range (~0.55) + 1 stale (~0.30) → median is mid-range
+      const chunks = [
+        freshChunk('c1'),
+        makeChunk({
+          id: 'c2',
+          easeFactor: 2.5,
+          repetitions: 3,
+          intervalDays: 10,
+          daysOverdue: 100,
+        }),
+        staleChunk('c3'),
+      ];
       const result = computeTopicProfile('topic-7', chunks, new Map(), NOW);
 
-      // All fresh, R values are equal → median = that value
-      expect(result.medianRetrievability).toBeGreaterThan(0.9);
+      // Sorted Rs: [~0.30, ~0.55, ~0.98] → median = mid value
+      expect(result.medianRetrievability).toBeGreaterThan(0.3);
+      expect(result.medianRetrievability).toBeLessThan(0.9);
     });
 
     it('returns average of two middle values for even chunk count', () => {

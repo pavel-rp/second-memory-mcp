@@ -6,6 +6,7 @@
 
 import {
   classifyChunk,
+  CUED_RECALL_THRESHOLD,
   type ClassifyChunkInput,
   type TeachingApproach,
   type TeachingDecision,
@@ -37,6 +38,11 @@ const TIER_SEVERITY: readonly TeachingApproach[] = ['scaffold', 'reteach', 'cued
 
 // ── Core function ──────────────────────────────────────────────────────────
 
+/**
+ * Aggregate chunk-level tier decisions into a topic-level staleness profile.
+ * Assumes chunk IDs are unique — duplicates cause the last entry to win and
+ * totalChunks to reflect de-duplicated count.
+ */
 export function computeTopicProfile(
   topicId: string,
   chunks: TopicChunkInput[],
@@ -123,10 +129,15 @@ function findDominantTier(distribution: Record<TeachingApproach, number>): Teach
 
 function computeNeedsOrientation(retrievabilities: number[]): boolean {
   // Caller guards empty — computeTopicProfile returns early when chunks.length === 0
-  const lowCount = retrievabilities.filter(r => r < 0.5).length;
+  const lowCount = retrievabilities.filter(r => r < CUED_RECALL_THRESHOLD).length;
   return lowCount / retrievabilities.length >= 0.5;
 }
 
+/**
+ * Check if any prerequisite chunk is stale.
+ * @param prerequisites Map of dependent chunk ID → prerequisite chunk IDs.
+ *   Should be scoped to chunks within this topic.
+ */
 function checkPrerequisiteChain(
   decisions: Map<string, TeachingDecision>,
   prerequisites: Map<string, string[]>
@@ -134,7 +145,7 @@ function checkPrerequisiteChain(
   for (const [, prereqIds] of prerequisites) {
     for (const prereqId of prereqIds) {
       const prereqDecision = decisions.get(prereqId);
-      if (prereqDecision && prereqDecision.estimatedRetrievability < 0.5) {
+      if (prereqDecision && prereqDecision.estimatedRetrievability < CUED_RECALL_THRESHOLD) {
         return true;
       }
     }
