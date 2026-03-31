@@ -91,6 +91,7 @@ export interface ChunkRepository {
     limit?: number;
     isLeech?: boolean;
     excludeDraft?: boolean;
+    chunkIds?: string[];
   }): Promise<ChunkMinimalMetadata[]>;
   findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
   getPrerequisiteContext(

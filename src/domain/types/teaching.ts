@@ -42,6 +42,8 @@ export type TeachNextTeach = {
   previous_feedback?: string[]; // feedback strings from past sessions
   notes?: TeachNextNote[];
   review_update?: ReviewUpdate; // SR result from completing the previous chunk
+  // NEU-313: prerequisite reteach IDs when stale prereqs were inserted
+  prerequisite_reteach_needed?: string[];
   // NEU-312: per-chunk retrievability + tier assignment
   teaching_approach?: TeachingApproach;
   estimated_retrievability?: number;

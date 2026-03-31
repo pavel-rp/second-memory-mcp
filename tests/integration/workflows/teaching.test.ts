@@ -1,6 +1,9 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { getSql } from '../../../src/infrastructure/db/operations.js';
+import { learningChunks } from '../../../src/infrastructure/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 describe('teaching workflows (composition-root wiring)', () => {
   let ctx: AppContext;
@@ -23,6 +26,86 @@ describe('teaching workflows (composition-root wiring)', () => {
     const result = await ctx.startLearning({});
 
     expect(result.status).toBe('nothing_due');
+  });
+
+  it('teach_next inserts stale prerequisite before dependent chunk and serves it first', async () => {
+    const MS_PER_DAY = 86_400_000;
+
+    // Create topic with chunks A and B, where B depends on A
+    const topicResult = await ctx.createTopicWithChunks({
+      topicTitle: 'Stale Prereq Test',
+      subject: 'Testing',
+      topicSummary: 'Testing stale prerequisite insertion',
+      chunks: [
+        {
+          id: 'stale-a',
+          title: 'Foundation Concept A',
+          content: 'This is the foundation concept...',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'new',
+        },
+        {
+          id: 'stale-b',
+          title: 'Advanced Concept B (depends on A)',
+          content: 'Building on concept A...',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'new',
+          prerequisites: ['stale-a'],
+        },
+      ],
+    });
+    expect(topicResult.success).toBe(true);
+
+    // Mark chunk A as "learned in the past" with heavily decayed R
+    // Set intervalDays > 0, repetitions > 0, and nextReviewAt far in the past
+    const db = getSql();
+    const pastReview = Date.now() - 300 * MS_PER_DAY;
+    await db
+      .update(learningChunks)
+      .set({
+        repetitions: 3,
+        easeFactor: 2.5,
+        intervalDays: 10,
+        nextReviewAt: pastReview, // 300 days overdue on 10-day interval → R ≈ 0.37
+        lastReviewedAt: pastReview - 10 * MS_PER_DAY,
+      })
+      .where(eq(learningChunks.id, 'stale-a'));
+
+    // Create a session with ONLY chunk B (the dependent)
+    const sessionResult = await ctx.createSession({ mode: 'learning', chunkIds: ['stale-b'] });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Expected success');
+
+    // Call teach_next — should detect that chunk A is stale and insert it
+    const teachResult = await ctx.getNextTeachingStep();
+    expect(teachResult.status).toBe('teach');
+    if (teachResult.status !== 'teach') throw new Error('Expected teach');
+
+    // Should serve chunk A (the stale prerequisite) first
+    expect(teachResult.chunk_id).toBe('stale-a');
+    expect(teachResult.prerequisite_reteach_needed).toEqual(['stale-a']);
+    expect(teachResult.instruction).toContain('prerequisite is being revisited');
+
+    // Submit answer for A to advance
+    const submitA = await ctx.submitAnswer({
+      promptText: 'What is Foundation Concept A?',
+      chunkIds: ['stale-a'],
+      response: 'This is the foundation concept.',
+      passed: true,
+      quality: 5,
+      questionType: 'recall',
+      feedback: 'Correct',
+      timeSpentMs: 3000,
+    });
+    expect(submitA.status).toBe('recorded');
+
+    // Call teach_next again — should now serve chunk B
+    const nextResult = await ctx.getNextTeachingStep();
+    expect(nextResult.status).toBe('teach');
+    if (nextResult.status !== 'teach') throw new Error('Expected teach');
+    expect(nextResult.chunk_id).toBe('stale-b');
   });
 
   it('teach_next includes prerequisite_context for mid-topic chunk', async () => {
