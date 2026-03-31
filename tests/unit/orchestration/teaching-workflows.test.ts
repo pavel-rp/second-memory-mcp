@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/shared/logger.js', () => ({
-  getRequestLogger: () => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
   logEvent: vi.fn(),
 }));
 
@@ -12,7 +12,7 @@ import {
   type TeachingDeps,
   type StartLearningDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
-import { logEvent } from '../../../src/shared/logger.js';
+import { logEvent, getRequestLogger } from '../../../src/shared/logger.js';
 import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
 import * as recommendationWorkflows from '../../../src/orchestration/recommendation-workflows.js';
 import type {
@@ -2569,6 +2569,115 @@ describe('getNextTeachingStep', () => {
       if (result.status !== 'teach') throw new Error('Expected teach');
       expect(result.chunk_id).toBe('c1');
       expect(result.prerequisite_reteach_needed).toBeUndefined();
+    });
+
+    it('logs warning when circular dependency detected in prerequisites', async () => {
+      const warnSpy = vi.fn();
+      vi.mocked(getRequestLogger).mockReturnValue({
+        warn: warnSpy,
+        error: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      } as unknown as ReturnType<typeof getRequestLogger>);
+
+      // A → B → A (circular), both stale
+      const prereqA = makeStalePrereqMeta('prereq-a', ['prereq-b']);
+      const prereqB = makeStalePrereqMeta('prereq-b', ['prereq-a']);
+      const prereqBChunkData = makeChunkData({ id: 'prereq-b', title: 'Prereq B' });
+
+      const batchFetchMinimal = vi
+        .fn()
+        // Level 0: fetch prereq-a
+        .mockResolvedValueOnce([prereqA])
+        // Level 1: fetch prereq-b
+        .mockResolvedValueOnce([prereqB])
+        // Topic chunks for profile
+        .mockResolvedValueOnce([makeMinimalChunkMeta({ id: 'prereq-b' })]);
+
+      const getWithContent = vi
+        .fn()
+        .mockResolvedValueOnce(makeChunkData({ prerequisitesJson: ['prereq-a'] }))
+        .mockResolvedValueOnce(prereqBChunkData);
+
+      const getSessionChunks = vi
+        .fn()
+        .mockResolvedValueOnce([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })])
+        .mockResolvedValueOnce([
+          makeSessionChunk({ id: 'sc-prereq-b', chunkId: 'prereq-b', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-prereq-a', chunkId: 'prereq-a', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+        ]);
+
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c1'] })),
+          getSessionChunks,
+          batchCreateSessionChunks: vi.fn().mockResolvedValue(undefined),
+          updateSession: vi.fn().mockResolvedValue(1),
+        },
+        chunks: { getWithContent, batchFetchMinimal },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ targetPrerequisiteIds: ['prereq-a'] }),
+        'Circular dependency detected in prerequisite graph'
+      );
+    });
+
+    it('logs warning when prerequisite depth cap is reached', async () => {
+      const warnSpy = vi.fn();
+      vi.mocked(getRequestLogger).mockReturnValue({
+        warn: warnSpy,
+        error: vi.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+      } as unknown as ReturnType<typeof getRequestLogger>);
+
+      // A is stale with deeper prereqs, but maxDepth=1 caps traversal
+      const prereqA = makeStalePrereqMeta('prereq-a', ['prereq-deep']);
+      const prereqAChunkData = makeChunkData({ id: 'prereq-a', title: 'Prereq A' });
+
+      const batchFetchMinimal = vi
+        .fn()
+        // Level 0: fetch prereq-a
+        .mockResolvedValueOnce([prereqA])
+        // Topic chunks for profile
+        .mockResolvedValueOnce([makeMinimalChunkMeta({ id: 'prereq-a' })]);
+
+      const getWithContent = vi
+        .fn()
+        .mockResolvedValueOnce(makeChunkData({ prerequisitesJson: ['prereq-a'] }))
+        .mockResolvedValueOnce(prereqAChunkData);
+
+      const getSessionChunks = vi
+        .fn()
+        .mockResolvedValueOnce([makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' })])
+        .mockResolvedValueOnce([
+          makeSessionChunk({ id: 'sc-prereq-a', chunkId: 'prereq-a', status: 'pending' }),
+          makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+        ]);
+
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ chunkIds: ['c1'] })),
+          getSessionChunks,
+          batchCreateSessionChunks: vi.fn().mockResolvedValue(undefined),
+          updateSession: vi.fn().mockResolvedValue(1),
+        },
+        chunks: { getWithContent, batchFetchMinimal },
+      });
+      deps.algorithmConfig = { ...DEFAULT_ALGORITHM_CONFIG, maxDependencyDepth: 1 };
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ maxDepth: 1, targetPrerequisiteIds: ['prereq-a'] }),
+        'Prerequisite depth cap reached — deeper prerequisites were not evaluated'
+      );
     });
 
     it('does not check prerequisites when chunk has none', async () => {

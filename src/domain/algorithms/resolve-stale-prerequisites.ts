@@ -88,6 +88,7 @@ export function resolveStalePrerequisites(
     }
   }
 
+  // Start at depth 1: direct prerequisites are one level deep; caps at depth > maxDepth
   walk(targetPrerequisiteIds, 1, new Set());
 
   return { stalePrereqIds: staleIds, circularDetected, depthCapReached };

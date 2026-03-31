@@ -302,6 +302,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       const metadataMap = new Map<string, PrerequisiteChunkMeta>();
       let frontier = [...prereqIds];
 
+      // Matches resolver's walk(depth=1..maxDepth) — both process exactly maxDepth levels
       for (let level = 0; level < maxDepth && frontier.length > 0; level++) {
         const unknownIds = frontier.filter(id => !metadataMap.has(id));
         if (unknownIds.length === 0) break;
@@ -332,6 +333,19 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
       stalePrereqIds = result.stalePrereqIds;
 
+      if (result.circularDetected) {
+        getRequestLogger().warn(
+          { targetPrerequisiteIds: prereqIds },
+          'Circular dependency detected in prerequisite graph'
+        );
+      }
+      if (result.depthCapReached) {
+        getRequestLogger().warn(
+          { maxDepth, targetPrerequisiteIds: prereqIds },
+          'Prerequisite depth cap reached — deeper prerequisites were not evaluated'
+        );
+      }
+
       if (stalePrereqIds.length > 0) {
         const originalChunkId = selected.chunkId;
         // Create pending session chunks for each stale prerequisite
@@ -359,7 +373,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         });
 
         // Redirect: serve the first stale prerequisite instead
-        const firstNewSc = newSessionChunks[0] as (typeof newSessionChunks)[0];
+        const firstNewSc = newSessionChunks[0];
         selected = {
           id: firstNewSc.id,
           sessionId: firstNewSc.sessionId,
