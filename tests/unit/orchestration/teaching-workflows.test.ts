@@ -21,7 +21,10 @@ import type {
   SessionQuestion,
   SessionQuestionAttempt,
 } from '../../../src/domain/types/entities.js';
-import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
+import type {
+  ChunkWithTopicTitle,
+  ChunkMinimalMetadata,
+} from '../../../src/ports/chunk-repository.js';
 import type { HistoricalFeedback } from '../../../src/domain/types/session.js';
 import type { TopicRecommendationOutput } from '../../../src/domain/types/recommendations.js';
 import type { SessionQuestionRepository } from '../../../src/ports/session-question-repository.js';
@@ -1967,6 +1970,7 @@ describe('getNextTeachingStep', () => {
       chunkId: 'c1',
       chunkTitle: 'Introduction to X',
       reason: 'fresh_pending',
+      teachingApproach: 'recall',
     });
   });
 
@@ -1989,6 +1993,7 @@ describe('getNextTeachingStep', () => {
       chunkId: 'c1',
       chunkTitle: 'Introduction to X',
       reason: 'requeued_failure',
+      teachingApproach: 'recall',
     });
   });
 
@@ -2000,6 +2005,377 @@ describe('getNextTeachingStep', () => {
     await getNextTeachingStep(deps);
 
     expect(logEvent).not.toHaveBeenCalled();
+  });
+
+  // ── NEU-312: Response enrichment + tier-branched instructions ────
+
+  describe('NEU-312: tier-branched instruction and topic staleness', () => {
+    function makeMinimalChunk(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
+      return {
+        id: 'c1',
+        title: 'Chunk 1',
+        subject: 'CS',
+        difficulty: 5,
+        chunkType: 'new',
+        topicId: 'topic-1',
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        intervalDays: null,
+        lastReviewedAt: null,
+        prerequisitesJson: null,
+        tagsJson: null,
+        contentStatus: 'final',
+        createdAt: NOW,
+        updatedAt: NOW,
+        ...overrides,
+      };
+    }
+
+    it('includes teaching_approach and retrievability fields in response', async () => {
+      const deps = makeDeps({
+        chunks: {
+          batchFetchMinimal: vi.fn().mockResolvedValue([makeMinimalChunk()]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBeDefined();
+      expect(result.estimated_retrievability).toBeDefined();
+      expect(typeof result.estimated_retrievability).toBe('number');
+      expect(result.days_overdue).toBeDefined();
+      expect(typeof result.days_overdue).toBe('number');
+      expect(result.reteach_compression).toBeDefined();
+      expect(result.storage_strength_estimate).toBeDefined();
+    });
+
+    it('includes topic_staleness_profile in response', async () => {
+      const deps = makeDeps({
+        chunks: {
+          batchFetchMinimal: vi
+            .fn()
+            .mockResolvedValue([makeMinimalChunk({ id: 'c1' }), makeMinimalChunk({ id: 'c2' })]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.topic_staleness_profile).toBeDefined();
+      expect(result.topic_staleness_profile!.topicId).toBe('topic-1');
+      expect(result.topic_staleness_profile!.totalChunks).toBe(2);
+      expect(result.topic_staleness_profile!.tierDistribution).toBeDefined();
+      expect(result.dominant_tier).toBeDefined();
+    });
+
+    it('assigns recall tier for fresh chunk (intervalDays=null)', async () => {
+      const deps = makeDeps({
+        chunks: {
+          batchFetchMinimal: vi
+            .fn()
+            .mockResolvedValue([
+              makeMinimalChunk({ id: 'c1', intervalDays: null, repetitions: 0 }),
+            ]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBe('recall');
+      expect(result.estimated_retrievability).toBe(1.0);
+    });
+
+    it('assigns scaffold tier for very overdue chunk', async () => {
+      const MS_PER_DAY = 86_400_000;
+      // Chunk was due 60 days ago with a 1-day interval → very low retrievability
+      const veryOverdueChunk = makeChunkData({
+        id: 'c1',
+        easeFactor: 2.5,
+        repetitions: 1,
+        intervalDays: 1,
+        nextReviewAt: NOW - 60 * MS_PER_DAY,
+      });
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(veryOverdueChunk),
+          batchFetchMinimal: vi.fn().mockResolvedValue([
+            makeMinimalChunk({
+              id: 'c1',
+              easeFactor: 2.5,
+              repetitions: 1,
+              intervalDays: 1,
+              nextReviewAt: NOW - 60 * MS_PER_DAY,
+            }),
+          ]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBe('scaffold');
+      expect(result.estimated_retrievability).toBeLessThan(0.3);
+      expect(result.drill_format).toBe('multiple_choice');
+    });
+
+    it('assigns cued_recall tier with open_ended drill format for moderately overdue chunk', async () => {
+      const MS_PER_DAY = 86_400_000;
+      const realNow = Date.now();
+      // intervalDays=1, overdue 8 days from real now → R ≈ 0.59 → cued_recall (0.5–0.7)
+      const moderateChunk = makeChunkData({
+        id: 'c1',
+        easeFactor: 2.5,
+        repetitions: 2,
+        intervalDays: 1,
+        nextReviewAt: realNow - 8 * MS_PER_DAY,
+      });
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(moderateChunk),
+          batchFetchMinimal: vi.fn().mockResolvedValue([
+            makeMinimalChunk({
+              id: 'c1',
+              easeFactor: 2.5,
+              repetitions: 2,
+              intervalDays: 1,
+              nextReviewAt: realNow - 8 * MS_PER_DAY,
+            }),
+          ]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBe('cued_recall');
+      expect(result.drill_format).toBe('open_ended');
+    });
+
+    it('assigns reteach tier with open_ended drill format for stale chunk', async () => {
+      const MS_PER_DAY = 86_400_000;
+      const realNow = Date.now();
+      // intervalDays=1, overdue 20 days from real now → R ≈ 0.42 → reteach (0.3–0.5)
+      const staleChunk = makeChunkData({
+        id: 'c1',
+        easeFactor: 2.5,
+        repetitions: 1,
+        intervalDays: 1,
+        nextReviewAt: realNow - 20 * MS_PER_DAY,
+      });
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(staleChunk),
+          batchFetchMinimal: vi.fn().mockResolvedValue([
+            makeMinimalChunk({
+              id: 'c1',
+              easeFactor: 2.5,
+              repetitions: 1,
+              intervalDays: 1,
+              nextReviewAt: realNow - 20 * MS_PER_DAY,
+            }),
+          ]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBe('reteach');
+      expect(result.drill_format).toBe('open_ended');
+    });
+
+    it('is_first_chunk_in_topic is true for first chunk in a topic', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'pending' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            ]),
+        },
+        chunks: {
+          batchFetchMinimal: vi
+            .fn()
+            .mockResolvedValue([makeMinimalChunk({ id: 'c1' }), makeMinimalChunk({ id: 'c2' })]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.is_first_chunk_in_topic).toBe(true);
+    });
+
+    it('is_first_chunk_in_topic is false when prior chunk from same topic is completed', async () => {
+      const sqRepo = stubSessionQuestionRepository();
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            ]),
+        },
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(makeChunkData({ id: 'c2' })),
+          batchFetchMinimal: vi
+            .fn()
+            .mockResolvedValue([makeMinimalChunk({ id: 'c1' }), makeMinimalChunk({ id: 'c2' })]),
+        },
+        sessionQuestions: sqRepo,
+      });
+      // c1 completed with attempts so it doesn't block
+      mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.chunk_id).toBe('c2');
+      expect(result.is_first_chunk_in_topic).toBe(false);
+    });
+
+    it('topic orientation is prepended when needsTopicOrientation and is_first_chunk_in_topic', async () => {
+      const MS_PER_DAY = 86_400_000;
+      // All topic chunks are very stale → needsTopicOrientation = true
+      const staleMinimalChunks = [
+        makeMinimalChunk({
+          id: 'c1',
+          intervalDays: 1,
+          nextReviewAt: NOW - 60 * MS_PER_DAY,
+          repetitions: 1,
+        }),
+        makeMinimalChunk({
+          id: 'c2',
+          intervalDays: 1,
+          nextReviewAt: NOW - 60 * MS_PER_DAY,
+          repetitions: 1,
+        }),
+        makeMinimalChunk({
+          id: 'c3',
+          intervalDays: 1,
+          nextReviewAt: NOW - 60 * MS_PER_DAY,
+          repetitions: 1,
+        }),
+      ];
+      const staleChunkData = makeChunkData({
+        id: 'c1',
+        intervalDays: 1,
+        nextReviewAt: NOW - 60 * MS_PER_DAY,
+        repetitions: 1,
+      });
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(staleChunkData),
+          batchFetchMinimal: vi.fn().mockResolvedValue(staleMinimalChunks),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.instruction).toContain('## Topic Orientation');
+      expect(result.instruction).toContain("hasn't engaged with");
+    });
+
+    it('topic orientation is NOT prepended when is_first_chunk_in_topic is false', async () => {
+      const MS_PER_DAY = 86_400_000;
+      const sqRepo = stubSessionQuestionRepository();
+      const staleMinimalChunks = [
+        makeMinimalChunk({
+          id: 'c1',
+          intervalDays: 1,
+          nextReviewAt: NOW - 60 * MS_PER_DAY,
+          repetitions: 1,
+        }),
+        makeMinimalChunk({
+          id: 'c2',
+          intervalDays: 1,
+          nextReviewAt: NOW - 60 * MS_PER_DAY,
+          repetitions: 1,
+        }),
+      ];
+
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'completed' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            ]),
+        },
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(
+            makeChunkData({
+              id: 'c2',
+              intervalDays: 1,
+              nextReviewAt: NOW - 60 * MS_PER_DAY,
+              repetitions: 1,
+            })
+          ),
+          batchFetchMinimal: vi.fn().mockResolvedValue(staleMinimalChunks),
+        },
+        sessionQuestions: sqRepo,
+      });
+      mockQuestionsAndAttempts(sqRepo, [{ chunkId: 'c1', attempts: [{ passed: true }] }]);
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      // Not first chunk in topic, so no orientation
+      expect(result.instruction).not.toContain('## Topic Orientation');
+    });
+
+    it('dominant_tier reflects topic profile dominant tier', async () => {
+      const deps = makeDeps({
+        chunks: {
+          batchFetchMinimal: vi.fn().mockResolvedValue([makeMinimalChunk({ id: 'c1' })]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      // Single fresh chunk → recall tier
+      expect(result.dominant_tier).toBe('recall');
+      expect(result.topic_staleness_profile!.dominantTier).toBe('recall');
+    });
+
+    it('logEvent includes teachingApproach', async () => {
+      const deps = makeDeps({
+        chunks: {
+          batchFetchMinimal: vi.fn().mockResolvedValue([makeMinimalChunk()]),
+        },
+      });
+
+      await getNextTeachingStep(deps);
+
+      expect(logEvent).toHaveBeenCalledWith(
+        'teachNext',
+        'next_chunk_selected',
+        expect.objectContaining({ teachingApproach: 'recall' })
+      );
+    });
   });
 });
 

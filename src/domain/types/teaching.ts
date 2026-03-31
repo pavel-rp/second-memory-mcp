@@ -2,6 +2,8 @@ import type { DrillFormat } from '../../shared/prompts/prompt-pack.js';
 import type { NoteType, NoteAuthor } from './notes-tools.js';
 import type { ContentStatus } from './recommendations.js';
 import type { SessionMode } from './session.js';
+import type { TeachingApproach } from '../algorithms/classify-chunk.js';
+import type { TopicStalenessProfile } from '../algorithms/compute-topic-profile.js';
 import { z } from 'zod';
 
 export type TeachNextNote = {
@@ -40,6 +42,16 @@ export type TeachNextTeach = {
   previous_feedback?: string[]; // feedback strings from past sessions
   notes?: TeachNextNote[];
   review_update?: ReviewUpdate; // SR result from completing the previous chunk
+  // NEU-312: per-chunk retrievability + tier assignment
+  teaching_approach?: TeachingApproach;
+  estimated_retrievability?: number;
+  days_overdue?: number;
+  reteach_compression?: number;
+  storage_strength_estimate?: number;
+  // NEU-312: topic-level staleness context
+  topic_staleness_profile?: TopicStalenessProfile;
+  is_first_chunk_in_topic?: boolean;
+  dominant_tier?: TeachingApproach;
 };
 
 export type TeachNextComplete = {

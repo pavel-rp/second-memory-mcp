@@ -553,6 +553,117 @@ describe('promptPack', () => {
     });
   });
 
+  describe('tier-branched instruction generation (NEU-312)', () => {
+    const baseContext = {
+      chunkNumber: 2,
+      totalChunks: 5,
+      chunkTitle: 'Binary Search Trees',
+      chunkContent: 'BST operations: insert, search, delete',
+      prerequisites: 'Arrays, Basic Trees',
+      drillFormat: 'open_ended' as const,
+    };
+
+    it('recall tier matches current learning behavior', () => {
+      const text = promptPack.getTierInstruction('recall', baseContext);
+      expect(text).toContain('cognitive load awareness');
+      expect(text).toContain('(2/5)');
+      expect(text).toContain('Binary Search Trees');
+      expect(text).toContain('## Question Taxonomy');
+      expect(text).toContain('## Quality Rubric');
+      expect(text).toContain('Recall');
+      expect(text).toContain('Explain/Apply');
+      expect(text).toContain('Analyze/Create');
+    });
+
+    it('cued_recall tier includes graduated-hints language', () => {
+      const text = promptPack.getTierInstruction('cued_recall', baseContext);
+      expect(text).toContain('cued-recall');
+      expect(text).toContain('graduated');
+      expect(text).toContain('contextual cue');
+      expect(text).toContain('structural hint');
+      expect(text).toContain('Stay at Recall and Explain/Apply levels');
+      expect(text).toContain('## Quality Rubric');
+    });
+
+    it('reteach tier includes compressed re-presentation language', () => {
+      const text = promptPack.getTierInstruction('reteach', baseContext);
+      expect(text).toContain('reteaching');
+      expect(text).toContain('compressed re-presentation');
+      expect(text).toContain('recall probe');
+      expect(text).toContain('Retrieval check');
+      expect(text).toContain('Stay at Recall level only');
+      expect(text).toContain('## Quality Rubric');
+    });
+
+    it('scaffold tier includes recognition-first language', () => {
+      const text = promptPack.getTierInstruction('scaffold', baseContext);
+      expect(text).toContain('rebuilding knowledge');
+      expect(text).toContain('Recognition questions first');
+      expect(text).toContain('Re-teach with concrete examples');
+      expect(text).toContain('forgetting as normal');
+      expect(text).toContain('Stay at Recall level only');
+      expect(text).toContain('## Quality Rubric');
+    });
+
+    it('each tier generates distinct instruction text', () => {
+      const recall = promptPack.getTierInstruction('recall', baseContext);
+      const cuedRecall = promptPack.getTierInstruction('cued_recall', baseContext);
+      const reteach = promptPack.getTierInstruction('reteach', baseContext);
+      const scaffold = promptPack.getTierInstruction('scaffold', baseContext);
+
+      // All four are distinct
+      const texts = [recall, cuedRecall, reteach, scaffold];
+      for (let i = 0; i < texts.length; i++) {
+        for (let j = i + 1; j < texts.length; j++) {
+          expect(texts[i]).not.toBe(texts[j]);
+        }
+      }
+    });
+
+    it('topic orientation instruction includes topic title', () => {
+      const text = promptPack.getTopicOrientationInstruction('Graph Algorithms');
+      expect(text).toContain('## Topic Orientation');
+      expect(text).toContain('Graph Algorithms');
+      expect(text).toContain("hasn't engaged with");
+      expect(text).toContain('2–3 sentences');
+    });
+
+    it('tier instructions include previous feedback when provided', () => {
+      const ctxWithFeedback = {
+        ...baseContext,
+        previousSessionFeedback: [
+          {
+            sessionMode: 'retrieval',
+            completedAt: '2025-01-10T12:00:00.000Z',
+            feedback: 'Struggled with deletion edge cases',
+          },
+        ],
+      };
+
+      const cuedRecall = promptPack.getTierInstruction('cued_recall', ctxWithFeedback);
+      expect(cuedRecall).toContain('PREVIOUS SESSION FEEDBACK');
+      expect(cuedRecall).toContain('Struggled with deletion edge cases');
+    });
+
+    it('tier instructions use fallback defaults when context is empty', () => {
+      const recall = promptPack.getTierInstruction('recall', {});
+      expect(recall).toContain('(1/1)');
+      expect(recall).toContain('<untitled chunk>');
+
+      const cuedRecall = promptPack.getTierInstruction('cued_recall', {});
+      expect(cuedRecall).toContain('(1/1)');
+      expect(cuedRecall).toContain('<untitled chunk>');
+
+      const reteach = promptPack.getTierInstruction('reteach', {});
+      expect(reteach).toContain('(1/1)');
+      expect(reteach).toContain('<untitled chunk>');
+
+      const scaffold = promptPack.getTierInstruction('scaffold', {});
+      expect(scaffold).toContain('(1/1)');
+      expect(scaffold).toContain('<untitled chunk>');
+    });
+  });
+
   describe('teaching content integrity', () => {
     it('learning prompt contains TEACHING PRIORITY block with mandatory-presentation assertion', () => {
       const text = promptPack.getPrompt('learning', {});

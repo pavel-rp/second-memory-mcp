@@ -43,15 +43,21 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                   sessionId: result.session_id,
                   chunkId: result.chunk_id,
                   mode: result.mode,
+                  dominantTier: result.dominant_tier,
                   instruction: [
                     'Per-chunk probing algorithm:',
-                    'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create).',
-                    'If correct → escalate one level if time permits → move to next chunk.',
-                    'If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
-                    'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
-                    result.mode === 'learning'
-                      ? 'Learning mode: start at Recall, escalate through levels.'
-                      : 'Retrieval mode: start at Recall, escalate if mastery target allows.',
+                    result.teaching_approach === 'scaffold'
+                      ? 'Start with recognition questions (multiple choice/true-false). Escalate to open recall only after recognition succeeds. Stay at Level 1 (Recall) only.'
+                      : result.teaching_approach === 'reteach'
+                        ? 'Brief recall probe first. If weak, do compressed re-presentation then retrieval check. Stay at Level 1 (Recall) only.'
+                        : result.teaching_approach === 'cued_recall'
+                          ? 'Ask what they remember first. On failure, provide graduated hints (context → structure → partial answer). Stay at Recall and Explain/Apply levels.'
+                          : 'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). If correct → escalate one level if time permits → move to next chunk. If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
+                    result.teaching_approach === 'scaffold'
+                      ? 'Guardrails: min 1 recognition + 1 Recall question; max 5–7 attempts per chunk.'
+                      : result.teaching_approach === 'reteach'
+                        ? 'Guardrails: recall probe first, then re-presentation + retrieval check. Stay at Level 1 only; max 5–7 attempts per chunk.'
+                        : 'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
                     'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
                     'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                   ].join(' '),
