@@ -370,8 +370,11 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
           updatedAt: firstNewSc.updatedAt,
         };
 
-        // Re-fetch sessionChunks for accurate count
-        sessionChunks = await deps.sessions.getSessionChunks(session.id);
+        // Re-fetch sessionChunks and reorder by updated chunkIds for correct chunk_index
+        sessionChunks = orderBySessionChunkIds(
+          await deps.sessions.getSessionChunks(session.id),
+          updatedChunkIds
+        );
 
         // Re-fetch chunk data for the new selection
         const newChunkData = await deps.chunks.getWithContent(selected.chunkId);
@@ -392,6 +395,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       }
     }
   } catch (err) {
+    stalePrereqIds = [];
     getRequestLogger().error(
       { err },
       'Prerequisite staleness check failed — proceeding with original chunk'
@@ -506,7 +510,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   // Prepend prerequisite reteach context when stale prereqs were inserted
   if (stalePrereqIds.length > 0) {
     instruction =
-      'This prerequisite is being revisited because its retrievability has decayed below the recall threshold. Focus on rebuilding the foundation before advancing to dependent material.\n\n' +
+      'This prerequisite is being revisited because its retrievability has decayed below the cued-recall threshold. Focus on rebuilding the foundation before advancing to dependent material.\n\n' +
       instruction;
   }
 
