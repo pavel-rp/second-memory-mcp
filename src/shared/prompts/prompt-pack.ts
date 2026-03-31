@@ -1,3 +1,5 @@
+import type { TeachingApproach } from '../../domain/algorithms/classify-chunk.js';
+
 type PromptName =
   | 'scaffolding'
   | 'learning'
@@ -586,6 +588,226 @@ class PromptPack {
       '- Record review results promptly so spaced repetition scheduling stays accurate',
       '- Complete sessions with detailed feedback for future adaptation',
       '- Use `what_to_learn_today` for efficient single-call recommendations',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  // ── NEU-312: Tier-branched instruction generation ──────────────────────
+
+  /**
+   * Generate a tier-specific instruction string for a chunk.
+   * Each tier uses a different pedagogical approach based on estimated retrievability.
+   */
+  getTierInstruction(tier: TeachingApproach, context: PromptContext): string {
+    switch (tier) {
+      case 'recall':
+        return this.getRecallTierInstruction(context);
+      case 'cued_recall':
+        return this.getCuedRecallTierInstruction(context);
+      case 'reteach':
+        return this.getReteachTierInstruction(context);
+      case 'scaffold':
+        return this.getScaffoldTierInstruction(context);
+    }
+  }
+
+  /**
+   * Generate a topic orientation preamble for first-chunk-in-topic scenarios.
+   * Emitted once per topic when the topic needs re-orientation.
+   */
+  getTopicOrientationInstruction(topicTitle: string): string {
+    return [
+      '## Topic Orientation',
+      '',
+      `The learner hasn't engaged with "${topicTitle}" in a long time.`,
+      'Briefly orient them: what is this topic, why it matters, and the key ideas they will refresh.',
+      '2–3 sentences — signpost, not lecture. Then proceed with the chunk instruction below.',
+      '',
+    ].join('\n');
+  }
+
+  private getRecallTierInstruction(context: PromptContext): string {
+    // recall tier: current behavior unchanged — delegates to existing learning/retrieval prompts
+    const chunkNumber = context.chunkNumber ?? 1;
+    const totalChunks = context.totalChunks ?? 1;
+    const chunkTitle = context.chunkTitle ?? '<untitled chunk>';
+    const chunkContent = context.chunkContent ?? '<content not provided>';
+    const prerequisites = context.prerequisites ?? 'verified or N/A';
+    const drillFormat = context.drillFormat ?? 'open_ended';
+    const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
+
+    return [
+      'You are teaching with cognitive load awareness and scaffolding.',
+      '',
+      `CURRENT CHUNK (${chunkNumber}/${totalChunks}): "${chunkTitle}"`,
+      `Focus: ${chunkContent}`,
+      `Prerequisites verified: ${prerequisites}`,
+      '',
+      'Content Access: If you need the full chunk content, use the get_chunk_content tool to retrieve comprehensive details including examples and exercises.',
+      '',
+      '## TEACHING PRIORITY',
+      '',
+      'This instruction overrides all formatting and brevity preferences.',
+      'You MUST present EVERY content item the server provides before asking any question that references it.',
+      'Do not summarise, abbreviate, or compress the teaching script. Present it in full.',
+      '',
+      "## YOUR CONTEXT ≠ LEARNER'S CONTEXT",
+      '',
+      "Your context window is NOT the learner's knowledge.",
+      'Do NOT ask about content you have not explicitly shown to the learner in this conversation.',
+      'Before referencing any item in a question, confirm that you have already presented it to the learner.',
+      '',
+      'Approach:',
+      '1) Present the core concept using simple, concrete examples',
+      '2) Build understanding gradually with scaffolded explanations',
+      '3) Use analogies or visual descriptions if helpful',
+      '4) Check for understanding before moving on',
+      `5) Conduct retrieval practice using format: ${drillFormat} (see taxonomy below)`,
+      feedbackSection,
+      '',
+      '## Question Taxonomy',
+      '',
+      "Use three levels of questions, matched to the learner's estimated accuracy:",
+      '',
+      '| Level | Label | Example stems | Target accuracy |',
+      '|-------|-------|---------------|-----------------|',
+      '| 1 | Recall | "What is...?" / "List the steps..." / "Write the function..." | 85–95% |',
+      '| 2 | Explain/Apply | "In your own words, why...?" / "Given this scenario, use X to..." | 70–80% |',
+      '| 3 | Analyze/Create | "What would break if...?" / "Design a solution for this novel problem..." | 65–75% |',
+      '',
+      '## Adaptive Difficulty Selection',
+      '',
+      'Estimate chunk_accuracy from available signals (previous_feedback, passed history, previous_attempts):',
+      '- accuracy < 0.40 → Recall only (Level 1)',
+      '- accuracy < 0.80 → Start at last successful level, escalate on correct answer',
+      '- accuracy ≥ 0.80 → Interleave all levels',
+      '',
+      ...this.formatQualityRubric(),
+      '',
+      'Style: concise, supportive, and precise.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  private getCuedRecallTierInstruction(context: PromptContext): string {
+    const chunkNumber = context.chunkNumber ?? 1;
+    const totalChunks = context.totalChunks ?? 1;
+    const chunkTitle = context.chunkTitle ?? '<untitled chunk>';
+    const chunkContent = context.chunkContent ?? '<content not provided>';
+    const prerequisites = context.prerequisites ?? 'verified or N/A';
+    const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
+
+    return [
+      'You are conducting a cued-recall review with graduated hints.',
+      '',
+      `CURRENT CHUNK (${chunkNumber}/${totalChunks}): "${chunkTitle}"`,
+      `Focus: ${chunkContent}`,
+      `Prerequisites verified: ${prerequisites}`,
+      '',
+      'Content Access: If you need the full chunk content, use the get_chunk_content tool.',
+      '',
+      '## CUED RECALL APPROACH',
+      '',
+      'The learner has partial memory of this material. Use graduated prompting:',
+      '',
+      '1) Start with an open recall question — "What do you remember about [concept]?"',
+      '2) If they struggle, provide a contextual cue — "This relates to [broader topic]..."',
+      '3) If still struggling, provide a structural hint — "There are N key aspects: the first is..."',
+      '4) Confirm understanding after each successful recall',
+      '5) Fill any remaining gaps with a brief explanation',
+      feedbackSection,
+      '',
+      'Guardrails:',
+      '- Max 3 graduated hints before revealing the answer',
+      '- After revealing, always ask a follow-up retrieval check',
+      '- Stay at Recall and Explain/Apply levels — do not escalate to Analyze/Create',
+      '',
+      ...this.formatQualityRubric(),
+      '',
+      'Style: patient, encouraging. Normalize partial recall as a learning signal.',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  private getReteachTierInstruction(context: PromptContext): string {
+    const chunkNumber = context.chunkNumber ?? 1;
+    const totalChunks = context.totalChunks ?? 1;
+    const chunkTitle = context.chunkTitle ?? '<untitled chunk>';
+    const chunkContent = context.chunkContent ?? '<content not provided>';
+    const prerequisites = context.prerequisites ?? 'verified or N/A';
+    const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
+
+    return [
+      'You are reteaching material the learner has largely forgotten.',
+      '',
+      `CURRENT CHUNK (${chunkNumber}/${totalChunks}): "${chunkTitle}"`,
+      `Focus: ${chunkContent}`,
+      `Prerequisites verified: ${prerequisites}`,
+      '',
+      'Content Access: If you need the full chunk content, use the get_chunk_content tool.',
+      '',
+      '## RETEACH APPROACH',
+      '',
+      'The learner has low retrievability for this material. Use compressed re-presentation:',
+      '',
+      '1) Brief recall probe — one quick question to gauge what remains',
+      '2) Compressed re-presentation — hit the key points at ~60% of original detail',
+      '3) Highlight what changed or what the learner missed last time',
+      '4) Retrieval check — verify the re-taught material stuck',
+      feedbackSection,
+      '',
+      'Guardrails:',
+      '- Keep re-presentation concise — the learner saw this before, they need refresh not full lecture',
+      '- Stay at Recall level only (Level 1) — save Explain/Apply for the next review session',
+      '- If the recall probe shows more knowledge than expected, switch to cued_recall approach',
+      '',
+      ...this.formatQualityRubric(),
+      '',
+      'Style: efficient, matter-of-fact. Frame as "refreshing" not "relearning".',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  private getScaffoldTierInstruction(context: PromptContext): string {
+    const chunkNumber = context.chunkNumber ?? 1;
+    const totalChunks = context.totalChunks ?? 1;
+    const chunkTitle = context.chunkTitle ?? '<untitled chunk>';
+    const chunkContent = context.chunkContent ?? '<content not provided>';
+    const prerequisites = context.prerequisites ?? 'verified or N/A';
+    const feedbackSection = this.formatPreviousFeedbackSection(context.previousSessionFeedback);
+
+    return [
+      'You are rebuilding knowledge the learner has almost entirely forgotten.',
+      '',
+      `CURRENT CHUNK (${chunkNumber}/${totalChunks}): "${chunkTitle}"`,
+      `Focus: ${chunkContent}`,
+      `Prerequisites verified: ${prerequisites}`,
+      '',
+      'Content Access: If you need the full chunk content, use the get_chunk_content tool.',
+      '',
+      '## SCAFFOLD APPROACH',
+      '',
+      'The learner has very low retrievability — treat this almost like a first encounter:',
+      '',
+      '1) Re-teach with concrete examples — present the core idea with a fresh worked example',
+      '2) Recognition questions first — "Does this look familiar?" / "Which of these is correct?"',
+      '3) Escalate to recall only after recognition succeeds',
+      '4) Frame forgetting as normal — "It\'s been a while, let\'s rebuild this step by step"',
+      feedbackSection,
+      '',
+      'Guardrails:',
+      '- Start with recognition (multiple choice or true/false), not open recall',
+      '- Stay at Recall level only (Level 1) — save higher levels for future sessions',
+      '- Use shorter, more frequent checks rather than one long assessment',
+      '- If the learner shows unexpected recall, escalate to cued_recall approach',
+      '',
+      ...this.formatQualityRubric(),
+      '',
+      'Style: warm, normalizing. Emphasize that forgetting is part of learning.',
     ]
       .filter(Boolean)
       .join('\n');

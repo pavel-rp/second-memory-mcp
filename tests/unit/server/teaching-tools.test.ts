@@ -97,7 +97,7 @@ describe('teaching-tools', () => {
     expect(parsed.workflow_hint.next_step).toContain('prompt_text');
   });
 
-  it('teach_next workflow_hint uses retrieval instruction for retrieval mode', async () => {
+  it('teach_next workflow_hint uses tier-specific instruction for cued_recall approach', async () => {
     const teachResult = {
       status: 'teach',
       session_id: 'sess-1',
@@ -109,6 +109,7 @@ describe('teaching-tools', () => {
       instruction: 'Review this concept...',
       drill_format: 'explanation',
       content_status: 'active',
+      teaching_approach: 'cued_recall',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
     registerTeachingTools(server as any, ctx);
@@ -118,8 +119,8 @@ describe('teaching-tools', () => {
     const parsed = parseResult(result);
 
     expect(parsed.workflow_hint.mode).toBe('retrieval');
-    expect(parsed.workflow_hint.instruction).toContain('Retrieval mode');
-    expect(parsed.workflow_hint.instruction).toContain('probing algorithm');
+    expect(parsed.workflow_hint.instruction).toContain('graduated hints');
+    expect(parsed.workflow_hint.instruction).toContain('Recall and Explain/Apply');
   });
 
   it('teach_next omits workflow_hint on blocked status', async () => {

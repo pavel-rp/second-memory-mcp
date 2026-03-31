@@ -28,6 +28,11 @@ import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
+import { classifyChunk, type ClassifyChunkInput } from '../domain/algorithms/classify-chunk.js';
+import {
+  computeTopicProfile,
+  type TopicChunkInput,
+} from '../domain/algorithms/compute-topic-profile.js';
 
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
@@ -288,14 +293,15 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const mode: 'learning' | 'retrieval' = isRequeued ? 'retrieval' : 'learning';
   const drillFormat: DrillFormat = mode === 'retrieval' ? 'open_ended' : 'explanation';
 
-  // 7. Fetch prerequisite context, historical feedback, and notes (parallel)
-  const [prerequisiteRows, historicalFeedback, chunkNotes] = await Promise.all([
+  // 7. Fetch prerequisite context, historical feedback, notes, and topic chunks (parallel)
+  const [prerequisiteRows, historicalFeedback, chunkNotes, topicChunksMinimal] = await Promise.all([
     deps.chunks.getPrerequisiteContext(chunkData.topicId, chunkData.createdAt),
     deps.sessions.getHistoricalFeedbackForChunks([selected.chunkId], {
       excludeSessionId: session.id,
       limit: 5,
     }),
     deps.notes?.getNotesForChunkIds([selected.chunkId]) ?? Promise.resolve([]),
+    deps.chunks.batchFetchMinimal({ topicId: chunkData.topicId }),
   ]);
   const prerequisiteContext: PrerequisiteContextItem[] = prerequisiteRows.map(r => ({
     chunk_id: r.id,
@@ -309,11 +315,53 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     feedback: hf.feedback,
   }));
 
-  // 8. Hydrate PromptPack
-  const promptName = mode === 'learning' ? 'learning' : 'retrieval';
+  // 7b. Classify current chunk (retrievability + tier assignment)
+  const now = new Date();
+  const classifyInput: ClassifyChunkInput = {
+    easeFactor: chunkData.easeFactor,
+    repetitions: chunkData.repetitions,
+    nextReviewAt: chunkData.nextReviewAt,
+    intervalDays: chunkData.intervalDays,
+  };
+  const teachingDecision = classifyChunk(classifyInput, now);
+
+  // 7c. Compute topic-level staleness profile
+  const topicChunkInputs: TopicChunkInput[] = topicChunksMinimal.map(c => ({
+    id: c.id,
+    easeFactor: c.easeFactor,
+    repetitions: c.repetitions,
+    nextReviewAt: c.nextReviewAt,
+    intervalDays: c.intervalDays,
+  }));
+  // Build prerequisite map from chunk metadata (scoped to this topic)
+  const topicPrerequisites = new Map<string, string[]>();
+  for (const c of topicChunksMinimal) {
+    if (c.prerequisitesJson && c.prerequisitesJson.length > 0) {
+      topicPrerequisites.set(c.id, c.prerequisitesJson);
+    }
+  }
+  const topicProfile = computeTopicProfile(
+    chunkData.topicId,
+    topicChunkInputs,
+    topicPrerequisites,
+    now
+  );
+
+  // 7d. Determine is_first_chunk_in_topic from session state
+  // A chunk is "first in topic" if no other chunk from the same topic has been
+  // completed or is currently in_progress within this session.
+  const topicChunkIdSet = new Set(topicChunksMinimal.map(c => c.id));
+  const isFirstChunkInTopic = !sessionChunks.some(
+    sc =>
+      sc.chunkId !== selected.chunkId &&
+      topicChunkIdSet.has(sc.chunkId) &&
+      (sc.status === 'completed' || sc.status === 'in_progress')
+  );
+
+  // 8. Hydrate PromptPack — tier-branched instruction
   const chunkIndex = sessionChunks.findIndex(sc => sc.id === selected.id) + 1;
 
-  const instruction = promptPack.getPrompt(promptName, {
+  const promptContext = {
     chunkNumber: chunkIndex,
     totalChunks: sessionChunks.length,
     chunkTitle: chunkData.title,
@@ -324,7 +372,17 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     subject: chunkData.subject,
     previousSessionFeedback:
       previousSessionFeedback.length > 0 ? previousSessionFeedback : undefined,
-  });
+  };
+
+  // Use tier-branched instruction instead of mode-based prompt selection
+  let instruction = promptPack.getTierInstruction(teachingDecision.teachingApproach, promptContext);
+
+  // Prepend topic orientation when needed and this is the first chunk in the topic
+  if (topicProfile.needsTopicOrientation && isFirstChunkInTopic) {
+    instruction =
+      promptPack.getTopicOrientationInstruction(chunkData.topicTitle ?? chunkData.title) +
+      instruction;
+  }
 
   // Mark chunk as in_progress
   await deps.sessions.updateSessionChunk(selected.id, { status: 'in_progress' });
@@ -335,6 +393,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     chunkId: selected.chunkId,
     chunkTitle: chunkData.title,
     reason,
+    teachingApproach: teachingDecision.teachingApproach,
   });
 
   const previousFeedbackStrings = historicalFeedback.map(hf => hf.feedback);
@@ -362,6 +421,16 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       })),
     }),
     ...(completedChunkReviewUpdate && { review_update: completedChunkReviewUpdate }),
+    // NEU-312: per-chunk retrievability + tier assignment
+    teaching_approach: teachingDecision.teachingApproach,
+    estimated_retrievability: teachingDecision.estimatedRetrievability,
+    days_overdue: teachingDecision.daysOverdue,
+    reteach_compression: teachingDecision.reteachCompression,
+    storage_strength_estimate: teachingDecision.storageStrengthEstimate,
+    // NEU-312: topic-level staleness context
+    topic_staleness_profile: topicProfile,
+    is_first_chunk_in_topic: isFirstChunkInTopic,
+    dominant_tier: topicProfile.dominantTier,
   };
 }
 
