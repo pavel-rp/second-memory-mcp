@@ -325,6 +325,15 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   };
   const teachingDecision = classifyChunk(classifyInput, now);
 
+  // Override drill_format based on tier (scaffold uses recognition, others keep mode-based)
+  const tierDrillFormat: DrillFormat =
+    teachingDecision.teachingApproach === 'scaffold'
+      ? 'multiple_choice'
+      : teachingDecision.teachingApproach === 'reteach' ||
+          teachingDecision.teachingApproach === 'cued_recall'
+        ? 'open_ended'
+        : drillFormat;
+
   // 7c. Compute topic-level staleness profile
   const topicChunkInputs: TopicChunkInput[] = topicChunksMinimal.map(c => ({
     id: c.id,
@@ -367,7 +376,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     chunkTitle: chunkData.title,
     chunkContent: chunkData.content ?? undefined,
     prerequisites: chunkData.prerequisitesJson?.join(', '),
-    drillFormat,
+    drillFormat: tierDrillFormat,
     masteryLevel: chunkData.repetitions > 0 ? Math.min(chunkData.repetitions, 5) : undefined,
     subject: chunkData.subject,
     previousSessionFeedback:
@@ -407,7 +416,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     total_chunks: sessionChunks.length,
     mode,
     instruction,
-    drill_format: drillFormat,
+    drill_format: tierDrillFormat,
     content_status: chunkData.contentStatus,
     ...(prerequisiteContext.length > 0 && { prerequisite_context: prerequisiteContext }),
     ...(previousFeedbackStrings.length > 0 && { previous_feedback: previousFeedbackStrings }),

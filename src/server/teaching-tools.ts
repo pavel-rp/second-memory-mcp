@@ -53,7 +53,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                         : result.teaching_approach === 'cued_recall'
                           ? 'Ask what they remember first. On failure, provide graduated hints (context → structure → partial answer). Stay at Recall and Explain/Apply levels.'
                           : 'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). If correct → escalate one level if time permits → move to next chunk. If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
-                    'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
+                    result.teaching_approach === 'scaffold' ||
+                    result.teaching_approach === 'reteach'
+                      ? 'Guardrails: min 1 recognition + 1 Recall question; max 5–7 attempts per chunk.'
+                      : 'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
                     'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
                     'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                   ].join(' '),

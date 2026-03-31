@@ -628,7 +628,7 @@ class PromptPack {
   }
 
   private getRecallTierInstruction(context: PromptContext): string {
-    // recall tier: current behavior unchanged — delegates to existing learning/retrieval prompts
+    // recall tier: based on learning prompt with feedback integration
     const chunkNumber = context.chunkNumber ?? 1;
     const totalChunks = context.totalChunks ?? 1;
     const chunkTitle = context.chunkTitle ?? '<untitled chunk>';
