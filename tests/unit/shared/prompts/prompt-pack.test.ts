@@ -650,9 +650,17 @@ describe('promptPack', () => {
       expect(recall).toContain('(1/1)');
       expect(recall).toContain('<untitled chunk>');
 
+      const cuedRecall = promptPack.getTierInstruction('cued_recall', {});
+      expect(cuedRecall).toContain('(1/1)');
+      expect(cuedRecall).toContain('<untitled chunk>');
+
       const reteach = promptPack.getTierInstruction('reteach', {});
       expect(reteach).toContain('(1/1)');
       expect(reteach).toContain('<untitled chunk>');
+
+      const scaffold = promptPack.getTierInstruction('scaffold', {});
+      expect(scaffold).toContain('(1/1)');
+      expect(scaffold).toContain('<untitled chunk>');
     });
   });
 

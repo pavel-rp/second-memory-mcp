@@ -2123,6 +2123,77 @@ describe('getNextTeachingStep', () => {
       if (result.status !== 'teach') throw new Error('Expected teach');
       expect(result.teaching_approach).toBe('scaffold');
       expect(result.estimated_retrievability).toBeLessThan(0.3);
+      expect(result.drill_format).toBe('multiple_choice');
+    });
+
+    it('assigns cued_recall tier with open_ended drill format for moderately overdue chunk', async () => {
+      const MS_PER_DAY = 86_400_000;
+      const realNow = Date.now();
+      // intervalDays=1, overdue 8 days from real now → R ≈ 0.59 → cued_recall (0.5–0.7)
+      const moderateChunk = makeChunkData({
+        id: 'c1',
+        easeFactor: 2.5,
+        repetitions: 2,
+        intervalDays: 1,
+        nextReviewAt: realNow - 8 * MS_PER_DAY,
+      });
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(moderateChunk),
+          batchFetchMinimal: vi.fn().mockResolvedValue([
+            makeMinimalChunk({
+              id: 'c1',
+              easeFactor: 2.5,
+              repetitions: 2,
+              intervalDays: 1,
+              nextReviewAt: realNow - 8 * MS_PER_DAY,
+            }),
+          ]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBe('cued_recall');
+      expect(result.drill_format).toBe('open_ended');
+    });
+
+    it('assigns reteach tier with open_ended drill format for stale chunk', async () => {
+      const MS_PER_DAY = 86_400_000;
+      const realNow = Date.now();
+      // intervalDays=1, overdue 20 days from real now → R ≈ 0.42 → reteach (0.3–0.5)
+      const staleChunk = makeChunkData({
+        id: 'c1',
+        easeFactor: 2.5,
+        repetitions: 1,
+        intervalDays: 1,
+        nextReviewAt: realNow - 20 * MS_PER_DAY,
+      });
+
+      const deps = makeDeps({
+        chunks: {
+          getWithContent: vi.fn().mockResolvedValue(staleChunk),
+          batchFetchMinimal: vi.fn().mockResolvedValue([
+            makeMinimalChunk({
+              id: 'c1',
+              easeFactor: 2.5,
+              repetitions: 1,
+              intervalDays: 1,
+              nextReviewAt: realNow - 20 * MS_PER_DAY,
+            }),
+          ]),
+        },
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('teach');
+      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.teaching_approach).toBe('reteach');
+      expect(result.drill_format).toBe('open_ended');
     });
 
     it('is_first_chunk_in_topic is true for first chunk in a topic', async () => {

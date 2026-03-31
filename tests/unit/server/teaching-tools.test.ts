@@ -110,6 +110,7 @@ describe('teaching-tools', () => {
       drill_format: 'explanation',
       content_status: 'active',
       teaching_approach: 'cued_recall',
+      dominant_tier: 'cued_recall',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
     registerTeachingTools(server as any, ctx);
@@ -119,8 +120,62 @@ describe('teaching-tools', () => {
     const parsed = parseResult(result);
 
     expect(parsed.workflow_hint.mode).toBe('retrieval');
+    expect(parsed.workflow_hint.dominant_tier).toBe('cued_recall');
     expect(parsed.workflow_hint.instruction).toContain('graduated hints');
     expect(parsed.workflow_hint.instruction).toContain('Recall and Explain/Apply');
+  });
+
+  it('teach_next workflow_hint uses scaffold-specific guardrails', async () => {
+    const teachResult = {
+      status: 'teach',
+      session_id: 'sess-1',
+      chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
+      chunk_index: 1,
+      total_chunks: 1,
+      mode: 'learning',
+      instruction: 'Rebuild this concept...',
+      drill_format: 'multiple_choice',
+      content_status: 'final',
+      teaching_approach: 'scaffold',
+      dominant_tier: 'scaffold',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.workflow_hint.instruction).toContain('recognition questions');
+    expect(parsed.workflow_hint.instruction).toContain('min 1 recognition + 1 Recall');
+  });
+
+  it('teach_next workflow_hint uses reteach-specific guardrails', async () => {
+    const teachResult = {
+      status: 'teach',
+      session_id: 'sess-1',
+      chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
+      chunk_index: 1,
+      total_chunks: 1,
+      mode: 'learning',
+      instruction: 'Reteach this concept...',
+      drill_format: 'open_ended',
+      content_status: 'final',
+      teaching_approach: 'reteach',
+      dominant_tier: 'reteach',
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.workflow_hint.instruction).toContain('recall probe first');
+    expect(parsed.workflow_hint.instruction).toContain('retrieval check');
+    expect(parsed.workflow_hint.instruction).toContain('Level 1 only');
   });
 
   it('teach_next omits workflow_hint on blocked status', async () => {
