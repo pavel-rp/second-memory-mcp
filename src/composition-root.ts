@@ -105,7 +105,7 @@ export interface AppPorts {
   unitOfWork: UnitOfWorkPort;
   sessionQuestions: SessionQuestionRepository;
   notes: NotesRepository;
-  contextTokens?: ContextTokenRepository;
+  contextTokens: ContextTokenRepository;
   embedding?: EmbeddingPort;
 }
 
@@ -443,9 +443,6 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
     // Context token
     createContextToken: () => {
-      if (!ports.contextTokens) {
-        throw new Error('ContextTokenRepository not configured');
-      }
       const TTL_24H_MS = 24 * 60 * 60 * 1000;
       return ports.contextTokens.create(TTL_24H_MS);
     },
