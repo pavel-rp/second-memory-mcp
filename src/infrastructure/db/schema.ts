@@ -225,7 +225,20 @@ export const notes = pgTable(
   ]
 );
 
+export const contextTokens = pgTable(
+  'context_tokens',
+  {
+    id: text('id').primaryKey().notNull(),
+    createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+    expiresAt: bigint('expires_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  table => [index('idx_context_tokens_expires_at').on(table.expiresAt)]
+);
+
 // Types
+export type ContextTokenRow = InferSelectModel<typeof contextTokens>;
+export type NewContextTokenRow = InferInsertModel<typeof contextTokens>;
+
 export type NoteRow = InferSelectModel<typeof notes>;
 export type NewNoteRow = InferInsertModel<typeof notes>;
 
