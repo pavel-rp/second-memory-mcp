@@ -85,6 +85,17 @@ gh api --method POST "repos/OWNER/REPO/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/r
 - **Team**: Neurasphere (key: NEU)
 - **Project**: Second Memory MCP
 
+## Bash Commands
+
+- **No piped commands** (`|`). Run each command as a separate Bash call. If you need to process output, save to `$TEMP/file` first, then read it in the next call.
+- **No output redirections** (`>`, `1>`, `2>`). Run the command, let stdout return the result. If you need to save to a file, use a second Bash call with `echo`.
+- **No `cd`** — working directory persists. Use absolute or relative paths.
+- **No `cat`/`head`/`tail`** for reading files — use the Read tool.
+- **No `jq`** — not available. Use `node -e` with `JSON.parse`.
+- **No `python`** — use `node -e` for scripting.
+- **No `ls` with glob patterns** for file/folder existence checks — use the Glob tool.
+- **No `$?`** or shell variable interpolation in commands — triggers security warnings.
+
 ## Package manager
 
 pnpm, not npm.
