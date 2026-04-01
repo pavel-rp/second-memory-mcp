@@ -232,6 +232,7 @@ export const contextTokens = pgTable(
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     expiresAt: bigint('expires_at', { mode: 'number' }).notNull(), // epoch ms
   },
+  /* v8 ignore next 3 -- Drizzle index definitions; executed internally, not reachable from app code */
   table => [index('idx_context_tokens_expires_at').on(table.expiresAt)]
 );
 

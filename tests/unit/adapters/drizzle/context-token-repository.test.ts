@@ -42,6 +42,16 @@ describe('DrizzleContextTokenRepository', () => {
       expect(id).toMatch(/^ctx-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     });
 
+    it('throws for non-positive ttlMs', async () => {
+      await expect(repo.create(0)).rejects.toThrow('ttlMs must be a positive finite number');
+      await expect(repo.create(-1)).rejects.toThrow('ttlMs must be a positive finite number');
+    });
+
+    it('throws for non-finite ttlMs', async () => {
+      await expect(repo.create(NaN)).rejects.toThrow('ttlMs must be a positive finite number');
+      await expect(repo.create(Infinity)).rejects.toThrow('ttlMs must be a positive finite number');
+    });
+
     it('inserts a row with correct createdAt and expiresAt', async () => {
       const now = 1700000000000;
       vi.spyOn(Date, 'now').mockReturnValue(now);
@@ -74,7 +84,7 @@ describe('DrizzleContextTokenRepository', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false for an expired token and triggers cleanup', async () => {
+    it('returns false for an expired token and triggers delete', async () => {
       const now = 1700000000000;
       vi.spyOn(Date, 'now').mockReturnValue(now);
       mocks.selectWhere.mockResolvedValueOnce([{ id: 'ctx-expired', expiresAt: now - 1 }]);
@@ -82,15 +92,16 @@ describe('DrizzleContextTokenRepository', () => {
       const result = await repo.validate('ctx-expired');
 
       expect(result).toBe(false);
-      expect(mocks.deleteFn).toHaveBeenCalled();
+      expect(mocks.deleteFn).toHaveBeenCalledTimes(1);
+      expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('cleanup()', () => {
+  describe('delete()', () => {
     it('deletes the row from the database', async () => {
-      await repo.cleanup('ctx-delete-me');
-      expect(mocks.deleteFn).toHaveBeenCalled();
-      expect(mocks.deleteWhere).toHaveBeenCalled();
+      await repo.delete('ctx-delete-me');
+      expect(mocks.deleteFn).toHaveBeenCalledTimes(1);
+      expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -19,18 +19,17 @@ describe('DrizzleContextTokenRepository (integration)', () => {
     await teardownTestDb();
   });
 
-  it('round-trip: create → validate(true) → expire → validate(false)', async () => {
-    // Create a token with a very short TTL (1ms)
-    const tokenId = await repo.create(1);
+  it('validates non-expired tokens as true and expired tokens as false', async () => {
+    // Create a short-lived token (1ms) that we expect to expire quickly
+    const shortToken = await repo.create(1);
 
-    // Immediately validate — should still be valid (or just barely)
-    // Use a longer TTL to ensure validity
+    // Create a long-lived token and validate that it is currently valid
     const longToken = await repo.create(60_000);
     expect(await repo.validate(longToken)).toBe(true);
 
-    // Wait for the 1ms token to expire
+    // Wait for the short-lived token to expire
     await new Promise(resolve => setTimeout(resolve, 10));
-    expect(await repo.validate(tokenId)).toBe(false);
+    expect(await repo.validate(shortToken)).toBe(false);
   });
 
   it('validate() on a non-existent token returns false', async () => {

@@ -8,6 +8,9 @@ export class DrizzleContextTokenRepository implements ContextTokenRepository {
   constructor(private db: SqlDb = getSql()) {}
 
   async create(ttlMs: number): Promise<string> {
+    if (!Number.isFinite(ttlMs) || ttlMs <= 0) {
+      throw new Error(`ttlMs must be a positive finite number, got: ${ttlMs}`);
+    }
     const id = `ctx-${crypto.randomUUID()}`;
     const createdAt = Date.now();
     const expiresAt = createdAt + ttlMs;
@@ -24,14 +27,14 @@ export class DrizzleContextTokenRepository implements ContextTokenRepository {
     if (rows.length === 0) return false;
 
     if (rows[0].expiresAt <= Date.now()) {
-      await this.cleanup(token);
+      await this.delete(token);
       return false;
     }
 
     return true;
   }
 
-  async cleanup(token: string): Promise<void> {
+  async delete(token: string): Promise<void> {
     await this.db.delete(contextTokens).where(eq(contextTokens.id, token));
   }
 }
