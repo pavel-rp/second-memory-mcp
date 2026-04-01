@@ -7,6 +7,7 @@ import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persi
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
 import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-question-repository.js';
 import { DrizzleNotesRepository } from './adapters/drizzle/notes-repository.js';
+import { DrizzleContextTokenRepository } from './adapters/drizzle/context-token-repository.js';
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
 import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
 import { resolveEmbeddingConfig } from './config/resolve-embedding-config.js';
@@ -30,6 +31,7 @@ import type { ReviewPersistencePort } from './ports/review-persistence-port.js';
 import type { UnitOfWorkPort } from './ports/unit-of-work-port.js';
 import type { SessionQuestionRepository } from './ports/session-question-repository.js';
 import type { NotesRepository } from './ports/notes-repository.js';
+import type { ContextTokenRepository } from './ports/context-token-repository.js';
 import type {
   LearningItem,
   PaginatedLearningItemsResponse,
@@ -103,6 +105,7 @@ export interface AppPorts {
   unitOfWork: UnitOfWorkPort;
   sessionQuestions: SessionQuestionRepository;
   notes: NotesRepository;
+  contextTokens?: ContextTokenRepository;
   embedding?: EmbeddingPort;
 }
 
@@ -250,6 +253,9 @@ export interface AppContext {
     topicId: string
   ) => Promise<Awaited<ReturnType<TopicRepository['getSummaryById']>>>;
 
+  // Context token
+  createContextToken: () => Promise<string>;
+
   // Shared utilities
   mapChunkRowToLearningItem: typeof mapChunkRowToLearningItem;
 
@@ -281,6 +287,7 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
     unitOfWork: new DrizzleUnitOfWorkAdapter(),
     sessionQuestions: new DrizzleSessionQuestionRepository(db),
     notes: new DrizzleNotesRepository(db),
+    contextTokens: new DrizzleContextTokenRepository(db),
   };
 }
 
@@ -433,6 +440,15 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     batchFetchTopicsMinimal: options => queryWorkflows.batchFetchTopicsMinimal(options, queryDeps),
     batchFetchChunksMinimal: options => queryWorkflows.batchFetchChunksMinimal(options, queryDeps),
     getTopicSummary: topicId => queryWorkflows.getTopicSummary(topicId, queryDeps),
+
+    // Context token
+    createContextToken: () => {
+      if (!ports.contextTokens) {
+        throw new Error('ContextTokenRepository not configured');
+      }
+      const TTL_24H_MS = 24 * 60 * 60 * 1000;
+      return ports.contextTokens.create(TTL_24H_MS);
+    },
 
     // Shared utilities
     mapChunkRowToLearningItem,

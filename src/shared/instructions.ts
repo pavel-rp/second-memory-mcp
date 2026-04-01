@@ -59,3 +59,15 @@ You are responsible for asking high-quality questions using the three-level taxo
 - Level 2 (Explain/Apply): "In your own words, why...?" / "Given this scenario..." — understanding and transfer
 - Level 3 (Analyze/Create): "What would break if...?" / "Design a solution..." — synthesis and evaluation
 Use the quality rubric (0–5) with scaffolding ceilings to assess answers fairly. If you provided hints, cap quality at the ceiling (1 hint → max 3, 2+ hints → max 2). Target quality 3–4 as the healthy range.`;
+
+/**
+ * Compressed workflow summary for init_agent_context.
+ * Leads with what_to_learn_today flow instead of start_learning.
+ */
+export const WORKFLOW_SUMMARY =
+  'TEACHING: what_to_learn_today \u2192 present ranked options to learner \u2192 create_session with chosen ' +
+  "topic's due_chunk_ids \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. Quick-start " +
+  '(skips topic selection): start_learning (auto-picks most urgent). CONTENT: search_learning_content ' +
+  '\u2192 create_topic_with_chunks. ASSESSMENT: create_session(assessment) \u2192 create_session_questions ' +
+  '\u2192 submit_answer. Always search for existing content before creating. Absence from DB does not ' +
+  'mean ignorance \u2014 assess the learner first.';
