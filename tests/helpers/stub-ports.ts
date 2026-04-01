@@ -208,7 +208,9 @@ export function stubSessionQuestionRepository(
 
 export function stubNotesRepository(overrides?: Partial<NotesRepository>): NotesRepository {
   return {
-    createNote: vi.fn().mockResolvedValue({ id: 'note-stub', createdAt: 1_700_000_000_000 }),
+    createNote: vi
+      .fn()
+      .mockResolvedValue({ id: 'note-stub', createdAt: '2023-11-14T22:13:20.000Z' }),
     getNotesByTarget: vi.fn().mockResolvedValue([]),
     getNotesForChunkIds: vi.fn().mockResolvedValue([]),
     deleteNote: vi.fn().mockResolvedValue(true),

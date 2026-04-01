@@ -28,14 +28,7 @@ import type {
   ChunkAttempt,
 } from '../../domain/types/session.js';
 import { logger } from '../../shared/logger.js';
-
-function toIsoDate(epochMs: number): string {
-  const d = new Date(epochMs);
-  const y = d.getUTCFullYear();
-  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${y}-${mo}-${day}`;
-}
+import { toIsoTimestamp } from '../../shared/date-helpers.js';
 
 export class DrizzleSessionRepository implements SessionRepository {
   constructor(private db: SqlDb = getSql()) {}
@@ -299,7 +292,7 @@ export class DrizzleSessionRepository implements SessionRepository {
         ...(detail && {
           repetitions: detail.repetitions,
           ease_factor: detail.easeFactor,
-          next_review_date: toIsoDate(detail.nextReviewAt),
+          next_review_date: toIsoTimestamp(detail.nextReviewAt),
           subject: detail.subject,
           difficulty: detail.difficulty,
           estimated_duration: detail.estimatedDuration,

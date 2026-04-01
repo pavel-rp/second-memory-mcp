@@ -39,7 +39,7 @@ describe('Integration: notes tools', () => {
 
     const parsed = parseToolResult(result);
     expect(parsed.id).toEqual(expect.any(String));
-    expect(parsed.created_at).toEqual(expect.any(Number));
+    expect(parsed.created_at).toEqual(expect.any(String));
   });
 
   it('add_note rejects invalid target_type', async () => {
@@ -129,7 +129,7 @@ describe('Integration: notes tools', () => {
     expect(parsed.notes[1].content).toBe('First note');
     expect(parsed.notes[0].note_type).toBe('confusion');
     expect(parsed.notes[0].author).toBe('user');
-    expect(parsed.notes[0].created_at).toEqual(expect.any(Number));
+    expect(parsed.notes[0].created_at).toEqual(expect.any(String));
   });
 
   it('list_notes returns empty array when target has no notes', async () => {

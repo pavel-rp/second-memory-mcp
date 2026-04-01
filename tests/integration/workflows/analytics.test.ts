@@ -137,7 +137,7 @@ describe('analytics workflows', () => {
     it('returns KPIs for a day with reviews', async () => {
       const result = await ctx.computeDailyAnalytics('2026-01-15');
 
-      expect(result.date).toBe('2026-01-15');
+      expect(result.date).toBe('2026-01-15T00:00:00.000Z');
       expect(result.reviews_completed).toBe(2); // 2 attempts with non-null quality
       expect(result.new_chunks_learned).toBe(2); // both entries have isNew (chunkType='new')
       expect(result.average_quality).toBe(4.5);
@@ -146,7 +146,7 @@ describe('analytics workflows', () => {
     it('returns zero KPIs for a day with no reviews', async () => {
       const result = await ctx.computeDailyAnalytics('2026-01-16');
 
-      expect(result.date).toBe('2026-01-16');
+      expect(result.date).toBe('2026-01-16T00:00:00.000Z');
       expect(result.reviews_completed).toBe(0);
       expect(result.average_quality).toBe(0);
     });

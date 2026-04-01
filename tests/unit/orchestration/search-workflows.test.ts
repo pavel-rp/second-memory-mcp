@@ -16,8 +16,8 @@ function makeResultItem(overrides?: Partial<SearchResultItem>): SearchResultItem
     subject: 'CS',
     matchScore: 0.8,
     highlightTerms: ['test'],
-    createdAt: 1000,
-    updatedAt: 2000,
+    createdAt: '1970-01-01T00:00:01.000Z',
+    updatedAt: '1970-01-01T00:00:02.000Z',
     ...overrides,
   };
 }

@@ -55,7 +55,7 @@ export const DeleteNoteInputSchema = z.object(DeleteNoteInputShape).transform(to
 
 export type NoteCreated = {
   id: string;
-  createdAt: number;
+  createdAt: string;
 };
 
 export type NoteRecord = {
@@ -63,7 +63,7 @@ export type NoteRecord = {
   noteType: NoteType;
   content: string;
   author: NoteAuthor;
-  createdAt: number;
+  createdAt: string;
 };
 
 export type NoteListResult = {

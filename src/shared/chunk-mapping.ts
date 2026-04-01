@@ -1,18 +1,11 @@
 import type { LearningChunk } from '../domain/types/entities.js';
 import type { LearningItem, LearningItemWithContent } from '../domain/types/recommendations.js';
+import { toIsoTimestamp } from './date-helpers.js';
 
 type ChunkListRowWithContent = LearningChunk & {
   contentEmbedding?: number[] | null;
   topicTitle?: string | null;
 };
-
-function toIsoDate(epochMs: number): string {
-  const d = new Date(epochMs);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(d.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 export function mapChunkRowToLearningItem(
   row: ChunkListRowWithContent,
@@ -28,10 +21,10 @@ export function mapChunkRowToLearningItem(
     title: row.title,
     subject: row.subject,
     difficulty: row.difficulty,
-    nextReviewDate: toIsoDate(row.nextReviewAt),
+    nextReviewDate: toIsoTimestamp(row.nextReviewAt),
     easeFactor: row.easeFactor,
     repetitions: row.repetitions,
-    lastReviewed: row.lastReviewedAt ? toIsoDate(row.lastReviewedAt) : undefined,
+    lastReviewed: row.lastReviewedAt ? toIsoTimestamp(row.lastReviewedAt) : undefined,
     estimatedDuration: row.estimatedDuration,
     chunkType,
     prerequisites: row.prerequisitesJson ?? [],

@@ -24,7 +24,7 @@ export async function computeDailyAnalytics(date: string, deps: AnalyticsDeps): 
   const entries = persisted.map(toReviewEntry);
 
   const result = computeDailyKpis(entries);
-  return { ...result, date };
+  return { ...result, date: `${date}T00:00:00.000Z` };
 }
 
 export async function computeWindowAnalytics(

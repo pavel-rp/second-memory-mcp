@@ -19,9 +19,14 @@ function parseDate(dateStr: string): Date | null {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-// Helper function to format date as ISO string
-function formatDate(date: Date): string {
+// Helper function to format date as YYYY-MM-DD key for grouping
+function formatDateKey(date: Date): string {
   return date.toISOString().split('T')[0];
+}
+
+// Format a YYYY-MM-DD date key as full ISO 8601 midnight UTC
+function toFullIso(dateKey: string): string {
+  return `${dateKey}T00:00:00.000Z`;
 }
 
 // Helper function to get all dates in a range
@@ -37,7 +42,7 @@ function getDateRange(start: string, end: string): string[] {
   const current = new Date(startDate);
 
   while (current <= endDate) {
-    dates.push(formatDate(current));
+    dates.push(formatDateKey(current));
     current.setDate(current.getDate() + 1);
   }
 
@@ -60,12 +65,17 @@ function cleanEntries(entries: ReviewEntry[]): ReviewEntry[] {
     }));
 }
 
-// Group entries by date
+// Extract YYYY-MM-DD from a date string (handles both YYYY-MM-DD and full ISO 8601)
+function toDateKey(date: string): string {
+  return date.substring(0, 10);
+}
+
+// Group entries by date (day-level)
 function groupEntriesByDate(entries: ReviewEntry[]): Map<string, ReviewEntry[]> {
   const grouped = new Map<string, ReviewEntry[]>();
 
   for (const entry of entries) {
-    const date = entry.date;
+    const date = toDateKey(entry.date);
     const existing = grouped.get(date);
     if (existing) {
       existing.push(entry);
@@ -111,7 +121,7 @@ export function computeDailyKpis(entries: ReviewEntry[]): DailyKpis {
   }
 
   const cleanedEntries = cleanEntries(entries);
-  const date = cleanedEntries[0]?.date || '';
+  const date = cleanedEntries[0] ? toFullIso(toDateKey(cleanedEntries[0].date)) : '';
 
   // Count reviews and new chunks
   const reviews_completed = cleanedEntries.length;
@@ -195,12 +205,12 @@ export function computeWindowRollup(
 
   const entriesByDate = groupEntriesByDate(cleanedEntries);
   const dateSet = new Set(dateRange);
-  const windowEntries = cleanedEntries.filter(entry => dateSet.has(entry.date));
+  const windowEntries = cleanedEntries.filter(entry => dateSet.has(toDateKey(entry.date)));
 
-  const dailyKpis: DailyKpis[] = dateRange.map(date => {
-    const dayEntries = entriesByDate.get(date) || [];
+  const dailyKpis: DailyKpis[] = dateRange.map(dateKey => {
+    const dayEntries = entriesByDate.get(dateKey) || [];
     const kpis = computeDailyKpis(dayEntries);
-    return { ...kpis, date };
+    return { ...kpis, date: toFullIso(dateKey) };
   });
 
   for (let i = 0; i < dailyKpis.length; i++) {

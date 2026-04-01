@@ -13,10 +13,10 @@ export type LearningItem = {
   title: string;
   subject: string;
   difficulty: number; // 1-10
-  nextReviewDate: string; // ISO date
+  nextReviewDate: string; // ISO 8601 timestamp
   easeFactor: number;
   repetitions: number;
-  lastReviewed?: string; // ISO date
+  lastReviewed?: string; // ISO 8601 timestamp
   estimatedDuration: number; // minutes
   chunkType: ChunkType;
   prerequisites?: string[];
@@ -75,12 +75,14 @@ const LearningItemObjectSchema = z.object({
   title: z.string().min(1),
   subject: z.string().min(1),
   difficulty: z.number().int().min(1).max(10),
-  next_review_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD'),
+  next_review_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Must be ISO 8601 date format'),
   ease_factor: z.number().min(1.3),
   repetitions: z.number().int().min(0),
   last_reviewed: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be ISO date format YYYY-MM-DD')
+    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Must be ISO 8601 date format')
     .optional(),
   estimated_duration: z.number().min(0),
   chunk_type: ChunkTypeSchema,

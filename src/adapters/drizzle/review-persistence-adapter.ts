@@ -77,7 +77,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       );
 
     return rows.map(row => ({
-      date: new Date(row.startTime).toISOString().split('T')[0] as string,
+      date: new Date(row.startTime).toISOString(),
       quality: row.quality as number,
       isNew: row.chunkType === 'new',
       topic: row.topicTitle ?? '(unknown)',

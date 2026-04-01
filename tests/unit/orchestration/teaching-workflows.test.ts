@@ -1929,7 +1929,7 @@ describe('getNextTeachingStep', () => {
       chunkId: 'c1',
       easeFactor: expect.any(Number),
       interval: expect.any(Number),
-      nextReviewDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      nextReviewDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
     });
   });
 

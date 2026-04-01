@@ -3,7 +3,7 @@ import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 // Review entry as returned from the database (persisted session data)
 export type PersistedReviewEntry = {
-  date: string; // ISO YYYY-MM-DD (derived from session startTime, UTC)
+  date: string; // ISO 8601 timestamp (derived from session startTime, UTC)
   quality: number; // 0..5
   isNew: boolean; // derived from chunkType === 'new'
   topic: string; // topic title
@@ -12,7 +12,7 @@ export type PersistedReviewEntry = {
 
 // Base review entry for analytics calculations
 export type ReviewEntry = {
-  date: string; // ISO YYYY-MM-DD
+  date: string; // ISO 8601 timestamp
   quality?: number; // 0..5 (optional, defaults to 0)
   isNew?: boolean; // true for new chunks learned
   topic?: string; // optional topic categorization
@@ -32,7 +32,7 @@ export type WindowSpec = {
 
 // Daily KPI metrics
 export type DailyKpis = {
-  date: string; // ISO YYYY-MM-DD
+  date: string; // ISO 8601 timestamp (midnight UTC for the day)
   reviews_completed: number;
   average_quality: number; // 0..5
   new_chunks_learned: number;
@@ -59,8 +59,11 @@ export type AnalyticsOutput = {
 const ReviewEntryShape = {
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-    .describe('Review date in YYYY-MM-DD format'),
+    .regex(
+      /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/,
+      'Date must be ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)'
+    )
+    .describe('Review date in ISO 8601 format'),
   quality: z
     .number()
     .min(0)
@@ -145,7 +148,9 @@ export const AnalyticsWindowInputSchema = z
   .transform(toCamelCaseKeys);
 
 export const DailyKpisSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Date must be ISO 8601 format'),
   reviews_completed: z.number().min(0),
   average_quality: z.number().min(0).max(5),
   new_chunks_learned: z.number().min(0),

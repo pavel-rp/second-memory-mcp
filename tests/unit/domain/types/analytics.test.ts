@@ -47,6 +47,14 @@ describe('ReviewEntrySchema', () => {
     }
   });
 
+  it('validates full ISO 8601 date format', () => {
+    const result = ReviewEntrySchema.safeParse({ date: '2024-01-01T12:30:00.000Z' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.date).toBe('2024-01-01T12:30:00.000Z');
+    }
+  });
+
   it('validates date format', () => {
     const invalidDates = [
       '2024-1-1', // Missing leading zeros
@@ -265,6 +273,18 @@ describe('DailyKpisSchema', () => {
       average_quality: 3.5,
       new_chunks_learned: 2,
       streak_days: 7,
+    };
+
+    const result = DailyKpisSchema.safeParse(validKpis);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates full ISO 8601 date in daily KPIs', () => {
+    const validKpis = {
+      date: '2024-01-01T00:00:00.000Z',
+      reviews_completed: 5,
+      average_quality: 3.5,
+      new_chunks_learned: 2,
     };
 
     const result = DailyKpisSchema.safeParse(validKpis);
