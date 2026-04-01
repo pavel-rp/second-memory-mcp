@@ -83,8 +83,20 @@ describe('createNote', () => {
 describe('listNotes', () => {
   it('returns notes array for a target', async () => {
     const notes = [
-      { id: 'n1', noteType: 'insight', content: 'Note 1', author: 'agent', createdAt: 1000 },
-      { id: 'n2', noteType: 'confusion', content: 'Note 2', author: 'user', createdAt: 900 },
+      {
+        id: 'n1',
+        noteType: 'insight',
+        content: 'Note 1',
+        author: 'agent',
+        createdAt: '1970-01-01T00:00:01.000Z',
+      },
+      {
+        id: 'n2',
+        noteType: 'confusion',
+        content: 'Note 2',
+        author: 'user',
+        createdAt: '1970-01-01T00:00:00.900Z',
+      },
     ];
     const deps = stubDeps({
       getNotesByTarget: vi.fn().mockResolvedValue(notes),

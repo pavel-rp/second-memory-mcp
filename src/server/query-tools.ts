@@ -12,6 +12,7 @@ import { toSnakeCase } from '../shared/case-convert.js';
 import { ZodError } from 'zod';
 import { withRequestContext } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { toIsoTimestamp } from '../shared/date-helpers.js';
 
 export function registerQueryTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -65,12 +66,17 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         try {
           const { subjectFilter, limit } = BatchFetchTopicsMinimalInputSchema.parse(rawInput);
           const topics = await ctx.batchFetchTopicsMinimal({ subject: subjectFilter, limit });
+          const mapped = topics.map(t => ({
+            ...t,
+            createdAt: toIsoTimestamp(t.createdAt),
+            updatedAt: toIsoTimestamp(t.updatedAt),
+          }));
           return toolJson(
             toSnakeCase({
               success: true,
-              topics,
-              count: topics.length,
-              message: `Retrieved ${topics.length} topic${topics.length === 1 ? '' : 's'}`,
+              topics: mapped,
+              count: mapped.length,
+              message: `Retrieved ${mapped.length} topic${mapped.length === 1 ? '' : 's'}`,
             })
           );
         } catch (error) {
@@ -107,13 +113,20 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
         try {
           const { topicId, subjectFilter, dueOnly, limit, isLeech } =
             BatchFetchChunksMinimalInputSchema.parse(rawInput);
-          const chunks = await ctx.batchFetchChunksMinimal({
+          const rawChunks = await ctx.batchFetchChunksMinimal({
             topicId,
             subject: subjectFilter,
             dueOnly,
             limit,
             isLeech,
           });
+          const chunks = rawChunks.map(c => ({
+            ...c,
+            nextReviewAt: toIsoTimestamp(c.nextReviewAt),
+            lastReviewedAt: c.lastReviewedAt ? toIsoTimestamp(c.lastReviewedAt) : null,
+            createdAt: toIsoTimestamp(c.createdAt),
+            updatedAt: toIsoTimestamp(c.updatedAt),
+          }));
           const chunkIds = chunks.map((c: { id: string }) => c.id);
           return toolJson(
             toSnakeCase({

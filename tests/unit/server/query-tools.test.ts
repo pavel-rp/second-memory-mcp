@@ -109,7 +109,9 @@ describe('query-tools', () => {
   // ---------------------------------------------------------------
   describe('batch_fetch_topics_minimal', () => {
     it('returns topics on success', async () => {
-      const mockTopics = [{ id: 't1', title: 'DS', subject: 'CS' }];
+      const mockTopics = [
+        { id: 't1', title: 'DS', subject: 'CS', createdAt: 1000, updatedAt: 2000 },
+      ];
       ctx.batchFetchTopicsMinimal = vi.fn().mockResolvedValue(mockTopics);
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
@@ -121,6 +123,8 @@ describe('query-tools', () => {
       expect(parsed.topics).toHaveLength(1);
       expect(parsed.count).toBe(1);
       expect(parsed.message).toContain('1 topic');
+      expect(parsed.topics[0].created_at).toBe('1970-01-01T00:00:01.000Z');
+      expect(parsed.topics[0].updated_at).toBe('1970-01-01T00:00:02.000Z');
     });
 
     it('passes filter to ctx', async () => {
@@ -179,8 +183,22 @@ describe('query-tools', () => {
   describe('batch_fetch_chunks_minimal', () => {
     it('returns chunks with workflow_hint when chunks found', async () => {
       const mockChunks = [
-        { id: 'c1', title: 'Arrays' },
-        { id: 'c2', title: 'Lists' },
+        {
+          id: 'c1',
+          title: 'Arrays',
+          nextReviewAt: 3000,
+          lastReviewedAt: null,
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
+        {
+          id: 'c2',
+          title: 'Lists',
+          nextReviewAt: 4000,
+          lastReviewedAt: 1500,
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
       ];
       ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue(mockChunks);
       registerQueryTools(server as any, ctx);
@@ -192,13 +210,24 @@ describe('query-tools', () => {
       expect(parsed.success).toBe(true);
       expect(parsed.chunks).toHaveLength(2);
       expect(parsed.count).toBe(2);
+      expect(parsed.chunks[0].created_at).toBe('1970-01-01T00:00:01.000Z');
+      expect(parsed.chunks[0].updated_at).toBe('1970-01-01T00:00:02.000Z');
       expect(parsed.workflow_hint).toBeDefined();
       expect(parsed.workflow_hint.action).toBe('REQUIRED_FOR_RECALL');
       expect(parsed.workflow_hint.chunk_ids).toEqual(['c1', 'c2']);
     });
 
     it('returns singular message when exactly 1 chunk found', async () => {
-      ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue([{ id: 'c1', title: 'Arrays' }]);
+      ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue([
+        {
+          id: 'c1',
+          title: 'Arrays',
+          nextReviewAt: 3000,
+          lastReviewedAt: null,
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
+      ]);
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 

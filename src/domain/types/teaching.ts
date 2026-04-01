@@ -11,7 +11,7 @@ export type TeachNextNote = {
   note_type: NoteType;
   content: string;
   author: NoteAuthor;
-  created_at: number;
+  created_at: string;
 };
 
 export type PrerequisiteContextItem = {

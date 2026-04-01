@@ -28,7 +28,7 @@ describe('content-tools', () => {
       ctx.getChunkContent = vi.fn().mockResolvedValue({
         content: '# Linked Lists\nA linked list is…',
         contentVersion: 3,
-        contentUpdatedAt: new Date('2025-06-10T10:00:00Z'),
+        contentUpdatedAt: new Date('2025-06-10T10:00:00Z').getTime(),
       });
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_chunk_content')!.handler;
@@ -43,6 +43,22 @@ describe('content-tools', () => {
       expect(parsed.content_updated_at).toBe('2025-06-10T10:00:00.000Z');
       expect(parsed.session_reminder).toContain('session');
       expect(parsed.message).toContain('chunk-abc');
+    });
+
+    it('omits content_updated_at when null', async () => {
+      ctx.getChunkContent = vi.fn().mockResolvedValue({
+        content: 'Some content',
+        contentVersion: 1,
+        contentUpdatedAt: null,
+      });
+      registerContentTools(server as any, ctx);
+      const handler = server.tools.get('get_chunk_content')!.handler;
+
+      const result = await handler({ chunk_id: 'chunk-no-date' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.content_updated_at).toBeUndefined();
     });
 
     it('returns not_found error when chunk does not exist', async () => {
@@ -118,6 +134,27 @@ describe('content-tools', () => {
       expect(parsed.updated_at).toBe('2025-07-01T08:00:00.000Z');
       expect(parsed.session_reminder).toContain('batch_fetch_chunks_minimal');
       expect(parsed.message).toContain('Data Structures');
+    });
+
+    it('returns null summary_updated_at when not set', async () => {
+      ctx.getTopicSummary = vi.fn().mockResolvedValue({
+        title: 'Algorithms',
+        subject: 'CS',
+        summary: null,
+        summaryVersion: null,
+        summaryUpdatedAt: null,
+        createdAt: new Date('2025-06-01T00:00:00Z').getTime(),
+        updatedAt: new Date('2025-06-01T00:00:00Z').getTime(),
+      });
+      registerContentTools(server as any, ctx);
+      const handler = server.tools.get('get_topic_summary')!.handler;
+
+      const result = await handler({ topic_id: 'topic-no-summary' });
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+      expect(parsed.summary_updated_at).toBeNull();
+      expect(parsed.created_at).toBe('2025-06-01T00:00:00.000Z');
     });
 
     it('returns error when topic not found', async () => {

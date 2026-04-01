@@ -79,7 +79,7 @@ describe('Performance: Content Retrieval', () => {
     for (const item of result.items) {
       expect(item.content).toBeDefined();
       expect(item.contentVersion).toBe(1);
-      expect(item.contentUpdatedAt).toBe(now);
+      expect(item.contentUpdatedAt).toBe(new Date(now).toISOString());
     }
 
     expect(responseTime).toBeLessThan(1000);

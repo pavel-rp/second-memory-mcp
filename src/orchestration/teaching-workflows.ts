@@ -1,3 +1,4 @@
+import { toIsoTimestamp } from '../shared/date-helpers.js';
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
@@ -208,9 +209,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
       if (reviewResult.success) {
         completedChunkReviewUpdate = {
-          next_review_date: new Date(reviewResult.data.updated.nextReviewAt)
-            .toISOString()
-            .split('T')[0] as string,
+          next_review_date: toIsoTimestamp(reviewResult.data.updated.nextReviewAt),
           interval_days: reviewResult.data.updated.intervalDays,
           ease_factor: reviewResult.data.updated.easeFactor,
           is_leech: reviewResult.data.isLeech,
@@ -224,9 +223,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
           chunkId: completableChunk.chunkId,
           easeFactor: reviewResult.data.updated.easeFactor,
           interval: reviewResult.data.updated.intervalDays,
-          nextReviewDate: new Date(reviewResult.data.updated.nextReviewAt)
-            .toISOString()
-            .split('T')[0],
+          nextReviewDate: toIsoTimestamp(reviewResult.data.updated.nextReviewAt),
         });
       } else {
         getRequestLogger().error(
@@ -1092,9 +1089,7 @@ async function submitAnswerForAssessmentQuestion(
   const reviewUpdate =
     primaryReview && primaryReview.success
       ? {
-          next_review_date: new Date(primaryReview.data.updated.nextReviewAt)
-            .toISOString()
-            .split('T')[0],
+          next_review_date: toIsoTimestamp(primaryReview.data.updated.nextReviewAt),
           interval_days: primaryReview.data.updated.intervalDays,
           ease_factor: primaryReview.data.updated.easeFactor,
           is_leech: primaryReview.data.isLeech,

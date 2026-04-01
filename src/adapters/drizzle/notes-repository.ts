@@ -4,6 +4,7 @@ import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { notes } from '../../infrastructure/db/schema.js';
 import type { NoteCreated, NoteRecord, NoteTargetType } from '../../domain/types/notes-tools.js';
 import type { NotesRepository, CreateNoteInput } from '../../ports/notes-repository.js';
+import { toIsoTimestamp } from '../../shared/date-helpers.js';
 
 export class DrizzleNotesRepository implements NotesRepository {
   constructor(private db: SqlDb = getSql()) {}
@@ -22,7 +23,7 @@ export class DrizzleNotesRepository implements NotesRepository {
         createdAt: now,
       })
       .returning({ id: notes.id, createdAt: notes.createdAt });
-    return row as NoteCreated;
+    return { id: row.id, createdAt: toIsoTimestamp(row.createdAt) };
   }
 
   async getNotesByTarget(targetType: NoteTargetType, targetId: string): Promise<NoteRecord[]> {
@@ -37,7 +38,7 @@ export class DrizzleNotesRepository implements NotesRepository {
       .from(notes)
       .where(and(eq(notes.targetType, targetType), eq(notes.targetId, targetId)))
       .orderBy(desc(notes.createdAt), desc(notes.id));
-    return rows as NoteRecord[];
+    return rows.map(r => ({ ...r, createdAt: toIsoTimestamp(r.createdAt) })) as NoteRecord[];
   }
 
   async getNotesForChunkIds(chunkIds: string[]): Promise<NoteRecord[]> {
@@ -53,7 +54,7 @@ export class DrizzleNotesRepository implements NotesRepository {
       .from(notes)
       .where(and(eq(notes.targetType, 'chunk'), inArray(notes.targetId, chunkIds)))
       .orderBy(desc(notes.createdAt), desc(notes.id));
-    return rows as NoteRecord[];
+    return rows.map(r => ({ ...r, createdAt: toIsoTimestamp(r.createdAt) })) as NoteRecord[];
   }
 
   async deleteNote(id: string): Promise<boolean> {

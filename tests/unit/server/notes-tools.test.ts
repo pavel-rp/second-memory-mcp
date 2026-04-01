@@ -22,7 +22,9 @@ describe('notes-tools', () => {
     });
 
     it('returns snake_case result on success', async () => {
-      ctx.createNote = vi.fn().mockResolvedValue({ id: 'note-1', createdAt: 1700000000000 });
+      ctx.createNote = vi
+        .fn()
+        .mockResolvedValue({ id: 'note-1', createdAt: '2023-11-14T22:13:20.000Z' });
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('add_note')!.handler;
 
@@ -36,7 +38,7 @@ describe('notes-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.id).toBe('note-1');
-      expect(parsed.created_at).toBe(1700000000000);
+      expect(parsed.created_at).toBe('2023-11-14T22:13:20.000Z');
       expect(ctx.createNote).toHaveBeenCalledWith({
         targetType: 'chunk',
         targetId: 'chunk-1',
@@ -146,7 +148,13 @@ describe('notes-tools', () => {
     it('returns snake_case notes on success', async () => {
       ctx.listNotes = vi.fn().mockResolvedValue({
         notes: [
-          { id: 'n1', noteType: 'insight', content: 'Note 1', author: 'agent', createdAt: 1000 },
+          {
+            id: 'n1',
+            noteType: 'insight',
+            content: 'Note 1',
+            author: 'agent',
+            createdAt: '1970-01-01T00:00:01.000Z',
+          },
         ],
       });
       registerNotesTools(server as any, ctx);
@@ -157,7 +165,7 @@ describe('notes-tools', () => {
 
       expect(parsed.notes).toHaveLength(1);
       expect(parsed.notes[0].note_type).toBe('insight');
-      expect(parsed.notes[0].created_at).toBe(1000);
+      expect(parsed.notes[0].created_at).toBe('1970-01-01T00:00:01.000Z');
     });
 
     it('returns validation error for invalid target_type', async () => {

@@ -25,7 +25,7 @@ describe('computeDailyAnalytics', () => {
 
     const result = await computeDailyAnalytics('2026-01-15', deps);
 
-    expect(result.date).toBe('2026-01-15');
+    expect(result.date).toBe('2026-01-15T00:00:00.000Z');
     expect(result.reviews_completed).toBe(3);
     expect(result.new_chunks_learned).toBe(1);
     expect(result.average_quality).toBeGreaterThan(0);
@@ -49,7 +49,7 @@ describe('computeDailyAnalytics', () => {
 
     const result = await computeDailyAnalytics('2026-01-15', deps);
 
-    expect(result.date).toBe('2026-01-15');
+    expect(result.date).toBe('2026-01-15T00:00:00.000Z');
     expect(result.reviews_completed).toBe(0);
     expect(result.average_quality).toBe(0);
     expect(result.new_chunks_learned).toBe(0);
@@ -65,7 +65,7 @@ describe('computeDailyAnalytics', () => {
     });
 
     const result = await computeDailyAnalytics('2026-01-15', deps);
-    expect(result.date).toBe('2026-01-15');
+    expect(result.date).toBe('2026-01-15T00:00:00.000Z');
   });
 
   it('maps PersistedReviewEntry fields correctly to ReviewEntry', async () => {

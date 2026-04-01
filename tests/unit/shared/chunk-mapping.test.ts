@@ -49,8 +49,8 @@ describe('mapChunkRowToLearningItem', () => {
     expect(result.tags).toEqual(['data-structures']);
     expect(result.topicId).toBe('topic-1');
     expect(result.topicTitle).toBe('Data Structures');
-    expect(result.nextReviewDate).toBe('2025-06-15');
-    expect(result.lastReviewed).toBe('2025-06-14');
+    expect(result.nextReviewDate).toBe('2025-06-15T12:00:00.000Z');
+    expect(result.lastReviewed).toBe('2025-06-14T12:00:00.000Z');
     // Content fields should NOT be present
     expect('content' in result).toBe(false);
     expect('contentVersion' in result).toBe(false);
@@ -69,7 +69,9 @@ describe('mapChunkRowToLearningItem', () => {
       'Arrays are contiguous memory blocks.'
     );
     expect((result as Record<string, unknown>).contentVersion).toBe(2);
-    expect((result as Record<string, unknown>).contentUpdatedAt).toBe(NOW_MS - 3_600_000);
+    expect((result as Record<string, unknown>).contentUpdatedAt).toBe(
+      new Date(NOW_MS - 3_600_000).toISOString()
+    );
   });
 
   it('maps "remediation" chunkType correctly', () => {

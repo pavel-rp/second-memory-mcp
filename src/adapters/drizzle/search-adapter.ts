@@ -10,6 +10,7 @@ import type {
 import type { SearchPort } from '../../ports/search-port.js';
 import { calculateSimilarityRatio } from '../../shared/content-similarity.js';
 import { DEFAULT_VECTOR_SIMILARITY_THRESHOLD } from '../../domain/config/embedding-defaults.js';
+import { toIsoTimestamp } from '../../shared/date-helpers.js';
 
 type NormalizedQuery = { original: string; normalized: string; tokens: string[] };
 
@@ -108,8 +109,8 @@ export class DrizzleSearchAdapter implements SearchPort {
       subject: row.subject,
       matchScore: computeMatchScore(row.title, query),
       highlightTerms: query.tokens.filter(t => row.title.toLowerCase().includes(t)),
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      createdAt: toIsoTimestamp(row.createdAt),
+      updatedAt: toIsoTimestamp(row.updatedAt),
     }));
 
     const chunkResults: SearchResultItem[] = chunks.map(row => {
@@ -125,8 +126,8 @@ export class DrizzleSearchAdapter implements SearchPort {
         highlightTerms: query.tokens.filter(t => allText.toLowerCase().includes(t)),
         topicId: row.topicId,
         topicTitle: row.topicTitle ?? undefined,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
+        createdAt: toIsoTimestamp(row.createdAt),
+        updatedAt: toIsoTimestamp(row.updatedAt),
       };
     });
 
@@ -171,8 +172,8 @@ export class DrizzleSearchAdapter implements SearchPort {
       matchScore: row.similarity,
       similarityScore: row.similarity,
       highlightTerms: [],
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      createdAt: toIsoTimestamp(row.createdAt),
+      updatedAt: toIsoTimestamp(row.updatedAt),
     }));
 
     const chunkResults: SearchResultItem[] = chunks.map(row => ({
@@ -185,8 +186,8 @@ export class DrizzleSearchAdapter implements SearchPort {
       highlightTerms: [],
       topicId: row.topicId,
       topicTitle: row.topicTitle ?? undefined,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      createdAt: toIsoTimestamp(row.createdAt),
+      updatedAt: toIsoTimestamp(row.updatedAt),
     }));
 
     const all = [...topicResults, ...chunkResults];

@@ -47,6 +47,14 @@ describe('ReviewEntrySchema', () => {
     }
   });
 
+  it('validates full ISO 8601 date format', () => {
+    const result = ReviewEntrySchema.safeParse({ date: '2024-01-01T12:30:00.000Z' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.date).toBe('2024-01-01T12:30:00.000Z');
+    }
+  });
+
   it('validates date format', () => {
     const invalidDates = [
       '2024-1-1', // Missing leading zeros
@@ -260,7 +268,7 @@ describe('AnalyticsWindowInputSchema', () => {
 describe('DailyKpisSchema', () => {
   it('validates complete daily KPIs', () => {
     const validKpis = {
-      date: '2024-01-01',
+      date: '2024-01-01T00:00:00.000Z',
       reviews_completed: 5,
       average_quality: 3.5,
       new_chunks_learned: 2,
@@ -271,9 +279,21 @@ describe('DailyKpisSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('rejects date-only strings (requires full ISO 8601 timestamp)', () => {
+    const kpis = {
+      date: '2024-01-01',
+      reviews_completed: 5,
+      average_quality: 3.5,
+      new_chunks_learned: 2,
+    };
+
+    const result = DailyKpisSchema.safeParse(kpis);
+    expect(result.success).toBe(false);
+  });
+
   it('validates without optional streak_days', () => {
     const kpisWithoutStreak = {
-      date: '2024-01-01',
+      date: '2024-01-01T00:00:00.000Z',
       reviews_completed: 5,
       average_quality: 3.5,
       new_chunks_learned: 2,
@@ -284,12 +304,13 @@ describe('DailyKpisSchema', () => {
   });
 
   it('validates numeric constraints', () => {
+    const ts = '2024-01-01T00:00:00.000Z';
     const invalidKpis = [
-      { date: '2024-01-01', reviews_completed: -1, average_quality: 3, new_chunks_learned: 0 },
-      { date: '2024-01-01', reviews_completed: 5, average_quality: 6, new_chunks_learned: 0 },
-      { date: '2024-01-01', reviews_completed: 5, average_quality: 3, new_chunks_learned: -1 },
+      { date: ts, reviews_completed: -1, average_quality: 3, new_chunks_learned: 0 },
+      { date: ts, reviews_completed: 5, average_quality: 6, new_chunks_learned: 0 },
+      { date: ts, reviews_completed: 5, average_quality: 3, new_chunks_learned: -1 },
       {
-        date: '2024-01-01',
+        date: ts,
         reviews_completed: 5,
         average_quality: 3,
         new_chunks_learned: 0,
@@ -309,7 +330,7 @@ describe('AnalyticsOutputSchema', () => {
     const validOutput = {
       days: [
         {
-          date: '2024-01-01',
+          date: '2024-01-01T00:00:00.000Z',
           reviews_completed: 3,
           average_quality: 4,
           new_chunks_learned: 1,
@@ -340,7 +361,7 @@ describe('AnalyticsOutputSchema', () => {
     const outputWithoutBreakdowns = {
       days: [
         {
-          date: '2024-01-01',
+          date: '2024-01-01T00:00:00.000Z',
           reviews_completed: 3,
           average_quality: 4,
           new_chunks_learned: 1,

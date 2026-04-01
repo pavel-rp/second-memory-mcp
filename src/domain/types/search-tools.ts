@@ -42,8 +42,8 @@ export type SearchResultItem = {
   matchScore: number;
   similarityScore?: number;
   highlightTerms: string[];
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;
+  updatedAt: string;
   topicId?: string;
   topicTitle?: string;
 };

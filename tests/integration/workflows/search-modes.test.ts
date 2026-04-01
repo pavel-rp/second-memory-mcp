@@ -33,8 +33,8 @@ function makeResult(
     matchScore: r.matchScore,
     similarityScore: r.similarityScore,
     highlightTerms: [],
-    createdAt: 1000,
-    updatedAt: 1000,
+    createdAt: '1970-01-01T00:00:01.000Z',
+    updatedAt: '1970-01-01T00:00:01.000Z',
   }));
   return {
     query: overrides.query ?? 'test',

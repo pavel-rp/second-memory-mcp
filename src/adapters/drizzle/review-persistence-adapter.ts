@@ -11,6 +11,7 @@ import {
 import type { LearningChunk } from '../../domain/types/entities.js';
 import type { PersistedReviewEntry } from '../../domain/types/analytics.js';
 import type { ReviewPersistencePort } from '../../ports/review-persistence-port.js';
+import { toIsoTimestamp } from '../../shared/date-helpers.js';
 
 export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
   constructor(private db: SqlDb = getSql()) {}
@@ -77,7 +78,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       );
 
     return rows.map(row => ({
-      date: new Date(row.startTime).toISOString().split('T')[0] as string,
+      date: toIsoTimestamp(row.startTime),
       quality: row.quality as number,
       isNew: row.chunkType === 'new',
       topic: row.topicTitle ?? '(unknown)',
