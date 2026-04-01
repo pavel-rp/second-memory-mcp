@@ -68,6 +68,19 @@ describe('computeDailyKpis', () => {
     expect(result.average_quality).toBe(1); // (0+0+3)/3 = 1
   });
 
+  it('returns empty date when all entries have invalid dates', () => {
+    const entries: ReviewEntry[] = [
+      { date: '', quality: 3, isNew: false },
+      { date: '   ', quality: 4, isNew: true },
+    ];
+
+    const result = computeDailyKpis(entries);
+    expect(result.date).toBe('');
+    expect(result.reviews_completed).toBe(0);
+    expect(result.average_quality).toBe(0);
+    expect(result.new_chunks_learned).toBe(0);
+  });
+
   it('rounds average quality to 2 decimal places', () => {
     const entries: ReviewEntry[] = [
       { date: '2024-01-01', quality: 3.333 },

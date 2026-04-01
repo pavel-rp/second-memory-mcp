@@ -150,7 +150,7 @@ export const AnalyticsWindowInputSchema = z
 export const DailyKpisSchema = z.object({
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Date must be ISO 8601 format'),
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/, 'Date must be ISO 8601 timestamp'),
   reviews_completed: z.number().min(0),
   average_quality: z.number().min(0).max(5),
   new_chunks_learned: z.number().min(0),

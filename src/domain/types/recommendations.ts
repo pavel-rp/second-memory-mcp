@@ -30,7 +30,7 @@ export type LearningItem = {
 export type LearningItemWithContent = LearningItem & {
   content?: string;
   contentVersion?: number;
-  contentUpdatedAt?: number;
+  contentUpdatedAt?: string;
 };
 
 // Recommendation type classification
@@ -77,12 +77,12 @@ const LearningItemObjectSchema = z.object({
   difficulty: z.number().int().min(1).max(10),
   next_review_date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Must be ISO 8601 date format'),
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/, 'Must be ISO 8601 timestamp'),
   ease_factor: z.number().min(1.3),
   repetitions: z.number().int().min(0),
   last_reviewed: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Must be ISO 8601 date format')
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/, 'Must be ISO 8601 timestamp')
     .optional(),
   estimated_duration: z.number().min(0),
   chunk_type: ChunkTypeSchema,

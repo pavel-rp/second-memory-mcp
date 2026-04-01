@@ -131,7 +131,7 @@ export const SessionChunkSchema = z.object({
   ease_factor: z.number().min(1.3).optional(),
   next_review_date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z)?$/, 'Must be ISO 8601 date format')
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/, 'Must be ISO 8601 timestamp')
     .optional(),
   subject: z.string().optional(),
   difficulty: z.number().int().min(1).max(10).optional(),

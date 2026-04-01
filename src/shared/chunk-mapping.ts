@@ -39,7 +39,7 @@ export function mapChunkRowToLearningItem(
       ...learningItem,
       content: row.content ?? undefined,
       contentVersion: row.contentVersion ?? undefined,
-      contentUpdatedAt: row.contentUpdatedAt ?? undefined,
+      contentUpdatedAt: row.contentUpdatedAt ? toIsoTimestamp(row.contentUpdatedAt) : undefined,
     } satisfies LearningItemWithContent;
   }
 

@@ -28,7 +28,7 @@ describe('content-tools', () => {
       ctx.getChunkContent = vi.fn().mockResolvedValue({
         content: '# Linked Lists\nA linked list is…',
         contentVersion: 3,
-        contentUpdatedAt: new Date('2025-06-10T10:00:00Z'),
+        contentUpdatedAt: new Date('2025-06-10T10:00:00Z').getTime(),
       });
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_chunk_content')!.handler;

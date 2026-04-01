@@ -67,7 +67,7 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed.items).toHaveLength(1);
     expect(parsed.items[0].content).toBe('This is the content for Two Sum problem');
     expect(parsed.items[0].content_version).toBe(1);
-    expect(parsed.items[0].content_updated_at).toBe(now);
+    expect(parsed.items[0].content_updated_at).toBe(new Date(now).toISOString());
     expect(parsed.content_included).toBe(true);
     expect(parsed.pagination.total).toBe(1);
     expect(parsed.pagination.has_more).toBe(false);

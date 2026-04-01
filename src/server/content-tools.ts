@@ -9,6 +9,7 @@ import {
   ListItemsWithContentInputShape,
 } from '../domain/types/content-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
+import { toIsoTimestamp } from '../shared/date-helpers.js';
 import { withRequestContext } from '../shared/logger.js';
 import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
 
@@ -45,7 +46,9 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
               chunkId: input.chunkId,
               content: chunkContent.content,
               contentVersion: chunkContent.contentVersion,
-              contentUpdatedAt: chunkContent.contentUpdatedAt,
+              contentUpdatedAt: chunkContent.contentUpdatedAt
+                ? toIsoTimestamp(chunkContent.contentUpdatedAt)
+                : undefined,
               sessionReminder:
                 'If conducting recall/review: Ensure you have created a session first ' +
                 'to access historical feedback about learner difficulties.',
@@ -95,9 +98,11 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
               subject: topicResult.subject,
               summary: topicResult.summary,
               summaryVersion: topicResult.summaryVersion,
-              summaryUpdatedAt: topicResult.summaryUpdatedAt,
-              createdAt: topicResult.createdAt,
-              updatedAt: topicResult.updatedAt,
+              summaryUpdatedAt: topicResult.summaryUpdatedAt
+                ? toIsoTimestamp(topicResult.summaryUpdatedAt)
+                : null,
+              createdAt: toIsoTimestamp(topicResult.createdAt),
+              updatedAt: toIsoTimestamp(topicResult.updatedAt),
               sessionReminder:
                 'If conducting recall/review: Use batch_fetch_chunks_minimal(topic_id) to get chunk IDs, ' +
                 'then create_session(mode: "retrieval", chunk_ids: [...]) to load historical feedback.',

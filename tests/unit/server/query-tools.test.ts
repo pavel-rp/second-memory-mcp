@@ -183,8 +183,22 @@ describe('query-tools', () => {
   describe('batch_fetch_chunks_minimal', () => {
     it('returns chunks with workflow_hint when chunks found', async () => {
       const mockChunks = [
-        { id: 'c1', title: 'Arrays', createdAt: 1000, updatedAt: 2000 },
-        { id: 'c2', title: 'Lists', createdAt: 1000, updatedAt: 2000 },
+        {
+          id: 'c1',
+          title: 'Arrays',
+          nextReviewAt: 3000,
+          lastReviewedAt: null,
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
+        {
+          id: 'c2',
+          title: 'Lists',
+          nextReviewAt: 4000,
+          lastReviewedAt: 1500,
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
       ];
       ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue(mockChunks);
       registerQueryTools(server as any, ctx);
@@ -204,9 +218,16 @@ describe('query-tools', () => {
     });
 
     it('returns singular message when exactly 1 chunk found', async () => {
-      ctx.batchFetchChunksMinimal = vi
-        .fn()
-        .mockResolvedValue([{ id: 'c1', title: 'Arrays', createdAt: 1000, updatedAt: 2000 }]);
+      ctx.batchFetchChunksMinimal = vi.fn().mockResolvedValue([
+        {
+          id: 'c1',
+          title: 'Arrays',
+          nextReviewAt: 3000,
+          lastReviewedAt: null,
+          createdAt: 1000,
+          updatedAt: 2000,
+        },
+      ]);
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 

@@ -12,6 +12,7 @@ import {
   type NewSessionChunkRow,
 } from '../../infrastructure/db/schema.js';
 import type { LearningSession, SessionChunk } from '../../domain/types/entities.js';
+import { toIsoTimestamp } from '../../shared/date-helpers.js';
 import type {
   SessionRepository,
   CreateSessionInput,
@@ -28,7 +29,6 @@ import type {
   ChunkAttempt,
 } from '../../domain/types/session.js';
 import { logger } from '../../shared/logger.js';
-import { toIsoTimestamp } from '../../shared/date-helpers.js';
 
 export class DrizzleSessionRepository implements SessionRepository {
   constructor(private db: SqlDb = getSql()) {}
@@ -267,7 +267,7 @@ export class DrizzleSessionRepository implements SessionRepository {
         const qAttempts = attemptsByQuestion.get(q.id) ?? [];
         for (const a of qAttempts) {
           attempts.push({
-            timestamp: new Date(a.createdAt).toISOString(),
+            timestamp: toIsoTimestamp(a.createdAt),
             question: q.promptText,
             response: a.response,
             passed: a.passed,
@@ -312,7 +312,7 @@ export class DrizzleSessionRepository implements SessionRepository {
     return {
       session_id: session.id,
       mode: session.mode as SessionInput['mode'],
-      start_time: new Date(session.startTime).toISOString(),
+      start_time: toIsoTimestamp(session.startTime),
       chunks,
       historical_feedback,
     };
@@ -343,7 +343,7 @@ export class DrizzleSessionRepository implements SessionRepository {
           session_id: session.id,
           feedback: session.feedback,
           session_mode: session.mode as HistoricalFeedback['session_mode'],
-          completed_at: new Date(session.endTime || session.updatedAt).toISOString(),
+          completed_at: toIsoTimestamp(session.endTime || session.updatedAt),
           chunk_ids: overlap,
         });
       }

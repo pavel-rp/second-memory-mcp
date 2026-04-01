@@ -188,7 +188,7 @@ describe('chunks service', () => {
       title: 'Test Chunk',
       subject: 'CS',
       difficulty: 5,
-      next_review_date: '2024-01-01',
+      next_review_date: '2024-01-01T00:00:00.000Z',
       ease_factor: 2.5,
       repetitions: 1,
       estimated_duration: 20,
@@ -1042,7 +1042,7 @@ describe('Content Inclusion Functions', () => {
       expect(result.title).toBe('Test Chunk');
       expect(result.content).toBe('This is test content');
       expect(result.contentVersion).toBe(1);
-      expect(result.contentUpdatedAt).toBe(now);
+      expect(result.contentUpdatedAt).toBe(new Date(now).toISOString());
       expect(result.prerequisites).toEqual(['arrays']);
       expect(result.tags).toEqual(['test']);
     });
@@ -1130,7 +1130,7 @@ describe('Content Inclusion Functions', () => {
       expect(result.items).toHaveLength(1);
       expect(result.items[0].content).toBe('This is the content for Two Sum problem');
       expect(result.items[0].contentVersion).toBe(1);
-      expect(result.items[0].contentUpdatedAt).toBe(now);
+      expect(result.items[0].contentUpdatedAt).toBe(new Date(now).toISOString());
       expect(result.pagination.total).toBe(1);
       expect(result.pagination.has_more).toBe(false);
     });

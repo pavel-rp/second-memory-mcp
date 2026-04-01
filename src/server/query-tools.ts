@@ -122,6 +122,8 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
           });
           const chunks = rawChunks.map(c => ({
             ...c,
+            nextReviewAt: toIsoTimestamp(c.nextReviewAt),
+            lastReviewedAt: c.lastReviewedAt ? toIsoTimestamp(c.lastReviewedAt) : null,
             createdAt: toIsoTimestamp(c.createdAt),
             updatedAt: toIsoTimestamp(c.updatedAt),
           }));

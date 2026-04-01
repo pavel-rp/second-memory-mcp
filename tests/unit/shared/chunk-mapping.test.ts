@@ -69,7 +69,9 @@ describe('mapChunkRowToLearningItem', () => {
       'Arrays are contiguous memory blocks.'
     );
     expect((result as Record<string, unknown>).contentVersion).toBe(2);
-    expect((result as Record<string, unknown>).contentUpdatedAt).toBe(NOW_MS - 3_600_000);
+    expect((result as Record<string, unknown>).contentUpdatedAt).toBe(
+      new Date(NOW_MS - 3_600_000).toISOString()
+    );
   });
 
   it('maps "remediation" chunkType correctly', () => {
