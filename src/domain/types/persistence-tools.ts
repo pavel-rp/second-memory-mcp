@@ -10,6 +10,13 @@ export const ListLearningItemsInputShape = {
     .boolean()
     .optional()
     .describe('Filter by leech status: true for leeches only, false to exclude leeches'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const ListLearningItemsInputSchema = z
@@ -151,6 +158,13 @@ export const CreateTopicWithChunksInputShape = {
     .object(TopicUserPreferencesShape)
     .describe('Optional user preference overrides')
     .optional(),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CreateTopicWithChunksInputSchema = z
@@ -214,6 +228,13 @@ export const CreateLearningItemInputShape = {
     .describe(
       "Content readiness: 'draft' for placeholder content, 'final' for teaching-ready content"
     ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CreateLearningItemInputSchema = z
@@ -236,6 +257,13 @@ export const UpdateChunkContentInputShape = {
     .min(1, 'Condensed summary cannot be empty')
     .max(1000, 'Condensed summary cannot exceed 1000 characters')
     .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const UpdateChunkContentInputSchema = z
@@ -275,6 +303,13 @@ export const UpdateChunkMetadataInputShape = {
     .max(120, 'Estimated duration cannot exceed 120 minutes')
     .optional()
     .describe('Updated estimated study duration'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const UpdateChunkMetadataInputSchema = z
@@ -324,12 +359,26 @@ export const UpdateChunkInputShape = {
     .optional()
     .describe('Updated estimated study duration'),
   force_reset: z.boolean().optional().describe('Force reset of spaced repetition progress'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const UpdateChunkInputSchema = z.object(UpdateChunkInputShape).transform(toCamelCaseKeys);
 
 export const DeleteChunkInputShape = {
   chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to delete'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const DeleteChunkInputSchema = z.object(DeleteChunkInputShape).transform(toCamelCaseKeys);
@@ -354,6 +403,13 @@ export const UpdateTopicInputShape = {
     )
     .optional()
     .describe('New subject for the topic'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const UpdateTopicInputSchema = z.object(UpdateTopicInputShape).transform(toCamelCaseKeys);
@@ -368,6 +424,13 @@ export const UpdateTopicSummaryInputShape = {
       `Summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`
     )
     .describe('New summary content for the topic'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const UpdateTopicSummaryInputSchema = z
@@ -377,6 +440,13 @@ export const UpdateTopicSummaryInputSchema = z
 export const BatchFetchTopicsMinimalInputShape = {
   subject_filter: z.string().optional().describe('Filter topics by subject'),
   limit: z.number().int().positive().optional().describe('Maximum number of topics to return'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const BatchFetchTopicsMinimalInputSchema = z
@@ -392,6 +462,13 @@ export const BatchFetchChunksMinimalInputShape = {
     .boolean()
     .optional()
     .describe('Filter by leech status: true for leeches only, false to exclude leeches'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const BatchFetchChunksMinimalInputSchema = z

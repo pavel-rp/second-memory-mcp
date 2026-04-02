@@ -195,6 +195,13 @@ const BatchOperationSchema = z.object(BatchOperationShape).transform(toCamelCase
 export const BatchUpdateInputShape = {
   session_id: z.string().min(1),
   operations: z.array(z.object(BatchOperationShape)).min(1).max(50),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const BatchUpdateInputSchema = z

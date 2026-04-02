@@ -36,6 +36,7 @@ describe('spaced-repetition-tools', () => {
         repetitions: 1,
         ease_factor: 2.5,
         interval: 1,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.interval).toBeGreaterThan(0);
@@ -52,6 +53,7 @@ describe('spaced-repetition-tools', () => {
         repetitions: 5,
         ease_factor: 2.5,
         interval: 10,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.repetitions).toBe(0);
@@ -70,6 +72,7 @@ describe('spaced-repetition-tools', () => {
         repetitions: 1,
         ease_factor: 2.5,
         interval: 1,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -90,7 +93,13 @@ describe('spaced-repetition-tools', () => {
     it('returns computation error for ease_factor below minimum', async () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('calculate_next_review')!.handler;
-      const result = await handler({ quality: 3, repetitions: 0, ease_factor: 1.0, interval: 1 });
+      const result = await handler({
+        quality: 3,
+        repetitions: 0,
+        ease_factor: 1.0,
+        interval: 1,
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('computation');
@@ -99,7 +108,13 @@ describe('spaced-repetition-tools', () => {
     it('returns computation error for quality out of range', async () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('calculate_next_review')!.handler;
-      const result = await handler({ quality: 6, repetitions: 0, ease_factor: 2.5, interval: 1 });
+      const result = await handler({
+        quality: 6,
+        repetitions: 0,
+        ease_factor: 2.5,
+        interval: 1,
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
       expect(parsed.error.type).toBe('computation');
@@ -118,6 +133,7 @@ describe('spaced-repetition-tools', () => {
         ease_factor: 2.5,
         repetitions: 3,
         difficulty: 5,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(typeof parsed.priority).toBe('number');
@@ -135,6 +151,7 @@ describe('spaced-repetition-tools', () => {
         ease_factor: 2.5,
         repetitions: 3,
         difficulty: 5,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -160,6 +177,7 @@ describe('spaced-repetition-tools', () => {
         ease_factor: 2.5,
         repetitions: 0,
         difficulty: 11,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
@@ -181,6 +199,7 @@ describe('spaced-repetition-tools', () => {
         interval: 1,
         days_overdue: 0,
         consecutive_failures: 5,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed).toHaveProperty('interval');
@@ -200,6 +219,7 @@ describe('spaced-repetition-tools', () => {
         repetitions: 2,
         ease_factor: 2.5,
         interval: 6,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.interval).toBeGreaterThan(0);
@@ -218,6 +238,7 @@ describe('spaced-repetition-tools', () => {
         repetitions: 0,
         ease_factor: 2.5,
         interval: 1,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -265,6 +286,7 @@ describe('spaced-repetition-tools', () => {
           },
         ],
         timebox_minutes: 60,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.ordered_ids).toBeDefined();
@@ -274,7 +296,7 @@ describe('spaced-repetition-tools', () => {
     it('handles empty candidates array', async () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('rank_candidates')!.handler;
-      const result = await handler({ candidates: [] });
+      const result = await handler({ candidates: [], context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.ordered_ids).toEqual([]);
     });
@@ -286,7 +308,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('rank_candidates')!.handler;
 
-      const result = await handler({ candidates: [validCandidate] });
+      const result = await handler({ candidates: [validCandidate], context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -332,7 +354,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.recommendations).toHaveLength(1);
@@ -348,12 +370,14 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      await handler({ subject_filter: 'Math', limit: 5 });
+      await handler({ subject_filter: 'Math', limit: 5, context_token: 'ctx-test' });
 
-      expect(mockGenerate).toHaveBeenCalledWith({
-        subjectFilter: 'Math',
-        limit: 5,
-      });
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subjectFilter: 'Math',
+          limit: 5,
+        })
+      );
     });
 
     it('returns recommendation error when generateRecommendations throws', async () => {
@@ -361,7 +385,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -374,7 +398,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('what_to_learn_today')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.recommendations).toBeDefined();
@@ -394,7 +418,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('get_leeches')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -408,7 +432,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('get_leeches')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.count).toBe(1);
@@ -421,7 +445,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('get_leeches')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -436,7 +460,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('get_leeches')!.handler;
 
-      await handler({ subject_filter: 'Math', limit: 5 });
+      await handler({ subject_filter: 'Math', limit: 5, context_token: 'ctx-test' });
 
       expect(mockFn).toHaveBeenCalledWith({ subjectFilter: 'Math', limit: 5 });
     });
@@ -458,7 +482,7 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('get_leeches')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -480,7 +504,11 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
-      const result = await handler({ chunk_id: 'l1', resolution: 'reset_progress' });
+      const result = await handler({
+        chunk_id: 'l1',
+        resolution: 'reset_progress',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -497,7 +525,11 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
-      const result = await handler({ chunk_id: 'missing', resolution: 'archive' });
+      const result = await handler({
+        chunk_id: 'missing',
+        resolution: 'archive',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -513,7 +545,11 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
-      const result = await handler({ chunk_id: 'c1', resolution: 'mark_reviewed' });
+      const result = await handler({
+        chunk_id: 'c1',
+        resolution: 'mark_reviewed',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -525,7 +561,11 @@ describe('spaced-repetition-tools', () => {
       registerSpacedRepetitionTools(server as any, ctx);
       const handler = server.tools.get('resolve_leech')!.handler;
 
-      const result = await handler({ chunk_id: 'l1', resolution: 'archive' });
+      const result = await handler({
+        chunk_id: 'l1',
+        resolution: 'archive',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);

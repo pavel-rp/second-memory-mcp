@@ -32,6 +32,7 @@ describe('chunk-tools', () => {
       subject: 'CS',
       difficulty: 5,
       estimated_duration: 10,
+      context_token: 'ctx-test',
     };
 
     it('returns success with learning item', async () => {
@@ -252,6 +253,7 @@ describe('chunk-tools', () => {
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
         reset_progress: true,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -274,6 +276,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -293,6 +296,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -313,6 +317,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c-missing',
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -329,6 +334,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -356,6 +362,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c1',
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -379,6 +386,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c-missing',
         content: 'Updated content for arrays that is long enough to pass validation.',
         condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -410,6 +418,7 @@ describe('chunk-tools', () => {
         title: 'Updated Arrays',
         difficulty: 7,
         estimated_duration: 20,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -426,7 +435,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -441,7 +450,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -457,7 +466,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
 
-      const result = await handler({ chunk_id: 'c-missing' });
+      const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -469,7 +478,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -485,7 +494,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
 
-      const result = await handler({ chunk_id: 'c1', difficulty: 7 });
+      const result = await handler({ chunk_id: 'c1', difficulty: 7, context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeDefined();
@@ -503,7 +512,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk_metadata')!.handler;
 
-      const result = await handler({ chunk_id: 'c-missing' });
+      const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeUndefined();
@@ -540,6 +549,7 @@ describe('chunk-tools', () => {
         chunk_id: 'c1',
         content: 'New content for arrays that is long enough to pass validation check.',
         force_reset: true,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -565,7 +575,11 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1', title: 'Arrays v2' });
+      const result = await handler({
+        chunk_id: 'c1',
+        title: 'Arrays v2',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -583,7 +597,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -598,7 +612,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -614,7 +628,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c-missing' });
+      const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -626,7 +640,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -649,7 +663,11 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1', title: 'Arrays v2' });
+      const result = await handler({
+        chunk_id: 'c1',
+        title: 'Arrays v2',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeDefined();
@@ -667,7 +685,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('update_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c-missing' });
+      const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeUndefined();
@@ -694,7 +712,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -712,7 +730,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -730,7 +748,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -746,7 +764,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c-orphan' });
+      const result = await handler({ chunk_id: 'c-orphan', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -763,7 +781,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -777,7 +795,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -792,7 +810,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c-missing' });
+      const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -804,7 +822,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -820,7 +838,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c1' });
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeDefined();
@@ -837,7 +855,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c-orphan' });
+      const result = await handler({ chunk_id: 'c-orphan', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeUndefined();
@@ -851,7 +869,7 @@ describe('chunk-tools', () => {
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('delete_chunk')!.handler;
 
-      const result = await handler({ chunk_id: 'c-missing' });
+      const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.consistency_reminder).toBeUndefined();

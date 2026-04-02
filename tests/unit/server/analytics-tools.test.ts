@@ -50,7 +50,7 @@ describe('analytics-tools', () => {
   describe('analytics_daily', () => {
     it('computes KPIs for a valid date', async () => {
       const handler = server.tools.get('analytics_daily')!.handler;
-      const result = await handler({ date: '2026-01-15' });
+      const result = await handler({ date: '2026-01-15', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.reviews_completed).toBe(3);
       expect(parsed.average_quality).toBe(4.0);
@@ -73,7 +73,7 @@ describe('analytics-tools', () => {
       registerAnalyticsTools(freshServer as any, ctx);
       const handler = freshServer.tools.get('analytics_daily')!.handler;
 
-      const result = await handler({ date: '2026-01-15' });
+      const result = await handler({ date: '2026-01-15', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -89,6 +89,7 @@ describe('analytics-tools', () => {
         from: '2026-01-01',
         to: '2026-01-31',
         include_breakdowns: false,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.days).toBeDefined();
@@ -101,6 +102,7 @@ describe('analytics-tools', () => {
         from: '2026-01-01',
         to: '2026-01-31',
         include_breakdowns: true,
+        context_token: 'ctx-test',
       });
 
       expect(ctx.computeWindowAnalytics).toHaveBeenCalledWith('2026-01-01', '2026-01-31', {
@@ -113,6 +115,7 @@ describe('analytics-tools', () => {
       await handler({
         from: '2026-01-01',
         to: '2026-01-31',
+        context_token: 'ctx-test',
       });
 
       expect(ctx.computeWindowAnalytics).toHaveBeenCalledWith('2026-01-01', '2026-01-31', {
@@ -129,6 +132,7 @@ describe('analytics-tools', () => {
       const result = await handler({
         from: '2026-01-01',
         to: '2026-01-31',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 

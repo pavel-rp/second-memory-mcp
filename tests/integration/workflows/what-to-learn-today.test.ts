@@ -128,7 +128,7 @@ describe('Integration: what_to_learn_today', () => {
     registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
-    const out = await tool!.handler({});
+    const out = await tool!.handler({ context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
     expect(result).toHaveProperty('recommendations');
@@ -161,7 +161,7 @@ describe('Integration: what_to_learn_today', () => {
     registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
-    const out = await tool!.handler({ subject_filter: 'Math' });
+    const out = await tool!.handler({ subject_filter: 'Math', context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
     expect(result.recommendations.length).toBe(1);
@@ -173,7 +173,7 @@ describe('Integration: what_to_learn_today', () => {
     registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
-    const out = await tool!.handler({});
+    const out = await tool!.handler({ context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
     expect(result.recommendations).toEqual([]);
@@ -187,7 +187,7 @@ describe('Integration: what_to_learn_today', () => {
     registerServerTools(server, createAppContext({ embedding: undefined }));
     const tool = server.tools.get('what_to_learn_today');
 
-    const out = await tool!.handler({ limit: 1 });
+    const out = await tool!.handler({ limit: 1, context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
     expect(result.recommendations.length).toBe(1);

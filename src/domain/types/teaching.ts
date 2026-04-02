@@ -199,6 +199,13 @@ export const SubmitAnswerInputShape = {
     .describe(
       'Session question ID for retries (2nd+ attempts on an existing question). Omit for inline question creation.'
     ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const SubmitAnswerInputSchema = z
@@ -231,7 +238,15 @@ export const SubmitAnswerInputSchema = z
     }
   })
   .transform(
-    ({ time_spent_ms, session_question_id, prompt_text, chunk_ids, question_type, ...rest }) => {
+    ({
+      time_spent_ms,
+      session_question_id,
+      prompt_text,
+      chunk_ids,
+      question_type,
+      context_token: _ct,
+      ...rest
+    }) => {
       const base = { ...rest, timeSpentMs: time_spent_ms, questionType: question_type };
       if (session_question_id !== undefined) {
         return { ...base, sessionQuestionId: session_question_id };
@@ -286,6 +301,13 @@ export type StartLearningResult =
 
 export const StartLearningInputShape = {
   subject_filter: z.string().optional().describe('Filter recommendations by subject'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const StartLearningInputSchema = z
@@ -333,6 +355,13 @@ export const CreateSessionQuestionsInputShape = {
     .min(1)
     .max(10)
     .describe('Array of questions to create'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CreateSessionQuestionsInputSchema = z

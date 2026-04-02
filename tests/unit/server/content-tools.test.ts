@@ -33,7 +33,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_chunk_content')!.handler;
 
-      const result = await handler({ chunk_id: 'chunk-abc' });
+      const result = await handler({ chunk_id: 'chunk-abc', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -54,7 +54,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_chunk_content')!.handler;
 
-      const result = await handler({ chunk_id: 'chunk-no-date' });
+      const result = await handler({ chunk_id: 'chunk-no-date', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -66,7 +66,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_chunk_content')!.handler;
 
-      const result = await handler({ chunk_id: 'nonexistent' });
+      const result = await handler({ chunk_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -79,7 +79,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_chunk_content')!.handler;
 
-      const result = await handler({ chunk_id: 'chunk-err' });
+      const result = await handler({ chunk_id: 'chunk-err', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -120,7 +120,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_topic_summary')!.handler;
 
-      const result = await handler({ topic_id: 'topic-xyz' });
+      const result = await handler({ topic_id: 'topic-xyz', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -149,7 +149,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_topic_summary')!.handler;
 
-      const result = await handler({ topic_id: 'topic-no-summary' });
+      const result = await handler({ topic_id: 'topic-no-summary', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -162,7 +162,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_topic_summary')!.handler;
 
-      const result = await handler({ topic_id: 'missing-topic' });
+      const result = await handler({ topic_id: 'missing-topic', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -176,7 +176,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('get_topic_summary')!.handler;
 
-      const result = await handler({ topic_id: 'topic-err' });
+      const result = await handler({ topic_id: 'topic-err', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -221,7 +221,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -245,6 +245,7 @@ describe('content-tools', () => {
         include_content: false,
         limit: 50,
         offset: 10,
+        context_token: 'ctx-test',
       });
 
       expect(mockFn).toHaveBeenCalledWith({
@@ -264,7 +265,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -277,7 +278,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({ include_content: true });
+      const result = await handler({ include_content: true, context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.message).toContain('with content');
@@ -291,7 +292,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({ include_content: false });
+      const result = await handler({ include_content: false, context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.message).not.toContain('with content');
@@ -302,7 +303,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -319,7 +320,7 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.filter.subject).toBeNull();
@@ -334,7 +335,11 @@ describe('content-tools', () => {
       registerContentTools(server as any, ctx);
       const handler = server.tools.get('list_items_with_content')!.handler;
 
-      const result = await handler({ subject_filter: 'Physics', due_only: true });
+      const result = await handler({
+        subject_filter: 'Physics',
+        due_only: true,
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.filter.subject).toBe('Physics');

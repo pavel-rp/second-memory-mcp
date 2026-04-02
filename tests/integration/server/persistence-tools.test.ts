@@ -34,7 +34,7 @@ describe('persistence-tools', () => {
   describe('list_learning_items', () => {
     it('returns empty list when no items exist', async () => {
       const handler = server.tools.get('list_learning_items')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(Array.isArray(parsed)).toBe(true);
       expect(parsed.length).toBe(0);
@@ -50,6 +50,7 @@ describe('persistence-tools', () => {
         difficulty: 5,
         estimated_duration: 15,
         content: 'Test content here',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -78,6 +79,7 @@ describe('persistence-tools', () => {
             condensed_summary: 'Key takeaway from chunk 1.',
           },
         ],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -90,7 +92,7 @@ describe('persistence-tools', () => {
   describe('batch_fetch_topics_minimal', () => {
     it('returns empty array when no topics exist', async () => {
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.topics).toEqual([]);
@@ -100,7 +102,7 @@ describe('persistence-tools', () => {
   describe('batch_fetch_chunks_minimal', () => {
     it('returns empty array when no chunks exist', async () => {
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.chunks).toEqual([]);
@@ -114,6 +116,7 @@ describe('persistence-tools', () => {
         chunk_id: 'nonexistent',
         content: 'New content',
         condensed_summary: 'Summary for nonexistent chunk.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
@@ -121,7 +124,7 @@ describe('persistence-tools', () => {
 
     it('delete_chunk returns toolError for nonexistent chunk', async () => {
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunk_id: 'nonexistent' });
+      const result = await handler({ chunk_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });

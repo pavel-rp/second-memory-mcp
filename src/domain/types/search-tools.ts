@@ -27,6 +27,13 @@ export const SearchLearningContentInputShape = {
     .describe(
       'Search mode: "keyword" (default) — title/content text matching; "semantic" — cosine similarity on embeddings; "hybrid" — weighted combination of both'
     ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const SearchLearningContentInputSchema = z.object(SearchLearningContentInputShape);

@@ -14,6 +14,13 @@ export const CalculateNextReviewInputShape = {
   repetitions: z.number().int().min(0).describe('Number of successful repetitions completed'),
   ease_factor: z.number().min(1.3).describe('Current ease factor for the learning item'),
   interval: z.number().int().min(0).describe('Current review interval in days'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CalculateNextReviewInputSchema = z
@@ -30,6 +37,13 @@ export const CalculatePriorityScoreInputShape = {
     .min(1)
     .max(10)
     .describe('Difficulty rating for the learning item (1-10)'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CalculatePriorityScoreInputSchema = z
@@ -56,6 +70,13 @@ export const CalculateNextReviewAdvancedInputShape = {
     .min(0)
     .optional()
     .describe('Number of consecutive failed reviews'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CalculateNextReviewAdvancedInputSchema = z
@@ -87,6 +108,13 @@ export const RankCandidatesInputShape = {
     .int()
     .optional()
     .describe('Optional timebox limit for the review session (minutes)'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const RankCandidatesInputSchema = z
@@ -96,6 +124,13 @@ export const RankCandidatesInputSchema = z
 export const GetLeechesInputShape = {
   subject_filter: z.string().optional().describe('Optional subject filter for leech items'),
   limit: z.number().int().positive().optional().describe('Maximum number of leech items to return'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const GetLeechesInputSchema = z.object(GetLeechesInputShape).transform(toCamelCaseKeys);
@@ -109,6 +144,13 @@ export const ResolveLeechInputShape = {
     .enum(['reset_progress', 'archive', 'mark_reviewed'])
     .describe(
       'Resolution strategy: reset_progress resets SR progress, archive moves to far future, mark_reviewed clears leech flag only'
+    ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
     ),
 } as const;
 

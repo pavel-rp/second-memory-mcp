@@ -29,7 +29,7 @@ describe('session-tools', () => {
   describe('session_status', () => {
     it('returns error for nonexistent session ID', async () => {
       const handler = server.tools.get('session_status')!.handler;
-      const result = await handler({ session_id: 'nonexistent' });
+      const result = await handler({ session_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });

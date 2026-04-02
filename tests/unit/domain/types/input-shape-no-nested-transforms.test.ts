@@ -76,6 +76,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
           condensed_summary: 'Key takeaway from chunk 1.',
         },
       ],
+      context_token: 'ctx-test',
     };
 
     // SDK pre-parse: uses InputShape (no transforms)
@@ -109,6 +110,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
         max_chunk_duration: 30,
         include_prerequisites: true,
       },
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(CreateTopicWithChunksInputShape).parse(input);
@@ -134,6 +136,7 @@ describe('RankCandidatesInputShape round-trip', () => {
           estimated_duration: 10,
         },
       ],
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(RankCandidatesInputShape).parse(input);
@@ -150,6 +153,7 @@ describe('RecommendationInputShape round-trip', () => {
     const input = {
       subject_filter: 'Math',
       limit: 5,
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(RecommendationInputShape).parse(input);
@@ -170,6 +174,7 @@ describe('BatchUpdateInputShape round-trip', () => {
           time_spent_ms: 5000,
         },
       ],
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(BatchUpdateInputShape).parse(input);
@@ -217,5 +222,45 @@ describe('InputShape structural guardrail', () => {
     }
 
     expect(violations).toEqual([]);
+  });
+});
+
+describe('SubmitAnswerInputSchema strips context_token from transform output', () => {
+  it('does not carry context_token through on the inline path', () => {
+    const input = {
+      prompt_text: 'What is X?',
+      chunk_ids: ['c1'],
+      response: 'X is Y',
+      quality: 4,
+      question_type: 'recall' as const,
+      feedback: 'Good',
+      time_spent_ms: 1000,
+      context_token: 'ctx-test',
+    };
+
+    const preParsed = z.object(teaching.SubmitAnswerInputShape).parse(input);
+    const result = teaching.SubmitAnswerInputSchema.parse(preParsed);
+
+    expect(Object.keys(result)).not.toContain('context_token');
+    expect((result as Record<string, unknown>).timeSpentMs).toBe(1000);
+    expect((result as Record<string, unknown>).questionType).toBe('recall');
+  });
+
+  it('does not carry context_token through on the retry path', () => {
+    const input = {
+      session_question_id: 'sq-1',
+      response: 'X is Y',
+      quality: 3,
+      question_type: 'explain_apply' as const,
+      feedback: 'Close',
+      time_spent_ms: 500,
+      context_token: 'ctx-test',
+    };
+
+    const preParsed = z.object(teaching.SubmitAnswerInputShape).parse(input);
+    const result = teaching.SubmitAnswerInputSchema.parse(preParsed);
+
+    expect(Object.keys(result)).not.toContain('context_token');
+    expect((result as Record<string, unknown>).sessionQuestionId).toBe('sq-1');
   });
 });

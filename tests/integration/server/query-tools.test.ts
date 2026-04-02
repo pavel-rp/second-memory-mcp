@@ -66,7 +66,7 @@ describe('query-tools', () => {
   describe('list_learning_items', () => {
     it('returns empty list when no items', async () => {
       const handler = server.tools.get('list_learning_items')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(Array.isArray(parsed)).toBe(true);
       expect(parsed.length).toBe(0);
@@ -75,7 +75,7 @@ describe('query-tools', () => {
     it('returns all items when no filters', async () => {
       await seedData();
       const handler = server.tools.get('list_learning_items')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.length).toBe(2);
     });
@@ -83,7 +83,7 @@ describe('query-tools', () => {
     it('filters by subject', async () => {
       await seedData();
       const handler = server.tools.get('list_learning_items')!.handler;
-      const result = await handler({ subject_filter: 'Math' });
+      const result = await handler({ subject_filter: 'Math', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.length).toBe(1);
       expect(parsed[0].subject).toBe('Math');
@@ -93,7 +93,7 @@ describe('query-tools', () => {
   describe('batch_fetch_topics_minimal', () => {
     it('returns empty list when no topics', async () => {
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.topics.length).toBe(0);
@@ -103,7 +103,7 @@ describe('query-tools', () => {
     it('returns all topics', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.count).toBe(2);
@@ -112,7 +112,7 @@ describe('query-tools', () => {
     it('filters by subject', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
-      const result = await handler({ subject_filter: 'Science' });
+      const result = await handler({ subject_filter: 'Science', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.count).toBe(1);
       expect(parsed.topics[0].subject).toBe('Science');
@@ -128,7 +128,7 @@ describe('query-tools', () => {
         updatedAt: now,
       });
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.message).toBe('Retrieved 1 topic');
     });
@@ -137,7 +137,7 @@ describe('query-tools', () => {
   describe('batch_fetch_chunks_minimal', () => {
     it('returns empty list with no workflow_hint when no chunks', async () => {
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.count).toBe(0);
@@ -147,7 +147,7 @@ describe('query-tools', () => {
     it('returns chunks with workflow_hint when chunks exist', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.count).toBe(2);
@@ -159,7 +159,7 @@ describe('query-tools', () => {
     it('filters by topicId', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
-      const result = await handler({ topic_id: 'topic-1' });
+      const result = await handler({ topic_id: 'topic-1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.count).toBe(1);
     });
@@ -167,7 +167,7 @@ describe('query-tools', () => {
     it('includes content_status in chunk response', async () => {
       await seedData();
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.count).toBe(2);
       for (const chunk of parsed.chunks) {

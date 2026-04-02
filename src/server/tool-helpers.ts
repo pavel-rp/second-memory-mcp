@@ -7,6 +7,7 @@ export { extractErrorMessage };
 // ---------------------------------------------------------------------------
 
 type ErrorType =
+  | 'auth'
   | 'database'
   | 'session'
   | 'computation'

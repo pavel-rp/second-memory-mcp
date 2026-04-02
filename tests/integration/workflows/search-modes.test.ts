@@ -77,9 +77,9 @@ describe('searchLearningContent — mode dispatch', () => {
     const search = makeSearchPort();
     const deps: SearchDeps = { search };
 
-    await searchLearningContent({ query: 'trees' }, deps);
+    await searchLearningContent({ query: 'trees', context_token: 'ctx-test' }, deps);
 
-    expect(search.searchByQuery).toHaveBeenCalledWith({ query: 'trees' });
+    expect(search.searchByQuery).toHaveBeenCalledWith(expect.objectContaining({ query: 'trees' }));
     expect(search.searchByVector).not.toHaveBeenCalled();
   });
 
@@ -87,7 +87,10 @@ describe('searchLearningContent — mode dispatch', () => {
     const search = makeSearchPort();
     const deps: SearchDeps = { search };
 
-    await searchLearningContent({ query: 'trees', mode: 'keyword' }, deps);
+    await searchLearningContent(
+      { query: 'trees', mode: 'keyword', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(search.searchByQuery).toHaveBeenCalled();
     expect(search.searchByVector).not.toHaveBeenCalled();
@@ -113,7 +116,10 @@ describe('searchSemantic', () => {
     const embedding = makeEmbeddingPort();
     const deps: SearchDeps = { search, embedding };
 
-    const result = await searchLearningContent({ query: 'recursion', mode: 'semantic' }, deps);
+    const result = await searchLearningContent(
+      { query: 'recursion', mode: 'semantic', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(embedding.embedText).toHaveBeenCalledWith('recursion');
     expect(search.searchByVector).toHaveBeenCalledWith([0.1, 0.2, 0.3], {
@@ -133,7 +139,10 @@ describe('searchSemantic', () => {
     });
     const deps: SearchDeps = { search };
 
-    const result = await searchLearningContent({ query: 'recursion', mode: 'semantic' }, deps);
+    const result = await searchLearningContent(
+      { query: 'recursion', mode: 'semantic', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(search.searchByQuery).toHaveBeenCalled();
     expect(search.searchByVector).not.toHaveBeenCalled();
@@ -147,7 +156,10 @@ describe('searchSemantic', () => {
     });
     const deps: SearchDeps = { search, embedding };
 
-    await searchLearningContent({ query: 'recursion', mode: 'semantic' }, deps);
+    await searchLearningContent(
+      { query: 'recursion', mode: 'semantic', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(search.searchByQuery).toHaveBeenCalled();
     expect(search.searchByVector).not.toHaveBeenCalled();
@@ -189,7 +201,10 @@ describe('searchHybrid', () => {
     const embedding = makeEmbeddingPort();
     const deps: SearchDeps = { search, embedding };
 
-    const result = await searchLearningContent({ query: 'tree', mode: 'hybrid' }, deps);
+    const result = await searchLearningContent(
+      { query: 'tree', mode: 'hybrid', context_token: 'ctx-test' },
+      deps
+    );
 
     // Scores are normalized to [0,1] before weighting (maxKeyword=0.9, maxSemantic=0.85)
     // Uses the default hybrid weight constants from embedding-defaults for deterministic expectations.
@@ -227,7 +242,10 @@ describe('searchHybrid', () => {
     });
     const deps: SearchDeps = { search };
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid' }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(result.results).toHaveLength(1);
     expect(result.results[0].id).toBe('t1');
@@ -255,7 +273,10 @@ describe('searchHybrid', () => {
     const embedding = makeEmbeddingPort();
     const deps: SearchDeps = { search, embedding };
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 2 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 2, context_token: 'ctx-test' },
+      deps
+    );
 
     expect(result.results).toHaveLength(2);
   });

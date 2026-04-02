@@ -23,7 +23,12 @@ async function bootstrap(): Promise<void> {
   const authConfig = resolveAuthConfig(transportConfig.mode);
 
   if (transportConfig.mode === 'http') {
-    await startHttpTransport(transportConfig, () => createMcpServer(ctx), authConfig);
+    await startHttpTransport(
+      transportConfig,
+      () => createMcpServer(ctx),
+      authConfig,
+      ctx.contextTokens
+    );
   } else {
     const server = createMcpServer(ctx);
     const transport = new StdioServerTransport();

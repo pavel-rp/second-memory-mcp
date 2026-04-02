@@ -36,6 +36,24 @@ export class DrizzleContextTokenRepository implements ContextTokenRepository {
     });
   }
 
+  async validateWithStatus(token: string): Promise<{ valid: boolean; expired: boolean }> {
+    return this.db.transaction(async tx => {
+      const rows = await tx
+        .select({ id: contextTokens.id, expiresAt: contextTokens.expiresAt })
+        .from(contextTokens)
+        .where(eq(contextTokens.id, token));
+
+      if (rows.length === 0) return { valid: false, expired: false };
+
+      if (rows[0].expiresAt <= Date.now()) {
+        await tx.delete(contextTokens).where(eq(contextTokens.id, token));
+        return { valid: false, expired: true };
+      }
+
+      return { valid: true, expired: false };
+    });
+  }
+
   async delete(token: string): Promise<void> {
     await this.db.delete(contextTokens).where(eq(contextTokens.id, token));
   }

@@ -114,6 +114,13 @@ export const RecommendationInputShape = {
     .describe(
       'Filter to a specific recommendation category: continue_learning (recent session + new chunks), overdue_review (past SRS date), new_material (unstudied, no recent activity)'
     ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 };
 
 export const RecommendationInputSchema = z

@@ -60,7 +60,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
 
-      const result = await handler({ mode: 'learning' });
+      const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.session_id).toBe('s1');
@@ -83,7 +83,11 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
 
-      const result = await handler({ mode: 'retrieval', chunk_ids: ['c1'] });
+      const result = await handler({
+        mode: 'retrieval',
+        chunk_ids: ['c1'],
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.session_id).toBe('s1');
@@ -105,7 +109,11 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
 
-      const result = await handler({ mode: 'retrieval', chunk_ids: ['c1'] });
+      const result = await handler({
+        mode: 'retrieval',
+        chunk_ids: ['c1'],
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.session_id).toBe('s1');
@@ -126,7 +134,11 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
 
-      const result = await handler({ mode: 'learning', chunk_ids: ['c-bad'] });
+      const result = await handler({
+        mode: 'learning',
+        chunk_ids: ['c-bad'],
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -142,7 +154,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
 
-      const result = await handler({ mode: 'learning' });
+      const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -154,7 +166,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('create_session')!.handler;
 
-      const result = await handler({ mode: 'learning' });
+      const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -241,6 +253,12 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.error.type).toBe('database');
       expect(parsed.error.retryable).toBe(true);
     });
+
+    it('get_active_session inputSchema advertises context_token field', () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const spec = server.tools.get('get_active_session')!.spec;
+      expect(spec.inputSchema).toHaveProperty('context_token');
+    });
   });
 
   // ---------------------------------------------------------------
@@ -253,7 +271,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.session).not.toBeNull();
@@ -265,7 +283,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_session')!.handler;
 
-      const result = await handler({ session_id: 's-missing' });
+      const result = await handler({ session_id: 's-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.session).toBeNull();
@@ -278,7 +296,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.session).toBeNull();
@@ -291,7 +309,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_session')!.handler;
 
-      await handler({ session_id: 's1' });
+      await handler({ session_id: 's1', context_token: 'ctx-test' });
 
       expect(ctx.convertSessionToInput).toHaveBeenCalledWith('s1', {
         includeHistoricalFeedback: true,
@@ -304,7 +322,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -387,7 +405,11 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('complete_session')!.handler;
 
-      const result = await handler({ session_id: 's1', feedback: 'Great session' });
+      const result = await handler({
+        session_id: 's1',
+        feedback: 'Great session',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.session_id).toBe('s1');
@@ -406,7 +428,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('complete_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -418,7 +440,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('complete_session')!.handler;
 
-      const result = await handler({ session_id: 's-missing' });
+      const result = await handler({ session_id: 's-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -438,7 +460,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('complete_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -450,7 +472,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('complete_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -491,7 +513,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('complete_session')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('completed');

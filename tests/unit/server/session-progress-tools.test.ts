@@ -38,6 +38,7 @@ describe('session-progress-tools', () => {
         chunk_id: 'c1',
         status: 'pending',
         time_spent_ms: 0,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -55,6 +56,7 @@ describe('session-progress-tools', () => {
         session_id: 's1',
         chunk_id: 'c1',
         time_spent_ms: 5000,
+        context_token: 'ctx-test',
       });
 
       const call = mockFn.mock.calls[0][0];
@@ -71,6 +73,7 @@ describe('session-progress-tools', () => {
       const result = await handler({
         session_id: 's1',
         chunk_id: 'c1',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -122,6 +125,7 @@ describe('session-progress-tools', () => {
         operations: [
           { chunk_id: 'c1', status: 'completed', time_spent_ms: 5000, quality_scores: [4] },
         ],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -141,6 +145,7 @@ describe('session-progress-tools', () => {
       const result = await handler({
         session_id: 's1',
         operations: [{ chunk_id: 'c-bad' }],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -156,6 +161,7 @@ describe('session-progress-tools', () => {
       const result = await handler({
         session_id: 's1',
         operations: [{ chunk_id: 'c1' }],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -176,6 +182,7 @@ describe('session-progress-tools', () => {
       const result = await handler({
         session_id: 's1',
         operations: [{ chunk_id: 'c1', status: 'completed' }],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -200,6 +207,7 @@ describe('session-progress-tools', () => {
       const result = await handler({
         session_id: 's1',
         operations: [{ chunk_id: 'c1', status: 'completed' }],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -241,7 +249,7 @@ describe('session-progress-tools', () => {
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('get_historical_feedback')!.handler;
 
-      const result = await handler({ chunk_ids: ['c1'] });
+      const result = await handler({ chunk_ids: ['c1'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('ok');
@@ -255,7 +263,7 @@ describe('session-progress-tools', () => {
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('get_historical_feedback')!.handler;
 
-      const result = await handler({ chunk_ids: ['c1'] });
+      const result = await handler({ chunk_ids: ['c1'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('ok');
@@ -268,7 +276,7 @@ describe('session-progress-tools', () => {
       registerSessionProgressTools(server as any, ctx);
       const handler = server.tools.get('get_historical_feedback')!.handler;
 
-      const result = await handler({ chunk_ids: ['c1'] });
+      const result = await handler({ chunk_ids: ['c1'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);

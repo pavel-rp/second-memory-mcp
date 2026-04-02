@@ -52,6 +52,7 @@ describe.skipIf(!process.env.EMBEDDING_PROVIDER)(
         query: 'TypeScript type constraints',
         mode: 'semantic',
         limit: 10,
+        context_token: 'ctx-test',
       });
 
       expect(results).toBeDefined();

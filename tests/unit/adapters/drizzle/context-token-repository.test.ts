@@ -146,4 +146,49 @@ describe('DrizzleContextTokenRepository', () => {
       expect(count).toBe(0);
     });
   });
+
+  describe('validateWithStatus()', () => {
+    it('returns { valid: false, expired: false } when token does not exist', async () => {
+      mocks.selectWhere.mockResolvedValueOnce([]);
+
+      const result = await repo.validateWithStatus('ctx-missing');
+
+      expect(result).toEqual({ valid: false, expired: false });
+      expect(mocks.deleteFn).not.toHaveBeenCalled();
+    });
+
+    it('returns { valid: true, expired: false } when token exists and is not expired', async () => {
+      const now = 1700000000000;
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+      mocks.selectWhere.mockResolvedValueOnce([{ id: 'ctx-abc', expiresAt: now + 60_000 }]);
+
+      const result = await repo.validateWithStatus('ctx-abc');
+
+      expect(result).toEqual({ valid: true, expired: false });
+      expect(mocks.deleteFn).not.toHaveBeenCalled();
+    });
+
+    it('returns { valid: false, expired: true } and deletes when token is expired', async () => {
+      const now = 1700000000000;
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+      mocks.selectWhere.mockResolvedValueOnce([{ id: 'ctx-old', expiresAt: now - 1 }]);
+
+      const result = await repo.validateWithStatus('ctx-old');
+
+      expect(result).toEqual({ valid: false, expired: true });
+      expect(mocks.deleteFn).toHaveBeenCalledTimes(1);
+      expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns { valid: false, expired: true } when expiresAt equals now (boundary)', async () => {
+      const now = 1700000000000;
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+      mocks.selectWhere.mockResolvedValueOnce([{ id: 'ctx-boundary', expiresAt: now }]);
+
+      const result = await repo.validateWithStatus('ctx-boundary');
+
+      expect(result).toEqual({ valid: false, expired: true });
+      expect(mocks.deleteFn).toHaveBeenCalledTimes(1);
+    });
+  });
 });

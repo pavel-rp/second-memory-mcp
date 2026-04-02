@@ -39,6 +39,7 @@ describe('topic-tools', () => {
           condensed_summary: 'Arrays store elements in contiguous memory blocks.',
         },
       ],
+      context_token: 'ctx-test',
     };
 
     it('returns success when ctx returns success', async () => {
@@ -90,6 +91,7 @@ describe('topic-tools', () => {
             condensed_summary: 'Arrays and data structures overview.',
           },
         ],
+        context_token: 'ctx-test',
       });
 
       const call = mockFn.mock.calls[0][0];
@@ -213,7 +215,11 @@ describe('topic-tools', () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic')!.handler;
 
-      const result = await handler({ topic_id: 't1', title: 'Updated Title' });
+      const result = await handler({
+        topic_id: 't1',
+        title: 'Updated Title',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -230,7 +236,7 @@ describe('topic-tools', () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic')!.handler;
 
-      const result = await handler({ topic_id: 't-missing' });
+      const result = await handler({ topic_id: 't-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -242,7 +248,7 @@ describe('topic-tools', () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic')!.handler;
 
-      const result = await handler({ topic_id: 't1', title: 'X' });
+      const result = await handler({ topic_id: 't1', title: 'X', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -265,7 +271,7 @@ describe('topic-tools', () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic')!.handler;
 
-      const result = await handler({ topic_id: 't1' });
+      const result = await handler({ topic_id: 't1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -280,7 +286,7 @@ describe('topic-tools', () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('update_topic')!.handler;
 
-      const result = await handler({ topic_id: 't1' });
+      const result = await handler({ topic_id: 't1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -304,6 +310,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't1',
         summary: 'Updated summary content for the topic about data structures.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -324,6 +331,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't1',
         summary: 'Updated summary content for the topic about data structures.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -346,6 +354,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't-missing',
         summary: 'Summary content that is long enough to pass validation checks.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -363,6 +372,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't-missing',
         summary: 'Summary content that is long enough to pass validation checks.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -378,6 +388,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't1',
         summary: 'Summary content that is long enough to pass validation checks.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -404,6 +415,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't1',
         summary: 'Summary content that is long enough to pass validation checks.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -422,6 +434,7 @@ describe('topic-tools', () => {
       const result = await handler({
         topic_id: 't1',
         summary: 'Summary content that is long enough to pass validation checks.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 

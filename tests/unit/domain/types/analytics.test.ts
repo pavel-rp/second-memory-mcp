@@ -167,7 +167,10 @@ describe('WindowSpecSchema', () => {
 
 describe('AnalyticsDailyInputSchema', () => {
   it('validates a valid date', () => {
-    const result = AnalyticsDailyInputSchema.safeParse({ date: '2026-01-15' });
+    const result = AnalyticsDailyInputSchema.safeParse({
+      date: '2026-01-15',
+      context_token: 'ctx-test',
+    });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.date).toBe('2026-01-15');
@@ -202,6 +205,7 @@ describe('AnalyticsWindowInputSchema', () => {
       from: '2026-01-01',
       to: '2026-01-31',
       include_breakdowns: true,
+      context_token: 'ctx-test',
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -215,6 +219,7 @@ describe('AnalyticsWindowInputSchema', () => {
     const result = AnalyticsWindowInputSchema.safeParse({
       from: '2026-01-01',
       to: '2026-01-31',
+      context_token: 'ctx-test',
     });
     expect(result.success).toBe(true);
     if (result.success) {

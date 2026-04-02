@@ -60,7 +60,7 @@ describe('session-tools', () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.session_id).toBe('s1');
@@ -79,7 +79,7 @@ describe('session-tools', () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
 
-      const result = await handler({ session_id: 's-missing' });
+      const result = await handler({ session_id: 's-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -94,7 +94,7 @@ describe('session-tools', () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -137,7 +137,7 @@ describe('session-tools', () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -150,7 +150,7 @@ describe('session-tools', () => {
       registerSessionTools(server as any, ctx);
       const handler = server.tools.get('session_status')!.handler;
 
-      const result = await handler({ session_id: 's1' });
+      const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);

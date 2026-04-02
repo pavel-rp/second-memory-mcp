@@ -2,19 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { RecommendationInputSchema } from '../../../../src/domain/types/recommendations.js';
 
 describe('RecommendationInputSchema - topic-level', () => {
-  it('accepts empty input (all optional)', () => {
-    const result = RecommendationInputSchema.parse({});
+  it('accepts empty input (subject_filter and limit are optional)', () => {
+    const result = RecommendationInputSchema.parse({ context_token: 'ctx-test' });
     expect(result.subjectFilter).toBeUndefined();
     expect(result.limit).toBeUndefined();
   });
 
   it('accepts subject_filter', () => {
-    const result = RecommendationInputSchema.parse({ subject_filter: 'Math' });
+    const result = RecommendationInputSchema.parse({
+      subject_filter: 'Math',
+      context_token: 'ctx-test',
+    });
     expect(result.subjectFilter).toBe('Math');
   });
 
   it('accepts limit as positive integer', () => {
-    const result = RecommendationInputSchema.parse({ limit: 5 });
+    const result = RecommendationInputSchema.parse({ limit: 5, context_token: 'ctx-test' });
     expect(result.limit).toBe(5);
   });
 
@@ -37,6 +40,7 @@ describe('RecommendationInputSchema - topic-level', () => {
       fetch_from_database: true,
       learning_items: [],
       mode: 'guided',
+      context_token: 'ctx-test',
     });
     expect(result.subjectFilter).toBe('CS');
     expect(result.limit).toBe(10);
@@ -46,7 +50,11 @@ describe('RecommendationInputSchema - topic-level', () => {
   });
 
   it('transforms snake_case to camelCase', () => {
-    const result = RecommendationInputSchema.parse({ subject_filter: 'Math', limit: 3 });
+    const result = RecommendationInputSchema.parse({
+      subject_filter: 'Math',
+      limit: 3,
+      context_token: 'ctx-test',
+    });
     expect(result.subjectFilter).toBe('Math');
     expect(result).not.toHaveProperty('subject_filter');
   });

@@ -23,12 +23,20 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Completes the current in-progress chunk (if any with recorded attempts): aggregates question qualities, ' +
         'runs spaced-repetition update, marks it completed, and includes review_update in the response. ' +
         'Then selects the next chunk, hydrates the appropriate prompt, and returns a structured teaching instruction. ' +
-        'No input needed — reads the active session. ' +
+        'Only context_token required — reads the active session automatically. ' +
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
         'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
         "When submit_answer returns status 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
-      inputSchema: z.object({}).shape,
+      inputSchema: z.object({
+        context_token: z
+          .string()
+          .min(1)
+          .describe(
+            'Token returned by init_agent_context. Required on every call. ' +
+              'Call init_agent_context at the start of every conversation to obtain this token.'
+          ),
+      }).shape,
     },
     async () =>
       withRequestContext('teach_next', async () => {

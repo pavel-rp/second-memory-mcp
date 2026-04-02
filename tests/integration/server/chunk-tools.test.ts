@@ -37,6 +37,7 @@ describe('chunk-tools', () => {
         content: 'Learn about test items',
         difficulty: 5,
         estimated_duration: 15,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -55,6 +56,7 @@ describe('chunk-tools', () => {
         estimated_duration: 20,
         tags: ['tag1', 'tag2'],
         topic_title: 'Custom Topic',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -70,6 +72,7 @@ describe('chunk-tools', () => {
         difficulty: 5,
         estimated_duration: 15,
         content_status: 'draft',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -91,6 +94,7 @@ describe('chunk-tools', () => {
         content: 'Some content',
         difficulty: 3,
         estimated_duration: 10,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -111,6 +115,7 @@ describe('chunk-tools', () => {
         chunk_id: 'nonexistent',
         content: 'New content',
         condensed_summary: 'Summary for nonexistent chunk.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
@@ -125,6 +130,7 @@ describe('chunk-tools', () => {
         content: 'Original content',
         difficulty: 3,
         estimated_duration: 10,
+        context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
       const chunkId = created.chunk_id;
@@ -134,6 +140,7 @@ describe('chunk-tools', () => {
         chunk_id: chunkId,
         content: 'Updated content',
         condensed_summary: 'Updated content summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -174,6 +181,7 @@ describe('chunk-tools', () => {
         chunk_id: 'chunk-draft',
         content: 'Finalized teaching content',
         condensed_summary: 'Finalized teaching content summary.',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -192,6 +200,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'nonexistent',
         title: 'New Title',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
@@ -205,6 +214,7 @@ describe('chunk-tools', () => {
         content: 'Original content',
         difficulty: 3,
         estimated_duration: 10,
+        context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
       const chunkId = created.chunk_id;
@@ -214,6 +224,7 @@ describe('chunk-tools', () => {
         chunk_id: chunkId,
         title: 'Updated Title',
         difficulty: 7,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -227,6 +238,7 @@ describe('chunk-tools', () => {
       const result = await handler({
         chunk_id: 'nonexistent',
         content: 'New content',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
@@ -240,6 +252,7 @@ describe('chunk-tools', () => {
         content: 'Original',
         difficulty: 5,
         estimated_duration: 15,
+        context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
       const chunkId = created.chunk_id;
@@ -249,6 +262,7 @@ describe('chunk-tools', () => {
         chunk_id: chunkId,
         content: 'Completely new content',
         force_reset: true,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -258,7 +272,7 @@ describe('chunk-tools', () => {
   describe('delete_chunk', () => {
     it('returns error for nonexistent chunk', async () => {
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunk_id: 'nonexistent' });
+      const result = await handler({ chunk_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });
@@ -271,12 +285,13 @@ describe('chunk-tools', () => {
         content: 'Content to delete',
         difficulty: 3,
         estimated_duration: 10,
+        context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
       const chunkId = created.chunk_id;
 
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunk_id: chunkId });
+      const result = await handler({ chunk_id: chunkId, context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.message).toContain('Successfully deleted');
@@ -323,7 +338,7 @@ describe('chunk-tools', () => {
       });
 
       const handler = server.tools.get('delete_chunk')!.handler;
-      const result = await handler({ chunk_id: 'chunk-prereq' });
+      const result = await handler({ chunk_id: 'chunk-prereq', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.removed_dependency_count).toBeGreaterThanOrEqual(0);
