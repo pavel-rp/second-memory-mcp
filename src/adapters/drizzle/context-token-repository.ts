@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, lte } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import { contextTokens } from '../../infrastructure/db/schema.js';
 import type { ContextTokenRepository } from '../../ports/context-token-repository.js';
@@ -19,22 +19,29 @@ export class DrizzleContextTokenRepository implements ContextTokenRepository {
   }
 
   async validate(token: string): Promise<boolean> {
-    const rows = await this.db
-      .select({ id: contextTokens.id, expiresAt: contextTokens.expiresAt })
-      .from(contextTokens)
-      .where(eq(contextTokens.id, token));
+    return this.db.transaction(async tx => {
+      const rows = await tx
+        .select({ id: contextTokens.id, expiresAt: contextTokens.expiresAt })
+        .from(contextTokens)
+        .where(eq(contextTokens.id, token));
 
-    if (rows.length === 0) return false;
+      if (rows.length === 0) return false;
 
-    if (rows[0].expiresAt <= Date.now()) {
-      await this.delete(token);
-      return false;
-    }
+      if (rows[0].expiresAt <= Date.now()) {
+        await tx.delete(contextTokens).where(eq(contextTokens.id, token));
+        return false;
+      }
 
-    return true;
+      return true;
+    });
   }
 
   async delete(token: string): Promise<void> {
     await this.db.delete(contextTokens).where(eq(contextTokens.id, token));
+  }
+
+  async deleteExpired(before: number): Promise<number> {
+    const res = await this.db.delete(contextTokens).where(lte(contextTokens.expiresAt, before));
+    return res.rowCount ?? 0;
   }
 }

@@ -71,6 +71,7 @@ import * as teachingWorkflows from './orchestration/teaching-workflows.js';
 import * as notesWorkflows from './orchestration/notes-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
+import { MS_PER_DAY } from './shared/constants/time.js';
 import {
   calculateNextReview,
   calculatePriorityScore,
@@ -442,10 +443,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     getTopicSummary: topicId => queryWorkflows.getTopicSummary(topicId, queryDeps),
 
     // Context token
-    createContextToken: () => {
-      const TTL_24H_MS = 24 * 60 * 60 * 1000;
-      return ports.contextTokens.create(TTL_24H_MS);
-    },
+    createContextToken: () => ports.contextTokens.create(MS_PER_DAY),
 
     // Shared utilities
     mapChunkRowToLearningItem,

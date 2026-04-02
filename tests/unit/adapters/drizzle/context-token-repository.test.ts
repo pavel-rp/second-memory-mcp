@@ -14,9 +14,23 @@ function chainMock() {
   const deleteWhere = vi.fn().mockResolvedValue({ rowCount: 1 });
   const deleteFn = vi.fn().mockReturnValue({ where: deleteWhere });
 
-  const db = { insert, select, delete: deleteFn } as Partial<SqlDb> as SqlDb;
+  const txFns = { insert, select, delete: deleteFn } as Partial<SqlDb> as SqlDb;
+  const transaction = vi.fn().mockImplementation(function (fn: (tx: SqlDb) => Promise<unknown>) {
+    return fn(txFns);
+  });
+  const db = { ...txFns, transaction } as Partial<SqlDb> as SqlDb;
 
-  return { db, insert, insertValues, select, selectFrom, selectWhere, deleteFn, deleteWhere };
+  return {
+    db,
+    insert,
+    insertValues,
+    select,
+    selectFrom,
+    selectWhere,
+    deleteFn,
+    deleteWhere,
+    transaction,
+  };
 }
 
 // ── Import adapter ────────────────────────────────────────────
@@ -102,6 +116,34 @@ describe('DrizzleContextTokenRepository', () => {
       await repo.delete('ctx-delete-me');
       expect(mocks.deleteFn).toHaveBeenCalledTimes(1);
       expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('deleteExpired()', () => {
+    it('returns the number of deleted rows', async () => {
+      mocks.deleteWhere.mockResolvedValueOnce({ rowCount: 3 });
+
+      const count = await repo.deleteExpired(1700000000000);
+
+      expect(count).toBe(3);
+      expect(mocks.deleteFn).toHaveBeenCalledTimes(1);
+      expect(mocks.deleteWhere).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns 0 when no rows are expired', async () => {
+      mocks.deleteWhere.mockResolvedValueOnce({ rowCount: 0 });
+
+      const count = await repo.deleteExpired(1700000000000);
+
+      expect(count).toBe(0);
+    });
+
+    it('returns 0 when rowCount is null', async () => {
+      mocks.deleteWhere.mockResolvedValueOnce({ rowCount: null });
+
+      const count = await repo.deleteExpired(1700000000000);
+
+      expect(count).toBe(0);
     });
   });
 });

@@ -4,12 +4,10 @@ import { registerServerContextTools } from '../../../src/server/server-context-t
 import { DOMAIN_RULES } from '../../../src/shared/domain-rules.js';
 import { WORKFLOW_SUMMARY } from '../../../src/shared/instructions.js';
 import type { AppContext } from '../../../src/composition-root.js';
+import { createMockAppContext } from '../../helpers/mock-app-context.js';
 
 function makeCtx(overrides: Partial<AppContext> = {}): AppContext {
-  return {
-    createContextToken: async () => 'ctx-test-token-1234',
-    ...overrides,
-  } as AppContext;
+  return createMockAppContext(new Date(), overrides);
 }
 
 describe('server-context-tools', () => {
@@ -29,7 +27,7 @@ describe('server-context-tools', () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
 
-    expect(result).toHaveProperty('context_token', 'ctx-test-token-1234');
+    expect(result).toHaveProperty('context_token', 'ctx-test-token-stub');
     expect(result).toHaveProperty('status', 'initialized');
     expect(result).toHaveProperty('domain_rules');
     expect(result).toHaveProperty('workflow_summary');

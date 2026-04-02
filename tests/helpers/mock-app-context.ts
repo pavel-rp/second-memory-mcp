@@ -20,7 +20,10 @@ import {
  * Uses a Proxy so any new AppContext methods automatically throw
  * instead of silently being undefined.
  */
-export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z')): AppContext {
+export function createMockAppContext(
+  now: Date = new Date('2025-06-15T12:00:00Z'),
+  overrides: Partial<AppContext> = {}
+): AppContext {
   const pureFunctions: Partial<AppContext> = {
     // Shared utilities
     mapChunkRowToLearningItem,
@@ -46,6 +49,11 @@ export function createMockAppContext(now: Date = new Date('2025-06-15T12:00:00Z'
       days: [],
       total: { reviews_completed: 0, average_quality: 0, new_chunks_learned: 0, streak_days: 0 },
     }),
+
+    // Context token stub (override with vi.fn() for specific token values or error cases)
+    createContextToken: async () => 'ctx-test-token-stub',
+
+    ...overrides,
   };
 
   return new Proxy(pureFunctions as AppContext, {
