@@ -238,7 +238,15 @@ export const SubmitAnswerInputSchema = z
     }
   })
   .transform(
-    ({ time_spent_ms, session_question_id, prompt_text, chunk_ids, question_type, ...rest }) => {
+    ({
+      time_spent_ms,
+      session_question_id,
+      prompt_text,
+      chunk_ids,
+      question_type,
+      context_token: _ct,
+      ...rest
+    }) => {
       const base = { ...rest, timeSpentMs: time_spent_ms, questionType: question_type };
       if (session_question_id !== undefined) {
         return { ...base, sessionQuestionId: session_question_id };

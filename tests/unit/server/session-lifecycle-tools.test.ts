@@ -253,6 +253,12 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.error.type).toBe('database');
       expect(parsed.error.retryable).toBe(true);
     });
+
+    it('get_active_session inputSchema advertises context_token field', () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const spec = server.tools.get('get_active_session')!.spec;
+      expect(spec.inputSchema).toHaveProperty('context_token');
+    });
   });
 
   // ---------------------------------------------------------------

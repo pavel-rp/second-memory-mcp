@@ -224,3 +224,43 @@ describe('InputShape structural guardrail', () => {
     expect(violations).toEqual([]);
   });
 });
+
+describe('SubmitAnswerInputSchema strips context_token from transform output', () => {
+  it('does not carry context_token through on the inline path', () => {
+    const input = {
+      prompt_text: 'What is X?',
+      chunk_ids: ['c1'],
+      response: 'X is Y',
+      quality: 4,
+      question_type: 'recall' as const,
+      feedback: 'Good',
+      time_spent_ms: 1000,
+      context_token: 'ctx-test',
+    };
+
+    const preParsed = z.object(teaching.SubmitAnswerInputShape).parse(input);
+    const result = teaching.SubmitAnswerInputSchema.parse(preParsed);
+
+    expect(Object.keys(result)).not.toContain('context_token');
+    expect((result as Record<string, unknown>).timeSpentMs).toBe(1000);
+    expect((result as Record<string, unknown>).questionType).toBe('recall');
+  });
+
+  it('does not carry context_token through on the retry path', () => {
+    const input = {
+      session_question_id: 'sq-1',
+      response: 'X is Y',
+      quality: 3,
+      question_type: 'explain_apply' as const,
+      feedback: 'Close',
+      time_spent_ms: 500,
+      context_token: 'ctx-test',
+    };
+
+    const preParsed = z.object(teaching.SubmitAnswerInputShape).parse(input);
+    const result = teaching.SubmitAnswerInputSchema.parse(preParsed);
+
+    expect(Object.keys(result)).not.toContain('context_token');
+    expect((result as Record<string, unknown>).sessionQuestionId).toBe('sq-1');
+  });
+});

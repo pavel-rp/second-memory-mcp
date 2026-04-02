@@ -328,6 +328,7 @@ describe('teaching-tools', () => {
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -581,6 +582,12 @@ describe('teaching-tools', () => {
 
     expect(parsed.success).toBe(false);
     expect(parsed.error.type).toBe('validation');
+  });
+
+  it('teach_next inputSchema advertises context_token field', () => {
+    registerTeachingTools(server as any, ctx);
+    const spec = server.tools.get('teach_next')!.spec;
+    expect(spec.inputSchema).toHaveProperty('context_token');
   });
 
   it('submit_answer rejects partial inline (prompt_text without chunk_ids)', async () => {

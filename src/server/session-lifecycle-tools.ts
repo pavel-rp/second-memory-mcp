@@ -124,7 +124,15 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
         'Retrieve the current active learning session to continue where you left off. ' +
         'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
         'to help inform teaching strategy based on previously reported difficulties.',
-      inputSchema: z.object({}).shape,
+      inputSchema: z.object({
+        context_token: z
+          .string()
+          .min(1)
+          .describe(
+            'Token returned by init_agent_context. Required on every call. ' +
+              'Call init_agent_context at the start of every conversation to obtain this token.'
+          ),
+      }).shape,
     },
     async () =>
       withRequestContext('get_active_session', async () => {
