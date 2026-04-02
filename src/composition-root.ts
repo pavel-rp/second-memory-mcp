@@ -255,6 +255,7 @@ export interface AppContext {
   ) => Promise<Awaited<ReturnType<TopicRepository['getSummaryById']>>>;
 
   // Context token
+  contextTokens: ContextTokenRepository;
   createContextToken: () => Promise<string>;
 
   // Shared utilities
@@ -443,6 +444,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     getTopicSummary: topicId => queryWorkflows.getTopicSummary(topicId, queryDeps),
 
     // Context token
+    contextTokens: ports.contextTokens,
     createContextToken: () => ports.contextTokens.create(MS_PER_DAY),
 
     // Shared utilities

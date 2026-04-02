@@ -53,6 +53,7 @@ describe('topic-tools', () => {
             condensed_summary: 'Equations express equality between expressions.',
           },
         ],
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
@@ -74,7 +75,11 @@ describe('topic-tools', () => {
       });
 
       const handler = server.tools.get('update_topic')!.handler;
-      const result = await handler({ topic_id: 'topic-1', title: 'Updated Title' });
+      const result = await handler({
+        topic_id: 'topic-1',
+        title: 'Updated Title',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.topic_id).toBe('topic-1');
@@ -83,14 +88,20 @@ describe('topic-tools', () => {
 
     it('returns error for nonexistent topic', async () => {
       const handler = server.tools.get('update_topic')!.handler;
-      const result = await handler({ topic_id: 'nonexistent', title: 'Foo' });
+      const result = await handler({
+        topic_id: 'nonexistent',
+        title: 'Foo',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });
 
     it('rejects empty title via Zod validation', async () => {
       const handler = server.tools.get('update_topic')!.handler;
-      await expect(handler({ topic_id: 'topic-v', title: '' })).rejects.toThrow();
+      await expect(
+        handler({ topic_id: 'topic-v', title: '', context_token: 'ctx-test' })
+      ).rejects.toThrow();
     });
   });
 
@@ -106,7 +117,11 @@ describe('topic-tools', () => {
       });
 
       const handler = server.tools.get('update_topic_summary')!.handler;
-      const result = await handler({ topic_id: 'topic-s', summary: 'A great summary' });
+      const result = await handler({
+        topic_id: 'topic-s',
+        summary: 'A great summary',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(true);
       expect(parsed.topic_id).toBe('topic-s');
@@ -116,14 +131,20 @@ describe('topic-tools', () => {
 
     it('returns error for nonexistent topic', async () => {
       const handler = server.tools.get('update_topic_summary')!.handler;
-      const result = await handler({ topic_id: 'nonexistent', summary: 'test' });
+      const result = await handler({
+        topic_id: 'nonexistent',
+        summary: 'test',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });
 
     it('rejects empty summary via Zod validation', async () => {
       const handler = server.tools.get('update_topic_summary')!.handler;
-      await expect(handler({ topic_id: 'topic-se', summary: '' })).rejects.toThrow();
+      await expect(
+        handler({ topic_id: 'topic-se', summary: '', context_token: 'ctx-test' })
+      ).rejects.toThrow();
     });
   });
 });

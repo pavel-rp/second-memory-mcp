@@ -15,9 +15,11 @@ import {
 import { getServerInfo } from '../shared/version.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
+import type { ContextTokenRepository } from '../ports/context-token-repository.js';
 import { createJwtMiddleware } from './jwt-middleware.js';
 import { createPrmHandler } from './prm-handler.js';
 import { createAuditMiddleware } from './audit-middleware.js';
+import { createContextTokenMiddleware } from './context-token-middleware.js';
 
 /** Standard JSON-RPC 2.0 error codes. */
 const JSON_RPC_INVALID_REQUEST = -32600;
@@ -70,7 +72,8 @@ function verifySessionBinding(
 export async function startHttpTransport(
   config: TransportConfig,
   createMcpServer: () => McpServer,
-  authConfig?: AuthConfig | null
+  authConfig?: AuthConfig | null,
+  contextTokenRepo?: ContextTokenRepository | null
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
   const sessionIdentity = new Map<string, SessionIdentity>();
@@ -136,6 +139,11 @@ export async function startHttpTransport(
     const auditPino = createAuditPinoLogger(auditDbUrl);
     app.use('/mcp', createAuditMiddleware(auditPino));
     setEventLogger(createEventPinoLogger(auditDbUrl));
+  }
+
+  // Context token gate (after audit middleware, before route handlers)
+  if (contextTokenRepo) {
+    app.use('/mcp', createContextTokenMiddleware(contextTokenRepo));
   }
 
   // POST /mcp

@@ -60,6 +60,7 @@ describe('Integration: list_items_with_content', () => {
 
     const result = await tool.handler({
       include_content: true,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -112,6 +113,7 @@ describe('Integration: list_items_with_content', () => {
 
     const result = await tool.handler({
       include_content: false,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -167,6 +169,7 @@ describe('Integration: list_items_with_content', () => {
       include_content: true,
       limit: 2,
       offset: 0,
+      context_token: 'ctx-test',
     });
 
     const parsed1 = parseToolResult(result1);
@@ -181,6 +184,7 @@ describe('Integration: list_items_with_content', () => {
       include_content: true,
       limit: 2,
       offset: 2,
+      context_token: 'ctx-test',
     });
 
     const parsed2 = parseToolResult(result2);
@@ -193,6 +197,7 @@ describe('Integration: list_items_with_content', () => {
       include_content: true,
       limit: 2,
       offset: 4,
+      context_token: 'ctx-test',
     });
 
     const parsed3 = parseToolResult(result3);
@@ -263,6 +268,7 @@ describe('Integration: list_items_with_content', () => {
     const result = await tool.handler({
       include_content: true,
       subject_filter: 'CS',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -334,6 +340,7 @@ describe('Integration: list_items_with_content', () => {
     const result = await tool.handler({
       include_content: true,
       due_only: true,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -346,6 +353,7 @@ describe('Integration: list_items_with_content', () => {
   it('should return empty results when no data exists', async () => {
     const result = await tool.handler({
       include_content: true,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);

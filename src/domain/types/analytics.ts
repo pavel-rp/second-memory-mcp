@@ -117,6 +117,13 @@ export const AnalyticsDailyInputShape = {
     .string()
     .regex(datePattern, 'Date must be in YYYY-MM-DD format')
     .describe('The day to compute analytics for (YYYY-MM-DD)'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const AnalyticsDailyInputSchema = z
@@ -137,6 +144,13 @@ export const AnalyticsWindowInputShape = {
     .optional()
     .default(false)
     .describe('Include topic/tag breakdowns in the analytics output'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const AnalyticsWindowInputSchema = z

@@ -97,7 +97,8 @@ describe('transport/main bootstrap', () => {
     expect(mockStartHttpTransport).toHaveBeenCalledWith(
       { mode: 'http', httpPort: 8080, httpHost: '127.0.0.1' },
       expect.any(Function),
-      null
+      null,
+      undefined
     );
     expect(mockCreateMcpServer).toHaveBeenCalled();
   });

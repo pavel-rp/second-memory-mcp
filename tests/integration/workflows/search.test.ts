@@ -84,7 +84,10 @@ describe('searchLearningContent service', () => {
       },
     ]);
 
-    const result = await ctx.searchLearningContent({ query: 'segment tree' });
+    const result = await ctx.searchLearningContent({
+      query: 'segment tree',
+      context_token: 'ctx-test',
+    });
     expect(result.query).toBe('segment tree');
     expect(result.results.length).toBeGreaterThan(0);
     expect(result.counts.total).toBe(result.results.length);
@@ -133,6 +136,7 @@ describe('searchLearningContent service', () => {
       query: 'segment',
       subject: 'CS',
       limit: 1,
+      context_token: 'ctx-test',
     });
 
     expect(result.results.length).toBe(1);

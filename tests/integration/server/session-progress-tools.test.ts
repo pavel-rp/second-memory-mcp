@@ -57,6 +57,7 @@ describe('session-progress-tools', () => {
       mode: 'learning',
       chunk_ids: ['chunk-p1'],
       topic_id: 'topic-p',
+      context_token: 'ctx-test',
     });
     return parseResult(createResult).session_id;
   }
@@ -70,6 +71,7 @@ describe('session-progress-tools', () => {
         session_id: sessionId,
         chunk_id: 'chunk-p1',
         status: 'in_progress',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.session_chunk_id).toBeDefined();
@@ -97,6 +99,7 @@ describe('session-progress-tools', () => {
         ],
         quality_scores: [4],
         time_spent_ms: 5000,
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('created');
@@ -106,7 +109,7 @@ describe('session-progress-tools', () => {
   describe('get_historical_feedback', () => {
     it('returns empty feedback for chunks with no history', async () => {
       const handler = server.tools.get('get_historical_feedback')!.handler;
-      const result = await handler({ chunk_ids: ['chunk-p1'] });
+      const result = await handler({ chunk_ids: ['chunk-p1'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
       expect(parsed.feedback_count).toBe(0);
@@ -142,14 +145,19 @@ describe('session-progress-tools', () => {
       const createResult = await createHandler({
         mode: 'learning',
         chunk_ids: ['chunk-fb'],
+        context_token: 'ctx-test',
       });
       const sessionId = parseResult(createResult).session_id;
 
       const completeHandler = server.tools.get('complete_session')!.handler;
-      await completeHandler({ session_id: sessionId, feedback: 'Found algebra hard' });
+      await completeHandler({
+        session_id: sessionId,
+        feedback: 'Found algebra hard',
+        context_token: 'ctx-test',
+      });
 
       const handler = server.tools.get('get_historical_feedback')!.handler;
-      const result = await handler({ chunk_ids: ['chunk-fb'] });
+      const result = await handler({ chunk_ids: ['chunk-fb'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
       expect(parsed.feedback_count).toBeGreaterThanOrEqual(1);

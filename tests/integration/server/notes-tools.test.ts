@@ -35,6 +35,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'User derived the proof independently',
       author: 'agent',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -49,6 +50,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'Some content',
       author: 'agent',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -63,6 +65,7 @@ describe('Integration: notes tools', () => {
       note_type: 'invalid_type',
       content: 'Some content',
       author: 'agent',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -77,6 +80,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'Some content',
       author: 'system',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -91,6 +95,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: '',
       author: 'agent',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -108,6 +113,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'First note',
       author: 'agent',
+      context_token: 'ctx-test',
     });
     await addNote.handler({
       target_type: 'chunk',
@@ -115,11 +121,13 @@ describe('Integration: notes tools', () => {
       note_type: 'confusion',
       content: 'Second note',
       author: 'user',
+      context_token: 'ctx-test',
     });
 
     const result = await listNotes.handler({
       target_type: 'chunk',
       target_id: 'chunk-1',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -136,6 +144,7 @@ describe('Integration: notes tools', () => {
     const result = await listNotes.handler({
       target_type: 'topic',
       target_id: 'nonexistent-topic',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -149,6 +158,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'Chunk note',
       author: 'agent',
+      context_token: 'ctx-test',
     });
     await addNote.handler({
       target_type: 'topic',
@@ -156,15 +166,18 @@ describe('Integration: notes tools', () => {
       note_type: 'confusion',
       content: 'Topic note',
       author: 'user',
+      context_token: 'ctx-test',
     });
 
     const chunkResult = await listNotes.handler({
       target_type: 'chunk',
       target_id: 'chunk-1',
+      context_token: 'ctx-test',
     });
     const topicResult = await listNotes.handler({
       target_type: 'topic',
       target_id: 'topic-1',
+      context_token: 'ctx-test',
     });
 
     const chunkParsed = parseToolResult(chunkResult);
@@ -184,10 +197,11 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'To be deleted',
       author: 'agent',
+      context_token: 'ctx-test',
     });
     const noteId = parseToolResult(addResult).id;
 
-    const deleteResult = await deleteNote.handler({ note_id: noteId });
+    const deleteResult = await deleteNote.handler({ note_id: noteId, context_token: 'ctx-test' });
     const parsed = parseToolResult(deleteResult);
     expect(parsed.success).toBe(true);
 
@@ -195,12 +209,16 @@ describe('Integration: notes tools', () => {
     const listResult = await listNotes.handler({
       target_type: 'chunk',
       target_id: 'chunk-1',
+      context_token: 'ctx-test',
     });
     expect(parseToolResult(listResult).notes).toHaveLength(0);
   });
 
   it('delete_note returns false for non-existent note', async () => {
-    const result = await deleteNote.handler({ note_id: 'nonexistent-id' });
+    const result = await deleteNote.handler({
+      note_id: 'nonexistent-id',
+      context_token: 'ctx-test',
+    });
     const parsed = parseToolResult(result);
     expect(parsed.success).toBe(false);
   });
@@ -215,6 +233,7 @@ describe('Integration: notes tools', () => {
       note_type: 'insight',
       content: 'Chunk A note',
       author: 'agent',
+      context_token: 'ctx-test',
     });
     await addNote.handler({
       target_type: 'chunk',
@@ -222,6 +241,7 @@ describe('Integration: notes tools', () => {
       note_type: 'confusion',
       content: 'Chunk B note',
       author: 'user',
+      context_token: 'ctx-test',
     });
 
     const repo = new DrizzleNotesRepository(getSql());

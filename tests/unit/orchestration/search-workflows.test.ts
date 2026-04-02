@@ -72,16 +72,23 @@ describe('searchLearningContent — keyword mode', () => {
   it('delegates to searchByQuery for keyword mode', async () => {
     const deps = stubDeps();
 
-    const result = await searchLearningContent({ query: 'test', mode: 'keyword' }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'keyword', context_token: 'ctx-test' },
+      deps
+    );
 
-    expect(deps.search.searchByQuery).toHaveBeenCalledWith({ query: 'test', mode: 'keyword' });
+    expect(deps.search.searchByQuery).toHaveBeenCalledWith({
+      query: 'test',
+      mode: 'keyword',
+      context_token: 'ctx-test',
+    });
     expect(result.results).toHaveLength(1);
   });
 
   it('defaults to keyword mode when mode is omitted', async () => {
     const deps = stubDeps();
 
-    await searchLearningContent({ query: 'test' }, deps);
+    await searchLearningContent({ query: 'test', context_token: 'ctx-test' }, deps);
 
     expect(deps.search.searchByQuery).toHaveBeenCalled();
   });
@@ -94,7 +101,7 @@ describe('searchLearningContent — semantic mode', () => {
     const deps = stubDeps({ withEmbedding: true });
 
     const result = await searchLearningContent(
-      { query: 'test query', mode: 'semantic', limit: 5, subject: 'CS' },
+      { query: 'test query', mode: 'semantic', limit: 5, subject: 'CS', context_token: 'ctx-test' },
       deps
     );
 
@@ -112,7 +119,10 @@ describe('searchLearningContent — semantic mode', () => {
   it('falls back to keyword when no embedding provider', async () => {
     const deps = stubDeps(); // no embedding
 
-    const result = await searchLearningContent({ query: 'test', mode: 'semantic' }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'semantic', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(deps.search.searchByQuery).toHaveBeenCalled();
     expect(result.results).toHaveLength(1);
@@ -122,7 +132,10 @@ describe('searchLearningContent — semantic mode', () => {
     const deps = stubDeps({ withEmbedding: true });
     (deps.embedding!.embedText as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    const result = await searchLearningContent({ query: 'test', mode: 'semantic' }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'semantic', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(deps.search.searchByQuery).toHaveBeenCalled();
     expect(result.results).toHaveLength(1);
@@ -136,7 +149,7 @@ describe('searchLearningContent — hybrid mode', () => {
     const deps = stubDeps({ withEmbedding: true });
 
     const result = await searchLearningContent(
-      { query: 'test query', mode: 'hybrid', limit: 10 },
+      { query: 'test query', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
       deps
     );
 
@@ -151,7 +164,10 @@ describe('searchLearningContent — hybrid mode', () => {
   it('falls back to keyword when no embedding provider', async () => {
     const deps = stubDeps(); // no embedding
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid' }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(deps.search.searchByQuery).toHaveBeenCalled();
     expect(result.results).toHaveLength(1);
@@ -161,7 +177,10 @@ describe('searchLearningContent — hybrid mode', () => {
     const deps = stubDeps({ withEmbedding: true });
     (deps.embedding!.embedText as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid' }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', context_token: 'ctx-test' },
+      deps
+    );
 
     expect(deps.search.searchByQuery).toHaveBeenCalled();
     // Should return keyword results only (no merge)
@@ -181,7 +200,10 @@ describe('searchLearningContent — hybrid mode', () => {
       })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     // Should deduplicate — only 1 result for 'shared'
     const sharedResults = result.results.filter(r => r.id === 'shared');
@@ -206,7 +228,10 @@ describe('searchLearningContent — hybrid mode', () => {
       makeResultSet({ results: semanticItems })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 3 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 3, context_token: 'ctx-test' },
+      deps
+    );
 
     expect(result.results).toHaveLength(3);
     expect(result.limit).toBe(3);
@@ -226,7 +251,10 @@ describe('searchLearningContent — hybrid mode', () => {
       makeResultSet({ results: [] })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     expect(result.results[0].id).toBe('high');
     expect(result.results[1].id).toBe('low');
@@ -238,7 +266,10 @@ describe('searchLearningContent — hybrid mode', () => {
       makeResultSet({ results: [], counts: { topics: 0, chunks: 0, total: 0 } })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     // Should still have semantic results
     expect(result.results.length).toBeGreaterThan(0);
@@ -250,7 +281,10 @@ describe('searchLearningContent — hybrid mode', () => {
       makeResultSet({ results: [], counts: { topics: 0, chunks: 0, total: 0 } })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     // Should still have keyword results
     expect(result.results).toHaveLength(1);
@@ -259,7 +293,10 @@ describe('searchLearningContent — hybrid mode', () => {
   it('uses default hybrid weights when not specified', async () => {
     const deps = stubDeps({ withEmbedding: true });
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     // Default weights are 0.4 keyword, 0.6 semantic
     // With results from both sources, merged scores should reflect these weights
@@ -282,7 +319,10 @@ describe('searchLearningContent — hybrid mode', () => {
       })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     const merged = result.results.find(r => r.id === 'both')!;
     // With 0.8 keyword + 0.2 semantic, score = 0.8 * 1.0 + 0.2 * 1.0 = 1.0
@@ -303,7 +343,10 @@ describe('searchLearningContent — hybrid mode', () => {
       makeResultSet({ results: [] })
     );
 
-    const result = await searchLearningContent({ query: 'test', mode: 'hybrid', limit: 10 }, deps);
+    const result = await searchLearningContent(
+      { query: 'test', mode: 'hybrid', limit: 10, context_token: 'ctx-test' },
+      deps
+    );
 
     expect(result.counts.topics).toBe(1);
     expect(result.counts.chunks).toBe(1);

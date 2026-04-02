@@ -80,6 +80,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       chunk_ids: [chunkId1, chunkId2],
       mode: 'learning',
       estimated_duration: 20,
+      context_token: 'ctx-test',
     });
 
     const createParsed = parseToolResult(createResult);
@@ -126,6 +127,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       ],
       quality_scores: [4],
       time_spent_ms: 5000,
+      context_token: 'ctx-test',
     });
 
     await createSessionChunkTool.handler({
@@ -144,6 +146,7 @@ describe('Integration: Complete Session Lifecycle', () => {
         },
       ],
       time_spent_ms: 3000,
+      context_token: 'ctx-test',
     });
 
     const sessionStatusTool = server.tools.get('session_status');
@@ -152,6 +155,7 @@ describe('Integration: Complete Session Lifecycle', () => {
 
     const statusResult = await sessionStatusTool.handler({
       session_id: sessionId,
+      context_token: 'ctx-test',
     });
     const statusParsed = parseToolResult(statusResult);
     expect(statusParsed.overall_progress).toBeDefined();
@@ -169,6 +173,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     const completeResult = await completeSessionTool.handler({
       session_id: sessionId,
       feedback: 'Great session! Learned a lot about the topic.',
+      context_token: 'ctx-test',
     });
     const completeParsed = parseToolResult(completeResult);
     expect(completeParsed.status).toBe('completed');
@@ -193,6 +198,7 @@ describe('Integration: Complete Session Lifecycle', () => {
 
     const statusAfterResult = await sessionStatusToolAfterComplete.handler({
       session_id: sessionId,
+      context_token: 'ctx-test',
     });
     const statusAfterParsed = parseToolResult(statusAfterResult);
     expect(statusAfterParsed.should_complete).toBeDefined();
@@ -276,12 +282,14 @@ describe('Integration: Complete Session Lifecycle', () => {
       chunk_ids: [chunkId1],
       mode: 'learning',
       estimated_duration: 15,
+      context_token: 'ctx-test',
     });
     const session1Id = parseToolResult(session1Result).session_id;
 
     await completeSessionTool.handler({
       session_id: session1Id,
       feedback: 'Completed math learning',
+      context_token: 'ctx-test',
     });
 
     const session2Result = await createSessionTool.handler({
@@ -289,6 +297,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       chunk_ids: [chunkId2],
       mode: 'review',
       estimated_duration: 20,
+      context_token: 'ctx-test',
     });
     const session2Id = parseToolResult(session2Result).session_id;
 
@@ -300,6 +309,7 @@ describe('Integration: Complete Session Lifecycle', () => {
     await completeSessionTool.handler({
       session_id: session2Id,
       feedback: 'Completed science review',
+      context_token: 'ctx-test',
     });
 
     const activeAfterCompleteResult = await getActiveSessionTool.handler({});
@@ -363,6 +373,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       chunk_ids: [chunkId1, chunkId2],
       mode: 'learning',
       estimated_duration: 20,
+      context_token: 'ctx-test',
     });
 
     const createParsed = parseToolResult(createResult);
@@ -424,6 +435,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       chunk_ids: [chunkId],
       mode: 'learning',
       estimated_duration: 15,
+      context_token: 'ctx-test',
     });
     const sessionId = parseToolResult(createResult).session_id;
 
@@ -447,6 +459,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       ],
       quality_scores: [4],
       time_spent_ms: 5000,
+      context_token: 'ctx-test',
     });
 
     const sessionStatusTool = server.tools.get('session_status');
@@ -455,6 +468,7 @@ describe('Integration: Complete Session Lifecycle', () => {
 
     const statusWithIdResult = await sessionStatusTool.handler({
       session_id: sessionId,
+      context_token: 'ctx-test',
     });
     const statusWithIdParsed = parseToolResult(statusWithIdResult);
     expect(statusWithIdParsed.chunks_completed).toBeDefined();

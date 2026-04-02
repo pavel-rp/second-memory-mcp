@@ -6,6 +6,13 @@ import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 export const SessionStatusInputShape = {
   session_id: z.string().min(1),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const SessionStatusInputSchema = z
@@ -24,6 +31,13 @@ export const CreateSessionToolInputShape = {
       "Use 'learning' if unsure."
   ),
   estimated_duration: z.number().min(1).max(480).optional(), // 1-480 minutes
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CreateSessionToolInputSchema = z
@@ -33,6 +47,13 @@ export const CreateSessionToolInputSchema = z
 export const CompleteSessionInputShape = {
   session_id: z.string().min(1),
   feedback: z.string().optional(),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CompleteSessionInputSchema = z
@@ -41,6 +62,13 @@ export const CompleteSessionInputSchema = z
 
 export const GetSessionByIdInputShape = {
   session_id: z.string().min(1),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const GetSessionByIdInputSchema = z
@@ -52,6 +80,13 @@ export const CreateSessionChunkToolInputShape = {
   chunk_id: z.string().min(1),
   status: z.enum(['pending', 'in_progress', 'completed']).default('pending'),
   time_spent_ms: z.number().min(0).default(0),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const CreateSessionChunkToolInputSchema = z

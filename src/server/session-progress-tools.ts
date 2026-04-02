@@ -134,6 +134,13 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
   const GetHistoricalFeedbackInputShape = {
     chunk_ids: z.array(z.string().min(1)).min(1).max(50),
     limit: z.number().min(1).max(20).default(5).optional(),
+    context_token: z
+      .string()
+      .min(1)
+      .describe(
+        'Token returned by init_agent_context. Required on every call. ' +
+          'Call init_agent_context at the start of every conversation to obtain this token.'
+      ),
   } as const;
 
   const GetHistoricalFeedbackInputSchema = z

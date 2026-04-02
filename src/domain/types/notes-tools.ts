@@ -30,6 +30,13 @@ export const AddNoteInputShape = {
     )
     .describe('Note content text'),
   author: NoteAuthor.describe('Who created the note: agent or user'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const AddNoteInputSchema = z.object(AddNoteInputShape).transform(toCamelCaseKeys);
@@ -39,6 +46,13 @@ export const AddNoteInputSchema = z.object(AddNoteInputShape).transform(toCamelC
 export const ListNotesInputShape = {
   target_type: NoteTargetType.describe('Type of entity to list notes for'),
   target_id: z.string().min(1, 'Target ID cannot be empty').describe('ID of the target entity'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const ListNotesInputSchema = z.object(ListNotesInputShape).transform(toCamelCaseKeys);
@@ -47,6 +61,13 @@ export const ListNotesInputSchema = z.object(ListNotesInputShape).transform(toCa
 
 export const DeleteNoteInputShape = {
   note_id: z.string().min(1, 'Note ID cannot be empty').describe('ID of the note to delete'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const DeleteNoteInputSchema = z.object(DeleteNoteInputShape).transform(toCamelCaseKeys);

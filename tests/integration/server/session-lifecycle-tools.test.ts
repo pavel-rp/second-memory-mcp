@@ -29,7 +29,7 @@ describe('session-lifecycle-tools', () => {
   describe('create_session', () => {
     it('creates session with mode only', async () => {
       const handler = server.tools.get('create_session')!.handler;
-      const result = await handler({ mode: 'learning' });
+      const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.session_id).toBeDefined();
       expect(parsed.status).toBe('created');
@@ -65,6 +65,7 @@ describe('session-lifecycle-tools', () => {
         mode: 'retrieval',
         chunk_ids: ['chunk-s1'],
         topic_id: 'topic-s',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
       expect(parsed.session_id).toBeDefined();
@@ -83,7 +84,7 @@ describe('session-lifecycle-tools', () => {
 
     it('returns active session after creation', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
-      await createHandler({ mode: 'learning' });
+      await createHandler({ mode: 'learning', context_token: 'ctx-test' });
 
       const handler = server.tools.get('get_active_session')!.handler;
       const result = await handler({});
@@ -96,18 +97,18 @@ describe('session-lifecycle-tools', () => {
   describe('get_session', () => {
     it('returns not_found for nonexistent session', async () => {
       const handler = server.tools.get('get_session')!.handler;
-      const result = await handler({ session_id: 'nonexistent' });
+      const result = await handler({ session_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('not_found');
     });
 
     it('returns session by ID', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
-      const createResult = await createHandler({ mode: 'learning' });
+      const createResult = await createHandler({ mode: 'learning', context_token: 'ctx-test' });
       const sessionId = parseResult(createResult).session_id;
 
       const handler = server.tools.get('get_session')!.handler;
-      const result = await handler({ session_id: sessionId });
+      const result = await handler({ session_id: sessionId, context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('found');
       expect(parsed.session).toBeDefined();
@@ -117,11 +118,15 @@ describe('session-lifecycle-tools', () => {
   describe('complete_session', () => {
     it('completes an active session', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
-      const createResult = await createHandler({ mode: 'learning' });
+      const createResult = await createHandler({ mode: 'learning', context_token: 'ctx-test' });
       const sessionId = parseResult(createResult).session_id;
 
       const handler = server.tools.get('complete_session')!.handler;
-      const result = await handler({ session_id: sessionId, feedback: 'Great session!' });
+      const result = await handler({
+        session_id: sessionId,
+        feedback: 'Great session!',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
       expect(parsed.session_id).toBe(sessionId);
       expect(parsed.status).toBe('completed');
@@ -130,20 +135,20 @@ describe('session-lifecycle-tools', () => {
 
     it('returns error for already completed session', async () => {
       const createHandler = server.tools.get('create_session')!.handler;
-      const createResult = await createHandler({ mode: 'learning' });
+      const createResult = await createHandler({ mode: 'learning', context_token: 'ctx-test' });
       const sessionId = parseResult(createResult).session_id;
 
       const completeHandler = server.tools.get('complete_session')!.handler;
-      await completeHandler({ session_id: sessionId });
+      await completeHandler({ session_id: sessionId, context_token: 'ctx-test' });
 
-      const result = await completeHandler({ session_id: sessionId });
+      const result = await completeHandler({ session_id: sessionId, context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });
 
     it('returns error for nonexistent session', async () => {
       const handler = server.tools.get('complete_session')!.handler;
-      const result = await handler({ session_id: 'nonexistent' });
+      const result = await handler({ session_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.success).toBe(false);
     });

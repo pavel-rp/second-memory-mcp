@@ -33,7 +33,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('list_learning_items')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed).toHaveLength(2);
@@ -46,7 +46,12 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('list_learning_items')!.handler;
 
-      await handler({ subject_filter: 'Math', due_only: true, limit: 10 });
+      await handler({
+        subject_filter: 'Math',
+        due_only: true,
+        limit: 10,
+        context_token: 'ctx-test',
+      });
 
       expect(mockFn).toHaveBeenCalledWith({
         subjectFilter: 'Math',
@@ -61,7 +66,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('list_learning_items')!.handler;
 
-      await handler({ is_leech: true });
+      await handler({ is_leech: true, context_token: 'ctx-test' });
 
       expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: true }));
     });
@@ -72,7 +77,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('list_learning_items')!.handler;
 
-      await handler({ is_leech: false });
+      await handler({ is_leech: false, context_token: 'ctx-test' });
 
       expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: false }));
     });
@@ -94,7 +99,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('list_learning_items')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -116,7 +121,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -133,7 +138,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
 
-      await handler({ subject_filter: 'Math', limit: 5 });
+      await handler({ subject_filter: 'Math', limit: 5, context_token: 'ctx-test' });
 
       expect(mockFn).toHaveBeenCalledWith({ subject: 'Math', limit: 5 });
     });
@@ -143,7 +148,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -168,7 +173,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -204,7 +209,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -231,7 +236,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -245,7 +250,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -259,7 +264,13 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 
-      await handler({ topic_id: 't1', subject_filter: 'CS', due_only: true, limit: 20 });
+      await handler({
+        topic_id: 't1',
+        subject_filter: 'CS',
+        due_only: true,
+        limit: 20,
+        context_token: 'ctx-test',
+      });
 
       expect(mockFn).toHaveBeenCalledWith({
         topicId: 't1',
@@ -275,7 +286,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 
-      await handler({ is_leech: true });
+      await handler({ is_leech: true, context_token: 'ctx-test' });
 
       expect(mockFn).toHaveBeenCalledWith(expect.objectContaining({ isLeech: true }));
     });
@@ -297,7 +308,7 @@ describe('query-tools', () => {
       registerQueryTools(server as any, ctx);
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);

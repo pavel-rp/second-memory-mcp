@@ -6,6 +6,13 @@ export const GetChunkContentInputShape = {
     .string()
     .min(1, 'Chunk ID cannot be empty')
     .describe('ID of the chunk to retrieve content for'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const GetChunkContentInputSchema = z
@@ -17,6 +24,13 @@ export const GetTopicSummaryInputShape = {
     .string()
     .min(1, 'Topic ID cannot be empty')
     .describe('ID of the topic to retrieve summary for'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
 } as const;
 
 export const GetTopicSummaryInputSchema = z
@@ -46,6 +60,13 @@ export const ListItemsWithContentInputShape = {
     .default(true)
     .describe(
       'Whether to include content fields (content, contentVersion, contentUpdatedAt) in the response'
+    ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
     ),
 } as const;
 

@@ -34,18 +34,21 @@ describe('notes-tools', () => {
         note_type: 'insight',
         content: 'User derived the proof independently',
         author: 'agent',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
       expect(parsed.id).toBe('note-1');
       expect(parsed.created_at).toBe('2023-11-14T22:13:20.000Z');
-      expect(ctx.createNote).toHaveBeenCalledWith({
-        targetType: 'chunk',
-        targetId: 'chunk-1',
-        noteType: 'insight',
-        content: 'User derived the proof independently',
-        author: 'agent',
-      });
+      expect(ctx.createNote).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetType: 'chunk',
+          targetId: 'chunk-1',
+          noteType: 'insight',
+          content: 'User derived the proof independently',
+          author: 'agent',
+        })
+      );
     });
 
     it('returns validation error for invalid target_type', async () => {
@@ -128,6 +131,7 @@ describe('notes-tools', () => {
         note_type: 'insight',
         content: 'content',
         author: 'agent',
+        context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
 
@@ -160,7 +164,11 @@ describe('notes-tools', () => {
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('list_notes')!.handler;
 
-      const result = await handler({ target_type: 'chunk', target_id: 'chunk-1' });
+      const result = await handler({
+        target_type: 'chunk',
+        target_id: 'chunk-1',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.notes).toHaveLength(1);
@@ -195,7 +203,11 @@ describe('notes-tools', () => {
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('list_notes')!.handler;
 
-      const result = await handler({ target_type: 'chunk', target_id: 'chunk-1' });
+      const result = await handler({
+        target_type: 'chunk',
+        target_id: 'chunk-1',
+        context_token: 'ctx-test',
+      });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -217,7 +229,7 @@ describe('notes-tools', () => {
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('delete_note')!.handler;
 
-      const result = await handler({ note_id: 'note-1' });
+      const result = await handler({ note_id: 'note-1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -228,7 +240,7 @@ describe('notes-tools', () => {
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('delete_note')!.handler;
 
-      const result = await handler({ note_id: 'nonexistent' });
+      const result = await handler({ note_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);
@@ -250,7 +262,7 @@ describe('notes-tools', () => {
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('delete_note')!.handler;
 
-      const result = await handler({ note_id: 'note-1' });
+      const result = await handler({ note_id: 'note-1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);

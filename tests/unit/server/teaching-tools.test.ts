@@ -276,6 +276,7 @@ describe('teaching-tools', () => {
       question_type: 'recall',
       feedback: 'Correct',
       time_spent_ms: 5000,
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -299,18 +300,21 @@ describe('teaching-tools', () => {
       question_type: 'recall',
       feedback: 'Wrong',
       time_spent_ms: 3000,
+      context_token: 'ctx-test',
     });
 
-    expect(ctx.submitAnswer).toHaveBeenCalledWith({
-      promptText: 'Q',
-      chunkIds: ['c1'],
-      response: 'A',
-      passed: false,
-      quality: 2,
-      questionType: 'recall',
-      feedback: 'Wrong',
-      timeSpentMs: 3000,
-    });
+    expect(ctx.submitAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        promptText: 'Q',
+        chunkIds: ['c1'],
+        response: 'A',
+        passed: false,
+        quality: 2,
+        questionType: 'recall',
+        feedback: 'Wrong',
+        timeSpentMs: 3000,
+      })
+    );
   });
 
   it('submit_answer returns validation error when neither inline nor retry fields provided', async () => {
@@ -345,6 +349,7 @@ describe('teaching-tools', () => {
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -375,7 +380,7 @@ describe('teaching-tools', () => {
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
-    const result = await handler({});
+    const result = await handler({ context_token: 'ctx-test' });
     const parsed = parseResult(result);
 
     expect(parsed.status).toBe('started');
@@ -390,6 +395,7 @@ describe('teaching-tools', () => {
 
     await handler({
       subject_filter: 'Math',
+      context_token: 'ctx-test',
     });
 
     expect(ctx.startLearning).toHaveBeenCalledWith({
@@ -414,7 +420,7 @@ describe('teaching-tools', () => {
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
-    const result = await handler({});
+    const result = await handler({ context_token: 'ctx-test' });
     const parsed = parseResult(result);
 
     expect(parsed.success).toBe(false);
@@ -446,6 +452,7 @@ describe('teaching-tools', () => {
         { prompt_text: 'What is X?', chunk_ids: ['c1'] },
         { prompt_text: 'Explain Y', chunk_ids: ['c1'] },
       ],
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -463,6 +470,7 @@ describe('teaching-tools', () => {
     await handler({
       session_id: 'sess-1',
       questions: [{ prompt_text: 'What is X?', chunk_ids: ['c1'] }],
+      context_token: 'ctx-test',
     });
 
     expect(ctx.createSessionQuestions).toHaveBeenCalledWith({
@@ -496,6 +504,7 @@ describe('teaching-tools', () => {
     const result = await handler({
       session_id: 'sess-1',
       questions: [{ prompt_text: 'Q', chunk_ids: ['c1'] }],
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -513,6 +522,7 @@ describe('teaching-tools', () => {
     const result = await handler({
       session_id: 'sess-1',
       questions: [{ prompt_text: 'Q', chunk_ids: ['c1'] }],
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -542,6 +552,7 @@ describe('teaching-tools', () => {
       feedback: 'Wrong',
       time_spent_ms: 3000,
       session_question_id: 'sq-1',
+      context_token: 'ctx-test',
     });
 
     expect(ctx.submitAnswer).toHaveBeenCalledWith(
@@ -564,6 +575,7 @@ describe('teaching-tools', () => {
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 
@@ -582,6 +594,7 @@ describe('teaching-tools', () => {
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
+      context_token: 'ctx-test',
     });
     const parsed = parseResult(result);
 

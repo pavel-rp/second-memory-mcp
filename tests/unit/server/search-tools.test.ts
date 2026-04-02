@@ -64,7 +64,7 @@ describe('search-tools', () => {
       registerSearchTools(server as any, ctx);
       const handler = server.tools.get('search_learning_content')!.handler;
 
-      const result = await handler({ query: 'arrays' });
+      const result = await handler({ query: 'arrays', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -79,7 +79,7 @@ describe('search-tools', () => {
       registerSearchTools(server as any, ctx);
       const handler = server.tools.get('search_learning_content')!.handler;
 
-      const result = await handler({ query: 'nonexistent' });
+      const result = await handler({ query: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -91,7 +91,7 @@ describe('search-tools', () => {
       registerSearchTools(server as any, ctx);
       const handler = server.tools.get('search_learning_content')!.handler;
 
-      const result = await handler({ query: 'topics' });
+      const result = await handler({ query: 'topics', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(true);
@@ -103,7 +103,7 @@ describe('search-tools', () => {
       registerSearchTools(server as any, ctx);
       const handler = server.tools.get('search_learning_content')!.handler;
 
-      const result = await handler({ query: 'test' });
+      const result = await handler({ query: 'test', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
       expect(parsed.success).toBe(false);

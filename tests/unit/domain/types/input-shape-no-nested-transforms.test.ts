@@ -76,6 +76,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
           condensed_summary: 'Key takeaway from chunk 1.',
         },
       ],
+      context_token: 'ctx-test',
     };
 
     // SDK pre-parse: uses InputShape (no transforms)
@@ -109,6 +110,7 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
         max_chunk_duration: 30,
         include_prerequisites: true,
       },
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(CreateTopicWithChunksInputShape).parse(input);
@@ -134,6 +136,7 @@ describe('RankCandidatesInputShape round-trip', () => {
           estimated_duration: 10,
         },
       ],
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(RankCandidatesInputShape).parse(input);
@@ -150,6 +153,7 @@ describe('RecommendationInputShape round-trip', () => {
     const input = {
       subject_filter: 'Math',
       limit: 5,
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(RecommendationInputShape).parse(input);
@@ -170,6 +174,7 @@ describe('BatchUpdateInputShape round-trip', () => {
           time_spent_ms: 5000,
         },
       ],
+      context_token: 'ctx-test',
     };
 
     const preParsed = z.object(BatchUpdateInputShape).parse(input);

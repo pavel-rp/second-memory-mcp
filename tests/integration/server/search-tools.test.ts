@@ -60,6 +60,7 @@ describe('search_learning_content tool', () => {
     const result = await tool.handler({
       query: 'segment tree',
       limit: 5,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -76,6 +77,7 @@ describe('search_learning_content tool', () => {
     const result = await tool.handler({
       query: 'nonexistent topic',
       limit: 3,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);

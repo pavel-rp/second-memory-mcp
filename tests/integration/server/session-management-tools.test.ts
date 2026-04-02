@@ -108,6 +108,7 @@ describe('Integration: Session Management Tools', () => {
       chunk_ids: ['chunk1', 'chunk2'],
       mode: 'learning',
       estimated_duration: 30,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -182,6 +183,7 @@ describe('Integration: Session Management Tools', () => {
 
     const result = await getSessionTool.handler({
       session_id: sessionId,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -194,6 +196,7 @@ describe('Integration: Session Management Tools', () => {
   it('should return not_found for non-existent session', async () => {
     const result = await getSessionTool.handler({
       session_id: 'nonexistent-session',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -225,6 +228,7 @@ describe('Integration: Session Management Tools', () => {
     const result = await completeSessionTool.handler({
       session_id: sessionId,
       feedback: 'Great session!',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -266,6 +270,7 @@ describe('Integration: Session Management Tools', () => {
 
     const result = await completeSessionTool.handler({
       session_id: sessionId,
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -286,6 +291,7 @@ describe('Integration: Session Management Tools', () => {
     const result = await completeSessionTool.handler({
       session_id: 'nonexistent-session',
       feedback: 'Test feedback',
+      context_token: 'ctx-test',
     });
 
     const parsed = parseToolResult(result);
@@ -295,6 +301,7 @@ describe('Integration: Session Management Tools', () => {
   it('should handle invalid input gracefully', async () => {
     const result1 = await createSessionTool.handler({
       mode: 'invalid_mode',
+      context_token: 'ctx-test',
     });
 
     const parsed1 = parseToolResult(result1);
@@ -303,12 +310,15 @@ describe('Integration: Session Management Tools', () => {
     const result2 = await createSessionTool.handler({
       mode: 'learning',
       estimated_duration: 500,
+      context_token: 'ctx-test',
     });
 
     const parsed2 = parseToolResult(result2);
     expect(parsed2.error).toBeDefined();
 
-    const result3 = await completeSessionTool.handler({});
+    const result3 = await completeSessionTool.handler({
+      context_token: 'ctx-test',
+    });
 
     const parsed3 = parseToolResult(result3);
     expect(parsed3.error).toBeDefined();
@@ -357,6 +367,7 @@ describe('Integration: Session Management Tools', () => {
       chunk_ids: [chunkId],
       mode: 'learning',
       estimated_duration: 30,
+      context_token: 'ctx-test',
     });
 
     const createParsed = parseToolResult(createResult);
@@ -403,6 +414,7 @@ describe('Integration: Session Management Tools', () => {
 
     const getResult = await getSessionTool.handler({
       session_id: sessionId,
+      context_token: 'ctx-test',
     });
 
     const getParsed = parseToolResult(getResult);
@@ -445,6 +457,7 @@ describe('Integration: Session Management Tools', () => {
     const completeResult = await completeSessionTool.handler({
       session_id: session1Id,
       feedback: 'Great session!',
+      context_token: 'ctx-test',
     });
     const completeParsed = parseToolResult(completeResult);
     expect(completeParsed.status).toBe('completed');
@@ -538,6 +551,7 @@ describe('Integration: Session Management Tools', () => {
       chunk_ids: ['bchunk1'],
       mode: 'learning',
       estimated_duration: 25,
+      context_token: 'ctx-test',
     });
     const created = parseToolResult(createOut);
     const sessionId = created.session_id;
@@ -570,6 +584,7 @@ describe('Integration: Session Management Tools', () => {
           time_spent_ms: 0,
         },
       ],
+      context_token: 'ctx-test',
     });
 
     const batchParsed = parseToolResult(batchOut);
@@ -601,6 +616,7 @@ describe('Integration: Session Management Tools', () => {
     const createOut = await createSessionTool.handler({
       mode: 'learning',
       estimated_duration: 25,
+      context_token: 'ctx-test',
     });
     const created = parseToolResult(createOut);
     const sessionId = created.session_id;
@@ -608,6 +624,7 @@ describe('Integration: Session Management Tools', () => {
     const batchOut = await batchUpdateChunksTool.handler({
       session_id: sessionId,
       operations: [{ chunk_id: 'does-not-exist', status: 'pending' }],
+      context_token: 'ctx-test',
     });
 
     const batchParsed = parseToolResult(batchOut);
@@ -615,11 +632,19 @@ describe('Integration: Session Management Tools', () => {
   });
 
   it('should reject creating second active session via MCP tool', async () => {
-    const result1 = await createSessionTool.handler({ mode: 'learning', estimated_duration: 30 });
+    const result1 = await createSessionTool.handler({
+      mode: 'learning',
+      estimated_duration: 30,
+      context_token: 'ctx-test',
+    });
     const parsed1 = parseToolResult(result1);
     expect(parsed1.status).toBe('created');
 
-    const result2 = await createSessionTool.handler({ mode: 'review', estimated_duration: 30 });
+    const result2 = await createSessionTool.handler({
+      mode: 'review',
+      estimated_duration: 30,
+      context_token: 'ctx-test',
+    });
     const parsed2 = parseToolResult(result2);
     expect(parsed2.message).toContain('Active session already exists');
   });
