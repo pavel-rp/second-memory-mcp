@@ -100,6 +100,63 @@ describe('Validation Error Messages', () => {
     }
   });
 
+  it('should provide clear error messages for chunk content min length', () => {
+    const chunkContentSchema = z
+      .string()
+      .min(
+        VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH,
+        'Chunk content must be at least 200 characters (2–3 sentences minimum)'
+      );
+
+    // Test content too short
+    const shortResult = chunkContentSchema.safeParse('Too short');
+    expect(shortResult.success).toBe(false);
+    if (!shortResult.success) {
+      expect(shortResult.error.errors[0].message).toBe(
+        'Chunk content must be at least 200 characters (2–3 sentences minimum)'
+      );
+    }
+
+    // Test content exactly at minimum
+    const exactResult = chunkContentSchema.safeParse('a'.repeat(200));
+    expect(exactResult.success).toBe(true);
+  });
+
+  it('should provide clear error messages for chunk array bounds', () => {
+    const chunkArraySchema = z
+      .array(z.object({ id: z.string() }))
+      .min(2, 'At least 2 chunks are required (single-item topics should use create_learning_item)')
+      .max(7, 'Maximum 7 chunks per topic');
+
+    // Test too few chunks (1)
+    const tooFew = chunkArraySchema.safeParse([{ id: '1' }]);
+    expect(tooFew.success).toBe(false);
+    if (!tooFew.success) {
+      expect(tooFew.error.errors[0].message).toBe(
+        'At least 2 chunks are required (single-item topics should use create_learning_item)'
+      );
+    }
+
+    // Test too many chunks (8)
+    const tooMany = chunkArraySchema.safeParse(
+      Array.from({ length: 8 }, (_, i) => ({ id: String(i) }))
+    );
+    expect(tooMany.success).toBe(false);
+    if (!tooMany.success) {
+      expect(tooMany.error.errors[0].message).toBe('Maximum 7 chunks per topic');
+    }
+
+    // Test exactly 2 (minimum boundary)
+    const exactMin = chunkArraySchema.safeParse([{ id: '1' }, { id: '2' }]);
+    expect(exactMin.success).toBe(true);
+
+    // Test exactly 7 (maximum boundary)
+    const exactMax = chunkArraySchema.safeParse(
+      Array.from({ length: 7 }, (_, i) => ({ id: String(i) }))
+    );
+    expect(exactMax.success).toBe(true);
+  });
+
   it('should provide clear error messages for chunk type validation', () => {
     const chunkTypeSchema = z.enum(['new', 'review', 'remediation'], {
       errorMap: () => ({ message: 'Chunk type must be one of: new, review, remediation' }),

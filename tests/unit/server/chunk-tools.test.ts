@@ -250,7 +250,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c1',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         reset_progress: true,
         context_token: 'ctx-test',
@@ -274,7 +275,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c1',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         context_token: 'ctx-test',
       });
@@ -294,7 +296,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c1',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         context_token: 'ctx-test',
       });
@@ -315,7 +318,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c-missing',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         context_token: 'ctx-test',
       });
@@ -332,7 +336,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c1',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         context_token: 'ctx-test',
       });
@@ -360,7 +365,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c1',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         context_token: 'ctx-test',
       });
@@ -384,7 +390,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c-missing',
-        content: 'Updated content for arrays that is long enough to pass validation.',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
         condensed_summary: 'Updated arrays summary.',
         context_token: 'ctx-test',
       });
@@ -547,7 +554,8 @@ describe('chunk-tools', () => {
 
       const result = await handler({
         chunk_id: 'c1',
-        content: 'New content for arrays that is long enough to pass validation check.',
+        content:
+          'New content for arrays covering contiguous memory allocation, constant-time element access by index, and the important trade-offs between arrays and linked lists. Arrays remain the most fundamental data structure in modern computer science and algorithm design.',
         force_reset: true,
         context_token: 'ctx-test',
       });

@@ -35,7 +35,10 @@ const TopicChunkShape = {
     .describe('Title for the learning chunk'),
   content: z
     .string()
-    .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Chunk content cannot be empty')
+    .min(
+      VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH,
+      `Chunk content must be at least ${VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH} characters (2–3 sentences minimum)`
+    )
     .max(
       VALIDATION_CONSTANTS.MAX_CONTENT_SIZE,
       `Chunk content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
@@ -151,8 +154,8 @@ export const CreateTopicWithChunksInputShape = {
     ),
   chunks: z
     .array(z.object(TopicChunkShape))
-    .min(1, 'At least one chunk is required')
-    .max(20, 'Maximum 20 chunks per topic')
+    .min(2, 'At least 2 chunks are required (single-item topics should use create_learning_item)')
+    .max(7, 'Maximum 7 chunks per topic')
     .describe('Array of chunk definitions'),
   user_preferences: z
     .object(TopicUserPreferencesShape)
@@ -245,7 +248,10 @@ export const UpdateChunkContentInputShape = {
   chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
   content: z
     .string()
-    .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Content cannot be empty')
+    .min(
+      VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH,
+      `Chunk content must be at least ${VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH} characters (2–3 sentences minimum)`
+    )
     .max(
       VALIDATION_CONSTANTS.MAX_CONTENT_SIZE,
       `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
@@ -320,7 +326,10 @@ export const UpdateChunkInputShape = {
   chunk_id: z.string().min(1, 'Chunk ID cannot be empty').describe('ID of the chunk to update'),
   content: z
     .string()
-    .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Content cannot be empty')
+    .min(
+      VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH,
+      `Chunk content must be at least ${VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH} characters (2–3 sentences minimum)`
+    )
     .max(
       VALIDATION_CONSTANTS.MAX_CONTENT_SIZE,
       `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`

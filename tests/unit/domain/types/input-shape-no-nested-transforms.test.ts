@@ -68,12 +68,24 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
         {
           id: 'c1',
           title: 'Chunk 1',
-          content: 'Content for chunk 1 that is long enough',
+          content:
+            'Content for chunk 1 covering fundamental mathematical concepts including algebra and arithmetic. This chunk provides the foundational knowledge needed to understand more advanced topics in the curriculum. Students should master these basics first.',
           difficulty: 5,
           estimated_duration: 15,
           order: 1,
           chunk_type: 'new',
           condensed_summary: 'Key takeaway from chunk 1.',
+        },
+        {
+          id: 'c2',
+          title: 'Chunk 2',
+          content:
+            'Content for chunk 2 covering intermediate mathematical concepts building on the foundations from chunk 1. This includes more complex operations and problem-solving techniques that are essential for progressing through the math curriculum effectively.',
+          difficulty: 6,
+          estimated_duration: 10,
+          order: 2,
+          chunk_type: 'new',
+          condensed_summary: 'Key takeaway from chunk 2.',
         },
       ],
       context_token: 'ctx-test',
@@ -97,11 +109,22 @@ describe('CreateTopicWithChunksInputShape round-trip', () => {
         {
           id: 'c1',
           title: 'Chunk 1',
-          content: 'Content for chunk 1 that is long enough',
+          content:
+            'Content for chunk 1 covering fundamental mathematical concepts including algebra and arithmetic. This chunk provides the foundational knowledge needed to understand more advanced topics in the curriculum. Students should master these basics first.',
           difficulty: 5,
           estimated_duration: 10,
           order: 1,
           condensed_summary: 'Key takeaway from chunk 1.',
+        },
+        {
+          id: 'c2',
+          title: 'Chunk 2',
+          content:
+            'Content for chunk 2 covering intermediate mathematical concepts building on the foundations from chunk 1. This includes more complex operations and problem-solving techniques that are essential for progressing through the math curriculum effectively.',
+          difficulty: 6,
+          estimated_duration: 10,
+          order: 2,
+          condensed_summary: 'Key takeaway from chunk 2.',
         },
       ],
       user_preferences: {

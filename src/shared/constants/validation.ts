@@ -12,4 +12,5 @@ export const VALIDATION_CONSTANTS = {
   MAX_CONTENT_SIZE: 8000, // ~2000 tokens — aligned with embedding chunk best practices
   MAX_SUMMARY_SIZE: 5000, // 5KB for topic summaries
   MIN_CONTENT_LENGTH: 1, // Minimum content length if provided
+  MIN_CHUNK_CONTENT_LENGTH: 200, // Minimum chunk content length (~2-3 sentences)
 } as const;
