@@ -406,6 +406,20 @@ describe('chunk-tools', () => {
 
       await expect(handler({ content: 'x' })).rejects.toThrow();
     });
+
+    it('throws ZodError for content shorter than minimum length', async () => {
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      await expect(
+        handler({
+          chunk_id: 'c1',
+          content: 'Too short',
+          condensed_summary: 'Summary.',
+          context_token: 'ctx-test',
+        })
+      ).rejects.toThrow('Chunk content must be at least');
+    });
   });
 
   // ---------------------------------------------------------------

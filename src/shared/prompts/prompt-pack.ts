@@ -1,4 +1,5 @@
 import type { TeachingApproach } from '../../domain/algorithms/classify-chunk.js';
+import { VALIDATION_CONSTANTS } from '../constants/validation.js';
 
 type PromptName =
   | 'scaffolding'
@@ -497,7 +498,7 @@ class PromptPack {
       'Produce 2–7 proposed chunks, each including:',
       '- title',
       '- order (1..n)',
-      '- content (2–3 sentence summary)',
+      `- content (2–3 sentences, at least ${VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH} characters)`,
       '- prerequisites (bulleted list or concise text)',
       '',
       'Constraints:',

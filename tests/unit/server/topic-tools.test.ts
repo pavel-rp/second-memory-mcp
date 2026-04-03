@@ -168,6 +168,38 @@ describe('topic-tools', () => {
       ).rejects.toThrow();
     });
 
+    it('throws ZodError for single chunk (minimum is 2)', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      await expect(
+        handler({
+          ...validInput,
+          chunks: [validInput.chunks[0]],
+          context_token: 'ctx-test',
+        })
+      ).rejects.toThrow('At least 2 chunks are required');
+    });
+
+    it('throws ZodError for more than 7 chunks', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const eightChunks = Array.from({ length: 8 }, (_, i) => ({
+        ...validInput.chunks[0],
+        id: `c${i + 1}`,
+        order: i + 1,
+      }));
+
+      await expect(
+        handler({
+          ...validInput,
+          chunks: eightChunks,
+          context_token: 'ctx-test',
+        })
+      ).rejects.toThrow('Maximum 7 chunks per topic');
+    });
+
     it('throws ZodError for invalid content_status in chunk', async () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('create_topic_with_chunks')!.handler;

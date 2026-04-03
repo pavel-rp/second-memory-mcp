@@ -254,7 +254,7 @@ export const UpdateChunkContentInputShape = {
     )
     .max(
       VALIDATION_CONSTANTS.MAX_CONTENT_SIZE,
-      `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
+      `Chunk content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
     )
     .describe('New content for the chunk'),
   reset_progress: z.boolean().optional().describe('Whether to reset spaced repetition progress'),
@@ -332,7 +332,7 @@ export const UpdateChunkInputShape = {
     )
     .max(
       VALIDATION_CONSTANTS.MAX_CONTENT_SIZE,
-      `Content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
+      `Chunk content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
     )
     .optional()
     .describe('New content for the chunk'),

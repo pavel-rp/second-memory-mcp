@@ -72,11 +72,22 @@ describe('persistence-tools', () => {
           {
             id: crypto.randomUUID(),
             title: 'Chunk 1',
-            content: 'Content for chunk 1',
+            content:
+              'Detailed explanation of the first fundamental science concept covered in this topic. This chunk provides the theoretical background and practical applications needed to build a solid foundation for understanding more advanced material in later chunks.',
             difficulty: 3,
             estimated_duration: 10,
             order: 1,
             condensed_summary: 'Key takeaway from chunk 1.',
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Chunk 2',
+            content:
+              'Comprehensive coverage of the second science concept building on the foundations from chunk 1. This includes additional examples, connections to related concepts, and exercises to reinforce understanding. Mastery of this material is essential for progressing further.',
+            difficulty: 4,
+            estimated_duration: 10,
+            order: 2,
+            condensed_summary: 'Key takeaway from chunk 2.',
           },
         ],
         context_token: 'ctx-test',
@@ -114,7 +125,8 @@ describe('persistence-tools', () => {
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
         chunk_id: 'nonexistent',
-        content: 'New content',
+        content:
+          'Detailed explanation of the fundamental concepts and principles involved in this learning chunk. This content covers the theoretical background, practical applications, and key relationships between different aspects of the subject matter for effective learning.',
         condensed_summary: 'Summary for nonexistent chunk.',
         context_token: 'ctx-test',
       });

@@ -101,24 +101,22 @@ describe('Validation Error Messages', () => {
   });
 
   it('should provide clear error messages for chunk content min length', () => {
+    const expectedMessage = `Chunk content must be at least ${VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH} characters (2–3 sentences minimum)`;
     const chunkContentSchema = z
       .string()
-      .min(
-        VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH,
-        'Chunk content must be at least 200 characters (2–3 sentences minimum)'
-      );
+      .min(VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH, expectedMessage);
 
     // Test content too short
     const shortResult = chunkContentSchema.safeParse('Too short');
     expect(shortResult.success).toBe(false);
     if (!shortResult.success) {
-      expect(shortResult.error.errors[0].message).toBe(
-        'Chunk content must be at least 200 characters (2–3 sentences minimum)'
-      );
+      expect(shortResult.error.errors[0].message).toBe(expectedMessage);
     }
 
     // Test content exactly at minimum
-    const exactResult = chunkContentSchema.safeParse('a'.repeat(200));
+    const exactResult = chunkContentSchema.safeParse(
+      'a'.repeat(VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH)
+    );
     expect(exactResult.success).toBe(true);
   });
 
