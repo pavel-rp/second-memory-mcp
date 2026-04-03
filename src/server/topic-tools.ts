@@ -47,6 +47,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
             topicDescription: input.topicDescription,
             subject: input.subject,
             topicSummary: input.topicSummary,
+            dependencyGraphType: input.dependencyGraphType,
             chunks: input.chunks,
           });
 

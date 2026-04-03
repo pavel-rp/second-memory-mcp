@@ -35,6 +35,7 @@ const CHUNK_COLUMNS_WITH_TOPIC = {
   tagsJson: learningChunks.tagsJson,
   contentStatus: learningChunks.contentStatus,
   condensedSummary: learningChunks.condensedSummary,
+  knowledgeType: learningChunks.knowledgeType,
   createdAt: learningChunks.createdAt,
   updatedAt: learningChunks.updatedAt,
   topicTitle: learningTopics.title,
@@ -121,6 +122,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
         content: learningChunks.content,
         contentVersion: learningChunks.contentVersion,
         contentUpdatedAt: learningChunks.contentUpdatedAt,
+        knowledgeType: learningChunks.knowledgeType,
       })
       .from(learningChunks)
       .where(eq(learningChunks.id, id));

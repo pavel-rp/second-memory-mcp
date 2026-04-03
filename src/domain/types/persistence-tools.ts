@@ -96,6 +96,20 @@ const TopicChunkShape = {
     .min(1, 'Condensed summary cannot be empty')
     .max(1000, 'Condensed summary cannot exceed 1000 characters')
     .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
+  knowledge_type: z
+    .enum(['fact', 'concept', 'procedure', 'principle'], {
+      errorMap: () => ({
+        message: 'Knowledge type must be one of: fact, concept, procedure, principle',
+      }),
+    })
+    .optional()
+    .describe(
+      "Classification of the knowledge component (Merrill's CDT): " +
+        "'fact' — a specific datum (name, date, constant, syntax); " +
+        "'concept' — a category with defining attributes; " +
+        "'procedure' — a sequence of steps toward a goal; " +
+        "'principle' — a cause-effect relationship or rule"
+    ),
 } as const;
 
 const TopicUserPreferencesShape = {
@@ -157,6 +171,21 @@ export const CreateTopicWithChunksInputShape = {
     .min(2, 'At least 2 chunks are required (single-item topics should use create_learning_item)')
     .max(7, 'Maximum 7 chunks per topic')
     .describe('Array of chunk definitions'),
+  dependency_graph_type: z
+    .enum(['linear_chain', 'convergent', 'divergent', 'single_root'], {
+      errorMap: () => ({
+        message:
+          'Dependency graph type must be one of: linear_chain, convergent, divergent, single_root',
+      }),
+    })
+    .optional()
+    .describe(
+      'Structure of the prerequisite graph within this topic: ' +
+        "'linear_chain' — A → B → C → D (each chunk depends on the previous); " +
+        "'convergent' — A,B → C (multiple prerequisites merge into a synthesis chunk); " +
+        "'divergent' — A → B,C (one foundational chunk branches into independent applications); " +
+        "'single_root' — A → B, A → C, A → D (one root, all others depend only on it)"
+    ),
   user_preferences: z
     .object(TopicUserPreferencesShape)
     .describe('Optional user preference overrides')
@@ -230,6 +259,20 @@ export const CreateLearningItemInputShape = {
     .default('final')
     .describe(
       "Content readiness: 'draft' for placeholder content, 'final' for teaching-ready content"
+    ),
+  knowledge_type: z
+    .enum(['fact', 'concept', 'procedure', 'principle'], {
+      errorMap: () => ({
+        message: 'Knowledge type must be one of: fact, concept, procedure, principle',
+      }),
+    })
+    .optional()
+    .describe(
+      "Classification of the knowledge component (Merrill's CDT): " +
+        "'fact' — a specific datum (name, date, constant, syntax); " +
+        "'concept' — a category with defining attributes; " +
+        "'procedure' — a sequence of steps toward a goal; " +
+        "'principle' — a cause-effect relationship or rule"
     ),
   context_token: z
     .string()

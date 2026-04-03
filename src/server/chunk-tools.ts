@@ -71,6 +71,7 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             contentVersion: 1,
             contentUpdatedAt: now,
             contentStatus: input.contentStatus,
+            knowledgeType: input.knowledgeType ?? null,
             createdAt: now,
             updatedAt: now,
             topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,

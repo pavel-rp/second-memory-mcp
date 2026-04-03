@@ -237,6 +237,70 @@ describe('topic-tools', () => {
       ).rejects.toThrow('Content status must be one of: draft, final');
     });
 
+    it('passes dependency_graph_type and knowledge_type through to ctx', async () => {
+      const mockFn = vi.fn().mockResolvedValue({
+        success: true,
+        topic: { topicId: 't1', topicTitle: 'T', chunks: [], createdAt: Date.now() },
+      });
+      ctx.createTopicWithChunks = mockFn;
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      await handler({
+        ...validInput,
+        dependency_graph_type: 'convergent',
+        chunks: [
+          { ...validInput.chunks[0], knowledge_type: 'concept' },
+          { ...validInput.chunks[1], knowledge_type: 'procedure' },
+        ],
+      });
+
+      const call = mockFn.mock.calls[0][0];
+      expect(call.dependencyGraphType).toBe('convergent');
+      expect(call.chunks[0].knowledgeType).toBe('concept');
+      expect(call.chunks[1].knowledgeType).toBe('procedure');
+    });
+
+    it('succeeds without dependency_graph_type and knowledge_type (optional)', async () => {
+      ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
+        success: true,
+        topic: { topicId: 't1', topicTitle: 'T', chunks: [], createdAt: Date.now() },
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.success).toBe(true);
+    });
+
+    it('throws ZodError for invalid knowledge_type', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      await expect(
+        handler({
+          ...validInput,
+          chunks: [{ ...validInput.chunks[0], knowledge_type: 'banana' }, validInput.chunks[1]],
+        })
+      ).rejects.toThrow('Knowledge type must be one of: fact, concept, procedure, principle');
+    });
+
+    it('throws ZodError for invalid dependency_graph_type', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      await expect(
+        handler({
+          ...validInput,
+          dependency_graph_type: 'invalid',
+        })
+      ).rejects.toThrow(
+        'Dependency graph type must be one of: linear_chain, convergent, divergent, single_root'
+      );
+    });
+
     it('uses fallback defaults when error object has no fields', async () => {
       ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
         success: false,

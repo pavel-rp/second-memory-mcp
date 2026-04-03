@@ -1,4 +1,4 @@
-import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.js';
+import type { LearningChunk, NewLearningChunk, KnowledgeType } from '../domain/types/entities.js';
 import type {
   ContentStatus,
   PaginatedLearningItemsResponse,
@@ -51,6 +51,7 @@ export type ChunkContentResult = {
   content: string | null;
   contentVersion: number | null;
   contentUpdatedAt: number | null;
+  knowledgeType: KnowledgeType | null;
 };
 
 /** Extended chunk with topic title. Optionally includes contentEmbedding (large vector, excluded by default). */

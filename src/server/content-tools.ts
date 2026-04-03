@@ -49,6 +49,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
               contentUpdatedAt: chunkContent.contentUpdatedAt
                 ? toIsoTimestamp(chunkContent.contentUpdatedAt)
                 : undefined,
+              knowledgeType: chunkContent.knowledgeType,
               sessionReminder:
                 'If conducting recall/review: Ensure you have created a session first ' +
                 'to access historical feedback about learner difficulties.',
@@ -98,6 +99,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
               subject: topicResult.subject,
               summary: topicResult.summary,
               summaryVersion: topicResult.summaryVersion,
+              dependencyGraphType: topicResult.dependencyGraphType,
               summaryUpdatedAt: topicResult.summaryUpdatedAt
                 ? toIsoTimestamp(topicResult.summaryUpdatedAt)
                 : null,

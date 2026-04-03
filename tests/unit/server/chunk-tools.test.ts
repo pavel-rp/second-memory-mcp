@@ -55,6 +55,8 @@ describe('chunk-tools', () => {
         contentVersion: null,
         contentUpdatedAt: null,
         contentStatus: 'final',
+        condensedSummary: null,
+        knowledgeType: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         topicTitle: 'Topic: CS - Arrays',
@@ -218,6 +220,43 @@ describe('chunk-tools', () => {
 
       await expect(handler({ ...validInput, content_status: 'invalid' })).rejects.toThrow(
         'Content status must be one of: draft, final'
+      );
+    });
+
+    it('passes knowledge_type through to ctx', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler({ ...validInput, knowledge_type: 'fact' });
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.knowledgeType).toBe('fact');
+    });
+
+    it('defaults knowledgeType to null when not provided', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler(validInput);
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.knowledgeType).toBeNull();
+    });
+
+    it('throws ZodError for invalid knowledge_type', async () => {
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await expect(handler({ ...validInput, knowledge_type: 'banana' })).rejects.toThrow(
+        'Knowledge type must be one of: fact, concept, procedure, principle'
       );
     });
 

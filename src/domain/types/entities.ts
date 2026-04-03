@@ -1,6 +1,9 @@
 import type { ContentStatus } from './recommendations.js';
 import type { QuestionType } from './teaching.js';
 
+export type KnowledgeType = 'fact' | 'concept' | 'procedure' | 'principle';
+export type DependencyGraphType = 'linear_chain' | 'convergent' | 'divergent' | 'single_root';
+
 // ── Learning Topics ──────────────────────────────────────────────
 
 export type LearningTopic = {
@@ -10,6 +13,7 @@ export type LearningTopic = {
   summary: string | null;
   summaryVersion: number | null;
   summaryUpdatedAt: number | null;
+  dependencyGraphType: DependencyGraphType | null;
   // summaryEmbedding is omitted: it is an infrastructure concern
   // managed exclusively by adapters (symmetric with contentEmbedding on chunks).
   createdAt: number;
@@ -23,6 +27,7 @@ export type NewLearningTopic = {
   summary?: string | null;
   summaryVersion?: number | null;
   summaryUpdatedAt?: number | null;
+  dependencyGraphType?: DependencyGraphType | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -51,6 +56,7 @@ export type LearningChunk = {
   contentUpdatedAt: number | null;
   contentStatus: ContentStatus;
   condensedSummary: string | null;
+  knowledgeType: KnowledgeType | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -75,6 +81,7 @@ export type NewLearningChunk = {
   contentUpdatedAt?: number | null;
   contentStatus?: ContentStatus;
   condensedSummary?: string | null;
+  knowledgeType?: KnowledgeType | null;
   createdAt: number;
   updatedAt: number;
 };

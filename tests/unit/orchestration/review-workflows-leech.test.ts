@@ -39,6 +39,7 @@ function makeLeechChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     chunkType: 'remediation',
     contentStatus: 'final',
     condensedSummary: null,
+    knowledgeType: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: null,

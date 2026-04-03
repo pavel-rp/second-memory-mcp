@@ -24,6 +24,9 @@ export const learningTopics = pgTable(
     summaryVersion: integer('summary_version').default(1), // versioning for summary content
     summaryUpdatedAt: bigint('summary_updated_at', { mode: 'number' }), // epoch ms, when summary was last updated
     summaryEmbedding: vector('summary_embedding', { dimensions: 1536 }), // pgvector: summary text embedding
+    dependencyGraphType: text('dependency_graph_type').$type<
+      'linear_chain' | 'convergent' | 'divergent' | 'single_root'
+    >(), // CHECK — enforced at DB level
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
   },
@@ -31,6 +34,10 @@ export const learningTopics = pgTable(
     index('idx_learning_topics_summary_embedding').using(
       'hnsw',
       table.summaryEmbedding.op('vector_cosine_ops')
+    ),
+    check(
+      'chk_dependency_graph_type',
+      sql`${table.dependencyGraphType} IN ('linear_chain', 'convergent', 'divergent', 'single_root')`
     ),
   ]
 );
@@ -60,6 +67,7 @@ export const learningChunks = pgTable(
     contentEmbedding: vector('content_embedding', { dimensions: 1536 }), // pgvector: content text embedding
     contentStatus: text('content_status').notNull().default('final').$type<'draft' | 'final'>(), // CHECK('draft','final') — enforced at DB level
     condensedSummary: text('condensed_summary'), // short distillation of key takeaway (2-4 sentences)
+    knowledgeType: text('knowledge_type').$type<'fact' | 'concept' | 'procedure' | 'principle'>(), // CHECK — enforced at DB level
     createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   },
@@ -72,6 +80,10 @@ export const learningChunks = pgTable(
     ),
     check('chk_chunk_type', sql`${table.chunkType} IN ('new', 'review', 'remediation')`),
     check('chk_content_status', sql`${table.contentStatus} IN ('draft', 'final')`),
+    check(
+      'chk_knowledge_type',
+      sql`${table.knowledgeType} IN ('fact', 'concept', 'procedure', 'principle')`
+    ),
   ]
 );
 

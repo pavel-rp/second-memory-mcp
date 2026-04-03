@@ -3,7 +3,12 @@ import type { TopicRepository } from '../ports/topic-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
-import type { LearningChunk, LearningTopic } from '../domain/types/entities.js';
+import type {
+  LearningChunk,
+  LearningTopic,
+  KnowledgeType,
+  DependencyGraphType,
+} from '../domain/types/entities.js';
 import type { ContentStatus } from '../domain/types/recommendations.js';
 import type { ServiceError } from '../domain/types/service-result.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
@@ -29,6 +34,7 @@ export type TopicWithChunks = {
   topicDescription: string;
   topicSummary?: string;
   subject: string;
+  dependencyGraphType: DependencyGraphType | null;
   chunks: Array<{
     id: string;
     title: string;
@@ -41,6 +47,7 @@ export type TopicWithChunks = {
     chunkType: string;
     contentStatus: ContentStatus;
     condensedSummary: string | null;
+    knowledgeType: KnowledgeType | null;
   }>;
   createdAt: number;
   updatedAt: number;
@@ -51,6 +58,7 @@ export type TopicCreationInput = {
   subject: string;
   topicDescription?: string;
   topicSummary: string;
+  dependencyGraphType?: DependencyGraphType;
   chunks: Array<{
     id: string;
     title: string;
@@ -62,6 +70,7 @@ export type TopicCreationInput = {
     chunkType: string;
     contentStatus?: ContentStatus;
     condensedSummary?: string;
+    knowledgeType?: KnowledgeType;
   }>;
 };
 
@@ -84,6 +93,7 @@ function toTopicWithChunks(
     topicDescription: description || '',
     topicSummary: topic.summary || undefined,
     subject: topic.subject,
+    dependencyGraphType: topic.dependencyGraphType,
     chunks: chunks.map((c, i) => ({
       id: c.id,
       title: c.title,
@@ -96,6 +106,7 @@ function toTopicWithChunks(
       chunkType: c.chunkType,
       contentStatus: c.contentStatus,
       condensedSummary: c.condensedSummary,
+      knowledgeType: c.knowledgeType,
     })),
     createdAt: topic.createdAt,
     updatedAt: topic.updatedAt,
@@ -117,6 +128,7 @@ export async function createTopicWithChunks(
         summary: input.topicSummary,
         summaryVersion: 1,
         summaryUpdatedAt: now,
+        dependencyGraphType: input.dependencyGraphType ?? null,
         createdAt: now,
         updatedAt: now,
       };
@@ -146,6 +158,7 @@ export async function createTopicWithChunks(
           contentUpdatedAt: chunkDef.content ? now : null,
           contentStatus: chunkDef.contentStatus ?? 'final',
           condensedSummary: chunkDef.condensedSummary ?? null,
+          knowledgeType: chunkDef.knowledgeType ?? null,
           createdAt: chunkCreatedAt,
           updatedAt: now,
         };
