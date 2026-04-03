@@ -37,7 +37,8 @@ describe('topic-tools', () => {
           {
             id: 'c1',
             title: 'Variables',
-            content: 'Learn about variables',
+            content:
+              'Variables are symbols that represent unknown or changeable values in mathematical expressions and equations. They form the foundation of algebra and allow us to express general relationships and patterns. Understanding variables is the first step toward solving equations.',
             difficulty: 2,
             estimated_duration: 10,
             order: 1,
@@ -46,7 +47,8 @@ describe('topic-tools', () => {
           {
             id: 'c2',
             title: 'Equations',
-            content: 'Learn about equations',
+            content:
+              'Equations are mathematical statements that assert the equality of two expressions connected by an equals sign. Solving equations involves finding the values of variables that make the statement true. This skill is fundamental to all areas of mathematics and science.',
             difficulty: 3,
             estimated_duration: 15,
             order: 2,

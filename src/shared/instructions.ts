@@ -21,7 +21,7 @@ ROLLING SESSION FLOW (manual chunk-by-chunk control)
 6. Call complete_session with the session_id from step 1 and optional feedback when the learner is done.
 
 CONTENT CREATION
-1. Use the scaffolding prompt to plan a topic (5-9 chunks).
+1. Use the scaffolding prompt to plan a topic (2-7 chunks).
 2. Use the chunk_generation prompt to produce chunk content.
 3. Call create_topic_with_chunks to persist the topic and all chunks in one operation.
 

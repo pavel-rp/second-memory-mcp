@@ -14,6 +14,11 @@ describe('VALIDATION_CONSTANTS', () => {
     expect(VALIDATION_CONSTANTS).toHaveProperty('MAX_CONTENT_SIZE');
     expect(VALIDATION_CONSTANTS).toHaveProperty('MAX_SUMMARY_SIZE');
     expect(VALIDATION_CONSTANTS).toHaveProperty('MIN_CONTENT_LENGTH');
+    expect(VALIDATION_CONSTANTS).toHaveProperty('MIN_CHUNK_CONTENT_LENGTH');
+  });
+
+  it('has correct MIN_CHUNK_CONTENT_LENGTH value', () => {
+    expect(VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH).toBe(200);
   });
 
   it('has sensible difficulty range', () => {

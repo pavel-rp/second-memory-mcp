@@ -1,4 +1,5 @@
 import type { TeachingApproach } from '../../domain/algorithms/classify-chunk.js';
+import { VALIDATION_CONSTANTS } from '../constants/validation.js';
 
 type PromptName =
   | 'scaffolding'
@@ -172,7 +173,7 @@ class PromptPack {
       '2) CHUNK BREAKDOWN: a reasonable number of logically ordered, digestible chunks',
       '2.1) CHUNK ORDER: the order of the chunks should be based on the logical progression of the concepts',
       '2.2) CHUNK CONTENT: Each chunk should contain a single digestible concept following cognitive load theory principles.',
-      '2.3) CHUNK NUMBER: the number of chunks should be based on the complexity of the concept. As a guideline: use 3–5 chunks for simple concepts, 5–8 for moderate complexity, and 8–12 for highly complex topics. Adjust as needed for optimal learning.',
+      '2.3) CHUNK NUMBER: the number of chunks should be based on the complexity of the concept. As a guideline: use 2–4 chunks for simple concepts and 5–7 for moderate to complex topics (maximum 7). Adjust as needed for optimal learning.',
       '3) PREREQUISITE MAPPING: what must be mastered before each chunk',
       '4) DIFFICULTY ASSESSMENT: overall difficulty (1–10)',
       '5) ESTIMATED TIMELINE: realistic progression',
@@ -342,7 +343,7 @@ class PromptPack {
       '   - Use authoritative sources, official documentation, and recent best practices',
       '   - Gather multiple perspectives and real-world examples',
       '   - Note any limitations if web search is unavailable',
-      "2) Intake problem → request 'scaffolding' prompt (produce 5–9 chunks)",
+      "2) Intake problem → request 'scaffolding' prompt (produce 2–7 chunks)",
       "3) For each chunk → request 'learning' prompt → conduct retrieval",
       '4) Retrieval checks enforce a two-attempt policy with immediate feedback',
       '5) After retrieval → call tools to schedule next review:',
@@ -494,10 +495,10 @@ class PromptPack {
       `DESCRIPTION: ${topicDescription}`,
       existingList,
       '',
-      'Produce 5–9 proposed chunks, each including:',
+      'Produce 2–7 proposed chunks, each including:',
       '- title',
       '- order (1..n)',
-      '- content (2–3 sentence summary)',
+      `- content (2–3 sentences, at least ${VALIDATION_CONSTANTS.MIN_CHUNK_CONTENT_LENGTH} characters)`,
       '- prerequisites (bulleted list or concise text)',
       '',
       'Constraints:',

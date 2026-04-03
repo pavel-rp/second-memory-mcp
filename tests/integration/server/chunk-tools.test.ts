@@ -113,7 +113,8 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
         chunk_id: 'nonexistent',
-        content: 'New content',
+        content:
+          'Detailed explanation of the fundamental concepts and principles involved in this learning chunk. This content covers the theoretical background, practical applications, and key relationships between different aspects of the subject matter for effective learning.',
         condensed_summary: 'Summary for nonexistent chunk.',
         context_token: 'ctx-test',
       });
@@ -138,7 +139,8 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
         chunk_id: chunkId,
-        content: 'Updated content',
+        content:
+          'Updated content covering the essential mathematical concepts and their practical applications. This revised material includes improved explanations, additional examples, and clearer connections between different topics to enhance the learning experience significantly.',
         condensed_summary: 'Updated content summary.',
         context_token: 'ctx-test',
       });
@@ -179,7 +181,8 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
         chunk_id: 'chunk-draft',
-        content: 'Finalized teaching content',
+        content:
+          'Finalized teaching content covering the complete mathematical foundations needed for this topic. This includes detailed explanations of core principles, worked examples demonstrating practical applications, and connections to related concepts for comprehensive understanding.',
         condensed_summary: 'Finalized teaching content summary.',
         context_token: 'ctx-test',
       });
@@ -237,7 +240,8 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('update_chunk')!.handler;
       const result = await handler({
         chunk_id: 'nonexistent',
-        content: 'New content',
+        content:
+          'Detailed explanation of the fundamental concepts and principles involved in this learning chunk. This content covers the theoretical background, practical applications, and key relationships between different aspects of the subject matter for effective learning.',
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
@@ -260,7 +264,8 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('update_chunk')!.handler;
       const result = await handler({
         chunk_id: chunkId,
-        content: 'Completely new content',
+        content:
+          'Completely rewritten content covering advanced mathematical concepts and their real-world applications. This comprehensive revision includes new theoretical frameworks, updated examples, and improved pedagogical approaches for more effective knowledge transfer and retention.',
         force_reset: true,
         context_token: 'ctx-test',
       });

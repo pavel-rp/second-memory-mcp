@@ -26,7 +26,7 @@ export function createMcpServer(ctx: AppContext): McpServer {
     'scaffolding',
     {
       title: 'Scaffolding Plan',
-      description: 'Create scaffolding plan (5–9 chunks)',
+      description: 'Create scaffolding plan (2–7 chunks)',
       argsSchema: { problem: z.string().describe('Learning problem statement') },
     },
     ({ problem }: { problem: string }) => ({
@@ -46,7 +46,7 @@ export function createMcpServer(ctx: AppContext): McpServer {
     'chunk_generation',
     {
       title: 'Chunk Generation',
-      description: 'Propose 5–9 chunks with fields',
+      description: 'Propose 2–7 chunks with fields',
       argsSchema: {
         topicTitle: z.string().describe('Topic title'),
         topicDescription: z.string().optional(),

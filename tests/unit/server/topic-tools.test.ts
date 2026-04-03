@@ -32,11 +32,22 @@ describe('topic-tools', () => {
         {
           id: 'c1',
           title: 'Arrays',
-          content: 'Arrays are contiguous memory blocks used for storing elements.',
+          content:
+            'Arrays are contiguous memory blocks used for storing elements of the same type. They provide O(1) random access by index and are the foundation of many higher-level data structures. Understanding arrays is essential for algorithm design.',
           difficulty: 3,
           estimated_duration: 10,
           order: 1,
           condensed_summary: 'Arrays store elements in contiguous memory blocks.',
+        },
+        {
+          id: 'c2',
+          title: 'Linked Lists',
+          content:
+            'Linked lists are dynamic data structures where each element (node) contains a value and a pointer to the next node. Unlike arrays, they allow efficient insertion and deletion at any position without shifting elements, but sacrifice random access performance.',
+          difficulty: 4,
+          estimated_duration: 10,
+          order: 2,
+          condensed_summary: 'Linked lists use nodes with pointers for dynamic insertion.',
         },
       ],
       context_token: 'ctx-test',
@@ -81,7 +92,8 @@ describe('topic-tools', () => {
           {
             id: 'c1',
             title: 'A',
-            content: 'Content for the chunk about arrays and data structures.',
+            content:
+              'Content for the chunk about arrays and data structures. Arrays provide constant-time access to elements by index and are stored in contiguous memory blocks. They are the most fundamental data structure in computer science and form the basis of many algorithms.',
             difficulty: 3,
             estimated_duration: 15,
             order: 1,
@@ -89,6 +101,16 @@ describe('topic-tools', () => {
             prerequisites: ['c0'],
             tags: ['ds'],
             condensed_summary: 'Arrays and data structures overview.',
+          },
+          {
+            id: 'c2',
+            title: 'B',
+            content:
+              'Linked lists are composed of nodes where each node holds a value and a reference to the next node. They excel at insertion and deletion operations but lack the random access capability of arrays. Singly and doubly linked variants exist for different use cases.',
+            difficulty: 4,
+            estimated_duration: 10,
+            order: 2,
+            condensed_summary: 'Linked lists use node-based storage.',
           },
         ],
         context_token: 'ctx-test',
@@ -146,6 +168,38 @@ describe('topic-tools', () => {
       ).rejects.toThrow();
     });
 
+    it('throws ZodError for single chunk (minimum is 2)', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      await expect(
+        handler({
+          ...validInput,
+          chunks: [validInput.chunks[0]],
+          context_token: 'ctx-test',
+        })
+      ).rejects.toThrow('At least 2 chunks are required');
+    });
+
+    it('throws ZodError for more than 7 chunks', async () => {
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const eightChunks = Array.from({ length: 8 }, (_, i) => ({
+        ...validInput.chunks[0],
+        id: `c${i + 1}`,
+        order: i + 1,
+      }));
+
+      await expect(
+        handler({
+          ...validInput,
+          chunks: eightChunks,
+          context_token: 'ctx-test',
+        })
+      ).rejects.toThrow('Maximum 7 chunks per topic');
+    });
+
     it('throws ZodError for invalid content_status in chunk', async () => {
       registerTopicTools(server as any, ctx);
       const handler = server.tools.get('create_topic_with_chunks')!.handler;
@@ -159,12 +213,24 @@ describe('topic-tools', () => {
             {
               id: 'c1',
               title: 'A',
-              content: 'Content that is long enough to pass validation.',
+              content:
+                'Content that covers arrays and their role in computer science. Arrays provide constant-time element access by index and are stored contiguously in memory. They are foundational to many algorithms and higher-level data structures used in practice.',
               difficulty: 3,
               estimated_duration: 10,
               order: 1,
               content_status: 'invalid',
               condensed_summary: 'Summary for validation test.',
+            },
+            {
+              id: 'c2',
+              title: 'B',
+              content:
+                'Linked lists are dynamic structures composed of nodes with values and next-pointers. They allow efficient insertion and deletion without shifting elements like arrays require. Both singly and doubly linked variants exist for different performance trade-offs.',
+              difficulty: 4,
+              estimated_duration: 10,
+              order: 2,
+              content_status: 'invalid',
+              condensed_summary: 'Linked lists overview.',
             },
           ],
         })

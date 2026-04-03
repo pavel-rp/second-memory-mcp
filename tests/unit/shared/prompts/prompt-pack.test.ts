@@ -102,7 +102,7 @@ describe('promptPack', () => {
       topicDescription: 'Basics',
       existingChunkTitles: ['Intro'],
     });
-    expect(text).toContain('Produce 5–9 proposed chunks');
+    expect(text).toContain('Produce 2–7 proposed chunks');
     expect(text).toContain('title');
     expect(text).toContain('order');
     expect(text).toContain('content');
@@ -276,7 +276,7 @@ describe('promptPack', () => {
       expect(scaffolding).toContain('ESTIMATED TIMELINE');
 
       const chunkGen = promptPack.getPrompt('chunk_generation', { topicTitle: 'Test Topic' });
-      expect(chunkGen).toContain('Produce 5–9 proposed chunks');
+      expect(chunkGen).toContain('Produce 2–7 proposed chunks');
       expect(chunkGen).toContain('title');
       expect(chunkGen).toContain('order');
       expect(chunkGen).toContain('content');
