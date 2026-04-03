@@ -31,6 +31,7 @@ export class DrizzleTopicRepository implements TopicRepository {
         summary: learningTopics.summary,
         summaryVersion: learningTopics.summaryVersion,
         summaryUpdatedAt: learningTopics.summaryUpdatedAt,
+        dependencyGraphType: learningTopics.dependencyGraphType,
         createdAt: learningTopics.createdAt,
         updatedAt: learningTopics.updatedAt,
       })

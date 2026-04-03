@@ -54,6 +54,7 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     chunkType: 'review',
     contentStatus: 'final',
     condensedSummary: null,
+    knowledgeType: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content',

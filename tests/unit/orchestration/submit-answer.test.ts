@@ -78,6 +78,7 @@ function makeLearningChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     chunkType: 'new',
     contentStatus: 'final',
     condensedSummary: null,
+    knowledgeType: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content about X...',

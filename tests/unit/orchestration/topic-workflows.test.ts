@@ -312,6 +312,65 @@ describe('createTopicWithChunks', () => {
     const createCall = (txPorts.chunks.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(createCall.condensedSummary).toBeNull();
   });
+
+  it('persists dependencyGraphType on topic when provided', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input: TopicCreationInput = {
+      ...inputWithContent(),
+      dependencyGraphType: 'convergent',
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    const topicCreate = (txPorts.topics.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(topicCreate.dependencyGraphType).toBe('convergent');
+    expect(result.topic!.dependencyGraphType).toBe('convergent');
+  });
+
+  it('persists null dependencyGraphType when omitted', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    const topicCreate = (txPorts.topics.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(topicCreate.dependencyGraphType).toBeNull();
+    expect(result.topic!.dependencyGraphType).toBeNull();
+  });
+
+  it('persists knowledgeType on chunks when provided', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input: TopicCreationInput = {
+      ...inputWithContent(),
+      chunks: [
+        {
+          ...inputWithContent().chunks[0],
+          knowledgeType: 'concept',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    const chunkCreate = (txPorts.chunks.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(chunkCreate.knowledgeType).toBe('concept');
+    expect(result.topic!.chunks[0].knowledgeType).toBe('concept');
+  });
+
+  it('persists null knowledgeType on chunks when omitted', async () => {
+    const { deps, txPorts } = stubDeps();
+    const input = inputWithContent();
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.success).toBe(true);
+    const chunkCreate = (txPorts.chunks.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(chunkCreate.knowledgeType).toBeNull();
+    expect(result.topic!.chunks[0].knowledgeType).toBeNull();
+  });
 });
 
 // --- updateTopicSummary ---
@@ -324,6 +383,7 @@ function stubTopic(overrides?: Partial<LearningTopic>): LearningTopic {
     summary: 'Old summary',
     summaryVersion: 1,
     summaryUpdatedAt: 1000,
+    dependencyGraphType: null,
     createdAt: 1000,
     updatedAt: 1000,
     ...overrides,

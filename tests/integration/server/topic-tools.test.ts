@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { registerTopicTools } from '../../../src/server/topic-tools.js';
+import { registerContentTools } from '../../../src/server/content-tools.js';
 import { createAppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
@@ -15,7 +16,9 @@ describe('topic-tools', () => {
   beforeEach(async () => {
     await cleanupTestDb();
     server = new CaptureServer();
-    registerTopicTools(server as any, createAppContext({ embedding: undefined }));
+    const ctx = createAppContext({ embedding: undefined });
+    registerTopicTools(server as any, ctx);
+    registerContentTools(server as any, ctx);
   });
   afterAll(teardownTestDb);
 
@@ -147,6 +150,122 @@ describe('topic-tools', () => {
       await expect(
         handler({ topic_id: 'topic-se', summary: '', context_token: 'ctx-test' })
       ).rejects.toThrow();
+    });
+  });
+
+  describe('knowledge_type and dependency_graph_type round-trip', () => {
+    it('persists and retrieves both fields', async () => {
+      const createHandler = server.tools.get('create_topic_with_chunks')!.handler;
+      const createResult = await createHandler({
+        topic_title: 'Graph Theory',
+        subject: 'Math',
+        topic_summary: 'Introduction to graph theory concepts and algorithms',
+        dependency_graph_type: 'convergent',
+        chunks: [
+          {
+            id: 'gt-c1',
+            title: 'Vertices and Edges',
+            content:
+              'A graph is composed of vertices (nodes) and edges (connections). Vertices represent entities while edges represent relationships between them. This fundamental model appears throughout computer science, mathematics, and network analysis.',
+            difficulty: 2,
+            estimated_duration: 10,
+            order: 1,
+            knowledge_type: 'concept',
+            condensed_summary: 'Graphs are vertices connected by edges.',
+          },
+          {
+            id: 'gt-c2',
+            title: 'BFS Algorithm',
+            content:
+              'Breadth-first search (BFS) is a graph traversal algorithm that visits all neighbors at the current depth before moving deeper. It uses a queue data structure and guarantees finding the shortest path in unweighted graphs. BFS runs in O(V+E) time complexity.',
+            difficulty: 4,
+            estimated_duration: 15,
+            order: 2,
+            knowledge_type: 'procedure',
+            condensed_summary: 'BFS explores graphs level-by-level using a queue.',
+          },
+        ],
+        context_token: 'ctx-test',
+      });
+      const created = parseResult(createResult);
+      expect(created.success).toBe(true);
+
+      // Retrieve topic summary — should include dependency_graph_type
+      const topicHandler = server.tools.get('get_topic_summary')!.handler;
+      const topicResult = await topicHandler({
+        topic_id: created.topic_id,
+        context_token: 'ctx-test',
+      });
+      const topic = parseResult(topicResult);
+      expect(topic.dependency_graph_type).toBe('convergent');
+
+      // Retrieve chunk content — should include knowledge_type
+      const chunkHandler = server.tools.get('get_chunk_content')!.handler;
+      const chunk1Result = await chunkHandler({
+        chunk_id: 'gt-c1',
+        context_token: 'ctx-test',
+      });
+      const chunk1 = parseResult(chunk1Result);
+      expect(chunk1.knowledge_type).toBe('concept');
+
+      const chunk2Result = await chunkHandler({
+        chunk_id: 'gt-c2',
+        context_token: 'ctx-test',
+      });
+      const chunk2 = parseResult(chunk2Result);
+      expect(chunk2.knowledge_type).toBe('procedure');
+    });
+
+    it('stores null when fields are omitted (backward compatible)', async () => {
+      const createHandler = server.tools.get('create_topic_with_chunks')!.handler;
+      const createResult = await createHandler({
+        topic_title: 'Basic Algebra',
+        subject: 'Math',
+        topic_summary: 'Fundamental algebra concepts for beginners',
+        chunks: [
+          {
+            id: 'ba-c1',
+            title: 'Variables',
+            content:
+              'Variables are symbols representing unknown values in mathematical expressions. They allow us to write general formulas and solve equations. Understanding variables is the first step in learning algebra.',
+            difficulty: 2,
+            estimated_duration: 10,
+            order: 1,
+            condensed_summary: 'Variables represent unknown values.',
+          },
+          {
+            id: 'ba-c2',
+            title: 'Equations',
+            content:
+              'Equations are mathematical statements that assert the equality of two expressions connected by an equals sign. Solving an equation means finding variable values that satisfy the equality. Linear equations are the simplest form with one unknown variable.',
+            difficulty: 3,
+            estimated_duration: 10,
+            order: 2,
+            condensed_summary: 'Equations express equality between expressions.',
+          },
+        ],
+        context_token: 'ctx-test',
+      });
+      const created = parseResult(createResult);
+      expect(created.success).toBe(true);
+
+      // Topic should have null dependency_graph_type
+      const topicHandler = server.tools.get('get_topic_summary')!.handler;
+      const topicResult = await topicHandler({
+        topic_id: created.topic_id,
+        context_token: 'ctx-test',
+      });
+      const topic = parseResult(topicResult);
+      expect(topic.dependency_graph_type).toBeNull();
+
+      // Chunk should have null knowledge_type
+      const chunkHandler = server.tools.get('get_chunk_content')!.handler;
+      const chunkResult = await chunkHandler({
+        chunk_id: 'ba-c1',
+        context_token: 'ctx-test',
+      });
+      const chunk = parseResult(chunkResult);
+      expect(chunk.knowledge_type).toBeNull();
     });
   });
 });
