@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import pg from 'pg';
 import { sql } from 'drizzle-orm';
+import { logger } from '../../shared/logger.js';
 let poolInstance: pg.Pool | undefined;
 
 function getDatabaseUrl(): string {
@@ -36,7 +37,17 @@ function getDatabaseUrl(): string {
 export function getPool(): pg.Pool {
   if (!poolInstance) {
     const connectionString = getDatabaseUrl();
-    poolInstance = new pg.Pool({ connectionString });
+    poolInstance = new pg.Pool({
+      connectionString,
+      max: 4,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
+    });
+    poolInstance.on('error', err => {
+      logger.warn('Idle pool client error', err);
+    });
   }
   return poolInstance;
 }
