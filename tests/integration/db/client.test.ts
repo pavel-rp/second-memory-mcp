@@ -18,6 +18,11 @@ describe('db/client', () => {
       const pool2 = getPool();
       expect(pool1).toBe(pool2);
     });
+
+    it('error handler absorbs pool errors without throwing', () => {
+      const pool = getPool();
+      expect(() => pool.emit('error', new Error('simulated idle client error'))).not.toThrow();
+    });
   });
 
   describe('resetDatabase', () => {
