@@ -109,7 +109,7 @@ const TopicChunkShape = {
         'Difficulty 4–6: 5–10 minutes. ' +
         'Difficulty 7–8: 8–15 minutes. ' +
         'Difficulty 9–10: 10–20 minutes. ' +
-        'If estimated duration exceeds 15 minutes, the chunk likely covers too much ' +
+        'If estimated duration exceeds 20 minutes, the chunk likely covers too much ' +
         'and should be split.'
     ),
   order: z
@@ -139,8 +139,8 @@ const TopicChunkShape = {
     .describe(
       "Classification of this chunk's role: " +
         '"new" — novel concept being introduced for the first time; ' +
-        '"review" — reinforcement of a previously taught concept (rarely used ' +
-        'in create — the system handles review scheduling automatically); ' +
+        '"review" — reinforcement of a previously taught concept (rarely used in ' +
+        'create — use only when importing externally-authored review material); ' +
         '"remediation" — targeted fix for a known misconception or gap.'
     ),
   content_status: z
@@ -257,8 +257,8 @@ export const CreateTopicWithChunksInputShape = {
     .max(7, 'Maximum 7 chunks per topic')
     .describe(
       'Array of 2–7 chunk definitions forming a dependency chain. Each chunk targets ' +
-        'ONE knowledge component. Order them by prerequisite sequence — chunk N should ' +
-        'only depend on chunks 1..N-1.'
+        "ONE knowledge component. Order them by prerequisite sequence — a chunk's " +
+        'order value must be greater than the order of all its prerequisites.'
     ),
   dependency_graph_type: z
     .enum(['linear_chain', 'convergent', 'divergent', 'single_root'], {
