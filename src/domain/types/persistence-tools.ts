@@ -24,7 +24,13 @@ export const ListLearningItemsInputSchema = z
   .transform(toCamelCaseKeys);
 
 const TopicChunkShape = {
-  id: z.string().min(1, 'Chunk ID cannot be empty').describe('Chunk identifier'),
+  id: z
+    .string()
+    .min(1, 'Chunk ID cannot be empty')
+    .describe(
+      'Unique identifier within the topic. Use descriptive slugs: ' +
+        '"binary-indexing-lsb" not "chunk-1".'
+    ),
   title: z
     .string()
     .min(1, 'Chunk title cannot be empty')
@@ -32,7 +38,12 @@ const TopicChunkShape = {
       VALIDATION_CONSTANTS.MAX_TITLE_LENGTH,
       `Chunk title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
     )
-    .describe('Title for the learning chunk'),
+    .describe(
+      'What this single knowledge component IS. Should be specific enough that ' +
+        'a quiz question could be generated from the title alone. ' +
+        'Good: "Least significant bit extraction using n & (-n)". ' +
+        'Bad: "Binary indexing basics" (too vague — what specifically?).'
+    ),
   content: z
     .string()
     .min(
@@ -43,7 +54,18 @@ const TopicChunkShape = {
       VALIDATION_CONSTANTS.MAX_CONTENT_SIZE,
       `Chunk content cannot exceed ${VALIDATION_CONSTANTS.MAX_CONTENT_SIZE} characters`
     )
-    .describe('Detailed learning content for the chunk'),
+    .describe(
+      'FULL TEACHING SCRIPT. This is the complete explanation a tutor would give ' +
+        'for this one concept. Must include: a clear definition or statement of the concept; ' +
+        'WHY it works or matters (not just what); at least one concrete example with walkthrough; ' +
+        'common misconceptions or edge cases (if applicable). ' +
+        'Target: 300–1500 words. This is NOT a summary — it is the material the system presents ' +
+        'during teaching and reteaching sessions. If this field contains only a brief paragraph, ' +
+        'the system cannot effectively teach or reteach the concept. ' +
+        'SINGLE-CONCEPT TEST: Can you ask ONE clear question whose answer requires ' +
+        "ONLY this chunk's content? If you need content from other chunks to form " +
+        'a meaningful question, this chunk covers too much or too little.'
+    ),
   difficulty: z
     .number()
     .int('Difficulty must be an integer')
@@ -55,23 +77,58 @@ const TopicChunkShape = {
       VALIDATION_CONSTANTS.MAX_DIFFICULTY,
       `Difficulty cannot exceed ${VALIDATION_CONSTANTS.MAX_DIFFICULTY}`
     )
-    .describe('Difficulty rating from 1-10'),
+    .describe(
+      'Difficulty rating 1–10 calibrated as follows: ' +
+        '1–3: Single fact or definition, minimal prerequisites (e.g., "what is a prefix sum"). ' +
+        '4–6: Concept requiring understanding of 1–2 prerequisite ideas ' +
+        '(e.g., "how Fenwick tree update uses LSB to traverse"). ' +
+        '7–8: Application requiring synthesis of multiple concepts ' +
+        '(e.g., "range update + point query via difference array on BIT"). ' +
+        '9–10: Advanced application, edge cases, or creative problem-solving. ' +
+        'Within a topic, difficulty should generally increase with chunk order. ' +
+        'A topic where difficulty jumps from 2 to 8 likely has missing intermediate chunks.'
+    ),
   prerequisites: z
     .array(z.string())
     .default([])
-    .describe('Chunk identifiers that should be completed beforehand'),
+    .describe(
+      'IDs of chunks within THIS topic that must be understood before this chunk ' +
+        'makes sense. This is STRUCTURAL dependency: "understanding X is impossible ' +
+        'without first understanding Y." Not topical relatedness. ' +
+        'First chunk in a topic typically has no prerequisites (empty array).'
+    ),
   estimated_duration: z
     .number()
     .int('Estimated duration must be an integer')
     .min(1, 'Estimated duration must be at least 1 minute')
     .max(120, 'Estimated duration cannot exceed 120 minutes')
-    .describe('Estimated time to study the chunk in minutes'),
+    .describe(
+      'Minutes for a learner to study this chunk for the FIRST TIME (not review). ' +
+        'Typical ranges by difficulty: ' +
+        'Difficulty 1–3: 2–5 minutes. ' +
+        'Difficulty 4–6: 5–10 minutes. ' +
+        'Difficulty 7–8: 8–15 minutes. ' +
+        'Difficulty 9–10: 10–20 minutes. ' +
+        'If estimated duration exceeds 15 minutes, the chunk likely covers too much ' +
+        'and should be split.'
+    ),
   order: z
     .number()
     .int()
     .min(1, 'Order must be at least 1')
-    .describe('Sequence order for the chunk'),
-  tags: z.array(z.string()).default([]).describe('Tags for the chunk'),
+    .describe(
+      'Sequence position (1-based). Must respect prerequisites: if chunk B lists ' +
+        'chunk A as a prerequisite, B.order must be greater than A.order.'
+    ),
+  tags: z
+    .array(z.string())
+    .default([])
+    .describe(
+      'Tags for cross-cutting categorization. Use for topical grouping that ' +
+        'crosses topic boundaries: ["fenwick-tree", "bit-manipulation", "range-query"]. ' +
+        'Tags are for DISCOVERY, not for scoping — they let learners find related ' +
+        'content across structurally independent topics.'
+    ),
   chunk_type: z
     .enum(['new', 'review', 'remediation'], {
       errorMap: () => ({
@@ -79,7 +136,13 @@ const TopicChunkShape = {
       }),
     })
     .default('new')
-    .describe('Chunk classification'),
+    .describe(
+      "Classification of this chunk's role: " +
+        '"new" — novel concept being introduced for the first time; ' +
+        '"review" — reinforcement of a previously taught concept (rarely used ' +
+        'in create — the system handles review scheduling automatically); ' +
+        '"remediation" — targeted fix for a known misconception or gap.'
+    ),
   content_status: z
     .enum(['draft', 'final'], {
       errorMap: () => ({
@@ -95,7 +158,12 @@ const TopicChunkShape = {
     .string()
     .min(1, 'Condensed summary cannot be empty')
     .max(1000, 'Condensed summary cannot exceed 1000 characters')
-    .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
+    .describe(
+      '2–4 sentence distillation of the key takeaway. Used for quick refreshers ' +
+        "when the learner's retrievability is low but not zero. Think: the sticky " +
+        'note a student writes after studying the full content. Should be self-contained ' +
+        'enough to trigger recognition without being detailed enough for full recall.'
+    ),
   knowledge_type: z
     .enum(['fact', 'concept', 'procedure', 'principle'], {
       errorMap: () => ({
@@ -142,12 +210,22 @@ export const CreateTopicWithChunksInputShape = {
       VALIDATION_CONSTANTS.MAX_TITLE_LENGTH,
       `Topic title cannot exceed ${VALIDATION_CONSTANTS.MAX_TITLE_LENGTH} characters`
     )
-    .describe('Title of the learning topic'),
+    .describe(
+      'Short, specific name for the dependency chain this topic covers. ' +
+        'Good: "Fenwick tree point-update operation". ' +
+        'Good: "Binary search on sorted arrays". ' +
+        'Bad: "Fenwick Trees" (too broad — likely multiple topics). ' +
+        'Bad: "Data structures" (way too broad).'
+    ),
   topic_description: z
     .string()
     .max(1000, 'Topic description cannot exceed 1000 characters')
     .optional()
-    .describe('Description of the learning topic'),
+    .describe(
+      'What the learner will be able to DO after mastering all chunks in this topic. ' +
+        'Frame as a capability, not a subject: "Perform point-update and prefix-query ' +
+        'operations on a Fenwick tree" not "Learn about Fenwick trees."'
+    ),
   subject: z
     .string()
     .min(1, 'Subject cannot be empty')
@@ -155,7 +233,11 @@ export const CreateTopicWithChunksInputShape = {
       VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH,
       `Subject cannot exceed ${VALIDATION_CONSTANTS.MAX_SUBJECT_LENGTH} characters`
     )
-    .describe('Subject or category for the topic'),
+    .describe(
+      'Broad category for organization. Examples: "algorithms", "machine-learning", ' +
+        '"spanish-vocabulary", "music-theory". Used for filtering, not for scoping — ' +
+        'multiple topics can share a subject.'
+    ),
   topic_summary: z
     .string()
     .min(VALIDATION_CONSTANTS.MIN_CONTENT_LENGTH, 'Topic summary cannot be empty')
@@ -164,13 +246,20 @@ export const CreateTopicWithChunksInputShape = {
       `Topic summary cannot exceed ${VALIDATION_CONSTANTS.MAX_SUMMARY_SIZE} characters`
     )
     .describe(
-      'Summary content for the topic (required — used to generate embeddings for semantic search)'
+      'Summary used for semantic search (generating embeddings). Should contain ' +
+        'the key technical terms, synonyms, and related concepts that a learner ' +
+        'might search for. Include alternative names (e.g., "Binary Indexed Tree" ' +
+        'for "Fenwick tree"). 1–3 paragraphs.'
     ),
   chunks: z
     .array(z.object(TopicChunkShape))
     .min(2, 'At least 2 chunks are required (single-item topics should use create_learning_item)')
     .max(7, 'Maximum 7 chunks per topic')
-    .describe('Array of chunk definitions'),
+    .describe(
+      'Array of 2–7 chunk definitions forming a dependency chain. Each chunk targets ' +
+        'ONE knowledge component. Order them by prerequisite sequence — chunk N should ' +
+        'only depend on chunks 1..N-1.'
+    ),
   dependency_graph_type: z
     .enum(['linear_chain', 'convergent', 'divergent', 'single_root'], {
       errorMap: () => ({
@@ -305,7 +394,12 @@ export const UpdateChunkContentInputShape = {
     .string()
     .min(1, 'Condensed summary cannot be empty')
     .max(1000, 'Condensed summary cannot exceed 1000 characters')
-    .describe('Short distillation of the key takeaway from this chunk (2-4 sentences)'),
+    .describe(
+      '2–4 sentence distillation of the key takeaway. Used for quick refreshers ' +
+        "when the learner's retrievability is low but not zero. Think: the sticky " +
+        'note a student writes after studying the full content. Should be self-contained ' +
+        'enough to trigger recognition without being detailed enough for full recall.'
+    ),
   context_token: z
     .string()
     .min(1)

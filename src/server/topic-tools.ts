@@ -33,9 +33,25 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
     {
       title: 'Create Topic with Chunks',
       description:
-        'Create a new learning topic with multiple scaffolded chunks in a single atomic operation. This is the primary tool for guided learning workflows. ' +
-        'Always call search_learning_content first to check for existing coverage. ' +
-        'Absence from the database does not mean the learner lacks the knowledge — assess the learner before creating.',
+        'Create a new learning topic with scaffolded chunks. A topic groups 2–7 chunks that ' +
+        'share a STRUCTURAL DEPENDENCY chain — they must be understood in relation to each other. ' +
+        'SCOPING RULE: The question is "does understanding chunk X REQUIRE understanding chunk Y?" ' +
+        'If yes → same topic. If they merely share a subject but can be learned independently → separate topics. ' +
+        'ANTI-PATTERN: Do NOT create a single topic called "Fenwick Trees" containing binary indexing, ' +
+        'prefix sums, point-update, and range-query. These are separate dependency chains. Instead: ' +
+        'create "Prefix sum computation" (standalone), "Binary indexing" (standalone), and ' +
+        '"Fenwick tree point-update" (requires both). Each is its own topic. ' +
+        'CHUNK SIZING: Each chunk targets exactly ONE knowledge component — a single fact, concept, ' +
+        'rule, or procedure step that can be independently tested and scheduled. A chunk should not ' +
+        'require the learner to simultaneously process more than 2–3 novel interacting concepts. ' +
+        'If you find yourself writing "X, Y, and Z" as the core of one chunk, that is likely 2–3 chunks. ' +
+        'CONTENT FIELD: Write a complete teaching script — the full explanation a tutor would give, ' +
+        'including definitions, reasoning, examples, and edge cases. This is NOT a summary; it is ' +
+        'the primary teaching material the system uses during learning sessions. Target 300–1500 words. ' +
+        'CONDENSED_SUMMARY FIELD: A 2–4 sentence distillation used for quick refreshers when the ' +
+        'learner\'s memory is fading but not gone. Think "the TL;DR a student writes on a sticky note." ' +
+        'Always call search_learning_content first to check for existing coverage. Absence from the ' +
+        'database does not mean the learner lacks the knowledge — assess the learner before creating.',
       inputSchema: CreateTopicWithChunksInputShape,
     },
     async (rawInput: unknown) =>
