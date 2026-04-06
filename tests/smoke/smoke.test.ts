@@ -198,6 +198,7 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
 
   it('session_status returns error for nonexistent session_id', async () => {
     expect(sessionId).toBeDefined();
+    expect(contextToken).toBeDefined();
 
     const res = await mcpPost(
       jsonRpcRequest('tools/call', {
@@ -221,8 +222,10 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
 
     const parsed = JSON.parse(body.result!.content![0]!.text) as {
       success?: boolean;
+      error?: { type?: string };
     };
     expect(parsed.success).toBe(false);
+    expect(parsed.error?.type).toBe('not_found');
   });
 
   // ── Session cleanup ────────────────────────────────────
