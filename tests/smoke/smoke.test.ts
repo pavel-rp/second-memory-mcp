@@ -98,6 +98,7 @@ describe.skipIf(!BASE_URL)('Public endpoints', () => {
 
 describe.skipIf(!BASE_URL)('Smoke tests', () => {
   let sessionId: string | undefined;
+  let contextToken: string | undefined;
 
   // ── Initialize handshake ────────────────────────────────
 
@@ -134,15 +135,45 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     expect(res.status).toBeLessThan(400);
   });
 
-  // ── list_learning_items (DB connectivity) ──────────────
+  // ── init_agent_context (obtain context_token) ──────────
 
-  it('list_learning_items returns valid response', async () => {
+  it('init_agent_context returns a context_token', async () => {
     expect(sessionId).toBeDefined();
 
     const res = await mcpPost(
       jsonRpcRequest('tools/call', {
-        name: 'list_learning_items',
+        name: 'init_agent_context',
         arguments: {},
+      }),
+      sessionId
+    );
+
+    expect(res.status).toBe(200);
+
+    const body = (await parseResponse(res)) as {
+      result?: { content?: Array<{ type: string; text: string }> };
+    };
+    expect(body.result?.content?.[0]?.text).toBeDefined();
+
+    const parsed = JSON.parse(body.result!.content![0]!.text) as {
+      context_token?: string;
+      status?: string;
+    };
+    expect(parsed.context_token).toBeDefined();
+    expect(parsed.status).toBe('initialized');
+    contextToken = parsed.context_token;
+  });
+
+  // ── list_learning_items (DB connectivity) ──────────────
+
+  it('list_learning_items returns valid response', async () => {
+    expect(sessionId).toBeDefined();
+    expect(contextToken).toBeDefined();
+
+    const res = await mcpPost(
+      jsonRpcRequest('tools/call', {
+        name: 'list_learning_items',
+        arguments: { context_token: contextToken },
       }),
       sessionId
     );
@@ -167,11 +198,13 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
 
   it('session_status returns error for nonexistent session_id', async () => {
     expect(sessionId).toBeDefined();
+    expect(contextToken).toBeDefined();
 
     const res = await mcpPost(
       jsonRpcRequest('tools/call', {
         name: 'session_status',
         arguments: {
+          context_token: contextToken,
           session_id: 'smoke-nonexistent-session',
         },
       }),
@@ -189,8 +222,10 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
 
     const parsed = JSON.parse(body.result!.content![0]!.text) as {
       success?: boolean;
+      error?: { type?: string };
     };
     expect(parsed.success).toBe(false);
+    expect(parsed.error?.type).toBe('not_found');
   });
 
   // ── Session cleanup ────────────────────────────────────
