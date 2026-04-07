@@ -124,22 +124,20 @@ function makeDeps(overrides?: {
 
 describe('buildLearnerContext', () => {
   it('returns all fields with correct types and values when ports return data', async () => {
-    const allChunks = [
-      makeChunkMinimal({ id: 'c1', topicId: 'topic-1', easeFactor: 2.5 }),
-      makeChunkMinimal({ id: 'c2', topicId: 'topic-2', easeFactor: 2.8 }),
-    ];
     // c1 is overdue (nextReviewAt before today), c2 is due today
-    const dueChunks = [
+    const allChunks = [
       makeChunkMinimal({
         id: 'c1',
         topicId: 'topic-1',
         subject: 'CS',
+        easeFactor: 2.5,
         nextReviewAt: TODAY_START_MS - MS_PER_DAY,
       }),
       makeChunkMinimal({
         id: 'c2',
         topicId: 'topic-2',
         subject: 'Math',
+        easeFactor: 2.8,
         nextReviewAt: TODAY_START_MS + 3_600_000,
       }),
     ];
@@ -158,7 +156,6 @@ describe('buildLearnerContext', () => {
     const batchFetchMinimal = vi
       .fn()
       .mockResolvedValueOnce(allChunks)
-      .mockResolvedValueOnce(dueChunks)
       .mockResolvedValueOnce(leechChunks);
 
     const deps = makeDeps({
@@ -327,11 +324,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce(allChunks)
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce(allChunks).mockResolvedValueOnce([]),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue(qualityWeak) },
@@ -360,11 +353,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce(overdueChunks)
-          .mockResolvedValueOnce(overdueChunks)
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce(overdueChunks).mockResolvedValueOnce([]),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
@@ -390,11 +379,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce(chunks)
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce(chunks).mockResolvedValueOnce([]),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
@@ -418,11 +403,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce(dueChunks)
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce(dueChunks).mockResolvedValueOnce([]),
       },
     });
 
@@ -467,21 +448,19 @@ describe('buildLearnerContext', () => {
   });
 
   it('dueToday counts only chunks due today, not overdue from previous days', async () => {
-    const dueChunks = [
+    const allChunks = [
       // Overdue (before today start)
       makeChunkMinimal({ id: 'c-overdue', nextReviewAt: TODAY_START_MS - MS_PER_DAY }),
       // Due today (between today start and tomorrow start)
       makeChunkMinimal({ id: 'c-today-1', nextReviewAt: TODAY_START_MS + 1000 }),
       makeChunkMinimal({ id: 'c-today-2', nextReviewAt: TODAY_START_MS + 3_600_000 }),
+      // Future (not due yet)
+      makeChunkMinimal({ id: 'c-future', nextReviewAt: TODAY_START_MS + 2 * MS_PER_DAY }),
     ];
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce(dueChunks)
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce(allChunks).mockResolvedValueOnce([]),
       },
     });
 
@@ -511,11 +490,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce(overdueChunks)
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce(overdueChunks).mockResolvedValueOnce([]),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
@@ -545,8 +520,8 @@ describe('buildLearnerContext', () => {
 
     await buildLearnerContext(deps, NOW);
 
-    // batchFetchMinimal called 3 times: all, due, leech
-    expect(batchFetchChunks).toHaveBeenCalledTimes(3);
+    // batchFetchMinimal called 2 times: all, leech
+    expect(batchFetchChunks).toHaveBeenCalledTimes(2);
     expect(batchFetchTopics).toHaveBeenCalledTimes(1);
     expect(getActiveSession).toHaveBeenCalledTimes(1);
     expect(listSessions).toHaveBeenCalledTimes(1);
@@ -574,11 +549,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi
-          .fn()
-          .mockResolvedValueOnce([lowEaseChunk])
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValueOnce([lowEaseChunk]).mockResolvedValueOnce([]),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue(qualityWeak) },

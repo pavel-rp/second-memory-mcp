@@ -92,7 +92,6 @@ export async function buildLearnerContext(
   // Fire all port queries in parallel
   const [
     allChunks,
-    dueChunks,
     leechChunks,
     allTopics,
     activeSession,
@@ -101,7 +100,6 @@ export async function buildLearnerContext(
     recentReviews,
   ] = await Promise.all([
     deps.chunks.batchFetchMinimal(),
-    deps.chunks.batchFetchMinimal({ dueOnly: true }),
     deps.chunks.batchFetchMinimal({ isLeech: true }),
     deps.topics.batchFetchMinimal(),
     deps.sessions.getActiveSession(),
@@ -110,14 +108,15 @@ export async function buildLearnerContext(
     deps.reviewPersistence.getReviewsByDateRange(sevenDaysAgo, tomorrow),
   ]);
 
-  // Partition due chunks into dueToday vs overdue
+  // Partition all chunks into dueToday vs overdue using day boundaries
+  // (avoids relying on dueOnly filter which uses Date.now() and misses items due later today)
   const todayStartMs = todayStart.getTime();
   const tomorrowMs = tomorrow.getTime();
   let dueToday = 0;
   let overdue = 0;
   const overdueChunksByTopic = new Map<string, ChunkMinimalMetadata[]>();
 
-  for (const chunk of dueChunks) {
+  for (const chunk of allChunks) {
     if (chunk.nextReviewAt < todayStartMs) {
       overdue++;
       const arr = overdueChunksByTopic.get(chunk.topicId) ?? [];
@@ -148,11 +147,11 @@ export async function buildLearnerContext(
   overdueTopics.sort((a, b) => b.daysOverdue - a.daysOverdue);
   overdueTopics.splice(MAX_OVERDUE_TOPICS);
 
-  // Build recentSubjects: deduplicate subjects from due chunks, cap at 5
+  // Build recentSubjects: deduplicate subjects from due chunks (overdue + due today), cap at 5
   const seenSubjects = new Set<string>();
   const recentSubjects: string[] = [];
-  for (const chunk of dueChunks) {
-    if (chunk.subject && !seenSubjects.has(chunk.subject)) {
+  for (const chunk of allChunks) {
+    if (chunk.nextReviewAt < tomorrowMs && chunk.subject && !seenSubjects.has(chunk.subject)) {
       seenSubjects.add(chunk.subject);
       recentSubjects.push(chunk.subject);
       if (recentSubjects.length >= MAX_RECENT_SUBJECTS) break;
