@@ -3,6 +3,7 @@ import type { ChunkRepository, ChunkMinimalMetadata } from '../ports/chunk-repos
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
+import { LEECH_CHUNK_TYPE } from '../domain/types/recommendations.js';
 
 export type LearnerContextDeps = {
   chunks: ChunkRepository;
@@ -221,7 +222,7 @@ export async function buildLearnerContext(
     recentSessionSummary,
     flaggedWeakAreas,
     streakDays,
-    leechCount: allChunks.filter(c => c.chunkType === 'remediation').length,
+    leechCount: allChunks.filter(c => c.chunkType === LEECH_CHUNK_TYPE).length,
     activeSession: activeSessionResult,
   };
 }

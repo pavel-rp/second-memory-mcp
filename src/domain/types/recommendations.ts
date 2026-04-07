@@ -3,6 +3,7 @@ import { toCamelCaseKeys } from '../../shared/case-convert.js';
 
 // Learning item chunk types
 export type ChunkType = 'new' | 'review' | 'remediation';
+export const LEECH_CHUNK_TYPE: ChunkType = 'remediation';
 
 // Content readiness status
 export type ContentStatus = 'draft' | 'final';
