@@ -56,4 +56,5 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     recencyWindowMs: 172_800_000, // 48 hours
   },
   maxDependencyDepth: 5,
+  weakAreaEaseThreshold: 2.5,
 };
