@@ -162,6 +162,7 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     };
     expect(parsed.context_token).toBeDefined();
     expect(parsed.status).toBe('initialized');
+    // null is acceptable (graceful degradation); we only verify the field exists
     expect(parsed.learner_context).toBeDefined();
     contextToken = parsed.context_token;
   });

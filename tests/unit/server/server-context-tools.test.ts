@@ -106,7 +106,7 @@ describe('server-context-tools', () => {
     expect(lc).toHaveProperty('active_session', null);
   });
 
-  it('learner_context is null when buildLearnerContext throws', async () => {
+  it('gracefully degrades to null learner_context when buildLearnerContext throws', async () => {
     const ctx = makeCtx({
       buildLearnerContext: async () => {
         throw new Error('learner context db failure');
@@ -117,19 +117,6 @@ describe('server-context-tools', () => {
     const result = parseResult(await handler());
 
     expect(result.learner_context).toBeNull();
-    expect(result.context_token).toBe('ctx-test-token-stub');
-  });
-
-  it('init still succeeds when buildLearnerContext fails', async () => {
-    const ctx = makeCtx({
-      buildLearnerContext: async () => {
-        throw new Error('learner context db failure');
-      },
-    });
-    registerServerContextTools(server as any, ctx);
-    const handler = server.tools.get('init_agent_context')!.handler;
-    const result = parseResult(await handler());
-
     expect(result.status).toBe('initialized');
     expect(result.context_token).toBe('ctx-test-token-stub');
     expect(result.domain_rules).toBeDefined();

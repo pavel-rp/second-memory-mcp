@@ -22,10 +22,12 @@ export function registerServerContextTools(server: McpServer, ctx: AppContext): 
     async () =>
       withRequestContext('init_agent_context', async () => {
         try {
-          const safeLearnerContext = ctx.buildLearnerContext().catch(err => {
-            getRequestLogger().warn({ err }, 'buildLearnerContext failed — returning null');
-            return null;
-          });
+          const safeLearnerContext = Promise.resolve()
+            .then(() => ctx.buildLearnerContext())
+            .catch(err => {
+              getRequestLogger().warn({ err }, 'buildLearnerContext failed — returning null');
+              return null;
+            });
 
           const [contextToken, learnerContext] = await Promise.all([
             ctx.createContextToken(),

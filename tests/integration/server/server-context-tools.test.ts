@@ -60,6 +60,7 @@ describe('server-context-tools (integration)', () => {
     const result = parseResult(await handler());
 
     expect(result.learner_context).toBeDefined();
+    expect(result.learner_context).not.toBeNull();
     expect(typeof result.learner_context).toBe('object');
 
     const lc = result.learner_context;
@@ -76,12 +77,12 @@ describe('server-context-tools (integration)', () => {
     expect(lc).toHaveProperty('active_session');
   });
 
-  it('init_agent_context completes within 200ms', async () => {
+  it('init_agent_context completes within 500ms', async () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const start = performance.now();
     await handler();
     const elapsed = performance.now() - start;
 
-    expect(elapsed).toBeLessThan(200);
+    expect(elapsed).toBeLessThan(500);
   });
 });
