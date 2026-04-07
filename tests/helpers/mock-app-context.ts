@@ -1,5 +1,6 @@
 import type { AppContext } from '../../src/composition-root.js';
 import type { DailyKpis, AnalyticsOutput } from '../../src/domain/types/analytics.js';
+import type { LearnerContext } from '../../src/orchestration/learner-context-workflows.js';
 import { mapChunkRowToLearningItem } from '../../src/shared/chunk-mapping.js';
 import {
   calculateNextReview,
@@ -48,6 +49,21 @@ export function createMockAppContext(
     computeWindowAnalytics: async (): Promise<AnalyticsOutput> => ({
       days: [],
       total: { reviews_completed: 0, average_quality: 0, new_chunks_learned: 0, streak_days: 0 },
+    }),
+
+    // Learner context stub (override with vi.fn() for specific values or error cases)
+    buildLearnerContext: async (): Promise<LearnerContext> => ({
+      totalTopics: 0,
+      totalChunks: 0,
+      dueToday: 0,
+      overdue: 0,
+      overdueTopics: [],
+      recentSubjects: [],
+      recentSessionSummary: null,
+      flaggedWeakAreas: [],
+      streakDays: 0,
+      leechCount: 0,
+      activeSession: null,
     }),
 
     // Context token stub (override with vi.fn() for specific token values or error cases)

@@ -54,4 +54,34 @@ describe('server-context-tools (integration)', () => {
     expect(typeof result.workflow_summary).toBe('string');
     expect(result.workflow_summary.length).toBeGreaterThan(0);
   });
+
+  it('full response includes learner_context with real database data', async () => {
+    const handler = server.tools.get('init_agent_context')!.handler;
+    const result = parseResult(await handler());
+
+    expect(result.learner_context).toBeDefined();
+    expect(typeof result.learner_context).toBe('object');
+
+    const lc = result.learner_context;
+    expect(lc).toHaveProperty('total_topics');
+    expect(lc).toHaveProperty('total_chunks');
+    expect(lc).toHaveProperty('due_today');
+    expect(lc).toHaveProperty('overdue');
+    expect(lc).toHaveProperty('overdue_topics');
+    expect(lc).toHaveProperty('recent_subjects');
+    expect(lc).toHaveProperty('recent_session_summary');
+    expect(lc).toHaveProperty('flagged_weak_areas');
+    expect(lc).toHaveProperty('streak_days');
+    expect(lc).toHaveProperty('leech_count');
+    expect(lc).toHaveProperty('active_session');
+  });
+
+  it('init_agent_context completes within 200ms', async () => {
+    const handler = server.tools.get('init_agent_context')!.handler;
+    const start = performance.now();
+    await handler();
+    const elapsed = performance.now() - start;
+
+    expect(elapsed).toBeLessThan(200);
+  });
 });
