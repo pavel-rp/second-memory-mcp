@@ -158,9 +158,12 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     const parsed = JSON.parse(body.result!.content![0]!.text) as {
       context_token?: string;
       status?: string;
+      learner_context?: unknown;
     };
     expect(parsed.context_token).toBeDefined();
     expect(parsed.status).toBe('initialized');
+    // null is acceptable (graceful degradation); we only verify the field exists
+    expect(parsed.learner_context).toBeDefined();
     contextToken = parsed.context_token;
   });
 

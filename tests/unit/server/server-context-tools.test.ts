@@ -22,7 +22,7 @@ describe('server-context-tools', () => {
     expect(server.tools.has('init_agent_context')).toBe(true);
   });
 
-  it('returns context_token, status, domain_rules, and workflow_summary', async () => {
+  it('returns context_token, status, domain_rules, workflow_summary, and learner_context', async () => {
     registerServerContextTools(server as any, makeCtx());
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
@@ -31,6 +31,7 @@ describe('server-context-tools', () => {
     expect(result).toHaveProperty('status', 'initialized');
     expect(result).toHaveProperty('domain_rules');
     expect(result).toHaveProperty('workflow_summary');
+    expect(result).toHaveProperty('learner_context');
   });
 
   it('domain_rules contains all required fields', async () => {
@@ -84,6 +85,42 @@ describe('server-context-tools', () => {
     expect(result.error.type).toBe('system');
     expect(result.error.message).toBe('token creation failed');
     expect(result.message).toBe('Failed to initialize agent context: token creation failed');
+  });
+
+  it('learner_context contains expected snake_case fields from mock', async () => {
+    registerServerContextTools(server as any, makeCtx());
+    const handler = server.tools.get('init_agent_context')!.handler;
+    const result = parseResult(await handler());
+    const lc = result.learner_context;
+
+    expect(lc).toHaveProperty('total_topics', 0);
+    expect(lc).toHaveProperty('total_chunks', 0);
+    expect(lc).toHaveProperty('due_today', 0);
+    expect(lc).toHaveProperty('overdue', 0);
+    expect(lc).toHaveProperty('overdue_topics');
+    expect(lc).toHaveProperty('recent_subjects');
+    expect(lc).toHaveProperty('recent_session_summary', null);
+    expect(lc).toHaveProperty('flagged_weak_areas');
+    expect(lc).toHaveProperty('streak_days', 0);
+    expect(lc).toHaveProperty('leech_count', 0);
+    expect(lc).toHaveProperty('active_session', null);
+  });
+
+  it('gracefully degrades to null learner_context when buildLearnerContext throws', async () => {
+    const ctx = makeCtx({
+      buildLearnerContext: async () => {
+        throw new Error('learner context db failure');
+      },
+    });
+    registerServerContextTools(server as any, ctx);
+    const handler = server.tools.get('init_agent_context')!.handler;
+    const result = parseResult(await handler());
+
+    expect(result.learner_context).toBeNull();
+    expect(result.status).toBe('initialized');
+    expect(result.context_token).toBe('ctx-test-token-stub');
+    expect(result.domain_rules).toBeDefined();
+    expect(result.workflow_summary).toBeDefined();
   });
 
   it('response is valid JSON in toolJson format (single text content block)', async () => {
