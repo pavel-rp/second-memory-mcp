@@ -161,5 +161,9 @@ export function resolveAlgorithmConfig(
       env.SM_PREREQ_MAX_DEPTH,
       DEFAULT_ALGORITHM_CONFIG.maxDependencyDepth
     ),
+    weakAreaEaseThreshold: Math.max(
+      parseNumber(env.SM_WEAK_AREA_EASE_THRESHOLD, DEFAULT_ALGORITHM_CONFIG.weakAreaEaseThreshold),
+      minimumEaseFactor
+    ),
   };
 }

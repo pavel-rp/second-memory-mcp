@@ -69,6 +69,7 @@ import * as queryWorkflows from './orchestration/query-workflows.js';
 import * as analyticsWorkflows from './orchestration/analytics-workflows.js';
 import * as teachingWorkflows from './orchestration/teaching-workflows.js';
 import * as notesWorkflows from './orchestration/notes-workflows.js';
+import * as learnerContextWorkflows from './orchestration/learner-context-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
 import { MS_PER_DAY } from './shared/constants/time.js';
@@ -95,6 +96,7 @@ import type {
 } from './domain/types/sr.js';
 import type { SessionStatus } from './domain/types/session.js';
 import type { DailyKpis, AnalyticsOutput } from './domain/types/analytics.js';
+import type { LearnerContext } from './orchestration/learner-context-workflows.js';
 
 /** Ports — injectable for testing */
 export interface AppPorts {
@@ -275,6 +277,9 @@ export interface AppContext {
   getSessionStatus: (sessionData: SessionInput) => SessionStatus;
   validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
+
+  // Learner context orchestration
+  buildLearnerContext: () => Promise<LearnerContext>;
 }
 
 /** Create the default production ports wired to the Drizzle/PostgreSQL adapters. */
@@ -366,6 +371,14 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
   const notesDeps: notesWorkflows.NotesDeps = {
     notes: ports.notes,
+  };
+
+  const learnerContextDeps: learnerContextWorkflows.LearnerContextDeps = {
+    chunks: ports.chunks,
+    topics: ports.topics,
+    sessions: ports.sessions,
+    reviewPersistence: ports.reviewPersistence,
+    algorithmConfig,
   };
 
   const ctx: AppContext = {
@@ -462,6 +475,10 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     getSessionStatus: sessionData => getSessionStatus(sessionData, algorithmConfig, new Date()),
     validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
+
+    // Learner context orchestration
+    buildLearnerContext: () =>
+      learnerContextWorkflows.buildLearnerContext(learnerContextDeps, new Date()),
   };
 
   return Object.freeze(ctx);

@@ -57,6 +57,7 @@ export type AlgorithmConfig = {
     recencyWindowMs: number; // ms window for "recent" session activity boost (default 48h)
   };
   maxDependencyDepth: number; // max depth for dependency graph traversal
+  weakAreaEaseThreshold: number; // ease factor below which a chunk is flagged as a weak area
 };
 
 export function clampEaseFactor(
