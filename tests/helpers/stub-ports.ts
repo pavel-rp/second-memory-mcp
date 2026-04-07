@@ -104,6 +104,7 @@ export function stubReviewPersistence(
     getChunk: vi.fn().mockResolvedValue(undefined),
     persistReviewUpdate: vi.fn().mockResolvedValue(1),
     getReviewsByDateRange: vi.fn().mockResolvedValue([]),
+    getWeakAreas: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
