@@ -137,6 +137,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
     `;
 
     const result = await this.db.execute(query);
+    // Mapping depends on SQL alias names above — integration test validates column presence
     return result.rows.map(row => ({
       chunkId: row.chunk_id as string,
       chunkTitle: row.chunk_title as string,

@@ -36,6 +36,7 @@ const MAX_OVERDUE_TOPICS = 5;
 const MAX_WEAK_AREAS = 5;
 const MAX_RECENT_SUBJECTS = 5;
 const FEEDBACK_EXCERPT_MAX = 200;
+// Max streak = STREAK_LOOKBACK_DAYS + 1 (includes today)
 const STREAK_LOOKBACK_DAYS = 7;
 
 function startOfDayUtc(date: Date): Date {
@@ -90,23 +91,15 @@ export async function buildLearnerContext(
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
 
   // Fire all port queries in parallel
-  const [
-    allChunks,
-    leechChunks,
-    allTopics,
-    activeSession,
-    recentSessions,
-    qualityWeakAreas,
-    recentReviews,
-  ] = await Promise.all([
-    deps.chunks.batchFetchMinimal(),
-    deps.chunks.batchFetchMinimal({ isLeech: true }),
-    deps.topics.batchFetchMinimal(),
-    deps.sessions.getActiveSession(),
-    deps.sessions.listSessions({ status: 'completed', limit: 1 }),
-    deps.reviewPersistence.getWeakAreas(),
-    deps.reviewPersistence.getReviewsByDateRange(sevenDaysAgo, tomorrow),
-  ]);
+  const [allChunks, allTopics, activeSession, recentSessions, qualityWeakAreas, recentReviews] =
+    await Promise.all([
+      deps.chunks.batchFetchMinimal(),
+      deps.topics.batchFetchMinimal(),
+      deps.sessions.getActiveSession(),
+      deps.sessions.listSessions({ status: 'completed', limit: 1 }),
+      deps.reviewPersistence.getWeakAreas(),
+      deps.reviewPersistence.getReviewsByDateRange(sevenDaysAgo, tomorrow),
+    ]);
 
   // Partition all chunks into dueToday vs overdue using day boundaries
   // (avoids relying on dueOnly filter which uses Date.now() and misses items due later today)
@@ -147,7 +140,8 @@ export async function buildLearnerContext(
   overdueTopics.sort((a, b) => b.daysOverdue - a.daysOverdue);
   overdueTopics.splice(MAX_OVERDUE_TOPICS);
 
-  // Build recentSubjects: deduplicate subjects from due chunks (overdue + due today), cap at 5
+  // Build recentSubjects: deduplicate subjects from due chunks (overdue + due today), cap at 5.
+  // Order is DB-dependent (batchFetchMinimal return order); no urgency sorting applied.
   const seenSubjects = new Set<string>();
   const recentSubjects: string[] = [];
   for (const chunk of allChunks) {
@@ -172,7 +166,7 @@ export async function buildLearnerContext(
       lastSessionDate: new Date(session.startTime).toISOString(),
       mode: session.mode,
       chunksReviewed: completedChunks.length,
-      averageQuality: 0,
+      averageQuality: 0, // TODO: not yet computed — quality lives in sessionQuestionAttempts, not sessionChunks
       feedbackExcerpt,
     };
   }
@@ -227,7 +221,7 @@ export async function buildLearnerContext(
     recentSessionSummary,
     flaggedWeakAreas,
     streakDays,
-    leechCount: leechChunks.length,
+    leechCount: allChunks.filter(c => c.chunkType === 'remediation').length,
     activeSession: activeSessionResult,
   };
 }

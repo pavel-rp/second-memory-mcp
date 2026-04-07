@@ -232,6 +232,26 @@ describe('resolveAlgorithmConfig', () => {
     expect(result.maxDependencyDepth).toBe(10);
   });
 
+  // ── weakAreaEaseThreshold clamping ─────────────────────────
+
+  it('overrides weakAreaEaseThreshold with valid value', () => {
+    const result = resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: '2.0' });
+    expect(result.weakAreaEaseThreshold).toBe(2.0);
+  });
+
+  it('clamps weakAreaEaseThreshold to minimumEaseFactor when below', () => {
+    const result = resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: '0.5' });
+    expect(result.weakAreaEaseThreshold).toBe(DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor);
+  });
+
+  it('clamps weakAreaEaseThreshold to custom minimumEaseFactor when both are set', () => {
+    const result = resolveAlgorithmConfig({
+      SM_MIN_EASE_FACTOR: '1.5',
+      SM_WEAK_AREA_EASE_THRESHOLD: '1.2',
+    });
+    expect(result.weakAreaEaseThreshold).toBe(1.5);
+  });
+
   // ── parseRecord: tagWeights ─────────────────────────────────
 
   it('parses valid JSON tagWeights', () => {

@@ -141,7 +141,6 @@ describe('buildLearnerContext', () => {
         nextReviewAt: TODAY_START_MS + 3_600_000,
       }),
     ];
-    const leechChunks = [makeChunkMinimal({ id: 'c-leech' })];
     const topics = [
       makeTopic({ id: 'topic-1', title: 'Topic A' }),
       makeTopic({ id: 'topic-2', title: 'Topic B' }),
@@ -153,10 +152,7 @@ describe('buildLearnerContext', () => {
     ];
     const reviews = [makeReview({ date: '2025-06-15T10:00:00Z' })];
 
-    const batchFetchMinimal = vi
-      .fn()
-      .mockResolvedValueOnce(allChunks)
-      .mockResolvedValueOnce(leechChunks);
+    const batchFetchMinimal = vi.fn().mockResolvedValue(allChunks);
 
     const deps = makeDeps({
       chunks: { batchFetchMinimal },
@@ -193,7 +189,7 @@ describe('buildLearnerContext', () => {
       feedbackExcerpt: 'Good session overall',
     });
     expect(result.streakDays).toBe(1);
-    expect(result.leechCount).toBe(1);
+    expect(result.leechCount).toBe(0);
     expect(result.activeSession).toBeNull();
   });
 
@@ -264,11 +260,28 @@ describe('buildLearnerContext', () => {
     expect(result.flaggedWeakAreas).toEqual([]);
   });
 
-  it('leechCount is 0 when no leech chunks exist', async () => {
+  it('leechCount is 0 when no remediation chunks exist', async () => {
     const deps = makeDeps();
     const result = await buildLearnerContext(deps, NOW);
 
     expect(result.leechCount).toBe(0);
+  });
+
+  it('leechCount counts remediation chunks from allChunks', async () => {
+    const allChunks = [
+      makeChunkMinimal({ id: 'c1', chunkType: 'review' }),
+      makeChunkMinimal({ id: 'c2', chunkType: 'remediation' }),
+      makeChunkMinimal({ id: 'c3', chunkType: 'remediation' }),
+      makeChunkMinimal({ id: 'c4', chunkType: 'new' }),
+    ];
+
+    const deps = makeDeps({
+      chunks: { batchFetchMinimal: vi.fn().mockResolvedValue(allChunks) },
+    });
+
+    const result = await buildLearnerContext(deps, NOW);
+
+    expect(result.leechCount).toBe(2);
   });
 
   it('streakDays counts consecutive non-zero review days ending today', async () => {
@@ -324,7 +337,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce(allChunks).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue(allChunks),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue(qualityWeak) },
@@ -353,7 +366,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce(overdueChunks).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue(overdueChunks),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
@@ -379,7 +392,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce(chunks).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue(chunks),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
@@ -403,7 +416,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce(dueChunks).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue(dueChunks),
       },
     });
 
@@ -411,6 +424,21 @@ describe('buildLearnerContext', () => {
 
     expect(result.recentSubjects).toHaveLength(5);
     expect(new Set(result.recentSubjects).size).toBe(5);
+  });
+
+  it('recentSubjects skips chunks with empty subject', async () => {
+    const allChunks = [
+      makeChunkMinimal({ id: 'c1', subject: '', nextReviewAt: TODAY_START_MS + 1000 }),
+      makeChunkMinimal({ id: 'c2', subject: 'Math', nextReviewAt: TODAY_START_MS + 1000 }),
+    ];
+
+    const deps = makeDeps({
+      chunks: { batchFetchMinimal: vi.fn().mockResolvedValue(allChunks) },
+    });
+
+    const result = await buildLearnerContext(deps, NOW);
+
+    expect(result.recentSubjects).toEqual(['Math']);
   });
 
   it('activeSession maps correctly when present', async () => {
@@ -460,7 +488,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce(allChunks).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue(allChunks),
       },
     });
 
@@ -490,7 +518,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce(overdueChunks).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue(overdueChunks),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
     });
@@ -520,8 +548,8 @@ describe('buildLearnerContext', () => {
 
     await buildLearnerContext(deps, NOW);
 
-    // batchFetchMinimal called 2 times: all, leech
-    expect(batchFetchChunks).toHaveBeenCalledTimes(2);
+    // batchFetchMinimal called once: all chunks (leech count derived in-memory)
+    expect(batchFetchChunks).toHaveBeenCalledTimes(1);
     expect(batchFetchTopics).toHaveBeenCalledTimes(1);
     expect(getActiveSession).toHaveBeenCalledTimes(1);
     expect(listSessions).toHaveBeenCalledTimes(1);
@@ -549,7 +577,7 @@ describe('buildLearnerContext', () => {
 
     const deps = makeDeps({
       chunks: {
-        batchFetchMinimal: vi.fn().mockResolvedValueOnce([lowEaseChunk]).mockResolvedValueOnce([]),
+        batchFetchMinimal: vi.fn().mockResolvedValue([lowEaseChunk]),
       },
       topics: { batchFetchMinimal: vi.fn().mockResolvedValue(topics) },
       reviewPersistence: { getWeakAreas: vi.fn().mockResolvedValue(qualityWeak) },
