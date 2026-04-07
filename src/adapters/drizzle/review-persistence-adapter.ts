@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, isNotNull } from 'drizzle-orm';
+import { eq, and, gte, lt, isNotNull, sql } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -10,7 +10,11 @@ import {
 } from '../../infrastructure/db/schema.js';
 import type { LearningChunk } from '../../domain/types/entities.js';
 import type { PersistedReviewEntry } from '../../domain/types/analytics.js';
-import type { ReviewPersistencePort } from '../../ports/review-persistence-port.js';
+import type {
+  ReviewPersistencePort,
+  GetWeakAreasOptions,
+  WeakAreaResult,
+} from '../../ports/review-persistence-port.js';
 import { toIsoTimestamp } from '../../shared/date-helpers.js';
 
 export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
@@ -83,6 +87,63 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       isNew: row.chunkType === 'new',
       topic: row.topicTitle ?? '(unknown)',
       tags: row.tagsJson ?? [],
+    }));
+  }
+
+  async getWeakAreas(options?: GetWeakAreasOptions): Promise<WeakAreaResult[]> {
+    const qualityThreshold = options?.qualityThreshold ?? 2;
+    const minLowCount = options?.minLowCount ?? 2;
+    const lookbackCount = options?.lookbackCount ?? 3;
+    const limit = options?.limit ?? 5;
+
+    const query = sql`
+      WITH ranked_attempts AS (
+        SELECT
+          sqc.chunk_id,
+          sqa.quality,
+          ROW_NUMBER() OVER (PARTITION BY sqc.chunk_id ORDER BY sqa.created_at DESC, sqa.id DESC) AS rn
+        FROM session_question_attempts sqa
+        INNER JOIN session_question_chunks sqc
+          ON sqa.session_question_id = sqc.session_question_id
+        WHERE sqa.quality IS NOT NULL
+      ),
+      last_n AS (
+        SELECT chunk_id, quality
+        FROM ranked_attempts
+        WHERE rn <= ${lookbackCount}
+      ),
+      weak AS (
+        SELECT
+          chunk_id,
+          COUNT(*) FILTER (WHERE quality <= ${qualityThreshold}) AS low_count,
+          COUNT(*) AS recent_attempts,
+          AVG(quality)::real AS avg_recent_quality
+        FROM last_n
+        GROUP BY chunk_id
+        HAVING COUNT(*) FILTER (WHERE quality <= ${qualityThreshold}) >= ${minLowCount}
+      )
+      SELECT
+        w.chunk_id,
+        lc.title AS chunk_title,
+        COALESCE(lt.title, '(unknown)') AS topic_title,
+        w.low_count,
+        w.recent_attempts,
+        w.avg_recent_quality
+      FROM weak w
+      INNER JOIN learning_chunks lc ON w.chunk_id = lc.id
+      LEFT JOIN learning_topics lt ON lc.topic_id = lt.id
+      ORDER BY w.avg_recent_quality ASC, lc.ease_factor ASC, w.chunk_id ASC
+      LIMIT ${limit}
+    `;
+
+    const result = await this.db.execute(query);
+    return result.rows.map(row => ({
+      chunkId: row.chunk_id as string,
+      chunkTitle: row.chunk_title as string,
+      topicTitle: row.topic_title as string,
+      lowCount: Number(row.low_count),
+      recentAttempts: Number(row.recent_attempts),
+      avgRecentQuality: Number(row.avg_recent_quality),
     }));
   }
 }

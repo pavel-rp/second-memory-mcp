@@ -1,6 +1,28 @@
 import type { LearningChunk } from '../domain/types/entities.js';
 import type { PersistedReviewEntry } from '../domain/types/analytics.js';
 
+/** Options for identifying weak areas based on recent review quality. */
+export type GetWeakAreasOptions = {
+  /** Quality score at or below which an attempt is considered "low". Default: 2 */
+  qualityThreshold?: number;
+  /** Minimum number of low-quality attempts within the lookback window to flag a chunk. Default: 2 */
+  minLowCount?: number;
+  /** Number of most recent attempts per chunk to examine. Default: 3 */
+  lookbackCount?: number;
+  /** Maximum number of weak areas to return. Default: 5 */
+  limit?: number;
+};
+
+/** A chunk identified as a weak area based on recent low-quality reviews. */
+export type WeakAreaResult = {
+  chunkId: string;
+  chunkTitle: string;
+  topicTitle: string;
+  lowCount: number;
+  recentAttempts: number;
+  avgRecentQuality: number;
+};
+
 /** Data returned after persisting a review result. */
 export type ReviewResultData = {
   previous: {
@@ -47,4 +69,6 @@ export interface ReviewPersistencePort {
   ): Promise<number>;
   /** Fetch reviews in the half-open range [from, to). */
   getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]>;
+  /** Identify chunks where the learner is struggling based on recent low-quality reviews. */
+  getWeakAreas(options?: GetWeakAreasOptions): Promise<WeakAreaResult[]>;
 }
