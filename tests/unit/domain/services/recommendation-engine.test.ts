@@ -331,8 +331,7 @@ describe('aggregateTopicRecommendations', () => {
     expect(resultShallow[0]!.dueChunkIds).toEqual(['c4', 'c2', 'c3', 'c1']);
   });
 
-  it('catches resolver exceptions and falls back to createdAt order', () => {
-    // Circular deps cause resolver to return isValid: false, which triggers fallback
+  it('falls back to createdAt order on invalid resolution (circular deps)', () => {
     const ts = NOW_MS - 10 * MS_PER_DAY;
     const chunks = [
       makeDueChunk({ id: 'c-a', topicId: 't1', createdAt: ts + 2, prerequisites: ['c-b'] }),

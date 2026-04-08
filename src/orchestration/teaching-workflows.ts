@@ -1283,7 +1283,9 @@ export async function startLearning(
   const chunkIds = resolution.resolvedChunkIds;
 
   // 4. Create session — use recomputed estimatedDuration from resolution
-  // (includes injected prerequisite chunks, not just original due chunks)
+  // (includes injected prerequisite chunks, not just original due chunks).
+  // estimatedDuration=0 is a sentinel: resolution failed or returned empty,
+  // so fall back to the recommendation engine's pre-computed estimate.
   const estimatedDuration =
     resolution.estimatedDuration > 0 ? resolution.estimatedDuration : topRec.estimatedDuration;
   const sessionResult = await sessionWorkflows.createSession(

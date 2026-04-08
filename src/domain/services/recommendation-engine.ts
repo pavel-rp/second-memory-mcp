@@ -170,7 +170,9 @@ function toposortDueChunks(chunks: DueChunkInfo[], maxDependencyDepth: number): 
       return resolution.resolvedChain;
     }
   } catch {
-    // Fallback to createdAt order on unexpected errors (e.g. deep recursion)
+    // Intentionally silent — this is a domain service (zero I/O), so logging
+    // is not available here. Fallback to createdAt order is always safe and
+    // toposort failures are non-critical (ordering preference, not correctness).
   }
 
   return createdAtSorted.map(c => c.id);
