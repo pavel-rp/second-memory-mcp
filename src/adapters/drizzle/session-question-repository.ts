@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, inArray, min, ne } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -164,12 +164,12 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       )) as SessionQuestionAttempt[];
   }
 
-  async getPriorAttemptsForChunks(
+  async getMinPriorQuality(
     sessionId: string,
     chunkIds: string[],
     excludeQuestionId?: string
-  ): Promise<SessionQuestionAttempt[]> {
-    if (chunkIds.length === 0) return [];
+  ): Promise<number | undefined> {
+    if (chunkIds.length === 0) return undefined;
 
     const conditions = [
       eq(sessionQuestions.sessionId, sessionId),
@@ -179,20 +179,8 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       conditions.push(ne(sessionQuestions.id, excludeQuestionId));
     }
 
-    return (await this.db
-      .select({
-        id: sessionQuestionAttempts.id,
-        sessionQuestionId: sessionQuestionAttempts.sessionQuestionId,
-        attemptNumber: sessionQuestionAttempts.attemptNumber,
-        response: sessionQuestionAttempts.response,
-        passed: sessionQuestionAttempts.passed,
-        feedback: sessionQuestionAttempts.feedback,
-        quality: sessionQuestionAttempts.quality,
-        agentQuality: sessionQuestionAttempts.agentQuality,
-        questionType: sessionQuestionAttempts.questionType,
-        timeSpentMs: sessionQuestionAttempts.timeSpentMs,
-        createdAt: sessionQuestionAttempts.createdAt,
-      })
+    const [row] = await this.db
+      .select({ minQuality: min(sessionQuestionAttempts.quality) })
       .from(sessionQuestionAttempts)
       .innerJoin(
         sessionQuestions,
@@ -202,10 +190,8 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
         sessionQuestionChunks,
         eq(sessionQuestionChunks.sessionQuestionId, sessionQuestions.id)
       )
-      .where(and(...conditions))
-      .orderBy(
-        asc(sessionQuestionAttempts.createdAt),
-        asc(sessionQuestionAttempts.id)
-      )) as SessionQuestionAttempt[];
+      .where(and(...conditions));
+
+    return row?.minQuality ?? undefined;
   }
 }

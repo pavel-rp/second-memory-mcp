@@ -3316,7 +3316,7 @@ describe('submitAnswer logEvent', () => {
 // ── submitAnswer quality cap ─────────────────────────────────────
 
 describe('submitAnswer quality cap', () => {
-  function setupCapTest(priorAttempts: SessionQuestionAttempt[]) {
+  function setupCapTest(minPriorQuality: number | undefined) {
     const sqRepo = stubSessionQuestionRepository();
     const question: SessionQuestion = {
       id: 'sq-1',
@@ -3330,7 +3330,7 @@ describe('submitAnswer quality cap', () => {
     vi.mocked(sqRepo.getQuestionById).mockResolvedValue(question);
     vi.mocked(sqRepo.getChunkIdsForQuestion).mockResolvedValue(['c1']);
     vi.mocked(sqRepo.getAttemptsForQuestion).mockResolvedValue([]);
-    vi.mocked(sqRepo.getPriorAttemptsForChunks).mockResolvedValue(priorAttempts);
+    vi.mocked(sqRepo.getMinPriorQuality).mockResolvedValue(minPriorQuality);
     vi.mocked(sqRepo.createAttempt).mockImplementation(
       async input => input as SessionQuestionAttempt
     );
@@ -3351,24 +3351,8 @@ describe('submitAnswer quality cap', () => {
     return { sqRepo, deps };
   }
 
-  function makePriorAttempt(quality: number): SessionQuestionAttempt {
-    return {
-      id: 'att-prior',
-      sessionQuestionId: 'sq-other',
-      attemptNumber: 1,
-      response: 'prior answer',
-      passed: quality >= 3,
-      feedback: 'prior feedback',
-      quality,
-      agentQuality: quality,
-      questionType: 'recall',
-      timeSpentMs: 3000,
-      createdAt: NOW - 60_000,
-    };
-  }
-
   it('does not cap when no prior attempts exist', async () => {
-    const { sqRepo, deps } = setupCapTest([]);
+    const { sqRepo, deps } = setupCapTest(undefined);
 
     await submitAnswer(
       {
@@ -3387,8 +3371,8 @@ describe('submitAnswer quality cap', () => {
     );
   });
 
-  it('caps quality from 5 to 3 when prior attempt had quality 1', async () => {
-    const { sqRepo, deps } = setupCapTest([makePriorAttempt(1)]);
+  it('caps quality from 5 to 3 when min prior quality is 1', async () => {
+    const { sqRepo, deps } = setupCapTest(1);
 
     await submitAnswer(
       {
@@ -3407,8 +3391,8 @@ describe('submitAnswer quality cap', () => {
     );
   });
 
-  it('caps quality from 5 to 4 when prior attempt had quality 2', async () => {
-    const { sqRepo, deps } = setupCapTest([makePriorAttempt(2)]);
+  it('caps quality from 5 to 4 when min prior quality is 2', async () => {
+    const { sqRepo, deps } = setupCapTest(2);
 
     await submitAnswer(
       {
@@ -3427,8 +3411,8 @@ describe('submitAnswer quality cap', () => {
     );
   });
 
-  it('does not cap when prior attempt had quality >= 3', async () => {
-    const { sqRepo, deps } = setupCapTest([makePriorAttempt(3)]);
+  it('does not cap when min prior quality >= 3', async () => {
+    const { sqRepo, deps } = setupCapTest(3);
 
     await submitAnswer(
       {
@@ -3448,8 +3432,8 @@ describe('submitAnswer quality cap', () => {
   });
 
   it('derives passed from capped quality, not raw quality', async () => {
-    // Prior quality 1 caps incoming quality 5 → 3, passed should be true (3 >= 3)
-    const { sqRepo, deps } = setupCapTest([makePriorAttempt(1)]);
+    // Min prior quality 1 caps incoming quality 5 → 3, passed should be true (3 >= 3)
+    const { sqRepo, deps } = setupCapTest(1);
 
     const result = await submitAnswer(
       {
@@ -3497,7 +3481,7 @@ describe('submitAnswer quality cap', () => {
     vi.mocked(sqRepo.getQuestionById).mockResolvedValue(question);
     vi.mocked(sqRepo.getChunkIdsForQuestion).mockResolvedValue(['c1']);
     vi.mocked(sqRepo.getAttemptsForQuestion).mockResolvedValue([firstAttempt]);
-    vi.mocked(sqRepo.getPriorAttemptsForChunks).mockResolvedValue([]);
+    vi.mocked(sqRepo.getMinPriorQuality).mockResolvedValue(undefined);
     vi.mocked(sqRepo.createAttempt).mockImplementation(
       async input => input as SessionQuestionAttempt
     );
@@ -3527,6 +3511,6 @@ describe('submitAnswer quality cap', () => {
       deps
     );
 
-    expect(sqRepo.getPriorAttemptsForChunks).toHaveBeenCalledWith('sess-1', ['c1'], 'sq-1');
+    expect(sqRepo.getMinPriorQuality).toHaveBeenCalledWith('sess-1', ['c1'], 'sq-1');
   });
 });

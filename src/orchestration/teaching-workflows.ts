@@ -936,15 +936,16 @@ async function submitAnswerForQuestion(
 
   const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
 
-  // 4b. Session-scoped quality cap: prevent inflated self-assessment after low scores
-  const priorAttempts = await deps.sessionQuestions.getPriorAttemptsForChunks(
+  // 4b. Session-scoped quality cap: prevent inflated self-assessment after low scores.
+  // On retry (attempt 2), exclude the current question's own first attempt so the cap
+  // is based on OTHER questions' scores for this chunk, not the attempt being retried.
+  const excludeOnRetry = existingAttempts.length > 0 ? sessionQuestionId : undefined;
+  const minPriorQuality = await deps.sessionQuestions.getMinPriorQuality(
     session.id,
     [primaryChunkId],
-    existingAttempts.length > 0 ? sessionQuestionId : undefined
+    excludeOnRetry
   );
-  const priorQualities = priorAttempts.map(a => a.quality).filter((q): q is number => q !== null);
-  const minPriorQuality = priorQualities.length > 0 ? Math.min(...priorQualities) : undefined;
-  const { quality } = computeQualityCap(minPriorQuality, input.quality);
+  const { quality, wasCapped } = computeQualityCap(minPriorQuality, input.quality);
 
   // Derive passed from (capped) quality when omitted; explicit passed overrides quality-based derivation
   // (e.g. passed=true + quality=2 is valid — agent has discretion over the pass/fail judgment)
@@ -978,6 +979,7 @@ async function submitAnswerForQuestion(
     passed,
     quality,
     attemptNumber,
+    ...(wasCapped && { wasCapped: true, agentQuality: input.quality }),
   });
 
   // 6. Update question status when passed
