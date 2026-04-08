@@ -44,7 +44,7 @@ export type TopicRecommendation = {
   urgencyScore: number; // 0.0–1.0
   urgencyReason: string; // human-readable dominant factor
   recommendationType: RecommendationType; // classification for agent presentation
-  dueChunkIds: string[]; // ordered by createdAt within topic
+  dueChunkIds: string[]; // topologically ordered (prerequisites first, createdAt as tiebreaker)
   dueChunkCount: number;
   totalChunkCount: number;
   estimatedDuration: number; // sum of chunk durations (minutes)

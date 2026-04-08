@@ -1201,7 +1201,7 @@ export async function startLearning(
   const sessionDeps: sessionWorkflows.SessionDeps = {
     sessions: deps.sessions,
     chunks: deps.chunks,
-    maxDependencyDepth: 0, // not used for session creation from explicit chunkIds
+    maxDependencyDepth: deps.algorithmConfig.maxDependencyDepth,
   };
   const activeSession = await sessionWorkflows.getActiveSession(sessionDeps);
   if (activeSession) {
@@ -1271,8 +1271,14 @@ export async function startLearning(
 
   // 3. Pick highest-urgency topic
   const topRec = recommendations.recommendations[0];
-  const chunkIds = topRec.dueChunkIds;
   const mode: 'learning' | 'review' = topRec.hasNewChunks ? 'learning' : 'review';
+
+  // 3b. Resolve chunk dependencies (topological sort + prerequisite injection)
+  const resolution = await sessionWorkflows.resolveSessionChunkDependencies(
+    topRec.dueChunkIds,
+    sessionDeps
+  );
+  const chunkIds = resolution.resolvedChunkIds;
 
   // 4. Create session
   const sessionResult = await sessionWorkflows.createSession(

@@ -47,6 +47,7 @@ export async function generateRecommendations(
     estimatedDuration: r.estimatedDuration,
     createdAt: r.createdAt,
     lastReviewedAt: r.lastReviewedAt,
+    prerequisites: r.prerequisitesJson ?? [],
   }));
 
   // 3. Fetch total chunk counts per topic (all non-draft chunks)
@@ -63,7 +64,7 @@ export async function generateRecommendations(
   const { recencyWindowMs } = deps.algorithmConfig.recommendationConfig;
   // When filtering by type, aggregate all topics so the filter can pick from the full ranked list
   const aggregationLimit = input.recommendationType ? topicIdSet.size : requestedLimit;
-  const allRecommendations = aggregateTopicRecommendations({
+  const allRecommendations = await aggregateTopicRecommendations({
     dueChunks,
     topicChunkCounts,
     limit: aggregationLimit,
