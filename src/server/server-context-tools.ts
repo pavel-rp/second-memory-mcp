@@ -25,7 +25,7 @@ export function registerServerContextTools(server: McpServer, ctx: AppContext): 
           const safeLearnerContext = Promise.resolve()
             .then(() => ctx.buildLearnerContext())
             .catch(err => {
-              getRequestLogger().warn({ err }, 'buildLearnerContext failed — returning null');
+              getRequestLogger().warn('buildLearnerContext failed — returning null', err);
               return null;
             });
 
@@ -46,6 +46,7 @@ export function registerServerContextTools(server: McpServer, ctx: AppContext): 
           return toolError(`Failed to initialize agent context: ${msg}`, {
             type: 'system',
             message: msg,
+            retryable: true,
           });
         }
       })

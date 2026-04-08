@@ -84,6 +84,7 @@ describe('server-context-tools', () => {
     expect(result.success).toBe(false);
     expect(result.error.type).toBe('system');
     expect(result.error.message).toBe('token creation failed');
+    expect(result.error.retryable).toBe(true);
     expect(result.message).toBe('Failed to initialize agent context: token creation failed');
   });
 
