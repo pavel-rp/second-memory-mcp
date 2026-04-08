@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type {
@@ -15,6 +16,9 @@ export type RecommendationDeps = {
 };
 
 const DEFAULT_TOPIC_LIMIT = 10;
+
+/** Validates that prerequisitesJson is a string array (guards against corrupted JSONB). */
+const prerequisitesSchema = z.array(z.string());
 
 /** Upper bound on due chunks fetched per recommendation call. */
 const MAX_DUE_CHUNKS = 200;
@@ -37,18 +41,21 @@ export async function generateRecommendations(
     return { recommendations: [], totalDueTopics: 0, totalDueChunks: 0 };
   }
 
-  // 2. Map to DueChunkInfo
-  const dueChunks: DueChunkInfo[] = dueRows.map(r => ({
-    id: r.id,
-    topicId: r.topicId,
-    topicTitle: r.topicTitle ?? r.title,
-    nextReviewAt: r.nextReviewAt,
-    easeFactor: r.easeFactor,
-    estimatedDuration: r.estimatedDuration,
-    createdAt: r.createdAt,
-    lastReviewedAt: r.lastReviewedAt,
-    prerequisites: r.prerequisitesJson ?? [],
-  }));
+  // 2. Map to DueChunkInfo (validate prerequisitesJson at boundary)
+  const dueChunks: DueChunkInfo[] = dueRows.map(r => {
+    const parsed = prerequisitesSchema.safeParse(r.prerequisitesJson);
+    return {
+      id: r.id,
+      topicId: r.topicId,
+      topicTitle: r.topicTitle ?? r.title,
+      nextReviewAt: r.nextReviewAt,
+      easeFactor: r.easeFactor,
+      estimatedDuration: r.estimatedDuration,
+      createdAt: r.createdAt,
+      lastReviewedAt: r.lastReviewedAt,
+      prerequisites: parsed.success ? parsed.data : [],
+    };
+  });
 
   // 3. Fetch total chunk counts per topic (all non-draft chunks)
   const topicIdSet = new Set(dueChunks.map(c => c.topicId));
@@ -64,12 +71,13 @@ export async function generateRecommendations(
   const { recencyWindowMs } = deps.algorithmConfig.recommendationConfig;
   // When filtering by type, aggregate all topics so the filter can pick from the full ranked list
   const aggregationLimit = input.recommendationType ? topicIdSet.size : requestedLimit;
-  const allRecommendations = await aggregateTopicRecommendations({
+  const allRecommendations = aggregateTopicRecommendations({
     dueChunks,
     topicChunkCounts,
     limit: aggregationLimit,
     now,
     recencyWindowMs,
+    maxDependencyDepth: deps.algorithmConfig.maxDependencyDepth,
   });
 
   // 6. Apply recommendation_type filter (post-scoring), then limit

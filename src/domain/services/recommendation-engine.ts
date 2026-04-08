@@ -1,10 +1,7 @@
 import { calculateUrgencyScore } from '../algorithms/urgency-calculator.js';
 import { DependencyResolver } from '../algorithms/dependency-resolver.js';
-import type {
-  LearningItem,
-  RecommendationType,
-  TopicRecommendation,
-} from '../types/recommendations.js';
+import type { DependencyNode } from '../algorithms/dependency-resolver.js';
+import type { RecommendationType, TopicRecommendation } from '../types/recommendations.js';
 
 /** A due chunk with the fields needed for topic-level aggregation. */
 export type DueChunkInfo = {
@@ -25,6 +22,7 @@ export type TopicAggregationInput = {
   limit: number;
   now: Date;
   recencyWindowMs: number;
+  maxDependencyDepth: number;
 };
 
 /** Additive boost for continue_learning topics. Enough to beat ~10 overdue days but not 150+. */
@@ -51,12 +49,10 @@ export function classifyRecommendation(
 
 /**
  * Aggregate due chunks into topic-level recommendations with urgency scores.
- * Async (dependency resolution is in-memory graph computation, no I/O).
+ * Pure computation — no I/O.
  */
-export async function aggregateTopicRecommendations(
-  input: TopicAggregationInput
-): Promise<TopicRecommendation[]> {
-  const { dueChunks, topicChunkCounts, limit, now, recencyWindowMs } = input;
+export function aggregateTopicRecommendations(input: TopicAggregationInput): TopicRecommendation[] {
+  const { dueChunks, topicChunkCounts, limit, now, recencyWindowMs, maxDependencyDepth } = input;
 
   if (dueChunks.length === 0) return [];
 
@@ -121,7 +117,7 @@ export async function aggregateTopicRecommendations(
         : score;
 
     // Order due chunk IDs topologically (prerequisites first), with createdAt as tiebreaker
-    const orderedChunkIds = await toposortDueChunks(chunks);
+    const orderedChunkIds = toposortDueChunks(chunks, maxDependencyDepth);
 
     recommendations.push({
       topicId,
@@ -152,7 +148,7 @@ export async function aggregateTopicRecommendations(
  * Falls back to createdAt order when no prerequisites exist or toposort fails.
  * Pre-sorts by createdAt so same-level nodes maintain creation order as tiebreaker.
  */
-async function toposortDueChunks(chunks: DueChunkInfo[]): Promise<string[]> {
+function toposortDueChunks(chunks: DueChunkInfo[], maxDependencyDepth: number): string[] {
   const createdAtSorted = [...chunks].sort((a, b) => a.createdAt - b.createdAt);
   const hasAnyPrereqs = chunks.some(c => c.prerequisites && c.prerequisites.length > 0);
 
@@ -160,25 +156,23 @@ async function toposortDueChunks(chunks: DueChunkInfo[]): Promise<string[]> {
     return createdAtSorted.map(c => c.id);
   }
 
-  const chunkIdSet = new Set(chunks.map(c => c.id));
-  const learningItems: LearningItem[] = createdAtSorted.map(c => ({
-    id: c.id,
-    title: c.id,
-    subject: '',
-    difficulty: 1,
-    nextReviewDate: new Date(c.nextReviewAt).toISOString(),
-    easeFactor: c.easeFactor,
-    repetitions: 0,
-    estimatedDuration: c.estimatedDuration,
-    chunkType: 'review' as const,
-    prerequisites: (c.prerequisites ?? []).filter(p => chunkIdSet.has(p)),
-  }));
+  try {
+    const chunkIdSet = new Set(chunks.map(c => c.id));
+    const nodes: DependencyNode[] = createdAtSorted.map(c => ({
+      id: c.id,
+      prerequisites: (c.prerequisites ?? []).filter(p => chunkIdSet.has(p)),
+    }));
 
-  const resolver = new DependencyResolver(Math.max(chunks.length, 1));
-  const resolution = await resolver.resolveDependencies(learningItems);
+    const resolver = new DependencyResolver(maxDependencyDepth);
+    const resolution = resolver.resolveDependencies(nodes);
 
-  if (resolution.isValid && resolution.resolvedChain.length > 0) {
-    return resolution.resolvedChain;
+    if (resolution.isValid && resolution.resolvedChain.length > 0) {
+      return resolution.resolvedChain;
+    }
+  } catch {
+    // Intentionally silent — this is a domain service (zero I/O), so logging
+    // is not available here. Fallback to createdAt order is always safe and
+    // toposort failures are non-critical (ordering preference, not correctness).
   }
 
   return createdAtSorted.map(c => c.id);

@@ -1,9 +1,16 @@
-import type { LearningItem } from '../types/recommendations.js';
+/**
+ * Minimal node type for dependency resolution — only needs id and prerequisites.
+ * LearningItem structurally satisfies this, so callers can pass LearningItem[] directly.
+ */
+export type DependencyNode = {
+  id: string;
+  prerequisites?: string[];
+};
 
 /**
  * Result of dependency resolution
  */
-type DependencyResolutionResult = {
+export type DependencyResolutionResult = {
   /** Resolved dependency chain in order (prerequisites first) */
   resolvedChain: string[];
   /** Items that have circular dependencies */
@@ -33,10 +40,10 @@ export class DependencyResolver {
    * @param targetItemIds Optional specific items to resolve dependencies for
    * @returns Dependency resolution result with ordered chain
    */
-  async resolveDependencies(
-    items: LearningItem[],
+  resolveDependencies(
+    items: DependencyNode[],
     targetItemIds?: string[]
-  ): Promise<DependencyResolutionResult> {
+  ): DependencyResolutionResult {
     // Build dependency graph from learning items
     const dependencyGraph = this.buildDependencyGraph(items);
 
@@ -194,7 +201,7 @@ export class DependencyResolver {
    * @param items Learning items with prerequisites
    * @returns Map of item ID to prerequisite IDs
    */
-  private buildDependencyGraph(items: LearningItem[]): Map<string, string[]> {
+  private buildDependencyGraph(items: DependencyNode[]): Map<string, string[]> {
     const graph = new Map<string, string[]>();
 
     for (const item of items) {

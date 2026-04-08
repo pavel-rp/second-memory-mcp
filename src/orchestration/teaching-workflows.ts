@@ -1274,18 +1274,25 @@ export async function startLearning(
   const mode: 'learning' | 'review' = topRec.hasNewChunks ? 'learning' : 'review';
 
   // 3b. Resolve chunk dependencies (topological sort + prerequisite injection)
+  // Re-sorts dueChunkIds because prerequisite injection may add new nodes
+  // that weren't in the recommendation engine's toposorted set.
   const resolution = await sessionWorkflows.resolveSessionChunkDependencies(
     topRec.dueChunkIds,
     sessionDeps
   );
   const chunkIds = resolution.resolvedChunkIds;
 
-  // 4. Create session
+  // 4. Create session — use recomputed estimatedDuration from resolution
+  // (includes injected prerequisite chunks, not just original due chunks).
+  // estimatedDuration=0 is a sentinel: resolution failed or returned empty,
+  // so fall back to the recommendation engine's pre-computed estimate.
+  const estimatedDuration =
+    resolution.estimatedDuration > 0 ? resolution.estimatedDuration : topRec.estimatedDuration;
   const sessionResult = await sessionWorkflows.createSession(
     {
       chunkIds,
       mode,
-      estimatedDuration: topRec.estimatedDuration,
+      estimatedDuration,
     },
     sessionDeps
   );
@@ -1320,7 +1327,7 @@ export async function startLearning(
     session_id: sessionResult.data.sessionId,
     mode,
     total_chunks: chunkIds.length,
-    estimated_duration: topRec.estimatedDuration,
+    estimated_duration: estimatedDuration,
     first_chunk: firstChunk,
     recommendation_summary: `Picked topic "${topRec.topicTitle}" (urgency ${topRec.urgencyScore}): ${topRec.urgencyReason}`,
   };
