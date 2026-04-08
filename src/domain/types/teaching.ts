@@ -79,10 +79,27 @@ export type TeachNextError = {
   message: string;
 };
 
+export type RoadblockDetail = {
+  trigger_quality: number;
+  trigger_question: string;
+  required_followups: number;
+  completed_followups: number;
+  remaining: number;
+  chunk_ids: string[];
+  instruction: string;
+};
+
+export type TeachNextRoadblock = {
+  status: 'roadblock';
+  current_chunk_id: string;
+  roadblock_detail: RoadblockDetail;
+};
+
 export type TeachNextResponse =
   | TeachNextTeach
   | TeachNextComplete
   | TeachNextBlocked
+  | TeachNextRoadblock
   | TeachNextError;
 
 // ── submit_answer types ──────────────────────────────────────────

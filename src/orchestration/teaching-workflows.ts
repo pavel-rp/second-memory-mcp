@@ -27,6 +27,7 @@ import { getRequestLogger, logEvent } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
+import { evaluateRoadblock } from '../domain/algorithms/roadblock-gate.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 import { classifyChunk, type ClassifyChunkInput } from '../domain/algorithms/classify-chunk.js';
@@ -60,6 +61,7 @@ export type TeachingDeps = {
  * 1. Get active session
  * 2. Get session chunks
  * 3. Validate gating (refuse if in_progress chunk has no attempts)
+ * 3a. Roadblock gate (block progression when quality is poor and follow-ups insufficient)
  * 3b. Complete in-progress chunk with recorded attempts (aggregate quality, SR update, mark completed)
  * 4. Select next chunk (fresh pending → re-queued failures → complete)
  * 5. Fetch chunk data from DB
@@ -155,6 +157,27 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         'No questions submitted for the current chunk. Use submit_answer with prompt_text and chunk_ids to ask at least one question before advancing.',
       current_chunk_id: inProgressChunk.chunkId,
     };
+  }
+
+  // 3a. Roadblock gate: block progression when quality is poor and follow-ups insufficient
+  const roadblockCandidate = sessionChunks.find(
+    sc => sc.status === 'in_progress' && chunkHasAttempts(sc)
+  );
+  if (roadblockCandidate) {
+    const roadblockQuestions = mapGetList(questionsByChunkId, roadblockCandidate.chunkId);
+    const roadblock = evaluateRoadblock(
+      roadblockCandidate.chunkId,
+      roadblockQuestions,
+      attemptsByQuestion,
+      chunkMapping
+    );
+    if (roadblock) {
+      return {
+        status: 'roadblock',
+        current_chunk_id: roadblockCandidate.chunkId,
+        roadblock_detail: roadblock,
+      };
+    }
   }
 
   // 3b. Complete in-progress chunk that has recorded attempts
