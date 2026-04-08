@@ -337,8 +337,9 @@ export async function resolveSessionChunkDependencies(
 
     const message = messageParts.length > 0 ? ` ${messageParts.join(' ')}` : '';
     // Recompute estimatedDuration from the resolved chain (includes injected prerequisites)
+    // All IDs in filteredResolvedChain are guaranteed to exist in chunkMap
     const estimatedDuration = filteredResolvedChain.reduce(
-      (sum, id) => sum + (chunkMap.get(id)?.estimatedDuration ?? 0),
+      (sum, id) => sum + (chunkMap.get(id) as LearningItem).estimatedDuration,
       0
     );
     return {

@@ -194,6 +194,33 @@ describe('generateRecommendations', () => {
     expect(result.totalDueTopics).toBe(2);
   });
 
+  it('passes through valid prerequisitesJson after Zod validation', async () => {
+    const chunks = [
+      stubChunkRow({
+        id: 'c1',
+        topicId: 'topic-1',
+        topicTitle: 'Topic A',
+        prerequisitesJson: ['c0'],
+      }),
+      stubChunkRow({
+        id: 'c0',
+        topicId: 'topic-1',
+        topicTitle: 'Topic A',
+        createdAt: NOW_MS - 31 * MS_PER_DAY,
+      }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map([['topic-1', 2]])),
+    });
+
+    const result = await generateRecommendations({}, deps, NOW);
+
+    // Valid prerequisitesJson should be preserved — c0 before c1 in toposorted order
+    expect(result.recommendations).toHaveLength(1);
+    expect(result.recommendations[0]!.dueChunkIds).toEqual(['c0', 'c1']);
+  });
+
   it('falls back to empty prerequisites when prerequisitesJson is corrupted', async () => {
     const chunks = [
       stubChunkRow({

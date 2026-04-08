@@ -17,6 +17,9 @@ export type RecommendationDeps = {
 
 const DEFAULT_TOPIC_LIMIT = 10;
 
+/** Validates that prerequisitesJson is a string array (guards against corrupted JSONB). */
+const prerequisitesSchema = z.array(z.string());
+
 /** Upper bound on due chunks fetched per recommendation call. */
 const MAX_DUE_CHUNKS = 200;
 
@@ -39,7 +42,6 @@ export async function generateRecommendations(
   }
 
   // 2. Map to DueChunkInfo (validate prerequisitesJson at boundary)
-  const prerequisitesSchema = z.array(z.string());
   const dueChunks: DueChunkInfo[] = dueRows.map(r => {
     const parsed = prerequisitesSchema.safeParse(r.prerequisitesJson);
     return {
