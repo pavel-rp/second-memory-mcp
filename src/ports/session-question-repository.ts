@@ -48,4 +48,14 @@ export interface SessionQuestionRepository {
 
   /** Get all attempts for a session (questions → attempts). */
   getAllAttemptsForSession(sessionId: string): Promise<SessionQuestionAttempt[]>;
+
+  /**
+   * Get prior attempts for questions targeting any of the given chunkIds in a session.
+   * Optionally exclude a specific question (for retry path — don't count the question being retried).
+   */
+  getPriorAttemptsForChunks(
+    sessionId: string,
+    chunkIds: string[],
+    excludeQuestionId?: string
+  ): Promise<SessionQuestionAttempt[]>;
 }

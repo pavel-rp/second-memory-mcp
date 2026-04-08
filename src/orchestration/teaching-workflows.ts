@@ -28,6 +28,7 @@ import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
+import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 import { classifyChunk, type ClassifyChunkInput } from '../domain/algorithms/classify-chunk.js';
 import {
@@ -935,10 +936,19 @@ async function submitAnswerForQuestion(
 
   const attemptNumber = (existingAttempts.length + 1) as 1 | 2;
 
-  // Derive passed from quality when omitted; explicit passed overrides quality-based derivation
+  // 4b. Session-scoped quality cap: prevent inflated self-assessment after low scores
+  const priorAttempts = await deps.sessionQuestions.getPriorAttemptsForChunks(
+    session.id,
+    [primaryChunkId],
+    existingAttempts.length > 0 ? sessionQuestionId : undefined
+  );
+  const priorQualities = priorAttempts.map(a => a.quality).filter((q): q is number => q !== null);
+  const minPriorQuality = priorQualities.length > 0 ? Math.min(...priorQualities) : undefined;
+  const { quality } = computeQualityCap(minPriorQuality, input.quality);
+
+  // Derive passed from (capped) quality when omitted; explicit passed overrides quality-based derivation
   // (e.g. passed=true + quality=2 is valid — agent has discretion over the pass/fail judgment)
-  const passed = input.passed ?? input.quality >= 3;
-  const quality = input.quality;
+  const passed = input.passed ?? quality >= 3;
 
   // 5. Persist attempt
   try {

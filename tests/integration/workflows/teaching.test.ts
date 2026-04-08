@@ -2,8 +2,8 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
-import { learningChunks } from '../../../src/infrastructure/db/schema.js';
-import { eq } from 'drizzle-orm';
+import { learningChunks, sessionQuestionAttempts } from '../../../src/infrastructure/db/schema.js';
+import { eq, desc } from 'drizzle-orm';
 
 describe('teaching workflows (composition-root wiring)', () => {
   let ctx: AppContext;
@@ -174,5 +174,89 @@ describe('teaching workflows (composition-root wiring)', () => {
         }),
       ])
     );
+  });
+
+  it('caps quality on subsequent answer after low score on same chunk', async () => {
+    // Create topic with a single chunk
+    const topicResult = await ctx.createTopicWithChunks({
+      topicTitle: 'Quality Cap Test',
+      subject: 'Testing',
+      topicSummary: 'Testing quality cap',
+      chunks: [
+        {
+          id: 'cap-c1',
+          title: 'Cap Concept',
+          content: 'A concept to test quality capping.',
+          difficulty: 5,
+          estimatedDuration: 10,
+          chunkType: 'new',
+        },
+      ],
+    });
+    expect(topicResult.success).toBe(true);
+
+    // Create session and submit a quality-1 answer
+    const sessionResult = await ctx.createSession({ mode: 'learning', chunkIds: ['cap-c1'] });
+    expect(sessionResult.success).toBe(true);
+
+    const firstTeach = await ctx.getNextTeachingStep();
+    expect(firstTeach.status).toBe('teach');
+
+    // First answer: quality 1 (fail), then retry with quality 2 to complete the question
+    const submit1 = await ctx.submitAnswer({
+      promptText: 'What is the cap concept?',
+      chunkIds: ['cap-c1'],
+      response: 'Wrong answer',
+      passed: false,
+      quality: 1,
+      questionType: 'recall',
+      feedback: 'Incorrect',
+      timeSpentMs: 3000,
+    });
+    expect(submit1.status).toBe('retry');
+    if (submit1.status !== 'retry') throw new Error('Expected retry');
+
+    // Retry: answer correctly with quality 2
+    const submit1retry = await ctx.submitAnswer({
+      sessionQuestionId: submit1.session_question_id,
+      promptText: 'What is the cap concept?',
+      chunkIds: ['cap-c1'],
+      response: 'Correct on retry',
+      passed: true,
+      quality: 2,
+      questionType: 'recall',
+      feedback: 'Got it on second try',
+      timeSpentMs: 3000,
+    });
+    expect(submit1retry.status).toBe('recorded');
+
+    // Submit a quality-5 answer on the same chunk directly (without calling teach_next
+    // which would complete the chunk). The cap should apply based on prior quality-1.
+    const submit2 = await ctx.submitAnswer({
+      promptText: 'Explain the cap concept in detail',
+      chunkIds: ['cap-c1'],
+      response: 'Perfect detailed answer',
+      passed: true,
+      quality: 5,
+      questionType: 'explain_apply',
+      feedback: 'Perfect recall',
+      timeSpentMs: 5000,
+    });
+    expect(submit2.status).toBe('recorded');
+
+    // Verify the stored attempt has capped quality=3 and agentQuality=5
+    const db = getSql();
+    const [lastAttempt] = await db
+      .select({
+        quality: sessionQuestionAttempts.quality,
+        agentQuality: sessionQuestionAttempts.agentQuality,
+      })
+      .from(sessionQuestionAttempts)
+      .orderBy(desc(sessionQuestionAttempts.createdAt))
+      .limit(1);
+
+    expect(lastAttempt).toBeDefined();
+    expect(lastAttempt!.quality).toBe(3);
+    expect(lastAttempt!.agentQuality).toBe(5);
   });
 });

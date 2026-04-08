@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -161,6 +161,51 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       .orderBy(
         asc(sessionQuestionAttempts.sessionQuestionId),
         asc(sessionQuestionAttempts.attemptNumber)
+      )) as SessionQuestionAttempt[];
+  }
+
+  async getPriorAttemptsForChunks(
+    sessionId: string,
+    chunkIds: string[],
+    excludeQuestionId?: string
+  ): Promise<SessionQuestionAttempt[]> {
+    if (chunkIds.length === 0) return [];
+
+    const conditions = [
+      eq(sessionQuestions.sessionId, sessionId),
+      inArray(sessionQuestionChunks.chunkId, chunkIds),
+    ];
+    if (excludeQuestionId) {
+      conditions.push(ne(sessionQuestions.id, excludeQuestionId));
+    }
+
+    return (await this.db
+      .select({
+        id: sessionQuestionAttempts.id,
+        sessionQuestionId: sessionQuestionAttempts.sessionQuestionId,
+        attemptNumber: sessionQuestionAttempts.attemptNumber,
+        response: sessionQuestionAttempts.response,
+        passed: sessionQuestionAttempts.passed,
+        feedback: sessionQuestionAttempts.feedback,
+        quality: sessionQuestionAttempts.quality,
+        agentQuality: sessionQuestionAttempts.agentQuality,
+        questionType: sessionQuestionAttempts.questionType,
+        timeSpentMs: sessionQuestionAttempts.timeSpentMs,
+        createdAt: sessionQuestionAttempts.createdAt,
+      })
+      .from(sessionQuestionAttempts)
+      .innerJoin(
+        sessionQuestions,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+      )
+      .innerJoin(
+        sessionQuestionChunks,
+        eq(sessionQuestionChunks.sessionQuestionId, sessionQuestions.id)
+      )
+      .where(and(...conditions))
+      .orderBy(
+        asc(sessionQuestionAttempts.createdAt),
+        asc(sessionQuestionAttempts.id)
       )) as SessionQuestionAttempt[];
   }
 }
