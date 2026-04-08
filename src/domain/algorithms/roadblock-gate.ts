@@ -42,38 +42,45 @@ export function evaluateRoadblock(
   // No scored attempts → skip roadblock (legacy data or no quality info)
   if (scoredAttempts.length === 0) return null;
 
-  // Find the minimum quality and its triggering attempt
-  // scoredAttempts is non-empty (checked above), so reduce is safe
-  const trigger = scoredAttempts.reduce((min, curr) =>
-    (curr.attempt.quality as number) < (min.attempt.quality as number) ? curr : min
-  );
+  // Find the minimum quality and its triggering attempt.
+  // Tie-break by earliest createdAt to maximize the qualifying follow-up window.
+  // scoredAttempts is non-empty (checked above), so reduce is safe.
+  const trigger = scoredAttempts.reduce((min, curr) => {
+    const currQ = curr.attempt.quality as number;
+    const minQ = min.attempt.quality as number;
+    if (currQ < minQ) return curr;
+    if (currQ === minQ && curr.attempt.createdAt < min.attempt.createdAt) return curr;
+    return min;
+  });
   const minQuality = trigger.attempt.quality as number;
 
   const required = getRequiredFollowups(minQuality);
   if (required === 0) return null;
 
-  // Count qualifying follow-ups: recorded after trigger, same chunk_ids, quality ≥ 3
+  // Count qualifying follow-ups by distinct question:
+  // recorded after trigger, same chunk_ids, quality ≥ 3, excluding the trigger question.
   const triggerChunkIds = chunkMapping.get(trigger.question.id) ?? [chunkId];
   const triggerTime = trigger.attempt.createdAt;
+  const qualifyingQuestionIds = new Set<string>();
 
-  let qualifyingCount = 0;
   for (const q of chunkQuestions) {
+    if (q.id === trigger.question.id) continue;
+
     const qChunkIds = chunkMapping.get(q.id) ?? [chunkId];
     const sharesChunk = qChunkIds.some(cid => triggerChunkIds.includes(cid));
     if (!sharesChunk) continue;
 
     const qAttempts = attemptsByQuestion.get(q.id) ?? [];
-    for (const a of qAttempts) {
-      if (
-        a.createdAt > triggerTime &&
-        a.quality !== null &&
-        a.quality !== undefined &&
-        a.quality >= 3
-      ) {
-        qualifyingCount++;
-      }
+    const hasQualifying = qAttempts.some(
+      a =>
+        a.createdAt > triggerTime && a.quality !== null && a.quality !== undefined && a.quality >= 3
+    );
+    if (hasQualifying) {
+      qualifyingQuestionIds.add(q.id);
     }
   }
+
+  const qualifyingCount = qualifyingQuestionIds.size;
 
   if (qualifyingCount >= required) return null;
 

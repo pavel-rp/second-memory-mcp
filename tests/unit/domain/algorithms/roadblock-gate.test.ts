@@ -214,4 +214,48 @@ describe('evaluateRoadblock', () => {
     expect(result!.instruction).toContain('scored 2');
     expect(result!.instruction).toContain('2 diagnostic questions');
   });
+
+  it('retry on trigger question does not count as follow-up', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 1, createdAt: NOW },
+        { questionId: 'q1', quality: 4, createdAt: NOW + 1000 },
+      ],
+    });
+    // q1 retry is same question as trigger → excluded
+    expect(result).not.toBeNull();
+    expect(result!.completed_followups).toBe(0);
+    expect(result!.remaining).toBe(3);
+  });
+
+  it('multiple qualifying attempts on same follow-up question count as 1', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW },
+        { questionId: 'q2', quality: 3, createdAt: NOW + 1000 },
+        { questionId: 'q2', quality: 4, createdAt: NOW + 2000 },
+      ],
+    });
+    // q2 has 2 qualifying attempts but counts as 1 distinct question
+    expect(result).not.toBeNull();
+    expect(result!.completed_followups).toBe(1);
+    expect(result!.remaining).toBe(1);
+  });
+
+  it('tie-breaks by earliest createdAt when min quality is equal', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW + 1000 },
+        { questionId: 'q2', quality: 2, createdAt: NOW },
+        { questionId: 'q3', quality: 3, createdAt: NOW + 500 },
+      ],
+    });
+    // Both q1 and q2 have quality 2, but q2 is earliest → trigger is q2 at NOW
+    // q3 at NOW+500 is after trigger and quality ≥ 3 → counts as 1 follow-up
+    // q1 at NOW+1000 has quality 2 < 3 → doesn't count
+    expect(result).not.toBeNull();
+    expect(result!.trigger_quality).toBe(2);
+    expect(result!.completed_followups).toBe(1);
+    expect(result!.remaining).toBe(1);
+  });
 });

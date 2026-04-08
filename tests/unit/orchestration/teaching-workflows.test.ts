@@ -1576,23 +1576,30 @@ describe('getNextTeachingStep', () => {
 
   it('aggregates multiple question qualities when completing chunk', async () => {
     const sqRepo = stubSessionQuestionRepository();
-    // Three questions for c1: quality 5, 5, 5 → avg = 5
-    // (all quality 5 to avoid NEU-478 roadblock gate; test verifies aggregation mechanism)
-    mockQuestionsAndAttempts(sqRepo, [
-      {
-        chunkId: 'c1',
-        attempts: [
-          { passed: true, quality: 5 },
-          { passed: true, quality: 5 },
-        ],
-      },
-    ]);
-    // Add a third question manually
-    const existingQuestions = await sqRepo.getQuestionsForSession('sess-1');
-    const existingAttempts = await sqRepo.getAllAttemptsForSession('sess-1');
-    const existingMapping = await sqRepo.getChunkIdsForQuestions(existingQuestions.map(q => q.id));
+    // Three questions for c1 with mixed qualities: 5, 3, 4
+    // Q2 (quality 3) is the roadblock trigger → needs 1 follow-up
+    // Q3 (quality 4, after trigger) is the qualifying follow-up → clears roadblock
+    // Aggregate: (5+3+4)/3 = 4 → SR called with aggregated quality
+    const q1: SessionQuestion = {
+      id: 'sq-agg-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const q2: SessionQuestion = {
+      id: 'sq-agg-2',
+      sessionId: 'sess-1',
+      questionIndex: 2,
+      promptText: 'Q2',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
     const q3: SessionQuestion = {
-      id: 'sq-c1-extra',
+      id: 'sq-agg-3',
       sessionId: 'sess-1',
       questionIndex: 3,
       promptText: 'Q3',
@@ -1600,23 +1607,54 @@ describe('getNextTeachingStep', () => {
       createdAt: NOW,
       updatedAt: NOW,
     };
-    const a3: SessionQuestionAttempt = {
-      id: 'sqa-c1-extra',
-      sessionQuestionId: 'sq-c1-extra',
+    const a1: SessionQuestionAttempt = {
+      id: 'sqa-agg-1',
+      sessionQuestionId: 'sq-agg-1',
       attemptNumber: 1,
       response: 'test',
       passed: true,
-      feedback: 'correct',
+      feedback: 'good',
       quality: 5,
+      agentQuality: null,
+      questionType: null,
+      timeSpentMs: 1000,
+      createdAt: NOW - 2000,
+    };
+    const a2: SessionQuestionAttempt = {
+      id: 'sqa-agg-2',
+      sessionQuestionId: 'sq-agg-2',
+      attemptNumber: 1,
+      response: 'test',
+      passed: true,
+      feedback: 'ok',
+      quality: 3,
+      agentQuality: null,
+      questionType: null,
+      timeSpentMs: 1000,
+      createdAt: NOW - 1000,
+    };
+    const a3: SessionQuestionAttempt = {
+      id: 'sqa-agg-3',
+      sessionQuestionId: 'sq-agg-3',
+      attemptNumber: 1,
+      response: 'test',
+      passed: true,
+      feedback: 'good',
+      quality: 4,
       agentQuality: null,
       questionType: null,
       timeSpentMs: 1000,
       createdAt: NOW,
     };
-    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([...existingQuestions, q3]);
-    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([...existingAttempts, a3]);
-    existingMapping.set('sq-c1-extra', ['c1']);
-    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(existingMapping);
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([q1, q2, q3]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([a1, a2, a3]);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(
+      new Map([
+        ['sq-agg-1', ['c1']],
+        ['sq-agg-2', ['c1']],
+        ['sq-agg-3', ['c1']],
+      ])
+    );
 
     const deps = makeDeps({
       sessions: {
@@ -1641,7 +1679,7 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     expect(result.status).toBe('teach');
-    // SR was called for c1 with aggregated quality from 3 questions
+    // SR was called for c1 with aggregated quality from 3 mixed-quality questions
     expect(deps.reviewPersistence.getChunk).toHaveBeenCalledWith('c1');
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
       'c1',
