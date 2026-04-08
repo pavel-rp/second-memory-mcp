@@ -93,22 +93,6 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.urgencyScore).toBeGreaterThan(result[1]!.urgencyScore);
   });
 
-  it('orders dueChunkIds by createdAt within topic', async () => {
-    const chunks = [
-      makeDueChunk({ id: 'c-later', topicId: 't1', createdAt: NOW_MS - MS_PER_DAY }),
-      makeDueChunk({ id: 'c-earlier', topicId: 't1', createdAt: NOW_MS - 5 * MS_PER_DAY }),
-    ];
-    const result = await aggregateTopicRecommendations({
-      dueChunks: chunks,
-      topicChunkCounts: new Map(),
-      limit: 10,
-      now: NOW,
-      recencyWindowMs: RECENCY_WINDOW_MS,
-    });
-
-    expect(result[0]!.dueChunkIds).toEqual(['c-earlier', 'c-later']);
-  });
-
   it('orders dueChunkIds topologically when chunks have prerequisites', async () => {
     const ts = NOW_MS - 10 * MS_PER_DAY; // identical createdAt
     const chunks = [

@@ -3123,15 +3123,13 @@ describe('startLearning', () => {
   });
 
   it('calls resolveSessionChunkDependencies before createSession with resolved IDs', async () => {
-    const resolveSpy = vi
-      .spyOn(sessionWorkflows, 'resolveSessionChunkDependencies')
-      .mockResolvedValue({
-        resolvedChunkIds: ['c-prereq', 'c1'],
-        addedPrerequisites: ['c-prereq'],
-        skippedMasteredPrerequisites: [],
-        message: 'Automatically included 1 prerequisite.',
-      });
-    vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
+    vi.mocked(sessionWorkflows.resolveSessionChunkDependencies).mockResolvedValueOnce({
+      resolvedChunkIds: ['c-prereq', 'c1'],
+      addedPrerequisites: ['c-prereq'],
+      skippedMasteredPrerequisites: [],
+      message: 'Automatically included 1 prerequisite.',
+    });
+    vi.mocked(recommendationWorkflows.generateRecommendations).mockResolvedValueOnce(
       makeRecommendationOutput({
         recommendations: [
           {
@@ -3154,7 +3152,10 @@ describe('startLearning', () => {
     await startLearning({}, deps);
 
     // resolveSessionChunkDependencies called with the recommendation's dueChunkIds
-    expect(resolveSpy).toHaveBeenCalledWith(['c1'], expect.anything());
+    expect(sessionWorkflows.resolveSessionChunkDependencies).toHaveBeenCalledWith(
+      ['c1'],
+      expect.anything()
+    );
     // createSession called with the resolved (reordered + expanded) chunk IDs
     expect(sessionWorkflows.createSession).toHaveBeenCalledWith(
       expect.objectContaining({ chunkIds: ['c-prereq', 'c1'] }),
@@ -3163,20 +3164,19 @@ describe('startLearning', () => {
   });
 
   it('uses algorithmConfig.maxDependencyDepth in sessionDeps', async () => {
-    const resolveSpy = vi
-      .spyOn(sessionWorkflows, 'resolveSessionChunkDependencies')
-      .mockResolvedValue({
-        resolvedChunkIds: ['c1'],
-        addedPrerequisites: [],
-        skippedMasteredPrerequisites: [],
-        message: '',
-      });
+    vi.mocked(sessionWorkflows.resolveSessionChunkDependencies).mockResolvedValueOnce({
+      resolvedChunkIds: ['c1'],
+      addedPrerequisites: [],
+      skippedMasteredPrerequisites: [],
+      message: '',
+    });
     const deps = makeStartLearningDeps();
 
     await startLearning({}, deps);
 
     // sessionDeps passed to resolveSessionChunkDependencies should have the config's maxDependencyDepth
-    const sessionDepsArg = resolveSpy.mock.calls[0]![1]!;
+    const resolveMock = vi.mocked(sessionWorkflows.resolveSessionChunkDependencies);
+    const sessionDepsArg = resolveMock.mock.calls[0]![1]!;
     expect(sessionDepsArg.maxDependencyDepth).toBe(DEFAULT_ALGORITHM_CONFIG.maxDependencyDepth);
   });
 

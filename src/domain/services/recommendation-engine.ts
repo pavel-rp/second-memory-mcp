@@ -174,7 +174,7 @@ async function toposortDueChunks(chunks: DueChunkInfo[]): Promise<string[]> {
     prerequisites: (c.prerequisites ?? []).filter(p => chunkIdSet.has(p)),
   }));
 
-  const resolver = new DependencyResolver(10);
+  const resolver = new DependencyResolver(Math.max(chunks.length, 1));
   const resolution = await resolver.resolveDependencies(learningItems);
 
   if (resolution.isValid && resolution.resolvedChain.length > 0) {
