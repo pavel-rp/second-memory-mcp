@@ -48,4 +48,15 @@ export interface SessionQuestionRepository {
 
   /** Get all attempts for a session (questions → attempts). */
   getAllAttemptsForSession(sessionId: string): Promise<SessionQuestionAttempt[]>;
+
+  /**
+   * Get the minimum quality score from prior attempts targeting any of the given chunkIds in a session.
+   * Optionally exclude a specific question (for retry path — don't count the question being retried).
+   * Returns undefined when there are no prior attempts (or no non-null qualities).
+   */
+  getMinPriorQuality(
+    sessionId: string,
+    chunkIds: string[],
+    excludeQuestionId?: string
+  ): Promise<number | undefined>;
 }

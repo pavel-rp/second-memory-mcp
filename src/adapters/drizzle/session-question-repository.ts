@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, min, ne } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -162,5 +162,36 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
         asc(sessionQuestionAttempts.sessionQuestionId),
         asc(sessionQuestionAttempts.attemptNumber)
       )) as SessionQuestionAttempt[];
+  }
+
+  async getMinPriorQuality(
+    sessionId: string,
+    chunkIds: string[],
+    excludeQuestionId?: string
+  ): Promise<number | undefined> {
+    if (chunkIds.length === 0) return undefined;
+
+    const conditions = [
+      eq(sessionQuestions.sessionId, sessionId),
+      inArray(sessionQuestionChunks.chunkId, chunkIds),
+    ];
+    if (excludeQuestionId) {
+      conditions.push(ne(sessionQuestions.id, excludeQuestionId));
+    }
+
+    const [row] = await this.db
+      .select({ minQuality: min(sessionQuestionAttempts.quality) })
+      .from(sessionQuestionAttempts)
+      .innerJoin(
+        sessionQuestions,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+      )
+      .innerJoin(
+        sessionQuestionChunks,
+        eq(sessionQuestionChunks.sessionQuestionId, sessionQuestions.id)
+      )
+      .where(and(...conditions));
+
+    return row?.minQuality ?? undefined;
   }
 }

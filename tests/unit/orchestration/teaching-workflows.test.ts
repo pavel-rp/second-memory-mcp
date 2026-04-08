@@ -3312,3 +3312,205 @@ describe('submitAnswer logEvent', () => {
     });
   });
 });
+
+// ── submitAnswer quality cap ─────────────────────────────────────
+
+describe('submitAnswer quality cap', () => {
+  function setupCapTest(minPriorQuality: number | undefined) {
+    const sqRepo = stubSessionQuestionRepository();
+    const question: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'test question',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    vi.mocked(sqRepo.getQuestionById).mockResolvedValue(question);
+    vi.mocked(sqRepo.getChunkIdsForQuestion).mockResolvedValue(['c1']);
+    vi.mocked(sqRepo.getAttemptsForQuestion).mockResolvedValue([]);
+    vi.mocked(sqRepo.getMinPriorQuality).mockResolvedValue(minPriorQuality);
+    vi.mocked(sqRepo.createAttempt).mockImplementation(
+      async input => input as SessionQuestionAttempt
+    );
+    vi.mocked(sqRepo.updateQuestionStatus).mockResolvedValue(1);
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    return { sqRepo, deps };
+  }
+
+  it('does not cap when no prior attempts exist', async () => {
+    const { sqRepo, deps } = setupCapTest(undefined);
+
+    await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'answer',
+        quality: 5,
+        questionType: 'recall',
+        feedback: 'good',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(sqRepo.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ quality: 5, agentQuality: 5 })
+    );
+  });
+
+  it('caps quality from 5 to 3 when min prior quality is 1', async () => {
+    const { sqRepo, deps } = setupCapTest(1);
+
+    await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'answer',
+        quality: 5,
+        questionType: 'recall',
+        feedback: 'good',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(sqRepo.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ quality: 3, agentQuality: 5 })
+    );
+  });
+
+  it('caps quality from 5 to 4 when min prior quality is 2', async () => {
+    const { sqRepo, deps } = setupCapTest(2);
+
+    await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'answer',
+        quality: 5,
+        questionType: 'recall',
+        feedback: 'good',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(sqRepo.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ quality: 4, agentQuality: 5 })
+    );
+  });
+
+  it('does not cap when min prior quality >= 3', async () => {
+    const { sqRepo, deps } = setupCapTest(3);
+
+    await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'answer',
+        quality: 5,
+        questionType: 'recall',
+        feedback: 'good',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(sqRepo.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ quality: 5, agentQuality: 5 })
+    );
+  });
+
+  it('derives passed from capped quality, not raw quality', async () => {
+    // Min prior quality 1 caps incoming quality 5 → 3, passed should be true (3 >= 3)
+    const { sqRepo, deps } = setupCapTest(1);
+
+    const result = await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'answer',
+        quality: 5,
+        questionType: 'recall',
+        feedback: 'good',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(result.status).toBe('recorded');
+    expect(sqRepo.createAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ quality: 3, passed: true })
+    );
+  });
+
+  it('passes excludeQuestionId on retry path', async () => {
+    const firstAttempt: SessionQuestionAttempt = {
+      id: 'att-1',
+      sessionQuestionId: 'sq-1',
+      attemptNumber: 1,
+      response: 'wrong',
+      passed: false,
+      feedback: 'try again',
+      quality: 2,
+      agentQuality: 2,
+      questionType: 'recall',
+      timeSpentMs: 3000,
+      createdAt: NOW - 30_000,
+    };
+
+    const sqRepo = stubSessionQuestionRepository();
+    const question: SessionQuestion = {
+      id: 'sq-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'test question',
+      status: 'pending',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    vi.mocked(sqRepo.getQuestionById).mockResolvedValue(question);
+    vi.mocked(sqRepo.getChunkIdsForQuestion).mockResolvedValue(['c1']);
+    vi.mocked(sqRepo.getAttemptsForQuestion).mockResolvedValue([firstAttempt]);
+    vi.mocked(sqRepo.getMinPriorQuality).mockResolvedValue(undefined);
+    vi.mocked(sqRepo.createAttempt).mockImplementation(
+      async input => input as SessionQuestionAttempt
+    );
+    vi.mocked(sqRepo.updateQuestionStatus).mockResolvedValue(1);
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi
+          .fn()
+          .mockResolvedValue([
+            makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+          ]),
+      },
+      sessionQuestions: sqRepo,
+    });
+
+    await submitAnswer(
+      {
+        sessionQuestionId: 'sq-1',
+        response: 'retry answer',
+        quality: 5,
+        questionType: 'recall',
+        feedback: 'correct now',
+        timeSpentMs: 5000,
+      },
+      deps
+    );
+
+    expect(sqRepo.getMinPriorQuality).toHaveBeenCalledWith('sess-1', ['c1'], 'sq-1');
+  });
+});

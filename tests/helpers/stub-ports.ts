@@ -201,6 +201,7 @@ export function stubSessionQuestionRepository(
     }),
     getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
     getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+    getMinPriorQuality: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
