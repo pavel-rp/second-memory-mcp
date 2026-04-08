@@ -242,6 +242,43 @@ describe('evaluateRoadblock', () => {
     expect(result!.remaining).toBe(1);
   });
 
+  it('follow-up on different chunk_ids is not counted', () => {
+    const chunkMapping = new Map([
+      ['q1', ['chunk-1']],
+      ['q2', ['chunk-other']], // different chunk
+    ]);
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW },
+        { questionId: 'q2', quality: 4, createdAt: NOW + 1000 },
+      ],
+      chunkMapping,
+    });
+    // q2 targets 'chunk-other', not 'chunk-1' → doesn't share chunk → not counted
+    expect(result).not.toBeNull();
+    expect(result!.completed_followups).toBe(0);
+    expect(result!.remaining).toBe(2);
+  });
+
+  it('handles missing chunkMapping entries with fallback to chunkId', () => {
+    // Empty chunkMapping → all fallbacks to [CHUNK_ID]
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW },
+        { questionId: 'q2', quality: 3, createdAt: NOW + 1000 },
+      ],
+      chunkMapping: new Map(),
+    });
+    // Both fall back to [CHUNK_ID], so they share chunk → q2 counts as follow-up
+    expect(result).not.toBeNull();
+    expect(result!.completed_followups).toBe(1);
+  });
+
+  it('quality outside 0-5 range falls back to 0 required follow-ups', () => {
+    expect(getRequiredFollowups(6)).toBe(0);
+    expect(getRequiredFollowups(-1)).toBe(0);
+  });
+
   it('tie-breaks by earliest createdAt when min quality is equal', () => {
     const result = run({
       attempts: [
