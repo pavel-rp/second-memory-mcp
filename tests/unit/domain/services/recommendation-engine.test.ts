@@ -26,8 +26,8 @@ function makeDueChunk(overrides: Partial<DueChunkInfo> = {}): DueChunkInfo {
 }
 
 describe('aggregateTopicRecommendations', () => {
-  it('returns empty array for no due chunks', () => {
-    const result = aggregateTopicRecommendations({
+  it('returns empty array for no due chunks', async () => {
+    const result = await aggregateTopicRecommendations({
       dueChunks: [],
       topicChunkCounts: new Map(),
       limit: 10,
@@ -37,13 +37,13 @@ describe('aggregateTopicRecommendations', () => {
     expect(result).toEqual([]);
   });
 
-  it('groups chunks by topic and returns topic-level recommendations', () => {
+  it('groups chunks by topic and returns topic-level recommendations', async () => {
     const chunks = [
       makeDueChunk({ id: 'c1', topicId: 'topic-1', topicTitle: 'Segment Trees' }),
       makeDueChunk({ id: 'c2', topicId: 'topic-1', topicTitle: 'Segment Trees' }),
       makeDueChunk({ id: 'c3', topicId: 'topic-2', topicTitle: 'Graph Theory' }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map([
         ['topic-1', 5],
@@ -66,7 +66,7 @@ describe('aggregateTopicRecommendations', () => {
     expect(t2.totalChunkCount).toBe(3);
   });
 
-  it('sorts topics by urgency score descending', () => {
+  it('sorts topics by urgency score descending', async () => {
     const chunks = [
       makeDueChunk({
         id: 'c1',
@@ -81,7 +81,7 @@ describe('aggregateTopicRecommendations', () => {
         nextReviewAt: NOW_MS - 10 * MS_PER_DAY, // 10 days overdue
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -93,12 +93,24 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.urgencyScore).toBeGreaterThan(result[1]!.urgencyScore);
   });
 
-  it('orders dueChunkIds by createdAt within topic', () => {
+  it('orders dueChunkIds topologically when chunks have prerequisites', async () => {
+    const ts = NOW_MS - 10 * MS_PER_DAY; // identical createdAt
     const chunks = [
-      makeDueChunk({ id: 'c-later', topicId: 't1', createdAt: NOW_MS - MS_PER_DAY }),
-      makeDueChunk({ id: 'c-earlier', topicId: 't1', createdAt: NOW_MS - 5 * MS_PER_DAY }),
+      makeDueChunk({
+        id: 'c-advanced',
+        topicId: 't1',
+        createdAt: ts,
+        prerequisites: ['c-intermediate'],
+      }),
+      makeDueChunk({
+        id: 'c-intermediate',
+        topicId: 't1',
+        createdAt: ts,
+        prerequisites: ['c-basics'],
+      }),
+      makeDueChunk({ id: 'c-basics', topicId: 't1', createdAt: ts }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -106,15 +118,69 @@ describe('aggregateTopicRecommendations', () => {
       recencyWindowMs: RECENCY_WINDOW_MS,
     });
 
-    expect(result[0]!.dueChunkIds).toEqual(['c-earlier', 'c-later']);
+    expect(result[0]!.dueChunkIds).toEqual(['c-basics', 'c-intermediate', 'c-advanced']);
   });
 
-  it('computes estimatedDuration from chunk durations', () => {
+  it('falls back to createdAt sort when no prerequisites exist', async () => {
+    const chunks = [
+      makeDueChunk({ id: 'c-newer', topicId: 't1', createdAt: NOW_MS - MS_PER_DAY }),
+      makeDueChunk({ id: 'c-older', topicId: 't1', createdAt: NOW_MS - 5 * MS_PER_DAY }),
+    ];
+    const result = await aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    expect(result[0]!.dueChunkIds).toEqual(['c-older', 'c-newer']);
+  });
+
+  it('handles prerequisites pointing outside the due set gracefully', async () => {
+    const ts = NOW_MS - 10 * MS_PER_DAY;
+    const chunks = [
+      makeDueChunk({ id: 'c-child', topicId: 't1', createdAt: ts, prerequisites: ['c-external'] }),
+      makeDueChunk({ id: 'c-standalone', topicId: 't1', createdAt: ts }),
+    ];
+    const result = await aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    // External prerequisite is filtered out; both chunks should appear
+    expect(result[0]!.dueChunkIds).toHaveLength(2);
+    expect(result[0]!.dueChunkIds).toContain('c-child');
+    expect(result[0]!.dueChunkIds).toContain('c-standalone');
+  });
+
+  it('falls back to createdAt sort on circular prerequisites', async () => {
+    const ts = NOW_MS - 10 * MS_PER_DAY;
+    const chunks = [
+      makeDueChunk({ id: 'c-a', topicId: 't1', createdAt: ts + 2, prerequisites: ['c-b'] }),
+      makeDueChunk({ id: 'c-b', topicId: 't1', createdAt: ts + 1, prerequisites: ['c-a'] }),
+    ];
+    const result = await aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map(),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+    });
+
+    // Cycle detected → falls back to createdAt order
+    expect(result[0]!.dueChunkIds).toEqual(['c-b', 'c-a']);
+  });
+
+  it('computes estimatedDuration from chunk durations', async () => {
     const chunks = [
       makeDueChunk({ id: 'c1', topicId: 't1', estimatedDuration: 10 }),
       makeDueChunk({ id: 'c2', topicId: 't1', estimatedDuration: 7 }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -125,7 +191,7 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.estimatedDuration).toBe(17); // 10 + 7
   });
 
-  it('detects hasNewChunks when a chunk has never been reviewed', () => {
+  it('detects hasNewChunks when a chunk has never been reviewed', async () => {
     const createdAt = NOW_MS - MS_PER_DAY;
     const chunks = [
       makeDueChunk({
@@ -136,7 +202,7 @@ describe('aggregateTopicRecommendations', () => {
         lastReviewedAt: null,
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -147,7 +213,7 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.hasNewChunks).toBe(true);
   });
 
-  it('sets hasNewChunks false when all chunks have been reviewed', () => {
+  it('sets hasNewChunks false when all chunks have been reviewed', async () => {
     const chunks = [
       makeDueChunk({
         id: 'c1',
@@ -157,7 +223,7 @@ describe('aggregateTopicRecommendations', () => {
         lastReviewedAt: NOW_MS - 10 * MS_PER_DAY,
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -168,11 +234,11 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.hasNewChunks).toBe(false);
   });
 
-  it('respects the limit parameter', () => {
+  it('respects the limit parameter', async () => {
     const chunks = Array.from({ length: 5 }, (_, i) =>
       makeDueChunk({ id: `c${i}`, topicId: `t${i}`, topicTitle: `Topic ${i}` })
     );
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 3,
@@ -183,12 +249,12 @@ describe('aggregateTopicRecommendations', () => {
     expect(result).toHaveLength(3);
   });
 
-  it('falls back to dueChunkCount when topicChunkCounts has no entry', () => {
+  it('falls back to dueChunkCount when topicChunkCounts has no entry', async () => {
     const chunks = [
       makeDueChunk({ id: 'c1', topicId: 't1' }),
       makeDueChunk({ id: 'c2', topicId: 't1' }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(), // no entry for t1
       limit: 10,
@@ -199,12 +265,12 @@ describe('aggregateTopicRecommendations', () => {
     expect(result[0]!.totalChunkCount).toBe(2); // falls back to due count
   });
 
-  it('uses stable tiebreaker (topicTitle) when scores are equal', () => {
+  it('uses stable tiebreaker (topicTitle) when scores are equal', async () => {
     const chunks = [
       makeDueChunk({ id: 'c1', topicId: 't-b', topicTitle: 'Bravo', nextReviewAt: NOW_MS }),
       makeDueChunk({ id: 'c2', topicId: 't-a', topicTitle: 'Alpha', nextReviewAt: NOW_MS }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -247,7 +313,7 @@ describe('classifyRecommendation', () => {
 });
 
 describe('recommendation type classification in aggregation', () => {
-  it('classifies topic with recent review + new chunks as continue_learning', () => {
+  it('classifies topic with recent review + new chunks as continue_learning', async () => {
     const createdAt = NOW_MS - MS_PER_DAY;
     const chunks = [
       // Reviewed chunk (recent)
@@ -267,7 +333,7 @@ describe('recommendation type classification in aggregation', () => {
         lastReviewedAt: null,
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map([['t1', 5]]),
       limit: 10,
@@ -278,7 +344,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(result[0]!.recommendationType).toBe('continue_learning');
   });
 
-  it('classifies topic with due chunks and no recent activity as overdue_review', () => {
+  it('classifies topic with due chunks and no recent activity as overdue_review', async () => {
     const chunks = [
       makeDueChunk({
         id: 'c1',
@@ -288,7 +354,7 @@ describe('recommendation type classification in aggregation', () => {
         lastReviewedAt: NOW_MS - 10 * MS_PER_DAY, // 10 days ago, outside 48h window
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -299,7 +365,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(result[0]!.recommendationType).toBe('overdue_review');
   });
 
-  it('classifies topic with only new chunks and no recent activity as new_material', () => {
+  it('classifies topic with only new chunks and no recent activity as new_material', async () => {
     const createdAt = NOW_MS - MS_PER_DAY;
     const chunks = [
       makeDueChunk({
@@ -310,7 +376,7 @@ describe('recommendation type classification in aggregation', () => {
         lastReviewedAt: null,
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -321,7 +387,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(result[0]!.recommendationType).toBe('new_material');
   });
 
-  it('recency boost raises urgency score for continue_learning topics', () => {
+  it('recency boost raises urgency score for continue_learning topics', async () => {
     const createdAt = NOW_MS - MS_PER_DAY;
     // Topic with recent activity + new chunks
     const boostedChunks = [
@@ -362,7 +428,7 @@ describe('recommendation type classification in aggregation', () => {
       }),
     ];
 
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: [...boostedChunks, ...unboostedChunks],
       topicChunkCounts: new Map(),
       limit: 10,
@@ -376,7 +442,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(boosted.recommendationType).toBe('continue_learning');
   });
 
-  it('continue_learning topic (0 overdue days) ranks above overdue_review (5-10 days)', () => {
+  it('continue_learning topic (0 overdue days) ranks above overdue_review (5-10 days)', async () => {
     const createdAt = NOW_MS;
     // continue_learning: just reviewed, has new chunks, 0 overdue days
     const continueLearning = [
@@ -409,7 +475,7 @@ describe('recommendation type classification in aggregation', () => {
       }),
     ];
 
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: [...continueLearning, ...overdueReview],
       topicChunkCounts: new Map(),
       limit: 10,
@@ -423,7 +489,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(result[1]!.recommendationType).toBe('overdue_review');
   });
 
-  it('topic 150+ days overdue outranks continue_learning topic', () => {
+  it('topic 150+ days overdue outranks continue_learning topic', async () => {
     const createdAt = NOW_MS;
     // continue_learning topic
     const continueLearning = [
@@ -456,7 +522,7 @@ describe('recommendation type classification in aggregation', () => {
       }),
     ];
 
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: [...continueLearning, ...extremeOverdue],
       topicChunkCounts: new Map(),
       limit: 10,
@@ -468,7 +534,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(result[0]!.recommendationType).toBe('overdue_review');
   });
 
-  it('no recency boost when reviewed outside 48h window', () => {
+  it('no recency boost when reviewed outside 48h window', async () => {
     const createdAt = NOW_MS - MS_PER_DAY;
     const chunks = [
       makeDueChunk({
@@ -486,7 +552,7 @@ describe('recommendation type classification in aggregation', () => {
         lastReviewedAt: null,
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,
@@ -498,7 +564,7 @@ describe('recommendation type classification in aggregation', () => {
     expect(result[0]!.recommendationType).not.toBe('continue_learning');
   });
 
-  it('boosted score is clamped to 1.0', () => {
+  it('boosted score is clamped to 1.0', async () => {
     const createdAt = NOW_MS;
     const chunks = [
       // Extremely overdue + recent → high base score + boost
@@ -518,7 +584,7 @@ describe('recommendation type classification in aggregation', () => {
         lastReviewedAt: null,
       }),
     ];
-    const result = aggregateTopicRecommendations({
+    const result = await aggregateTopicRecommendations({
       dueChunks: chunks,
       topicChunkCounts: new Map(),
       limit: 10,

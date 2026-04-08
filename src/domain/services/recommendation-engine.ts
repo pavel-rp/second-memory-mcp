@@ -1,5 +1,10 @@
 import { calculateUrgencyScore } from '../algorithms/urgency-calculator.js';
-import type { RecommendationType, TopicRecommendation } from '../types/recommendations.js';
+import { DependencyResolver } from '../algorithms/dependency-resolver.js';
+import type {
+  LearningItem,
+  RecommendationType,
+  TopicRecommendation,
+} from '../types/recommendations.js';
 
 /** A due chunk with the fields needed for topic-level aggregation. */
 export type DueChunkInfo = {
@@ -11,6 +16,7 @@ export type DueChunkInfo = {
   estimatedDuration: number;
   createdAt: number;
   lastReviewedAt: number | null;
+  prerequisites?: string[];
 };
 
 export type TopicAggregationInput = {
@@ -45,9 +51,11 @@ export function classifyRecommendation(
 
 /**
  * Aggregate due chunks into topic-level recommendations with urgency scores.
- * Pure function — no I/O.
+ * Async (dependency resolution is in-memory graph computation, no I/O).
  */
-export function aggregateTopicRecommendations(input: TopicAggregationInput): TopicRecommendation[] {
+export async function aggregateTopicRecommendations(
+  input: TopicAggregationInput
+): Promise<TopicRecommendation[]> {
   const { dueChunks, topicChunkCounts, limit, now, recencyWindowMs } = input;
 
   if (dueChunks.length === 0) return [];
@@ -112,8 +120,8 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
         ? Math.min(1, Math.round((score + RECENCY_BOOST) * 100) / 100)
         : score;
 
-    // Order due chunk IDs by createdAt (topic creation order)
-    const orderedChunks = [...chunks].sort((a, b) => a.createdAt - b.createdAt);
+    // Order due chunk IDs topologically (prerequisites first), with createdAt as tiebreaker
+    const orderedChunkIds = await toposortDueChunks(chunks);
 
     recommendations.push({
       topicId,
@@ -121,7 +129,7 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
       urgencyScore: boostedScore,
       urgencyReason: reason,
       recommendationType,
-      dueChunkIds: orderedChunks.map(c => c.id),
+      dueChunkIds: orderedChunkIds,
       dueChunkCount: chunks.length,
       totalChunkCount: topicChunkCounts.get(topicId) ?? chunks.length,
       estimatedDuration: totalMinutes,
@@ -137,4 +145,41 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
   });
 
   return recommendations.slice(0, limit);
+}
+
+/**
+ * Topologically sort due chunks within a topic using DependencyResolver.
+ * Falls back to createdAt order when no prerequisites exist or toposort fails.
+ * Pre-sorts by createdAt so same-level nodes maintain creation order as tiebreaker.
+ */
+async function toposortDueChunks(chunks: DueChunkInfo[]): Promise<string[]> {
+  const createdAtSorted = [...chunks].sort((a, b) => a.createdAt - b.createdAt);
+  const hasAnyPrereqs = chunks.some(c => c.prerequisites && c.prerequisites.length > 0);
+
+  if (!hasAnyPrereqs) {
+    return createdAtSorted.map(c => c.id);
+  }
+
+  const chunkIdSet = new Set(chunks.map(c => c.id));
+  const learningItems: LearningItem[] = createdAtSorted.map(c => ({
+    id: c.id,
+    title: c.id,
+    subject: '',
+    difficulty: 1,
+    nextReviewDate: new Date(c.nextReviewAt).toISOString(),
+    easeFactor: c.easeFactor,
+    repetitions: 0,
+    estimatedDuration: c.estimatedDuration,
+    chunkType: 'review' as const,
+    prerequisites: (c.prerequisites ?? []).filter(p => chunkIdSet.has(p)),
+  }));
+
+  const resolver = new DependencyResolver(Math.max(chunks.length, 1));
+  const resolution = await resolver.resolveDependencies(learningItems);
+
+  if (resolution.isValid && resolution.resolvedChain.length > 0) {
+    return resolution.resolvedChain;
+  }
+
+  return createdAtSorted.map(c => c.id);
 }
