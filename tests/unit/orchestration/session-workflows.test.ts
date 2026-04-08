@@ -693,4 +693,44 @@ describe('resolveSessionChunkDependencies', () => {
     const errResult = await resolveSessionChunkDependencies(['c1'], deps);
     expect(errResult.skippedMasteredPrerequisites).toEqual([]);
   });
+
+  it('returns estimatedDuration summing durations of resolved chunks including prerequisites', async () => {
+    const deps = stubDeps();
+    const target = stubChunk({
+      id: 'target',
+      prerequisitesJson: ['prereq'],
+      estimatedDuration: 10,
+      repetitions: 0,
+    });
+    const prereq = stubChunk({
+      id: 'prereq',
+      prerequisitesJson: null,
+      estimatedDuration: 5,
+      repetitions: 0,
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      if (id === 'target') return target;
+      if (id === 'prereq') return prereq;
+      return undefined;
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.resolvedChunkIds).toContain('target');
+    expect(result.resolvedChunkIds).toContain('prereq');
+    expect(result.estimatedDuration).toBe(15); // 10 + 5
+  });
+
+  it('returns estimatedDuration: 0 on empty input', async () => {
+    const deps = stubDeps();
+    const result = await resolveSessionChunkDependencies([], deps);
+    expect(result.estimatedDuration).toBe(0);
+  });
+
+  it('returns estimatedDuration: 0 on error fallback', async () => {
+    const deps = stubDeps();
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));
+    const result = await resolveSessionChunkDependencies(['c1'], deps);
+    expect(result.estimatedDuration).toBe(0);
+  });
 });

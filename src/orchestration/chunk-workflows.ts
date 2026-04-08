@@ -249,7 +249,7 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
     if (dependentRows.length > 0) {
       const items = dependentRows.map(r => mapChunkRowToLearningItem(r) as LearningItem);
       const resolver = new DependencyResolver(deps.maxDependencyDepth);
-      const resolution = await resolver.resolveDependencies(items, dependentIds);
+      const resolution = resolver.resolveDependencies(items, dependentIds);
       if (resolution.isValid && resolution.resolvedChain.length > 0) {
         orderedIds = resolution.resolvedChain.filter((cid: string) => dependentIds.includes(cid));
       }

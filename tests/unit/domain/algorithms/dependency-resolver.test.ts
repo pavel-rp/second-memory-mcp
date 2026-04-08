@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DependencyResolver } from '../../../../src/domain/algorithms/dependency-resolver.js';
-import type { LearningItem } from '../../../../src/domain/types/recommendations.js';
+import {
+  DependencyResolver,
+  type DependencyNode,
+} from '../../../../src/domain/algorithms/dependency-resolver.js';
 
 describe('DependencyResolver', () => {
   let resolver: DependencyResolver;
@@ -9,26 +11,17 @@ describe('DependencyResolver', () => {
     resolver = new DependencyResolver(5); // Max depth of 5 for testing
   });
 
-  // Helper function to create test learning items
-  const createTestItem = (id: string, prerequisites: string[] = []): LearningItem => ({
+  // Helper function to create test dependency nodes (narrow type — only id + prerequisites)
+  const createTestItem = (id: string, prerequisites: string[] = []): DependencyNode => ({
     id,
-    title: `Test Item ${id}`,
-    subject: 'CS',
-    difficulty: 5,
-    nextReviewDate: '2025-09-26',
-    easeFactor: 2.5,
-    repetitions: 2,
-    estimatedDuration: 10,
-    chunkType: 'review',
     prerequisites,
-    tags: [],
   });
 
   describe('resolveDependencies', () => {
-    it('should handle items with no dependencies', async () => {
+    it('should handle items with no dependencies', () => {
       const items = [createTestItem('item1'), createTestItem('item2')];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toHaveLength(2);
@@ -36,21 +29,21 @@ describe('DependencyResolver', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should resolve simple linear dependencies', async () => {
+    it('should resolve simple linear dependencies', () => {
       const items = [
         createTestItem('item1'), // No dependencies
         createTestItem('item2', ['item1']), // Depends on item1
         createTestItem('item3', ['item2']), // Depends on item2
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toEqual(['item1', 'item2', 'item3']);
       expect(result.circularDependencies).toHaveLength(0);
     });
 
-    it('should resolve complex dependency graph', async () => {
+    it('should resolve complex dependency graph', () => {
       const items = [
         createTestItem('a'), // No dependencies
         createTestItem('b'), // No dependencies
@@ -59,7 +52,7 @@ describe('DependencyResolver', () => {
         createTestItem('e', ['c', 'd']), // Depends on c and d
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(true);
 
@@ -72,10 +65,10 @@ describe('DependencyResolver', () => {
       expect(chain.indexOf('d')).toBeLessThan(chain.indexOf('e'));
     });
 
-    it('should detect simple circular dependencies', async () => {
+    it('should detect simple circular dependencies', () => {
       const items = [createTestItem('item1', ['item2']), createTestItem('item2', ['item1'])];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(false);
       expect(result.circularDependencies.length).toBeGreaterThan(0);
@@ -83,32 +76,32 @@ describe('DependencyResolver', () => {
       expect(result.errors[0]).toContain('Circular dependencies detected');
     });
 
-    it('should detect complex circular dependencies', async () => {
+    it('should detect complex circular dependencies', () => {
       const items = [
         createTestItem('item1', ['item3']),
         createTestItem('item2', ['item1']),
         createTestItem('item3', ['item2']),
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(false);
       expect(result.circularDependencies.length).toBeGreaterThan(0);
       expect(result.errors[0]).toContain('Circular dependencies detected');
     });
 
-    it('should handle self-referencing dependencies', async () => {
+    it('should handle self-referencing dependencies', () => {
       const items = [
         createTestItem('item1', ['item1']), // Self-reference
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(false);
       expect(result.circularDependencies).toContain('item1');
     });
 
-    it('should resolve dependencies for specific target items', async () => {
+    it('should resolve dependencies for specific target items', () => {
       const items = [
         createTestItem('item1'),
         createTestItem('item2', ['item1']),
@@ -117,7 +110,7 @@ describe('DependencyResolver', () => {
       ];
 
       // Only resolve dependencies for item2
-      const result = await resolver.resolveDependencies(items, ['item2']);
+      const result = resolver.resolveDependencies(items, ['item2']);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toEqual(['item1', 'item2']);
@@ -125,10 +118,10 @@ describe('DependencyResolver', () => {
       expect(result.resolvedChain).not.toContain('item4');
     });
 
-    it('should handle missing prerequisite references gracefully', async () => {
+    it('should handle missing prerequisite references gracefully', () => {
       const items = [createTestItem('item1', ['nonexistent-item'])];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       // Should still work, treating nonexistent-item as having no dependencies
       expect(result.isValid).toBe(true);
@@ -178,7 +171,7 @@ describe('DependencyResolver', () => {
   });
 
   describe('depth calculation', () => {
-    it('should calculate correct max depth for linear chain', async () => {
+    it('should calculate correct max depth for linear chain', () => {
       const items = [
         createTestItem('item1'),
         createTestItem('item2', ['item1']),
@@ -186,13 +179,13 @@ describe('DependencyResolver', () => {
         createTestItem('item4', ['item3']),
       ];
 
-      const result = await resolver.resolveDependencies(items, ['item4']);
+      const result = resolver.resolveDependencies(items, ['item4']);
 
       expect(result.isValid).toBe(true);
       expect(result.maxDepthReached).toBe(3); // item4 -> item3 -> item2 -> item1
     });
 
-    it('should calculate correct max depth for complex graph', async () => {
+    it('should calculate correct max depth for complex graph', () => {
       const items = [
         createTestItem('base1'),
         createTestItem('base2'),
@@ -201,7 +194,7 @@ describe('DependencyResolver', () => {
         createTestItem('top', ['mid1', 'mid2']),
       ];
 
-      const result = await resolver.resolveDependencies(items, ['top']);
+      const result = resolver.resolveDependencies(items, ['top']);
 
       expect(result.isValid).toBe(true);
       expect(result.maxDepthReached).toBe(2); // top -> mid1/mid2 -> base1/base2
@@ -209,7 +202,7 @@ describe('DependencyResolver', () => {
   });
 
   describe('maxDepth exceeded', () => {
-    it('returns invalid when dependency depth exceeds maxDepth limit', async () => {
+    it('returns invalid when dependency depth exceeds maxDepth limit', () => {
       const shallowResolver = new DependencyResolver(2); // maxDepth = 2
       const items = [
         createTestItem('item1'),
@@ -218,7 +211,7 @@ describe('DependencyResolver', () => {
         createTestItem('item4', ['item3']), // depth 3 > maxDepth 2
       ];
 
-      const result = await shallowResolver.resolveDependencies(items, ['item4']);
+      const result = shallowResolver.resolveDependencies(items, ['item4']);
 
       expect(result.isValid).toBe(false);
       expect(result.maxDepthReached).toBeGreaterThan(2);
@@ -226,7 +219,7 @@ describe('DependencyResolver', () => {
       expect(result.resolvedChain).toEqual([]);
     });
 
-    it('returns valid when depth equals maxDepth exactly', async () => {
+    it('returns valid when depth equals maxDepth exactly', () => {
       const exactResolver = new DependencyResolver(3);
       const items = [
         createTestItem('item1'),
@@ -235,7 +228,7 @@ describe('DependencyResolver', () => {
         createTestItem('item4', ['item3']), // depth = 3 = maxDepth
       ];
 
-      const result = await exactResolver.resolveDependencies(items, ['item4']);
+      const result = exactResolver.resolveDependencies(items, ['item4']);
 
       expect(result.isValid).toBe(true);
       expect(result.maxDepthReached).toBe(3);
@@ -243,33 +236,33 @@ describe('DependencyResolver', () => {
   });
 
   describe('target nodes not in dependency graph', () => {
-    it('resolves target items that have no prerequisites and no dependents', async () => {
+    it('resolves target items that have no prerequisites and no dependents', () => {
       // Items exist but target nodes are standalone — not referenced by anyone
       const items = [createTestItem('orphan1'), createTestItem('orphan2')];
 
-      const result = await resolver.resolveDependencies(items, ['orphan1']);
+      const result = resolver.resolveDependencies(items, ['orphan1']);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toContain('orphan1');
       expect(result.resolvedChain).not.toContain('orphan2');
     });
 
-    it('adds target nodes to inDegree map when not already present', async () => {
+    it('adds target nodes to inDegree map when not already present', () => {
       // Target item has a prerequisite not in the item list
       const items = [createTestItem('base'), createTestItem('middle', ['base'])];
 
       // Resolve for a target that depends on middle
-      const result = await resolver.resolveDependencies(items, ['middle']);
+      const result = resolver.resolveDependencies(items, ['middle']);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toEqual(['base', 'middle']);
     });
 
-    it('handles target ID not present in the items list', async () => {
+    it('handles target ID not present in the items list', () => {
       // 'ghost' is requested as a target but doesn't exist in items
       const items = [createTestItem('base'), createTestItem('child', ['base'])];
 
-      const result = await resolver.resolveDependencies(items, ['ghost']);
+      const result = resolver.resolveDependencies(items, ['ghost']);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toContain('ghost');
@@ -277,9 +270,9 @@ describe('DependencyResolver', () => {
   });
 
   describe('performance and edge cases', () => {
-    it('should handle large dependency graphs efficiently', async () => {
+    it('should handle large dependency graphs efficiently', () => {
       const deepResolver = new DependencyResolver(100);
-      const items: LearningItem[] = [];
+      const items: DependencyNode[] = [];
 
       // Create a large linear chain
       items.push(createTestItem('item0'));
@@ -288,7 +281,7 @@ describe('DependencyResolver', () => {
       }
 
       const startTime = Date.now();
-      const result = await deepResolver.resolveDependencies(items);
+      const result = deepResolver.resolveDependencies(items);
       const endTime = Date.now();
 
       expect(result.isValid).toBe(true);
@@ -296,8 +289,8 @@ describe('DependencyResolver', () => {
       expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
     });
 
-    it('should handle empty item list', async () => {
-      const result = await resolver.resolveDependencies([]);
+    it('should handle empty item list', () => {
+      const result = resolver.resolveDependencies([]);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toHaveLength(0);
@@ -305,22 +298,22 @@ describe('DependencyResolver', () => {
       expect(result.maxDepthReached).toBe(0);
     });
 
-    it('should handle items with duplicate prerequisites', async () => {
+    it('should handle items with duplicate prerequisites', () => {
       const items = [
         createTestItem('item1'),
         createTestItem('item2', ['item1', 'item1']), // Duplicate prerequisite
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toEqual(['item1', 'item2']);
     });
 
-    it('should handle items with empty prerequisite arrays', async () => {
+    it('should handle items with empty prerequisite arrays', () => {
       const items = [createTestItem('item1', []), createTestItem('item2', ['item1'])];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(true);
       expect(result.resolvedChain).toEqual(['item1', 'item2']);
@@ -328,14 +321,14 @@ describe('DependencyResolver', () => {
   });
 
   describe('error handling', () => {
-    it('should provide meaningful error messages for circular dependencies', async () => {
+    it('should provide meaningful error messages for circular dependencies', () => {
       const items = [
         createTestItem('math-basics', ['advanced-calc']),
         createTestItem('algebra', ['math-basics']),
         createTestItem('advanced-calc', ['algebra']),
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(false);
       expect(result.errors).toHaveLength(1);
@@ -343,7 +336,7 @@ describe('DependencyResolver', () => {
       expect(result.circularDependencies.length).toBeGreaterThan(0);
     });
 
-    it('should handle mixed valid and circular dependencies', async () => {
+    it('should handle mixed valid and circular dependencies', () => {
       const items = [
         createTestItem('valid1'),
         createTestItem('valid2', ['valid1']),
@@ -351,7 +344,7 @@ describe('DependencyResolver', () => {
         createTestItem('circular2', ['circular1']),
       ];
 
-      const result = await resolver.resolveDependencies(items);
+      const result = resolver.resolveDependencies(items);
 
       expect(result.isValid).toBe(false);
       expect(result.circularDependencies).toContain('circular1');

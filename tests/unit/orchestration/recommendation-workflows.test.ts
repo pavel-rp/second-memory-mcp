@@ -194,6 +194,28 @@ describe('generateRecommendations', () => {
     expect(result.totalDueTopics).toBe(2);
   });
 
+  it('falls back to empty prerequisites when prerequisitesJson is corrupted', async () => {
+    const chunks = [
+      stubChunkRow({
+        id: 'c1',
+        topicId: 'topic-1',
+        topicTitle: 'Topic A',
+        // Corrupted: contains numbers instead of strings
+        prerequisitesJson: [42, null, { obj: true }] as unknown as string[],
+      }),
+    ];
+    const deps = makeDeps({
+      list: vi.fn().mockResolvedValue(chunks),
+      countByTopicIds: vi.fn().mockResolvedValue(new Map([['topic-1', 1]])),
+    });
+
+    const result = await generateRecommendations({}, deps, NOW);
+
+    // Should not crash — corrupted prerequisites treated as empty
+    expect(result.recommendations).toHaveLength(1);
+    expect(result.recommendations[0]!.dueChunkIds).toEqual(['c1']);
+  });
+
   it('filter with limit returns correct number of results', async () => {
     // 5 overdue_review topics + 3 new_material topics
     const chunks = [

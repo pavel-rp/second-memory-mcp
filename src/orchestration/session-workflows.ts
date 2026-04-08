@@ -197,6 +197,7 @@ export async function resolveSessionChunkDependencies(
   addedPrerequisites: string[];
   skippedMasteredPrerequisites: string[];
   message: string;
+  estimatedDuration: number;
 }> {
   if (!chunkIds || chunkIds.length === 0) {
     return {
@@ -204,6 +205,7 @@ export async function resolveSessionChunkDependencies(
       addedPrerequisites: [],
       skippedMasteredPrerequisites: [],
       message: '',
+      estimatedDuration: 0,
     };
   }
 
@@ -253,6 +255,7 @@ export async function resolveSessionChunkDependencies(
         addedPrerequisites: [],
         skippedMasteredPrerequisites: [],
         message: '',
+        estimatedDuration: 0,
       };
     }
 
@@ -266,11 +269,12 @@ export async function resolveSessionChunkDependencies(
         addedPrerequisites: [],
         skippedMasteredPrerequisites: [],
         message: '',
+        estimatedDuration: 0,
       };
     }
 
     const resolver = new DependencyResolver(deps.maxDependencyDepth);
-    const resolution = await resolver.resolveDependencies(relevantItems, chunkIds);
+    const resolution = resolver.resolveDependencies(relevantItems, chunkIds);
 
     if (!resolution.isValid) {
       getRequestLogger().warn(
@@ -282,6 +286,7 @@ export async function resolveSessionChunkDependencies(
         addedPrerequisites: [],
         skippedMasteredPrerequisites: [],
         message: '',
+        estimatedDuration: 0,
       };
     }
 
@@ -331,11 +336,17 @@ export async function resolveSessionChunkDependencies(
     }
 
     const message = messageParts.length > 0 ? ` ${messageParts.join(' ')}` : '';
+    // Recompute estimatedDuration from the resolved chain (includes injected prerequisites)
+    const estimatedDuration = filteredResolvedChain.reduce(
+      (sum, id) => sum + (chunkMap.get(id)?.estimatedDuration ?? 0),
+      0
+    );
     return {
       resolvedChunkIds: filteredResolvedChain,
       addedPrerequisites,
       skippedMasteredPrerequisites,
       message,
+      estimatedDuration,
     };
   } catch (error) {
     getRequestLogger().error('Error resolving session chunk dependencies:', error);
@@ -344,6 +355,7 @@ export async function resolveSessionChunkDependencies(
       addedPrerequisites: [],
       skippedMasteredPrerequisites: [],
       message: '',
+      estimatedDuration: 0,
     };
   }
 }

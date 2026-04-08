@@ -2797,6 +2797,7 @@ describe('startLearning', () => {
       addedPrerequisites: [],
       skippedMasteredPrerequisites: [],
       message: '',
+      estimatedDuration: 0,
     });
     vi.spyOn(recommendationWorkflows, 'generateRecommendations').mockResolvedValue(
       makeRecommendationOutput()
@@ -3128,6 +3129,7 @@ describe('startLearning', () => {
       addedPrerequisites: ['c-prereq'],
       skippedMasteredPrerequisites: [],
       message: 'Automatically included 1 prerequisite.',
+      estimatedDuration: 15,
     });
     vi.mocked(recommendationWorkflows.generateRecommendations).mockResolvedValueOnce(
       makeRecommendationOutput({
@@ -3169,6 +3171,7 @@ describe('startLearning', () => {
       addedPrerequisites: [],
       skippedMasteredPrerequisites: [],
       message: '',
+      estimatedDuration: 0,
     });
     const deps = makeStartLearningDeps();
 
