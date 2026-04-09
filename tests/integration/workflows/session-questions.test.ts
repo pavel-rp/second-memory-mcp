@@ -339,6 +339,7 @@ describe('session question workflows', () => {
     expect(step1.chunk_id).toBe('c1');
 
     // Submit 3 inline questions for c1 (recall → explain → analyze)
+    // All quality 5 to avoid NEU-478 roadblock gate; test focuses on multi-question probing
     const q1 = await ctx.submitAnswer({
       promptText: 'Recall: What is c1?',
       chunkIds: ['c1'],
@@ -356,7 +357,7 @@ describe('session question workflows', () => {
       promptText: 'Explain: Why is c1 important?',
       chunkIds: ['c1'],
       response: 'c1 matters because...',
-      quality: 4,
+      quality: 5,
       questionType: 'explain_apply',
       feedback: 'Good explanation',
       timeSpentMs: 5000,
@@ -368,29 +369,15 @@ describe('session question workflows', () => {
     const q3 = await ctx.submitAnswer({
       promptText: 'Analyze: How does c1 relate to c2?',
       chunkIds: ['c1'],
-      response: 'c1 and c2 connect through...',
-      quality: 1,
+      response: 'c1 and c2 connect through shared principles...',
+      quality: 5,
       questionType: 'analyze_create',
-      feedback: 'Incomplete analysis',
+      feedback: 'Good analysis',
       timeSpentMs: 7000,
     });
-    // First attempt fail → retry
-    expect(q3.status).toBe('retry');
-
-    // Retry the analysis question
-    if (q3.status !== 'retry') throw new Error('Expected retry');
-    const q3Retry = await ctx.submitAnswer({
-      sessionQuestionId: q3.session_question_id,
-      response: 'c1 and c2 connect through shared principles...',
-      quality: 3,
-      questionType: 'analyze_create',
-      feedback: 'Better analysis',
-      timeSpentMs: 4000,
-    });
-    expect(q3Retry.status).toBe('recorded');
-    if (q3Retry.status !== 'recorded') throw new Error('Expected recorded');
-    expect(q3Retry.quality).toBe(3); // agent-provided quality
-    expect(q3Retry.review_update).toBeUndefined();
+    expect(q3.status).toBe('recorded');
+    if (q3.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q3.review_update).toBeUndefined();
 
     // teach_next: completes c1 with aggregated quality, advances to c2
     const step2 = await ctx.getNextTeachingStep();

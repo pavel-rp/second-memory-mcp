@@ -1576,22 +1576,30 @@ describe('getNextTeachingStep', () => {
 
   it('aggregates multiple question qualities when completing chunk', async () => {
     const sqRepo = stubSessionQuestionRepository();
-    // Three questions for c1: quality 5, 3, 1 → avg = 3
-    mockQuestionsAndAttempts(sqRepo, [
-      {
-        chunkId: 'c1',
-        attempts: [
-          { passed: true, quality: 5 },
-          { passed: true, quality: 3 },
-        ],
-      },
-    ]);
-    // Add a third question manually
-    const existingQuestions = await sqRepo.getQuestionsForSession('sess-1');
-    const existingAttempts = await sqRepo.getAllAttemptsForSession('sess-1');
-    const existingMapping = await sqRepo.getChunkIdsForQuestions(existingQuestions.map(q => q.id));
+    // Three questions for c1 with mixed qualities: 5, 3, 4
+    // Q2 (quality 3) is the roadblock trigger → needs 1 follow-up
+    // Q3 (quality 4, after trigger) is the qualifying follow-up → clears roadblock
+    // Aggregate: (5+3+4)/3 = 4 → SR called with aggregated quality
+    const q1: SessionQuestion = {
+      id: 'sq-agg-1',
+      sessionId: 'sess-1',
+      questionIndex: 1,
+      promptText: 'Q1',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+    const q2: SessionQuestion = {
+      id: 'sq-agg-2',
+      sessionId: 'sess-1',
+      questionIndex: 2,
+      promptText: 'Q2',
+      status: 'answered',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
     const q3: SessionQuestion = {
-      id: 'sq-c1-extra',
+      id: 'sq-agg-3',
       sessionId: 'sess-1',
       questionIndex: 3,
       promptText: 'Q3',
@@ -1599,23 +1607,54 @@ describe('getNextTeachingStep', () => {
       createdAt: NOW,
       updatedAt: NOW,
     };
-    const a3: SessionQuestionAttempt = {
-      id: 'sqa-c1-extra',
-      sessionQuestionId: 'sq-c1-extra',
+    const a1: SessionQuestionAttempt = {
+      id: 'sqa-agg-1',
+      sessionQuestionId: 'sq-agg-1',
       attemptNumber: 1,
       response: 'test',
-      passed: false,
-      feedback: 'wrong',
-      quality: 1,
+      passed: true,
+      feedback: 'good',
+      quality: 5,
+      agentQuality: null,
+      questionType: null,
+      timeSpentMs: 1000,
+      createdAt: NOW - 2000,
+    };
+    const a2: SessionQuestionAttempt = {
+      id: 'sqa-agg-2',
+      sessionQuestionId: 'sq-agg-2',
+      attemptNumber: 1,
+      response: 'test',
+      passed: true,
+      feedback: 'ok',
+      quality: 3,
+      agentQuality: null,
+      questionType: null,
+      timeSpentMs: 1000,
+      createdAt: NOW - 1000,
+    };
+    const a3: SessionQuestionAttempt = {
+      id: 'sqa-agg-3',
+      sessionQuestionId: 'sq-agg-3',
+      attemptNumber: 1,
+      response: 'test',
+      passed: true,
+      feedback: 'good',
+      quality: 4,
       agentQuality: null,
       questionType: null,
       timeSpentMs: 1000,
       createdAt: NOW,
     };
-    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([...existingQuestions, q3]);
-    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([...existingAttempts, a3]);
-    existingMapping.set('sq-c1-extra', ['c1']);
-    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(existingMapping);
+    vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([q1, q2, q3]);
+    vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([a1, a2, a3]);
+    vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(
+      new Map([
+        ['sq-agg-1', ['c1']],
+        ['sq-agg-2', ['c1']],
+        ['sq-agg-3', ['c1']],
+      ])
+    );
 
     const deps = makeDeps({
       sessions: {
@@ -1640,7 +1679,7 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     expect(result.status).toBe('teach');
-    // SR was called for c1 with aggregated quality: (5+3+1)/3 = 3
+    // SR was called for c1 with aggregated quality from 3 mixed-quality questions
     expect(deps.reviewPersistence.getChunk).toHaveBeenCalledWith('c1');
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
       'c1',
@@ -1676,8 +1715,8 @@ describe('getNextTeachingStep', () => {
       response: 'answer',
       passed: true,
       feedback: 'good',
-      quality: 4,
-      agentQuality: 4,
+      quality: 5,
+      agentQuality: 5,
       questionType: 'recall',
       timeSpentMs: 3000,
       createdAt: NOW,
@@ -1714,8 +1753,8 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     expect(result.status).toBe('teach');
-    // SR called with quality 4 (only from the answered question; unanswered excluded).
-    // SM-2 with quality=4, initial state (repetitions=0, easeFactor=2.5) → repetitions=1, easeFactor=2.6
+    // SR called with quality 5 (only from the answered question; unanswered excluded).
+    // SM-2 with quality=5, initial state (repetitions=0, easeFactor=2.5) → repetitions=1, easeFactor=2.6
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
       'c1',
       expect.objectContaining({ repetitions: 1, easeFactor: 2.6 })
@@ -1826,8 +1865,8 @@ describe('getNextTeachingStep', () => {
       {
         chunkId: 'c1',
         attempts: [
-          { passed: false, quality: null },
-          { passed: true, quality: 3 },
+          { passed: true, quality: 5 },
+          { passed: true, quality: 5 },
         ],
       },
     ]);
@@ -2698,6 +2737,143 @@ describe('getNextTeachingStep', () => {
       expect(result.prerequisite_reteach_needed).toBeUndefined();
       // batchFetchMinimal should only be called for topic profile, not prereq fetch
       expect(batchFetchMinimal).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ── NEU-478: Roadblock progression gate ────────────────────
+
+  describe('NEU-478: roadblock progression gate', () => {
+    function makeRoadblockDeps(
+      chunkAttempts: {
+        chunkId: string;
+        attempts: { passed: boolean; quality?: number | null; createdAt?: number }[];
+      }[],
+      sessionChunks?: SessionChunk[]
+    ) {
+      const sqRepo = stubSessionQuestionRepository();
+      const defaultChunks = sessionChunks ?? [
+        makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+        makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+      ];
+
+      // Build questions, attempts, and chunk mapping from the test data
+      const allQuestions: SessionQuestion[] = [];
+      const allAttempts: SessionQuestionAttempt[] = [];
+      const chunkMappingMap = new Map<string, string[]>();
+
+      for (const chunk of chunkAttempts) {
+        for (let i = 0; i < chunk.attempts.length; i++) {
+          const qId = `sq-rb-${chunk.chunkId}-${i}`;
+          const q: SessionQuestion = {
+            id: qId,
+            sessionId: 'sess-1',
+            questionIndex: i + 1,
+            promptText: `Question ${i + 1} for ${chunk.chunkId}`,
+            status: 'answered',
+            createdAt: NOW,
+            updatedAt: NOW,
+          };
+          allQuestions.push(q);
+          chunkMappingMap.set(qId, [chunk.chunkId]);
+
+          const a: SessionQuestionAttempt = {
+            id: `sqa-rb-${chunk.chunkId}-${i}`,
+            sessionQuestionId: qId,
+            attemptNumber: 1,
+            response: 'test response',
+            passed: chunk.attempts[i]!.passed,
+            feedback: 'test feedback',
+            quality: chunk.attempts[i]!.quality ?? (chunk.attempts[i]!.passed ? 5 : 1),
+            agentQuality: null,
+            questionType: null,
+            timeSpentMs: 1000,
+            createdAt: chunk.attempts[i]!.createdAt ?? NOW + i * 1000,
+          };
+          allAttempts.push(a);
+        }
+      }
+
+      vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue(allQuestions);
+      vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(allAttempts);
+      vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(chunkMappingMap);
+
+      return makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue(defaultChunks),
+          updateSessionChunk: vi.fn().mockResolvedValue(1),
+        },
+        sessionQuestions: sqRepo,
+      });
+    }
+
+    it('returns roadblock when quality is low and follow-ups insufficient', async () => {
+      const deps = makeRoadblockDeps([
+        { chunkId: 'c1', attempts: [{ passed: false, quality: 2 }] },
+      ]);
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('roadblock');
+      if (result.status !== 'roadblock') throw new Error('Expected roadblock');
+      expect(result.current_chunk_id).toBe('c1');
+      expect(result.roadblock_detail.trigger_quality).toBe(2);
+      expect(result.roadblock_detail.required_followups).toBe(2);
+      expect(result.roadblock_detail.completed_followups).toBe(0);
+      expect(result.roadblock_detail.remaining).toBe(2);
+      expect(result.roadblock_detail.instruction).toContain('ROADBLOCK');
+    });
+
+    it('completes chunk normally when quality is 5', async () => {
+      const deps = makeRoadblockDeps([{ chunkId: 'c1', attempts: [{ passed: true, quality: 5 }] }]);
+
+      const result = await getNextTeachingStep(deps);
+
+      // Should proceed past roadblock gate → teach next chunk (c2)
+      expect(result.status).toBe('teach');
+    });
+
+    it('completes chunk normally when sufficient qualifying follow-ups exist (auto-clear)', async () => {
+      const deps = makeRoadblockDeps([
+        {
+          chunkId: 'c1',
+          attempts: [
+            { passed: false, quality: 2, createdAt: NOW },
+            { passed: true, quality: 4, createdAt: NOW + 1000 },
+            { passed: true, quality: 3, createdAt: NOW + 2000 },
+          ],
+        },
+      ]);
+
+      const result = await getNextTeachingStep(deps);
+
+      // quality 2 → needs 2 follow-ups, has 2 qualifying → auto-clear → teach next chunk
+      expect(result.status).toBe('teach');
+    });
+
+    it('existing blocked status (no-attempts gate) is unaffected', async () => {
+      // In-progress chunk with NO attempts → should get blocked, not roadblock
+      const sqRepo = stubSessionQuestionRepository();
+      vi.mocked(sqRepo.getQuestionsForSession).mockResolvedValue([]);
+      vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue([]);
+      vi.mocked(sqRepo.getChunkIdsForQuestions).mockResolvedValue(new Map());
+
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi
+            .fn()
+            .mockResolvedValue([
+              makeSessionChunk({ id: 'sc-1', chunkId: 'c1', status: 'in_progress' }),
+              makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
+            ]),
+        },
+        sessionQuestions: sqRepo,
+      });
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.status).toBe('blocked');
+      if (result.status !== 'blocked') throw new Error('Expected blocked');
+      expect(result.current_chunk_id).toBe('c1');
     });
   });
 });
