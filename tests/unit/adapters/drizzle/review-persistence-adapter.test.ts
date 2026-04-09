@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ZodError } from 'zod';
 import type { SqlDb } from '../../../../src/infrastructure/db/operations.js';
 
 // ── Mock DB ──────────────────────────────────────────────────
@@ -120,7 +121,7 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas', () => {
     ]);
     adapter = new DrizzleReviewPersistenceAdapter(mocks.db);
 
-    await expect(adapter.getWeakAreas()).rejects.toThrow();
+    await expect(adapter.getWeakAreas()).rejects.toThrow(ZodError);
   });
 
   it('throws ZodError when a column has wrong type', async () => {
@@ -136,7 +137,7 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas', () => {
     ]);
     adapter = new DrizzleReviewPersistenceAdapter(mocks.db);
 
-    await expect(adapter.getWeakAreas()).rejects.toThrow();
+    await expect(adapter.getWeakAreas()).rejects.toThrow(ZodError);
   });
 
   it('converts string numeric values from raw rows to numbers', async () => {
