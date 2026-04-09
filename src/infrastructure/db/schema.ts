@@ -199,6 +199,7 @@ export const sessionQuestionAttempts = pgTable(
   },
   table => [
     index('idx_session_question_attempts_session_question_id').on(table.sessionQuestionId),
+    index('idx_sqa_question_created_at').on(table.sessionQuestionId, table.createdAt.desc()),
     uniqueIndex('uq_session_question_attempts_question_number').on(
       table.sessionQuestionId,
       table.attemptNumber

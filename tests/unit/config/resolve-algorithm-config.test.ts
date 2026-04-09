@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolveAlgorithmConfig } from '../../../src/config/resolve-algorithm-config.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
+import { logger } from '../../../src/shared/logger.js';
 
 describe('resolveAlgorithmConfig', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   // ── Defaults ────────────────────────────────────────────────
 
   it('returns DEFAULT_ALGORITHM_CONFIG with empty env', () => {
@@ -250,6 +255,30 @@ describe('resolveAlgorithmConfig', () => {
       SM_WEAK_AREA_EASE_THRESHOLD: '1.2',
     });
     expect(result.weakAreaEaseThreshold).toBe(1.5);
+  });
+
+  // ── weakAreaEaseThreshold clamping warning ─────────────────
+
+  it('logs warning when weakAreaEaseThreshold is clamped', () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: '0.5' });
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('weakAreaEaseThreshold (0.5) clamped to minimumEaseFactor')
+    );
+  });
+
+  it('does not log warning when weakAreaEaseThreshold is above minimumEaseFactor', () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: '2.0' });
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not log warning when weakAreaEaseThreshold equals minimumEaseFactor', () => {
+    const warnSpy = vi.spyOn(logger, 'warn');
+    const minEase = DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor;
+    const result = resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: String(minEase) });
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(result.weakAreaEaseThreshold).toBe(minEase);
   });
 
   // ── parseRecord: tagWeights ─────────────────────────────────

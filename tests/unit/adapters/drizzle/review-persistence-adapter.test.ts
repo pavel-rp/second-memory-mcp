@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ZodError } from 'zod';
 import type { SqlDb } from '../../../../src/infrastructure/db/operations.js';
 
 // ── Mock DB ──────────────────────────────────────────────────
@@ -105,6 +106,38 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas', () => {
     // Verify the SQL object was passed (Drizzle sql tagged template produces a SQL object)
     const sqlArg = mocks.execute.mock.calls[0][0];
     expect(sqlArg).toBeDefined();
+  });
+
+  it('throws ZodError when a required column is missing', async () => {
+    mocks = mockDb([
+      {
+        chunk_id: 'c-1',
+        chunk_title: 'Test',
+        // topic_title is missing
+        low_count: '2',
+        recent_attempts: '3',
+        avg_recent_quality: 1.5,
+      },
+    ]);
+    adapter = new DrizzleReviewPersistenceAdapter(mocks.db);
+
+    await expect(adapter.getWeakAreas()).rejects.toThrow(ZodError);
+  });
+
+  it('throws ZodError when a column has wrong type', async () => {
+    mocks = mockDb([
+      {
+        chunk_id: 123, // should be string
+        chunk_title: 'Test',
+        topic_title: 'Topic',
+        low_count: '2',
+        recent_attempts: '3',
+        avg_recent_quality: 1.5,
+      },
+    ]);
+    adapter = new DrizzleReviewPersistenceAdapter(mocks.db);
+
+    await expect(adapter.getWeakAreas()).rejects.toThrow(ZodError);
   });
 
   it('converts string numeric values from raw rows to numbers', async () => {
