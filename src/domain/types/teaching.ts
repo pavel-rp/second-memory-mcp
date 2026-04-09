@@ -6,6 +6,13 @@ import type { TeachingApproach } from '../algorithms/classify-chunk.js';
 import type { TopicStalenessProfile } from '../algorithms/compute-topic-profile.js';
 import { z } from 'zod';
 
+/**
+ * All TeachNext* response types (TeachNextNote, TeachNextTeach, TeachNextComplete,
+ * TeachNextBlocked, TeachNextRoadblock, TeachNextError) use snake_case field names.
+ * This is an intentional exception to the domain camelCase convention: these types
+ * serialize directly through toolJson() in the server layer without a
+ * camelCase-to-snake_case mapping step.
+ */
 export type TeachNextNote = {
   id: string;
   note_type: NoteType;

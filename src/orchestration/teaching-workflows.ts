@@ -170,9 +170,16 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       roadblockCandidate.chunkId,
       roadblockQuestions,
       attemptsByQuestion,
-      chunkMapping
+      chunkMapping,
+      deps.algorithmConfig.roadblockFollowups
     );
     if (roadblock) {
+      logEvent('teachNext', 'roadblock_gate', {
+        sessionId: session.id,
+        chunkId: roadblockCandidate.chunkId,
+        triggerQuality: roadblock.trigger_quality,
+        remaining: roadblock.remaining,
+      });
       return {
         status: 'roadblock',
         current_chunk_id: roadblockCandidate.chunkId,
@@ -183,9 +190,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
   // 3b. Complete in-progress chunk that has recorded attempts
   let completedChunkReviewUpdate: ReviewUpdate | undefined;
-  const completableChunk = sessionChunks.find(
-    sc => sc.status === 'in_progress' && chunkHasAttempts(sc)
-  );
+  const completableChunk = roadblockCandidate;
   if (completableChunk) {
     const chunkQuestions = mapGetList(questionsByChunkId, completableChunk.chunkId);
     const perQuestionQualities: number[] = [];
