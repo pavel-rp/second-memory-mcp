@@ -275,9 +275,10 @@ describe('resolveAlgorithmConfig', () => {
 
   it('does not log warning when weakAreaEaseThreshold equals minimumEaseFactor', () => {
     const warnSpy = vi.spyOn(logger, 'warn');
-    const result = resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: '1.3' });
+    const minEase = DEFAULT_ALGORITHM_CONFIG.minimumEaseFactor;
+    const result = resolveAlgorithmConfig({ SM_WEAK_AREA_EASE_THRESHOLD: String(minEase) });
     expect(warnSpy).not.toHaveBeenCalled();
-    expect(result.weakAreaEaseThreshold).toBe(1.3);
+    expect(result.weakAreaEaseThreshold).toBe(minEase);
   });
 
   // ── parseRecord: tagWeights ─────────────────────────────────
