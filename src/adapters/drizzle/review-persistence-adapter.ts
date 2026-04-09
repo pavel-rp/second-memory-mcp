@@ -1,4 +1,5 @@
 import { eq, and, gte, lt, isNotNull, sql } from 'drizzle-orm';
+import { z } from 'zod';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -16,6 +17,15 @@ import type {
   WeakAreaResult,
 } from '../../ports/review-persistence-port.js';
 import { toIsoTimestamp } from '../../shared/date-helpers.js';
+
+const weakAreaRowSchema = z.object({
+  chunk_id: z.string(),
+  chunk_title: z.string(),
+  topic_title: z.string(),
+  low_count: z.coerce.number(),
+  recent_attempts: z.coerce.number(),
+  avg_recent_quality: z.coerce.number(),
+});
 
 export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
   constructor(private db: SqlDb = getSql()) {}
@@ -137,14 +147,16 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
     `;
 
     const result = await this.db.execute(query);
-    // Mapping depends on SQL alias names above — integration test validates column presence
-    return result.rows.map(row => ({
-      chunkId: row.chunk_id as string,
-      chunkTitle: row.chunk_title as string,
-      topicTitle: row.topic_title as string,
-      lowCount: Number(row.low_count),
-      recentAttempts: Number(row.recent_attempts),
-      avgRecentQuality: Number(row.avg_recent_quality),
-    }));
+    return result.rows.map(row => {
+      const parsed = weakAreaRowSchema.parse(row);
+      return {
+        chunkId: parsed.chunk_id,
+        chunkTitle: parsed.chunk_title,
+        topicTitle: parsed.topic_title,
+        lowCount: parsed.low_count,
+        recentAttempts: parsed.recent_attempts,
+        avgRecentQuality: parsed.avg_recent_quality,
+      };
+    });
   }
 }

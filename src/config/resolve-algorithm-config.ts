@@ -4,6 +4,7 @@
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../domain/config/algorithm-defaults.js';
 import { parseNumber, parseBoolean, parseRecord, parseEnum } from '../shared/env-parsing.js';
+import { logger } from '../shared/logger.js';
 
 export function resolveAlgorithmConfig(
   env: Record<string, string | undefined> = process.env
@@ -161,10 +162,18 @@ export function resolveAlgorithmConfig(
       env.SM_PREREQ_MAX_DEPTH,
       DEFAULT_ALGORITHM_CONFIG.maxDependencyDepth
     ),
-    weakAreaEaseThreshold: Math.max(
-      parseNumber(env.SM_WEAK_AREA_EASE_THRESHOLD, DEFAULT_ALGORITHM_CONFIG.weakAreaEaseThreshold),
-      minimumEaseFactor
-    ),
+    weakAreaEaseThreshold: (() => {
+      const parsed = parseNumber(
+        env.SM_WEAK_AREA_EASE_THRESHOLD,
+        DEFAULT_ALGORITHM_CONFIG.weakAreaEaseThreshold
+      );
+      if (parsed < minimumEaseFactor) {
+        logger.warn(
+          `weakAreaEaseThreshold (${parsed}) clamped to minimumEaseFactor (${minimumEaseFactor})`
+        );
+      }
+      return Math.max(parsed, minimumEaseFactor);
+    })(),
     roadblockFollowups: DEFAULT_ALGORITHM_CONFIG.roadblockFollowups,
   };
 }

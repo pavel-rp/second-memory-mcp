@@ -107,6 +107,38 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas', () => {
     expect(sqlArg).toBeDefined();
   });
 
+  it('throws ZodError when a required column is missing', async () => {
+    mocks = mockDb([
+      {
+        chunk_id: 'c-1',
+        chunk_title: 'Test',
+        // topic_title is missing
+        low_count: '2',
+        recent_attempts: '3',
+        avg_recent_quality: 1.5,
+      },
+    ]);
+    adapter = new DrizzleReviewPersistenceAdapter(mocks.db);
+
+    await expect(adapter.getWeakAreas()).rejects.toThrow();
+  });
+
+  it('throws ZodError when a column has wrong type', async () => {
+    mocks = mockDb([
+      {
+        chunk_id: 123, // should be string
+        chunk_title: 'Test',
+        topic_title: 'Topic',
+        low_count: '2',
+        recent_attempts: '3',
+        avg_recent_quality: 1.5,
+      },
+    ]);
+    adapter = new DrizzleReviewPersistenceAdapter(mocks.db);
+
+    await expect(adapter.getWeakAreas()).rejects.toThrow();
+  });
+
   it('converts string numeric values from raw rows to numbers', async () => {
     mocks = mockDb([
       {
