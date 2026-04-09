@@ -58,6 +58,7 @@ export type AlgorithmConfig = {
   };
   maxDependencyDepth: number; // max depth for dependency graph traversal
   weakAreaEaseThreshold: number; // ease factor below which a chunk is flagged as a weak area
+  roadblockFollowups: Record<number, number>; // quality → required follow-up count for roadblock gate
 };
 
 export function clampEaseFactor(

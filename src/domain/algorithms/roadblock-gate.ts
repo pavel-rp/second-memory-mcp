@@ -1,18 +1,8 @@
 import type { RoadblockDetail } from '../types/teaching.js';
 import type { SessionQuestion, SessionQuestionAttempt } from '../types/entities.js';
 
-/** Quality → required follow-up count mapping. */
-const QUALITY_FOLLOWUP_MAP: Record<number, number> = {
-  0: 3,
-  1: 3,
-  2: 2,
-  3: 1,
-  4: 1,
-  5: 0,
-};
-
-export function getRequiredFollowups(quality: number): number {
-  return QUALITY_FOLLOWUP_MAP[quality] ?? 0;
+export function getRequiredFollowups(quality: number, followupMap: Record<number, number>): number {
+  return followupMap[quality] ?? 0;
 }
 
 /**
@@ -25,7 +15,8 @@ export function evaluateRoadblock(
   chunkId: string,
   chunkQuestions: SessionQuestion[],
   attemptsByQuestion: Map<string, SessionQuestionAttempt[]>,
-  chunkMapping: Map<string, string[]>
+  chunkMapping: Map<string, string[]>,
+  followupMap: Record<number, number>
 ): RoadblockDetail | null {
   // Collect all attempts with non-null quality for this chunk's questions
   const scoredAttempts: { attempt: SessionQuestionAttempt; question: SessionQuestion }[] = [];
@@ -54,7 +45,7 @@ export function evaluateRoadblock(
   });
   const minQuality = trigger.attempt.quality as number;
 
-  const required = getRequiredFollowups(minQuality);
+  const required = getRequiredFollowups(minQuality, followupMap);
   if (required === 0) return null;
 
   // Count qualifying follow-ups by distinct question:

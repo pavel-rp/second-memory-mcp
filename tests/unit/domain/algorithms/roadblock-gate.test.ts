@@ -9,6 +9,7 @@ import type {
 } from '../../../../src/domain/types/entities.js';
 
 const NOW = 1_700_000_000_000;
+const FOLLOWUP_MAP: Record<number, number> = { 0: 3, 1: 3, 2: 2, 3: 1, 4: 1, 5: 0 };
 
 function makeQuestion(id: string): SessionQuestion {
   return {
@@ -50,7 +51,7 @@ describe('getRequiredFollowups', () => {
     [4, 1],
     [5, 0],
   ])('quality %d → %d follow-ups', (quality, expected) => {
-    expect(getRequiredFollowups(quality)).toBe(expected);
+    expect(getRequiredFollowups(quality, FOLLOWUP_MAP)).toBe(expected);
   });
 });
 
@@ -73,7 +74,7 @@ describe('evaluateRoadblock', () => {
 
     const chunkMapping = opts.chunkMapping ?? new Map(questionIds.map(id => [id, [CHUNK_ID]]));
 
-    return evaluateRoadblock(CHUNK_ID, questions, attemptsByQuestion, chunkMapping);
+    return evaluateRoadblock(CHUNK_ID, questions, attemptsByQuestion, chunkMapping, FOLLOWUP_MAP);
   }
 
   it('quality 1 → requires 3 follow-ups', () => {
@@ -275,8 +276,13 @@ describe('evaluateRoadblock', () => {
   });
 
   it('quality outside 0-5 range falls back to 0 required follow-ups', () => {
-    expect(getRequiredFollowups(6)).toBe(0);
-    expect(getRequiredFollowups(-1)).toBe(0);
+    expect(getRequiredFollowups(6, FOLLOWUP_MAP)).toBe(0);
+    expect(getRequiredFollowups(-1, FOLLOWUP_MAP)).toBe(0);
+  });
+
+  it('empty chunkQuestions array returns null', () => {
+    const result = evaluateRoadblock('chunk-1', [], new Map(), new Map(), FOLLOWUP_MAP);
+    expect(result).toBeNull();
   });
 
   it('tie-breaks by earliest createdAt when min quality is equal', () => {

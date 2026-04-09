@@ -165,5 +165,6 @@ export function resolveAlgorithmConfig(
       parseNumber(env.SM_WEAK_AREA_EASE_THRESHOLD, DEFAULT_ALGORITHM_CONFIG.weakAreaEaseThreshold),
       minimumEaseFactor
     ),
+    roadblockFollowups: DEFAULT_ALGORITHM_CONFIG.roadblockFollowups,
   };
 }
