@@ -220,6 +220,130 @@ describe('createContextTokenMiddleware', () => {
       expect(payload.error.type).toBe('auth');
       expect(payload.error.retryable).toBe(true);
       expect(payload.message).toMatch(/expired/i);
+      expect(payload.message).toContain('init_agent_context');
+      expect(payload.message).toContain('latest domain rules');
+    });
+
+    it('includes TTL duration in expired message when ttlMs is provided', async () => {
+      const { res, jsonSpy } = makeRes();
+      const ttlMs = 7_200_000; // 2 hours
+      const mw = createContextTokenMiddleware(makeRepo({ valid: false, expired: true }), ttlMs);
+
+      await mw(
+        makeReq({
+          method: 'tools/call',
+          id: 1,
+          params: { name: 'teach_next', arguments: { context_token: 'ctx-expired' } },
+        }),
+        res,
+        next
+      );
+
+      const payload = JSON.parse(
+        (
+          jsonSpy.mock.calls[0][0] as {
+            result: { content: { text: string }[] };
+          }
+        ).result.content[0].text
+      ) as { message: string };
+      expect(payload.message).toContain('valid for 2 hours');
+      expect(payload.message).toContain('init_agent_context');
+    });
+
+    it('formats singular hour for exactly 1 hour TTL', async () => {
+      const { res, jsonSpy } = makeRes();
+      const ttlMs = 3_600_000; // 1 hour
+      const mw = createContextTokenMiddleware(makeRepo({ valid: false, expired: true }), ttlMs);
+
+      await mw(
+        makeReq({
+          method: 'tools/call',
+          id: 1,
+          params: { name: 'teach_next', arguments: { context_token: 'ctx-expired' } },
+        }),
+        res,
+        next
+      );
+
+      const payload = JSON.parse(
+        (
+          jsonSpy.mock.calls[0][0] as {
+            result: { content: { text: string }[] };
+          }
+        ).result.content[0].text
+      ) as { message: string };
+      expect(payload.message).toContain('valid for 1 hour)');
+    });
+
+    it('formats minutes for sub-hour TTL', async () => {
+      const { res, jsonSpy } = makeRes();
+      const ttlMs = 300_000; // 5 minutes
+      const mw = createContextTokenMiddleware(makeRepo({ valid: false, expired: true }), ttlMs);
+
+      await mw(
+        makeReq({
+          method: 'tools/call',
+          id: 1,
+          params: { name: 'teach_next', arguments: { context_token: 'ctx-expired' } },
+        }),
+        res,
+        next
+      );
+
+      const payload = JSON.parse(
+        (
+          jsonSpy.mock.calls[0][0] as {
+            result: { content: { text: string }[] };
+          }
+        ).result.content[0].text
+      ) as { message: string };
+      expect(payload.message).toContain('valid for 5 minutes');
+    });
+
+    it('expired message differs from invalid-token message', async () => {
+      const { res: resExpired, jsonSpy: jsonExpired } = makeRes();
+      const { res: resInvalid, jsonSpy: jsonInvalid } = makeRes();
+      const mw = createContextTokenMiddleware(makeRepo({ valid: false, expired: true }), 7_200_000);
+      const mwInvalid = createContextTokenMiddleware(
+        makeRepo({ valid: false, expired: false }),
+        7_200_000
+      );
+
+      await mw(
+        makeReq({
+          method: 'tools/call',
+          id: 1,
+          params: { name: 'teach_next', arguments: { context_token: 'ctx-expired' } },
+        }),
+        resExpired,
+        vi.fn()
+      );
+      await mwInvalid(
+        makeReq({
+          method: 'tools/call',
+          id: 1,
+          params: { name: 'teach_next', arguments: { context_token: 'ctx-bad' } },
+        }),
+        resInvalid,
+        vi.fn()
+      );
+
+      const expiredMsg = JSON.parse(
+        (
+          jsonExpired.mock.calls[0][0] as {
+            result: { content: { text: string }[] };
+          }
+        ).result.content[0].text
+      ) as { message: string };
+      const invalidMsg = JSON.parse(
+        (
+          jsonInvalid.mock.calls[0][0] as {
+            result: { content: { text: string }[] };
+          }
+        ).result.content[0].text
+      ) as { message: string };
+
+      expect(expiredMsg.message).not.toBe(invalidMsg.message);
     });
   });
 

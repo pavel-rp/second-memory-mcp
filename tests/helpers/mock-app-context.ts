@@ -67,6 +67,7 @@ export function createMockAppContext(
     }),
 
     // Context token stub (override with vi.fn() for specific token values or error cases)
+    contextTokenTtlMs: 7_200_000,
     createContextToken: async () => 'ctx-test-token-stub',
 
     ...overrides,

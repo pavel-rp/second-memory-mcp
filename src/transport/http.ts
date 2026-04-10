@@ -73,7 +73,8 @@ export async function startHttpTransport(
   config: TransportConfig,
   createMcpServer: () => McpServer,
   authConfig?: AuthConfig | null,
-  contextTokenRepo?: ContextTokenRepository | null
+  contextTokenRepo?: ContextTokenRepository | null,
+  contextTokenTtlMs?: number
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
   const sessionIdentity = new Map<string, SessionIdentity>();
@@ -143,7 +144,7 @@ export async function startHttpTransport(
 
   // Context token gate (after audit middleware, before route handlers)
   if (contextTokenRepo) {
-    app.use('/mcp', createContextTokenMiddleware(contextTokenRepo));
+    app.use('/mcp', createContextTokenMiddleware(contextTokenRepo, contextTokenTtlMs));
   }
 
   // POST /mcp
