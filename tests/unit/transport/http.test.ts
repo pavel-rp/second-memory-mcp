@@ -11,6 +11,7 @@ vi.mock('../../../src/shared/logger.js', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    fatal: vi.fn(),
     debug: vi.fn(),
   },
   createAuditPinoLogger: vi.fn(() => ({
@@ -484,11 +485,42 @@ describe('startHttpTransport shutdown', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
     // Invoke the captured SIGTERM handler (which calls shutdown via void ...then)
-    capturedHandlers['SIGTERM']();
+    capturedHandlers['SIGTERM']('SIGTERM');
 
     // Wait deterministically for the async shutdown chain
     await vi.waitFor(() => {
       expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+    exitSpy.mockRestore();
+  });
+
+  // Signal-name logging tests run after graceful shutdown (server already closed,
+  // but shutdown() is idempotent via shuttingDown flag so these still work).
+
+  it('SIGTERM handler logs signal name at info level', async () => {
+    const { logger: loggerMock } = await import('../../../src/shared/logger.js');
+    vi.mocked(loggerMock.info).mockClear();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    capturedHandlers['SIGTERM']('SIGTERM');
+
+    expect(loggerMock.info).toHaveBeenCalledWith(expect.stringContaining('SIGTERM'));
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalled();
+    });
+    exitSpy.mockRestore();
+  });
+
+  it('SIGINT handler logs signal name at info level', async () => {
+    const { logger: loggerMock } = await import('../../../src/shared/logger.js');
+    vi.mocked(loggerMock.info).mockClear();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    capturedHandlers['SIGINT']('SIGINT');
+
+    expect(loggerMock.info).toHaveBeenCalledWith(expect.stringContaining('SIGINT'));
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalled();
     });
     exitSpy.mockRestore();
   });

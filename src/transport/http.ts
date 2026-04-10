@@ -275,10 +275,12 @@ export async function startHttpTransport(
     });
   };
 
-  const onSignal = () =>
+  const onSignal = (signal: string) => {
+    logger.info(`Received ${signal} — shutting down HTTP server...`);
     void shutdown()
       .then(() => process.exit(0))
       .catch(() => process.exit(1));
+  };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);
 

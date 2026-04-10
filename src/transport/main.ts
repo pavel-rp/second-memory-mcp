@@ -9,6 +9,16 @@ import { startHttpTransport } from './http.js';
 import { logger } from '../shared/logger.js';
 import { getVersion, getBuildTime, SERVER_NAME } from '../shared/version.js';
 
+process.on('uncaughtException', (err: Error) => {
+  logger.fatal('Uncaught exception — shutting down', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  logger.fatal('Unhandled promise rejection', err);
+});
+
 async function bootstrap(): Promise<void> {
   await initializeDatabase();
 

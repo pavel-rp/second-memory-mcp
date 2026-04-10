@@ -44,9 +44,76 @@ vi.mock('../../../src/shared/logger.js', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    fatal: vi.fn(),
     debug: vi.fn(),
   },
 }));
+
+describe('transport/main process handlers', () => {
+  const capturedHandlers: Record<string, (...args: unknown[]) => void> = {};
+
+  beforeEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockInitializeDatabase.mockResolvedValue(undefined);
+    mockStartHttpTransport.mockResolvedValue({ close: vi.fn() });
+    mockResolveTransportConfig.mockReturnValue({
+      mode: 'stdio',
+      httpPort: 3000,
+      httpHost: '0.0.0.0',
+    });
+    mockCreateMcpServer.mockReturnValue({ connect: mockConnect });
+    for (const key of Object.keys(capturedHandlers)) delete capturedHandlers[key];
+  });
+
+  async function importMainWithCapture() {
+    const spy = vi
+      .spyOn(process, 'on')
+      .mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
+        capturedHandlers[String(event)] = handler;
+        return process;
+      });
+    const { ready } = await import('../../../src/transport/main.js');
+    await ready;
+    spy.mockRestore();
+    return import('../../../src/shared/logger.js');
+  }
+
+  it('uncaughtException handler logs fatal and exits', async () => {
+    const { logger } = await importMainWithCapture();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    const testError = new Error('boom');
+    capturedHandlers['uncaughtException'](testError);
+
+    expect(logger.fatal).toHaveBeenCalledWith('Uncaught exception — shutting down', testError);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    exitSpy.mockRestore();
+  });
+
+  it('unhandledRejection handler logs fatal with Error reason without exiting', async () => {
+    const { logger } = await importMainWithCapture();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    const testError = new Error('rejected');
+    capturedHandlers['unhandledRejection'](testError);
+
+    expect(logger.fatal).toHaveBeenCalledWith('Unhandled promise rejection', testError);
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+
+  it('unhandledRejection handler coerces non-Error reason to Error', async () => {
+    const { logger } = await importMainWithCapture();
+
+    capturedHandlers['unhandledRejection']('string reason');
+
+    expect(logger.fatal).toHaveBeenCalledWith(
+      'Unhandled promise rejection',
+      expect.objectContaining({ message: 'string reason' })
+    );
+  });
+});
 
 describe('transport/main bootstrap', () => {
   beforeEach(() => {
