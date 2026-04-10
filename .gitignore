@@ -47,6 +47,10 @@ desktop.ini
 *.temp
 ~*
 
+# MemPalace
+mempalace.yaml
+entities.json
+
 # Project-specific tooling
 /.cursor/
 /.spec-workflow/
@@ -70,3 +74,6 @@ docs/wf-plans/
 wf-audit.md
 .claude/settings.json
 .claude/hooks/setup-worktree.sh
+chroma.sqlite3
+.current-task
+.claude/commands/current-task.txt
