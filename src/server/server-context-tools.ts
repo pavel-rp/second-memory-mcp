@@ -13,10 +13,11 @@ export function registerServerContextTools(server: McpServer, ctx: AppContext): 
     {
       title: 'Initialize Agent Context',
       description:
-        'Initialize your session with Second Memory. Returns domain rules, ' +
-        'workflow guide, learner context snapshot, and a context_token required for all subsequent tool calls.\n\n' +
-        'IMPORTANT: You must call this tool before calling any other Second Memory tool. ' +
-        'The context_token returned here is a required parameter on every other tool.',
+        'Start and authenticate your Second Memory session. Initializes the agent context and returns a ' +
+        'context_token — the authentication token required by every other Second Memory tool. ' +
+        'MUST be called first before any other operation.\n\n' +
+        'This is the entry point for all Second Memory workflows: learning, review, search, topic creation, ' +
+        'and analytics. Call this to obtain your session token, initialize context, and begin authenticated access.',
       inputSchema: z.object({}).shape,
     },
     async () =>
