@@ -11,6 +11,7 @@ import { DrizzleContextTokenRepository } from './adapters/drizzle/context-token-
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
 import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
 import { resolveEmbeddingConfig } from './config/resolve-embedding-config.js';
+import { resolveContextTokenConfig } from './config/resolve-context-token-config.js';
 
 import type { EmbeddingPort } from './ports/embedding-port.js';
 import type {
@@ -72,7 +73,6 @@ import * as notesWorkflows from './orchestration/notes-workflows.js';
 import * as learnerContextWorkflows from './orchestration/learner-context-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
-import { MS_PER_DAY } from './shared/constants/time.js';
 import {
   calculateNextReview,
   calculatePriorityScore,
@@ -258,6 +258,7 @@ export interface AppContext {
 
   // Context token
   contextTokens: ContextTokenRepository;
+  contextTokenTtlMs: number;
   createContextToken: () => Promise<string>;
 
   // Shared utilities
@@ -306,6 +307,7 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
 export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const algorithmConfig = resolveAlgorithmConfig();
   const resolvedEmbedding = resolveEmbeddingConfig();
+  const contextTokenConfig = resolveContextTokenConfig();
 
   const ports: AppPorts = {
     ...createProductionPorts(resolvedEmbedding.vectorSimilarityThreshold),
@@ -458,7 +460,8 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
 
     // Context token
     contextTokens: ports.contextTokens,
-    createContextToken: () => ports.contextTokens.create(MS_PER_DAY),
+    contextTokenTtlMs: contextTokenConfig.ttlMs,
+    createContextToken: () => ports.contextTokens.create(contextTokenConfig.ttlMs),
 
     // Shared utilities
     mapChunkRowToLearningItem,

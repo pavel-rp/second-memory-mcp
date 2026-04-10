@@ -27,7 +27,8 @@ async function bootstrap(): Promise<void> {
       transportConfig,
       () => createMcpServer(ctx),
       authConfig,
-      ctx.contextTokens
+      ctx.contextTokens,
+      ctx.contextTokenTtlMs
     );
   } else {
     const server = createMcpServer(ctx);

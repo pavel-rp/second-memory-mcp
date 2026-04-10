@@ -18,13 +18,8 @@ interface ToolsCallBody {
   };
 }
 
-function makeAuthError(
-  id: string | number | null | undefined,
-  message: string,
-  opts?: { retryable?: boolean }
-): object {
-  const error: Record<string, unknown> = { type: 'auth', message };
-  if (opts?.retryable != null) error.retryable = opts.retryable;
+function makeAuthError(id: string | number | null | undefined, message: string): object {
+  const error = { type: 'auth', message, retryable: true };
   return {
     jsonrpc: '2.0',
     id: id ?? null,
@@ -35,7 +30,20 @@ function makeAuthError(
   };
 }
 
-export function createContextTokenMiddleware(repo: ContextTokenRepository): RequestHandler {
+function formatTtlDuration(ttlMs: number): string {
+  const hours = ttlMs / (60 * 60 * 1000);
+  if (hours >= 1) {
+    const rounded = Math.round(hours * 10) / 10;
+    return `${rounded} hour${rounded !== 1 ? 's' : ''}`;
+  }
+  const minutes = Math.round(ttlMs / (60 * 1000));
+  return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+}
+
+export function createContextTokenMiddleware(
+  repo: ContextTokenRepository,
+  ttlMs?: number
+): RequestHandler {
   return async (req: Request, res: Response, next) => {
     try {
       const body = req.body as ToolsCallBody | undefined;
@@ -56,8 +64,7 @@ export function createContextTokenMiddleware(repo: ContextTokenRepository): Requ
         res.json(
           makeAuthError(
             body.id,
-            'Missing context_token. Call init_agent_context first to obtain a token.',
-            { retryable: true }
+            'Missing context_token. Call init_agent_context first to obtain a token.'
           )
         );
         return;
@@ -66,9 +73,9 @@ export function createContextTokenMiddleware(repo: ContextTokenRepository): Requ
       const { valid, expired } = await repo.validateWithStatus(String(rawToken));
       if (!valid) {
         const message = expired
-          ? 'Context token has expired. Call init_agent_context to refresh your token.'
+          ? `Context token expired${ttlMs ? ` (valid for ${formatTtlDuration(ttlMs)})` : ''}. Call init_agent_context to refresh. This ensures you have the latest domain rules and current learner state.`
           : 'Invalid context_token. Call init_agent_context first to obtain a token.';
-        res.json(makeAuthError(body.id, message, { retryable: true }));
+        res.json(makeAuthError(body.id, message));
         return;
       }
 

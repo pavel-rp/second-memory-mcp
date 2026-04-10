@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock all dependencies BEFORE importing main.ts
 const mockInitializeDatabase = vi.fn().mockResolvedValue(undefined);
-const mockCreateAppContext = vi.fn().mockReturnValue({ fake: true });
+const mockCreateAppContext = vi.fn().mockReturnValue({ fake: true, contextTokenTtlMs: 7_200_000 });
 const mockResolveTransportConfig = vi.fn();
 const mockResolveAuthConfig = vi.fn().mockReturnValue(null);
 const mockCreateMcpServer = vi.fn();
@@ -98,7 +98,8 @@ describe('transport/main bootstrap', () => {
       { mode: 'http', httpPort: 8080, httpHost: '127.0.0.1' },
       expect.any(Function),
       null,
-      undefined
+      undefined,
+      7_200_000
     );
     expect(mockCreateMcpServer).toHaveBeenCalled();
   });
