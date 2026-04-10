@@ -216,6 +216,22 @@ describe('evaluateRoadblock', () => {
     expect(result!.instruction).toContain('2 diagnostic questions');
   });
 
+  it('includes Socratic DO guidance in instruction', () => {
+    const result = run({ attempts: [{ questionId: 'q1', quality: 2 }] });
+    expect(result).not.toBeNull();
+    expect(result!.instruction).toContain('why/how questions');
+    expect(result!.instruction).toContain('scaffolded difficulty');
+    expect(result!.instruction).toContain('compare/contrast');
+  });
+
+  it("includes Socratic DON'T guidance in instruction", () => {
+    const result = run({ attempts: [{ questionId: 'q1', quality: 2 }] });
+    expect(result).not.toBeNull();
+    expect(result!.instruction).toContain('DO NOT');
+    expect(result!.instruction).toContain('tests memory, not understanding');
+    expect(result!.instruction).toContain('too easy to guess');
+  });
+
   it('retry on trigger question does not count as follow-up', () => {
     const result = run({
       attempts: [
