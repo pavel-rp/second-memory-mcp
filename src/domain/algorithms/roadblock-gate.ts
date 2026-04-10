@@ -90,12 +90,16 @@ export function evaluateRoadblock(
 
 function buildRoadblockInstruction(quality: number, remaining: number): string {
   const plural = remaining === 1 ? 'question' : 'questions';
-  return (
-    `ROADBLOCK: The learner scored ${quality} on this chunk. ` +
-    `You MUST re-explain the misunderstood concept, then ask ${remaining} diagnostic ${plural} ` +
-    `that test the SAME concept from different angles. ` +
-    `Do NOT rephrase the original question trivially. Do NOT ask yes/no questions. ` +
-    `Each question must require the learner to demonstrate understanding in their own words. ` +
-    `You cannot proceed until ${remaining} ${plural} ${remaining === 1 ? 'is' : 'are'} answered with quality ≥ 3.`
-  );
+  const verb = remaining === 1 ? 'is' : 'are';
+  return `ROADBLOCK: The learner scored ${quality} on this chunk. \
+You MUST re-explain the misunderstood concept, then ask ${remaining} diagnostic ${plural} \
+that test the SAME concept from different angles. \
+Each question must require the learner to demonstrate understanding in their own words. \
+You cannot proceed until ${remaining} ${plural} ${verb} answered with quality ≥ 3.
+Follow-up question principles:
+DO: Ask why/how questions that probe understanding. Test the same concept from a different angle \
+or application context. Build scaffolded difficulty. Ask the learner to compare/contrast, \
+give examples, or apply the concept to a new scenario.
+DO NOT: Rephrase the original question with simpler wording (tests memory, not understanding). \
+Ask yes/no or true/false questions (too easy to guess). Ask unrelated questions to pad the count.`;
 }
