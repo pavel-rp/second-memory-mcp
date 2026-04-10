@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock all dependencies BEFORE importing main.ts
 const mockInitializeDatabase = vi.fn().mockResolvedValue(undefined);
@@ -116,11 +116,24 @@ describe('transport/main process handlers', () => {
 });
 
 describe('transport/main bootstrap', () => {
+  let processOnSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
     mockInitializeDatabase.mockResolvedValue(undefined);
     mockStartHttpTransport.mockResolvedValue({ close: vi.fn() });
+    // Stub process.on to prevent real uncaughtException/unhandledRejection handlers
+    // from accumulating across dynamic re-imports of main.ts
+    processOnSpy = vi
+      .spyOn(process, 'on')
+      .mockImplementation(
+        (_event: string | symbol, _handler: (...args: unknown[]) => void) => process
+      );
+  });
+
+  afterEach(() => {
+    processOnSpy.mockRestore();
   });
 
   it('bootstraps stdio transport by default', async () => {
