@@ -206,7 +206,11 @@ export const SubmitAnswerInputShape = {
     .describe(
       'Agent-judged quality score (0–5) per the quality rubric. ' +
         '0 = no recall, 1 = wrong but recognized, 2 = wrong but close, ' +
-        '3 = correct with difficulty, 4 = correct with minor hesitation, 5 = perfect instant recall.'
+        '3 = correct with difficulty, 4 = correct with minor hesitation, 5 = perfect instant recall. ' +
+        'Score HONESTLY: a learner who just failed badly cannot realistically score 5 on the very next ' +
+        'question about the same concept. When in doubt, score lower rather than higher. ' +
+        'The server enforces session-scoped caps, but accurate agent scoring produces better ' +
+        'spaced-repetition scheduling.'
     ),
   question_type: z
     .enum(['recall', 'explain_apply', 'analyze_create'])
