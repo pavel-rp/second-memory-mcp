@@ -18,13 +18,8 @@ interface ToolsCallBody {
   };
 }
 
-function makeAuthError(
-  id: string | number | null | undefined,
-  message: string,
-  opts?: { retryable?: boolean }
-): object {
-  const error: Record<string, unknown> = { type: 'auth', message };
-  if (opts?.retryable != null) error.retryable = opts.retryable;
+function makeAuthError(id: string | number | null | undefined, message: string): object {
+  const error = { type: 'auth', message, retryable: true };
   return {
     jsonrpc: '2.0',
     id: id ?? null,
@@ -69,8 +64,7 @@ export function createContextTokenMiddleware(
         res.json(
           makeAuthError(
             body.id,
-            'Missing context_token. Call init_agent_context first to obtain a token.',
-            { retryable: true }
+            'Missing context_token. Call init_agent_context first to obtain a token.'
           )
         );
         return;
@@ -81,7 +75,7 @@ export function createContextTokenMiddleware(
         const message = expired
           ? `Context token expired${ttlMs ? ` (valid for ${formatTtlDuration(ttlMs)})` : ''}. Call init_agent_context to refresh. This ensures you have the latest domain rules and current learner state.`
           : 'Invalid context_token. Call init_agent_context first to obtain a token.';
-        res.json(makeAuthError(body.id, message, { retryable: true }));
+        res.json(makeAuthError(body.id, message));
         return;
       }
 
