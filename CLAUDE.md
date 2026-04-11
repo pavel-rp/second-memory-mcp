@@ -23,9 +23,10 @@ src/
 
 Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/helpers/`, `tests/performance/`.
 
-## Source Code Discovery
+## Knowledge Discovery
 
-- Prioritize Sourcebot MCP for fast code lookups
+- **MemPalace is the ultimate knowledge base.** Always search MemPalace before investigating from scratch — it contains architecture decisions, implementation history, research findings, issue context, and prior session learnings that may already answer your question.
+- Prioritize Sourcebot MCP for fast code lookups.
 
 ## Naming Conventions
 
