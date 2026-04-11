@@ -150,7 +150,7 @@ export async function batchUpdateSessionChunks(
       existingChunks,
     });
 
-    logEvent('batchChunkOps', 'chunks_updated', {
+    logEvent('batchUpdateSessionChunks', 'chunks_updated', {
       sessionId,
       createdCount: result.created,
       updatedCount: result.updated,

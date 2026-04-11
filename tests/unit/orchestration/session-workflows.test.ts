@@ -233,6 +233,7 @@ describe('createSession', () => {
     const result = await createSession({ mode: 'guided', chunkIds: ['c1'] }, deps);
 
     expect(result.success).toBe(true);
+    expect(logEvent).toHaveBeenCalledTimes(1);
     expect(logEvent).toHaveBeenCalledWith('createSession', 'session_created', {
       sessionId: expect.any(String),
       mode: 'guided',
@@ -310,6 +311,7 @@ describe('completeSession', () => {
 
     await completeSession('sess-1', 'Good session', deps);
 
+    expect(logEvent).toHaveBeenCalledTimes(1);
     expect(logEvent).toHaveBeenCalledWith('completeSession', 'session_completed', {
       sessionId: 'sess-1',
     });
@@ -389,7 +391,8 @@ describe('batchUpdateSessionChunks', () => {
 
     await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
 
-    expect(logEvent).toHaveBeenCalledWith('batchChunkOps', 'chunks_updated', {
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    expect(logEvent).toHaveBeenCalledWith('batchUpdateSessionChunks', 'chunks_updated', {
       sessionId: 'sess-1',
       createdCount: 1,
       updatedCount: 0,
