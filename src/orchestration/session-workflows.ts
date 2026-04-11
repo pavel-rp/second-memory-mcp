@@ -13,7 +13,7 @@ import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
-import { getRequestLogger } from '../shared/logger.js';
+import { getRequestLogger, logEvent } from '../shared/logger.js';
 
 export type SessionDeps = {
   sessions: SessionRepository;
@@ -74,6 +74,11 @@ export async function createSession(
     };
 
     await deps.sessions.createSession(sessionInput);
+    logEvent('createSession', 'session_created', {
+      sessionId,
+      mode: input.mode,
+      requestedChunkCount: input.chunkIds?.length ?? 0,
+    });
     return serviceOk({ sessionId });
   } catch (error) {
     return serviceFail({
@@ -94,6 +99,7 @@ export async function completeSession(
       return serviceFail({ type: 'not_found', message: `Session ${sessionId} not found` });
     }
     await deps.sessions.completeSession(sessionId, feedback);
+    logEvent('completeSession', 'session_completed', { sessionId });
     return serviceOk();
   } catch (error) {
     return serviceFail({
@@ -144,6 +150,12 @@ export async function batchUpdateSessionChunks(
       existingChunks,
     });
 
+    logEvent('batchChunkOps', 'chunks_updated', {
+      sessionId,
+      createdCount: result.created,
+      updatedCount: result.updated,
+      unchangedCount: result.unchanged,
+    });
     return serviceOk({
       created: result.created,
       updated: result.updated,
