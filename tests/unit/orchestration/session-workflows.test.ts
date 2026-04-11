@@ -1,4 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
+  logEvent: vi.fn(),
+}));
+
 import {
   createSession,
   completeSession,
@@ -14,6 +20,7 @@ import {
   resolveSessionChunkDependencies,
   type SessionDeps,
 } from '../../../src/orchestration/session-workflows.js';
+import { logEvent } from '../../../src/shared/logger.js';
 import type { LearningSession, LearningChunk } from '../../../src/domain/types/entities.js';
 import { stubSessionRepository, stubChunkRepository } from '../../helpers/stub-ports.js';
 
@@ -106,6 +113,10 @@ function stubDeps(): SessionDeps {
 // ── createSession ───────────────────────────────────────────────
 
 describe('createSession', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
   it('creates session on happy path', async () => {
     const deps = stubDeps();
 
@@ -215,11 +226,38 @@ describe('createSession', () => {
       expect(result.error.message).toBe('Failed to create session');
     }
   });
+
+  it('calls logEvent with session_created on success', async () => {
+    const deps = stubDeps();
+
+    const result = await createSession({ mode: 'guided', chunkIds: ['c1'] }, deps);
+
+    expect(result.success).toBe(true);
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    expect(logEvent).toHaveBeenCalledWith('createSession', 'session_created', {
+      sessionId: expect.any(String),
+      mode: 'guided',
+      requestedChunkCount: 1,
+    });
+  });
+
+  it('does not call logEvent when active session already exists', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getActiveSession as ReturnType<typeof vi.fn>).mockResolvedValue(stubSession());
+
+    await createSession({ mode: 'guided' }, deps);
+
+    expect(logEvent).not.toHaveBeenCalled();
+  });
 });
 
 // ── completeSession ─────────────────────────────────────────────
 
 describe('completeSession', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
   it('completes session on happy path', async () => {
     const deps = stubDeps();
 
@@ -267,11 +305,35 @@ describe('completeSession', () => {
       expect(result.error.message).toBe('Failed to complete session');
     }
   });
+
+  it('calls logEvent with session_completed on success', async () => {
+    const deps = stubDeps();
+
+    await completeSession('sess-1', 'Good session', deps);
+
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    expect(logEvent).toHaveBeenCalledWith('completeSession', 'session_completed', {
+      sessionId: 'sess-1',
+    });
+  });
+
+  it('does not call logEvent when session is not found', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    await completeSession('missing', undefined, deps);
+
+    expect(logEvent).not.toHaveBeenCalled();
+  });
 });
 
 // ── batchUpdateSessionChunks ────────────────────────────────────
 
 describe('batchUpdateSessionChunks', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
   it('returns batch results on happy path', async () => {
     const deps = stubDeps();
 
@@ -322,6 +384,29 @@ describe('batchUpdateSessionChunks', () => {
       expect(result.error.type).toBe('database');
       expect(result.error.message).toBe('Failed to batch update session chunks');
     }
+  });
+
+  it('calls logEvent with chunks_updated on success', async () => {
+    const deps = stubDeps();
+
+    await batchUpdateSessionChunks('sess-1', [{ chunkId: 'c1' }], deps);
+
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    expect(logEvent).toHaveBeenCalledWith('batchUpdateSessionChunks', 'chunks_updated', {
+      sessionId: 'sess-1',
+      createdCount: 1,
+      updatedCount: 0,
+      unchangedCount: 0,
+    });
+  });
+
+  it('does not call logEvent when session is not found', async () => {
+    const deps = stubDeps();
+    (deps.sessions.getSessionById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+    await batchUpdateSessionChunks('missing', [{ chunkId: 'c1' }], deps);
+
+    expect(logEvent).not.toHaveBeenCalled();
   });
 });
 
