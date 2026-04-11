@@ -14,6 +14,9 @@ process.on('uncaughtException', (err: Error) => {
   process.exit(1);
 });
 
+// Log but do not exit — unhandled rejections are not necessarily fatal
+// for a long-running MCP server. Node ≥ 15 would exit by default;
+// this handler overrides that to keep the process alive.
 process.on('unhandledRejection', (reason: unknown) => {
   const err = reason instanceof Error ? reason : new Error(String(reason));
   logger.fatal('Unhandled promise rejection', err);
