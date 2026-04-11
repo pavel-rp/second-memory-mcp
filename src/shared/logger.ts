@@ -64,6 +64,7 @@ export const logger = {
   info: adapt(pinoLogger.info.bind(pinoLogger)),
   warn: adapt(pinoLogger.warn.bind(pinoLogger)),
   error: adapt(pinoLogger.error.bind(pinoLogger)),
+  fatal: adapt(pinoLogger.fatal.bind(pinoLogger)),
   debug: adapt(pinoLogger.debug.bind(pinoLogger)),
   child: pinoLogger.child.bind(pinoLogger),
 };
@@ -83,6 +84,7 @@ export type WrappedLogger = {
   info: (...messages: unknown[]) => void;
   warn: (...messages: unknown[]) => void;
   error: (...messages: unknown[]) => void;
+  fatal: (...messages: unknown[]) => void;
   debug: (...messages: unknown[]) => void;
   child: typeof pinoLogger.child;
 };
@@ -96,6 +98,7 @@ export function getRequestLogger(): WrappedLogger {
     info: adapt(child.info.bind(child)),
     warn: adapt(child.warn.bind(child)),
     error: adapt(child.error.bind(child)),
+    fatal: adapt(child.fatal.bind(child)),
     debug: adapt(child.debug.bind(child)),
     child: child.child.bind(child),
   };

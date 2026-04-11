@@ -9,6 +9,19 @@ import { startHttpTransport } from './http.js';
 import { logger } from '../shared/logger.js';
 import { getVersion, getBuildTime, SERVER_NAME } from '../shared/version.js';
 
+process.on('uncaughtException', (err: Error) => {
+  logger.fatal('Uncaught exception — shutting down', err);
+  process.exit(1);
+});
+
+// Log but do not exit — unhandled rejections are not necessarily fatal
+// for a long-running MCP server. Node ≥ 15 would exit by default;
+// this handler overrides that to keep the process alive.
+process.on('unhandledRejection', (reason: unknown) => {
+  const err = reason instanceof Error ? reason : new Error(String(reason));
+  logger.fatal('Unhandled promise rejection', err);
+});
+
 async function bootstrap(): Promise<void> {
   await initializeDatabase();
 

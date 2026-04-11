@@ -4,6 +4,7 @@ const {
   mockInfo,
   mockWarn,
   mockError,
+  mockFatal,
   mockDebug,
   mockChild,
   mockDestination,
@@ -13,12 +14,14 @@ const {
   const mockInfo = vi.fn();
   const mockWarn = vi.fn();
   const mockError = vi.fn();
+  const mockFatal = vi.fn();
   const mockDebug = vi.fn();
   const mockChildChild = vi.fn();
   const mockChild = vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    fatal: vi.fn(),
     debug: vi.fn(),
     child: mockChildChild,
   }));
@@ -28,6 +31,7 @@ const {
     info: mockInfo,
     warn: mockWarn,
     error: mockError,
+    fatal: mockFatal,
     debug: mockDebug,
     child: mockChild,
   }));
@@ -35,6 +39,7 @@ const {
     mockInfo,
     mockWarn,
     mockError,
+    mockFatal,
     mockDebug,
     mockChild,
     mockDestination,
@@ -73,6 +78,7 @@ describe('logger', () => {
     mockInfo.mockClear();
     mockWarn.mockClear();
     mockError.mockClear();
+    mockFatal.mockClear();
     mockDebug.mockClear();
     mockChild.mockClear();
     mockTransport.mockClear();
@@ -246,6 +252,14 @@ describe('logger', () => {
       expect(mockDebug).toHaveBeenCalled();
       expect(mockInfo).not.toHaveBeenCalled();
     });
+
+    it('fatal calls pino fatal', async () => {
+      setTTY(true);
+      const { logger } = await loadModule();
+      logger.fatal('msg');
+      expect(mockFatal).toHaveBeenCalled();
+      expect(mockInfo).not.toHaveBeenCalled();
+    });
   });
 
   describe('createAuditPinoLogger', () => {
@@ -312,6 +326,7 @@ describe('logger', () => {
         expect(typeof requestLogger.info).toBe('function');
         expect(typeof requestLogger.warn).toBe('function');
         expect(typeof requestLogger.error).toBe('function');
+        expect(typeof requestLogger.fatal).toBe('function');
         expect(typeof requestLogger.debug).toBe('function');
         expect(typeof requestLogger.child).toBe('function');
       });

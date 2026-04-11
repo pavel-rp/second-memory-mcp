@@ -6,17 +6,35 @@ import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import type { TransportConfig } from '../../../src/config/resolve-transport-config.js';
 import type { AuthConfig } from '../../../src/config/resolve-auth-config.js';
 
+const { latestServerRef } = vi.hoisted(() => {
+  return { latestServerRef: { current: null as http.Server | null } };
+});
+
+vi.mock('node:http', async importOriginal => {
+  const actual = await importOriginal<typeof import('node:http')>();
+  return {
+    ...actual,
+    createServer: (...args: Parameters<typeof actual.createServer>) => {
+      const server = actual.createServer(...args);
+      latestServerRef.current = server;
+      return server;
+    },
+  };
+});
+
 vi.mock('../../../src/shared/logger.js', () => ({
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    fatal: vi.fn(),
     debug: vi.fn(),
   },
   createAuditPinoLogger: vi.fn(() => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    fatal: vi.fn(),
     debug: vi.fn(),
   })),
   withHttpCorrelation: vi.fn((_id: string, fn: () => unknown) => fn()),
@@ -25,6 +43,7 @@ vi.mock('../../../src/shared/logger.js', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    fatal: vi.fn(),
     debug: vi.fn(),
   })),
   setEventLogger: vi.fn(),
@@ -484,13 +503,98 @@ describe('startHttpTransport shutdown', () => {
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
 
     // Invoke the captured SIGTERM handler (which calls shutdown via void ...then)
-    capturedHandlers['SIGTERM']();
+    capturedHandlers['SIGTERM']('SIGTERM');
 
     // Wait deterministically for the async shutdown chain
     await vi.waitFor(() => {
       expect(exitSpy).toHaveBeenCalledWith(0);
     });
     exitSpy.mockRestore();
+  });
+
+  // Signal-name logging tests run after graceful shutdown (server already closed,
+  // but shutdown() is idempotent via shuttingDown flag so these still work).
+
+  it('SIGTERM handler logs signal name at info level', async () => {
+    const { logger: loggerMock } = await import('../../../src/shared/logger.js');
+    vi.mocked(loggerMock.info).mockClear();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    capturedHandlers['SIGTERM']('SIGTERM');
+
+    expect(loggerMock.info).toHaveBeenCalledWith(expect.stringContaining('SIGTERM'));
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalled();
+    });
+    exitSpy.mockRestore();
+  });
+
+  it('SIGINT handler logs signal name at info level', async () => {
+    const { logger: loggerMock } = await import('../../../src/shared/logger.js');
+    vi.mocked(loggerMock.info).mockClear();
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    capturedHandlers['SIGINT']('SIGINT');
+
+    expect(loggerMock.info).toHaveBeenCalledWith(expect.stringContaining('SIGINT'));
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalled();
+    });
+    exitSpy.mockRestore();
+  });
+});
+
+// ── Shutdown error path ──────────────────────────────────────
+
+describe('startHttpTransport shutdown error path', () => {
+  const config: TransportConfig = { mode: 'http', httpPort: 0, httpHost: '127.0.0.1' };
+  const ctx = createMockAppContext();
+  const capturedHandlers: Record<string, (...args: unknown[]) => void> = {};
+  let handle: HttpTransportHandle;
+  let processOnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeAll(async () => {
+    processOnSpy = vi
+      .spyOn(process, 'on')
+      .mockImplementation((event: string | symbol, handler: (...args: unknown[]) => void) => {
+        capturedHandlers[String(event)] = handler;
+        return process;
+      });
+    handle = await startHttpTransport(config, () => createMcpServer(ctx));
+    processOnSpy.mockRestore();
+  });
+
+  afterAll(async () => {
+    try {
+      await handle.close();
+    } catch {
+      /* already closed or errored */
+    }
+  });
+
+  it('calls process.exit(1) when shutdown rejects', async () => {
+    const server = latestServerRef.current!;
+    const originalClose = server.close.bind(server);
+    vi.spyOn(server, 'close').mockImplementation(((cb?: (err?: Error) => void) => {
+      if (cb) cb(new Error('forced close error'));
+      return server;
+    }) as typeof server.close);
+
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+    capturedHandlers['SIGTERM']('SIGTERM');
+
+    await vi.waitFor(() => {
+      expect(exitSpy).toHaveBeenCalledWith(1);
+    });
+
+    exitSpy.mockRestore();
+    vi.mocked(server.close).mockRestore();
+
+    // Clean up the real server
+    await new Promise<void>((resolve, reject) => {
+      originalClose((err?: Error) => (err ? reject(err) : resolve()));
+    }).catch(() => {});
   });
 });
 
