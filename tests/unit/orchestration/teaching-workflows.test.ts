@@ -526,6 +526,7 @@ describe('getNextTeachingStep', () => {
 
     expect(deps.sessions.updateSessionChunk).toHaveBeenCalledWith('sc-1', {
       status: 'in_progress',
+      teachingApproach: expect.any(String),
     });
   });
 

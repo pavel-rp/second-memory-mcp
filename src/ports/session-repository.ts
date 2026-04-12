@@ -31,7 +31,7 @@ export type CreateSessionChunkInput = {
 
 /** Input for updating a session chunk. */
 export type UpdateSessionChunkInput = Partial<
-  Pick<SessionChunk, 'status' | 'timeSpentMs' | 'updatedAt'>
+  Pick<SessionChunk, 'status' | 'teachingApproach' | 'timeSpentMs' | 'updatedAt'>
 >;
 
 /** Result of chunk ID validation. */

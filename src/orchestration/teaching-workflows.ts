@@ -31,7 +31,11 @@ import { evaluateRoadblock } from '../domain/algorithms/roadblock-gate.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
-import { classifyChunk, type ClassifyChunkInput } from '../domain/algorithms/classify-chunk.js';
+import {
+  classifyChunk,
+  type ClassifyChunkInput,
+  type TeachingApproach,
+} from '../domain/algorithms/classify-chunk.js';
 import {
   computeTopicProfile,
   type TopicChunkInput,
@@ -45,6 +49,18 @@ import {
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
   return map.get(key) ?? [];
 }
+
+/** Mode-specific retry pivot strings — what to change because the first attempt failed. */
+const RETRY_PIVOT: Record<TeachingApproach, string> = {
+  scaffold:
+    'Open recall failed. Downgrade to a recognition question (multiple choice or true/false) that tests the SAME concept. If recognition succeeds, escalate back to one open recall question before moving on. Do not offer to skip or advance.',
+  reteach:
+    'Recall probe showed weak retention. Give a compressed re-explanation (~60% of original detail), highlighting the specific part the learner missed. Then ask a retrieval check question that requires the learner to use the re-explained concept. Do not re-ask the same question with simpler wording.',
+  cued_recall:
+    'Open recall failed. Provide graduated hint #1: a contextual cue connecting this concept to the broader topic. If the learner still cannot answer, provide hint #2: structural ("There are N key aspects — the first is..."). Ask a fresh question after each hint. Max 3 hints before revealing the answer + requiring a retrieval check.',
+  recall:
+    'Give specific feedback on what was wrong, then ask a NEW question at the same taxonomy level testing the SAME concept from a different angle. Do not rephrase the original question. Do not offer to advance — the server requires follow-up questions before progression is allowed.',
+};
 
 export type TeachingDeps = {
   sessions: SessionRepository;
@@ -555,7 +571,10 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   }
 
   // Mark chunk as in_progress
-  await deps.sessions.updateSessionChunk(selected.id, { status: 'in_progress' });
+  await deps.sessions.updateSessionChunk(selected.id, {
+    status: 'in_progress',
+    teachingApproach: teachingDecision.teachingApproach,
+  });
 
   const reason = isRequeued ? 'requeued_failure' : 'fresh_pending';
   logEvent('teachNext', 'next_chunk_selected', {
@@ -1017,6 +1036,9 @@ async function submitAnswerForQuestion(
 
   // 7. First attempt failed → retry
   if (!passed && attemptNumber === 1) {
+    const approach = sessionChunk.teachingApproach as TeachingApproach | null;
+    const requiredFollowups = deps.algorithmConfig.roadblockFollowups[quality] ?? 0;
+
     return {
       status: 'retry',
       session_question_id: sessionQuestionId,
@@ -1024,6 +1046,19 @@ async function submitAnswerForQuestion(
       chunk_id: primaryChunkId,
       message: 'Incorrect. Try again.',
       feedback: input.feedback,
+      ...(approach && {
+        retry_guidance: {
+          roadblock: {
+            trigger_quality: quality,
+            required_followups: requiredFollowups,
+            completed_followups: 0,
+            remaining: requiredFollowups,
+            quality_floor: 3 as const,
+          },
+          teaching_approach: approach,
+          pivot: RETRY_PIVOT[approach],
+        },
+      }),
     };
   }
 
