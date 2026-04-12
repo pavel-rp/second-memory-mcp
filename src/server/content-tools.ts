@@ -86,7 +86,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
 
           if (!topicResult) {
             return toolError(`No topic found with ID: ${input.topicId}`, {
-              type: 'database',
+              type: 'not_found',
               message: 'Topic not found',
             });
           }

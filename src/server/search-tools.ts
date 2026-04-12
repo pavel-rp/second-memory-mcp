@@ -6,6 +6,7 @@ import {
   type SearchLearningContentInput,
 } from '../domain/types/search-tools.js';
 import { withRequestContext } from '../shared/logger.js';
+import { toSnakeCase } from '../shared/case-convert.js';
 import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerSearchTools(server: McpServer, ctx: AppContext): void {
@@ -36,24 +37,26 @@ export function registerSearchTools(server: McpServer, ctx: AppContext): void {
           const hasChunks = chunkResults.length > 0;
           const chunkIds = chunkResults.map(c => c.id);
 
-          return toolData({
-            message:
-              result.counts.total > 0
-                ? `Found ${result.counts.total} matching items.`
-                : 'No matching topics or chunks were found.',
-            ...result,
-            workflow_hint: hasChunks
-              ? {
-                  action: 'REQUIRED_FOR_RECALL',
-                  instruction:
-                    'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
-                    'and include the chunk IDs before teaching. This loads historical feedback from past sessions ' +
-                    'showing what the learner struggled with previously.',
-                  suggested_chunk_ids: chunkIds,
-                  next_step: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
-                }
-              : undefined,
-          });
+          return toolData(
+            toSnakeCase({
+              message:
+                result.counts.total > 0
+                  ? `Found ${result.counts.total} matching items.`
+                  : 'No matching topics or chunks were found.',
+              ...result,
+              workflowHint: hasChunks
+                ? {
+                    action: 'REQUIRED_FOR_RECALL',
+                    instruction:
+                      'For recall/review/retrieval practice: You MUST call create_session with mode "retrieval" or "review" ' +
+                      'and include the chunk IDs before teaching. This loads historical feedback from past sessions ' +
+                      'showing what the learner struggled with previously.',
+                    suggestedChunkIds: chunkIds,
+                    nextStep: `create_session({ mode: "retrieval", chunk_ids: ${JSON.stringify(chunkIds)} })`,
+                  }
+                : undefined,
+            })
+          );
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to search learning content: ${msg}`, {

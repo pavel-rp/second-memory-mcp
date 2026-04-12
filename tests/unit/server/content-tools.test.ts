@@ -165,7 +165,7 @@ describe('content-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('error');
-      expect(parsed.error.type).toBe('internal');
+      expect(parsed.error.type).toBe('not_found');
       expect(parsed.error.message).toBe('Topic not found');
     });
 
