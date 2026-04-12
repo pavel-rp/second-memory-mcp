@@ -36,8 +36,9 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed).toHaveLength(2);
-      expect(parsed[0].id).toBe('c1');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data).toHaveLength(2);
+      expect(parsed.data[0].id).toBe('c1');
     });
 
     it('passes snake_case filters as camelCase to ctx', async () => {
@@ -89,7 +90,7 @@ describe('query-tools', () => {
       const result = await handler({ limit: 'not-a-number' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -102,8 +103,8 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('connection refused');
     });
@@ -124,12 +125,12 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.topics).toHaveLength(1);
-      expect(parsed.count).toBe(1);
-      expect(parsed.message).toContain('1 topic');
-      expect(parsed.topics[0].created_at).toBe('1970-01-01T00:00:01.000Z');
-      expect(parsed.topics[0].updated_at).toBe('1970-01-01T00:00:02.000Z');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topics).toHaveLength(1);
+      expect(parsed.data.count).toBe(1);
+      expect(parsed.data.message).toContain('1 topic');
+      expect(parsed.data.topics[0].created_at).toBe('1970-01-01T00:00:01.000Z');
+      expect(parsed.data.topics[0].updated_at).toBe('1970-01-01T00:00:02.000Z');
     });
 
     it('passes filter to ctx', async () => {
@@ -151,9 +152,9 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.topics).toHaveLength(0);
-      expect(parsed.count).toBe(0);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topics).toHaveLength(0);
+      expect(parsed.data.count).toBe(0);
     });
 
     it('returns validation error for invalid input types', async () => {
@@ -163,7 +164,7 @@ describe('query-tools', () => {
       const result = await handler({ limit: 'not-a-number' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -176,8 +177,8 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
   });
@@ -212,14 +213,14 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunks).toHaveLength(2);
-      expect(parsed.count).toBe(2);
-      expect(parsed.chunks[0].created_at).toBe('1970-01-01T00:00:01.000Z');
-      expect(parsed.chunks[0].updated_at).toBe('1970-01-01T00:00:02.000Z');
-      expect(parsed.workflow_hint).toBeDefined();
-      expect(parsed.workflow_hint.action).toBe('REQUIRED_FOR_RECALL');
-      expect(parsed.workflow_hint.chunk_ids).toEqual(['c1', 'c2']);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunks).toHaveLength(2);
+      expect(parsed.data.count).toBe(2);
+      expect(parsed.data.chunks[0].created_at).toBe('1970-01-01T00:00:01.000Z');
+      expect(parsed.data.chunks[0].updated_at).toBe('1970-01-01T00:00:02.000Z');
+      expect(parsed.data.workflow_hint).toBeDefined();
+      expect(parsed.data.workflow_hint.action).toBe('REQUIRED_FOR_RECALL');
+      expect(parsed.data.workflow_hint.chunk_ids).toEqual(['c1', 'c2']);
     });
 
     it('returns singular message when exactly 1 chunk found', async () => {
@@ -239,10 +240,10 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.count).toBe(1);
-      expect(parsed.message).toBe('Retrieved 1 chunk');
-      expect(parsed.message).not.toContain('chunks');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.count).toBe(1);
+      expect(parsed.data.message).toBe('Retrieved 1 chunk');
+      expect(parsed.data.message).not.toContain('chunks');
     });
 
     it('returns no workflow_hint when empty', async () => {
@@ -253,9 +254,9 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunks).toHaveLength(0);
-      expect(parsed.workflow_hint).toBeUndefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunks).toHaveLength(0);
+      expect(parsed.data.workflow_hint).toBeUndefined();
     });
 
     it('passes all filter fields to ctx', async () => {
@@ -298,7 +299,7 @@ describe('query-tools', () => {
       const result = await handler({ limit: 'not-a-number' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -311,8 +312,8 @@ describe('query-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('pool exhausted');
     });

@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SERVER_INSTRUCTIONS } from '../shared/instructions.js';
 import { withRequestContext } from '../shared/logger.js';
-import { toolJson } from './tool-helpers.js';
+import { toolData } from './tool-helpers.js';
 
 export function registerServerWorkflowTools(server: McpServer): void {
   server.registerTool(
@@ -16,7 +16,7 @@ export function registerServerWorkflowTools(server: McpServer): void {
     },
     async () =>
       withRequestContext('get_server_workflow', async () =>
-        toolJson({ workflow: SERVER_INSTRUCTIONS })
+        toolData({ workflow: SERVER_INSTRUCTIONS })
       )
   );
 }

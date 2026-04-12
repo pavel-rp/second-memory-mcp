@@ -23,26 +23,28 @@ describe('server-context-tools (integration)', () => {
 
   it('returns a token starting with ctx-', async () => {
     const handler = server.tools.get('init_agent_context')!.handler;
-    const result = parseResult(await handler());
+    const envelope = parseResult(await handler());
 
-    expect(result.context_token).toMatch(/^ctx-/);
-    expect(result.status).toBe('initialized');
+    expect(envelope.status).toBe('ok');
+    expect(envelope.data.context_token).toMatch(/^ctx-/);
+    expect(envelope.data.action).toBe('initialized');
   });
 
   it('returned token passes validation', async () => {
     const handler = server.tools.get('init_agent_context')!.handler;
-    const result = parseResult(await handler());
+    const envelope = parseResult(await handler());
 
-    const isValid = await tokenRepo.validate(result.context_token);
+    const isValid = await tokenRepo.validate(envelope.data.context_token);
     expect(isValid).toBe(true);
   });
 
   it('full response structure is correct with real database backend', async () => {
     const handler = server.tools.get('init_agent_context')!.handler;
-    const result = parseResult(await handler());
+    const envelope = parseResult(await handler());
+    const result = envelope.data;
 
     expect(result).toHaveProperty('context_token');
-    expect(result).toHaveProperty('status', 'initialized');
+    expect(result).toHaveProperty('action', 'initialized');
     expect(result).toHaveProperty('domain_rules');
     expect(result).toHaveProperty('workflow_summary');
 
@@ -57,7 +59,8 @@ describe('server-context-tools (integration)', () => {
 
   it('full response includes learner_context with real database data', async () => {
     const handler = server.tools.get('init_agent_context')!.handler;
-    const result = parseResult(await handler());
+    const envelope = parseResult(await handler());
+    const result = envelope.data;
 
     expect(result.learner_context).toBeDefined();
     expect(result.learner_context).not.toBeNull();

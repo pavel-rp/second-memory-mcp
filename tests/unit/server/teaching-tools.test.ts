@@ -20,7 +20,7 @@ describe('teaching-tools', () => {
 
   it('returns orchestration result as JSON on success', async () => {
     const teachResult = {
-      status: 'teach',
+      action: 'teach',
       session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
@@ -37,14 +37,15 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('teach');
-    expect(parsed.chunk_id).toBe('c1');
-    expect(parsed.instruction).toBe('Teach this concept...');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('teach');
+    expect(parsed.data.chunk_id).toBe('c1');
+    expect(parsed.data.instruction).toBe('Teach this concept...');
   });
 
   it('includes content_status in teach_next response', async () => {
     const teachResult = {
-      status: 'teach',
+      action: 'teach',
       session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
@@ -62,13 +63,14 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('teach');
-    expect(parsed.content_status).toBe('draft');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('teach');
+    expect(parsed.data.content_status).toBe('draft');
   });
 
-  it('teach_next includes workflow_hint on teach status', async () => {
+  it('teach_next includes workflow_hint on teach action', async () => {
     const teachResult = {
-      status: 'teach',
+      action: 'teach',
       session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
@@ -86,20 +88,21 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.workflow_hint).toBeDefined();
-    expect(parsed.workflow_hint.action).toBe('USE_INLINE_SUBMIT');
-    expect(parsed.workflow_hint.session_id).toBe('sess-1');
-    expect(parsed.workflow_hint.chunk_id).toBe('c1');
-    expect(parsed.workflow_hint.mode).toBe('learning');
-    expect(parsed.workflow_hint.instruction).toContain('submit_answer');
-    expect(parsed.workflow_hint.instruction).toContain('prompt_text');
-    expect(parsed.workflow_hint.next_step).toContain('submit_answer');
-    expect(parsed.workflow_hint.next_step).toContain('prompt_text');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.workflow_hint).toBeDefined();
+    expect(parsed.data.workflow_hint.action).toBe('USE_INLINE_SUBMIT');
+    expect(parsed.data.workflow_hint.session_id).toBe('sess-1');
+    expect(parsed.data.workflow_hint.chunk_id).toBe('c1');
+    expect(parsed.data.workflow_hint.mode).toBe('learning');
+    expect(parsed.data.workflow_hint.instruction).toContain('submit_answer');
+    expect(parsed.data.workflow_hint.instruction).toContain('prompt_text');
+    expect(parsed.data.workflow_hint.next_step).toContain('submit_answer');
+    expect(parsed.data.workflow_hint.next_step).toContain('prompt_text');
   });
 
   it('teach_next workflow_hint uses tier-specific instruction for cued_recall approach', async () => {
     const teachResult = {
-      status: 'teach',
+      action: 'teach',
       session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-2',
@@ -119,15 +122,16 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.workflow_hint.mode).toBe('retrieval');
-    expect(parsed.workflow_hint.dominant_tier).toBe('cued_recall');
-    expect(parsed.workflow_hint.instruction).toContain('graduated hints');
-    expect(parsed.workflow_hint.instruction).toContain('Recall and Explain/Apply');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.workflow_hint.mode).toBe('retrieval');
+    expect(parsed.data.workflow_hint.dominant_tier).toBe('cued_recall');
+    expect(parsed.data.workflow_hint.instruction).toContain('graduated hints');
+    expect(parsed.data.workflow_hint.instruction).toContain('Recall and Explain/Apply');
   });
 
   it('teach_next workflow_hint uses scaffold-specific guardrails', async () => {
     const teachResult = {
-      status: 'teach',
+      action: 'teach',
       session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
@@ -147,13 +151,14 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.workflow_hint.instruction).toContain('recognition questions');
-    expect(parsed.workflow_hint.instruction).toContain('min 1 recognition + 1 Recall');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.workflow_hint.instruction).toContain('recognition questions');
+    expect(parsed.data.workflow_hint.instruction).toContain('min 1 recognition + 1 Recall');
   });
 
   it('teach_next workflow_hint uses reteach-specific guardrails', async () => {
     const teachResult = {
-      status: 'teach',
+      action: 'teach',
       session_id: 'sess-1',
       chunk_id: 'c1',
       session_chunk_id: 'sc-1',
@@ -173,14 +178,15 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.workflow_hint.instruction).toContain('recall probe first');
-    expect(parsed.workflow_hint.instruction).toContain('retrieval check');
-    expect(parsed.workflow_hint.instruction).toContain('Level 1 only');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.workflow_hint.instruction).toContain('recall probe first');
+    expect(parsed.data.workflow_hint.instruction).toContain('retrieval check');
+    expect(parsed.data.workflow_hint.instruction).toContain('Level 1 only');
   });
 
-  it('teach_next omits workflow_hint on blocked status', async () => {
+  it('teach_next omits workflow_hint on blocked action', async () => {
     const blockedResult = {
-      status: 'blocked',
+      action: 'blocked',
       message: 'Chunk not ready',
       current_chunk_id: 'c1',
     };
@@ -191,13 +197,14 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('blocked');
-    expect(parsed.workflow_hint).toBeUndefined();
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('blocked');
+    expect(parsed.data.workflow_hint).toBeUndefined();
   });
 
-  it('teach_next omits workflow_hint on complete status', async () => {
+  it('teach_next omits workflow_hint on complete action', async () => {
     const completeResult = {
-      status: 'complete',
+      action: 'complete',
       message: 'Session done',
       summary: { total: 3, passed_first_try: 2, needed_retry: 1, exhausted_retries: 0 },
     };
@@ -208,13 +215,14 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('complete');
-    expect(parsed.workflow_hint).toBeUndefined();
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('complete');
+    expect(parsed.data.workflow_hint).toBeUndefined();
   });
 
-  it('teach_next omits workflow_hint on error status', async () => {
+  it('teach_next omits workflow_hint on error action', async () => {
     const errorResult = {
-      status: 'error',
+      action: 'error',
       message: 'No active session',
     };
     ctx.getNextTeachingStep = vi.fn().mockResolvedValue(errorResult);
@@ -224,8 +232,9 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('error');
-    expect(parsed.workflow_hint).toBeUndefined();
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('error');
+    expect(parsed.data.workflow_hint).toBeUndefined();
   });
 
   it('returns structured error when orchestration throws', async () => {
@@ -236,8 +245,8 @@ describe('teaching-tools', () => {
     const result = await handler({});
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
-    expect(parsed.error.type).toBe('session');
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('internal');
     expect(parsed.error.message).toContain('DB connection lost');
     expect(parsed.error.retryable).toBe(true);
   });
@@ -249,7 +258,7 @@ describe('teaching-tools', () => {
 
   it('submit_answer returns orchestration result as JSON on success (inline path)', async () => {
     const submitResult = {
-      status: 'recorded',
+      action: 'recorded',
       session_question_id: 'sq-1',
       attempt: 1,
       passed: true,
@@ -261,7 +270,6 @@ describe('teaching-tools', () => {
         ease_factor: 2.6,
         is_leech: false,
       },
-      reflect: 'test reflect prompt',
     };
     ctx.submitAnswer = vi.fn().mockResolvedValue(submitResult);
     registerTeachingTools(server as any, ctx);
@@ -280,14 +288,15 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('recorded');
-    expect(parsed.session_question_id).toBe('sq-1');
-    expect(parsed.quality).toBe(5);
-    expect(parsed.chunk_id).toBe('c1');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('recorded');
+    expect(parsed.data.session_question_id).toBe('sq-1');
+    expect(parsed.data.quality).toBe(5);
+    expect(parsed.data.chunk_id).toBe('c1');
   });
 
   it('submit_answer maps snake_case inline input to camelCase', async () => {
-    ctx.submitAnswer = vi.fn().mockResolvedValue({ status: 'retry', attempt: 1 });
+    ctx.submitAnswer = vi.fn().mockResolvedValue({ action: 'retry', attempt: 1 });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('submit_answer')!.handler;
 
@@ -332,7 +341,7 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
     expect(parsed.error.retryable).toBe(false);
   });
@@ -354,8 +363,8 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
-    expect(parsed.error.type).toBe('session');
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('internal');
     expect(parsed.error.message).toContain('Session expired');
     expect(parsed.error.retryable).toBe(true);
   });
@@ -367,14 +376,14 @@ describe('teaching-tools', () => {
     expect(server.tools.has('start_learning')).toBe(true);
   });
 
-  it('start_learning returns toolJson result on success', async () => {
+  it('start_learning returns toolData result on success', async () => {
     const startResult = {
-      status: 'started',
+      action: 'started',
       session_id: 'sess-1',
       mode: 'review',
       total_chunks: 3,
       estimated_duration: 15,
-      first_chunk: { status: 'teach', chunk_id: 'c1' },
+      first_chunk: { action: 'teach', chunk_id: 'c1' },
       recommendation_summary: 'Review overdue items',
     };
     ctx.startLearning = vi.fn().mockResolvedValue(startResult);
@@ -384,13 +393,14 @@ describe('teaching-tools', () => {
     const result = await handler({ context_token: 'ctx-test' });
     const parsed = parseResult(result);
 
-    expect(parsed.status).toBe('started');
-    expect(parsed.session_id).toBe('sess-1');
-    expect(parsed.first_chunk.status).toBe('teach');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('started');
+    expect(parsed.data.session_id).toBe('sess-1');
+    expect(parsed.data.first_chunk.action).toBe('teach');
   });
 
   it('start_learning maps snake_case input to camelCase', async () => {
-    ctx.startLearning = vi.fn().mockResolvedValue({ status: 'nothing_due', message: 'None' });
+    ctx.startLearning = vi.fn().mockResolvedValue({ action: 'nothing_due', message: 'None' });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('start_learning')!.handler;
 
@@ -411,7 +421,7 @@ describe('teaching-tools', () => {
     const result = await handler({ subject_filter: 42 });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
     expect(parsed.error.retryable).toBe(false);
   });
@@ -424,8 +434,8 @@ describe('teaching-tools', () => {
     const result = await handler({ context_token: 'ctx-test' });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
-    expect(parsed.error.type).toBe('session');
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('internal');
     expect(parsed.error.message).toContain('DB timeout');
     expect(parsed.error.retryable).toBe(true);
   });
@@ -439,7 +449,7 @@ describe('teaching-tools', () => {
 
   it('create_session_questions returns orchestration result on success', async () => {
     const createResult = {
-      status: 'created',
+      action: 'created',
       sessionId: 'sess-1',
       questionIds: ['sq-1', 'sq-2'],
     };
@@ -457,14 +467,15 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.session_id).toBe('sess-1');
-    expect(parsed.question_ids).toEqual(['sq-1', 'sq-2']);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.session_id).toBe('sess-1');
+    expect(parsed.data.question_ids).toEqual(['sq-1', 'sq-2']);
   });
 
   it('create_session_questions maps snake_case input to camelCase', async () => {
     ctx.createSessionQuestions = vi
       .fn()
-      .mockResolvedValue({ status: 'created', sessionId: 'sess-1', questionIds: ['sq-1'] });
+      .mockResolvedValue({ action: 'created', sessionId: 'sess-1', questionIds: ['sq-1'] });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
@@ -490,7 +501,7 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
     expect(parsed.error.retryable).toBe(false);
   });
@@ -498,7 +509,7 @@ describe('teaching-tools', () => {
   it('create_session_questions returns non-retryable error for expected failures', async () => {
     ctx.createSessionQuestions = vi
       .fn()
-      .mockResolvedValue({ status: 'error', message: 'Session chunk sc-1 not found.' });
+      .mockResolvedValue({ action: 'error', message: 'Session chunk sc-1 not found.' });
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('create_session_questions')!.handler;
 
@@ -509,8 +520,8 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
-    expect(parsed.error.type).toBe('session');
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('internal');
     expect(parsed.error.message).toContain('not found');
     expect(parsed.error.retryable).toBe(false);
   });
@@ -527,15 +538,15 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
-    expect(parsed.error.type).toBe('session');
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('internal');
     expect(parsed.error.message).toContain('DB connection lost');
     expect(parsed.error.retryable).toBe(true);
   });
 
   it('submit_answer accepts session_question_id for retry path', async () => {
     ctx.submitAnswer = vi.fn().mockResolvedValue({
-      status: 'retry',
+      action: 'retry',
       session_question_id: 'sq-1',
       attempt: 1,
       chunk_id: 'c1',
@@ -580,7 +591,7 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
 
@@ -605,7 +616,7 @@ describe('teaching-tools', () => {
     });
     const parsed = parseResult(result);
 
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
 });

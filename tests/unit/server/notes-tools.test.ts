@@ -38,8 +38,9 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.id).toBe('note-1');
-      expect(parsed.created_at).toBe('2023-11-14T22:13:20.000Z');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.id).toBe('note-1');
+      expect(parsed.data.created_at).toBe('2023-11-14T22:13:20.000Z');
       expect(ctx.createNote).toHaveBeenCalledWith(
         expect.objectContaining({
           targetType: 'chunk',
@@ -64,7 +65,7 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -82,7 +83,7 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
     });
 
@@ -99,7 +100,7 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
     });
 
@@ -116,7 +117,7 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
     });
 
@@ -135,8 +136,8 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
   });
@@ -171,9 +172,10 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.notes).toHaveLength(1);
-      expect(parsed.notes[0].note_type).toBe('insight');
-      expect(parsed.notes[0].created_at).toBe('1970-01-01T00:00:01.000Z');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.notes).toHaveLength(1);
+      expect(parsed.data.notes[0].note_type).toBe('insight');
+      expect(parsed.data.notes[0].created_at).toBe('1970-01-01T00:00:01.000Z');
     });
 
     it('returns validation error for invalid target_type', async () => {
@@ -183,7 +185,7 @@ describe('notes-tools', () => {
       const result = await handler({ target_type: 'bad', target_id: 'chunk-1' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
     });
 
@@ -194,7 +196,7 @@ describe('notes-tools', () => {
       const result = await handler({ target_type: 'chunk', target_id: '' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
     });
 
@@ -210,8 +212,8 @@ describe('notes-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
   });
@@ -232,7 +234,8 @@ describe('notes-tools', () => {
       const result = await handler({ note_id: 'note-1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.success).toBe(true);
     });
 
     it('returns false when note not found', async () => {
@@ -243,7 +246,8 @@ describe('notes-tools', () => {
       const result = await handler({ note_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.success).toBe(false);
     });
 
     it('returns validation error for empty note_id', async () => {
@@ -253,7 +257,7 @@ describe('notes-tools', () => {
       const result = await handler({ note_id: '' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
     });
 
@@ -265,8 +269,8 @@ describe('notes-tools', () => {
       const result = await handler({ note_id: 'note-1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
   });

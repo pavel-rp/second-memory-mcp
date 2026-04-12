@@ -84,9 +84,9 @@ describe('Integration: Complete Session Lifecycle', () => {
     });
 
     const createParsed = parseToolResult(createResult);
-    expect(createParsed.status).toBe('created');
-    expect(createParsed.session_id).toBeDefined();
-    const sessionId = createParsed.session_id;
+    expect(createParsed.data.action).toBe('created');
+    expect(createParsed.data.session_id).toBeDefined();
+    const sessionId = createParsed.data.session_id;
 
     const [sessionInDb] = await getSql()
       .select()
@@ -101,10 +101,10 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(getActiveSessionTool).toBeDefined();
     if (!getActiveSessionTool) throw new Error('get_active_session tool not found');
 
-    const getActiveResult = await getActiveSessionTool.handler({});
+    const getActiveResult = await getActiveSessionTool.handler({ context_token: 'test-token' });
     const getActiveParsed = parseToolResult(getActiveResult);
-    expect(getActiveParsed.status).toBe('found');
-    expect(getActiveParsed.session.session_id).toBe(sessionId);
+    expect(getActiveParsed.data.action).toBe('found');
+    expect(getActiveParsed.data.session.session_id).toBe(sessionId);
 
     const createSessionChunkTool = server.tools.get('create_session_chunk');
     expect(createSessionChunkTool).toBeDefined();
@@ -158,13 +158,13 @@ describe('Integration: Complete Session Lifecycle', () => {
       context_token: 'ctx-test',
     });
     const statusParsed = parseToolResult(statusResult);
-    expect(statusParsed.overall_progress).toBeDefined();
-    expect(statusParsed.chunks_completed).toBeGreaterThanOrEqual(0);
-    expect(statusParsed.chunks_remaining).toBeDefined();
-    expect(statusParsed.average_quality).toBeDefined();
-    expect(statusParsed.time_elapsed_ms).toBeDefined();
-    expect(statusParsed.should_complete).toBeDefined();
-    expect(statusParsed.recommendation).toBeDefined();
+    expect(statusParsed.data.overall_progress).toBeDefined();
+    expect(statusParsed.data.chunks_completed).toBeGreaterThanOrEqual(0);
+    expect(statusParsed.data.chunks_remaining).toBeDefined();
+    expect(statusParsed.data.average_quality).toBeDefined();
+    expect(statusParsed.data.time_elapsed_ms).toBeDefined();
+    expect(statusParsed.data.should_complete).toBeDefined();
+    expect(statusParsed.data.recommendation).toBeDefined();
 
     const completeSessionTool = server.tools.get('complete_session');
     expect(completeSessionTool).toBeDefined();
@@ -176,8 +176,8 @@ describe('Integration: Complete Session Lifecycle', () => {
       context_token: 'ctx-test',
     });
     const completeParsed = parseToolResult(completeResult);
-    expect(completeParsed.status).toBe('completed');
-    expect(completeParsed.session_id).toBe(sessionId);
+    expect(completeParsed.data.action).toBe('completed');
+    expect(completeParsed.data.session_id).toBe(sessionId);
 
     const [completedSessionInDb] = await getSql()
       .select()
@@ -187,10 +187,12 @@ describe('Integration: Complete Session Lifecycle', () => {
     expect(completedSessionInDb?.feedback).toBe('Great session! Learned a lot about the topic.');
     expect(completedSessionInDb?.endTime).toBeDefined();
 
-    const getActiveAfterCompleteResult = await getActiveSessionTool.handler({});
+    const getActiveAfterCompleteResult = await getActiveSessionTool.handler({
+      context_token: 'test-token',
+    });
     const getActiveAfterCompleteParsed = parseToolResult(getActiveAfterCompleteResult);
-    expect(getActiveAfterCompleteParsed.status).toBe('not_found');
-    expect(getActiveAfterCompleteParsed.session).toBeNull();
+    expect(getActiveAfterCompleteParsed.data.action).toBe('not_found');
+    expect(getActiveAfterCompleteParsed.data.session).toBeNull();
 
     const sessionStatusToolAfterComplete = server.tools.get('session_status');
     expect(sessionStatusToolAfterComplete).toBeDefined();
@@ -201,9 +203,9 @@ describe('Integration: Complete Session Lifecycle', () => {
       context_token: 'ctx-test',
     });
     const statusAfterParsed = parseToolResult(statusAfterResult);
-    expect(statusAfterParsed.should_complete).toBeDefined();
-    expect(statusAfterParsed.reason).toBeDefined();
-    expect(statusAfterParsed.recommendation).toBeDefined();
+    expect(statusAfterParsed.data.should_complete).toBeDefined();
+    expect(statusAfterParsed.data.reason).toBeDefined();
+    expect(statusAfterParsed.data.recommendation).toBeDefined();
   });
 
   it('should handle session lifecycle with multiple sessions', async () => {
@@ -284,7 +286,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       estimated_duration: 15,
       context_token: 'ctx-test',
     });
-    const session1Id = parseToolResult(session1Result).session_id;
+    const session1Id = parseToolResult(session1Result).data.session_id;
 
     await completeSessionTool.handler({
       session_id: session1Id,
@@ -299,12 +301,12 @@ describe('Integration: Complete Session Lifecycle', () => {
       estimated_duration: 20,
       context_token: 'ctx-test',
     });
-    const session2Id = parseToolResult(session2Result).session_id;
+    const session2Id = parseToolResult(session2Result).data.session_id;
 
-    const activeResult = await getActiveSessionTool.handler({});
+    const activeResult = await getActiveSessionTool.handler({ context_token: 'test-token' });
     const activeParsed = parseToolResult(activeResult);
-    expect(activeParsed.status).toBe('found');
-    expect(activeParsed.session.session_id).toBe(session2Id);
+    expect(activeParsed.data.action).toBe('found');
+    expect(activeParsed.data.session.session_id).toBe(session2Id);
 
     await completeSessionTool.handler({
       session_id: session2Id,
@@ -312,9 +314,11 @@ describe('Integration: Complete Session Lifecycle', () => {
       context_token: 'ctx-test',
     });
 
-    const activeAfterCompleteResult = await getActiveSessionTool.handler({});
+    const activeAfterCompleteResult = await getActiveSessionTool.handler({
+      context_token: 'test-token',
+    });
     const activeAfterCompleteParsed = parseToolResult(activeAfterCompleteResult);
-    expect(activeAfterCompleteParsed.status).toBe('not_found');
+    expect(activeAfterCompleteParsed.data.action).toBe('not_found');
   });
 
   it('should verify automatic session chunk creation integration', async () => {
@@ -377,24 +381,26 @@ describe('Integration: Complete Session Lifecycle', () => {
     });
 
     const createParsed = parseToolResult(createResult);
-    expect(createParsed.status).toBe('created');
-    expect(createParsed.message).toContain('2 chunks initialized');
-    const sessionId = createParsed.session_id;
+    expect(createParsed.data.action).toBe('created');
+    expect(createParsed.data.message).toContain('2 chunks initialized');
+    const sessionId = createParsed.data.session_id;
 
     const getActiveSessionTool = server.tools.get('get_active_session');
     expect(getActiveSessionTool).toBeDefined();
     if (!getActiveSessionTool) throw new Error('get_active_session tool not found');
 
-    const getActiveResult = await getActiveSessionTool.handler({});
+    const getActiveResult = await getActiveSessionTool.handler({ context_token: 'test-token' });
     const getActiveParsed = parseToolResult(getActiveResult);
-    expect(getActiveParsed.status).toBe('found');
-    expect(getActiveParsed.session.session_id).toBe(sessionId);
+    expect(getActiveParsed.data.action).toBe('found');
+    expect(getActiveParsed.data.session.session_id).toBe(sessionId);
 
-    expect(getActiveParsed.session.chunks).toHaveLength(2);
-    const chunkIds = getActiveParsed.session.chunks.map((c: { chunk_id: string }) => c.chunk_id);
+    expect(getActiveParsed.data.session.chunks).toHaveLength(2);
+    const chunkIds = getActiveParsed.data.session.chunks.map(
+      (c: { chunk_id: string }) => c.chunk_id
+    );
     expect(chunkIds).toContain(chunkId1);
     expect(chunkIds).toContain(chunkId2);
-    for (const chunk of getActiveParsed.session.chunks) {
+    for (const chunk of getActiveParsed.data.session.chunks) {
       expect(chunk.status).toBe('pending');
     }
   });
@@ -437,7 +443,7 @@ describe('Integration: Complete Session Lifecycle', () => {
       estimated_duration: 15,
       context_token: 'ctx-test',
     });
-    const sessionId = parseToolResult(createResult).session_id;
+    const sessionId = parseToolResult(createResult).data.session_id;
 
     const createSessionChunkTool = server.tools.get('create_session_chunk');
     expect(createSessionChunkTool).toBeDefined();
@@ -471,11 +477,11 @@ describe('Integration: Complete Session Lifecycle', () => {
       context_token: 'ctx-test',
     });
     const statusWithIdParsed = parseToolResult(statusWithIdResult);
-    expect(statusWithIdParsed.chunks_completed).toBeDefined();
-    expect(statusWithIdParsed.chunks_remaining).toBeDefined();
-    expect(statusWithIdParsed.overall_progress).toBeDefined();
-    expect(statusWithIdParsed.average_quality).toBeDefined();
-    expect(statusWithIdParsed.should_complete).toBeDefined();
-    expect(statusWithIdParsed.recommendation).toBeDefined();
+    expect(statusWithIdParsed.data.chunks_completed).toBeDefined();
+    expect(statusWithIdParsed.data.chunks_remaining).toBeDefined();
+    expect(statusWithIdParsed.data.overall_progress).toBeDefined();
+    expect(statusWithIdParsed.data.average_quality).toBeDefined();
+    expect(statusWithIdParsed.data.should_complete).toBeDefined();
+    expect(statusWithIdParsed.data.recommendation).toBeDefined();
   });
 });

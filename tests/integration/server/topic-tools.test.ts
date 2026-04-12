@@ -61,10 +61,10 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBeDefined();
-      expect(parsed.chunk_ids).toBeDefined();
-      expect(parsed.message).toContain('Algebra Basics');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBeDefined();
+      expect(parsed.data.chunk_ids).toBeDefined();
+      expect(parsed.data.message).toContain('Algebra Basics');
     });
   });
 
@@ -86,9 +86,9 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBe('topic-1');
-      expect(parsed.updated_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('topic-1');
+      expect(parsed.data.updated_at).toBeDefined();
     });
 
     it('returns error for nonexistent topic', async () => {
@@ -99,7 +99,7 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('rejects empty title via Zod validation', async () => {
@@ -128,10 +128,10 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBe('topic-s');
-      expect(parsed.summary_version).toBe(2);
-      expect(parsed.updated_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('topic-s');
+      expect(parsed.data.summary_version).toBe(2);
+      expect(parsed.data.updated_at).toBeDefined();
     });
 
     it('returns error for nonexistent topic', async () => {
@@ -142,7 +142,7 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('rejects empty summary via Zod validation', async () => {
@@ -188,16 +188,16 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
-      expect(created.success).toBe(true);
+      expect(created.status).toBe('ok');
 
       // Retrieve topic summary — should include dependency_graph_type
       const topicHandler = server.tools.get('get_topic_summary')!.handler;
       const topicResult = await topicHandler({
-        topic_id: created.topic_id,
+        topic_id: created.data.topic_id,
         context_token: 'ctx-test',
       });
       const topic = parseResult(topicResult);
-      expect(topic.dependency_graph_type).toBe('convergent');
+      expect(topic.data.dependency_graph_type).toBe('convergent');
 
       // Retrieve chunk content — should include knowledge_type
       const chunkHandler = server.tools.get('get_chunk_content')!.handler;
@@ -206,14 +206,14 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const chunk1 = parseResult(chunk1Result);
-      expect(chunk1.knowledge_type).toBe('concept');
+      expect(chunk1.data.knowledge_type).toBe('concept');
 
       const chunk2Result = await chunkHandler({
         chunk_id: 'gt-c2',
         context_token: 'ctx-test',
       });
       const chunk2 = parseResult(chunk2Result);
-      expect(chunk2.knowledge_type).toBe('procedure');
+      expect(chunk2.data.knowledge_type).toBe('procedure');
     });
 
     it('stores null when fields are omitted (backward compatible)', async () => {
@@ -247,16 +247,16 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
-      expect(created.success).toBe(true);
+      expect(created.status).toBe('ok');
 
       // Topic should have null dependency_graph_type
       const topicHandler = server.tools.get('get_topic_summary')!.handler;
       const topicResult = await topicHandler({
-        topic_id: created.topic_id,
+        topic_id: created.data.topic_id,
         context_token: 'ctx-test',
       });
       const topic = parseResult(topicResult);
-      expect(topic.dependency_graph_type).toBeNull();
+      expect(topic.data.dependency_graph_type).toBeNull();
 
       // Chunk should have null knowledge_type
       const chunkHandler = server.tools.get('get_chunk_content')!.handler;
@@ -265,7 +265,7 @@ describe('topic-tools', () => {
         context_token: 'ctx-test',
       });
       const chunk = parseResult(chunkResult);
-      expect(chunk.knowledge_type).toBeNull();
+      expect(chunk.data.knowledge_type).toBeNull();
     });
   });
 });

@@ -131,16 +131,16 @@ describe('Integration: what_to_learn_today', () => {
     const out = await tool!.handler({ context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
-    expect(result).toHaveProperty('recommendations');
-    expect(result).toHaveProperty('total_due_topics');
-    expect(result).toHaveProperty('total_due_chunks');
-    expect(Array.isArray(result.recommendations)).toBe(true);
-    expect(result.recommendations.length).toBeGreaterThanOrEqual(1);
-    expect(result.total_due_topics).toBeGreaterThanOrEqual(1);
-    expect(result.total_due_chunks).toBeGreaterThanOrEqual(2);
+    expect(result.data).toHaveProperty('recommendations');
+    expect(result.data).toHaveProperty('total_due_topics');
+    expect(result.data).toHaveProperty('total_due_chunks');
+    expect(Array.isArray(result.data.recommendations)).toBe(true);
+    expect(result.data.recommendations.length).toBeGreaterThanOrEqual(1);
+    expect(result.data.total_due_topics).toBeGreaterThanOrEqual(1);
+    expect(result.data.total_due_chunks).toBeGreaterThanOrEqual(2);
 
     // Verify topic-level fields
-    const rec = result.recommendations[0];
+    const rec = result.data.recommendations[0];
     expect(rec).toHaveProperty('topic_id');
     expect(rec).toHaveProperty('topic_title');
     expect(rec).toHaveProperty('urgency_score');
@@ -149,7 +149,9 @@ describe('Integration: what_to_learn_today', () => {
     expect(rec).toHaveProperty('estimated_duration');
 
     // Draft chunks should be excluded from due counts
-    const csRec = result.recommendations.find((r: { topic_id: string }) => r.topic_id === 't1');
+    const csRec = result.data.recommendations.find(
+      (r: { topic_id: string }) => r.topic_id === 't1'
+    );
     if (csRec) {
       expect(csRec.due_chunk_count).toBe(2); // c1, c2 (not c4 draft)
     }
@@ -164,8 +166,8 @@ describe('Integration: what_to_learn_today', () => {
     const out = await tool!.handler({ subject_filter: 'Math', context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
-    expect(result.recommendations.length).toBe(1);
-    expect(result.recommendations[0].topic_title).toBe('Topic B');
+    expect(result.data.recommendations.length).toBe(1);
+    expect(result.data.recommendations[0].topic_title).toBe('Topic B');
   });
 
   it('returns empty recommendations when no due chunks', async () => {
@@ -176,9 +178,9 @@ describe('Integration: what_to_learn_today', () => {
     const out = await tool!.handler({ context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
-    expect(result.recommendations).toEqual([]);
-    expect(result.total_due_topics).toBe(0);
-    expect(result.total_due_chunks).toBe(0);
+    expect(result.data.recommendations).toEqual([]);
+    expect(result.data.total_due_topics).toBe(0);
+    expect(result.data.total_due_chunks).toBe(0);
   });
 
   it('respects limit parameter', async () => {
@@ -190,7 +192,7 @@ describe('Integration: what_to_learn_today', () => {
     const out = await tool!.handler({ limit: 1, context_token: 'ctx-test' });
     const result = parseToolResult(out);
 
-    expect(result.recommendations.length).toBe(1);
-    expect(result.total_due_topics).toBe(2); // total still counts all
+    expect(result.data.recommendations.length).toBe(1);
+    expect(result.data.total_due_topics).toBe(2); // total still counts all
   });
 });

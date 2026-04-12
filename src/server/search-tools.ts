@@ -6,7 +6,7 @@ import {
   type SearchLearningContentInput,
 } from '../domain/types/search-tools.js';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerSearchTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -36,8 +36,7 @@ export function registerSearchTools(server: McpServer, ctx: AppContext): void {
           const hasChunks = chunkResults.length > 0;
           const chunkIds = chunkResults.map(c => c.id);
 
-          return toolJson({
-            success: true,
+          return toolData({
             message:
               result.counts.total > 0
                 ? `Found ${result.counts.total} matching items.`

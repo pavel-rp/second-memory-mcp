@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { AppContext } from '../composition-root.js';
-import { z, ZodError } from 'zod';
+import { ZodError } from 'zod';
 import crypto from 'node:crypto';
 import {
   CreateSessionToolInputShape,
@@ -9,12 +9,48 @@ import {
   CompleteSessionInputSchema,
   GetSessionByIdInputShape,
   GetSessionByIdInputSchema,
+  GetActiveSessionInputShape,
+  GetActiveSessionInputSchema,
   CreateSessionResultSchema,
-  GetActiveSessionResultSchema,
   CompleteSessionResultSchema,
 } from '../domain/types/session-management-tools.js';
+import type { SessionInput } from '../domain/types/session.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
+
+/**
+ * Filter a SessionInput to only include requested fields.
+ * Supports top-level keys and dot-notation for chunk sub-fields.
+ */
+function filterSessionFields(session: SessionInput, fields: string[]): Record<string, unknown> {
+  const result: Record<string, unknown> = { session_id: session.session_id };
+  const chunkFields = fields
+    .filter(f => f.startsWith('chunks.'))
+    .map(f => f.slice('chunks.'.length));
+
+  for (const field of fields) {
+    if (field.startsWith('chunks.')) continue; // handled below
+    if (field === 'chunks') {
+      result.chunks = session.chunks;
+    } else if (Object.hasOwn(session, field)) {
+      result[field] = (session as Record<string, unknown>)[field];
+    }
+  }
+
+  if (chunkFields.length > 0 && !('chunks' in result)) {
+    result.chunks = session.chunks.map(chunk => {
+      const filtered: Record<string, unknown> = {};
+      for (const cf of chunkFields) {
+        if (Object.hasOwn(chunk, cf)) {
+          filtered[cf] = (chunk as Record<string, unknown>)[cf];
+        }
+      }
+      return filtered;
+    });
+  }
+
+  return result;
+}
 
 export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -96,14 +132,14 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
 
           const result = CreateSessionResultSchema.parse({
             session_id: createResult.data.sessionId,
-            status: 'created' as const,
+            action: 'created' as const,
             message: `Session created successfully with mode: ${validatedInput.mode}${chunkInfo}${dependencyMessage}`,
           });
 
           getRequestLogger().info(
             `Created session ${createResult.data.sessionId} with mode ${validatedInput.mode}`
           );
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to create session:', error);
@@ -123,28 +159,18 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       description:
         'Retrieve the current active learning session to continue where you left off. ' +
         'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
-        'to help inform teaching strategy based on previously reported difficulties.',
-      inputSchema: z.object({
-        context_token: z
-          .string()
-          .min(1)
-          .describe(
-            'Token returned by init_agent_context. Required on every call. ' +
-              'Call init_agent_context at the start of every conversation to obtain this token.'
-          ),
-      }).shape,
+        'to help inform teaching strategy based on previously reported difficulties. ' +
+        'Use the fields parameter to request only specific parts of the session (e.g. ["mode", "chunks.status"]).',
+      inputSchema: GetActiveSessionInputShape,
     },
-    async () =>
+    async (input: unknown) =>
       withRequestContext('get_active_session', async () => {
         try {
+          const validatedInput = GetActiveSessionInputSchema.parse(input);
           const activeSession = await ctx.getActiveSession();
 
           if (!activeSession) {
-            const result = GetActiveSessionResultSchema.parse({
-              session: null,
-              status: 'not_found' as const,
-            });
-            return toolJson(result);
+            return toolData({ session: null, action: 'not_found' as const });
           }
 
           const includeHistoricalFeedback =
@@ -156,20 +182,15 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           });
 
           if (!sessionInput) {
-            const result = GetActiveSessionResultSchema.parse({
-              session: null,
-              status: 'not_found' as const,
-            });
-            return toolJson(result);
+            return toolData({ session: null, action: 'not_found' as const });
           }
 
-          const result = GetActiveSessionResultSchema.parse({
-            session: sessionInput,
-            status: 'found' as const,
-          });
+          const sessionData = validatedInput.fields
+            ? filterSessionFields(sessionInput, validatedInput.fields)
+            : sessionInput;
 
           getRequestLogger().info(`Retrieved active session ${activeSession.id}`);
-          return toolJson(result);
+          return toolData({ session: sessionData, action: 'found' as const });
         } catch (error) {
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to get active session:', error);
@@ -189,7 +210,8 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
       description:
         'Retrieve a specific learning session by its ID. ' +
         'For review and retrieval sessions, historical feedback from past sessions is automatically included ' +
-        'to help inform teaching strategy based on previously reported difficulties.',
+        'to help inform teaching strategy based on previously reported difficulties. ' +
+        'Use the fields parameter to request only specific parts of the session (e.g. ["mode", "chunks.status"]).',
       inputSchema: GetSessionByIdInputShape,
     },
     async (input: unknown) =>
@@ -200,11 +222,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           const session = await ctx.getSessionById(validatedInput.sessionId);
 
           if (!session) {
-            const result = GetActiveSessionResultSchema.parse({
-              session: null,
-              status: 'not_found' as const,
-            });
-            return toolJson(result);
+            return toolData({ session: null, action: 'not_found' as const });
           }
 
           const includeHistoricalFeedback =
@@ -216,20 +234,15 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           });
 
           if (!sessionInput) {
-            const result = GetActiveSessionResultSchema.parse({
-              session: null,
-              status: 'not_found' as const,
-            });
-            return toolJson(result);
+            return toolData({ session: null, action: 'not_found' as const });
           }
 
-          const result = GetActiveSessionResultSchema.parse({
-            session: sessionInput,
-            status: 'found' as const,
-          });
+          const sessionData = validatedInput.fields
+            ? filterSessionFields(sessionInput, validatedInput.fields)
+            : sessionInput;
 
           getRequestLogger().info(`Retrieved session ${validatedInput.sessionId}`);
-          return toolJson(result);
+          return toolData({ session: sessionData, action: 'found' as const });
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -271,12 +284,9 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           }
 
           if (session.status === 'completed') {
-            return toolJson({
-              success: false,
-              error: {
-                type: 'already_completed',
-                message: 'Session is already completed',
-              },
+            return toolError('Session is already completed', {
+              type: 'conflict',
+              message: 'Session is already completed',
             });
           }
 
@@ -321,7 +331,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
 
           const result = CompleteSessionResultSchema.parse({
             session_id: validatedInput.sessionId,
-            status: 'completed' as const,
+            action: 'completed' as const,
             final_metrics: {
               duration,
               chunks_completed: chunksCompleted,
@@ -333,7 +343,7 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           getRequestLogger().info(
             `Completed session ${validatedInput.sessionId} with feedback: ${validatedInput.feedback || 'none'}`
           );
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to complete session:', error);

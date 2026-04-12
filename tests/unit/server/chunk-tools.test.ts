@@ -71,11 +71,11 @@ describe('chunk-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.topic_id).toBe('t1');
-      expect(parsed.created_at).toBeDefined();
-      expect(parsed.message).toContain('Arrays');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('c1');
+      expect(parsed.data.topic_id).toBe('t1');
+      expect(parsed.data.created_at).toBeDefined();
+      expect(parsed.data.message).toContain('Arrays');
     });
 
     it('includes consistency_reminder in success response', async () => {
@@ -89,12 +89,13 @@ describe('chunk-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeDefined();
-      expect(parsed.consistency_reminder.topic_id).toBe('t1');
-      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.instruction).toContain('new chunk was added');
-      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
-      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect(parsed.data.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.data.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.data.consistency_reminder.instruction).toContain('new chunk was added');
+      expect(parsed.data.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.data.consistency_reminder.checklist.length).toBe(5);
     });
 
     it('does not include consistency_reminder in error response', async () => {
@@ -108,7 +109,8 @@ describe('chunk-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('error');
+      expect(parsed.error).toBeDefined();
     });
 
     it('passes prerequisites and tags when provided', async () => {
@@ -149,7 +151,7 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
       const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
       expect(call.prerequisitesJson).toEqual(['c1']);
       expect(call.tagsJson).toEqual(['data-structures']);
@@ -167,8 +169,8 @@ describe('chunk-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('duplicate chunk');
     });
 
@@ -180,8 +182,8 @@ describe('chunk-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('pool exhausted');
     });
@@ -297,11 +299,11 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.progress_reset).toBe(true);
-      expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.content_version).toBe(2);
-      expect(parsed.updated_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.progress_reset).toBe(true);
+      expect(parsed.data.chunk_id).toBe('c1');
+      expect(parsed.data.content_version).toBe(2);
+      expect(parsed.data.updated_at).toBeDefined();
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -321,8 +323,8 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -342,8 +344,8 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -364,7 +366,7 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
     });
 
@@ -382,8 +384,8 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -411,12 +413,13 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeDefined();
-      expect(parsed.consistency_reminder.topic_id).toBe('t1');
-      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.instruction).toContain('was just modified');
-      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
-      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect(parsed.data.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.data.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.data.consistency_reminder.instruction).toContain('was just modified');
+      expect(parsed.data.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.data.consistency_reminder.checklist.length).toBe(5);
     });
 
     it('does not include consistency_reminder in error response', async () => {
@@ -436,7 +439,7 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('error');
     });
 
     it('throws ZodError for missing chunk_id', async () => {
@@ -482,9 +485,9 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.updated_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('c1');
+      expect(parsed.data.updated_at).toBeDefined();
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -498,8 +501,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -513,8 +516,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -529,7 +532,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
     });
 
@@ -541,8 +544,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -557,11 +560,12 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', difficulty: 7, context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeDefined();
-      expect(parsed.consistency_reminder.topic_id).toBe('t1');
-      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
-      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect(parsed.data.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.data.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.data.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.data.consistency_reminder.checklist.length).toBe(5);
     });
 
     it('does not include consistency_reminder in error response', async () => {
@@ -575,7 +579,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('error');
     });
 
     it('throws ZodError for missing chunk_id', async () => {
@@ -614,11 +618,11 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.progress_reset).toBe(true);
-      expect(parsed.content_version).toBe(2);
-      expect(parsed.updated_at).toBeDefined();
-      expect(parsed.message).toContain('progress reset');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.progress_reset).toBe(true);
+      expect(parsed.data.content_version).toBe(2);
+      expect(parsed.data.updated_at).toBeDefined();
+      expect(parsed.data.message).toContain('progress reset');
     });
 
     it('returns success without progress_reset', async () => {
@@ -643,11 +647,11 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.progress_reset).toBe(false);
-      expect(parsed.content_version).toBe(1);
-      expect(parsed.updated_at).toBeDefined();
-      expect(parsed.message).not.toContain('progress reset');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.progress_reset).toBe(false);
+      expect(parsed.data.content_version).toBe(1);
+      expect(parsed.data.updated_at).toBeDefined();
+      expect(parsed.data.message).not.toContain('progress reset');
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -661,8 +665,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -676,8 +680,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -692,7 +696,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
     });
 
@@ -704,8 +708,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -731,11 +735,12 @@ describe('chunk-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeDefined();
-      expect(parsed.consistency_reminder.topic_id).toBe('t1');
-      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
-      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect(parsed.data.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.data.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.data.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.data.consistency_reminder.checklist.length).toBe(5);
     });
 
     it('does not include consistency_reminder in error response', async () => {
@@ -749,7 +754,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('error');
     });
 
     it('throws ZodError for missing chunk_id', async () => {
@@ -776,10 +781,10 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.removed_dependency_count).toBe(2);
-      expect(parsed.message).toContain('2 dependent chunks');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('c1');
+      expect(parsed.data.removed_dependency_count).toBe(2);
+      expect(parsed.data.message).toContain('2 dependent chunks');
     });
 
     it('returns success with singular dependency message for exactly 1 removed', async () => {
@@ -794,11 +799,11 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.removed_dependency_count).toBe(1);
-      expect(parsed.message).toContain('1 dependent chunk');
-      expect(parsed.message).not.toContain('chunks.');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('c1');
+      expect(parsed.data.removed_dependency_count).toBe(1);
+      expect(parsed.data.message).toContain('1 dependent chunk');
+      expect(parsed.data.message).not.toContain('chunks.');
     });
 
     it('returns success without removed dependencies', async () => {
@@ -812,10 +817,10 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('c1');
-      expect(parsed.removed_dependency_count).toBe(0);
-      expect(parsed.message).toContain('Arrays');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('c1');
+      expect(parsed.data.removed_dependency_count).toBe(0);
+      expect(parsed.data.message).toContain('Arrays');
     });
 
     it('uses chunk_id in message when chunk title is not available', async () => {
@@ -828,10 +833,10 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-orphan', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('c-orphan');
-      expect(parsed.removed_dependency_count).toBe(0);
-      expect(parsed.message).toContain('c-orphan');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('c-orphan');
+      expect(parsed.data.removed_dependency_count).toBe(0);
+      expect(parsed.data.message).toContain('c-orphan');
     });
 
     it('uses fallback defaults when error object has no fields', async () => {
@@ -845,8 +850,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
     });
 
     it('uses fallback defaults when error object is entirely absent', async () => {
@@ -859,8 +864,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
     });
 
     it('returns toolError when ctx returns failure result', async () => {
@@ -874,7 +879,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
     });
 
@@ -886,8 +891,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -902,11 +907,12 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeDefined();
-      expect(parsed.consistency_reminder.topic_id).toBe('t1');
-      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
-      expect(parsed.consistency_reminder.checklist.length).toBe(5);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect(parsed.data.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.data.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.data.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.data.consistency_reminder.checklist.length).toBe(5);
     });
 
     it('does not include consistency_reminder when chunk is not available', async () => {
@@ -919,7 +925,8 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-orphan', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeUndefined();
     });
 
     it('does not include consistency_reminder in error response', async () => {
@@ -933,7 +940,7 @@ describe('chunk-tools', () => {
       const result = await handler({ chunk_id: 'c-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('error');
     });
 
     it('throws ZodError for missing chunk_id', async () => {

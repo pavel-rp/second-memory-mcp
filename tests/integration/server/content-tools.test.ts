@@ -64,14 +64,14 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.items).toHaveLength(1);
-    expect(parsed.items[0].content).toBe('This is the content for Two Sum problem');
-    expect(parsed.items[0].content_version).toBe(1);
-    expect(parsed.items[0].content_updated_at).toBe(new Date(now).toISOString());
-    expect(parsed.content_included).toBe(true);
-    expect(parsed.pagination.total).toBe(1);
-    expect(parsed.pagination.has_more).toBe(false);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.items).toHaveLength(1);
+    expect(parsed.data.items[0].content).toBe('This is the content for Two Sum problem');
+    expect(parsed.data.items[0].content_version).toBe(1);
+    expect(parsed.data.items[0].content_updated_at).toBe(new Date(now).toISOString());
+    expect(parsed.data.content_included).toBe(true);
+    expect(parsed.data.pagination.total).toBe(1);
+    expect(parsed.data.pagination.has_more).toBe(false);
   });
 
   it('should exclude content fields when includeContent is false', async () => {
@@ -117,13 +117,13 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.items).toHaveLength(1);
-    expect(parsed.items[0].content).toBeUndefined();
-    expect(parsed.items[0].content_version).toBeUndefined();
-    expect(parsed.items[0].content_updated_at).toBeUndefined();
-    expect(parsed.items[0].title).toBe('Two Sum Problem');
-    expect(parsed.content_included).toBe(false);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.items).toHaveLength(1);
+    expect(parsed.data.items[0].content).toBeUndefined();
+    expect(parsed.data.items[0].content_version).toBeUndefined();
+    expect(parsed.data.items[0].content_updated_at).toBeUndefined();
+    expect(parsed.data.items[0].title).toBe('Two Sum Problem');
+    expect(parsed.data.content_included).toBe(false);
   });
 
   it('should handle pagination correctly', async () => {
@@ -173,12 +173,12 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed1 = parseToolResult(result1);
-    expect(parsed1.success).toBe(true);
-    expect(parsed1.items).toHaveLength(2);
-    expect(parsed1.pagination.total).toBe(5);
-    expect(parsed1.pagination.has_more).toBe(true);
-    expect(parsed1.pagination.offset).toBe(0);
-    expect(parsed1.pagination.limit).toBe(2);
+    expect(parsed1.status).toBe('ok');
+    expect(parsed1.data.items).toHaveLength(2);
+    expect(parsed1.data.pagination.total).toBe(5);
+    expect(parsed1.data.pagination.has_more).toBe(true);
+    expect(parsed1.data.pagination.offset).toBe(0);
+    expect(parsed1.data.pagination.limit).toBe(2);
 
     const result2 = await tool.handler({
       include_content: true,
@@ -188,10 +188,10 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed2 = parseToolResult(result2);
-    expect(parsed2.success).toBe(true);
-    expect(parsed2.items).toHaveLength(2);
-    expect(parsed2.pagination.has_more).toBe(true);
-    expect(parsed2.pagination.offset).toBe(2);
+    expect(parsed2.status).toBe('ok');
+    expect(parsed2.data.items).toHaveLength(2);
+    expect(parsed2.data.pagination.has_more).toBe(true);
+    expect(parsed2.data.pagination.offset).toBe(2);
 
     const result3 = await tool.handler({
       include_content: true,
@@ -201,10 +201,10 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed3 = parseToolResult(result3);
-    expect(parsed3.success).toBe(true);
-    expect(parsed3.items).toHaveLength(1);
-    expect(parsed3.pagination.has_more).toBe(false);
-    expect(parsed3.pagination.offset).toBe(4);
+    expect(parsed3.status).toBe('ok');
+    expect(parsed3.data.items).toHaveLength(1);
+    expect(parsed3.data.pagination.has_more).toBe(false);
+    expect(parsed3.data.pagination.offset).toBe(4);
   });
 
   it('should filter by subject correctly', async () => {
@@ -272,11 +272,11 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.items).toHaveLength(1);
-    expect(parsed.items[0].subject).toBe('CS');
-    expect(parsed.items[0].title).toBe('CS Chunk');
-    expect(parsed.items[0].content).toBe('CS content');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.items).toHaveLength(1);
+    expect(parsed.data.items[0].subject).toBe('CS');
+    expect(parsed.data.items[0].title).toBe('CS Chunk');
+    expect(parsed.data.items[0].content).toBe('CS content');
   });
 
   it('should handle dueOnly filter correctly', async () => {
@@ -344,10 +344,10 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.items).toHaveLength(1);
-    expect(parsed.items[0].title).toBe('Due Chunk');
-    expect(parsed.items[0].content).toBe('Due content');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.items).toHaveLength(1);
+    expect(parsed.data.items[0].title).toBe('Due Chunk');
+    expect(parsed.data.items[0].content).toBe('Due content');
   });
 
   it('should return empty results when no data exists', async () => {
@@ -357,8 +357,8 @@ describe('Integration: list_items_with_content', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.items).toHaveLength(0);
-    expect(parsed.pagination.total).toBe(0);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.items).toHaveLength(0);
+    expect(parsed.data.pagination.total).toBe(0);
   });
 });

@@ -6,17 +6,17 @@ export const SERVER_INSTRUCTIONS = `\
 Second Memory is a spaced-repetition learning server. Follow these workflows:
 
 TEACHING FLOW (start_learning → submit_answer loop)
-1. Call start_learning. If status is "nothing_due"/"error", surface message and stop. If "started"/"resumed", check first_chunk.status: "teach" → present instruction and collect response; "blocked"/"error" → surface and stop.
+1. Call start_learning. Check data.action: "nothing_due"/"error" → surface message and stop. "started"/"resumed" → check data.first_chunk.action: "teach" → present instruction; "blocked"/"error" → surface and stop.
 2. Call submit_answer with prompt_text, chunk_ids, response, pass/fail, feedback, time_spent_ms.
-3. On "retry", if retry_guidance is present, follow it: use the mode-specific pivot to scaffold the learner. roadblock.remaining follow-up questions (each scoring >= quality 3) are required before the server allows progression. Re-call submit_answer with session_question_id from the response.
-4. On "recorded", call teach_next to get the next action: "teach" → present instruction, repeat from step 2. "complete" → go to step 5. "blocked"/"error" → stop.
+3. On data.action "retry", if retry_guidance is present, follow it: use the mode-specific pivot to scaffold the learner. roadblock.remaining follow-up questions (each scoring >= quality 3) are required before the server allows progression. Re-call submit_answer with session_question_id from the response.
+4. On data.action "recorded", call teach_next to get the next action: "teach" → present instruction, repeat from step 2. "complete" → go to step 5. "blocked"/"error" → stop.
 5. On "complete", call complete_session with session_id and optional feedback.
 
 ROLLING SESSION FLOW (manual chunk-by-chunk control)
 1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
 2. Call create_session_chunk with the session_id, chunk_id, and status: "in_progress" to add and activate the chunk.
 3. Call get_chunk_content with the chunk_id to retrieve the chunk, then teach it.
-4. Call submit_answer with prompt_text, chunk_ids, response, pass/fail judgment, feedback, and time_spent_ms. If result says "retry", follow retry_guidance if present: use the mode-specific pivot to scaffold the learner, and re-call submit_answer with session_question_id from the response until it returns "recorded". After "recorded", call teach_next to advance: if status is "teach", go to step 3 for that chunk (it is already in_progress — do not call create_session_chunk). If status is "blocked" or "error", surface the message to the learner and stop. Only loop back to step 2 when status is "complete" or no chunk is currently in_progress.
+4. Call submit_answer with prompt_text, chunk_ids, response, pass/fail judgment, feedback, and time_spent_ms. If data.action says "retry", follow retry_guidance if present: use the mode-specific pivot to scaffold the learner, and re-call submit_answer with session_question_id from the response until it returns "recorded". After "recorded", call teach_next to advance: if data.action is "teach", go to step 3 for that chunk (it is already in_progress — do not call create_session_chunk). If data.action is "blocked" or "error", surface the message to the learner and stop. Only loop back to step 2 when data.action is "complete" or no chunk is currently in_progress.
 5. Repeat steps 2–4 for each chunk the learner selects.
 6. Call complete_session with the session_id from step 1 and optional feedback when the learner is done.
 
@@ -30,7 +30,7 @@ ASSESSMENT FLOW (cross-chunk topic evaluation)
 2. Call create_session_questions with session_id and questions — each question has chunk_ids (1+) indicating which chunks it evaluates. Questions can span multiple chunks for cross-concept evaluation.
 3. Call teach_next — returns the next unanswered question (no teaching instruction, just the question text).
 4. Call submit_answer with session_question_id, response, pass/fail, feedback, time_spent_ms. Assessment uses single attempt: pass → quality 5, fail → quality 1. No retry. SR updates fan out to ALL mapped chunks per question.
-5. Repeat steps 3-4 until teach_next returns status "complete".
+5. Repeat steps 3-4 until teach_next returns data.action "complete".
 6. Call complete_session with session_id and optional feedback.
 
 ASSESSMENT-FIRST SCAFFOLDING

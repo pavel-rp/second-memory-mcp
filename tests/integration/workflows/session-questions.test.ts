@@ -94,8 +94,8 @@ describe('session question workflows', () => {
       ],
     });
 
-    expect(result.status).toBe('created');
-    if (result.status !== 'created') throw new Error('Expected created');
+    expect(result.action).toBe('created');
+    if (result.action !== 'created') throw new Error('Expected created');
     expect(result.sessionId).toBe(sessionId);
     expect(result.questionIds).toHaveLength(2);
 
@@ -116,14 +116,14 @@ describe('session question workflows', () => {
       sessionId,
       questions: [{ promptText: 'Q1', chunkIds: [chunkId] }],
     });
-    expect(first.status).toBe('created');
+    expect(first.action).toBe('created');
 
     const second = await ctx.createSessionQuestions({
       sessionId,
       questions: [{ promptText: 'Q2', chunkIds: [chunkId] }],
     });
-    expect(second.status).toBe('created');
-    if (second.status !== 'created') throw new Error('Expected created');
+    expect(second.action).toBe('created');
+    if (second.action !== 'created') throw new Error('Expected created');
 
     // Verify all questions persisted with continuous indices
     const questions = await questionRepo.getQuestionsForSession(sessionId);
@@ -145,7 +145,7 @@ describe('session question workflows', () => {
         { promptText: 'Q2', chunkIds: [chunkId] },
       ],
     });
-    if (create1.status !== 'created') throw new Error('Expected created');
+    if (create1.action !== 'created') throw new Error('Expected created');
     const [q1Id, q2Id] = create1.questionIds;
 
     // 2. Answer Q1 (pass)
@@ -157,8 +157,8 @@ describe('session question workflows', () => {
       timeSpentMs: 2000,
       sessionQuestionId: q1Id,
     });
-    expect(a1.status).toBe('recorded');
-    if (a1.status !== 'recorded') throw new Error('Expected recorded');
+    expect(a1.action).toBe('recorded');
+    if (a1.action !== 'recorded') throw new Error('Expected recorded');
     // NEU-347: submit_answer never returns review_update (deferred to teach_next)
     expect(a1.review_update).toBeUndefined();
 
@@ -167,7 +167,7 @@ describe('session question workflows', () => {
       sessionId,
       questions: [{ promptText: 'Q3', chunkIds: [chunkId] }],
     });
-    if (create2.status !== 'created') throw new Error('Expected created');
+    if (create2.action !== 'created') throw new Error('Expected created');
     const q3Id = create2.questionIds[0]!;
 
     // Verify continuous index
@@ -184,8 +184,8 @@ describe('session question workflows', () => {
       timeSpentMs: 2000,
       sessionQuestionId: q2Id,
     });
-    expect(a2.status).toBe('recorded');
-    if (a2.status !== 'recorded') throw new Error('Expected recorded');
+    expect(a2.action).toBe('recorded');
+    if (a2.action !== 'recorded') throw new Error('Expected recorded');
 
     // 5. Answer Q3 (pass) — chunk stays in_progress
     const a3 = await ctx.submitAnswer({
@@ -196,15 +196,15 @@ describe('session question workflows', () => {
       timeSpentMs: 2000,
       sessionQuestionId: q3Id,
     });
-    expect(a3.status).toBe('recorded');
-    if (a3.status !== 'recorded') throw new Error('Expected recorded');
+    expect(a3.action).toBe('recorded');
+    if (a3.action !== 'recorded') throw new Error('Expected recorded');
     expect(a3.quality).toBe(5); // agent-provided quality
     expect(a3.review_update).toBeUndefined();
 
     // 6. teach_next completes the chunk with aggregated quality and returns review_update
     const nextStep = await ctx.getNextTeachingStep();
-    expect(nextStep.status).toBe('complete');
-    if (nextStep.status !== 'complete') throw new Error('Expected complete');
+    expect(nextStep.action).toBe('complete');
+    if (nextStep.action !== 'complete') throw new Error('Expected complete');
     expect(nextStep.review_update).toBeDefined();
     expect(nextStep.review_update?.next_review_date).not.toBe('');
   });
@@ -216,7 +216,7 @@ describe('session question workflows', () => {
       sessionId,
       questions: [{ promptText: 'What is 2+2?', chunkIds: [chunkId] }],
     });
-    if (createResult.status !== 'created') throw new Error('Expected created');
+    if (createResult.action !== 'created') throw new Error('Expected created');
     const questionId = createResult.questionIds[0]!;
 
     // First attempt — fail → retry
@@ -228,7 +228,7 @@ describe('session question workflows', () => {
       timeSpentMs: 3000,
       sessionQuestionId: questionId,
     });
-    expect(retryResult.status).toBe('retry');
+    expect(retryResult.action).toBe('retry');
 
     // Verify attempt persisted
     const attempts = await questionRepo.getAttemptsForQuestion(questionId);
@@ -245,8 +245,8 @@ describe('session question workflows', () => {
       timeSpentMs: 2000,
       sessionQuestionId: questionId,
     });
-    expect(recordedResult.status).toBe('recorded');
-    if (recordedResult.status !== 'recorded') throw new Error('Expected recorded');
+    expect(recordedResult.action).toBe('recorded');
+    if (recordedResult.action !== 'recorded') throw new Error('Expected recorded');
     expect(recordedResult.quality).toBe(3); // agent-provided quality
     // NEU-347: review_update deferred to teach_next
     expect(recordedResult.review_update).toBeUndefined();
@@ -263,7 +263,7 @@ describe('session question workflows', () => {
       sessionId,
       questions: [{ promptText: 'Q', chunkIds: [chunkId] }],
     });
-    if (createResult.status !== 'created') throw new Error('Expected created');
+    if (createResult.action !== 'created') throw new Error('Expected created');
     const questionId = createResult.questionIds[0]!;
 
     await questionRepo.updateQuestionStatus(questionId, 'answered');
@@ -280,7 +280,7 @@ describe('session question workflows', () => {
         { promptText: 'Q2', chunkIds: [chunkId] },
       ],
     });
-    if (createResult.status !== 'created') throw new Error('Expected created');
+    if (createResult.action !== 'created') throw new Error('Expected created');
     const [q1Id, q2Id] = createResult.questionIds;
 
     // Submit answers for both questions (first attempt pass for each)
@@ -334,8 +334,8 @@ describe('session question workflows', () => {
 
     // teach_next selects c1 and marks it in_progress
     const step1 = await ctx.getNextTeachingStep();
-    expect(step1.status).toBe('teach');
-    if (step1.status !== 'teach') throw new Error('Expected teach');
+    expect(step1.action).toBe('teach');
+    if (step1.action !== 'teach') throw new Error('Expected teach');
     expect(step1.chunk_id).toBe('c1');
 
     // Submit 3 inline questions for c1 (recall → explain → analyze)
@@ -349,8 +349,8 @@ describe('session question workflows', () => {
       feedback: 'Basic recall correct',
       timeSpentMs: 3000,
     });
-    expect(q1.status).toBe('recorded');
-    if (q1.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q1.action).toBe('recorded');
+    if (q1.action !== 'recorded') throw new Error('Expected recorded');
     expect(q1.review_update).toBeUndefined(); // chunk NOT completed yet
 
     const q2 = await ctx.submitAnswer({
@@ -362,8 +362,8 @@ describe('session question workflows', () => {
       feedback: 'Good explanation',
       timeSpentMs: 5000,
     });
-    expect(q2.status).toBe('recorded');
-    if (q2.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q2.action).toBe('recorded');
+    if (q2.action !== 'recorded') throw new Error('Expected recorded');
     expect(q2.review_update).toBeUndefined();
 
     const q3 = await ctx.submitAnswer({
@@ -375,14 +375,14 @@ describe('session question workflows', () => {
       feedback: 'Good analysis',
       timeSpentMs: 7000,
     });
-    expect(q3.status).toBe('recorded');
-    if (q3.status !== 'recorded') throw new Error('Expected recorded');
+    expect(q3.action).toBe('recorded');
+    if (q3.action !== 'recorded') throw new Error('Expected recorded');
     expect(q3.review_update).toBeUndefined();
 
     // teach_next: completes c1 with aggregated quality, advances to c2
     const step2 = await ctx.getNextTeachingStep();
-    expect(step2.status).toBe('teach');
-    if (step2.status !== 'teach') throw new Error('Expected teach');
+    expect(step2.action).toBe('teach');
+    if (step2.action !== 'teach') throw new Error('Expected teach');
     expect(step2.chunk_id).toBe('c2');
     expect(step2.review_update).toBeDefined();
     expect(step2.review_update?.next_review_date).toBeDefined();
@@ -406,8 +406,8 @@ describe('session question workflows', () => {
 
     // teach_next selects c1
     const step1 = await ctx.getNextTeachingStep();
-    expect(step1.status).toBe('teach');
-    if (step1.status !== 'teach') throw new Error('Expected teach');
+    expect(step1.action).toBe('teach');
+    if (step1.action !== 'teach') throw new Error('Expected teach');
 
     // Single inline submit_answer
     const result = await ctx.submitAnswer({
@@ -419,12 +419,12 @@ describe('session question workflows', () => {
       feedback: 'Correct',
       timeSpentMs: 5000,
     });
-    expect(result.status).toBe('recorded');
+    expect(result.action).toBe('recorded');
 
     // teach_next completes c1 and advances to c2
     const step2 = await ctx.getNextTeachingStep();
-    expect(step2.status).toBe('teach');
-    if (step2.status !== 'teach') throw new Error('Expected teach');
+    expect(step2.action).toBe('teach');
+    if (step2.action !== 'teach') throw new Error('Expected teach');
     expect(step2.chunk_id).toBe('c2');
     expect(step2.review_update).toBeDefined();
 
@@ -450,7 +450,7 @@ describe('session question workflows', () => {
 
     // 2. teach_next should block — no questions yet
     const blockedStep = await ctx.getNextTeachingStep();
-    expect(blockedStep.status).toBe('blocked');
+    expect(blockedStep.action).toBe('blocked');
 
     // 3. Create cross-chunk questions (each maps to 2 chunks)
     const createResult = await ctx.createSessionQuestions({
@@ -460,14 +460,14 @@ describe('session question workflows', () => {
         { promptText: 'Compare B and C', chunkIds: ['c2', 'c3'] },
       ],
     });
-    expect(createResult.status).toBe('created');
-    if (createResult.status !== 'created') throw new Error('Expected created');
+    expect(createResult.action).toBe('created');
+    if (createResult.action !== 'created') throw new Error('Expected created');
     const [q1Id, q2Id] = createResult.questionIds;
 
     // 4. teach_next should return first question
     const firstStep = await ctx.getNextTeachingStep();
-    expect(firstStep.status).toBe('teach');
-    if (firstStep.status !== 'teach') throw new Error('Expected teach');
+    expect(firstStep.action).toBe('teach');
+    if (firstStep.action !== 'teach') throw new Error('Expected teach');
     expect(firstStep.session_id).toBe(sessionId);
     expect(firstStep.instruction).toBe('How do A and B relate?');
     expect(firstStep.mode).toBe('assessment');
@@ -482,8 +482,8 @@ describe('session question workflows', () => {
       timeSpentMs: 8000,
       sessionQuestionId: q1Id,
     });
-    expect(answer1.status).toBe('recorded');
-    if (answer1.status !== 'recorded') throw new Error('Expected recorded');
+    expect(answer1.action).toBe('recorded');
+    if (answer1.action !== 'recorded') throw new Error('Expected recorded');
     expect(answer1.quality).toBe(5); // assessment: passed → quality 5
     expect(answer1.attempt).toBe(1);
 
@@ -496,8 +496,8 @@ describe('session question workflows', () => {
       timeSpentMs: 5000,
       sessionQuestionId: q2Id,
     });
-    expect(answer2.status).toBe('recorded');
-    if (answer2.status !== 'recorded') throw new Error('Expected recorded');
+    expect(answer2.action).toBe('recorded');
+    if (answer2.action !== 'recorded') throw new Error('Expected recorded');
     expect(answer2.quality).toBe(1); // assessment: failed → quality 1
 
     // 7. Verify session chunks are marked completed

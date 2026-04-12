@@ -10,7 +10,7 @@ import {
   CreateSessionChunkToolInputSchema,
 } from '../domain/types/session-management-tools.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerSessionProgressTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -40,10 +40,9 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           getRequestLogger().info(
             `Created session chunk ${sessionChunk.id} for session ${validatedInput.sessionId}`
           );
-          return toolJson(
+          return toolData(
             toSnakeCase({
               sessionChunkId: sessionChunk.id,
-              status: 'created' as const,
               message: 'Session chunk created successfully',
             })
           );
@@ -113,12 +112,7 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           getRequestLogger().info(
             `Batch update for session ${validatedInput.sessionId}: created=${result.data.created}, updated=${result.data.updated}, unchanged=${result.data.unchanged}`
           );
-          return toolJson(
-            toSnakeCase({
-              status: 'ok' as const,
-              ...result.data,
-            })
-          );
+          return toolData(toSnakeCase(result.data));
         } catch (error) {
           const msg = extractErrorMessage(error);
           getRequestLogger().error('Failed to batch update session chunks:', error);
@@ -170,9 +164,8 @@ export function registerSessionProgressTools(server: McpServer, ctx: AppContext)
           getRequestLogger().info(
             `Retrieved ${feedback.length} historical feedback entries for ${validatedInput.chunkIds.length} chunks`
           );
-          return toolJson(
+          return toolData(
             toSnakeCase({
-              status: 'ok' as const,
               feedbackCount: feedback.length,
               feedback,
               hint:

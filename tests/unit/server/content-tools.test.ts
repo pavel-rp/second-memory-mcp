@@ -36,13 +36,13 @@ describe('content-tools', () => {
       const result = await handler({ chunk_id: 'chunk-abc', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBe('chunk-abc');
-      expect(parsed.content).toBe('# Linked Lists\nA linked list is…');
-      expect(parsed.content_version).toBe(3);
-      expect(parsed.content_updated_at).toBe('2025-06-10T10:00:00.000Z');
-      expect(parsed.session_reminder).toContain('session');
-      expect(parsed.message).toContain('chunk-abc');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('chunk-abc');
+      expect(parsed.data.content).toBe('# Linked Lists\nA linked list is…');
+      expect(parsed.data.content_version).toBe(3);
+      expect(parsed.data.content_updated_at).toBe('2025-06-10T10:00:00.000Z');
+      expect(parsed.data.session_reminder).toContain('session');
+      expect(parsed.data.message).toContain('chunk-abc');
     });
 
     it('omits content_updated_at when null', async () => {
@@ -57,8 +57,8 @@ describe('content-tools', () => {
       const result = await handler({ chunk_id: 'chunk-no-date', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.content_updated_at).toBeUndefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.content_updated_at).toBeUndefined();
     });
 
     it('returns not_found error when chunk does not exist', async () => {
@@ -69,9 +69,8 @@ describe('content-tools', () => {
       const result = await handler({ chunk_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
-      expect(parsed.message).toContain('nonexistent');
     });
 
     it('returns database error when context method throws', async () => {
@@ -82,8 +81,8 @@ describe('content-tools', () => {
       const result = await handler({ chunk_id: 'chunk-err', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('connection reset');
     });
@@ -123,17 +122,17 @@ describe('content-tools', () => {
       const result = await handler({ topic_id: 'topic-xyz', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBe('topic-xyz');
-      expect(parsed.title).toBe('Data Structures');
-      expect(parsed.subject).toBe('Computer Science');
-      expect(parsed.summary).toBe('Overview of common data structures');
-      expect(parsed.summary_version).toBe(2);
-      expect(parsed.summary_updated_at).toBe('2025-07-01T08:00:00.000Z');
-      expect(parsed.created_at).toBe('2025-06-01T00:00:00.000Z');
-      expect(parsed.updated_at).toBe('2025-07-01T08:00:00.000Z');
-      expect(parsed.session_reminder).toContain('batch_fetch_chunks_minimal');
-      expect(parsed.message).toContain('Data Structures');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('topic-xyz');
+      expect(parsed.data.title).toBe('Data Structures');
+      expect(parsed.data.subject).toBe('Computer Science');
+      expect(parsed.data.summary).toBe('Overview of common data structures');
+      expect(parsed.data.summary_version).toBe(2);
+      expect(parsed.data.summary_updated_at).toBe('2025-07-01T08:00:00.000Z');
+      expect(parsed.data.created_at).toBe('2025-06-01T00:00:00.000Z');
+      expect(parsed.data.updated_at).toBe('2025-07-01T08:00:00.000Z');
+      expect(parsed.data.session_reminder).toContain('batch_fetch_chunks_minimal');
+      expect(parsed.data.message).toContain('Data Structures');
     });
 
     it('returns null summary_updated_at when not set', async () => {
@@ -152,9 +151,9 @@ describe('content-tools', () => {
       const result = await handler({ topic_id: 'topic-no-summary', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.summary_updated_at).toBeNull();
-      expect(parsed.created_at).toBe('2025-06-01T00:00:00.000Z');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.summary_updated_at).toBeNull();
+      expect(parsed.data.created_at).toBe('2025-06-01T00:00:00.000Z');
     });
 
     it('returns error when topic not found', async () => {
@@ -165,10 +164,9 @@ describe('content-tools', () => {
       const result = await handler({ topic_id: 'missing-topic', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Topic not found');
-      expect(parsed.message).toContain('missing-topic');
     });
 
     it('returns database error when context method throws', async () => {
@@ -179,8 +177,8 @@ describe('content-tools', () => {
       const result = await handler({ topic_id: 'topic-err', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('timeout');
     });
@@ -224,13 +222,13 @@ describe('content-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.items).toHaveLength(1);
-      expect(parsed.count).toBe(1);
-      expect(parsed.filter.offset).toBe(0);
-      expect(parsed.filter.limit).toBe(100);
-      expect(parsed.content_included).toBe(true);
-      expect(parsed.pagination).toEqual({ total: 1, offset: 0, limit: 100 });
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.items).toHaveLength(1);
+      expect(parsed.data.count).toBe(1);
+      expect(parsed.data.filter.offset).toBe(0);
+      expect(parsed.data.filter.limit).toBe(100);
+      expect(parsed.data.content_included).toBe(true);
+      expect(parsed.data.pagination).toEqual({ total: 1, offset: 0, limit: 100 });
     });
 
     it('passes filters through to context in camelCase', async () => {
@@ -268,9 +266,9 @@ describe('content-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.items).toHaveLength(0);
-      expect(parsed.count).toBe(0);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.items).toHaveLength(0);
+      expect(parsed.data.count).toBe(0);
     });
 
     it('message includes "with content" when include_content is true', async () => {
@@ -281,7 +279,7 @@ describe('content-tools', () => {
       const result = await handler({ include_content: true, context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.message).toContain('with content');
+      expect(parsed.data.message).toContain('with content');
     });
 
     it('message does not include "with content" when include_content is false', async () => {
@@ -295,7 +293,7 @@ describe('content-tools', () => {
       const result = await handler({ include_content: false, context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.message).not.toContain('with content');
+      expect(parsed.data.message).not.toContain('with content');
     });
 
     it('returns database error when context method throws', async () => {
@@ -306,8 +304,8 @@ describe('content-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('pool exhausted');
     });
@@ -323,8 +321,8 @@ describe('content-tools', () => {
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.filter.subject).toBeNull();
-      expect(parsed.filter.due_only).toBe(false);
+      expect(parsed.data.filter.subject).toBeNull();
+      expect(parsed.data.filter.due_only).toBe(false);
     });
 
     it('reflects provided subject_filter and due_only in response', async () => {
@@ -342,8 +340,8 @@ describe('content-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.filter.subject).toBe('Physics');
-      expect(parsed.filter.due_only).toBe(true);
+      expect(parsed.data.filter.subject).toBe('Physics');
+      expect(parsed.data.filter.due_only).toBe(true);
     });
   });
 });

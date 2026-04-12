@@ -11,7 +11,7 @@ import {
 } from '../domain/types/teaching.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerTeachingTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -27,7 +27,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
         'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
-        "When submit_answer returns status 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
+        "When submit_answer returns action 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
       inputSchema: z.object({
         context_token: z
           .string()
@@ -42,8 +42,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       withRequestContext('teach_next', async () => {
         try {
           const result = await ctx.getNextTeachingStep();
-          if (result.status === 'teach') {
-            return toolJson(
+          if (result.action === 'teach') {
+            return toolData(
               toSnakeCase({
                 ...result,
                 workflowHint: {
@@ -74,7 +74,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
               })
             );
           }
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           getRequestLogger().error('teach_next failed:', error);
@@ -101,7 +101,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Agent provides quality (0–5) and question_type per the quality rubric. ' +
         'passed is optional — derived from quality >= 3 when omitted. ' +
         'Returns session_question_id in retry and recorded responses for retry reference. ' +
-        'When status is "recorded", call teach_next to get the next action.',
+        'When action is "recorded", consider calling add_note if something notable happened: ' +
+        'insight (mental models, analogies), confusion (misconceptions corrected), ' +
+        'connection (links to other topics), deeper_exploration (beyond stored content). ' +
+        'Then call teach_next to get the next action.',
       inputSchema: SubmitAnswerInputShape,
     },
     async input =>
@@ -109,7 +112,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         try {
           const parsed = SubmitAnswerInputSchema.parse(input);
           const result = await ctx.submitAnswer(parsed);
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -136,12 +139,12 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
       title: 'Start Learning Session',
       description:
         'Quick-start a session with the most urgent topic. Picks the highest-urgency topic automatically and creates a single-topic session. ' +
-        'If an active session exists with remaining chunks, it is resumed and status will be "resumed" with the next teaching step. ' +
-        'If the active session is fully completed, it is auto-completed and a fresh session is started (status: "started"). ' +
+        'If an active session exists with remaining chunks, it is resumed and action will be "resumed" with the next teaching step. ' +
+        'If the active session is fully completed, it is auto-completed and a fresh session is started (action: "started"). ' +
         'For interactive topic selection, use what_to_learn_today instead. ' +
-        'When status is "started" or "resumed", check first_chunk.status: "teach" means follow first_chunk.instruction verbatim; "blocked" or "error" means surface first_chunk.message and stop. ' +
-        'Status "nothing_due" or "error" means the session could not start — surface the message and stop. ' +
-        'After teaching, call submit_answer. When status is "recorded", call teach_next to get the next action.',
+        'When action is "started" or "resumed", check first_chunk.action: "teach" means follow first_chunk.instruction verbatim; "blocked" or "error" means surface first_chunk.message and stop. ' +
+        'Action "nothing_due" or "error" means the session could not start — surface the message and stop. ' +
+        'After teaching, call submit_answer. When action is "recorded", call teach_next to get the next action.',
       inputSchema: StartLearningInputShape,
     },
     async input =>
@@ -149,7 +152,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         try {
           const parsed = StartLearningInputSchema.parse(input);
           const result = await ctx.startLearning(parsed);
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -188,14 +191,14 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         try {
           const parsed = CreateSessionQuestionsInputSchema.parse(input);
           const result = await ctx.createSessionQuestions(parsed);
-          if (result.status === 'error') {
+          if (result.action === 'error') {
             return toolError(`Failed to create session questions: ${result.message}`, {
               type: 'session',
               message: result.message,
               retryable: false,
             });
           }
-          return toolJson(toSnakeCase(result));
+          return toolData(toSnakeCase(result));
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {

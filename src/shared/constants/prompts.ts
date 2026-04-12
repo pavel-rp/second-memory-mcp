@@ -1,4 +1,7 @@
-/** Static reflect prompt included in every `recorded` submit_answer response. */
+/**
+ * @deprecated Moved to submit_answer tool description in NEU-380.
+ * No longer included in every response — saves ~70 tokens per call.
+ */
 export const SUBMIT_ANSWER_REFLECT_PROMPT =
   'Based on the conversation so far, consider whether to call add_note on this chunk. ' +
   'Note types: insight (mental models, analogies the learner developed), ' +

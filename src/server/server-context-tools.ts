@@ -5,7 +5,7 @@ import { DOMAIN_RULES } from '../shared/domain-rules.js';
 import { WORKFLOW_SUMMARY } from '../shared/instructions.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerServerContextTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -35,9 +35,9 @@ export function registerServerContextTools(server: McpServer, ctx: AppContext): 
             safeLearnerContext,
           ]);
 
-          return toolJson({
+          return toolData({
             context_token: contextToken,
-            status: 'initialized',
+            action: 'initialized',
             domain_rules: DOMAIN_RULES,
             workflow_summary: WORKFLOW_SUMMARY,
             learner_context: learnerContext ? toSnakeCase(learnerContext) : null,

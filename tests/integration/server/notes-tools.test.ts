@@ -39,8 +39,9 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.id).toEqual(expect.any(String));
-    expect(parsed.created_at).toEqual(expect.any(String));
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.id).toEqual(expect.any(String));
+    expect(parsed.data.created_at).toEqual(expect.any(String));
   });
 
   it('add_note rejects invalid target_type', async () => {
@@ -54,7 +55,7 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
 
@@ -69,7 +70,7 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
 
@@ -84,7 +85,7 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
 
@@ -99,7 +100,7 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
 
@@ -131,13 +132,14 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.notes).toHaveLength(2);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.notes).toHaveLength(2);
     // Descending order: second note first
-    expect(parsed.notes[0].content).toBe('Second note');
-    expect(parsed.notes[1].content).toBe('First note');
-    expect(parsed.notes[0].note_type).toBe('confusion');
-    expect(parsed.notes[0].author).toBe('user');
-    expect(parsed.notes[0].created_at).toEqual(expect.any(String));
+    expect(parsed.data.notes[0].content).toBe('Second note');
+    expect(parsed.data.notes[1].content).toBe('First note');
+    expect(parsed.data.notes[0].note_type).toBe('confusion');
+    expect(parsed.data.notes[0].author).toBe('user');
+    expect(parsed.data.notes[0].created_at).toEqual(expect.any(String));
   });
 
   it('list_notes returns empty array when target has no notes', async () => {
@@ -148,7 +150,8 @@ describe('Integration: notes tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.notes).toEqual([]);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.notes).toEqual([]);
   });
 
   it('notes for different targets do not leak into each other', async () => {
@@ -182,10 +185,10 @@ describe('Integration: notes tools', () => {
 
     const chunkParsed = parseToolResult(chunkResult);
     const topicParsed = parseToolResult(topicResult);
-    expect(chunkParsed.notes).toHaveLength(1);
-    expect(chunkParsed.notes[0].content).toBe('Chunk note');
-    expect(topicParsed.notes).toHaveLength(1);
-    expect(topicParsed.notes[0].content).toBe('Topic note');
+    expect(chunkParsed.data.notes).toHaveLength(1);
+    expect(chunkParsed.data.notes[0].content).toBe('Chunk note');
+    expect(topicParsed.data.notes).toHaveLength(1);
+    expect(topicParsed.data.notes[0].content).toBe('Topic note');
   });
 
   // ── delete_note ─────────────────────────────────────────────────
@@ -199,11 +202,12 @@ describe('Integration: notes tools', () => {
       author: 'agent',
       context_token: 'ctx-test',
     });
-    const noteId = parseToolResult(addResult).id;
+    const noteId = parseToolResult(addResult).data.id;
 
     const deleteResult = await deleteNote.handler({ note_id: noteId, context_token: 'ctx-test' });
     const parsed = parseToolResult(deleteResult);
-    expect(parsed.success).toBe(true);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.success).toBe(true);
 
     // Verify note is gone
     const listResult = await listNotes.handler({
@@ -211,7 +215,7 @@ describe('Integration: notes tools', () => {
       target_id: 'chunk-1',
       context_token: 'ctx-test',
     });
-    expect(parseToolResult(listResult).notes).toHaveLength(0);
+    expect(parseToolResult(listResult).data.notes).toHaveLength(0);
   });
 
   it('delete_note returns false for non-existent note', async () => {
@@ -220,7 +224,8 @@ describe('Integration: notes tools', () => {
       context_token: 'ctx-test',
     });
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(false);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.success).toBe(false);
   });
 
   // ── adapter: getNotesForChunkIds ──────────────────────────────

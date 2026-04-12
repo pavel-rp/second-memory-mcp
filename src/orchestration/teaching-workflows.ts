@@ -28,7 +28,6 @@ import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
 import { evaluateRoadblock } from '../domain/algorithms/roadblock-gate.js';
-import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../shared/constants/prompts.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 import {
@@ -91,7 +90,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const session = await deps.sessions.getActiveSession();
   if (!session) {
     return {
-      status: 'error',
+      action: 'error',
       message: 'No active session. Call create_session first.',
     };
   }
@@ -100,7 +99,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const rawChunks = await deps.sessions.getSessionChunks(session.id);
   if (rawChunks.length === 0) {
     return {
-      status: 'error',
+      action: 'error',
       message: 'Session has no chunks.',
     };
   }
@@ -169,7 +168,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   );
   if (inProgressChunk) {
     return {
-      status: 'blocked',
+      action: 'blocked',
       message:
         'No questions submitted for the current chunk. Use submit_answer with prompt_text and chunk_ids to ask at least one question before advancing.',
       current_chunk_id: inProgressChunk.chunkId,
@@ -197,7 +196,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         remaining: roadblock.remaining,
       });
       return {
-        status: 'roadblock',
+        action: 'roadblock',
         current_chunk_id: roadblockCandidate.chunkId,
         roadblock_detail: roadblock,
       };
@@ -311,7 +310,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     const blockedChunk = sessionChunks.find(sc => sc.status === 'in_progress');
     if (blockedChunk) {
       return {
-        status: 'blocked',
+        action: 'blocked',
         message:
           'Current chunk has unanswered questions. Use submit_answer to answer remaining questions before advancing.',
         current_chunk_id: blockedChunk.chunkId,
@@ -320,7 +319,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
     // Inconsistent state: pending chunks exist but none are selectable and none are in_progress
     return {
-      status: 'error',
+      action: 'error',
       message: `Session is in an inconsistent state: ${pendingChunks.length} pending chunk(s) cannot be advanced.`,
     };
   }
@@ -329,7 +328,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   let chunkData = await deps.chunks.getWithContent(selected.chunkId);
   if (!chunkData) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Chunk ${selected.chunkId} not found in database.`,
     };
   }
@@ -437,7 +436,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         const newChunkData = await deps.chunks.getWithContent(selected.chunkId);
         if (!newChunkData) {
           return {
-            status: 'error',
+            action: 'error',
             message: `Stale prerequisite chunk ${selected.chunkId} not found in database.`,
           };
         }
@@ -589,7 +588,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
   const previousFeedbackStrings = historicalFeedback.map(hf => hf.feedback);
 
   return {
-    status: 'teach',
+    action: 'teach',
     session_id: session.id,
     chunk_id: selected.chunkId,
     session_chunk_id: selected.id,
@@ -645,7 +644,7 @@ async function getNextAssessmentStep(
   if (allQuestions.length === 0) {
     // sessionChunks guaranteed non-empty by caller's length check
     return {
-      status: 'blocked',
+      action: 'blocked',
       message:
         'Assessment session has no questions. Call create_session_questions to add questions.',
       current_chunk_id: (sessionChunks[0] as SessionChunk).chunkId,
@@ -694,7 +693,7 @@ async function getNextAssessmentStep(
   const chunkMeta = await deps.chunks.getById(primaryChunkId);
 
   return {
-    status: 'teach',
+    action: 'teach',
     session_id: session.id,
     chunk_id: primaryChunkId,
     session_chunk_id: matchedSessionChunk?.id ?? firstChunk.id,
@@ -757,7 +756,7 @@ export async function submitAnswer(
   const session = await deps.sessions.getActiveSession();
   if (!session) {
     return {
-      status: 'error',
+      action: 'error',
       message:
         'No active session. It may have auto-completed or not been created yet. Start a new session to continue.',
     };
@@ -767,13 +766,13 @@ export async function submitAnswer(
   const sessionChunks = await deps.sessions.getSessionChunks(session.id);
   const inProgressChunk = sessionChunks.find(sc => sc.status === 'in_progress');
   if (!inProgressChunk) {
-    return { status: 'error', message: 'No in-progress chunk. Call teach_next first.' };
+    return { action: 'error', message: 'No in-progress chunk. Call teach_next first.' };
   }
 
   // 3. Validate chunkIds: teaching mode requires exactly 1 ID matching the in-progress chunk
   if (input.chunkIds.length !== 1 || input.chunkIds[0] !== inProgressChunk.chunkId) {
     return {
-      status: 'error',
+      action: 'error',
       message: `In teaching mode, chunk_ids must contain exactly the in-progress chunk: ["${inProgressChunk.chunkId}"].`,
     };
   }
@@ -792,12 +791,12 @@ export async function submitAnswer(
     );
   } catch (err: unknown) {
     if (isPgUniqueViolation(err, 'uq_session_questions_session_index')) {
-      return { status: 'error', message: 'Question already created (concurrent request).' };
+      return { action: 'error', message: 'Question already created (concurrent request).' };
     }
     throw err;
   }
   if (!created[0]) {
-    return { status: 'error', message: 'Failed to create session question.' };
+    return { action: 'error', message: 'Failed to create session question.' };
   }
 
   // 6. Delegate to shared explicit questions flow
@@ -817,12 +816,12 @@ export async function createSessionQuestions(
   // Validate active session exists
   const session = await deps.sessions.getActiveSession();
   if (!session) {
-    return { status: 'error', message: 'No active session. Call create_session first.' };
+    return { action: 'error', message: 'No active session. Call create_session first.' };
   }
 
   if (session.id !== input.sessionId) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Session ${input.sessionId} is not the active session.`,
     };
   }
@@ -836,7 +835,7 @@ export async function createSessionQuestions(
   const allChunkIds = new Set(input.questions.flatMap(q => q.chunkIds));
   for (const chunkId of allChunkIds) {
     if (!sessionChunkMap.has(chunkId)) {
-      return { status: 'error', message: `Chunk ${chunkId} not found in session.` };
+      return { action: 'error', message: `Chunk ${chunkId} not found in session.` };
     }
   }
 
@@ -846,7 +845,7 @@ export async function createSessionQuestions(
     for (const q of input.questions) {
       if (q.chunkIds.length !== 1) {
         return {
-          status: 'error',
+          action: 'error',
           message: `Teaching mode requires exactly 1 chunk_id per question, got ${q.chunkIds.length}.`,
         };
       }
@@ -854,7 +853,7 @@ export async function createSessionQuestions(
       const sc = sessionChunkMap.get(chunkId);
       if (sc && sc.status !== 'in_progress') {
         return {
-          status: 'error',
+          action: 'error',
           message: `Session chunk for ${q.chunkIds[0]} is "${sc.status}", expected "in_progress".`,
         };
       }
@@ -873,13 +872,13 @@ export async function createSessionQuestions(
     );
   } catch (err: unknown) {
     if (isPgUniqueViolation(err, 'uq_session_questions_session_index')) {
-      return { status: 'error', message: 'Questions already created (concurrent request).' };
+      return { action: 'error', message: 'Questions already created (concurrent request).' };
     }
     throw err;
   }
 
   return {
-    status: 'created' as const,
+    action: 'created' as const,
     sessionId: input.sessionId,
     questionIds: created.map(q => q.id),
   };
@@ -912,13 +911,13 @@ async function submitAnswerForQuestion(
   // 1. Look up the question
   const question = await deps.sessionQuestions.getQuestionById(sessionQuestionId);
   if (!question) {
-    return { status: 'error', message: `Session question ${sessionQuestionId} not found.` };
+    return { action: 'error', message: `Session question ${sessionQuestionId} not found.` };
   }
 
   // 1b. Guard: question must still be answerable
   if (question.status !== 'pending') {
     return {
-      status: 'error',
+      action: 'error',
       message: `Question ${sessionQuestionId} is "${question.status}", expected "pending".`,
     };
   }
@@ -926,14 +925,14 @@ async function submitAnswerForQuestion(
   // 2. Look up the session that owns this question (not just the active one)
   const session = await deps.sessions.getSessionById(question.sessionId);
   if (!session) {
-    return { status: 'error', message: 'Session not found for this question.' };
+    return { action: 'error', message: 'Session not found for this question.' };
   }
 
   // 3. Resolve chunk(s) via junction
   const questionChunkIds = await deps.sessionQuestions.getChunkIdsForQuestion(sessionQuestionId);
   if (questionChunkIds.length === 0) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Question ${sessionQuestionId} has no chunk mapping.`,
     };
   }
@@ -960,7 +959,7 @@ async function submitAnswerForQuestion(
   const primaryChunkId = questionChunkIds[0] as string;
   const sessionChunk = sessionChunks.find(sc => sc.chunkId === primaryChunkId);
   if (!sessionChunk) {
-    return { status: 'error', message: `Session chunk for ${primaryChunkId} not found.` };
+    return { action: 'error', message: `Session chunk for ${primaryChunkId} not found.` };
   }
 
   // 3b. Guard: chunk must still be in_progress.
@@ -968,7 +967,7 @@ async function submitAnswerForQuestion(
   // so a late submission's target chunk is always still in_progress.
   if (sessionChunk.status !== 'in_progress') {
     return {
-      status: 'error',
+      action: 'error',
       message: `Session chunk for ${primaryChunkId} is "${sessionChunk.status}", expected "in_progress".`,
     };
   }
@@ -977,7 +976,7 @@ async function submitAnswerForQuestion(
   const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(sessionQuestionId);
   if (existingAttempts.length >= 2) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Max 2 attempts per question. Question ${sessionQuestionId} already has ${existingAttempts.length} attempts.`,
     };
   }
@@ -1016,7 +1015,7 @@ async function submitAnswerForQuestion(
     });
   } catch (err: unknown) {
     if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
-      return { status: 'error', message: 'Attempt already recorded' };
+      return { action: 'error', message: 'Attempt already recorded' };
     }
     throw err;
   }
@@ -1043,7 +1042,7 @@ async function submitAnswerForQuestion(
     const requiredFollowups = deps.algorithmConfig.roadblockFollowups[quality] ?? 0;
 
     return {
-      status: 'retry',
+      action: 'retry',
       session_question_id: sessionQuestionId,
       attempt: attemptNumber,
       chunk_id: primaryChunkId,
@@ -1072,7 +1071,7 @@ async function submitAnswerForQuestion(
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
   return {
-    status: 'recorded',
+    action: 'recorded',
     session_question_id: sessionQuestionId,
     attempt: attemptNumber,
     passed,
@@ -1080,7 +1079,6 @@ async function submitAnswerForQuestion(
     question_type: input.questionType,
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
-    reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
 }
 
@@ -1103,7 +1101,7 @@ async function submitAnswerForAssessmentQuestion(
   const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(sessionQuestionId);
   if (existingAttempts.length >= 1) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Assessment allows 1 attempt per question. Question ${sessionQuestionId} already answered.`,
     };
   }
@@ -1129,7 +1127,7 @@ async function submitAnswerForAssessmentQuestion(
     });
   } catch (err: unknown) {
     if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
-      return { status: 'error', message: 'Attempt already recorded' };
+      return { action: 'error', message: 'Attempt already recorded' };
     }
     throw err;
   }
@@ -1157,7 +1155,7 @@ async function submitAnswerForAssessmentQuestion(
   const srFailures = reviewResults.filter(r => !r.success);
   if (srFailures.length > 0) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Failed to persist SR update for ${srFailures.length} of ${questionChunkIds.length} chunk(s).`,
     };
   }
@@ -1199,7 +1197,7 @@ async function submitAnswerForAssessmentQuestion(
   const isLateSubmission = session.status === 'completed';
 
   return {
-    status: 'recorded',
+    action: 'recorded',
     session_question_id: sessionQuestionId,
     attempt: 1,
     passed,
@@ -1208,7 +1206,6 @@ async function submitAnswerForAssessmentQuestion(
     chunk_id: questionChunkIds[0] as string,
     review_update: reviewUpdate,
     ...(isLateSubmission && { late_submission: true }),
-    reflect: SUBMIT_ANSWER_REFLECT_PROMPT,
   };
 }
 
@@ -1246,7 +1243,7 @@ export function buildCompleteResponse(
   }
 
   return {
-    status: 'complete',
+    action: 'complete',
     message: 'All chunks completed. Session finished.',
     summary: {
       total,
@@ -1300,7 +1297,7 @@ export async function startLearning(
           `Failed to auto-complete session ${activeSession.id}: ${completeResult.error.message}`
         );
         return {
-          status: 'error',
+          action: 'error',
           message: 'Failed to auto-complete finished session. Please try again.',
         };
       }
@@ -1317,7 +1314,7 @@ export async function startLearning(
       const firstChunk = await getNextTeachingStep(teachingDeps);
       logEvent('startLearning', 'session_resumed', { sessionId: activeSession.id });
       return {
-        status: 'resumed' as const,
+        action: 'resumed' as const,
         session_id: activeSession.id,
         mode: activeSession.mode as SessionMode,
         total_chunks: sessionChunks.length,
@@ -1340,7 +1337,7 @@ export async function startLearning(
 
   if (recommendations.recommendations.length === 0) {
     return {
-      status: 'nothing_due',
+      action: 'nothing_due',
       message: input.subjectFilter
         ? `No items due for review in subject "${input.subjectFilter}".`
         : 'No items due for review. Add new content or wait for items to become due.',
@@ -1377,7 +1374,7 @@ export async function startLearning(
 
   if (!sessionResult.success) {
     return {
-      status: 'error',
+      action: 'error',
       message: `Failed to create session: ${sessionResult.error.message}`,
     };
   }
@@ -1401,7 +1398,7 @@ export async function startLearning(
 
   // 6. Return combined result
   return {
-    status: 'started',
+    action: 'started',
     session_id: sessionResult.data.sessionId,
     mode,
     total_chunks: chunkIds.length,

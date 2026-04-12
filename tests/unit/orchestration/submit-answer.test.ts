@@ -211,7 +211,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput(), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect(result).toHaveProperty('message');
     expect((result as { message: string }).message).toContain('No active session');
   });
@@ -231,7 +231,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput(), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('No in-progress chunk');
   });
 
@@ -252,14 +252,13 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 4 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(4);
     expect(result.attempt).toBe(1);
     expect(result.passed).toBe(true);
     expect(result.chunk_id).toBe('c1');
     expect(result.session_question_id).toBe('sq-created');
-    expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
   // VC-03: First attempt fail → retry, no SR update
@@ -278,8 +277,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 1 }), deps);
 
-    expect(result.status).toBe('retry');
-    if (result.status !== 'retry') throw new Error('Expected retry');
+    expect(result.action).toBe('retry');
+    if (result.action !== 'retry') throw new Error('Expected retry');
     expect(result.attempt).toBe(1);
     expect(result.chunk_id).toBe('c1');
     expect(result.session_question_id).toBe('sq-created');
@@ -315,8 +314,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 3 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(3);
     expect(result.attempt).toBe(2);
     expect(result.passed).toBe(true);
@@ -340,8 +339,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(1);
     expect(result.attempt).toBe(2);
     expect(result.passed).toBe(false);
@@ -452,8 +451,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 4 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.attempt).toBe(1); // attempt 1 of new presentation
     expect(result.quality).toBe(4); // agent-provided quality
   });
@@ -516,8 +515,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result).not.toHaveProperty('next');
   });
 
@@ -538,8 +537,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.review_update).toBeUndefined();
   });
 
@@ -676,8 +675,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(5); // agent-provided quality
     expect(result.attempt).toBe(1);
   });
@@ -702,7 +701,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5 }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Failed to create session question');
   });
 
@@ -723,7 +722,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 5 }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Max 2 attempts');
   });
 
@@ -742,7 +741,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5 }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe('Attempt already recorded');
   });
 
@@ -790,7 +789,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput(), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe(
       'Question already created (concurrent request).'
     );
@@ -832,7 +831,7 @@ describe('submitAnswer', () => {
   it('returns error when inline chunkIds does not match in-progress chunk', async () => {
     const deps = makeDeps();
     const result = await submitAnswer(makeInput({ chunkIds: ['c-wrong'] }), deps);
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('in-progress chunk');
   });
 
@@ -840,7 +839,7 @@ describe('submitAnswer', () => {
   it('returns error when inline chunkIds has multiple entries in teaching mode', async () => {
     const deps = makeDeps();
     const result = await submitAnswer(makeInput({ chunkIds: ['c1', 'c2'] }), deps);
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('in-progress chunk');
   });
 
@@ -848,8 +847,8 @@ describe('submitAnswer', () => {
   it('returns session_question_id in retry response', async () => {
     const deps = makeDeps();
     const result = await submitAnswer(makeInput({ quality: 1 }), deps);
-    expect(result.status).toBe('retry');
-    if (result.status !== 'retry') throw new Error('Expected retry');
+    expect(result.action).toBe('retry');
+    if (result.action !== 'retry') throw new Error('Expected retry');
     expect(result.session_question_id).toBe('sq-created');
   });
 
@@ -857,8 +856,8 @@ describe('submitAnswer', () => {
   it('returns session_question_id in recorded response', async () => {
     const deps = makeDeps();
     const result = await submitAnswer(makeInput(), deps);
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.session_question_id).toBe('sq-created');
   });
 
@@ -877,7 +876,7 @@ describe('submitAnswer', () => {
       },
     });
     const result = await submitAnswer(makeInput(), deps);
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('concurrent');
   });
 
@@ -897,8 +896,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 3 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.passed).toBe(true);
   });
 
@@ -915,8 +914,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 2 }), deps);
 
-    expect(result.status).toBe('retry');
-    if (result.status !== 'retry') throw new Error('Expected retry');
+    expect(result.action).toBe('retry');
+    if (result.action !== 'retry') throw new Error('Expected retry');
     // quality 2 → passed false → retry on first attempt
     expect(result.attempt).toBe(1);
   });
@@ -934,7 +933,7 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 0 }), deps);
 
-    expect(result.status).toBe('retry');
+    expect(result.action).toBe('retry');
   });
 
   it('uses explicit passed=true even when quality < 3', async () => {
@@ -951,8 +950,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ passed: true, quality: 2 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.passed).toBe(true);
     expect(result.quality).toBe(2);
   });
@@ -970,8 +969,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ passed: false, quality: 4 }), deps);
 
-    expect(result.status).toBe('retry');
-    if (result.status !== 'retry') throw new Error('Expected retry');
+    expect(result.action).toBe('retry');
+    if (result.action !== 'retry') throw new Error('Expected retry');
     expect(result.attempt).toBe(1);
   });
 
@@ -991,8 +990,8 @@ describe('submitAnswer', () => {
 
     const result = await submitAnswer(makeInput({ quality: 3 }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.attempt).toBe(1);
     expect(result.passed).toBe(true);
   });
@@ -1014,8 +1013,8 @@ describe('submitAnswer', () => {
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 0 }), deps);
 
     // Second attempt always records, never retries
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.attempt).toBe(2);
     expect(result.passed).toBe(false);
     expect(result.quality).toBe(0);
@@ -1040,8 +1039,8 @@ describe('submitAnswer', () => {
       deps
     );
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.question_type).toBe('analyze_create');
   });
 
@@ -1096,7 +1095,7 @@ describe('submitAnswer', () => {
       const deps = retryDeps(approach);
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
 
-      expect(result.status).toBe('retry');
+      expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance).toBeDefined();
       expect(retry.retry_guidance!.teaching_approach).toBe(approach);
@@ -1113,7 +1112,7 @@ describe('submitAnswer', () => {
         const deps = retryDeps('recall');
         const result = await submitAnswer(makeInput({ quality, passed: false }), deps);
 
-        expect(result.status).toBe('retry');
+        expect(result.action).toBe('retry');
         const retry = result as SubmitAnswerRetry;
         expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(quality);
         expect(retry.retry_guidance!.roadblock.required_followups).toBe(expectedFollowups);
@@ -1125,7 +1124,7 @@ describe('submitAnswer', () => {
       const deps = retryDeps('recall');
       const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
 
-      expect(result.status).toBe('retry');
+      expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
       expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
@@ -1167,7 +1166,7 @@ describe('submitAnswer', () => {
       // Agent says quality 5 but cap will reduce to 3
       const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
 
-      expect(result.status).toBe('retry');
+      expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(3);
     });
@@ -1200,7 +1199,7 @@ describe('submitAnswer', () => {
 
       const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
 
-      expect(result.status).toBe('recorded');
+      expect(result.action).toBe('recorded');
       expect(result).not.toHaveProperty('retry_guidance');
     });
 
@@ -1208,7 +1207,7 @@ describe('submitAnswer', () => {
       const deps = retryDeps(null);
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
 
-      expect(result.status).toBe('retry');
+      expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance).toBeUndefined();
     });
@@ -1217,7 +1216,7 @@ describe('submitAnswer', () => {
       const deps = retryDeps('unknown_tier');
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
 
-      expect(result.status).toBe('retry');
+      expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance).toBeUndefined();
     });
@@ -1238,7 +1237,7 @@ describe('submitAnswer', () => {
       });
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
 
-      expect(result.status).toBe('retry');
+      expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
       expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
@@ -1359,8 +1358,8 @@ describe('createSessionQuestions', () => {
       deps
     );
 
-    expect(result.status).toBe('created');
-    if (result.status !== 'created') throw new Error('Expected created');
+    expect(result.action).toBe('created');
+    if (result.action !== 'created') throw new Error('Expected created');
     expect(result.sessionId).toBe('sess-1');
     expect(result.questionIds).toEqual(['sq-1', 'sq-2']);
   });
@@ -1374,7 +1373,7 @@ describe('createSessionQuestions', () => {
     );
 
     expect(result).toEqual(
-      expect.objectContaining({ status: 'error', message: expect.stringContaining('not found') })
+      expect.objectContaining({ action: 'error', message: expect.stringContaining('not found') })
     );
   });
 
@@ -1397,7 +1396,7 @@ describe('createSessionQuestions', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'error',
+        action: 'error',
         message: expect.stringContaining('in_progress'),
       })
     );
@@ -1421,7 +1420,7 @@ describe('createSessionQuestions', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'created',
+        action: 'created',
         questionIds: ['sq-new'],
       })
     );
@@ -1451,7 +1450,7 @@ describe('createSessionQuestions', () => {
       deps
     );
 
-    expect(result.status).toBe('created');
+    expect(result.action).toBe('created');
     // startIndex should be 3 (2 existing + 1)
     expect(deps.sessionQuestions.createQuestions).toHaveBeenCalledWith(
       'sess-1',
@@ -1472,7 +1471,7 @@ describe('createSessionQuestions', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'error',
+        action: 'error',
         message: expect.stringContaining('No active session'),
       })
     );
@@ -1488,7 +1487,7 @@ describe('createSessionQuestions', () => {
 
     expect(result).toEqual(
       expect.objectContaining({
-        status: 'error',
+        action: 'error',
         message: expect.stringContaining('not the active session'),
       })
     );
@@ -1511,7 +1510,7 @@ describe('createSessionQuestions', () => {
       deps
     );
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe(
       'Questions already created (concurrent request).'
     );
@@ -1565,8 +1564,8 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 2, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('retry');
-    if (result.status !== 'retry') throw new Error('Expected retry');
+    expect(result.action).toBe('retry');
+    if (result.action !== 'retry') throw new Error('Expected retry');
     expect(result.attempt).toBe(1);
     expect(result.chunk_id).toBe('c1');
     expect(deps.sessionQuestions.createAttempt).toHaveBeenCalledWith(
@@ -1590,10 +1589,9 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 4, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(4);
-    expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
   it('uses agent-provided quality on second attempt pass', async () => {
@@ -1610,8 +1608,8 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 3, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(3);
   });
 
@@ -1625,10 +1623,9 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.review_update).toBeUndefined();
-    expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
   });
 
   it('does not trigger SR update or chunk completion', async () => {
@@ -1657,7 +1654,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('expected "pending"');
   });
 
@@ -1680,7 +1677,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('expected "in_progress"');
   });
 
@@ -1696,8 +1693,8 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     // passed derived from quality < 3
     expect(result.passed).toBe(false);
     expect(result.quality).toBe(1); // agent-provided quality
@@ -1712,7 +1709,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-missing' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
   });
 
@@ -1728,7 +1725,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Session not found');
   });
 
@@ -1747,7 +1744,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Max 2 attempts');
   });
 
@@ -1765,7 +1762,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
   });
 
@@ -1781,7 +1778,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Session not found');
   });
 
@@ -1791,8 +1788,8 @@ describe('submitAnswer with session_question_id', () => {
     const result = await submitAnswer(makeInput({ quality: 4 }), deps);
 
     // Inline path: creates a new question via createQuestions
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(4);
     expect(deps.sessionQuestions.createQuestions).toHaveBeenCalled();
   });
@@ -1814,7 +1811,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toBe('Attempt already recorded');
   });
 
@@ -1862,8 +1859,8 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('error');
-    if (result.status !== 'error') throw new Error('Expected error');
+    expect(result.action).toBe('error');
+    if (result.action !== 'error') throw new Error('Expected error');
     expect(result.message).toContain('no chunk mapping');
   });
 
@@ -1878,8 +1875,8 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 4, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('recorded');
-    if (result.status !== 'recorded') throw new Error('Expected recorded');
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
     expect(result.quality).toBe(4); // agent-provided, not derived
   });
 
@@ -1937,12 +1934,11 @@ describe('submitAnswer with session_question_id', () => {
         deps
       );
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(true);
       expect(result.quality).toBe(5);
-      expect(result.reflect).toBe(SUBMIT_ANSWER_REFLECT_PROMPT);
     });
 
     it('assessment fail records quality 1 with no retry', async () => {
@@ -1950,8 +1946,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(false);
       expect(result.quality).toBe(1);
@@ -1970,8 +1966,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('error');
-      if (result.status !== 'error') throw new Error('Expected error');
+      expect(result.action).toBe('error');
+      if (result.action !== 'error') throw new Error('Expected error');
       expect(result.message).toContain('1 attempt per question');
     });
 
@@ -2020,7 +2016,7 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
+      expect(result.action).toBe('recorded');
     });
 
     it('assessment returns error on duplicate constraint violation', async () => {
@@ -2041,8 +2037,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('error');
-      if (result.status !== 'error') throw new Error('Expected error');
+      expect(result.action).toBe('error');
+      if (result.action !== 'error') throw new Error('Expected error');
       expect(result.message).toContain('Attempt already recorded');
     });
 
@@ -2057,8 +2053,8 @@ describe('submitAnswer with session_question_id', () => {
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
       // Aligned with teaching mode: SR failures are now fatal
-      expect(result.status).toBe('error');
-      if (result.status !== 'error') throw new Error('Expected error');
+      expect(result.action).toBe('error');
+      if (result.action !== 'error') throw new Error('Expected error');
       expect(result.message).toContain('Failed to persist SR update');
     });
 
@@ -2081,7 +2077,7 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
+      expect(result.action).toBe('recorded');
       // The key assertion: no "completed" status update since already completed
     });
 
@@ -2102,8 +2098,8 @@ describe('submitAnswer with session_question_id', () => {
       const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
 
       // Should still succeed — missing chunks are gracefully skipped
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.quality).toBe(1);
     });
 
@@ -2134,8 +2130,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBe(true);
       // getActiveSession should NOT be called for late submissions
       expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
@@ -2182,8 +2178,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBe(true);
     });
 
@@ -2192,8 +2188,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       // NEU-347: SR deferred to teach_next
       expect(result.review_update).toBeUndefined();
       expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
@@ -2204,8 +2200,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       // getActiveSession should NOT have been called (late submission skips getNextTeachingStep)
       expect(deps.sessions.getActiveSession).not.toHaveBeenCalled();
     });
@@ -2236,8 +2232,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBe(true);
     });
 
@@ -2259,8 +2255,8 @@ describe('submitAnswer with session_question_id', () => {
 
       const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
 
-      expect(result.status).toBe('recorded');
-      if (result.status !== 'recorded') throw new Error('Expected recorded');
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.late_submission).toBeUndefined();
     });
   });
@@ -2277,7 +2273,7 @@ describe('submitAnswer with session_question_id', () => {
     // No sessionQuestionId → inline flow
     const result = await submitAnswer(makeInput(), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('No active session');
   });
 
@@ -2293,7 +2289,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
 
-    expect(result.status).toBe('retry');
+    expect(result.action).toBe('retry');
     expect('reflect' in result).toBe(false);
   });
 
@@ -2306,7 +2302,7 @@ describe('submitAnswer with session_question_id', () => {
 
     const result = await submitAnswer(makeInput(), deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect('reflect' in result).toBe(false);
   });
 

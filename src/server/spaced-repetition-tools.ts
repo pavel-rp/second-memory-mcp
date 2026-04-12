@@ -7,7 +7,7 @@ import {
 import { toSnakeCase } from '../shared/case-convert.js';
 import { ZodError } from 'zod';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 import {
   CalculateNextReviewInputSchema,
   CalculateNextReviewInputShape,
@@ -39,7 +39,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
             CalculateNextReviewInputSchema.parse(rawInput);
           const result = ctx.calculateNextReview({ quality, repetitions, easeFactor, interval });
 
-          return toolJson(
+          return toolData(
             toSnakeCase({
               interval: result.interval,
               repetitions: result.repetitions,
@@ -76,7 +76,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
             repetitions,
             difficulty,
           });
-          return toolJson({ priority });
+          return toolData({ priority });
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to calculate priority score: ${msg}`, {
@@ -109,7 +109,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
             consecutiveFailures,
           });
 
-          return toolJson(
+          return toolData(
             toSnakeCase({
               interval: result.interval,
               repetitions: result.repetitions,
@@ -140,7 +140,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         try {
           const { candidates, timeboxMinutes } = RankCandidatesInputSchema.parse(rawInput);
           const out = ctx.rankCandidates({ candidates, timeboxMinutes });
-          return toolJson(toSnakeCase(out));
+          return toolData(toSnakeCase(out));
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to rank candidates: ${msg}`, {
@@ -168,7 +168,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         try {
           const parsed = RecommendationInputSchema.parse(input);
           const result = await ctx.generateRecommendations(parsed);
-          return toolJson(toSnakeCase(result));
+          return toolData(toSnakeCase(result));
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to generate recommendations: ${msg}`, {
@@ -192,9 +192,8 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
         try {
           const { subjectFilter, limit } = GetLeechesInputSchema.parse(rawInput);
           const leeches = await ctx.getLeeches({ subjectFilter, limit });
-          return toolJson(
+          return toolData(
             toSnakeCase({
-              success: true,
               leeches,
               count: leeches.length,
               message:
@@ -243,9 +242,8 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
             });
           }
 
-          return toolJson(
+          return toolData(
             toSnakeCase({
-              success: true,
               chunkId: result.data.chunkId,
               resolution: result.data.resolution,
               message: `Leech resolved with '${result.data.resolution}' strategy.`,

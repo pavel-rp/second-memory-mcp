@@ -7,7 +7,7 @@ import {
   AnalyticsWindowInputShape,
 } from '../domain/types/analytics.js';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -22,7 +22,7 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
         const parsed = AnalyticsDailyInputSchema.parse(rawInput);
         try {
           const result = await ctx.computeDailyAnalytics(parsed.date);
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to compute daily KPIs: ${msg}`, {
@@ -47,7 +47,7 @@ export function registerAnalyticsTools(server: McpServer, ctx: AppContext): void
           const result = await ctx.computeWindowAnalytics(parsed.from, parsed.to, {
             includeBreakdowns: parsed.includeBreakdowns,
           });
-          return toolJson(result);
+          return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to compute window analytics: ${msg}`, {

@@ -16,7 +16,7 @@ import {
 } from '../domain/types/persistence-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 function buildConsistencyReminder(topicId: string, context: 'created' | 'modified' = 'modified') {
   const instruction =
@@ -87,9 +87,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             );
           }
 
-          return toolJson(
+          return toolData(
             toSnakeCase({
-              success: true,
               chunkId: result.data.id,
               topicId: result.data.topicId,
               createdAt: result.data.createdAt,
@@ -127,9 +126,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           });
 
           if (result.success && result.chunk) {
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 chunkId: result.chunk.id,
                 contentVersion: result.chunk.contentVersion,
                 progressReset: result.progressReset,
@@ -179,9 +177,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           });
 
           if (result.success && result.chunk) {
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 chunkId: result.chunk.id,
                 updatedAt: result.chunk.updatedAt,
                 message: `Successfully updated metadata for chunk "${result.chunk.title}"`,
@@ -231,9 +228,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           });
 
           if (result.success && result.chunk) {
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 chunkId: result.chunk.id,
                 contentVersion: result.chunk.contentVersion,
                 progressReset: result.progressReset,
@@ -288,9 +284,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
               );
             }
 
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 chunkId: chunkId,
                 removedDependencyCount: removedCount,
                 message: messageParts.join(' '),

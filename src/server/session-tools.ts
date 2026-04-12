@@ -7,7 +7,7 @@ import {
 } from '../domain/types/session-management-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerSessionTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -55,7 +55,7 @@ export function registerSessionTools(server: McpServer, ctx: AppContext): void {
             });
           }
           const result = ctx.getSessionStatus(validated.data);
-          return toolJson(toSnakeCase(result));
+          return toolData(toSnakeCase(result));
         } catch (error) {
           if (error instanceof ZodError) {
             const msg = extractErrorMessage(error);

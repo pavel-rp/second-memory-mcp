@@ -11,7 +11,7 @@ import {
 } from '../domain/types/notes-tools.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerNotesTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -31,7 +31,7 @@ export function registerNotesTools(server: McpServer, ctx: AppContext): void {
         try {
           const parsed = AddNoteInputSchema.parse(input);
           const result = await ctx.createNote(parsed);
-          return toolJson(toSnakeCase(result));
+          return toolData(toSnakeCase(result));
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -66,7 +66,7 @@ export function registerNotesTools(server: McpServer, ctx: AppContext): void {
         try {
           const parsed = ListNotesInputSchema.parse(input);
           const result = await ctx.listNotes(parsed.targetType, parsed.targetId);
-          return toolJson(toSnakeCase(result));
+          return toolData(toSnakeCase(result));
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -99,7 +99,7 @@ export function registerNotesTools(server: McpServer, ctx: AppContext): void {
         try {
           const parsed = DeleteNoteInputSchema.parse(input);
           const result = await ctx.deleteNote(parsed.noteId);
-          return toolJson(toSnakeCase(result));
+          return toolData(toSnakeCase(result));
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
