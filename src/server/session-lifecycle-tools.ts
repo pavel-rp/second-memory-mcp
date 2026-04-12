@@ -142,6 +142,14 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid create_session input:', error);
+            return toolError(`Failed to create session: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           getRequestLogger().error('Failed to create session:', error);
           return toolError(`Failed to create session: ${msg}`, {
             type: 'database',
@@ -193,6 +201,14 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           return toolData({ session: sessionData, action: 'found' as const });
         } catch (error) {
           const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid get_active_session input:', error);
+            return toolError(`Failed to get active session: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           getRequestLogger().error('Failed to get active session:', error);
           return toolError(`Failed to get active session: ${msg}`, {
             type: 'database',

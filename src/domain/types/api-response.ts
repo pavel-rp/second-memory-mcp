@@ -2,8 +2,7 @@
  * Unified MCP API response envelope.
  *
  * Every MCP tool response uses one of these shapes:
- * - Success: { status: "ok", data: T }
- * - List:    { status: "ok", data: T[], count: number }
+ * - Success: { status: "ok", data: T }  (data may be any type: object, array, etc.)
  * - Error:   { status: "error", error: { type, message, retryable } }
  */
 

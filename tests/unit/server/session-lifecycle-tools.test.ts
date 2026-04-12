@@ -532,4 +532,171 @@ describe('session-lifecycle-tools', () => {
       expect(parsed.data.final_metrics.average_quality).toBe(0);
     });
   });
+
+  // ---------------------------------------------------------------
+  // create_session — ZodError handling
+  // ---------------------------------------------------------------
+  describe('create_session ZodError', () => {
+    it('returns validation error for invalid mode', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('create_session')!.handler;
+
+      const result = await handler({ mode: 'invalid_mode', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for missing mode', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('create_session')!.handler;
+
+      const result = await handler({ context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_active_session — ZodError handling
+  // ---------------------------------------------------------------
+  describe('get_active_session ZodError', () => {
+    it('returns validation error for invalid context_token type', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_active_session')!.handler;
+
+      const result = await handler({ context_token: 123 });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_session — fields parameter
+  // ---------------------------------------------------------------
+  describe('get_session fields parameter', () => {
+    it('returns only requested top-level fields', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        fields: ['mode'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.action).toBe('found');
+      expect(parsed.data.session.session_id).toBe('s1');
+      expect(parsed.data.session.mode).toBe('learning');
+      expect(parsed.data.session.chunks).toBeUndefined();
+      expect(parsed.data.session.start_time).toBeUndefined();
+    });
+
+    it('returns chunk sub-fields with dot notation', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        fields: ['chunks.status', 'chunks.chunk_id'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session.chunks).toHaveLength(1);
+      expect(parsed.data.session.chunks[0].status).toBe('completed');
+      expect(parsed.data.session.chunks[0].chunk_id).toBe('c1');
+      expect(parsed.data.session.chunks[0].attempts).toBeUndefined();
+    });
+
+    it('returns full session when fields is omitted', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session.mode).toBe('learning');
+      expect(parsed.data.session.chunks).toHaveLength(1);
+      expect(parsed.data.session.chunks[0].attempts).toHaveLength(1);
+    });
+
+    it('returns full chunks when fields includes "chunks"', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        fields: ['chunks'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session.chunks).toHaveLength(1);
+      expect(parsed.data.session.chunks[0].attempts).toHaveLength(1);
+      expect(parsed.data.session.mode).toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_active_session — fields parameter
+  // ---------------------------------------------------------------
+  describe('get_active_session fields parameter', () => {
+    it('returns filtered session when fields provided', async () => {
+      ctx.getActiveSession = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_active_session')!.handler;
+
+      const result = await handler({
+        fields: ['mode'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.action).toBe('found');
+      expect(parsed.data.session.mode).toBe('learning');
+      expect(parsed.data.session.chunks).toBeUndefined();
+    });
+  });
 });
