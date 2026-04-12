@@ -136,6 +136,18 @@ export type SubmitAnswerInputRetry = {
 
 export type SubmitAnswerInput = SubmitAnswerInputInline | SubmitAnswerInputRetry;
 
+export type RetryGuidance = {
+  roadblock: {
+    trigger_quality: number;
+    required_followups: number;
+    completed_followups: number;
+    remaining: number;
+    quality_floor: 3;
+  };
+  teaching_approach: TeachingApproach;
+  pivot: string;
+};
+
 export type SubmitAnswerRetry = {
   status: 'retry';
   session_question_id: string;
@@ -143,6 +155,7 @@ export type SubmitAnswerRetry = {
   chunk_id: string;
   message: string;
   feedback: string;
+  retry_guidance?: RetryGuidance;
 };
 
 export type SubmitAnswerRecorded = {

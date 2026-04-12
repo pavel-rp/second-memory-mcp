@@ -125,6 +125,7 @@ export const sessionChunks = pgTable(
       .notNull()
       .references(() => learningChunks.id, { onDelete: 'cascade' }),
     status: text('status').notNull().default('pending'), // CHECK('pending','in_progress','completed') — enforced at DB level
+    teachingApproach: text('teaching_approach'),
     timeSpentMs: integer('time_spent_ms').notNull().default(0),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(), // epoch ms
@@ -135,6 +136,10 @@ export const sessionChunks = pgTable(
     check(
       'chk_session_chunk_status',
       sql`${table.status} IN ('pending', 'in_progress', 'completed')`
+    ),
+    check(
+      'chk_teaching_approach',
+      sql`${table.teachingApproach} IN ('recall', 'cued_recall', 'reteach', 'scaffold')`
     ),
   ]
 );

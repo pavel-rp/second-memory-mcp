@@ -126,7 +126,7 @@ export class DrizzleSessionRepository implements SessionRepository {
     };
     await this.db.insert(sessionChunks).values(chunkData);
     logger.info(`Created session chunk ${input.id} for session ${input.sessionId}`);
-    return chunkData as SessionChunk;
+    return { ...chunkData, teachingApproach: chunkData.teachingApproach ?? null } as SessionChunk;
   }
 
   async getSessionChunks(sessionId: string): Promise<SessionChunk[]> {

@@ -18,6 +18,7 @@ import type {
   SubmitAnswerInput,
   SubmitAnswerInputInline,
   SubmitAnswerInputRetry,
+  SubmitAnswerRetry,
 } from '../../../src/domain/types/teaching.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
 import {
@@ -27,6 +28,7 @@ import {
   stubSessionQuestionRepository,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
+import type { AlgorithmConfig } from '../../../src/domain/config/algorithm.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -55,6 +57,7 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
     sessionId: 'sess-1',
     chunkId: 'c1',
     status: 'pending',
+    teachingApproach: null,
     timeSpentMs: 0,
     createdAt: NOW,
     updatedAt: NOW,
@@ -141,6 +144,7 @@ function makeDeps(overrides?: {
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
   reviewPersistence?: Partial<Parameters<typeof stubReviewPersistence>[0]>;
   sessionQuestions?: Partial<Parameters<typeof stubSessionQuestionRepository>[0]>;
+  algorithmConfig?: Partial<AlgorithmConfig>;
 }): TeachingDeps {
   return {
     sessions: stubSessionRepository({
@@ -165,7 +169,7 @@ function makeDeps(overrides?: {
       persistReviewUpdate: vi.fn().mockResolvedValue(1),
       ...overrides?.reviewPersistence,
     }),
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    algorithmConfig: { ...DEFAULT_ALGORITHM_CONFIG, ...overrides?.algorithmConfig },
     sessionQuestions: stubSessionQuestionRepository({
       createQuestions: vi.fn().mockResolvedValue([{ ...INLINE_CREATED_QUESTION }]),
       getQuestionById: vi.fn().mockResolvedValue({ ...INLINE_CREATED_QUESTION }),
@@ -1063,6 +1067,182 @@ describe('submitAnswer', () => {
         questionType: 'analyze_create',
       })
     );
+  });
+
+  // ── NEU-519: retry_guidance on first-attempt failure ─────────────
+
+  describe('retry_guidance', () => {
+    function retryDeps(teachingApproach: string | null = 'recall') {
+      return makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach,
+            }),
+          ]),
+        },
+      });
+    }
+
+    it.each([
+      ['scaffold', 'Open recall failed. Downgrade to a recognition question'],
+      ['reteach', 'Recall probe showed weak retention'],
+      ['cued_recall', 'Open recall failed. Provide graduated hint'],
+      ['recall', 'Give specific feedback on what was wrong'],
+    ] as const)('returns correct pivot for %s approach', async (approach, expectedStart) => {
+      const deps = retryDeps(approach);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeDefined();
+      expect(retry.retry_guidance!.teaching_approach).toBe(approach);
+      expect(retry.retry_guidance!.pivot).toContain(expectedStart);
+    });
+
+    it.each([
+      [0, 3],
+      [1, 3],
+      [2, 2],
+    ] as const)(
+      'roadblock forecast for quality %d → required_followups %d',
+      async (quality, expectedFollowups) => {
+        const deps = retryDeps('recall');
+        const result = await submitAnswer(makeInput({ quality, passed: false }), deps);
+
+        expect(result.status).toBe('retry');
+        const retry = result as SubmitAnswerRetry;
+        expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(quality);
+        expect(retry.retry_guidance!.roadblock.required_followups).toBe(expectedFollowups);
+        expect(retry.retry_guidance!.roadblock.remaining).toBe(expectedFollowups);
+      }
+    );
+
+    it('roadblock forecast for quality 5 → required_followups 0', async () => {
+      const deps = retryDeps('recall');
+      const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
+      expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
+    });
+
+    it('quality_floor is always 3', async () => {
+      const deps = retryDeps('scaffold');
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance!.roadblock.quality_floor).toBe(3);
+    });
+
+    it('completed_followups is always 0 on first retry', async () => {
+      const deps = retryDeps('cued_recall');
+      const result = await submitAnswer(makeInput({ quality: 2, passed: false }), deps);
+
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance!.roadblock.completed_followups).toBe(0);
+    });
+
+    it('trigger_quality matches capped quality, not agent quality', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: 'recall',
+            }),
+          ]),
+        },
+        sessionQuestions: {
+          getMinPriorQuality: vi.fn().mockResolvedValue(1), // cap at 3
+        },
+      });
+
+      // Agent says quality 5 but cap will reduce to 3
+      const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(3);
+    });
+
+    it('second attempt fail returns recorded without retry_guidance', async () => {
+      const deps = makeQuestionDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: 'scaffold',
+            }),
+          ]),
+        },
+        sessionQuestions: {
+          getQuestionById: vi
+            .fn()
+            .mockResolvedValue(
+              makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' })
+            ),
+          getAttemptsForQuestion: vi
+            .fn()
+            .mockResolvedValue([
+              makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: 1, agentQuality: 1 }),
+            ]),
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+
+      expect(result.status).toBe('recorded');
+      expect(result).not.toHaveProperty('retry_guidance');
+    });
+
+    it('omits retry_guidance when teachingApproach is null', async () => {
+      const deps = retryDeps(null);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeUndefined();
+    });
+
+    it('omits retry_guidance when teachingApproach is an unrecognized string', async () => {
+      const deps = retryDeps('unknown_tier');
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeUndefined();
+    });
+
+    it('defaults required_followups to 0 when quality not in roadblockFollowups', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: 'recall',
+            }),
+          ]),
+        },
+        algorithmConfig: { roadblockFollowups: {} },
+      });
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
+      expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
+    });
   });
 });
 

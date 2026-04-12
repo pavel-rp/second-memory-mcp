@@ -98,6 +98,7 @@ function stubDeps(): SessionDeps {
         sessionId: 'sess-1',
         chunkId: 'c1',
         status: 'pending',
+        teachingApproach: null,
         timeSpentMs: 0,
         createdAt: NOW,
         updatedAt: NOW,

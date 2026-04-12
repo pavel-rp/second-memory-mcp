@@ -77,6 +77,7 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
     sessionId: 'sess-1',
     chunkId: 'c1',
     status: 'completed',
+    teachingApproach: null,
     timeSpentMs: 5000,
     createdAt: NOW_MS,
     updatedAt: NOW_MS,
