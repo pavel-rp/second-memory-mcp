@@ -28,6 +28,7 @@ import {
   stubSessionQuestionRepository,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
+import type { AlgorithmConfig } from '../../../src/domain/config/algorithm.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ function makeDeps(overrides?: {
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
   reviewPersistence?: Partial<Parameters<typeof stubReviewPersistence>[0]>;
   sessionQuestions?: Partial<Parameters<typeof stubSessionQuestionRepository>[0]>;
+  algorithmConfig?: Partial<AlgorithmConfig>;
 }): TeachingDeps {
   return {
     sessions: stubSessionRepository({
@@ -167,7 +169,7 @@ function makeDeps(overrides?: {
       persistReviewUpdate: vi.fn().mockResolvedValue(1),
       ...overrides?.reviewPersistence,
     }),
-    algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+    algorithmConfig: { ...DEFAULT_ALGORITHM_CONFIG, ...overrides?.algorithmConfig },
     sessionQuestions: stubSessionQuestionRepository({
       createQuestions: vi.fn().mockResolvedValue([{ ...INLINE_CREATED_QUESTION }]),
       getQuestionById: vi.fn().mockResolvedValue({ ...INLINE_CREATED_QUESTION }),
@@ -1218,6 +1220,28 @@ describe('submitAnswer', () => {
       expect(result.status).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance).toBeUndefined();
+    });
+
+    it('defaults required_followups to 0 when quality not in roadblockFollowups', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: 'recall',
+            }),
+          ]),
+        },
+        algorithmConfig: { roadblockFollowups: {} },
+      });
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
+      expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
     });
   });
 });
