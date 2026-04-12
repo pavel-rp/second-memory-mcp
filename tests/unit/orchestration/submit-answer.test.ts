@@ -56,6 +56,7 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
     sessionId: 'sess-1',
     chunkId: 'c1',
     status: 'pending',
+    teachingApproach: null,
     timeSpentMs: 0,
     createdAt: NOW,
     updatedAt: NOW,
@@ -1203,6 +1204,15 @@ describe('submitAnswer', () => {
 
     it('omits retry_guidance when teachingApproach is null', async () => {
       const deps = retryDeps(null);
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.status).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeUndefined();
+    });
+
+    it('omits retry_guidance when teachingApproach is an unrecognized string', async () => {
+      const deps = retryDeps('unknown_tier');
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
 
       expect(result.status).toBe('retry');

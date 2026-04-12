@@ -421,6 +421,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
           sessionId: firstNewSc.sessionId,
           chunkId: firstNewSc.chunkId,
           status: firstNewSc.status,
+          teachingApproach: null,
           timeSpentMs: firstNewSc.timeSpentMs,
           createdAt: firstNewSc.createdAt,
           updatedAt: firstNewSc.updatedAt,
@@ -1036,7 +1037,9 @@ async function submitAnswerForQuestion(
 
   // 7. First attempt failed → retry
   if (!passed && attemptNumber === 1) {
-    const approach = sessionChunk.teachingApproach as TeachingApproach | null;
+    const rawApproach = sessionChunk.teachingApproach;
+    const approach =
+      rawApproach && rawApproach in RETRY_PIVOT ? (rawApproach as TeachingApproach) : null;
     const requiredFollowups = deps.algorithmConfig.roadblockFollowups[quality] ?? 0;
 
     return {

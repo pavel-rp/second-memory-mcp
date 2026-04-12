@@ -109,7 +109,7 @@ export type SessionChunk = {
   sessionId: string;
   chunkId: string;
   status: string;
-  teachingApproach?: string | null;
+  teachingApproach: string | null;
   timeSpentMs: number;
   createdAt: number;
   updatedAt: number;

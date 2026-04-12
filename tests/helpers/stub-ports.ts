@@ -65,6 +65,7 @@ export function stubSessionRepository(overrides?: Partial<SessionRepository>): S
       sessionId: 'sess-stub',
       chunkId: 'c-stub',
       status: 'pending',
+      teachingApproach: null,
       timeSpentMs: 0,
       createdAt: 0,
       updatedAt: 0,
