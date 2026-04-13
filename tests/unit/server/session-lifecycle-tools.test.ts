@@ -580,6 +580,35 @@ describe('session-lifecycle-tools', () => {
   });
 
   // ---------------------------------------------------------------
+  // complete_session — ZodError handling
+  // ---------------------------------------------------------------
+  describe('complete_session ZodError', () => {
+    it('returns validation error for missing session_id', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('complete_session')!.handler;
+
+      const result = await handler({ context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for empty session_id', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('complete_session')!.handler;
+
+      const result = await handler({ session_id: '', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
   // get_session — fields parameter
   // ---------------------------------------------------------------
   describe('get_session fields parameter', () => {

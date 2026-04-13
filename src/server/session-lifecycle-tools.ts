@@ -362,6 +362,14 @@ export function registerSessionLifecycleTools(server: McpServer, ctx: AppContext
           return toolData(result);
         } catch (error) {
           const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid complete_session input:', error);
+            return toolError(`Failed to complete session: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
           getRequestLogger().error('Failed to complete session:', error);
           return toolError(`Failed to complete session: ${msg}`, {
             type: 'database',
