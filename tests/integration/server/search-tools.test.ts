@@ -64,13 +64,13 @@ describe('search_learning_content tool', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.results.length).toBeGreaterThan(0);
-    expect(parsed.counts.total).toBeGreaterThan(0);
-    expect(parsed.counts.total).toBe(parsed.results.length);
-    expect(parsed.counts.topics + parsed.counts.chunks).toBe(parsed.results.length);
-    expect(parsed.results[0].title.toLowerCase()).toContain('segment');
-    expect(parsed.results.some((item: any) => item.resultType === 'chunk')).toBe(true);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.results.length).toBeGreaterThan(0);
+    expect(parsed.data.counts.total).toBeGreaterThan(0);
+    expect(parsed.data.counts.total).toBe(parsed.data.results.length);
+    expect(parsed.data.counts.topics + parsed.data.counts.chunks).toBe(parsed.data.results.length);
+    expect(parsed.data.results[0].title.toLowerCase()).toContain('segment');
+    expect(parsed.data.results.some((item: any) => item.result_type === 'chunk')).toBe(true);
   });
 
   it('handles no matches gracefully', async () => {
@@ -81,8 +81,8 @@ describe('search_learning_content tool', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.results.length).toBe(0);
-    expect(parsed.message).toContain('No matching topics or chunks');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.results.length).toBe(0);
+    expect(parsed.data.message).toContain('No matching topics or chunks');
   });
 });

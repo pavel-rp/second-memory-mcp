@@ -63,9 +63,10 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.session_id).toBe('s1');
-      expect(parsed.status).toBe('created');
-      expect(parsed.message).toContain('learning');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_id).toBe('s1');
+      expect(parsed.data.action).toBe('created');
+      expect(parsed.data.message).toContain('learning');
     });
 
     it('creates session with chunks after dependency resolution', async () => {
@@ -90,8 +91,9 @@ describe('session-lifecycle-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.session_id).toBe('s1');
-      expect(parsed.message).toContain('2 chunks');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_id).toBe('s1');
+      expect(parsed.data.message).toContain('2 chunks');
     });
 
     it('creates session and logs skipped mastered prerequisites', async () => {
@@ -116,8 +118,9 @@ describe('session-lifecycle-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.session_id).toBe('s1');
-      expect(parsed.message).toContain('Skipped 2 mastered prerequisites');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_id).toBe('s1');
+      expect(parsed.data.message).toContain('Skipped 2 mastered prerequisites');
     });
 
     it('returns validation error for invalid chunk IDs', async () => {
@@ -141,7 +144,7 @@ describe('session-lifecycle-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.message).toContain('c-bad');
     });
@@ -157,8 +160,8 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
     });
 
     it('returns database error when ctx throws', async () => {
@@ -169,8 +172,8 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ mode: 'learning', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -181,7 +184,7 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
   });
 
@@ -194,11 +197,12 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_active_session')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'test-token' });
       const parsed = parseResult(result);
 
-      expect(parsed.session).toBeNull();
-      expect(parsed.status).toBe('not_found');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session).toBeNull();
+      expect(parsed.data.action).toBe('not_found');
     });
 
     it('returns found when active session exists', async () => {
@@ -207,11 +211,12 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_active_session')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'test-token' });
       const parsed = parseResult(result);
 
-      expect(parsed.session).not.toBeNull();
-      expect(parsed.status).toBe('found');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session).not.toBeNull();
+      expect(parsed.data.action).toBe('found');
     });
 
     it('returns not_found when convertSessionToInput returns null', async () => {
@@ -220,11 +225,12 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_active_session')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'test-token' });
       const parsed = parseResult(result);
 
-      expect(parsed.session).toBeNull();
-      expect(parsed.status).toBe('not_found');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session).toBeNull();
+      expect(parsed.data.action).toBe('not_found');
     });
 
     it('includes historical feedback for review mode', async () => {
@@ -233,7 +239,7 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_active_session')!.handler;
 
-      await handler({});
+      await handler({ context_token: 'test-token' });
 
       expect(ctx.convertSessionToInput).toHaveBeenCalledWith('s1', {
         includeHistoricalFeedback: true,
@@ -246,11 +252,11 @@ describe('session-lifecycle-tools', () => {
       registerSessionLifecycleTools(server as any, ctx);
       const handler = server.tools.get('get_active_session')!.handler;
 
-      const result = await handler({});
+      const result = await handler({ context_token: 'test-token' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -274,8 +280,9 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.session).not.toBeNull();
-      expect(parsed.status).toBe('found');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session).not.toBeNull();
+      expect(parsed.data.action).toBe('found');
     });
 
     it('returns not_found when session does not exist', async () => {
@@ -286,8 +293,9 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.session).toBeNull();
-      expect(parsed.status).toBe('not_found');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session).toBeNull();
+      expect(parsed.data.action).toBe('not_found');
     });
 
     it('returns not_found when convertSessionToInput returns null', async () => {
@@ -299,8 +307,9 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.session).toBeNull();
-      expect(parsed.status).toBe('not_found');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session).toBeNull();
+      expect(parsed.data.action).toBe('not_found');
     });
 
     it('includes historical feedback for retrieval mode', async () => {
@@ -325,8 +334,8 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -337,7 +346,7 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -349,7 +358,7 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: '' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -412,11 +421,12 @@ describe('session-lifecycle-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.session_id).toBe('s1');
-      expect(parsed.status).toBe('completed');
-      expect(parsed.final_metrics.chunks_completed).toBe(1);
-      expect(parsed.final_metrics.average_quality).toBe(4);
-      expect(parsed.message).toContain('with feedback');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_id).toBe('s1');
+      expect(parsed.data.action).toBe('completed');
+      expect(parsed.data.final_metrics.chunks_completed).toBe(1);
+      expect(parsed.data.final_metrics.average_quality).toBe(4);
+      expect(parsed.data.message).toContain('with feedback');
     });
 
     it('returns already_completed for completed session', async () => {
@@ -431,8 +441,8 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('already_completed');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('conflict');
     });
 
     it('returns error when session not found', async () => {
@@ -443,7 +453,7 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.message).toContain('not found');
     });
 
@@ -463,7 +473,7 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.message).toContain('concurrent modification');
     });
 
@@ -475,8 +485,8 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -487,7 +497,7 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('returns zero metrics when convertSessionToInput returns null after completion', async () => {
@@ -516,9 +526,206 @@ describe('session-lifecycle-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.status).toBe('completed');
-      expect(parsed.final_metrics.chunks_completed).toBe(0);
-      expect(parsed.final_metrics.average_quality).toBe(0);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.action).toBe('completed');
+      expect(parsed.data.final_metrics.chunks_completed).toBe(0);
+      expect(parsed.data.final_metrics.average_quality).toBe(0);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // create_session — ZodError handling
+  // ---------------------------------------------------------------
+  describe('create_session ZodError', () => {
+    it('returns validation error for invalid mode', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('create_session')!.handler;
+
+      const result = await handler({ mode: 'invalid_mode', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for missing mode', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('create_session')!.handler;
+
+      const result = await handler({ context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_active_session — ZodError handling
+  // ---------------------------------------------------------------
+  describe('get_active_session ZodError', () => {
+    it('returns validation error for invalid context_token type', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_active_session')!.handler;
+
+      const result = await handler({ context_token: 123 });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // complete_session — ZodError handling
+  // ---------------------------------------------------------------
+  describe('complete_session ZodError', () => {
+    it('returns validation error for missing session_id', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('complete_session')!.handler;
+
+      const result = await handler({ context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('returns validation error for empty session_id', async () => {
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('complete_session')!.handler;
+
+      const result = await handler({ session_id: '', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('validation');
+      expect(parsed.error.retryable).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_session — fields parameter
+  // ---------------------------------------------------------------
+  describe('get_session fields parameter', () => {
+    it('returns only requested top-level fields', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        fields: ['mode'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.action).toBe('found');
+      expect(parsed.data.session.session_id).toBe('s1');
+      expect(parsed.data.session.mode).toBe('learning');
+      expect(parsed.data.session.chunks).toBeUndefined();
+      expect(parsed.data.session.start_time).toBeUndefined();
+    });
+
+    it('returns chunk sub-fields with dot notation', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        fields: ['chunks.status', 'chunks.chunk_id'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session.chunks).toHaveLength(1);
+      expect(parsed.data.session.chunks[0].status).toBe('completed');
+      expect(parsed.data.session.chunks[0].chunk_id).toBe('c1');
+      expect(parsed.data.session.chunks[0].attempts).toBeUndefined();
+    });
+
+    it('returns full session when fields is omitted', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session.mode).toBe('learning');
+      expect(parsed.data.session.chunks).toHaveLength(1);
+      expect(parsed.data.session.chunks[0].attempts).toHaveLength(1);
+    });
+
+    it('returns full chunks when fields includes "chunks"', async () => {
+      ctx.getSessionById = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_session')!.handler;
+
+      const result = await handler({
+        session_id: 's1',
+        fields: ['chunks'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session.chunks).toHaveLength(1);
+      expect(parsed.data.session.chunks[0].attempts).toHaveLength(1);
+      expect(parsed.data.session.mode).toBeUndefined();
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // get_active_session — fields parameter
+  // ---------------------------------------------------------------
+  describe('get_active_session fields parameter', () => {
+    it('returns filtered session when fields provided', async () => {
+      ctx.getActiveSession = vi.fn().mockResolvedValue({
+        id: 's1',
+        mode: 'learning',
+      });
+      ctx.convertSessionToInput = vi.fn().mockResolvedValue(makeSessionInput());
+      registerSessionLifecycleTools(server as any, ctx);
+      const handler = server.tools.get('get_active_session')!.handler;
+
+      const result = await handler({
+        fields: ['mode'],
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.action).toBe('found');
+      expect(parsed.data.session.mode).toBe('learning');
+      expect(parsed.data.session.chunks).toBeUndefined();
     });
   });
 });

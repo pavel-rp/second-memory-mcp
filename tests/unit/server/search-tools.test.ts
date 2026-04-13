@@ -67,11 +67,11 @@ describe('search-tools', () => {
       const result = await handler({ query: 'arrays', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toContain('Found');
-      expect(parsed.workflow_hint).toBeDefined();
-      expect(parsed.workflow_hint.action).toBe('REQUIRED_FOR_RECALL');
-      expect(parsed.workflow_hint.suggested_chunk_ids).toEqual(['c1', 'c2']);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('Found');
+      expect(parsed.data.workflow_hint).toBeDefined();
+      expect(parsed.data.workflow_hint.action).toBe('REQUIRED_FOR_RECALL');
+      expect(parsed.data.workflow_hint.suggested_chunk_ids).toEqual(['c1', 'c2']);
     });
 
     it('returns no results message when empty', async () => {
@@ -82,8 +82,8 @@ describe('search-tools', () => {
       const result = await handler({ query: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toContain('No matching');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('No matching');
     });
 
     it('returns no workflow_hint when only topic results', async () => {
@@ -94,8 +94,8 @@ describe('search-tools', () => {
       const result = await handler({ query: 'topics', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.workflow_hint).toBeUndefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.workflow_hint).toBeUndefined();
     });
 
     it('returns database error when ctx throws', async () => {
@@ -106,8 +106,8 @@ describe('search-tools', () => {
       const result = await handler({ query: 'test', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toContain('search failed');
     });
 
@@ -118,8 +118,8 @@ describe('search-tools', () => {
       const result = await handler({ query: 'a' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
     });
 
     it('returns error for missing query', async () => {
@@ -129,8 +129,8 @@ describe('search-tools', () => {
       const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
     });
   });
 });

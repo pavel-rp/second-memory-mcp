@@ -31,7 +31,7 @@ describe('session-tools', () => {
       const handler = server.tools.get('session_status')!.handler;
       const result = await handler({ session_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
   });
 });

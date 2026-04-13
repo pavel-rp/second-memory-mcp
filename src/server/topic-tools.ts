@@ -10,7 +10,7 @@ import {
 } from '../domain/types/persistence-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 function buildSummaryConsistencyReminder(topicId: string) {
   return {
@@ -68,9 +68,8 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
           });
 
           if (result.success && result.topic) {
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 topicId: result.topic.topicId,
                 chunkIds: result.topic.chunks.map(c => c.id),
                 createdAt: result.topic.createdAt,
@@ -116,9 +115,8 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
           });
 
           if (result.success && result.topic) {
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 topicId: result.topic.id,
                 updatedAt: result.topic.updatedAt,
                 message: `Successfully updated topic "${result.topic.title}"`,
@@ -158,9 +156,8 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
           const result = await ctx.updateTopicSummary(input.topicId, input.summary);
 
           if (result.success && result.topic) {
-            return toolJson(
+            return toolData(
               toSnakeCase({
-                success: true,
                 topicId: result.topic.id,
                 summaryVersion: result.topic.summaryVersion,
                 updatedAt: result.topic.updatedAt,

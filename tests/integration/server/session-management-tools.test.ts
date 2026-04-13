@@ -112,14 +112,15 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.session_id).toBeDefined();
-    expect(parsed.status).toBe('created');
-    expect(parsed.message).toContain('Session created successfully');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.session_id).toBeDefined();
+    expect(parsed.data.action).toBe('created');
+    expect(parsed.data.message).toContain('Session created successfully');
 
     const [session] = await db
       .select()
       .from(learningSessions)
-      .where(eq(learningSessions.id, parsed.session_id));
+      .where(eq(learningSessions.id, parsed.data.session_id));
     expect(session).toBeDefined();
     expect(session?.mode).toBe('learning');
     expect(session?.status).toBe('active');
@@ -145,21 +146,23 @@ describe('Integration: Session Management Tools', () => {
       updatedAt: now,
     });
 
-    const result = await getActiveSessionTool.handler({});
+    const result = await getActiveSessionTool.handler({ context_token: 'test-token' });
 
     const parsed = parseToolResult(result);
-    expect(parsed.status).toBe('found');
-    expect(parsed.session).toBeDefined();
-    expect(parsed.session.session_id).toBe(sessionId);
-    expect(parsed.session.mode).toBe('learning');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('found');
+    expect(parsed.data.session).toBeDefined();
+    expect(parsed.data.session.session_id).toBe(sessionId);
+    expect(parsed.data.session.mode).toBe('learning');
   });
 
   it('should return not_found when no active session exists', async () => {
-    const result = await getActiveSessionTool.handler({});
+    const result = await getActiveSessionTool.handler({ context_token: 'test-token' });
 
     const parsed = parseToolResult(result);
-    expect(parsed.status).toBe('not_found');
-    expect(parsed.session).toBeNull();
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('not_found');
+    expect(parsed.data.session).toBeNull();
   });
 
   it('should get session by ID correctly', async () => {
@@ -187,10 +190,11 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.status).toBe('found');
-    expect(parsed.session).toBeDefined();
-    expect(parsed.session.session_id).toBe(sessionId);
-    expect(parsed.session.mode).toBe('review');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('found');
+    expect(parsed.data.session).toBeDefined();
+    expect(parsed.data.session.session_id).toBe(sessionId);
+    expect(parsed.data.session.mode).toBe('review');
   });
 
   it('should return not_found for non-existent session', async () => {
@@ -200,8 +204,9 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.status).toBe('not_found');
-    expect(parsed.session).toBeNull();
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('not_found');
+    expect(parsed.data.session).toBeNull();
   });
 
   it('should complete a session successfully', async () => {
@@ -232,11 +237,12 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.session_id).toBe(sessionId);
-    expect(parsed.status).toBe('completed');
-    expect(parsed.message).toContain('Session completed successfully');
-    expect(parsed.final_metrics).toBeDefined();
-    expect(parsed.final_metrics.duration).toBeGreaterThan(0);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.session_id).toBe(sessionId);
+    expect(parsed.data.action).toBe('completed');
+    expect(parsed.data.message).toContain('Session completed successfully');
+    expect(parsed.data.final_metrics).toBeDefined();
+    expect(parsed.data.final_metrics.duration).toBeGreaterThan(0);
 
     const [session] = await db
       .select()
@@ -274,9 +280,10 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.session_id).toBe(sessionId);
-    expect(parsed.status).toBe('completed');
-    expect(parsed.message).toContain('Session completed successfully');
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.session_id).toBe(sessionId);
+    expect(parsed.data.action).toBe('completed');
+    expect(parsed.data.message).toContain('Session completed successfully');
 
     const [session] = await db
       .select()
@@ -295,7 +302,8 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed = parseToolResult(result);
-    expect(parsed.message).toContain('Session nonexistent-session not found');
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.message).toContain('Session nonexistent-session not found');
   });
 
   it('should handle invalid input gracefully', async () => {
@@ -305,6 +313,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed1 = parseToolResult(result1);
+    expect(parsed1.status).toBe('error');
     expect(parsed1.error).toBeDefined();
 
     const result2 = await createSessionTool.handler({
@@ -314,6 +323,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed2 = parseToolResult(result2);
+    expect(parsed2.status).toBe('error');
     expect(parsed2.error).toBeDefined();
 
     const result3 = await completeSessionTool.handler({
@@ -321,6 +331,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const parsed3 = parseToolResult(result3);
+    expect(parsed3.status).toBe('error');
     expect(parsed3.error).toBeDefined();
   });
 
@@ -371,7 +382,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const createParsed = parseToolResult(createResult);
-    const sessionId = createParsed.session_id;
+    const sessionId = createParsed.data.session_id;
 
     const scId = `session-chunk-${now}`;
     await db.insert(sessionChunks).values({
@@ -418,9 +429,10 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const getParsed = parseToolResult(getResult);
-    expect(getParsed.status).toBe('found');
-    expect(getParsed.session.chunks).toHaveLength(2);
-    const completedChunk = getParsed.session.chunks.find(
+    expect(getParsed.status).toBe('ok');
+    expect(getParsed.data.action).toBe('found');
+    expect(getParsed.data.session.chunks).toHaveLength(2);
+    const completedChunk = getParsed.data.session.chunks.find(
       (chunk: any) => chunk.status === 'completed'
     );
     expect(completedChunk).toBeDefined();
@@ -448,11 +460,12 @@ describe('Integration: Session Management Tools', () => {
       updatedAt: now,
     });
 
-    const result1 = await getActiveSessionTool.handler({});
+    const result1 = await getActiveSessionTool.handler({ context_token: 'test-token' });
     const parsed1 = parseToolResult(result1);
-    expect(parsed1.status).toBe('found');
-    expect(parsed1.session.session_id).toBe(session1Id);
-    expect(parsed1.session.mode).toBe('learning');
+    expect(parsed1.status).toBe('ok');
+    expect(parsed1.data.action).toBe('found');
+    expect(parsed1.data.session.session_id).toBe(session1Id);
+    expect(parsed1.data.session.mode).toBe('learning');
 
     const completeResult = await completeSessionTool.handler({
       session_id: session1Id,
@@ -460,11 +473,13 @@ describe('Integration: Session Management Tools', () => {
       context_token: 'ctx-test',
     });
     const completeParsed = parseToolResult(completeResult);
-    expect(completeParsed.status).toBe('completed');
+    expect(completeParsed.status).toBe('ok');
+    expect(completeParsed.data.action).toBe('completed');
 
-    const result2 = await getActiveSessionTool.handler({});
+    const result2 = await getActiveSessionTool.handler({ context_token: 'test-token' });
     const parsed2 = parseToolResult(result2);
-    expect(parsed2.status).toBe('not_found');
+    expect(parsed2.status).toBe('ok');
+    expect(parsed2.data.action).toBe('not_found');
 
     const session2Id = `session-${now + 1000}`;
     await db.insert(learningSessions).values({
@@ -481,11 +496,12 @@ describe('Integration: Session Management Tools', () => {
       updatedAt: now + 1000,
     });
 
-    const result3 = await getActiveSessionTool.handler({});
+    const result3 = await getActiveSessionTool.handler({ context_token: 'test-token' });
     const parsed3 = parseToolResult(result3);
-    expect(parsed3.status).toBe('found');
-    expect(parsed3.session.session_id).toBe(session2Id);
-    expect(parsed3.session.mode).toBe('review');
+    expect(parsed3.status).toBe('ok');
+    expect(parsed3.data.action).toBe('found');
+    expect(parsed3.data.session.session_id).toBe(session2Id);
+    expect(parsed3.data.session.mode).toBe('review');
   });
 
   it('should batch create and update session chunks atomically', async () => {
@@ -554,7 +570,7 @@ describe('Integration: Session Management Tools', () => {
       context_token: 'ctx-test',
     });
     const created = parseToolResult(createOut);
-    const sessionId = created.session_id;
+    const sessionId = created.data.session_id;
 
     const batchOut = await batchUpdateChunksTool.handler({
       session_id: sessionId,
@@ -589,10 +605,10 @@ describe('Integration: Session Management Tools', () => {
 
     const batchParsed = parseToolResult(batchOut);
     expect(batchParsed.status).toBe('ok');
-    expect(batchParsed.created).toBe(1);
-    expect(batchParsed.updated).toBe(1);
-    expect(batchParsed.unchanged).toBe(0);
-    expect(batchParsed.affected_chunk_ids.sort()).toEqual(['bchunk1', 'bchunk2']);
+    expect(batchParsed.data.created).toBe(1);
+    expect(batchParsed.data.updated).toBe(1);
+    expect(batchParsed.data.unchanged).toBe(0);
+    expect(batchParsed.data.affected_chunk_ids.sort()).toEqual(['bchunk1', 'bchunk2']);
 
     const [session] = await db
       .select()
@@ -619,7 +635,7 @@ describe('Integration: Session Management Tools', () => {
       context_token: 'ctx-test',
     });
     const created = parseToolResult(createOut);
-    const sessionId = created.session_id;
+    const sessionId = created.data.session_id;
 
     const batchOut = await batchUpdateChunksTool.handler({
       session_id: sessionId,
@@ -628,6 +644,7 @@ describe('Integration: Session Management Tools', () => {
     });
 
     const batchParsed = parseToolResult(batchOut);
+    expect(batchParsed.status).toBe('error');
     expect(batchParsed.error.message).toMatch(/Invalid chunk IDs provided/);
   });
 
@@ -638,7 +655,8 @@ describe('Integration: Session Management Tools', () => {
       context_token: 'ctx-test',
     });
     const parsed1 = parseToolResult(result1);
-    expect(parsed1.status).toBe('created');
+    expect(parsed1.status).toBe('ok');
+    expect(parsed1.data.action).toBe('created');
 
     const result2 = await createSessionTool.handler({
       mode: 'review',
@@ -646,6 +664,7 @@ describe('Integration: Session Management Tools', () => {
       context_token: 'ctx-test',
     });
     const parsed2 = parseToolResult(result2);
-    expect(parsed2.message).toContain('Active session already exists');
+    expect(parsed2.status).toBe('error');
+    expect(parsed2.error.message).toContain('Active session already exists');
   });
 });

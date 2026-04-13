@@ -4,6 +4,7 @@ import {
   toolError,
   toolOk,
   toolJson,
+  toolData,
 } from '../../../src/server/tool-helpers.js';
 import { parseResult } from '../../helpers/capture-server.js';
 
@@ -29,10 +30,10 @@ describe('tool-helpers', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.message).toBe('Something failed');
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('DB connection lost');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('includes retryable flag when provided', () => {
@@ -46,14 +47,14 @@ describe('tool-helpers', () => {
       expect(parsed.error.retryable).toBe(true);
     });
 
-    it('omits retryable flag when not provided', () => {
+    it('defaults retryable to false when not provided', () => {
       const result = toolError('No retry', {
         type: 'computation',
         message: 'Bad math',
       });
       const parsed = parseResult(result);
 
-      expect(parsed.error).not.toHaveProperty('retryable');
+      expect(parsed.error.retryable).toBe(false);
     });
 
     it('includes retryable false when explicitly set', () => {
@@ -66,30 +67,50 @@ describe('tool-helpers', () => {
 
       expect(parsed.error.retryable).toBe(false);
     });
+
+    it('maps legacy error types to API error types', () => {
+      const mappings: Array<[string, string]> = [
+        ['database', 'internal'],
+        ['session', 'internal'],
+        ['computation', 'internal'],
+        ['auth', 'internal'],
+        ['system', 'internal'],
+        ['recommendation', 'internal'],
+        ['generation', 'internal'],
+        ['validation', 'validation'],
+        ['not_found', 'not_found'],
+        ['conflict', 'conflict'],
+      ];
+      for (const [input, expected] of mappings) {
+        const result = toolError('msg', { type: input as any, message: 'test' });
+        const parsed = parseResult(result);
+        expect(parsed.error.type).toBe(expected);
+      }
+    });
   });
 
   describe('toolOk', () => {
-    it('returns structured success response', () => {
+    it('returns structured success response with envelope', () => {
       const result = toolOk('All good');
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toBe('All good');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toBe('All good');
     });
 
-    it('merges additional data into response', () => {
+    it('merges additional data into response envelope', () => {
       const result = toolOk('Created', { id: '123', count: 5 });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toBe('Created');
-      expect(parsed.id).toBe('123');
-      expect(parsed.count).toBe(5);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toBe('Created');
+      expect(parsed.data.id).toBe('123');
+      expect(parsed.data.count).toBe(5);
     });
   });
 
   describe('toolJson', () => {
-    it('serialises arbitrary data', () => {
+    it('serialises arbitrary data without envelope', () => {
       const result = toolJson({ foo: 'bar', num: 42 });
       const parsed = parseResult(result);
 
@@ -111,8 +132,38 @@ describe('tool-helpers', () => {
       const result = toolJson(circular);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.message).toBe('Failed to serialise tool response payload');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
+    });
+  });
+
+  describe('toolData', () => {
+    it('wraps data in success envelope', () => {
+      const result = toolData({ foo: 'bar', num: 42 });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.foo).toBe('bar');
+      expect(parsed.data.num).toBe(42);
+    });
+
+    it('handles arrays inside envelope', () => {
+      const result = toolData([1, 2, 3]);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data).toEqual([1, 2, 3]);
+    });
+
+    it('returns error response for circular references', () => {
+      const circular: Record<string, unknown> = {};
+      circular.self = circular;
+
+      const result = toolData(circular);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
     });
   });
 });

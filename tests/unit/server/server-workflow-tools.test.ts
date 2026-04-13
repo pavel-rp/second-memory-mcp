@@ -18,8 +18,9 @@ describe('server-workflow-tools', () => {
   it('returns workflow field containing SERVER_INSTRUCTIONS', async () => {
     const handler = server.tools.get('get_server_workflow')!.handler;
     const result = parseResult(await handler());
-    expect(result).toHaveProperty('workflow');
-    expect(result.workflow).toBe(SERVER_INSTRUCTIONS);
+    expect(result.status).toBe('ok');
+    expect(result.data).toHaveProperty('workflow');
+    expect(result.data.workflow).toBe(SERVER_INSTRUCTIONS);
   });
 
   it('returns response in toolJson format', async () => {

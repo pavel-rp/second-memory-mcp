@@ -18,14 +18,14 @@ describe('teaching workflows (composition-root wiring)', () => {
   it('getNextTeachingStep returns error when no active session', async () => {
     const result = await ctx.getNextTeachingStep();
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect(result).toHaveProperty('message', 'No active session. Call create_session first.');
   });
 
   it('startLearning returns nothing_due when no chunks exist', async () => {
     const result = await ctx.startLearning({});
 
-    expect(result.status).toBe('nothing_due');
+    expect(result.action).toBe('nothing_due');
   });
 
   it('teach_next inserts stale prerequisite before dependent chunk and serves it first', async () => {
@@ -80,8 +80,8 @@ describe('teaching workflows (composition-root wiring)', () => {
 
     // Call teach_next — should detect that chunk A is stale and insert it
     const teachResult = await ctx.getNextTeachingStep();
-    expect(teachResult.status).toBe('teach');
-    if (teachResult.status !== 'teach') throw new Error('Expected teach');
+    expect(teachResult.action).toBe('teach');
+    if (teachResult.action !== 'teach') throw new Error('Expected teach');
 
     // Should serve chunk A (the stale prerequisite) first
     expect(teachResult.chunk_id).toBe('stale-a');
@@ -99,12 +99,12 @@ describe('teaching workflows (composition-root wiring)', () => {
       feedback: 'Correct',
       timeSpentMs: 3000,
     });
-    expect(submitA.status).toBe('recorded');
+    expect(submitA.action).toBe('recorded');
 
     // Call teach_next again — should now serve chunk B
     const nextResult = await ctx.getNextTeachingStep();
-    expect(nextResult.status).toBe('teach');
-    if (nextResult.status !== 'teach') throw new Error('Expected teach');
+    expect(nextResult.action).toBe('teach');
+    if (nextResult.action !== 'teach') throw new Error('Expected teach');
     expect(nextResult.chunk_id).toBe('stale-b');
   });
 
@@ -138,13 +138,13 @@ describe('teaching workflows (composition-root wiring)', () => {
 
     // Start a session — recommendation engine should pick both chunks
     const startResult = await ctx.startLearning({ subjectFilter: 'Algorithms' });
-    expect(startResult.status).toBe('started');
-    if (startResult.status !== 'started') throw new Error('Expected started');
+    expect(startResult.action).toBe('started');
+    if (startResult.action !== 'started') throw new Error('Expected started');
 
     // The first chunk should be served first — submit an answer to advance
     const firstChunk = startResult.first_chunk;
-    expect(firstChunk.status).toBe('teach');
-    if (firstChunk.status !== 'teach') throw new Error('Expected teach');
+    expect(firstChunk.action).toBe('teach');
+    if (firstChunk.action !== 'teach') throw new Error('Expected teach');
     expect(firstChunk.chunk_id).toBe('seg-1');
 
     const submitResult = await ctx.submitAnswer({
@@ -157,13 +157,13 @@ describe('teaching workflows (composition-root wiring)', () => {
       feedback: 'Correct',
       timeSpentMs: 5000,
     });
-    expect(submitResult.status).toBe('recorded');
-    if (submitResult.status !== 'recorded') throw new Error('Expected recorded');
+    expect(submitResult.action).toBe('recorded');
+    if (submitResult.action !== 'recorded') throw new Error('Expected recorded');
     expect(submitResult.session_question_id).toBeDefined();
 
     // Call teach_next explicitly to get the next chunk
     const nextResult = await ctx.getNextTeachingStep();
-    if (nextResult.status !== 'teach') throw new Error('Expected teach for next');
+    if (nextResult.action !== 'teach') throw new Error('Expected teach for next');
     expect(nextResult.prerequisite_context).toBeDefined();
     expect(nextResult.prerequisite_context).toEqual(
       expect.arrayContaining([
@@ -200,7 +200,7 @@ describe('teaching workflows (composition-root wiring)', () => {
     expect(sessionResult.success).toBe(true);
 
     const firstTeach = await ctx.getNextTeachingStep();
-    expect(firstTeach.status).toBe('teach');
+    expect(firstTeach.action).toBe('teach');
 
     // First answer: quality 1 (fail), then retry with quality 2 to complete the question
     const submit1 = await ctx.submitAnswer({
@@ -213,8 +213,8 @@ describe('teaching workflows (composition-root wiring)', () => {
       feedback: 'Incorrect',
       timeSpentMs: 3000,
     });
-    expect(submit1.status).toBe('retry');
-    if (submit1.status !== 'retry') throw new Error('Expected retry');
+    expect(submit1.action).toBe('retry');
+    if (submit1.action !== 'retry') throw new Error('Expected retry');
 
     // Retry: answer correctly with quality 2
     const submit1retry = await ctx.submitAnswer({
@@ -228,7 +228,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       feedback: 'Got it on second try',
       timeSpentMs: 3000,
     });
-    expect(submit1retry.status).toBe('recorded');
+    expect(submit1retry.action).toBe('recorded');
 
     // Submit a quality-5 answer on the same chunk directly (without calling teach_next
     // which would complete the chunk). The cap should apply based on prior quality-1.
@@ -242,7 +242,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       feedback: 'Perfect recall',
       timeSpentMs: 5000,
     });
-    expect(submit2.status).toBe('recorded');
+    expect(submit2.action).toBe('recorded');
 
     // Verify the stored attempt has capped quality=3 and agentQuality=5
     const db = getSql();

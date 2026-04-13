@@ -200,7 +200,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect(result).toHaveProperty('message');
     expect((result as { message: string }).message).toContain('No active session');
   });
@@ -213,7 +213,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('no chunks');
   });
 
@@ -235,7 +235,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('blocked');
+    expect(result.action).toBe('blocked');
     expect(result).toHaveProperty('current_chunk_id', 'c1');
     expect((result as { message: string }).message).toContain('prompt_text');
     expect((result as { message: string }).message).toContain('chunk_ids');
@@ -261,7 +261,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
+    expect(result.action).toBe('teach');
     expect(result).toHaveProperty('chunk_id', 'c2');
     expect(result).toHaveProperty('session_chunk_id', 'sc-2');
   });
@@ -272,8 +272,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.mode).toBe('learning');
     expect(result.chunk_id).toBe('c1');
     expect(result.session_chunk_id).toBe('sc-1');
@@ -305,8 +305,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
     expect(result.mode).toBe('learning'); // fresh → learning mode
   });
@@ -339,8 +339,8 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     // Chunk is treated as fresh (learning mode) since question has no attempts
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.mode).toBe('learning');
   });
 
@@ -363,8 +363,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.mode).toBe('retrieval');
     expect(result.drill_format).toBe('open_ended');
   });
@@ -389,8 +389,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.previous_feedback).toEqual(['Struggled with the concept of closures']);
   });
 
@@ -433,8 +433,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.total).toBe(2);
     expect(result.summary.passed_first_try).toBe(1);
     expect(result.summary.needed_retry).toBe(1);
@@ -473,8 +473,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.total).toBe(3);
     expect(result.summary.passed_first_try).toBe(2);
     expect(result.summary.needed_retry).toBe(1);
@@ -501,8 +501,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(1);
     expect(result.summary.exhausted_retries).toBe(1);
   });
@@ -515,7 +515,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('not found');
   });
 
@@ -545,8 +545,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.instruction).toContain('Closures in JavaScript');
   });
 
@@ -574,8 +574,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_index).toBe(2); // 1-based, c2 is at index 1
     expect(result.total_chunks).toBe(3);
   });
@@ -610,7 +610,7 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     // c2 was completed, all chunks done → session complete
-    expect(result.status).toBe('complete');
+    expect(result.action).toBe('complete');
   });
 
   // No previous_feedback when no historical feedback exists
@@ -619,8 +619,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.previous_feedback).toBeUndefined();
   });
 
@@ -649,8 +649,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.notes).toHaveLength(2);
     expect(result.notes![0]).toEqual({
       id: 'n1',
@@ -671,8 +671,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.notes).toBeUndefined();
   });
 
@@ -682,8 +682,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.notes).toBeUndefined();
   });
 
@@ -697,8 +697,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.instruction).toBeTruthy();
   });
 
@@ -714,8 +714,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.instruction).toContain('Arrays, Loops');
   });
 
@@ -729,8 +729,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     // Mastery level is used in retrieval prompt; for learning mode it's still passed
     expect(result.instruction).toBeTruthy();
   });
@@ -754,7 +754,7 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     // Empty = no attempts → gating blocks
-    expect(result.status).toBe('blocked');
+    expect(result.action).toBe('blocked');
     expect(result).toHaveProperty('current_chunk_id', 'c1');
   });
 
@@ -783,8 +783,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.total).toBe(2);
     expect(result.summary.passed_first_try).toBe(1);
     expect(result.summary.needed_retry).toBe(0);
@@ -811,8 +811,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(0);
     expect(result.summary.needed_retry).toBe(0);
     expect(result.summary.exhausted_retries).toBe(1);
@@ -838,8 +838,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.exhausted_retries).toBe(1);
     expect(result.summary.passed_first_try).toBe(0);
     expect(result.summary.needed_retry).toBe(0);
@@ -882,8 +882,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.total).toBe(3);
     expect(result.summary.passed_first_try).toBe(1);
     expect(result.summary.needed_retry).toBe(1);
@@ -911,8 +911,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2'); // c2 first per session order
     expect(result.chunk_index).toBe(1); // 1-based position in ordered list
   });
@@ -936,8 +936,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.mode).toBe('retrieval'); // re-queued → retrieval
     expect(result.chunk_id).toBe('c1');
   });
@@ -961,8 +961,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(1);
   });
 
@@ -993,8 +993,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(1);
     expect(result.summary.needed_retry).toBe(1);
   });
@@ -1018,8 +1018,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c1');
   });
 
@@ -1042,8 +1042,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c1');
   });
 
@@ -1066,8 +1066,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
   });
 
@@ -1094,8 +1094,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     // c1 < c2 lexicographically, so c1 comes first
     expect(result.chunk_id).toBe('c1');
   });
@@ -1130,8 +1130,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     // c2 has earlier createdAt (NOW) so comes first, despite c1 < c2 lexicographically
     expect(result.chunk_id).toBe('c2');
   });
@@ -1153,8 +1153,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(0);
   });
 
@@ -1177,8 +1177,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.passed_first_try).toBe(0);
     expect(result.summary.needed_retry).toBe(0);
   });
@@ -1191,8 +1191,8 @@ describe('getNextTeachingStep', () => {
     });
 
     const result = await getNextTeachingStep(deps);
-    expect(result.status).toBe('teach');
-    if (result.status === 'teach') {
+    expect(result.action).toBe('teach');
+    if (result.action === 'teach') {
       expect(result.content_status).toBe('draft');
     }
   });
@@ -1216,7 +1216,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect(result).toHaveProperty('message');
     expect((result as { message: string }).message).toContain('inconsistent state');
     expect((result as { message: string }).message).toContain('1 pending chunk(s)');
@@ -1241,8 +1241,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.prerequisite_context).toEqual([
       { chunk_id: 'c0a', title: 'Intro', condensed_summary: 'Key concept A.' },
       { chunk_id: 'c0b', title: 'Basics', condensed_summary: null },
@@ -1259,8 +1259,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.prerequisite_context).toBeUndefined();
   });
 
@@ -1276,8 +1276,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.prerequisite_context).toHaveLength(1);
     expect(result.prerequisite_context![0].condensed_summary).toBeNull();
   });
@@ -1298,8 +1298,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('blocked');
-    if (result.status !== 'blocked') throw new Error('Expected blocked');
+    expect(result.action).toBe('blocked');
+    if (result.action !== 'blocked') throw new Error('Expected blocked');
     expect(result.message).toContain('no questions');
   });
 
@@ -1347,8 +1347,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.session_id).toBe('sess-1');
     expect(result.chunk_id).toBe('c1');
     expect(result.chunk_index).toBe(2);
@@ -1390,8 +1390,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.content_status).toBe('draft');
   });
 
@@ -1438,8 +1438,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.total).toBe(1);
     expect(result.summary.passed_first_try).toBe(1);
   });
@@ -1472,8 +1472,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     // Falls back to sessionChunks[0].chunkId
     expect(result.chunk_id).toBe('c1');
     expect(result.session_chunk_id).toBe('sc-1');
@@ -1522,8 +1522,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.summary.exhausted_retries).toBe(0);
   });
 
@@ -1557,8 +1557,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
     expect(result.review_update).toBeDefined();
     expect(result.review_update!.next_review_date).toBeDefined();
@@ -1680,7 +1680,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
+    expect(result.action).toBe('teach');
     // SR was called for c1 with aggregated quality from 3 mixed-quality questions
     expect(deps.reviewPersistence.getChunk).toHaveBeenCalledWith('c1');
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
@@ -1754,7 +1754,7 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
+    expect(result.action).toBe('teach');
     // SR called with quality 5 (only from the answered question; unanswered excluded).
     // SM-2 with quality=5, initial state (repetitions=0, easeFactor=2.5) → repetitions=1, easeFactor=2.6
     expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
@@ -1783,8 +1783,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('complete');
-    if (result.status !== 'complete') throw new Error('Expected complete');
+    expect(result.action).toBe('complete');
+    if (result.action !== 'complete') throw new Error('Expected complete');
     expect(result.review_update).toBeDefined();
     expect(result.review_update!.next_review_date).toBeDefined();
     expect(result.summary.total).toBe(1);
@@ -1814,8 +1814,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.review_update).toBeUndefined();
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
   });
@@ -1848,8 +1848,8 @@ describe('getNextTeachingStep', () => {
     const result = await getNextTeachingStep(deps);
 
     // Should still succeed — chunk completed without SR
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
     expect(result.review_update).toBeUndefined();
     // Chunk was claimed with optimistic lock
@@ -1932,8 +1932,8 @@ describe('getNextTeachingStep', () => {
 
     const result = await getNextTeachingStep(deps);
 
-    expect(result.status).toBe('teach');
-    if (result.status !== 'teach') throw new Error('Expected teach');
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
     expect(result.chunk_id).toBe('c2');
     // SR skipped entirely — no review_update
     expect(result.review_update).toBeUndefined();
@@ -2083,8 +2083,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.teaching_approach).toBeDefined();
       expect(result.estimated_retrievability).toBeDefined();
       expect(typeof result.estimated_retrievability).toBe('number');
@@ -2105,8 +2105,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.topic_staleness_profile).toBeDefined();
       expect(result.topic_staleness_profile!.topicId).toBe('topic-1');
       expect(result.topic_staleness_profile!.totalChunks).toBe(2);
@@ -2127,8 +2127,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.teaching_approach).toBe('recall');
       expect(result.estimated_retrievability).toBe(1.0);
     });
@@ -2161,8 +2161,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.teaching_approach).toBe('scaffold');
       expect(result.estimated_retrievability).toBeLessThan(0.3);
       expect(result.drill_format).toBe('multiple_choice');
@@ -2197,8 +2197,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.teaching_approach).toBe('cued_recall');
       expect(result.drill_format).toBe('open_ended');
     });
@@ -2232,8 +2232,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.teaching_approach).toBe('reteach');
       expect(result.drill_format).toBe('open_ended');
     });
@@ -2257,8 +2257,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.is_first_chunk_in_topic).toBe(true);
     });
 
@@ -2286,8 +2286,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.chunk_id).toBe('c2');
       expect(result.is_first_chunk_in_topic).toBe(false);
     });
@@ -2331,8 +2331,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.instruction).toContain('## Topic Orientation');
       expect(result.instruction).toContain("hasn't engaged with");
     });
@@ -2381,8 +2381,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       // Not first chunk in topic, so no orientation
       expect(result.instruction).not.toContain('## Topic Orientation');
     });
@@ -2396,8 +2396,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       // Single fresh chunk → recall tier
       expect(result.dominant_tier).toBe('recall');
       expect(result.topic_staleness_profile!.dominantTier).toBe('recall');
@@ -2504,8 +2504,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       // Should serve the stale prerequisite, not the original chunk
       expect(result.chunk_id).toBe('prereq-1');
       expect(result.prerequisite_reteach_needed).toEqual(['prereq-1']);
@@ -2547,8 +2547,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       // Should serve original chunk since prereq is already in session
       expect(result.chunk_id).toBe('c1');
       expect(result.prerequisite_reteach_needed).toBeUndefined();
@@ -2574,8 +2574,8 @@ describe('getNextTeachingStep', () => {
       const result = await getNextTeachingStep(deps);
 
       // Should fall through to original chunk
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.chunk_id).toBe('c1');
       expect(result.prerequisite_reteach_needed).toBeUndefined();
     });
@@ -2607,8 +2607,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.chunk_id).toBe('c1');
       expect(result.prerequisite_reteach_needed).toBeUndefined();
     });
@@ -2662,7 +2662,7 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
+      expect(result.action).toBe('teach');
       expect(warnSpy).toHaveBeenCalledWith(
         expect.objectContaining({ targetPrerequisiteIds: ['prereq-a'] }),
         'Circular dependency detected in prerequisite graph'
@@ -2715,7 +2715,7 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
+      expect(result.action).toBe('teach');
       expect(warnSpy).toHaveBeenCalledWith(
         expect.objectContaining({ maxDepth: 1, targetPrerequisiteIds: ['prereq-a'] }),
         'Prerequisite depth cap reached — deeper prerequisites were not evaluated'
@@ -2734,8 +2734,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('teach');
-      if (result.status !== 'teach') throw new Error('Expected teach');
+      expect(result.action).toBe('teach');
+      if (result.action !== 'teach') throw new Error('Expected teach');
       expect(result.prerequisite_reteach_needed).toBeUndefined();
       // batchFetchMinimal should only be called for topic profile, not prereq fetch
       expect(batchFetchMinimal).toHaveBeenCalledTimes(1);
@@ -2815,8 +2815,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('roadblock');
-      if (result.status !== 'roadblock') throw new Error('Expected roadblock');
+      expect(result.action).toBe('roadblock');
+      if (result.action !== 'roadblock') throw new Error('Expected roadblock');
       expect(result.current_chunk_id).toBe('c1');
       expect(result.roadblock_detail.trigger_quality).toBe(2);
       expect(result.roadblock_detail.required_followups).toBe(2);
@@ -2831,7 +2831,7 @@ describe('getNextTeachingStep', () => {
       const result = await getNextTeachingStep(deps);
 
       // Should proceed past roadblock gate → teach next chunk (c2)
-      expect(result.status).toBe('teach');
+      expect(result.action).toBe('teach');
     });
 
     it('completes chunk normally when sufficient qualifying follow-ups exist (auto-clear)', async () => {
@@ -2849,7 +2849,7 @@ describe('getNextTeachingStep', () => {
       const result = await getNextTeachingStep(deps);
 
       // quality 2 → needs 2 follow-ups, has 2 qualifying → auto-clear → teach next chunk
-      expect(result.status).toBe('teach');
+      expect(result.action).toBe('teach');
     });
 
     it('existing blocked status (no-attempts gate) is unaffected', async () => {
@@ -2873,8 +2873,8 @@ describe('getNextTeachingStep', () => {
 
       const result = await getNextTeachingStep(deps);
 
-      expect(result.status).toBe('blocked');
-      if (result.status !== 'blocked') throw new Error('Expected blocked');
+      expect(result.action).toBe('blocked');
+      if (result.action !== 'blocked') throw new Error('Expected blocked');
       expect(result.current_chunk_id).toBe('c1');
     });
   });
@@ -3014,12 +3014,12 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('resumed');
-    if (result.status !== 'resumed') throw new Error('Expected resumed');
+    expect(result.action).toBe('resumed');
+    if (result.action !== 'resumed') throw new Error('Expected resumed');
     expect(result.session_id).toBe('active-sess');
     expect(result.mode).toBe('review');
     expect(result.total_chunks).toBe(2);
-    expect(result.first_chunk.status).toBe('teach');
+    expect(result.first_chunk.action).toBe('teach');
   });
 
   it('resumes active session with blocked first_chunk when in_progress chunk has no attempts', async () => {
@@ -3050,10 +3050,10 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('resumed');
-    if (result.status !== 'resumed') throw new Error('Expected resumed');
-    expect(result.first_chunk.status).toBe('blocked');
-    if (result.first_chunk.status !== 'blocked') throw new Error('Expected blocked');
+    expect(result.action).toBe('resumed');
+    if (result.action !== 'resumed') throw new Error('Expected resumed');
+    expect(result.first_chunk.action).toBe('blocked');
+    if (result.first_chunk.action !== 'blocked') throw new Error('Expected blocked');
     expect(result.first_chunk.current_chunk_id).toBe('c1');
   });
 
@@ -3089,8 +3089,8 @@ describe('startLearning', () => {
     const result = await startLearning({}, deps);
 
     expect(completeSpy).toHaveBeenCalledWith('done-sess', undefined, expect.anything());
-    expect(result.status).toBe('started');
-    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.action).toBe('started');
+    if (result.action !== 'started') throw new Error('Expected started');
     expect(result.session_id).toBe('new-sess');
   });
 
@@ -3117,7 +3117,7 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('resumed');
+    expect(result.action).toBe('resumed');
     expect(completeSpy).not.toHaveBeenCalled();
   });
 
@@ -3143,8 +3143,8 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('error');
-    if (result.status !== 'error') throw new Error('Expected error');
+    expect(result.action).toBe('error');
+    if (result.action !== 'error') throw new Error('Expected error');
     expect(result.message).toContain('auto-complete');
     expect(result.message).not.toContain('DB connection lost');
   });
@@ -3179,8 +3179,8 @@ describe('startLearning', () => {
     const result = await startLearning({}, deps);
 
     expect(completeSpy).toHaveBeenCalledWith('empty-sess', undefined, expect.anything());
-    expect(result.status).toBe('started');
-    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.action).toBe('started');
+    if (result.action !== 'started') throw new Error('Expected started');
     expect(result.session_id).toBe('new-sess');
   });
 
@@ -3194,7 +3194,7 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('nothing_due');
+    expect(result.action).toBe('nothing_due');
   });
 
   it('returns nothing_due with subject hint when subject_filter used and no items', async () => {
@@ -3207,7 +3207,7 @@ describe('startLearning', () => {
 
     const result = await startLearning({ subjectFilter: 'Math' }, deps);
 
-    expect(result.status).toBe('nothing_due');
+    expect(result.action).toBe('nothing_due');
     expect((result as { message: string }).message).toContain('Math');
   });
 
@@ -3221,7 +3221,7 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('nothing_due');
+    expect(result.action).toBe('nothing_due');
   });
 
   it('auto-detects mode as review when due review items exist', async () => {
@@ -3229,8 +3229,8 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('started');
-    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.action).toBe('started');
+    if (result.action !== 'started') throw new Error('Expected started');
     expect(result.mode).toBe('review');
   });
 
@@ -3257,8 +3257,8 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('started');
-    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.action).toBe('started');
+    if (result.action !== 'started') throw new Error('Expected started');
     expect(result.mode).toBe('learning');
   });
 
@@ -3267,13 +3267,13 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('started');
-    if (result.status !== 'started') throw new Error('Expected started');
+    expect(result.action).toBe('started');
+    if (result.action !== 'started') throw new Error('Expected started');
     expect(result.session_id).toBe('new-sess');
     expect(result.total_chunks).toBe(1);
     expect(result.estimated_duration).toBe(10);
     expect(result.first_chunk).toBeDefined();
-    expect(result.first_chunk.status).toBe('teach');
+    expect(result.first_chunk.action).toBe('teach');
     expect(result.recommendation_summary).toContain('Topic 1');
   });
 
@@ -3285,7 +3285,7 @@ describe('startLearning', () => {
 
     const result = await startLearning({}, deps);
 
-    expect(result.status).toBe('error');
+    expect(result.action).toBe('error');
     expect((result as { message: string }).message).toContain('Race condition');
   });
 
@@ -3480,7 +3480,7 @@ describe('submitAnswer logEvent', () => {
       deps
     );
 
-    expect(result.status).toBe('recorded');
+    expect(result.action).toBe('recorded');
     expect(logEvent).toHaveBeenCalledWith('submitAnswer', 'answer_recorded', {
       sessionId: 'sess-1',
       chunkId: 'c1',
@@ -3625,7 +3625,7 @@ describe('submitAnswer quality cap', () => {
       deps
     );
 
-    expect(result.status).toBe('recorded');
+    expect(result.action).toBe('recorded');
     expect(sqRepo.createAttempt).toHaveBeenCalledWith(
       expect.objectContaining({ quality: 3, passed: true })
     );

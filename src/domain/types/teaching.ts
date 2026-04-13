@@ -10,7 +10,7 @@ import { z } from 'zod';
  * All TeachNext* response types (TeachNextNote, TeachNextTeach, TeachNextComplete,
  * TeachNextBlocked, TeachNextRoadblock, TeachNextError) use snake_case field names.
  * This is an intentional exception to the domain camelCase convention: these types
- * serialize directly through toolJson() in the server layer without a
+ * serialize directly through toolData() in the server layer without a
  * camelCase-to-snake_case mapping step.
  */
 export type TeachNextNote = {
@@ -35,7 +35,7 @@ export type ReviewUpdate = {
 };
 
 export type TeachNextTeach = {
-  status: 'teach';
+  action: 'teach';
   session_id: string;
   chunk_id: string;
   session_chunk_id: string;
@@ -64,7 +64,7 @@ export type TeachNextTeach = {
 };
 
 export type TeachNextComplete = {
-  status: 'complete';
+  action: 'complete';
   message: string;
   summary: {
     total: number;
@@ -76,13 +76,13 @@ export type TeachNextComplete = {
 };
 
 export type TeachNextBlocked = {
-  status: 'blocked';
+  action: 'blocked';
   message: string;
   current_chunk_id: string;
 };
 
 export type TeachNextError = {
-  status: 'error';
+  action: 'error';
   message: string;
 };
 
@@ -97,7 +97,7 @@ export type RoadblockDetail = {
 };
 
 export type TeachNextRoadblock = {
-  status: 'roadblock';
+  action: 'roadblock';
   current_chunk_id: string;
   roadblock_detail: RoadblockDetail;
 };
@@ -149,7 +149,7 @@ export type RetryGuidance = {
 };
 
 export type SubmitAnswerRetry = {
-  status: 'retry';
+  action: 'retry';
   session_question_id: string;
   attempt: 1 | 2;
   chunk_id: string;
@@ -159,7 +159,7 @@ export type SubmitAnswerRetry = {
 };
 
 export type SubmitAnswerRecorded = {
-  status: 'recorded';
+  action: 'recorded';
   session_question_id: string;
   attempt: 1 | 2;
   passed: boolean;
@@ -168,11 +168,10 @@ export type SubmitAnswerRecorded = {
   chunk_id: string;
   review_update?: ReviewUpdate;
   late_submission?: boolean;
-  reflect: string;
 };
 
 export type SubmitAnswerError = {
-  status: 'error';
+  action: 'error';
   message: string;
 };
 
@@ -307,7 +306,7 @@ export type StartLearningInput = {
 };
 
 export type StartLearningStarted = {
-  status: 'started';
+  action: 'started';
   session_id: string;
   mode: 'learning' | 'review';
   total_chunks: number;
@@ -317,12 +316,12 @@ export type StartLearningStarted = {
 };
 
 export type StartLearningNothingDue = {
-  status: 'nothing_due';
+  action: 'nothing_due';
   message: string;
 };
 
 export type StartLearningResumed = {
-  status: 'resumed';
+  action: 'resumed';
   session_id: string;
   mode: SessionMode;
   total_chunks: number;
@@ -330,7 +329,7 @@ export type StartLearningResumed = {
 };
 
 export type StartLearningError = {
-  status: 'error';
+  action: 'error';
   message: string;
 };
 
@@ -365,13 +364,13 @@ export type CreateSessionQuestionsInput = {
 };
 
 export type CreateSessionQuestionsSuccess = {
-  status: 'created';
+  action: 'created';
   sessionId: string;
   questionIds: string[];
 };
 
 export type CreateSessionQuestionsError = {
-  status: 'error';
+  action: 'error';
   message: string;
 };
 

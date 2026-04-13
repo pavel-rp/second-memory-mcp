@@ -37,24 +37,27 @@ describe('server-info-tools', () => {
   it('returns name, version, and build_time in snake_case', async () => {
     const handler = server.tools.get('get_server_info')!.handler;
     const result = parseResult(await handler());
-    expect(result).toHaveProperty('name', 'second-memory-learning');
-    expect(result).toHaveProperty('version');
-    expect(result.version).toMatch(/^\d+\.\d+\.\d+/);
-    expect(result).toHaveProperty('build_time');
+    expect(result.status).toBe('ok');
+    expect(result.data).toHaveProperty('name', 'second-memory-learning');
+    expect(result.data).toHaveProperty('version');
+    expect(result.data.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(result.data).toHaveProperty('build_time');
   });
 
   it('returns build_time as null when BUILD_TIME is unset', async () => {
     delete process.env.BUILD_TIME;
     const handler = server.tools.get('get_server_info')!.handler;
     const result = parseResult(await handler());
-    expect(result.build_time).toBeNull();
+    expect(result.status).toBe('ok');
+    expect(result.data.build_time).toBeNull();
   });
 
   it('returns build_time when BUILD_TIME is set', async () => {
     process.env.BUILD_TIME = '2026-03-12T14:30:00Z';
     const handler = server.tools.get('get_server_info')!.handler;
     const result = parseResult(await handler());
-    expect(result.build_time).toBe('2026-03-12T14:30:00Z');
+    expect(result.status).toBe('ok');
+    expect(result.data.build_time).toBe('2026-03-12T14:30:00Z');
   });
 
   it('returns toolError when getServerInfo throws', async () => {
@@ -65,9 +68,8 @@ describe('server-info-tools', () => {
     registerServerInfoTools(server as any);
     const handler = server.tools.get('get_server_info')!.handler;
     const result = parseResult(await handler());
-    expect(result.success).toBe(false);
-    expect(result.error.type).toBe('computation');
+    expect(result.status).toBe('error');
+    expect(result.error.type).toBe('internal');
     expect(result.error.message).toBe('version read failed');
-    expect(result.message).toBe('Failed to get server info: version read failed');
   });
 });

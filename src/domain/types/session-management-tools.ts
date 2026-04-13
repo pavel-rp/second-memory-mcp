@@ -62,6 +62,15 @@ export const CompleteSessionInputSchema = z
 
 export const GetSessionByIdInputShape = {
   session_id: z.string().min(1),
+  fields: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Optional field selection to reduce payload size. ' +
+        'Supported: "mode", "start_time", "chunks", "chunks.status", "chunks.chunk_id", ' +
+        '"chunks.time_spent_ms", "context", "feedback", "historical_feedback". ' +
+        'When omitted, returns the full session. Dot-notation filters nested fields.'
+    ),
   context_token: z
     .string()
     .min(1)
@@ -73,6 +82,29 @@ export const GetSessionByIdInputShape = {
 
 export const GetSessionByIdInputSchema = z
   .object(GetSessionByIdInputShape)
+  .transform(toCamelCaseKeys);
+
+export const GetActiveSessionInputShape = {
+  fields: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Optional field selection to reduce payload size. ' +
+        'Supported: "mode", "start_time", "chunks", "chunks.status", "chunks.chunk_id", ' +
+        '"chunks.time_spent_ms", "context", "feedback", "historical_feedback". ' +
+        'When omitted, returns the full session. Dot-notation filters nested fields.'
+    ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
+} as const;
+
+export const GetActiveSessionInputSchema = z
+  .object(GetActiveSessionInputShape)
   .transform(toCamelCaseKeys);
 
 export const CreateSessionChunkToolInputShape = {
@@ -97,18 +129,18 @@ export const CreateSessionChunkToolInputSchema = z
 
 export const CreateSessionResultSchema = z.object({
   session_id: z.string(),
-  status: z.literal('created'),
+  action: z.literal('created'),
   message: z.string(),
 });
 
 export const GetActiveSessionResultSchema = z.object({
   session: SessionInputSchema.nullable(),
-  status: z.enum(['found', 'not_found']),
+  action: z.enum(['found', 'not_found']),
 });
 
 export const CompleteSessionResultSchema = z.object({
   session_id: z.string(),
-  status: z.literal('completed'),
+  action: z.literal('completed'),
   final_metrics: z.object({
     duration: z.number(),
     chunks_completed: z.number(),

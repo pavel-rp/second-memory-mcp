@@ -42,8 +42,9 @@ describe('session-progress-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.session_chunk_id).toBe('sc1');
-      expect(parsed.status).toBe('created');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_chunk_id).toBe('sc1');
+      expect(parsed.data.message).toContain('Session chunk created');
     });
 
     it('maps attempts correctly', async () => {
@@ -77,8 +78,8 @@ describe('session-progress-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -89,7 +90,7 @@ describe('session-progress-tools', () => {
       const result = await handler({ chunk_id: 'c1' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('returns error for missing chunk_id', async () => {
@@ -99,7 +100,7 @@ describe('session-progress-tools', () => {
       const result = await handler({ session_id: 's1' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
   });
 
@@ -130,8 +131,8 @@ describe('session-progress-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('ok');
-      expect(parsed.created).toBe(1);
-      expect(parsed.affected_chunk_ids).toEqual(['c1']);
+      expect(parsed.data.created).toBe(1);
+      expect(parsed.data.affected_chunk_ids).toEqual(['c1']);
     });
 
     it('returns error for invalid chunk IDs', async () => {
@@ -149,7 +150,7 @@ describe('session-progress-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.message).toContain('c-bad');
     });
 
@@ -165,8 +166,8 @@ describe('session-progress-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -186,7 +187,7 @@ describe('session-progress-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
       expect(parsed.error.message).toContain('No active session found');
     });
@@ -211,8 +212,8 @@ describe('session-progress-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toContain('constraint violation');
     });
 
@@ -223,7 +224,7 @@ describe('session-progress-tools', () => {
       const result = await handler({ operations: [{ chunk_id: 'c1' }] });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('returns error for empty operations', async () => {
@@ -233,7 +234,7 @@ describe('session-progress-tools', () => {
       const result = await handler({ session_id: 's1', operations: [] });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
   });
 
@@ -253,9 +254,9 @@ describe('session-progress-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('ok');
-      expect(parsed.feedback_count).toBe(1);
-      expect(parsed.feedback).toHaveLength(1);
-      expect(parsed.hint).toContain('Pay special attention');
+      expect(parsed.data.feedback_count).toBe(1);
+      expect(parsed.data.feedback).toHaveLength(1);
+      expect(parsed.data.hint).toContain('Pay special attention');
     });
 
     it('returns empty feedback', async () => {
@@ -267,8 +268,8 @@ describe('session-progress-tools', () => {
       const parsed = parseResult(result);
 
       expect(parsed.status).toBe('ok');
-      expect(parsed.feedback_count).toBe(0);
-      expect(parsed.hint).toContain('No previous feedback');
+      expect(parsed.data.feedback_count).toBe(0);
+      expect(parsed.data.hint).toContain('No previous feedback');
     });
 
     it('returns database error when ctx throws', async () => {
@@ -279,8 +280,8 @@ describe('session-progress-tools', () => {
       const result = await handler({ chunk_ids: ['c1'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -291,7 +292,7 @@ describe('session-progress-tools', () => {
       const result = await handler({ chunk_ids: [] });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('returns error for missing chunk_ids', async () => {
@@ -301,7 +302,7 @@ describe('session-progress-tools', () => {
       const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
   });
 });

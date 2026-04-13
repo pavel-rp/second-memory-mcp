@@ -63,15 +63,16 @@ describe('session-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.session_id).toBe('s1');
-      expect(parsed.chunks_completed).toBe(1);
-      expect(parsed.chunks_remaining).toBe(0);
-      expect(parsed.overall_progress).toBeDefined();
-      expect(parsed.average_quality).toBeDefined();
-      expect(parsed.time_elapsed_ms).toBeDefined();
-      expect(parsed.should_complete).toBeDefined();
-      expect(parsed.reason).toBeDefined();
-      expect(parsed.recommendation).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_id).toBe('s1');
+      expect(parsed.data.chunks_completed).toBe(1);
+      expect(parsed.data.chunks_remaining).toBe(0);
+      expect(parsed.data.overall_progress).toBeDefined();
+      expect(parsed.data.average_quality).toBeDefined();
+      expect(parsed.data.time_elapsed_ms).toBeDefined();
+      expect(parsed.data.should_complete).toBeDefined();
+      expect(parsed.data.reason).toBeDefined();
+      expect(parsed.data.recommendation).toBeDefined();
     });
 
     it('returns not_found error when session not found by id', async () => {
@@ -82,7 +83,7 @@ describe('session-tools', () => {
       const result = await handler({ session_id: 's-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
       expect(parsed.error.message).toContain('not found');
       expect(parsed.error.retryable).toBe(false);
@@ -97,8 +98,8 @@ describe('session-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('session');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toContain('Failed to convert');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -110,7 +111,7 @@ describe('session-tools', () => {
       const result = await handler({ session_id: '' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -122,7 +123,7 @@ describe('session-tools', () => {
       const result = await handler({});
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -140,7 +141,7 @@ describe('session-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('validation');
       expect(parsed.error.retryable).toBe(false);
     });
@@ -153,8 +154,8 @@ describe('session-tools', () => {
       const result = await handler({ session_id: 's1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('An unexpected error occurred');
       expect(parsed.error.retryable).toBe(true);
     });

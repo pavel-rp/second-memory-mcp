@@ -59,7 +59,7 @@ describe('session-progress-tools', () => {
       topic_id: 'topic-p',
       context_token: 'ctx-test',
     });
-    return parseResult(createResult).session_id;
+    return parseResult(createResult).data.session_id;
   }
 
   describe('create_session_chunk', () => {
@@ -74,8 +74,9 @@ describe('session-progress-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.session_chunk_id).toBeDefined();
-      expect(parsed.status).toBe('created');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.session_chunk_id).toBeDefined();
+      expect(parsed.data.message).toContain('created');
     });
 
     it('creates session chunk with attempts', async () => {
@@ -102,7 +103,8 @@ describe('session-progress-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.status).toBe('created');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('created');
     });
   });
 
@@ -112,8 +114,8 @@ describe('session-progress-tools', () => {
       const result = await handler({ chunk_ids: ['chunk-p1'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
-      expect(parsed.feedback_count).toBe(0);
-      expect(parsed.hint).toContain('No previous feedback');
+      expect(parsed.data.feedback_count).toBe(0);
+      expect(parsed.data.hint).toContain('No previous feedback');
     });
 
     it('returns feedback from completed sessions', async () => {
@@ -147,7 +149,7 @@ describe('session-progress-tools', () => {
         chunk_ids: ['chunk-fb'],
         context_token: 'ctx-test',
       });
-      const sessionId = parseResult(createResult).session_id;
+      const sessionId = parseResult(createResult).data.session_id;
 
       const completeHandler = server.tools.get('complete_session')!.handler;
       await completeHandler({
@@ -160,8 +162,8 @@ describe('session-progress-tools', () => {
       const result = await handler({ chunk_ids: ['chunk-fb'], context_token: 'ctx-test' });
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
-      expect(parsed.feedback_count).toBeGreaterThanOrEqual(1);
-      expect(parsed.hint).toContain('Pay special attention');
+      expect(parsed.data.feedback_count).toBeGreaterThanOrEqual(1);
+      expect(parsed.data.hint).toContain('Pay special attention');
     });
   });
 });

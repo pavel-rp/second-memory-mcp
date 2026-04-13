@@ -52,8 +52,9 @@ describe('analytics-tools', () => {
       const handler = server.tools.get('analytics_daily')!.handler;
       const result = await handler({ date: '2026-01-15', context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.reviews_completed).toBe(3);
-      expect(parsed.average_quality).toBe(4.0);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.reviews_completed).toBe(3);
+      expect(parsed.data.average_quality).toBe(4.0);
       expect(ctx.computeDailyAnalytics).toHaveBeenCalledWith('2026-01-15');
     });
 
@@ -76,8 +77,8 @@ describe('analytics-tools', () => {
       const result = await handler({ date: '2026-01-15', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('computation');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toContain('db connection lost');
     });
   });
@@ -92,8 +93,9 @@ describe('analytics-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.days).toBeDefined();
-      expect(parsed.total.reviews_completed).toBe(3);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.days).toBeDefined();
+      expect(parsed.data.total.reviews_completed).toBe(3);
     });
 
     it('passes includeBreakdowns option correctly', async () => {
@@ -136,8 +138,8 @@ describe('analytics-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('computation');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toContain('window calc failed');
     });
 

@@ -11,7 +11,7 @@ import {
 import { toSnakeCase } from '../shared/case-convert.js';
 import { ZodError } from 'zod';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 import { toIsoTimestamp } from '../shared/date-helpers.js';
 
 export function registerQueryTools(server: McpServer, ctx: AppContext): void {
@@ -34,7 +34,7 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
             limit,
             isLeech,
           });
-          return toolJson(toSnakeCase(items));
+          return toolData(toSnakeCase(items));
         } catch (error) {
           const msg = extractErrorMessage(error);
           if (error instanceof ZodError) {
@@ -71,9 +71,8 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
             createdAt: toIsoTimestamp(t.createdAt),
             updatedAt: toIsoTimestamp(t.updatedAt),
           }));
-          return toolJson(
+          return toolData(
             toSnakeCase({
-              success: true,
               topics: mapped,
               count: mapped.length,
               message: `Retrieved ${mapped.length} topic${mapped.length === 1 ? '' : 's'}`,
@@ -128,9 +127,8 @@ export function registerQueryTools(server: McpServer, ctx: AppContext): void {
             updatedAt: toIsoTimestamp(c.updatedAt),
           }));
           const chunkIds = chunks.map((c: { id: string }) => c.id);
-          return toolJson(
+          return toolData(
             toSnakeCase({
-              success: true,
               chunks,
               count: chunks.length,
               message: `Retrieved ${chunks.length} chunk${chunks.length === 1 ? '' : 's'}`,

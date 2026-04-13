@@ -11,7 +11,7 @@ import {
 import { toSnakeCase } from '../shared/case-convert.js';
 import { toIsoTimestamp } from '../shared/date-helpers.js';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolOk } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerContentTools(server: McpServer, ctx: AppContext): void {
   server.registerTool(
@@ -40,8 +40,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
             });
           }
 
-          return toolOk(
-            `Successfully retrieved content for chunk: ${input.chunkId}`,
+          return toolData(
             toSnakeCase({
               chunkId: input.chunkId,
               content: chunkContent.content,
@@ -50,10 +49,11 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
                 ? toIsoTimestamp(chunkContent.contentUpdatedAt)
                 : undefined,
               knowledgeType: chunkContent.knowledgeType,
+              message: `Successfully retrieved content for chunk: ${input.chunkId}`,
               sessionReminder:
                 'If conducting recall/review: Ensure you have created a session first ' +
                 'to access historical feedback about learner difficulties.',
-            }) as Record<string, unknown>
+            })
           );
         } catch (error) {
           const msg = extractErrorMessage(error);
@@ -86,13 +86,12 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
 
           if (!topicResult) {
             return toolError(`No topic found with ID: ${input.topicId}`, {
-              type: 'database',
+              type: 'not_found',
               message: 'Topic not found',
             });
           }
 
-          return toolOk(
-            `Successfully retrieved topic summary: ${topicResult.title}`,
+          return toolData(
             toSnakeCase({
               topicId: input.topicId,
               title: topicResult.title,
@@ -105,10 +104,11 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
                 : null,
               createdAt: toIsoTimestamp(topicResult.createdAt),
               updatedAt: toIsoTimestamp(topicResult.updatedAt),
+              message: `Successfully retrieved topic summary: ${topicResult.title}`,
               sessionReminder:
                 'If conducting recall/review: Use batch_fetch_chunks_minimal(topic_id) to get chunk IDs, ' +
                 'then create_session(mode: "retrieval", chunk_ids: [...]) to load historical feedback.',
-            }) as Record<string, unknown>
+            })
           );
         } catch (error) {
           const msg = extractErrorMessage(error);
@@ -146,10 +146,7 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
             offset: resolvedOffset,
           });
 
-          return toolOk(
-            `Successfully retrieved ${result.items.length} learning items${
-              includeContent ? ' with content' : ''
-            }`,
+          return toolData(
             toSnakeCase({
               items: result.items,
               count: result.items.length,
@@ -161,7 +158,10 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
                 limit: resolvedLimit,
                 offset: resolvedOffset,
               },
-            }) as Record<string, unknown>
+              message: `Successfully retrieved ${result.items.length} learning items${
+                includeContent ? ' with content' : ''
+              }`,
+            })
           );
         } catch (error) {
           const msg = extractErrorMessage(error);

@@ -69,10 +69,10 @@ describe('topic-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBe('t1');
-      expect(parsed.chunk_ids).toEqual(['c1']);
-      expect(parsed.message).toContain('Data Structures');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('t1');
+      expect(parsed.data.chunk_ids).toEqual(['c1']);
+      expect(parsed.data.message).toContain('Data Structures');
     });
 
     it('maps snake_case chunk fields to camelCase for ctx', async () => {
@@ -133,8 +133,8 @@ describe('topic-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('duplicate title');
     });
 
@@ -146,8 +146,8 @@ describe('topic-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.message).toContain('connection lost');
     });
@@ -272,7 +272,7 @@ describe('topic-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
     });
 
     it('throws ZodError for invalid knowledge_type', async () => {
@@ -312,8 +312,8 @@ describe('topic-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -327,8 +327,8 @@ describe('topic-tools', () => {
       const result = await handler(validInput);
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
   });
@@ -352,10 +352,10 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBe('t1');
-      expect(parsed.updated_at).toBeDefined();
-      expect(parsed.message).toContain('Updated Title');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('t1');
+      expect(parsed.data.updated_at).toBeDefined();
+      expect(parsed.data.message).toContain('Updated Title');
     });
 
     it('returns toolError when ctx returns failure result', async () => {
@@ -369,7 +369,7 @@ describe('topic-tools', () => {
       const result = await handler({ topic_id: 't-missing', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
     });
 
@@ -381,8 +381,8 @@ describe('topic-tools', () => {
       const result = await handler({ topic_id: 't1', title: 'X', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -404,8 +404,8 @@ describe('topic-tools', () => {
       const result = await handler({ topic_id: 't1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -419,8 +419,8 @@ describe('topic-tools', () => {
       const result = await handler({ topic_id: 't1', context_token: 'ctx-test' });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
   });
@@ -444,10 +444,10 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBe('t1');
-      expect(parsed.summary_version).toBe(2);
-      expect(parsed.message).toContain('DS');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('t1');
+      expect(parsed.data.summary_version).toBe(2);
+      expect(parsed.data.message).toContain('DS');
     });
 
     it('includes consistency_reminder in success response', async () => {
@@ -465,12 +465,13 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeDefined();
-      expect(parsed.consistency_reminder.topic_id).toBe('t1');
-      expect(parsed.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
-      expect(parsed.consistency_reminder.instruction).toContain('summary');
-      expect(parsed.consistency_reminder.checklist).toBeInstanceOf(Array);
-      expect(parsed.consistency_reminder.checklist.length).toBe(4);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect(parsed.data.consistency_reminder.topic_id).toBe('t1');
+      expect(parsed.data.consistency_reminder.action).toBe('CONSISTENCY_CHECK');
+      expect(parsed.data.consistency_reminder.instruction).toContain('summary');
+      expect(parsed.data.consistency_reminder.checklist).toBeInstanceOf(Array);
+      expect(parsed.data.consistency_reminder.checklist.length).toBe(4);
     });
 
     it('does not include consistency_reminder in error response', async () => {
@@ -488,7 +489,7 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.consistency_reminder).toBeUndefined();
+      expect(parsed.status).toBe('error');
     });
 
     it('returns toolError when ctx returns failure result', async () => {
@@ -506,7 +507,7 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
     });
 
@@ -522,8 +523,8 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('system');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.retryable).toBe(true);
     });
 
@@ -549,8 +550,8 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
 
@@ -568,8 +569,8 @@ describe('topic-tools', () => {
       });
       const parsed = parseResult(result);
 
-      expect(parsed.success).toBe(false);
-      expect(parsed.error.type).toBe('database');
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
   });

@@ -40,10 +40,10 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBeDefined();
-      expect(parsed.topic_id).toBeDefined();
-      expect(parsed.created_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBeDefined();
+      expect(parsed.data.topic_id).toBeDefined();
+      expect(parsed.data.created_at).toBeDefined();
     });
 
     it('creates item with optional fields', async () => {
@@ -59,8 +59,8 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toContain('With Extras');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('With Extras');
     });
 
     it('creates item with content_status draft', async () => {
@@ -75,14 +75,14 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
 
       // Verify persisted value via direct DB read
       const db = getSql();
       const [row] = await db
         .select()
         .from(learningChunks)
-        .where(eq(learningChunks.id, parsed.chunk_id));
+        .where(eq(learningChunks.id, parsed.data.chunk_id));
       expect(row.contentStatus).toBe('draft');
     });
 
@@ -97,13 +97,13 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
 
       const db = getSql();
       const [row] = await db
         .select()
         .from(learningChunks)
-        .where(eq(learningChunks.id, parsed.chunk_id));
+        .where(eq(learningChunks.id, parsed.data.chunk_id));
       expect(row.contentStatus).toBe('final');
     });
   });
@@ -119,7 +119,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('updates content for existing chunk', async () => {
@@ -134,7 +134,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
-      const chunkId = created.chunk_id;
+      const chunkId = created.data.chunk_id;
 
       const handler = server.tools.get('update_chunk_content')!.handler;
       const result = await handler({
@@ -145,8 +145,8 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toContain('Successfully updated content');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('Successfully updated content');
     });
 
     it('auto-sets content_status to final on content update', async () => {
@@ -187,7 +187,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
 
       const [row] = await db
         .select()
@@ -206,7 +206,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('updates metadata for existing chunk', async () => {
@@ -220,7 +220,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
-      const chunkId = created.chunk_id;
+      const chunkId = created.data.chunk_id;
 
       const handler = server.tools.get('update_chunk_metadata')!.handler;
       const result = await handler({
@@ -230,8 +230,8 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toContain('Updated Title');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('Updated Title');
     });
   });
 
@@ -245,7 +245,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('updates chunk with progress reset', async () => {
@@ -259,7 +259,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
-      const chunkId = created.chunk_id;
+      const chunkId = created.data.chunk_id;
 
       const handler = server.tools.get('update_chunk')!.handler;
       const result = await handler({
@@ -270,7 +270,7 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
+      expect(parsed.status).toBe('ok');
     });
   });
 
@@ -279,7 +279,7 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('delete_chunk')!.handler;
       const result = await handler({ chunk_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('deletes existing chunk successfully', async () => {
@@ -293,13 +293,13 @@ describe('chunk-tools', () => {
         context_token: 'ctx-test',
       });
       const created = parseResult(createResult);
-      const chunkId = created.chunk_id;
+      const chunkId = created.data.chunk_id;
 
       const handler = server.tools.get('delete_chunk')!.handler;
       const result = await handler({ chunk_id: chunkId, context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.message).toContain('Successfully deleted');
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('Successfully deleted');
     });
 
     it('cleans up prerequisite references from dependent chunks', async () => {
@@ -345,8 +345,8 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('delete_chunk')!.handler;
       const result = await handler({ chunk_id: 'chunk-prereq', context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.removed_dependency_count).toBeGreaterThanOrEqual(0);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.removed_dependency_count).toBeGreaterThanOrEqual(0);
     });
   });
 });

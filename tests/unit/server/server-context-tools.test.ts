@@ -27,18 +27,19 @@ describe('server-context-tools', () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
 
-    expect(result).toHaveProperty('context_token', 'ctx-test-token-stub');
-    expect(result).toHaveProperty('status', 'initialized');
-    expect(result).toHaveProperty('domain_rules');
-    expect(result).toHaveProperty('workflow_summary');
-    expect(result).toHaveProperty('learner_context');
+    expect(result.status).toBe('ok');
+    expect(result.data).toHaveProperty('context_token', 'ctx-test-token-stub');
+    expect(result.data).toHaveProperty('action', 'initialized');
+    expect(result.data).toHaveProperty('domain_rules');
+    expect(result.data).toHaveProperty('workflow_summary');
+    expect(result.data).toHaveProperty('learner_context');
   });
 
   it('domain_rules contains all required fields', async () => {
     registerServerContextTools(server as any, makeCtx());
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
-    const rules = result.domain_rules;
+    const rules = result.data.domain_rules;
 
     expect(rules).toHaveProperty('chunk_definition');
     expect(rules).toHaveProperty('topic_scoping');
@@ -58,7 +59,7 @@ describe('server-context-tools', () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
 
-    expect(result.domain_rules).toEqual(DOMAIN_RULES);
+    expect(result.data.domain_rules).toEqual(DOMAIN_RULES);
   });
 
   it('workflow_summary is a non-empty string matching WORKFLOW_SUMMARY', async () => {
@@ -66,9 +67,9 @@ describe('server-context-tools', () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
 
-    expect(typeof result.workflow_summary).toBe('string');
-    expect(result.workflow_summary.length).toBeGreaterThan(0);
-    expect(result.workflow_summary).toBe(WORKFLOW_SUMMARY);
+    expect(typeof result.data.workflow_summary).toBe('string');
+    expect(result.data.workflow_summary.length).toBeGreaterThan(0);
+    expect(result.data.workflow_summary).toBe(WORKFLOW_SUMMARY);
   });
 
   it('returns toolError with type system when createContextToken throws', async () => {
@@ -81,18 +82,17 @@ describe('server-context-tools', () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
 
-    expect(result.success).toBe(false);
-    expect(result.error.type).toBe('system');
+    expect(result.status).toBe('error');
+    expect(result.error.type).toBe('internal');
     expect(result.error.message).toBe('token creation failed');
     expect(result.error.retryable).toBe(true);
-    expect(result.message).toBe('Failed to initialize agent context: token creation failed');
   });
 
   it('learner_context contains expected snake_case fields from mock', async () => {
     registerServerContextTools(server as any, makeCtx());
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
-    const lc = result.learner_context;
+    const lc = result.data.learner_context;
 
     expect(lc).toHaveProperty('total_topics', 0);
     expect(lc).toHaveProperty('total_chunks', 0);
@@ -117,11 +117,12 @@ describe('server-context-tools', () => {
     const handler = server.tools.get('init_agent_context')!.handler;
     const result = parseResult(await handler());
 
-    expect(result.learner_context).toBeNull();
-    expect(result.status).toBe('initialized');
-    expect(result.context_token).toBe('ctx-test-token-stub');
-    expect(result.domain_rules).toBeDefined();
-    expect(result.workflow_summary).toBeDefined();
+    expect(result.status).toBe('ok');
+    expect(result.data.learner_context).toBeNull();
+    expect(result.data.action).toBe('initialized');
+    expect(result.data.context_token).toBe('ctx-test-token-stub');
+    expect(result.data.domain_rules).toBeDefined();
+    expect(result.data.workflow_summary).toBeDefined();
   });
 
   it('response is valid JSON in toolJson format (single text content block)', async () => {

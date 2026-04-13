@@ -36,8 +36,9 @@ describe('persistence-tools', () => {
       const handler = server.tools.get('list_learning_items')!.handler;
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(Array.isArray(parsed)).toBe(true);
-      expect(parsed.length).toBe(0);
+      expect(parsed.status).toBe('ok');
+      expect(Array.isArray(parsed.data)).toBe(true);
+      expect(parsed.data.length).toBe(0);
     });
   });
 
@@ -53,10 +54,10 @@ describe('persistence-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunk_id).toBeDefined();
-      expect(parsed.topic_id).toBeDefined();
-      expect(parsed.created_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBeDefined();
+      expect(parsed.data.topic_id).toBeDefined();
+      expect(parsed.data.created_at).toBeDefined();
     });
   });
 
@@ -93,10 +94,10 @@ describe('persistence-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.topic_id).toBeDefined();
-      expect(parsed.chunk_ids).toBeDefined();
-      expect(parsed.created_at).toBeDefined();
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBeDefined();
+      expect(parsed.data.chunk_ids).toBeDefined();
+      expect(parsed.data.created_at).toBeDefined();
     });
   });
 
@@ -105,8 +106,8 @@ describe('persistence-tools', () => {
       const handler = server.tools.get('batch_fetch_topics_minimal')!.handler;
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.topics).toEqual([]);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topics).toEqual([]);
     });
   });
 
@@ -115,8 +116,8 @@ describe('persistence-tools', () => {
       const handler = server.tools.get('batch_fetch_chunks_minimal')!.handler;
       const result = await handler({ context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed.chunks).toEqual([]);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunks).toEqual([]);
     });
   });
 
@@ -131,14 +132,14 @@ describe('persistence-tools', () => {
         context_token: 'ctx-test',
       });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
 
     it('delete_chunk returns toolError for nonexistent chunk', async () => {
       const handler = server.tools.get('delete_chunk')!.handler;
       const result = await handler({ chunk_id: 'nonexistent', context_token: 'ctx-test' });
       const parsed = parseResult(result);
-      expect(parsed.success).toBe(false);
+      expect(parsed.status).toBe('error');
     });
   });
 });

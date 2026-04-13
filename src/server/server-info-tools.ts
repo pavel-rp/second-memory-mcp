@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getServerInfo } from '../shared/version.js';
 import { withRequestContext } from '../shared/logger.js';
-import { extractErrorMessage, toolError, toolJson } from './tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from './tool-helpers.js';
 
 export function registerServerInfoTools(server: McpServer): void {
   server.registerTool(
@@ -16,7 +16,7 @@ export function registerServerInfoTools(server: McpServer): void {
       withRequestContext('get_server_info', async () => {
         try {
           const info = getServerInfo();
-          return toolJson({
+          return toolData({
             name: info.name,
             version: info.version,
             build_time: info.buildTime,
