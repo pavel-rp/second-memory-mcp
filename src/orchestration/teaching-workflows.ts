@@ -1070,6 +1070,8 @@ async function submitAnswerForQuestion(
   }
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
+  const requiredFollowups = passed ? (deps.algorithmConfig.roadblockFollowups[quality] ?? 0) : 0;
+
   return {
     action: 'recorded',
     session_question_id: sessionQuestionId,
@@ -1079,6 +1081,15 @@ async function submitAnswerForQuestion(
     question_type: input.questionType,
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
+    ...(requiredFollowups > 0 && {
+      roadblock_forecast: {
+        trigger_quality: quality,
+        required_followups: requiredFollowups,
+        completed_followups: 0,
+        remaining: requiredFollowups,
+        quality_floor: 3 as const,
+      },
+    }),
   };
 }
 
