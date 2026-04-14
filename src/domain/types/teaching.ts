@@ -136,14 +136,16 @@ export type SubmitAnswerInputRetry = {
 
 export type SubmitAnswerInput = SubmitAnswerInputInline | SubmitAnswerInputRetry;
 
+export type RoadblockForecast = {
+  trigger_quality: number;
+  required_followups: number;
+  completed_followups: number;
+  remaining: number;
+  quality_floor: 3;
+};
+
 export type RetryGuidance = {
-  roadblock: {
-    trigger_quality: number;
-    required_followups: number;
-    completed_followups: number;
-    remaining: number;
-    quality_floor: 3;
-  };
+  roadblock: RoadblockForecast;
   teaching_approach: TeachingApproach;
   pivot: string;
 };
@@ -168,6 +170,7 @@ export type SubmitAnswerRecorded = {
   chunk_id: string;
   review_update?: ReviewUpdate;
   late_submission?: boolean;
+  roadblock_forecast?: RoadblockForecast;
 };
 
 export type SubmitAnswerError = {

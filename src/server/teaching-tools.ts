@@ -27,7 +27,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         "After presenting the instruction and receiving the learner's answer, call submit_answer " +
         'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
-        "When submit_answer returns action 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'complete' → end session, 'blocked'/'error' → surface message.",
+        "When submit_answer returns action 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'roadblock' → follow-up questions required before progression (follow roadblock_detail.instruction), 'complete' → end session, 'blocked'/'error' → surface message.",
       inputSchema: z.object({
         context_token: z
           .string()
@@ -101,7 +101,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Agent provides quality (0–5) and question_type per the quality rubric. ' +
         'passed is optional — derived from quality >= 3 when omitted. ' +
         'Returns session_question_id in retry and recorded responses for retry reference. ' +
-        'When action is "recorded", consider calling add_note if something notable happened: ' +
+        'When action is "recorded", check for roadblock_forecast — if present, follow-up questions are required before progression. ' +
+        'Consider calling add_note if something notable happened: ' +
         'insight (mental models, analogies), confusion (misconceptions corrected), ' +
         'connection (links to other topics), deeper_exploration (beyond stored content). ' +
         'Then call teach_next to get the next action.',

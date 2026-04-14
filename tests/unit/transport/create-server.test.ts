@@ -32,9 +32,10 @@ describe('createMcpServer', () => {
     const instructions = client.getInstructions();
     expect(instructions).toBeTypeOf('string');
     // MCP initialize response includes instructions; keep them concise to avoid bloating handshakes
-    expect(instructions!.length).toBeLessThan(5300);
+    expect(instructions!.length).toBeLessThan(5800);
     expect(instructions).toContain('start_learning');
     expect(instructions).toContain('submit_answer');
+    expect(instructions).toContain('roadblock');
   });
 
   it('produces independent instances per call', () => {

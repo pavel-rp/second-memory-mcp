@@ -18,6 +18,7 @@ import type {
   SubmitAnswerInput,
   SubmitAnswerInputInline,
   SubmitAnswerInputRetry,
+  SubmitAnswerRecorded,
   SubmitAnswerRetry,
 } from '../../../src/domain/types/teaching.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
@@ -1241,6 +1242,84 @@ describe('submitAnswer', () => {
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
       expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
+    });
+  });
+
+  // ── NEU-532: roadblock_forecast on recorded path ─────────────────
+
+  describe('roadblock_forecast', () => {
+    it('quality 3 + passed → includes roadblock_forecast', async () => {
+      const deps = makeDeps();
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(3);
+      expect(recorded.roadblock_forecast!.required_followups).toBe(1);
+      expect(recorded.roadblock_forecast!.completed_followups).toBe(0);
+      expect(recorded.roadblock_forecast!.remaining).toBe(1);
+      expect(recorded.roadblock_forecast!.quality_floor).toBe(3);
+    });
+
+    it('quality 4 + passed → includes roadblock_forecast', async () => {
+      const deps = makeDeps();
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(4);
+      expect(recorded.roadblock_forecast!.required_followups).toBe(1);
+      expect(recorded.roadblock_forecast!.completed_followups).toBe(0);
+      expect(recorded.roadblock_forecast!.remaining).toBe(1);
+      expect(recorded.roadblock_forecast!.quality_floor).toBe(3);
+    });
+
+    it('quality 5 + passed → no roadblock_forecast', async () => {
+      const deps = makeDeps();
+      const result = await submitAnswer(makeInput({ quality: 5, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeUndefined();
+    });
+
+    it('quality 2 + failed (second attempt) → no roadblock_forecast', async () => {
+      const deps = makeQuestionDeps({
+        sessionQuestions: {
+          getQuestionById: vi
+            .fn()
+            .mockResolvedValue(
+              makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' })
+            ),
+          getAttemptsForQuestion: vi
+            .fn()
+            .mockResolvedValue([
+              makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: 1, agentQuality: 1 }),
+            ]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 2, passed: false }),
+        deps
+      );
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeUndefined();
+    });
+
+    it('defaults to no forecast when quality absent from roadblockFollowups', async () => {
+      const deps = makeDeps({
+        algorithmConfig: { roadblockFollowups: {} },
+      });
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeUndefined();
     });
   });
 });
