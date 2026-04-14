@@ -35,6 +35,7 @@ describe('createMcpServer', () => {
     expect(instructions!.length).toBeLessThan(5800);
     expect(instructions).toContain('start_learning');
     expect(instructions).toContain('submit_answer');
+    expect(instructions).toContain('roadblock');
   });
 
   it('produces independent instances per call', () => {

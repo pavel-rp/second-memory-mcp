@@ -1070,6 +1070,9 @@ async function submitAnswerForQuestion(
   }
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
+  // NOTE: Forecast uses this attempt's quality; evaluateRoadblock in teach_next derives
+  // required_followups from the min quality across ALL attempts, so the forecast may
+  // underestimate when a prior attempt scored lower.
   const requiredFollowups = passed ? (deps.algorithmConfig.roadblockFollowups[quality] ?? 0) : 0;
 
   return {
