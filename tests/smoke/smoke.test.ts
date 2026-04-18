@@ -79,7 +79,15 @@ type ToolEnvelope =
   | { status: 'error'; error: { type: string; message: string; retryable: boolean } };
 
 function parseEnvelope(text: string): ToolEnvelope {
-  return JSON.parse(text) as ToolEnvelope;
+  try {
+    return JSON.parse(text) as ToolEnvelope;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    const truncated = text.length > 500 ? `${text.slice(0, 500)}…` : text;
+    throw new Error(`parseEnvelope: invalid JSON (${reason}). Payload: ${truncated}`, {
+      cause: err,
+    });
+  }
 }
 
 async function mcpPost(body: unknown, sessionId?: string) {
@@ -180,8 +188,10 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     };
     expect(typeof data.context_token).toBe('string');
     expect(data.action).toBe('initialized');
-    // null is acceptable (graceful degradation); we only verify the field is present
-    expect('learner_context' in data).toBe(true);
+    // null is acceptable (graceful degradation); we only verify the field is present.
+    // `toHaveProperty` yields a clean assertion failure if `data` ever drifts to
+    // a non-object — unlike the `in` operator, which throws TypeError on null.
+    expect(data).toHaveProperty('learner_context');
     contextToken = data.context_token;
   });
 
