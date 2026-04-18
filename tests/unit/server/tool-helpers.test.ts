@@ -166,4 +166,32 @@ describe('tool-helpers', () => {
       expect(parsed.error.type).toBe('internal');
     });
   });
+
+  // Full-shape `toEqual` assertions lock the envelope contract: any future
+  // rename (status → result, data → payload, error.type → error.kind, …)
+  // breaks `pnpm test:unit` before the drift can reach CD. See NEU-604.
+  describe('envelope contract', () => {
+    it('toolData emits exactly { status: "ok", data }', () => {
+      expect(parseResult(toolData({ foo: 1 }))).toEqual({
+        status: 'ok',
+        data: { foo: 1 },
+      });
+    });
+
+    it('toolOk emits exactly { status: "ok", data: { ...extra, message } }', () => {
+      expect(parseResult(toolOk('hi', { id: 'x' }))).toEqual({
+        status: 'ok',
+        data: { id: 'x', message: 'hi' },
+      });
+    });
+
+    it('toolError emits exactly { status: "error", error: { type, message, retryable } }', () => {
+      expect(
+        parseResult(toolError('oops', { type: 'not_found', message: 'gone', retryable: false }))
+      ).toEqual({
+        status: 'error',
+        error: { type: 'not_found', message: 'gone', retryable: false },
+      });
+    });
+  });
 });

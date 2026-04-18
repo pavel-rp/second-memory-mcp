@@ -67,6 +67,29 @@ async function parseResponse(res: Response): Promise<unknown> {
   return res.json();
 }
 
+/**
+ * Decode the standard MCP tool-response envelope emitted by
+ * `toolData` / `toolOk` / `toolError` in src/server/tool-helpers.ts.
+ *
+ * Kept local to the smoke suite — production imports are intentionally
+ * avoided so the smoke tests exercise the wire contract, not the code.
+ */
+type ToolEnvelope =
+  | { status: 'ok'; data: unknown }
+  | { status: 'error'; error: { type: string; message: string; retryable: boolean } };
+
+function parseEnvelope(text: string): ToolEnvelope {
+  try {
+    return JSON.parse(text) as ToolEnvelope;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    const truncated = text.length > 500 ? `${text.slice(0, 500)}…` : text;
+    throw new Error(`parseEnvelope: invalid JSON (${reason}). Payload: ${truncated}`, {
+      cause: err,
+    });
+  }
+}
+
 async function mcpPost(body: unknown, sessionId?: string) {
   return fetch(MCP_ENDPOINT, {
     method: 'POST',
@@ -155,16 +178,21 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     };
     expect(body.result?.content?.[0]?.text).toBeDefined();
 
-    const parsed = JSON.parse(body.result!.content![0]!.text) as {
+    const parsed = parseEnvelope(body.result!.content![0]!.text);
+    expect(parsed.status).toBe('ok');
+    if (parsed.status !== 'ok') throw new Error('unreachable');
+    const data = parsed.data as {
       context_token?: string;
-      status?: string;
+      action?: string;
       learner_context?: unknown;
     };
-    expect(parsed.context_token).toBeDefined();
-    expect(parsed.status).toBe('initialized');
-    // null is acceptable (graceful degradation); we only verify the field exists
-    expect(parsed.learner_context).toBeDefined();
-    contextToken = parsed.context_token;
+    expect(typeof data.context_token).toBe('string');
+    expect(data.action).toBe('initialized');
+    // null is acceptable (graceful degradation); we only verify the field is present.
+    // `toHaveProperty` yields a clean assertion failure if `data` ever drifts to
+    // a non-object — unlike the `in` operator, which throws TypeError on null.
+    expect(data).toHaveProperty('learner_context');
+    contextToken = data.context_token;
   });
 
   // ── list_learning_items (DB connectivity) ──────────────
@@ -191,10 +219,11 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     expect(Array.isArray(body.result!.content)).toBe(true);
     expect(body.result!.content!.length).toBeGreaterThan(0);
 
-    // The tool returns JSON-encoded data in a text content block
-    const text = body.result!.content![0]!.text;
-    const parsed = JSON.parse(text) as unknown;
-    expect(Array.isArray(parsed)).toBe(true);
+    // The tool returns a standard envelope with data = array of items
+    const parsed = parseEnvelope(body.result!.content![0]!.text);
+    expect(parsed.status).toBe('ok');
+    if (parsed.status !== 'ok') throw new Error('unreachable');
+    expect(Array.isArray(parsed.data)).toBe(true);
   });
 
   // ── session_status ───────────────────────────────────
@@ -223,12 +252,10 @@ describe.skipIf(!BASE_URL)('Smoke tests', () => {
     expect(body.result!.content).toBeDefined();
     expect(body.result!.content!.length).toBeGreaterThan(0);
 
-    const parsed = JSON.parse(body.result!.content![0]!.text) as {
-      success?: boolean;
-      error?: { type?: string };
-    };
-    expect(parsed.success).toBe(false);
-    expect(parsed.error?.type).toBe('not_found');
+    const parsed = parseEnvelope(body.result!.content![0]!.text);
+    expect(parsed.status).toBe('error');
+    if (parsed.status !== 'error') throw new Error('unreachable');
+    expect(parsed.error.type).toBe('not_found');
   });
 
   // ── Session cleanup ────────────────────────────────────
