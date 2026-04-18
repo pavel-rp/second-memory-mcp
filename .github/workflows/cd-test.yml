@@ -33,6 +33,33 @@ jobs:
           envs: SHA,REPO_DIR,COMPOSE_DIR,COMPOSE_FILE
           script: |
             set -e
+
+            # Failure diagnostics trap — installed before any command that can fail
+            # so `docker compose up`, `git`, and early `cd` failures also surface
+            # diagnostics. Fires on both implicit set -e failures and explicit
+            # `exit N` paths (ERR trap would miss the latter). Uses --format (never
+            # raw `docker inspect <id>`) so env-var secrets are not leaked. Exit
+            # status is preserved automatically by the EXIT trap.
+            on_exit() {
+              status=$?
+              [ "$status" -eq 0 ] && return 0
+              echo "::group::Deploy failure diagnostics"
+              if [ -n "${CONTAINER:-}" ]; then
+                echo "---- docker logs --tail 200 $CONTAINER ----"
+                docker logs --tail 200 "$CONTAINER" || true
+                echo "---- docker inspect state ----"
+                docker inspect --format '{{json .State}}' "$CONTAINER" || true
+                echo "---- docker inspect restart/healthcheck ----"
+                docker inspect --format 'restart={{.RestartCount}} healthcheck={{json .Config.Healthcheck}}' "$CONTAINER" || true
+              else
+                echo "::warning::Deploy failed before container ID was resolved (status=$status)"
+                echo "---- docker compose ps ----"
+                ( cd "$COMPOSE_DIR" 2>/dev/null && docker compose -p second-memory-mcp-test -f "$COMPOSE_FILE" ps ) || true
+              fi
+              echo "::endgroup::"
+            }
+            trap on_exit EXIT
+
             cd "$REPO_DIR"
             git fetch origin
             git reset --hard "$SHA"
@@ -45,22 +72,41 @@ jobs:
             fi
             docker compose -p second-memory-mcp-test -f "$COMPOSE_FILE" up -d --build
 
-            # Wait for health check
             CONTAINER=$(docker compose -p second-memory-mcp-test -f "$COMPOSE_FILE" ps -q app)
-            for i in $(seq 1 30); do
-              if docker inspect --format='{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null | grep -q healthy; then
-                echo "Container healthy"
-                break
+
+            if [ -z "$CONTAINER" ]; then
+              echo "Error: no app container ID returned by 'docker compose -p second-memory-mcp-test -f \$COMPOSE_FILE ps -q app'; the container may have failed to start"
+              exit 1
+            fi
+
+            # Wait for sustained health: State.Status == "running" AND
+            # State.Health.Status == "healthy" for 3 consecutive polls (6 s stable).
+            # Fail fast on "restarting". Budget: 45 polls × 2 s ≈ 88 s worst case.
+            consecutive=0
+            last_status=""
+            last_health=""
+            for i in $(seq 1 45); do
+              last_status=$(docker inspect --format '{{.State.Status}}' "$CONTAINER" 2>/dev/null || echo unknown)
+              last_health=$(docker inspect --format '{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || echo unknown)
+              if [ "$last_status" = "restarting" ]; then
+                echo "Container entered restarting state at poll $i/45 (health=$last_health); aborting"
+                exit 1
               fi
-              if [ "$i" -eq 30 ]; then
-                echo "Health check timeout"
+              if [ "$last_status" = "running" ] && [ "$last_health" = "healthy" ]; then
+                consecutive=$((consecutive + 1))
+                if [ "$consecutive" -ge 3 ]; then
+                  echo "Container healthy for 3 consecutive polls (after $i iterations)"
+                  break
+                fi
+              else
+                consecutive=0
+              fi
+              if [ "$i" -eq 45 ]; then
+                echo "Health check timeout after 45 polls; last status=$last_status health=$last_health consecutive=$consecutive"
                 exit 1
               fi
               sleep 2
             done
-
-            # Run migrations
-            docker exec "$CONTAINER" node dist/infrastructure/db/migrate.js
         env:
           SHA: ${{ github.event.workflow_run.head_sha }}
           REPO_DIR: ${{ env.REPO_DIR }}
