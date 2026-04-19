@@ -1366,25 +1366,44 @@ describe('submitAnswer', () => {
       expect(recorded.roadblock_forecast).toBeUndefined();
     });
 
-    it('quality 2 + failed (second attempt, single retried question) → no roadblock_forecast', async () => {
-      // Same single question, two attempts (q=1 then q=2). Only q1 exists in the
-      // chunk, so there is no qualifying follow-up. min quality is 1 → required 3,
-      // completed 0, remaining 3 — except: this test scenario uses the historical
-      // mock setup where getAllAttemptsForSession returns no attempts, mirroring the
-      // pre-NEU-600 expectation that submit_answer omits the forecast on second-attempt
-      // failure when the gate has nothing aligned to surface.
+    it('quality 2 + failed (second attempt) → roadblock_forecast reflects gate-aligned state', async () => {
+      // Single question sq-1 retried (q=1 then q=2). After persist, the chunk has
+      // two attempts on the same question; min quality across them is 1 → required
+      // 3 follow-ups. sq-1 is both the only question and the trigger question, and
+      // computeRoadblockState skips the trigger question when counting qualifying
+      // follow-ups, so completed === 0. Per NEU-600, the recorded path emits the
+      // forecast for any non-zero remaining — not gated on `passed` — so the agent
+      // sees the same blocker teach_next will surface on its next call, including
+      // on second-attempt failures.
+      const sq1 = makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' });
       const deps = makeQuestionDeps({
         sessionQuestions: {
-          getQuestionById: vi
-            .fn()
-            .mockResolvedValue(
-              makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' })
-            ),
+          getQuestionById: vi.fn().mockResolvedValue(sq1),
           getAttemptsForQuestion: vi
             .fn()
             .mockResolvedValue([
               makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: 1, agentQuality: 1 }),
             ]),
+          getQuestionsForSession: vi.fn().mockResolvedValue([sq1]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([
+            makeQuestionAttempt({
+              id: 'sqa-1',
+              attemptNumber: 1,
+              passed: false,
+              quality: 1,
+              agentQuality: 1,
+              createdAt: NOW,
+            }),
+            makeQuestionAttempt({
+              id: 'sqa-2',
+              attemptNumber: 2,
+              passed: false,
+              quality: 2,
+              agentQuality: 2,
+              createdAt: NOW + 1000,
+            }),
+          ]),
         },
       });
 
@@ -1395,7 +1414,11 @@ describe('submitAnswer', () => {
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
-      expect(recorded.roadblock_forecast).toBeUndefined();
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(1);
+      expect(recorded.roadblock_forecast!.required_followups).toBe(3);
+      expect(recorded.roadblock_forecast!.completed_followups).toBe(0);
+      expect(recorded.roadblock_forecast!.remaining).toBe(3);
     });
 
     it('defaults to no forecast when quality absent from roadblockFollowups', async () => {
@@ -1614,6 +1637,56 @@ describe('submitAnswer', () => {
       // Current attempt (q=4) qualifies as a follow-up for the prior trigger.
       expect(retry.retry_guidance!.roadblock.completed_followups).toBe(1);
       expect(retry.retry_guidance!.roadblock.remaining).toBe(2);
+    });
+
+    it('best-effort: roadblock state fetch failure does not bubble; recorded response still returned without forecast', async () => {
+      // The attempt is already persisted before the gate-aligned state fetch
+      // runs. If a transient DB read fails after persist, submit_answer must
+      // still return the recorded response (with no forecast) so the agent can
+      // proceed; teach_next will recompute the gate from authoritative data.
+      const deps = makeDeps({
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockRejectedValue(new Error('transient db failure')),
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeUndefined();
+    });
+
+    it('lazy: skips roadblock state fetch when first-attempt-fail has no teaching approach', async () => {
+      // When the retry path will not emit retry_guidance (approach is null),
+      // the gate-aligned state is never surfaced — so the fetch should be
+      // skipped entirely. We assert by mocking getAllAttemptsForSession to
+      // throw: if the helper were called, the call would reject (and surface
+      // through the best-effort log warn); since it is skipped, the rejection
+      // never fires.
+      const getAllAttempts = vi.fn().mockRejectedValue(new Error('should not be called'));
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: null,
+            }),
+          ]),
+        },
+        sessionQuestions: {
+          getAllAttemptsForSession: getAllAttempts,
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.action).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeUndefined();
+      expect(getAllAttempts).not.toHaveBeenCalled();
     });
   });
 });

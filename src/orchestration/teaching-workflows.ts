@@ -1033,23 +1033,40 @@ async function submitAnswerForQuestion(
     ...(wasCapped && { wasCapped: true, agentQuality: input.quality }),
   });
 
-  // 6. Update question status when passed; in parallel, compute aligned roadblock
+  // 6. Resolve teaching approach early so we can skip the roadblock-state fetch
+  // when nothing will surface it (first-attempt fail with no approach → retry
+  // without retry_guidance).
+  const rawApproach = sessionChunk.teachingApproach;
+  const approach =
+    rawApproach && rawApproach in RETRY_PIVOT ? (rawApproach as TeachingApproach) : null;
+  const willSurfaceForecast = passed || attemptNumber === 2 || approach !== null;
+
+  // Update question status when passed; in parallel, compute aligned roadblock
   // state from the same chunk-scoped inputs that teach_next's evaluateRoadblock
   // will use (with the just-persisted attempt included). Both forecast emission
-  // sites (retry + recorded) use this state.
+  // sites (retry + recorded) use this state. The state fetch is best-effort —
+  // the attempt is already persisted, so a transient read failure must not
+  // bubble out and confuse the agent (teach_next will recompute the gate
+  // server-side from authoritative data on the next call).
   const [, roadblockState] = await Promise.all([
     passed
       ? deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered')
       : Promise.resolve(),
-    computeChunkRoadblockState(deps, session.id, primaryChunkId),
+    willSurfaceForecast
+      ? computeChunkRoadblockState(deps, session.id, primaryChunkId).catch(
+          (err: unknown): RoadblockState | null => {
+            const message = err instanceof Error ? err.message : String(err);
+            getRequestLogger().warn(
+              `submitAnswer: roadblock state fetch failed for chunk ${primaryChunkId}: ${message}`
+            );
+            return null;
+          }
+        )
+      : Promise.resolve<RoadblockState | null>(null),
   ]);
 
   // 7. First attempt failed → retry
   if (!passed && attemptNumber === 1) {
-    const rawApproach = sessionChunk.teachingApproach;
-    const approach =
-      rawApproach && rawApproach in RETRY_PIVOT ? (rawApproach as TeachingApproach) : null;
-
     return {
       action: 'retry',
       session_question_id: sessionQuestionId,
