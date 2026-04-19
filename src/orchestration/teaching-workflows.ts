@@ -30,6 +30,7 @@ import * as recommendationWorkflows from './recommendation-workflows.js';
 import {
   evaluateRoadblock,
   computeRoadblockState,
+  getRequiredFollowups,
   type RoadblockState,
 } from '../domain/algorithms/roadblock-gate.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
@@ -1047,7 +1048,10 @@ async function submitAnswerForQuestion(
   // sites (retry + recorded) use this state. The state fetch is best-effort —
   // the attempt is already persisted, so a transient read failure must not
   // bubble out and confuse the agent (teach_next will recompute the gate
-  // server-side from authoritative data on the next call).
+  // server-side from authoritative data on the next call). When the fetch
+  // fails, set roadblockStateFetchError so callers can degrade to the
+  // pre-NEU-600 static estimate rather than asserting "no follow-ups needed".
+  let roadblockStateFetchError = false;
   const [, roadblockState] = await Promise.all([
     passed
       ? deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered')
@@ -1059,11 +1063,20 @@ async function submitAnswerForQuestion(
             getRequestLogger().warn(
               `submitAnswer: roadblock state fetch failed for chunk ${primaryChunkId}: ${message}`
             );
+            roadblockStateFetchError = true;
             return null;
           }
         )
       : Promise.resolve<RoadblockState | null>(null),
   ]);
+
+  // Static estimate from the current capped quality — used as a graceful
+  // degradation only when the gate-aligned fetch errored. Mirrors the
+  // pre-NEU-600 formula so the agent retains a meaningful follow-up signal
+  // instead of getting a misleading "0 required" assertion.
+  const staticFallbackRequired = roadblockStateFetchError
+    ? getRequiredFollowups(quality, deps.algorithmConfig.roadblockFollowups)
+    : 0;
 
   // 7. First attempt failed → retry
   if (!passed && attemptNumber === 1) {
@@ -1087,9 +1100,9 @@ async function submitAnswerForQuestion(
                 }
               : {
                   trigger_quality: quality,
-                  required_followups: 0,
+                  required_followups: staticFallbackRequired,
                   completed_followups: 0,
-                  remaining: 0,
+                  remaining: staticFallbackRequired,
                   quality_floor: 3 as const,
                 },
           teaching_approach: approach,
@@ -1105,6 +1118,9 @@ async function submitAnswerForQuestion(
   }
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
+  // On state-fetch error, degrade to the pre-NEU-600 emission rule
+  // (`passed && requiredFollowups[quality] > 0`) so the agent still sees a
+  // best-effort blocker signal.
   const forecast =
     roadblockState && roadblockState.remaining > 0
       ? {
@@ -1114,7 +1130,15 @@ async function submitAnswerForQuestion(
           remaining: roadblockState.remaining,
           quality_floor: 3 as const,
         }
-      : undefined;
+      : roadblockStateFetchError && passed && staticFallbackRequired > 0
+        ? {
+            trigger_quality: quality,
+            required_followups: staticFallbackRequired,
+            completed_followups: 0,
+            remaining: staticFallbackRequired,
+            quality_floor: 3 as const,
+          }
+        : undefined;
 
   return {
     action: 'recorded',

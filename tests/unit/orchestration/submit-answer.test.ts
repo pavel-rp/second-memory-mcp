@@ -1639,11 +1639,13 @@ describe('submitAnswer', () => {
       expect(retry.retry_guidance!.roadblock.remaining).toBe(2);
     });
 
-    it('best-effort: roadblock state fetch failure does not bubble; recorded response still returned without forecast', async () => {
+    it('best-effort: roadblock state fetch failure → recorded response degrades to pre-NEU-600 static estimate', async () => {
       // The attempt is already persisted before the gate-aligned state fetch
       // runs. If a transient DB read fails after persist, submit_answer must
-      // still return the recorded response (with no forecast) so the agent can
-      // proceed; teach_next will recompute the gate from authoritative data.
+      // still return the recorded response — and per Copilot review feedback on
+      // PR #440, must surface a best-effort static estimate (matching the
+      // pre-NEU-600 formula) instead of asserting "no follow-ups needed".
+      // teach_next will recompute the authoritative gate on the next call.
       const deps = makeDeps({
         sessionQuestions: {
           getAllAttemptsForSession: vi.fn().mockRejectedValue(new Error('transient db failure')),
@@ -1654,7 +1656,63 @@ describe('submitAnswer', () => {
 
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
+      // Degraded forecast: required_followups derived from quality (3 → 1 per default config).
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(3);
+      expect(recorded.roadblock_forecast!.required_followups).toBe(1);
+      expect(recorded.roadblock_forecast!.completed_followups).toBe(0);
+      expect(recorded.roadblock_forecast!.remaining).toBe(1);
+    });
+
+    it('best-effort: recorded path on state-fetch error with quality 5 → no forecast (static estimate is 0)', async () => {
+      // Pre-NEU-600 emitted forecast only when required_followups[quality] > 0.
+      // Quality 5 has required=0 in the default config, so the degraded path
+      // also omits the field.
+      const deps = makeDeps({
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockRejectedValue(new Error('transient db failure')),
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 5, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
       expect(recorded.roadblock_forecast).toBeUndefined();
+    });
+
+    it('best-effort: retry path on state-fetch error → retry_guidance.roadblock degrades to pre-NEU-600 static estimate', async () => {
+      // First-attempt failure on a chunk with a teaching approach: the retry
+      // path normally emits gate-aligned roadblock state. On state-fetch error,
+      // the fallback must surface the pre-NEU-600 static estimate
+      // (required_followups derived from the current capped quality) — not 0,
+      // which would silently mislead the agent that no follow-ups are needed.
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: 'recall',
+            }),
+          ]),
+        },
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockRejectedValue(new Error('transient db failure')),
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
+
+      expect(result.action).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeDefined();
+      // Static estimate for quality=1 → roadblockFollowups[1] = 3 in default config.
+      expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(1);
+      expect(retry.retry_guidance!.roadblock.required_followups).toBe(3);
+      expect(retry.retry_guidance!.roadblock.completed_followups).toBe(0);
+      expect(retry.retry_guidance!.roadblock.remaining).toBe(3);
     });
 
     it('lazy: skips roadblock state fetch when first-attempt-fail has no teaching approach', async () => {
