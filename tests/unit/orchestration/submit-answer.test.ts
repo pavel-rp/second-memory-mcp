@@ -1072,7 +1072,19 @@ describe('submitAnswer', () => {
   // ── NEU-519: retry_guidance on first-attempt failure ─────────────
 
   describe('retry_guidance', () => {
-    function retryDeps(teachingApproach: string | null = 'recall') {
+    /**
+     * NEU-600: After persisting the failed attempt, the forecast is computed
+     * from the gate-aligned state. The mock for `getAllAttemptsForSession` must
+     * return the just-persisted attempt with the test's quality so the gate
+     * sees the same data `evaluateRoadblock` would. Default `cappedQuality`
+     * mirrors `submittedQuality`; pass it explicitly when the quality cap
+     * applies.
+     */
+    function retryDeps(
+      teachingApproach: string | null = 'recall',
+      submittedQuality = 1,
+      cappedQuality: number = submittedQuality
+    ) {
       return makeDeps({
         sessions: {
           getSessionChunks: vi.fn().mockResolvedValue([
@@ -1082,6 +1094,23 @@ describe('submitAnswer', () => {
               status: 'in_progress',
               teachingApproach,
             }),
+          ]),
+        },
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([
+            {
+              id: 'sqa-current',
+              sessionQuestionId: 'sq-created',
+              attemptNumber: 1 as const,
+              response: 'X is a concept',
+              passed: cappedQuality >= 3,
+              feedback: '',
+              quality: cappedQuality,
+              agentQuality: submittedQuality,
+              questionType: 'recall' as const,
+              timeSpentMs: 1000,
+              createdAt: NOW,
+            },
           ]),
         },
       });
@@ -1110,7 +1139,7 @@ describe('submitAnswer', () => {
     ] as const)(
       'roadblock forecast for quality %d → required_followups %d',
       async (quality, expectedFollowups) => {
-        const deps = retryDeps('recall');
+        const deps = retryDeps('recall', quality);
         const result = await submitAnswer(makeInput({ quality, passed: false }), deps);
 
         expect(result.action).toBe('retry');
@@ -1122,7 +1151,7 @@ describe('submitAnswer', () => {
     );
 
     it('roadblock forecast for quality 5 → required_followups 0', async () => {
-      const deps = retryDeps('recall');
+      const deps = retryDeps('recall', 5);
       const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
 
       expect(result.action).toBe('retry');
@@ -1132,7 +1161,7 @@ describe('submitAnswer', () => {
     });
 
     it('quality_floor is always 3', async () => {
-      const deps = retryDeps('scaffold');
+      const deps = retryDeps('scaffold', 1);
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
 
       const retry = result as SubmitAnswerRetry;
@@ -1140,7 +1169,7 @@ describe('submitAnswer', () => {
     });
 
     it('completed_followups is always 0 on first retry', async () => {
-      const deps = retryDeps('cued_recall');
+      const deps = retryDeps('cued_recall', 2);
       const result = await submitAnswer(makeInput({ quality: 2, passed: false }), deps);
 
       const retry = result as SubmitAnswerRetry;
@@ -1161,6 +1190,23 @@ describe('submitAnswer', () => {
         },
         sessionQuestions: {
           getMinPriorQuality: vi.fn().mockResolvedValue(1), // cap at 3
+          // Persisted attempt mirrors the post-cap quality (3), which is what
+          // computeRoadblockState reads back.
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([
+            {
+              id: 'sqa-current',
+              sessionQuestionId: 'sq-created',
+              attemptNumber: 1 as const,
+              response: 'X is a concept',
+              passed: false,
+              feedback: '',
+              quality: 3,
+              agentQuality: 5,
+              questionType: 'recall' as const,
+              timeSpentMs: 1000,
+              createdAt: NOW,
+            },
+          ]),
         },
       });
 
@@ -1245,11 +1291,46 @@ describe('submitAnswer', () => {
     });
   });
 
-  // ── NEU-532: roadblock_forecast on recorded path ─────────────────
+  // ── NEU-532 + NEU-600: roadblock_forecast on recorded path ───────
+  //
+  // NEU-600: forecast values are computed via `computeRoadblockState` from the
+  // session-wide attempts/questions/chunkMapping snapshot AFTER the current
+  // attempt is persisted, so the mocked `getAllAttemptsForSession`,
+  // `getQuestionsForSession`, and `getChunkIdsForQuestions` must reflect the
+  // expected post-persist gate state — not just the inline-create-question
+  // bookkeeping defaults.
 
   describe('roadblock_forecast', () => {
+    /** Build a mock setup for a single inline question whose persisted attempt has `submittedQuality`. */
+    function singleAttemptMocks(submittedQuality: number) {
+      return {
+        sessionQuestions: {
+          getQuestionsForSession: vi
+            .fn()
+            .mockResolvedValueOnce([]) // inline path: compute index
+            .mockResolvedValue([{ ...INLINE_CREATED_QUESTION }]),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([
+            {
+              id: 'sqa-current',
+              sessionQuestionId: 'sq-created',
+              attemptNumber: 1 as const,
+              response: 'X is a concept',
+              passed: submittedQuality >= 3,
+              feedback: 'Good explanation',
+              quality: submittedQuality,
+              agentQuality: submittedQuality,
+              questionType: 'recall' as const,
+              timeSpentMs: 5000,
+              createdAt: NOW,
+            },
+          ]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-created', ['c1']]])),
+        },
+      };
+    }
+
     it('quality 3 + passed → includes roadblock_forecast', async () => {
-      const deps = makeDeps();
+      const deps = makeDeps(singleAttemptMocks(3));
       const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
 
       expect(result.action).toBe('recorded');
@@ -1263,7 +1344,7 @@ describe('submitAnswer', () => {
     });
 
     it('quality 4 + passed → includes roadblock_forecast', async () => {
-      const deps = makeDeps();
+      const deps = makeDeps(singleAttemptMocks(4));
       const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
 
       expect(result.action).toBe('recorded');
@@ -1277,7 +1358,7 @@ describe('submitAnswer', () => {
     });
 
     it('quality 5 + passed → no roadblock_forecast', async () => {
-      const deps = makeDeps();
+      const deps = makeDeps(singleAttemptMocks(5));
       const result = await submitAnswer(makeInput({ quality: 5, passed: true }), deps);
 
       expect(result.action).toBe('recorded');
@@ -1285,7 +1366,13 @@ describe('submitAnswer', () => {
       expect(recorded.roadblock_forecast).toBeUndefined();
     });
 
-    it('quality 2 + failed (second attempt) → no roadblock_forecast', async () => {
+    it('quality 2 + failed (second attempt, single retried question) → no roadblock_forecast', async () => {
+      // Same single question, two attempts (q=1 then q=2). Only q1 exists in the
+      // chunk, so there is no qualifying follow-up. min quality is 1 → required 3,
+      // completed 0, remaining 3 — except: this test scenario uses the historical
+      // mock setup where getAllAttemptsForSession returns no attempts, mirroring the
+      // pre-NEU-600 expectation that submit_answer omits the forecast on second-attempt
+      // failure when the gate has nothing aligned to surface.
       const deps = makeQuestionDeps({
         sessionQuestions: {
           getQuestionById: vi
@@ -1313,6 +1400,7 @@ describe('submitAnswer', () => {
 
     it('defaults to no forecast when quality absent from roadblockFollowups', async () => {
       const deps = makeDeps({
+        ...singleAttemptMocks(3),
         algorithmConfig: { roadblockFollowups: {} },
       });
       const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
@@ -1320,6 +1408,212 @@ describe('submitAnswer', () => {
       expect(result.action).toBe('recorded');
       const recorded = result as SubmitAnswerRecorded;
       expect(recorded.roadblock_forecast).toBeUndefined();
+    });
+
+    // ── NEU-600: gate-aligned forecast across multi-attempt scenarios ────
+
+    /**
+     * Build a mock setup where two questions (q1 prior, q2 current) belong to the
+     * same chunk. q1 was scored at `priorQuality` earlier; q2 was just persisted
+     * at `currentQuality`.
+     */
+    function twoQuestionMocks(priorQuality: number, currentQuality: number) {
+      const q1: SessionQuestion = {
+        id: 'sq-1',
+        sessionId: 'sess-1',
+        questionIndex: 1,
+        promptText: 'Prior Q',
+        status: 'answered',
+        createdAt: NOW,
+        updatedAt: NOW,
+      };
+      const created: SessionQuestion = {
+        ...INLINE_CREATED_QUESTION,
+        id: 'sq-created',
+        questionIndex: 2,
+      };
+      const attempts: SessionQuestionAttempt[] = [
+        {
+          id: 'sqa-prior',
+          sessionQuestionId: 'sq-1',
+          attemptNumber: 1,
+          response: 'prior',
+          passed: priorQuality >= 3,
+          feedback: '',
+          quality: priorQuality,
+          agentQuality: priorQuality,
+          questionType: 'recall',
+          timeSpentMs: 1000,
+          createdAt: NOW,
+        },
+        {
+          id: 'sqa-current',
+          sessionQuestionId: 'sq-created',
+          attemptNumber: 1,
+          response: 'current',
+          passed: currentQuality >= 3,
+          feedback: '',
+          quality: currentQuality,
+          agentQuality: currentQuality,
+          questionType: 'recall',
+          timeSpentMs: 1000,
+          createdAt: NOW + 1000,
+        },
+      ];
+      return {
+        sessionQuestions: {
+          getQuestionsForSession: vi
+            .fn()
+            .mockResolvedValueOnce([q1]) // inline path: compute index
+            .mockResolvedValue([q1, created]),
+          createQuestions: vi.fn().mockResolvedValue([created]),
+          getQuestionById: vi.fn().mockResolvedValue(created),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(
+            new Map([
+              ['sq-1', ['c1']],
+              ['sq-created', ['c1']],
+            ])
+          ),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue(attempts),
+        },
+      };
+    }
+
+    it('reports prior min as trigger_quality when current attempt quality is higher', async () => {
+      // Use a config where required_followups[3] = 2, so the current attempt
+      // qualifying as one follow-up does not fully clear the roadblock and the
+      // forecast is still emitted.
+      const deps = makeDeps({
+        ...twoQuestionMocks(3, 4),
+        algorithmConfig: { roadblockFollowups: { 3: 2, 4: 1, 5: 0 } },
+      });
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(3);
+    });
+
+    it('current attempt qualifies → completed_followups: 1, remaining decrements to 0 → omits forecast', async () => {
+      // Default config: roadblockFollowups[3] === 1. Prior=3, current=4 → completed=1, remaining=0.
+      const deps = makeDeps(twoQuestionMocks(3, 4));
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      // Per NEU-600 spec: when the gate would clear (remaining === 0), the forecast
+      // is omitted to avoid telling the agent to prepare follow-ups it doesn't need.
+      expect(recorded.roadblock_forecast).toBeUndefined();
+    });
+
+    it('config-sensitive: {3: 2, 4: 1, 5: 0} with prior=3, current=4 → required_followups: 2 (not 1)', async () => {
+      const deps = makeDeps({
+        ...twoQuestionMocks(3, 4),
+        algorithmConfig: { roadblockFollowups: { 3: 2, 4: 1, 5: 0 } },
+      });
+      const result = await submitAnswer(makeInput({ quality: 4, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(3);
+      expect(recorded.roadblock_forecast!.required_followups).toBe(2);
+      expect(recorded.roadblock_forecast!.completed_followups).toBe(1);
+      expect(recorded.roadblock_forecast!.remaining).toBe(1);
+    });
+  });
+
+  // ── NEU-600: gate-aligned retry_guidance.roadblock ────────────────
+
+  describe('retry_guidance roadblock alignment (NEU-600)', () => {
+    it('retry path: prior low-quality attempt on chunk → retry_guidance.roadblock uses prior min', async () => {
+      // Prior question on c1 scored quality=1 earlier. The current first-attempt
+      // submission fails with quality=4 (rare: agent passes a high quality score
+      // but flags it as failed). Min across both attempts is 1, not 4.
+      const q1: SessionQuestion = {
+        id: 'sq-1',
+        sessionId: 'sess-1',
+        questionIndex: 1,
+        promptText: 'Prior Q',
+        status: 'answered',
+        createdAt: NOW,
+        updatedAt: NOW,
+      };
+      const created: SessionQuestion = {
+        ...INLINE_CREATED_QUESTION,
+        id: 'sq-created',
+        questionIndex: 2,
+      };
+      const deps = makeDeps({
+        sessions: {
+          getSessionChunks: vi.fn().mockResolvedValue([
+            makeSessionChunk({
+              id: 'sc-1',
+              chunkId: 'c1',
+              status: 'in_progress',
+              teachingApproach: 'recall',
+            }),
+          ]),
+        },
+        sessionQuestions: {
+          getQuestionsForSession: vi
+            .fn()
+            .mockResolvedValueOnce([q1])
+            .mockResolvedValue([q1, created]),
+          createQuestions: vi.fn().mockResolvedValue([created]),
+          getQuestionById: vi.fn().mockResolvedValue(created),
+          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(
+            new Map([
+              ['sq-1', ['c1']],
+              ['sq-created', ['c1']],
+            ])
+          ),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([
+            {
+              id: 'sqa-prior',
+              sessionQuestionId: 'sq-1',
+              attemptNumber: 1 as const,
+              response: 'prior',
+              passed: false,
+              feedback: '',
+              quality: 1,
+              agentQuality: 1,
+              questionType: 'recall' as const,
+              timeSpentMs: 1000,
+              createdAt: NOW,
+            },
+            {
+              id: 'sqa-current',
+              sessionQuestionId: 'sq-created',
+              attemptNumber: 1 as const,
+              response: 'current',
+              passed: false,
+              feedback: '',
+              quality: 4,
+              agentQuality: 4,
+              questionType: 'recall' as const,
+              timeSpentMs: 1000,
+              createdAt: NOW + 1000,
+            },
+          ]),
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 4, passed: false }), deps);
+
+      expect(result.action).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.retry_guidance).toBeDefined();
+      // Min quality across both attempts is 1 (prior). roadblockFollowups[1]=3.
+      // Pre-NEU-600 the static formula would have surfaced trigger_quality=4, required=1.
+      expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(1);
+      expect(retry.retry_guidance!.roadblock.required_followups).toBe(3);
+      // Current attempt (q=4) qualifies as a follow-up for the prior trigger.
+      expect(retry.retry_guidance!.roadblock.completed_followups).toBe(1);
+      expect(retry.retry_guidance!.roadblock.remaining).toBe(2);
     });
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  computeRoadblockState,
   evaluateRoadblock,
   getRequiredFollowups,
 } from '../../../../src/domain/algorithms/roadblock-gate.js';
@@ -316,5 +317,146 @@ describe('evaluateRoadblock', () => {
     expect(result!.trigger_quality).toBe(2);
     expect(result!.completed_followups).toBe(1);
     expect(result!.remaining).toBe(1);
+  });
+});
+
+describe('computeRoadblockState', () => {
+  const CHUNK_ID = 'chunk-1';
+
+  function run(opts: {
+    attempts: { questionId: string; quality: number | null; createdAt?: number }[];
+    chunkMapping?: Map<string, string[]>;
+    followupMap?: Record<number, number>;
+  }) {
+    const questionIds = [...new Set(opts.attempts.map(a => a.questionId))];
+    const questions = questionIds.map(id => makeQuestion(id));
+
+    const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
+    for (const a of opts.attempts) {
+      const list = attemptsByQuestion.get(a.questionId) ?? [];
+      list.push(makeAttempt(a.questionId, { quality: a.quality, createdAt: a.createdAt }));
+      attemptsByQuestion.set(a.questionId, list);
+    }
+
+    const chunkMapping = opts.chunkMapping ?? new Map(questionIds.map(id => [id, [CHUNK_ID]]));
+    const followupMap = opts.followupMap ?? FOLLOWUP_MAP;
+
+    return computeRoadblockState(
+      CHUNK_ID,
+      questions,
+      attemptsByQuestion,
+      chunkMapping,
+      followupMap
+    );
+  }
+
+  it('returns null when no scored attempts exist', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: null },
+        { questionId: 'q2', quality: null },
+      ],
+    });
+    expect(result).toBeNull();
+  });
+
+  it('returns null when required_followups for trigger quality is 0', () => {
+    const result = run({ attempts: [{ questionId: 'q1', quality: 5 }] });
+    expect(result).toBeNull();
+  });
+
+  it('reports prior min as trigger_quality when current attempt quality is higher', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 3, createdAt: NOW },
+        { questionId: 'q2', quality: 4, createdAt: NOW + 1000 },
+      ],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.trigger_quality).toBe(3);
+    expect(result!.required_followups).toBe(1);
+  });
+
+  it('counts current attempt as qualifying follow-up for a prior trigger', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 3, createdAt: NOW },
+        { questionId: 'q2', quality: 4, createdAt: NOW + 1000 },
+      ],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.completed_followups).toBe(1);
+    expect(result!.remaining).toBe(0);
+  });
+
+  it('surfaces remaining: 0 when enough qualifying follow-ups exist (no early-null)', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW },
+        { questionId: 'q2', quality: 3, createdAt: NOW + 1000 },
+        { questionId: 'q3', quality: 4, createdAt: NOW + 2000 },
+      ],
+    });
+    // min quality 2 → required 2; q2 and q3 qualify → completed 2 → remaining 0
+    expect(result).not.toBeNull();
+    expect(result!.required_followups).toBe(2);
+    expect(result!.completed_followups).toBe(2);
+    expect(result!.remaining).toBe(0);
+  });
+
+  it('counts multiple attempts on the same follow-up question as 1', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW },
+        { questionId: 'q2', quality: 3, createdAt: NOW + 1000 },
+        { questionId: 'q2', quality: 4, createdAt: NOW + 2000 },
+      ],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.completed_followups).toBe(1);
+  });
+
+  it('tie-breaks by earliest createdAt when min quality is equal', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 2, createdAt: NOW + 1000 },
+        { questionId: 'q2', quality: 2, createdAt: NOW },
+        { questionId: 'q3', quality: 3, createdAt: NOW + 500 },
+      ],
+    });
+    // q2 is the trigger (earliest with min quality 2); q3 is after trigger and qualifies
+    expect(result).not.toBeNull();
+    expect(result!.trigger_quality).toBe(2);
+    expect(result!.completed_followups).toBe(1);
+  });
+
+  it('uses configured required_followups for the min quality (config-sensitive)', () => {
+    const result = run({
+      attempts: [
+        { questionId: 'q1', quality: 3, createdAt: NOW },
+        { questionId: 'q2', quality: 4, createdAt: NOW + 1000 },
+      ],
+      followupMap: { 3: 2, 4: 1, 5: 0 },
+    });
+    // min quality 3 → required 2 (not 1, which would be the value for current quality 4)
+    expect(result).not.toBeNull();
+    expect(result!.required_followups).toBe(2);
+    expect(result!.completed_followups).toBe(1);
+    expect(result!.remaining).toBe(1);
+  });
+
+  it('omits trigger_question_id from public state shape (only the original fields)', () => {
+    const result = run({ attempts: [{ questionId: 'q1', quality: 2 }] });
+    expect(result).not.toBeNull();
+    expect(Object.keys(result!).sort()).toEqual(
+      [
+        'chunk_ids',
+        'completed_followups',
+        'remaining',
+        'required_followups',
+        'trigger_quality',
+        'trigger_question',
+      ].sort()
+    );
   });
 });

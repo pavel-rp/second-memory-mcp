@@ -6,18 +6,40 @@ export function getRequiredFollowups(quality: number, followupMap: Record<number
 }
 
 /**
- * Evaluate whether a chunk is roadblocked based on attempt quality.
+ * Materialized roadblock state for a chunk — used by both `evaluateRoadblock`
+ * (the gate in `teach_next`) and `submit_answer`'s forecast emission so both
+ * sites compute identical values.
  *
- * Returns a RoadblockDetail if the chunk should be blocked, or null if it can proceed.
- * Pure function — no I/O.
+ * Returned from `computeRoadblockState`. `remaining` may be 0; callers decide
+ * whether to surface or suppress in that case.
  */
-export function evaluateRoadblock(
+export type RoadblockState = {
+  trigger_quality: number;
+  trigger_question: string;
+  required_followups: number;
+  completed_followups: number;
+  remaining: number;
+  chunk_ids: string[];
+};
+
+/**
+ * Compute roadblock state for a chunk from materialized inputs.
+ *
+ * Returns `null` when the gate has nothing to evaluate:
+ *   - no scored attempts on the chunk's questions, OR
+ *   - `required_followups` for the trigger quality is 0.
+ *
+ * Otherwise returns the state with `remaining = max(0, required - completed)`.
+ * Callers wrap this state in their own response shape (RoadblockDetail in the
+ * gate, RoadblockForecast in submit_answer).
+ */
+export function computeRoadblockState(
   chunkId: string,
   chunkQuestions: SessionQuestion[],
   attemptsByQuestion: Map<string, SessionQuestionAttempt[]>,
   chunkMapping: Map<string, string[]>,
   followupMap: Record<number, number>
-): RoadblockDetail | null {
+): RoadblockState | null {
   // Collect all attempts with non-null quality for this chunk's questions
   const scoredAttempts: { attempt: SessionQuestionAttempt; question: SessionQuestion }[] = [];
 
@@ -72,10 +94,7 @@ export function evaluateRoadblock(
   }
 
   const qualifyingCount = qualifyingQuestionIds.size;
-
-  if (qualifyingCount >= required) return null;
-
-  const remaining = required - qualifyingCount;
+  const remaining = Math.max(0, required - qualifyingCount);
 
   return {
     trigger_quality: minQuality,
@@ -84,7 +103,39 @@ export function evaluateRoadblock(
     completed_followups: qualifyingCount,
     remaining,
     chunk_ids: triggerChunkIds,
-    instruction: buildRoadblockInstruction(minQuality, remaining),
+  };
+}
+
+/**
+ * Evaluate whether a chunk is roadblocked based on attempt quality.
+ *
+ * Returns a RoadblockDetail if the chunk should be blocked, or null if it can proceed.
+ * Pure function — no I/O.
+ */
+export function evaluateRoadblock(
+  chunkId: string,
+  chunkQuestions: SessionQuestion[],
+  attemptsByQuestion: Map<string, SessionQuestionAttempt[]>,
+  chunkMapping: Map<string, string[]>,
+  followupMap: Record<number, number>
+): RoadblockDetail | null {
+  const state = computeRoadblockState(
+    chunkId,
+    chunkQuestions,
+    attemptsByQuestion,
+    chunkMapping,
+    followupMap
+  );
+  if (state === null || state.remaining === 0) return null;
+
+  return {
+    trigger_quality: state.trigger_quality,
+    trigger_question: state.trigger_question,
+    required_followups: state.required_followups,
+    completed_followups: state.completed_followups,
+    remaining: state.remaining,
+    chunk_ids: state.chunk_ids,
+    instruction: buildRoadblockInstruction(state.trigger_quality, state.remaining),
   };
 }
 

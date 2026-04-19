@@ -27,7 +27,11 @@ import { getRequestLogger, logEvent } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
-import { evaluateRoadblock } from '../domain/algorithms/roadblock-gate.js';
+import {
+  evaluateRoadblock,
+  computeRoadblockState,
+  type RoadblockState,
+} from '../domain/algorithms/roadblock-gate.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 import {
@@ -1029,17 +1033,22 @@ async function submitAnswerForQuestion(
     ...(wasCapped && { wasCapped: true, agentQuality: input.quality }),
   });
 
-  // 6. Update question status when passed
-  if (passed) {
-    await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
-  }
+  // 6. Update question status when passed; in parallel, compute aligned roadblock
+  // state from the same chunk-scoped inputs that teach_next's evaluateRoadblock
+  // will use (with the just-persisted attempt included). Both forecast emission
+  // sites (retry + recorded) use this state.
+  const [, roadblockState] = await Promise.all([
+    passed
+      ? deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered')
+      : Promise.resolve(),
+    computeChunkRoadblockState(deps, session.id, primaryChunkId),
+  ]);
 
   // 7. First attempt failed → retry
   if (!passed && attemptNumber === 1) {
     const rawApproach = sessionChunk.teachingApproach;
     const approach =
       rawApproach && rawApproach in RETRY_PIVOT ? (rawApproach as TeachingApproach) : null;
-    const requiredFollowups = deps.algorithmConfig.roadblockFollowups[quality] ?? 0;
 
     return {
       action: 'retry',
@@ -1050,13 +1059,22 @@ async function submitAnswerForQuestion(
       feedback: input.feedback,
       ...(approach && {
         retry_guidance: {
-          roadblock: {
-            trigger_quality: quality,
-            required_followups: requiredFollowups,
-            completed_followups: 0,
-            remaining: requiredFollowups,
-            quality_floor: 3 as const,
-          },
+          roadblock:
+            roadblockState && roadblockState.remaining > 0
+              ? {
+                  trigger_quality: roadblockState.trigger_quality,
+                  required_followups: roadblockState.required_followups,
+                  completed_followups: roadblockState.completed_followups,
+                  remaining: roadblockState.remaining,
+                  quality_floor: 3 as const,
+                }
+              : {
+                  trigger_quality: quality,
+                  required_followups: 0,
+                  completed_followups: 0,
+                  remaining: 0,
+                  quality_floor: 3 as const,
+                },
           teaching_approach: approach,
           pivot: RETRY_PIVOT[approach],
         },
@@ -1070,10 +1088,16 @@ async function submitAnswerForQuestion(
   }
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
-  // NOTE: Forecast uses this attempt's quality; evaluateRoadblock in teach_next derives
-  // required_followups from the min quality across ALL attempts, so the forecast may
-  // underestimate when a prior attempt scored lower.
-  const requiredFollowups = passed ? (deps.algorithmConfig.roadblockFollowups[quality] ?? 0) : 0;
+  const forecast =
+    roadblockState && roadblockState.remaining > 0
+      ? {
+          trigger_quality: roadblockState.trigger_quality,
+          required_followups: roadblockState.required_followups,
+          completed_followups: roadblockState.completed_followups,
+          remaining: roadblockState.remaining,
+          quality_floor: 3 as const,
+        }
+      : undefined;
 
   return {
     action: 'recorded',
@@ -1084,16 +1108,51 @@ async function submitAnswerForQuestion(
     question_type: input.questionType,
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
-    ...(requiredFollowups > 0 && {
-      roadblock_forecast: {
-        trigger_quality: quality,
-        required_followups: requiredFollowups,
-        completed_followups: 0,
-        remaining: requiredFollowups,
-        quality_floor: 3 as const,
-      },
-    }),
+    ...(forecast && { roadblock_forecast: forecast }),
   };
+}
+
+/**
+ * Materialize the roadblock state for a chunk using the same inputs
+ * `getNextTeachingStep` builds for `evaluateRoadblock`. Used by `submit_answer`
+ * after persisting an attempt so its forecast matches what `teach_next` will
+ * compute.
+ */
+async function computeChunkRoadblockState(
+  deps: TeachingDeps,
+  sessionId: string,
+  chunkId: string
+): Promise<RoadblockState | null> {
+  const [allQuestions, allAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(sessionId),
+    deps.sessionQuestions.getAllAttemptsForSession(sessionId),
+  ]);
+
+  const questionIds = allQuestions.map(q => q.id);
+  const chunkMapping =
+    questionIds.length > 0
+      ? await deps.sessionQuestions.getChunkIdsForQuestions(questionIds)
+      : new Map<string, string[]>();
+
+  const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
+  for (const a of allAttempts) {
+    const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
+    list.push(a);
+    attemptsByQuestion.set(a.sessionQuestionId, list);
+  }
+
+  const chunkQuestions = allQuestions.filter(q => {
+    const cids = chunkMapping.get(q.id) ?? [];
+    return cids.includes(chunkId);
+  });
+
+  return computeRoadblockState(
+    chunkId,
+    chunkQuestions,
+    attemptsByQuestion,
+    chunkMapping,
+    deps.algorithmConfig.roadblockFollowups
+  );
 }
 
 // ── Assessment mode submit_answer ───────────────────────────────
