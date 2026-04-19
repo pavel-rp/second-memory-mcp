@@ -1039,7 +1039,9 @@ async function submitAnswerForQuestion(
   // without retry_guidance).
   const rawApproach = sessionChunk.teachingApproach;
   const approach =
-    rawApproach && rawApproach in RETRY_PIVOT ? (rawApproach as TeachingApproach) : null;
+    rawApproach && Object.hasOwn(RETRY_PIVOT, rawApproach)
+      ? (rawApproach as TeachingApproach)
+      : null;
   const willSurfaceForecast = passed || attemptNumber === 2 || approach !== null;
 
   // Update question status when passed; in parallel, compute aligned roadblock
