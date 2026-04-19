@@ -27,7 +27,12 @@ import { getRequestLogger, logEvent } from '../shared/logger.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
-import { evaluateRoadblock } from '../domain/algorithms/roadblock-gate.js';
+import {
+  evaluateRoadblock,
+  computeRoadblockState,
+  getRequiredFollowups,
+  type RoadblockState,
+} from '../domain/algorithms/roadblock-gate.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 import {
@@ -1029,18 +1034,54 @@ async function submitAnswerForQuestion(
     ...(wasCapped && { wasCapped: true, agentQuality: input.quality }),
   });
 
-  // 6. Update question status when passed
-  if (passed) {
-    await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
-  }
+  // 6. Resolve teaching approach early so we can skip the roadblock-state fetch
+  // when nothing will surface it (first-attempt fail with no approach → retry
+  // without retry_guidance).
+  const rawApproach = sessionChunk.teachingApproach;
+  const approach =
+    rawApproach && Object.hasOwn(RETRY_PIVOT, rawApproach)
+      ? (rawApproach as TeachingApproach)
+      : null;
+  const willSurfaceForecast = passed || attemptNumber === 2 || approach !== null;
+
+  // Update question status when passed; in parallel, compute aligned roadblock
+  // state from the same chunk-scoped inputs that teach_next's evaluateRoadblock
+  // will use (with the just-persisted attempt included). Both forecast emission
+  // sites (retry + recorded) use this state. The state fetch is best-effort —
+  // the attempt is already persisted, so a transient read failure must not
+  // bubble out and confuse the agent (teach_next will recompute the gate
+  // server-side from authoritative data on the next call). When the fetch
+  // fails, set roadblockStateFetchError so callers can degrade to the
+  // pre-NEU-600 static estimate rather than asserting "no follow-ups needed".
+  let roadblockStateFetchError = false;
+  const [, roadblockState] = await Promise.all([
+    passed
+      ? deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered')
+      : Promise.resolve(),
+    willSurfaceForecast
+      ? computeChunkRoadblockState(deps, session.id, primaryChunkId).catch(
+          (err: unknown): RoadblockState | null => {
+            const message = err instanceof Error ? err.message : String(err);
+            getRequestLogger().warn(
+              `submitAnswer: roadblock state fetch failed for chunk ${primaryChunkId}: ${message}`
+            );
+            roadblockStateFetchError = true;
+            return null;
+          }
+        )
+      : Promise.resolve<RoadblockState | null>(null),
+  ]);
+
+  // Static estimate from the current capped quality — used as a graceful
+  // degradation only when the gate-aligned fetch errored. Mirrors the
+  // pre-NEU-600 formula so the agent retains a meaningful follow-up signal
+  // instead of getting a misleading "0 required" assertion.
+  const staticFallbackRequired = roadblockStateFetchError
+    ? getRequiredFollowups(quality, deps.algorithmConfig.roadblockFollowups)
+    : 0;
 
   // 7. First attempt failed → retry
   if (!passed && attemptNumber === 1) {
-    const rawApproach = sessionChunk.teachingApproach;
-    const approach =
-      rawApproach && rawApproach in RETRY_PIVOT ? (rawApproach as TeachingApproach) : null;
-    const requiredFollowups = deps.algorithmConfig.roadblockFollowups[quality] ?? 0;
-
     return {
       action: 'retry',
       session_question_id: sessionQuestionId,
@@ -1050,13 +1091,22 @@ async function submitAnswerForQuestion(
       feedback: input.feedback,
       ...(approach && {
         retry_guidance: {
-          roadblock: {
-            trigger_quality: quality,
-            required_followups: requiredFollowups,
-            completed_followups: 0,
-            remaining: requiredFollowups,
-            quality_floor: 3 as const,
-          },
+          roadblock:
+            roadblockState && roadblockState.remaining > 0
+              ? {
+                  trigger_quality: roadblockState.trigger_quality,
+                  required_followups: roadblockState.required_followups,
+                  completed_followups: roadblockState.completed_followups,
+                  remaining: roadblockState.remaining,
+                  quality_floor: 3 as const,
+                }
+              : {
+                  trigger_quality: quality,
+                  required_followups: staticFallbackRequired,
+                  completed_followups: 0,
+                  remaining: staticFallbackRequired,
+                  quality_floor: 3 as const,
+                },
           teaching_approach: approach,
           pivot: RETRY_PIVOT[approach],
         },
@@ -1070,10 +1120,27 @@ async function submitAnswerForQuestion(
   }
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
-  // NOTE: Forecast uses this attempt's quality; evaluateRoadblock in teach_next derives
-  // required_followups from the min quality across ALL attempts, so the forecast may
-  // underestimate when a prior attempt scored lower.
-  const requiredFollowups = passed ? (deps.algorithmConfig.roadblockFollowups[quality] ?? 0) : 0;
+  // On state-fetch error, degrade to the pre-NEU-600 emission rule
+  // (`passed && requiredFollowups[quality] > 0`) so the agent still sees a
+  // best-effort blocker signal.
+  const forecast =
+    roadblockState && roadblockState.remaining > 0
+      ? {
+          trigger_quality: roadblockState.trigger_quality,
+          required_followups: roadblockState.required_followups,
+          completed_followups: roadblockState.completed_followups,
+          remaining: roadblockState.remaining,
+          quality_floor: 3 as const,
+        }
+      : roadblockStateFetchError && passed && staticFallbackRequired > 0
+        ? {
+            trigger_quality: quality,
+            required_followups: staticFallbackRequired,
+            completed_followups: 0,
+            remaining: staticFallbackRequired,
+            quality_floor: 3 as const,
+          }
+        : undefined;
 
   return {
     action: 'recorded',
@@ -1084,16 +1151,51 @@ async function submitAnswerForQuestion(
     question_type: input.questionType,
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
-    ...(requiredFollowups > 0 && {
-      roadblock_forecast: {
-        trigger_quality: quality,
-        required_followups: requiredFollowups,
-        completed_followups: 0,
-        remaining: requiredFollowups,
-        quality_floor: 3 as const,
-      },
-    }),
+    ...(forecast && { roadblock_forecast: forecast }),
   };
+}
+
+/**
+ * Materialize the roadblock state for a chunk using the same inputs
+ * `getNextTeachingStep` builds for `evaluateRoadblock`. Used by `submit_answer`
+ * after persisting an attempt so its forecast matches what `teach_next` will
+ * compute.
+ */
+async function computeChunkRoadblockState(
+  deps: TeachingDeps,
+  sessionId: string,
+  chunkId: string
+): Promise<RoadblockState | null> {
+  const [allQuestions, allAttempts] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(sessionId),
+    deps.sessionQuestions.getAllAttemptsForSession(sessionId),
+  ]);
+
+  const questionIds = allQuestions.map(q => q.id);
+  const chunkMapping =
+    questionIds.length > 0
+      ? await deps.sessionQuestions.getChunkIdsForQuestions(questionIds)
+      : new Map<string, string[]>();
+
+  const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
+  for (const a of allAttempts) {
+    const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
+    list.push(a);
+    attemptsByQuestion.set(a.sessionQuestionId, list);
+  }
+
+  const chunkQuestions = allQuestions.filter(q => {
+    const cids = chunkMapping.get(q.id) ?? [];
+    return cids.includes(chunkId);
+  });
+
+  return computeRoadblockState(
+    chunkId,
+    chunkQuestions,
+    attemptsByQuestion,
+    chunkMapping,
+    deps.algorithmConfig.roadblockFollowups
+  );
 }
 
 // ── Assessment mode submit_answer ───────────────────────────────
