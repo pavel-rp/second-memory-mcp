@@ -68,6 +68,38 @@ describe('tool-helpers', () => {
       expect(parsed.error.retryable).toBe(false);
     });
 
+    it('includes findings in the serialized error when provided', () => {
+      const result = toolError('blocked', {
+        type: 'content_quality',
+        message: 'blocked',
+        retryable: false,
+        findings: [{ chunk_id: 'c1', rule: 'no-empty' }],
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.findings).toEqual([{ chunk_id: 'c1', rule: 'no-empty' }]);
+    });
+
+    it('drops non-serializable findings and emits a plain envelope', () => {
+      const circular: Record<string, unknown> = {};
+      circular.self = circular;
+
+      const result = toolError('blocked', {
+        type: 'content_quality',
+        message: 'blocked',
+        retryable: false,
+        findings: circular,
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.message).toBe('blocked');
+      expect(parsed.error.retryable).toBe(false);
+      expect(parsed.error.findings).toBeUndefined();
+    });
+
     it('maps legacy error types to API error types', () => {
       const mappings: Array<[string, string]> = [
         ['database', 'internal'],

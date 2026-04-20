@@ -59,14 +59,21 @@ export function toolError(message: string, opts: ToolErrorOptions): CallToolResu
   if (opts.findings !== undefined) {
     error.findings = opts.findings;
   }
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify({ status: 'error', error }),
+  let text: string;
+  try {
+    text = JSON.stringify({ status: 'error', error });
+  } catch {
+    // Non-serializable findings (e.g. circular refs, BigInt) — drop findings and emit a plain envelope.
+    text = JSON.stringify({
+      status: 'error',
+      error: {
+        type: error.type,
+        message: error.message,
+        retryable: error.retryable,
       },
-    ],
-  };
+    });
+  }
+  return { content: [{ type: 'text' as const, text }] };
 }
 
 /** Build a structured MCP success response: { status: "ok", data: { ...data, message } } */
