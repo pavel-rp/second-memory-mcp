@@ -446,6 +446,23 @@ describe('createTopicWithChunks', () => {
     expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
   });
 
+  it('routes throwing linter rules through the onRuleError plumb without aborting creation', async () => {
+    const { deps } = stubDeps();
+    const throwingRule: LinterRule = {
+      name: 'boom-rule',
+      scope: 'chunk',
+      run: () => {
+        throw new Error('rule exploded');
+      },
+    };
+    deps.linterRules = [throwingRule];
+
+    const result = await createTopicWithChunks(inputWithContent(), deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+  });
+
   it('includes blocking count in error message for content_quality', async () => {
     const { deps } = stubDeps();
     deps.linterRules = [

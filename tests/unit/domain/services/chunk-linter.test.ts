@@ -1,11 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const warnSpy = vi.fn();
-
-vi.mock('../../../../src/shared/logger.js', () => ({
-  getRequestLogger: () => ({ warn: warnSpy, info: vi.fn(), error: vi.fn(), debug: vi.fn() }),
-}));
-
 import {
   runLinterSuite,
   type ChunkLintInput,
@@ -52,8 +45,10 @@ function makeFinding(overrides: Partial<LinterFinding> = {}): LinterFinding {
 }
 
 describe('runLinterSuite', () => {
+  let onRuleError: ReturnType<typeof vi.fn<(ruleName: string, error: unknown) => void>>;
+
   beforeEach(() => {
-    warnSpy.mockClear();
+    onRuleError = vi.fn<(ruleName: string, error: unknown) => void>();
   });
 
   it('returns empty result for an empty rule set', () => {
@@ -169,7 +164,7 @@ describe('runLinterSuite', () => {
     expect(result.findings).toHaveLength(2);
   });
 
-  it('fails open on rule throw: logs warning, contributes zero findings, continues suite', () => {
+  it('fails open on rule throw: invokes onRuleError, contributes zero findings, continues suite', () => {
     const goodRule: LinterRule = {
       name: 'good-rule',
       scope: 'chunk',
@@ -186,16 +181,16 @@ describe('runLinterSuite', () => {
       chunks: [makeChunk({ chunkId: 'c1' }), makeChunk({ chunkId: 'c2' })],
     });
 
-    const result = runLinterSuite([throwingRule, goodRule], input);
+    const result = runLinterSuite([throwingRule, goodRule], input, { onRuleError });
 
     expect(result.findings.map(f => f.rule)).toEqual(['good-rule', 'good-rule']);
     expect(result.blocking).toBe(false);
-    // throwing-rule runs once per chunk (2 chunks)
-    expect(warnSpy).toHaveBeenCalledTimes(2);
-    expect(warnSpy.mock.calls[0][0]).toContain('throwing-rule');
+    expect(onRuleError).toHaveBeenCalledTimes(2);
+    expect(onRuleError.mock.calls[0][0]).toBe('throwing-rule');
+    expect(onRuleError.mock.calls[0][1]).toBeInstanceOf(Error);
   });
 
-  it('fails open on topic-scope rule throw: single logger.warn, zero findings, suite continues', () => {
+  it('fails open on topic-scope rule throw: single onRuleError call, zero findings, suite continues', () => {
     const throwingTopic: LinterRule = {
       name: 'topic-boom',
       scope: 'topic',
@@ -209,16 +204,19 @@ describe('runLinterSuite', () => {
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'follow-up' })],
     };
 
-    const result = runLinterSuite([throwingTopic, followUp], makeInput());
+    const result = runLinterSuite([throwingTopic, followUp], makeInput(), { onRuleError });
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(onRuleError).toHaveBeenCalledTimes(1);
+    expect(onRuleError.mock.calls[0][0]).toBe('topic-boom');
     expect(result.findings.map(f => f.rule)).toEqual(['follow-up', 'follow-up']);
   });
 
-  it('preserves fail-open contract when logger itself throws', () => {
-    warnSpy.mockImplementationOnce(() => {
-      throw new Error('logger exploded');
-    });
+  it('preserves fail-open contract when onRuleError itself throws', () => {
+    const explodingCallback = vi
+      .fn<(ruleName: string, error: unknown) => void>()
+      .mockImplementation(() => {
+        throw new Error('callback exploded');
+      });
     const throwingRule: LinterRule = {
       name: 'rule-x',
       scope: 'topic',
@@ -232,8 +230,22 @@ describe('runLinterSuite', () => {
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-y' })],
     };
 
-    const result = runLinterSuite([throwingRule, goodRule], makeInput());
+    const result = runLinterSuite([throwingRule, goodRule], makeInput(), {
+      onRuleError: explodingCallback,
+    });
 
     expect(result.findings.map(f => f.rule)).toEqual(['rule-y', 'rule-y']);
+  });
+
+  it('swallows rule throws silently when no onRuleError is provided', () => {
+    const throwingRule: LinterRule = {
+      name: 'rule-silent',
+      scope: 'topic',
+      run: () => {
+        throw new Error('quiet boom');
+      },
+    };
+
+    expect(() => runLinterSuite([throwingRule], makeInput())).not.toThrow();
   });
 });

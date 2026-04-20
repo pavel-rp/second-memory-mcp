@@ -146,7 +146,14 @@ export async function createTopicWithChunks(
       estimatedDuration: c.estimatedDuration,
     })),
   };
-  const lintResult = runLinterSuite(deps.linterRules ?? [], topicLintInput);
+  const lintResult = runLinterSuite(deps.linterRules ?? [], topicLintInput, {
+    onRuleError: (ruleName, error) => {
+      getRequestLogger().warn(
+        `Linter rule "${ruleName}" threw — treating as zero findings:`,
+        error
+      );
+    },
+  });
   if (lintResult.blocking) {
     const blockingCount = lintResult.findings.filter(f => f.severity === 'blocking').length;
     return {

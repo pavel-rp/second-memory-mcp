@@ -1,5 +1,3 @@
-import { getRequestLogger } from '../../shared/logger.js';
-
 /**
  * Chunk linter framework — shared scaffolding for content-quality rules applied during
  * topic creation (and, in follow-up work, content updates).
@@ -18,16 +16,16 @@ import { getRequestLogger } from '../../shared/logger.js';
  *
  * ## Fail-open on rule exceptions
  *
- * A rule whose `run()` throws is treated as contributing zero findings. The exception
- * is logged via `getRequestLogger().warn(...)` and the suite continues. This preserves
- * topic creation availability when a rule implementation is buggy — blocking rules only
- * block when they produce an explicit `severity: 'blocking'` finding, never by crashing.
+ * A rule whose `run()` throws is treated as contributing zero findings; the suite
+ * continues. If the caller passes an `onRuleError` callback via `options`, it is
+ * invoked with the rule name and the thrown error so the caller can log or emit
+ * diagnostics — the domain module itself performs no I/O. A callback that throws
+ * is swallowed to preserve the fail-open contract.
  *
  * ## Zero I/O
  *
- * This module performs no network, filesystem, database, or timing calls beyond the
- * pure `try/catch` + logger.warn path. Rule implementations must follow the same rule
- * (ARCH-F4/F5 compliance).
+ * This module performs no network, filesystem, database, timing, or logging calls.
+ * Rule implementations must follow the same rule (ARCH-F4/F5 compliance).
  */
 
 export type LinterSeverity = 'blocking' | 'warning';
@@ -79,20 +77,27 @@ export type LinterSuiteResult = {
   blocking: boolean;
 };
 
+export type LinterSuiteOptions = {
+  /** Invoked when a rule's `run()` throws. Lets callers plumb in logging/metrics from outside the domain layer. */
+  onRuleError?: (ruleName: string, error: unknown) => void;
+};
+
 export function runLinterSuite(
   rules: readonly LinterRule[],
-  input: TopicLintInput
+  input: TopicLintInput,
+  options?: LinterSuiteOptions
 ): LinterSuiteResult {
   const findings: LinterFinding[] = [];
+  const onRuleError = options?.onRuleError;
 
   for (const rule of rules) {
     if (rule.scope === 'chunk') {
       for (const chunk of input.chunks) {
-        const produced = safeRun(() => rule.run(chunk), rule.name);
+        const produced = safeRun(() => rule.run(chunk), rule.name, onRuleError);
         for (const finding of produced) findings.push(finding);
       }
     } else {
-      const produced = safeRun(() => rule.run(input), rule.name);
+      const produced = safeRun(() => rule.run(input), rule.name, onRuleError);
       for (const finding of produced) findings.push(finding);
     }
   }
@@ -103,17 +108,20 @@ export function runLinterSuite(
   };
 }
 
-function safeRun(run: () => LinterFinding[], ruleName: string): LinterFinding[] {
+function safeRun(
+  run: () => LinterFinding[],
+  ruleName: string,
+  onRuleError: LinterSuiteOptions['onRuleError']
+): LinterFinding[] {
   try {
     return run();
   } catch (error) {
-    try {
-      getRequestLogger().warn(
-        `Linter rule "${ruleName}" threw — treating as zero findings:`,
-        error
-      );
-    } catch {
-      // Logger itself failed — preserve fail-open contract regardless.
+    if (onRuleError) {
+      try {
+        onRuleError(ruleName, error);
+      } catch {
+        // Callback itself failed — preserve fail-open contract regardless.
+      }
     }
     return [];
   }
