@@ -333,6 +333,8 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     chunks: ports.chunks,
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
+    // Register Tier 1 content-quality rules (NEU-614 … NEU-618) here.
+    linterRules: [],
   };
   const leechDeps: reviewWorkflows.LeechDeps = {
     chunks: ports.chunks,

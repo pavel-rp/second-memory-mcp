@@ -331,6 +331,61 @@ describe('topic-tools', () => {
       expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
     });
+
+    it('surfaces snake-cased findings on content_quality errors', async () => {
+      ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Topic creation blocked by 1 content-quality finding',
+          retryable: false,
+          findings: [
+            {
+              chunkId: 'c1',
+              rule: 'no-empty-content',
+              severity: 'blocking',
+              category: 'content',
+              detail: 'content is empty',
+              suggestion: 'add teaching script',
+            },
+          ],
+        },
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.retryable).toBe(false);
+      expect(parsed.error.findings).toEqual([
+        {
+          chunk_id: 'c1',
+          rule: 'no-empty-content',
+          severity: 'blocking',
+          category: 'content',
+          detail: 'content is empty',
+          suggestion: 'add teaching script',
+        },
+      ]);
+    });
+
+    it('omits findings on non-content_quality errors', async () => {
+      ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'database', message: 'deadlock', retryable: true },
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.findings).toBeUndefined();
+    });
   });
 
   // ---------------------------------------------------------------

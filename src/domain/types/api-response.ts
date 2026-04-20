@@ -6,7 +6,7 @@
  * - Error:   { status: "error", error: { type, message, retryable } }
  */
 
-export type ApiErrorType = 'validation' | 'not_found' | 'conflict' | 'internal';
+export type ApiErrorType = 'validation' | 'not_found' | 'conflict' | 'internal' | 'content_quality';
 
 export type ApiSuccess<T> = {
   status: 'ok';
@@ -19,6 +19,7 @@ export type ApiError = {
     type: ApiErrorType;
     message: string;
     retryable: boolean;
+    findings?: unknown;
   };
 };
 

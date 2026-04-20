@@ -11,6 +11,12 @@ import type {
 } from '../domain/types/entities.js';
 import type { ContentStatus } from '../domain/types/recommendations.js';
 import type { ServiceError } from '../domain/types/service-result.js';
+import {
+  runLinterSuite,
+  type LinterFinding,
+  type LinterRule,
+  type TopicLintInput,
+} from '../domain/services/chunk-linter.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { getRequestLogger } from '../shared/logger.js';
@@ -20,6 +26,7 @@ export type TopicDeps = {
   chunks: ChunkRepository;
   unitOfWork: UnitOfWorkPort;
   embedding?: EmbeddingPort;
+  linterRules?: LinterRule[];
 };
 
 export type TopicUpdateResult = {
@@ -77,7 +84,12 @@ export type TopicCreationInput = {
 export type TopicCreationResult = {
   success: boolean;
   topic?: TopicWithChunks;
-  error?: { type: 'validation' | 'database' | 'generation'; message: string; retryable: boolean };
+  error?: {
+    type: 'validation' | 'database' | 'generation' | 'content_quality';
+    message: string;
+    retryable: boolean;
+    findings?: LinterFinding[];
+  };
 };
 
 // --- Topic creation ---
@@ -117,6 +129,37 @@ export async function createTopicWithChunks(
   input: TopicCreationInput,
   deps: TopicDeps
 ): Promise<TopicCreationResult> {
+  const topicLintInput: TopicLintInput = {
+    topicId: '',
+    topicTitle: input.topicTitle,
+    subject: input.subject,
+    topicSummary: input.topicSummary,
+    chunks: input.chunks.map(c => ({
+      chunkId: c.id,
+      title: c.title,
+      content: c.content ?? null,
+      chunkType: c.chunkType,
+      condensedSummary: c.condensedSummary ?? null,
+      prerequisites: c.prerequisites ?? [],
+      tags: c.tags ?? [],
+      difficulty: c.difficulty,
+      estimatedDuration: c.estimatedDuration,
+    })),
+  };
+  const lintResult = runLinterSuite(deps.linterRules ?? [], topicLintInput);
+  if (lintResult.blocking) {
+    const blockingCount = lintResult.findings.filter(f => f.severity === 'blocking').length;
+    return {
+      success: false,
+      error: {
+        type: 'content_quality',
+        message: `Topic creation blocked by ${blockingCount} content-quality finding${blockingCount === 1 ? '' : 's'}`,
+        findings: lintResult.findings,
+        retryable: false,
+      },
+    };
+  }
+
   try {
     const result = await deps.unitOfWork.execute(async ports => {
       const topicId = crypto.randomUUID();
