@@ -372,6 +372,26 @@ describe('topic-tools', () => {
       ]);
     });
 
+    it('falls back to empty findings array when content_quality error omits findings', async () => {
+      ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'blocked',
+          retryable: false,
+        },
+      });
+      registerTopicTools(server as any, ctx);
+      const handler = server.tools.get('create_topic_with_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.findings).toEqual([]);
+    });
+
     it('omits findings on non-content_quality errors', async () => {
       ctx.createTopicWithChunks = vi.fn().mockResolvedValue({
         success: false,
