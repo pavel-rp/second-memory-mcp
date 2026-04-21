@@ -24,7 +24,8 @@ type ErrorType =
   | 'not_found'
   | 'conflict'
   | 'generation'
-  | 'internal';
+  | 'internal'
+  | 'content_quality';
 
 const ERROR_TYPE_MAP: Record<ErrorType, ApiErrorType> = {
   auth: 'internal',
@@ -38,31 +39,41 @@ const ERROR_TYPE_MAP: Record<ErrorType, ApiErrorType> = {
   validation: 'validation',
   not_found: 'not_found',
   conflict: 'conflict',
+  content_quality: 'content_quality',
 };
 
 interface ToolErrorOptions {
   type: ErrorType;
   message: string;
   retryable?: boolean;
+  findings?: unknown;
 }
 
-/** Build a structured MCP error response: { status: "error", error: { type, message, retryable } } */
+/** Build a structured MCP error response: { status: "error", error: { type, message, retryable, findings? } } */
 export function toolError(message: string, opts: ToolErrorOptions): CallToolResult {
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify({
-          status: 'error',
-          error: {
-            type: ERROR_TYPE_MAP[opts.type],
-            message: opts.message,
-            retryable: opts.retryable ?? false,
-          },
-        }),
-      },
-    ],
+  const error: Record<string, unknown> = {
+    type: ERROR_TYPE_MAP[opts.type],
+    message: opts.message,
+    retryable: opts.retryable ?? false,
   };
+  if (opts.findings !== undefined) {
+    error.findings = opts.findings;
+  }
+  let text: string;
+  try {
+    text = JSON.stringify({ status: 'error', error });
+  } catch {
+    // Non-serializable findings (e.g. circular refs, BigInt) — drop findings and emit a plain envelope.
+    text = JSON.stringify({
+      status: 'error',
+      error: {
+        type: error.type,
+        message: error.message,
+        retryable: error.retryable,
+      },
+    });
+  }
+  return { content: [{ type: 'text' as const, text }] };
 }
 
 /** Build a structured MCP success response: { status: "ok", data: { ...data, message } } */

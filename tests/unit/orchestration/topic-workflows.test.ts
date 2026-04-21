@@ -9,6 +9,7 @@ import {
 import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { LearningTopic } from '../../../src/domain/types/entities.js';
+import type { LinterRule } from '../../../src/domain/services/chunk-linter.js';
 import {
   stubChunkRepository,
   stubTopicRepository,
@@ -370,6 +371,127 @@ describe('createTopicWithChunks', () => {
     const chunkCreate = (txPorts.chunks.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(chunkCreate.knowledgeType).toBeNull();
     expect(result.topic!.chunks[0].knowledgeType).toBeNull();
+  });
+
+  it('short-circuits on blocking linter finding without invoking unitOfWork.execute', async () => {
+    const { deps, txPorts } = stubDeps();
+    const blockingRule: LinterRule = {
+      name: 'no-empty-content',
+      scope: 'chunk',
+      run: chunk => [
+        {
+          chunkId: chunk.chunkId,
+          rule: 'no-empty-content',
+          severity: 'blocking',
+          category: 'content',
+          detail: 'content is too short',
+        },
+      ],
+    };
+    deps.linterRules = [blockingRule];
+
+    const result = await createTopicWithChunks(inputWithContent(), deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('content_quality');
+    expect(result.error?.retryable).toBe(false);
+    expect(result.error?.findings).toHaveLength(1);
+    expect(result.error?.findings?.[0].severity).toBe('blocking');
+    expect(deps.unitOfWork.execute).not.toHaveBeenCalled();
+    expect(txPorts.topics.create).not.toHaveBeenCalled();
+    expect(txPorts.chunks.create).not.toHaveBeenCalled();
+  });
+
+  it('proceeds to creation when linter returns only warnings', async () => {
+    const { deps, txPorts } = stubDeps();
+    const warningRule: LinterRule = {
+      name: 'soft-check',
+      scope: 'chunk',
+      run: chunk => [
+        {
+          chunkId: chunk.chunkId,
+          rule: 'soft-check',
+          severity: 'warning',
+          category: 'style',
+          detail: 'could be clearer',
+        },
+      ],
+    };
+    deps.linterRules = [warningRule];
+
+    const result = await createTopicWithChunks(inputWithContent(), deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+    expect(txPorts.topics.create as ReturnType<typeof vi.fn>).toHaveBeenCalledOnce();
+  });
+
+  it('preserves pre-NEU-613 behavior when linterRules is undefined', async () => {
+    const { deps } = stubDeps();
+    expect(deps.linterRules).toBeUndefined();
+
+    const result = await createTopicWithChunks(inputWithContent(), deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+  });
+
+  it('preserves pre-NEU-613 behavior when linterRules is an empty array', async () => {
+    const { deps } = stubDeps();
+    deps.linterRules = [];
+
+    const result = await createTopicWithChunks(inputWithContent(), deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+  });
+
+  it('routes throwing linter rules through the onRuleError plumb without aborting creation', async () => {
+    const { deps } = stubDeps();
+    const throwingRule: LinterRule = {
+      name: 'boom-rule',
+      scope: 'chunk',
+      run: () => {
+        throw new Error('rule exploded');
+      },
+    };
+    deps.linterRules = [throwingRule];
+
+    const result = await createTopicWithChunks(inputWithContent(), deps);
+
+    expect(result.success).toBe(true);
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+  });
+
+  it('includes blocking count in error message for content_quality', async () => {
+    const { deps } = stubDeps();
+    deps.linterRules = [
+      {
+        name: 'multi',
+        scope: 'chunk',
+        run: chunk => [
+          {
+            chunkId: chunk.chunkId,
+            rule: 'multi',
+            severity: 'blocking',
+            category: 'content',
+            detail: 'bad',
+          },
+        ],
+      },
+    ];
+    const input: TopicCreationInput = {
+      ...inputWithContent(),
+      chunks: [
+        { ...inputWithContent().chunks[0], id: 'c1' },
+        { ...inputWithContent().chunks[0], id: 'c2' },
+      ],
+    };
+
+    const result = await createTopicWithChunks(input, deps);
+
+    expect(result.error?.message).toContain('2');
+    expect(result.error?.message).toContain('findings');
   });
 });
 

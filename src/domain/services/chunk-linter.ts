@@ -1,0 +1,128 @@
+/**
+ * Chunk linter framework — shared scaffolding for content-quality rules applied during
+ * topic creation (and, in follow-up work, content updates).
+ *
+ * ## Determinism contract
+ *
+ * `runLinterSuite` aggregates findings in a deterministic traversal order:
+ *   1. Rules are evaluated in the order they appear in the `rules` array (registration order).
+ *   2. Within a `scope: 'chunk'` rule, the rule runs once per chunk in
+ *      `TopicLintInput.chunks` array order.
+ *   3. `scope: 'topic'` rules run exactly once per suite call with the full topic input.
+ *
+ * The returned `findings` array reflects (rule registration order) × (chunk order for
+ * chunk-scope rules). Permuting the `rules` array will reorder the output; within a
+ * fixed `rules` array, output is stable across calls with identical input.
+ *
+ * ## Fail-open on rule exceptions
+ *
+ * A rule whose `run()` throws is treated as contributing zero findings; the suite
+ * continues. If the caller passes an `onRuleError` callback via `options`, it is
+ * invoked with the rule name and the thrown error so the caller can log or emit
+ * diagnostics — the domain module itself performs no I/O. A callback that throws
+ * is swallowed to preserve the fail-open contract.
+ *
+ * ## Zero I/O
+ *
+ * This module performs no network, filesystem, database, timing, or logging calls.
+ * Rule implementations must follow the same rule (ARCH-F4/F5 compliance).
+ */
+
+export type LinterSeverity = 'blocking' | 'warning';
+
+export type LinterFinding = {
+  chunkId: string;
+  rule: string;
+  severity: LinterSeverity;
+  category: string;
+  detail: string;
+  suggestion?: string;
+};
+
+export type ChunkLintInput = {
+  chunkId: string;
+  title: string;
+  content: string | null;
+  chunkType: string;
+  condensedSummary: string | null;
+  prerequisites: string[];
+  tags: string[];
+  difficulty: number;
+  estimatedDuration: number;
+};
+
+export type TopicLintInput = {
+  /** Empty string during pre-persist create-path lints (topic UUID is allocated inside the transaction). */
+  topicId: string;
+  topicTitle: string;
+  subject: string;
+  topicSummary: string;
+  chunks: ChunkLintInput[];
+};
+
+export type LinterRule =
+  | {
+      name: string;
+      scope: 'chunk';
+      run: (input: ChunkLintInput) => LinterFinding[];
+    }
+  | {
+      name: string;
+      scope: 'topic';
+      run: (input: TopicLintInput) => LinterFinding[];
+    };
+
+export type LinterSuiteResult = {
+  findings: LinterFinding[];
+  blocking: boolean;
+};
+
+export type LinterSuiteOptions = {
+  /** Invoked when a rule's `run()` throws. Lets callers plumb in logging/metrics from outside the domain layer. */
+  onRuleError?: (ruleName: string, error: unknown) => void;
+};
+
+export function runLinterSuite(
+  rules: readonly LinterRule[],
+  input: TopicLintInput,
+  options?: LinterSuiteOptions
+): LinterSuiteResult {
+  const findings: LinterFinding[] = [];
+  const onRuleError = options?.onRuleError;
+
+  for (const rule of rules) {
+    if (rule.scope === 'chunk') {
+      for (const chunk of input.chunks) {
+        const produced = safeRun(() => rule.run(chunk), rule.name, onRuleError);
+        for (const finding of produced) findings.push(finding);
+      }
+    } else {
+      const produced = safeRun(() => rule.run(input), rule.name, onRuleError);
+      for (const finding of produced) findings.push(finding);
+    }
+  }
+
+  return {
+    findings,
+    blocking: findings.some(f => f.severity === 'blocking'),
+  };
+}
+
+function safeRun(
+  run: () => LinterFinding[],
+  ruleName: string,
+  onRuleError: LinterSuiteOptions['onRuleError']
+): LinterFinding[] {
+  try {
+    return run();
+  } catch (error) {
+    if (onRuleError) {
+      try {
+        onRuleError(ruleName, error);
+      } catch {
+        // Callback itself failed — preserve fail-open contract regardless.
+      }
+    }
+    return [];
+  }
+}

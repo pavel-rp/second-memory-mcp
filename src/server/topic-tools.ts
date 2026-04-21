@@ -77,12 +77,16 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
               })
             );
           } else {
+            const errorType = result.error?.type || 'database';
             return toolError(
               `Failed to create topic "${input.topicTitle}": ${result.error?.message || 'Unknown error'}`,
               {
-                type: result.error?.type || 'database',
+                type: errorType,
                 message: result.error?.message || 'Unknown error',
                 retryable: result.error?.retryable,
+                ...(errorType === 'content_quality'
+                  ? { findings: toSnakeCase(result.error?.findings ?? []) }
+                  : {}),
               }
             );
           }

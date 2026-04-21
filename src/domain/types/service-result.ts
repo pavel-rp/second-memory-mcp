@@ -4,7 +4,7 @@
  * should return this type instead of throwing errors.
  */
 export type ServiceError = {
-  type: 'validation' | 'not_found' | 'database' | 'conflict';
+  type: 'validation' | 'not_found' | 'database' | 'conflict' | 'content_quality';
   message: string;
   field?: string;
   retryable?: boolean;
