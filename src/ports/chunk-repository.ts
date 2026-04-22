@@ -3,6 +3,7 @@ import type {
   ContentStatus,
   PaginatedLearningItemsResponse,
 } from '../domain/types/recommendations.js';
+import type { ValidatorReport } from '../domain/types/validator-report.js';
 
 /** Filter options for listing chunks. */
 export type ListChunksFilter = {
@@ -99,4 +100,30 @@ export interface ChunkRepository {
     topicId: string,
     beforeCreatedAt: number
   ): Promise<Array<{ id: string; title: string; condensedSummary: string | null }>>;
+  /**
+   * Overwrite the `validator_report` JSONB column for a chunk. Returns the
+   * affected row count. Used by the create path (NEU-629).
+   */
+  writeValidatorReport(chunkId: string, report: ValidatorReport): Promise<number>;
+  /**
+   * Section-merge `partial` into the existing `validator_report` for a chunk.
+   * Tier values present in `partial` (and not `undefined`) replace whole tier
+   * sections; untouched sections are preserved; `updated_at` is refreshed.
+   * Returns the affected row count. Intended for downstream consumers that
+   * own a single tier (e.g. NEU-620's classifier wiring populating `tier2`).
+   *
+   * Concurrency: implementations MUST perform the merge atomically (single
+   * statement or row-locked transaction) so concurrent calls writing to
+   * different tiers do not lose updates. The Drizzle adapter uses Postgres
+   * `||` JSONB shallow-merge to satisfy this. App-level read-then-write is
+   * not safe.
+   *
+   * Value constraints: tier payloads must be JSON-serializable. `undefined`
+   * is skipped (matches SQL `||`); explicit `null` persists as JSON null.
+   */
+  mergeValidatorReport(
+    chunkId: string,
+    partial: Partial<ValidatorReport>,
+    updatedAt: string
+  ): Promise<number>;
 }

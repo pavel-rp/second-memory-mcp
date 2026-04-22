@@ -127,6 +127,13 @@
       "when": 1774200000000,
       "tag": "0017_add_teaching_approach_to_session_chunks",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774210000000,
+      "tag": "0018_add_validator_report",
+      "breakpoints": true
     }
   ]
 }

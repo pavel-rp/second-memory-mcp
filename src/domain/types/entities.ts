@@ -1,5 +1,6 @@
 import type { ContentStatus } from './recommendations.js';
 import type { QuestionType } from './teaching.js';
+import type { ValidatorReport } from './validator-report.js';
 
 export type KnowledgeType = 'fact' | 'concept' | 'procedure' | 'principle';
 export type DependencyGraphType = 'linear_chain' | 'convergent' | 'divergent' | 'single_root';
@@ -57,6 +58,12 @@ export type LearningChunk = {
   contentStatus: ContentStatus;
   condensedSummary: string | null;
   knowledgeType: KnowledgeType | null;
+  /**
+   * Optional because most SELECT projections omit this JSONB column for
+   * payload size reasons. `getById` reads it. Persisted via the dedicated
+   * `writeValidatorReport` / `mergeValidatorReport` adapter methods (NEU-629).
+   */
+  validatorReport?: ValidatorReport | null;
   createdAt: number;
   updatedAt: number;
 };
@@ -82,6 +89,7 @@ export type NewLearningChunk = {
   contentStatus?: ContentStatus;
   condensedSummary?: string | null;
   knowledgeType?: KnowledgeType | null;
+  validatorReport?: ValidatorReport | null;
   createdAt: number;
   updatedAt: number;
 };
