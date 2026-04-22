@@ -59,6 +59,12 @@ describe('mergeReportSections', () => {
     expect(result.updated_at).toBe(ISO_B);
   });
 
+  it('replaces tier1b when provided in partial', () => {
+    const prev: ValidatorReport = { updated_at: ISO_A, tier1b: ['old'] };
+    const result = mergeReportSections(prev, { tier1b: ['new'] }, ISO_B);
+    expect(result.tier1b).toEqual(['new']);
+  });
+
   it('skips undefined values in partial (matches SQL || semantics — prior value preserved)', () => {
     const prev: ValidatorReport = { updated_at: ISO_A, tier1a: ['x'] };
     const result = mergeReportSections(prev, { tier1a: undefined }, ISO_B);
