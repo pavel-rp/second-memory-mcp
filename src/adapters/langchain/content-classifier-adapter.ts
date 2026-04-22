@@ -60,7 +60,7 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
     const verdict = emptyVerdict();
     const failedFields: string[] = [];
     for (let i = 0; i < VERDICT_FIELDS.length; i += 1) {
-      const field = VERDICT_FIELDS[i] as VerdictFieldName;
+      const field = VERDICT_FIELDS[i];
       const result = results[i];
       if (result && result.status === 'fulfilled' && result.value !== null) {
         verdict[field] = result.value;
@@ -88,7 +88,10 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
     // schema drift in future LangChain versions becomes a null verdict rather
     // than a structurally invalid object.
     const parsed = VerdictFieldSchema.safeParse(raw);
-    if (!parsed.success) return null;
+    if (!parsed.success) {
+      logger.warn(`Classifier field ${field} failed schema validation: ${parsed.error.message}`);
+      return null;
+    }
     return parsed.data;
   }
 

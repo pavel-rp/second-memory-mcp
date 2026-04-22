@@ -128,17 +128,35 @@ describe('LangChainContentClassifierAdapter', () => {
       const verdict = await adapter.classify(makeInput(), makePrompt());
 
       expect(ChatOpenAIMock).toHaveBeenCalledTimes(1);
-      expect(ChatOpenAIMock).toHaveBeenCalledWith({
+      const firstCall = (
+        ChatOpenAIMock.mock.calls as unknown as Array<[Record<string, unknown>]>
+      )[0];
+      const ctorArgs = firstCall![0];
+      expect(ctorArgs).toEqual({
         apiKey: 'sk-test-key',
         model: 'gpt-5.4-mini',
         timeout: 10_000,
         maxRetries: 2,
         reasoning: { effort: 'low' },
       });
+      expect(ctorArgs).not.toHaveProperty('temperature');
       expect(withStructuredOutputMock).toHaveBeenCalledTimes(VERDICT_FIELDS.length);
       for (const field of VERDICT_FIELDS) {
         expect(verdict[field]).toEqual({ score: 4, rationale: `r-${field}` });
       }
+    });
+
+    it('passes an explicit temperature to ChatOpenAI when config.temperature is not null', async () => {
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi.fn().mockResolvedValue({ score: 1, rationale: `r-${opts.name}` });
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig({ temperature: 0.5 }));
+
+      await adapter.classify(makeInput(), makePrompt());
+
+      expect(ChatOpenAIMock).toHaveBeenCalledWith(expect.objectContaining({ temperature: 0.5 }));
     });
 
     it('reuses the initialized model across multiple classify calls', async () => {
