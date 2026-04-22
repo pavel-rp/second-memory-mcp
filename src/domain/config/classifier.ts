@@ -4,14 +4,19 @@
 export type ClassifierProvider = 'openai';
 
 /** The set of accepted `reasoning_effort` values for the OpenAI responses API. */
-export const CLASSIFIER_REASONING_EFFORTS = ['minimal', 'low', 'medium', 'high'] as const;
+export const CLASSIFIER_REASONING_EFFORTS = ['none', 'low', 'medium', 'high', 'xhigh'] as const;
 export type ClassifierReasoningEffort = (typeof CLASSIFIER_REASONING_EFFORTS)[number];
 
 export type ClassifierConfig = {
   provider: ClassifierProvider | null;
   model: string;
   reasoningEffort: ClassifierReasoningEffort;
-  temperature: number;
+  /**
+   * Sampling temperature. `null` means "use the model default" — required for
+   * reasoning models (e.g. `gpt-5.4-mini`) which reject any non-default value.
+   * Set a numeric override only for non-reasoning models that support it.
+   */
+  temperature: number | null;
   maxRetries: number;
   timeout: number;
   openaiApiKey: string | null;

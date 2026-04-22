@@ -14,6 +14,12 @@ import {
   parseReasoningEffort,
 } from '../shared/env-parsing.js';
 
+function parseNullableNumber(envValue: string | undefined, fallback: number | null): number | null {
+  if (envValue == null || envValue.trim() === '') return fallback;
+  const parsed = Number(envValue);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 export type ResolvedClassifierConfig = {
   classifier: ClassifierConfig;
 };
@@ -36,7 +42,10 @@ export function resolveClassifierConfig(
       env.CLASSIFIER_REASONING_EFFORT,
       DEFAULT_CLASSIFIER_CONFIG.reasoningEffort
     ),
-    temperature: parseNumber(env.CLASSIFIER_TEMPERATURE, DEFAULT_CLASSIFIER_CONFIG.temperature),
+    temperature: parseNullableNumber(
+      env.CLASSIFIER_TEMPERATURE,
+      DEFAULT_CLASSIFIER_CONFIG.temperature
+    ),
     maxRetries: parseNumber(env.CLASSIFIER_MAX_RETRIES, DEFAULT_CLASSIFIER_CONFIG.maxRetries),
     timeout: parseNumber(env.CLASSIFIER_TIMEOUT_MS, DEFAULT_CLASSIFIER_CONFIG.timeout),
     openaiApiKey,

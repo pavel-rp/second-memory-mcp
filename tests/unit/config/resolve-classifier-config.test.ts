@@ -82,6 +82,16 @@ describe('resolveClassifierConfig', () => {
     expect(result.classifier.timeout).toBe(20_000);
   });
 
+  it('leaves temperature null by default so reasoning models use their own default', () => {
+    const result = resolveClassifierConfig({});
+    expect(result.classifier.temperature).toBeNull();
+  });
+
+  it('falls back to default-null temperature on non-numeric override', () => {
+    const result = resolveClassifierConfig({ CLASSIFIER_TEMPERATURE: 'hot' });
+    expect(result.classifier.temperature).toBeNull();
+  });
+
   it('falls back to default when reasoning effort is unrecognized', () => {
     const result = resolveClassifierConfig({ CLASSIFIER_REASONING_EFFORT: 'ludicrous' });
 

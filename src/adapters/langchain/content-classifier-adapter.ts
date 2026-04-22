@@ -117,10 +117,12 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
       this.systemMessageCtor = SystemMessage as unknown as new (content: string) => BaseMessage;
       this.humanMessageCtor = HumanMessage as unknown as new (content: string) => BaseMessage;
 
+      // Reasoning models (e.g. gpt-5.4-mini) reject any non-default `temperature`.
+      // Only send the field when the caller explicitly configured an override.
       const base = new ChatOpenAI({
         apiKey: this.config.openaiApiKey,
         model: this.config.model,
-        temperature: this.config.temperature,
+        ...(this.config.temperature !== null ? { temperature: this.config.temperature } : {}),
         timeout: this.config.timeout,
         maxRetries: this.config.maxRetries,
         reasoning: { effort: this.config.reasoningEffort },

@@ -62,8 +62,8 @@ function makeConfig(overrides?: Partial<ClassifierConfig>): ClassifierConfig {
   return {
     provider: 'openai',
     model: 'gpt-5.4-mini',
-    reasoningEffort: 'minimal',
-    temperature: 0,
+    reasoningEffort: 'low',
+    temperature: null,
     maxRetries: 2,
     timeout: 10_000,
     openaiApiKey: 'sk-test-key',
@@ -131,10 +131,9 @@ describe('LangChainContentClassifierAdapter', () => {
       expect(ChatOpenAIMock).toHaveBeenCalledWith({
         apiKey: 'sk-test-key',
         model: 'gpt-5.4-mini',
-        temperature: 0,
         timeout: 10_000,
         maxRetries: 2,
-        reasoning: { effort: 'minimal' },
+        reasoning: { effort: 'low' },
       });
       expect(withStructuredOutputMock).toHaveBeenCalledTimes(VERDICT_FIELDS.length);
       for (const field of VERDICT_FIELDS) {
