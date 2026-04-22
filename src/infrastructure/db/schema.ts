@@ -13,6 +13,7 @@ import {
   vector,
 } from 'drizzle-orm/pg-core';
 import { sql, type InferInsertModel, type InferSelectModel } from 'drizzle-orm';
+import type { ValidatorReport } from '../../domain/types/validator-report.js';
 // Tables
 export const learningTopics = pgTable(
   'learning_topics',
@@ -68,6 +69,7 @@ export const learningChunks = pgTable(
     contentStatus: text('content_status').notNull().default('final').$type<'draft' | 'final'>(), // CHECK('draft','final') — enforced at DB level
     condensedSummary: text('condensed_summary'), // short distillation of key takeaway (2-4 sentences)
     knowledgeType: text('knowledge_type').$type<'fact' | 'concept' | 'procedure' | 'principle'>(), // CHECK — enforced at DB level
+    validatorReport: jsonb('validator_report').$type<ValidatorReport>(),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   },

@@ -378,6 +378,7 @@ describe('createTopicWithChunks', () => {
     const blockingRule: LinterRule = {
       name: 'no-empty-content',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -407,6 +408,7 @@ describe('createTopicWithChunks', () => {
     const warningRule: LinterRule = {
       name: 'soft-check',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -451,6 +453,7 @@ describe('createTopicWithChunks', () => {
     const throwingRule: LinterRule = {
       name: 'boom-rule',
       scope: 'chunk',
+      tier: 'tier1a',
       run: () => {
         throw new Error('rule exploded');
       },
@@ -469,6 +472,7 @@ describe('createTopicWithChunks', () => {
       {
         name: 'multi',
         scope: 'chunk',
+        tier: 'tier1a',
         run: chunk => [
           {
             chunkId: chunk.chunkId,

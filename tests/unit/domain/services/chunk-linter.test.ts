@@ -61,6 +61,7 @@ describe('runLinterSuite', () => {
     const rule: LinterRule = {
       name: 'chunk-order-rule',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => {
         seen.push(chunk.chunkId);
         return [makeFinding({ chunkId: chunk.chunkId, rule: 'chunk-order-rule' })];
@@ -86,6 +87,7 @@ describe('runLinterSuite', () => {
     const rule: LinterRule = {
       name: 'topic-rule',
       scope: 'topic',
+      tier: 'tier1a',
       run: topic => {
         received.push(topic);
         return [makeFinding({ chunkId: topic.topicId || '<topic>', rule: 'topic-rule' })];
@@ -105,16 +107,19 @@ describe('runLinterSuite', () => {
     const chunkRuleA: LinterRule = {
       name: 'rule-A',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-A' })],
     };
     const topicRule: LinterRule = {
       name: 'rule-T',
       scope: 'topic',
+      tier: 'tier1a',
       run: topic => [makeFinding({ chunkId: topic.topicId || '<topic>', rule: 'rule-T' })],
     };
     const chunkRuleB: LinterRule = {
       name: 'rule-B',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-B' })],
     };
     const input = makeInput({
@@ -136,6 +141,7 @@ describe('runLinterSuite', () => {
     const rule: LinterRule = {
       name: 'blocking-rule',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [
         makeFinding({
           chunkId: chunk.chunkId,
@@ -155,6 +161,7 @@ describe('runLinterSuite', () => {
     const rule: LinterRule = {
       name: 'warn-rule',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, severity: 'warning' })],
     };
 
@@ -168,11 +175,13 @@ describe('runLinterSuite', () => {
     const goodRule: LinterRule = {
       name: 'good-rule',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'good-rule' })],
     };
     const throwingRule: LinterRule = {
       name: 'throwing-rule',
       scope: 'chunk',
+      tier: 'tier1a',
       run: () => {
         throw new Error('boom');
       },
@@ -194,6 +203,7 @@ describe('runLinterSuite', () => {
     const throwingTopic: LinterRule = {
       name: 'topic-boom',
       scope: 'topic',
+      tier: 'tier1a',
       run: () => {
         throw new Error('topic boom');
       },
@@ -201,6 +211,7 @@ describe('runLinterSuite', () => {
     const followUp: LinterRule = {
       name: 'follow-up',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'follow-up' })],
     };
 
@@ -220,6 +231,7 @@ describe('runLinterSuite', () => {
     const throwingRule: LinterRule = {
       name: 'rule-x',
       scope: 'topic',
+      tier: 'tier1a',
       run: () => {
         throw new Error('boom');
       },
@@ -227,6 +239,7 @@ describe('runLinterSuite', () => {
     const goodRule: LinterRule = {
       name: 'rule-y',
       scope: 'chunk',
+      tier: 'tier1a',
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-y' })],
     };
 
@@ -241,6 +254,7 @@ describe('runLinterSuite', () => {
     const throwingRule: LinterRule = {
       name: 'rule-silent',
       scope: 'topic',
+      tier: 'tier1a',
       run: () => {
         throw new Error('quiet boom');
       },

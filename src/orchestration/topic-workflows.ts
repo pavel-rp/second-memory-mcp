@@ -15,8 +15,10 @@ import {
   runLinterSuite,
   type LinterFinding,
   type LinterRule,
+  type LinterRuleTier,
   type TopicLintInput,
 } from '../domain/services/chunk-linter.js';
+import { canonicalEmptyReport, type ValidatorReport } from '../domain/types/validator-report.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { getRequestLogger } from '../shared/logger.js';
@@ -125,6 +127,45 @@ function toTopicWithChunks(
   };
 }
 
+/**
+ * Build the per-chunk `validator_report` payload from the suite-wide findings.
+ * Routes findings into `tier1a`/`tier1b` sections by looking up each finding's
+ * rule name in `ruleTierByName`. Findings whose rule isn't in the map are
+ * dropped (defensive — would only happen if a rule emitted with an unknown
+ * name). Empty buckets are omitted; the returned object always carries
+ * `updated_at`, even when no findings exist (canonical empty).
+ */
+function buildValidatorReport(
+  chunkId: string,
+  allFindings: readonly LinterFinding[],
+  ruleTierByName: ReadonlyMap<string, LinterRuleTier>,
+  updatedAtIso: string
+): ValidatorReport {
+  const tier1a: LinterFinding[] = [];
+  const tier1b: LinterFinding[] = [];
+  for (const finding of allFindings) {
+    if (finding.chunkId !== chunkId) continue;
+    const tier = ruleTierByName.get(finding.rule);
+    if (tier === 'tier1a') {
+      tier1a.push(finding);
+    } else if (tier === 'tier1b') {
+      tier1b.push(finding);
+    } else {
+      // Defensive: a rule emitted a finding tagged with a rule name absent
+      // from the registered rules map. Drop it from persistence and warn —
+      // matches the fail-open + log-to-stderr convention.
+      getRequestLogger().warn(
+        `Validator finding from unknown rule "${finding.rule}" — dropped from validator_report for chunk ${chunkId}`
+      );
+    }
+  }
+  return {
+    ...canonicalEmptyReport(updatedAtIso),
+    ...(tier1a.length > 0 ? { tier1a } : {}),
+    ...(tier1b.length > 0 ? { tier1b } : {}),
+  };
+}
+
 export async function createTopicWithChunks(
   input: TopicCreationInput,
   deps: TopicDeps
@@ -167,10 +208,19 @@ export async function createTopicWithChunks(
     };
   }
 
+  // Build a rule-name → tier map once so per-chunk grouping below is O(1).
+  // Findings carry only `rule: string`, not the rule definition itself
+  // (see chunk-linter.ts), so we look up the tier here.
+  const ruleTierByName = new Map<string, LinterRuleTier>();
+  for (const rule of deps.linterRules ?? []) {
+    ruleTierByName.set(rule.name, rule.tier);
+  }
+
   try {
     const result = await deps.unitOfWork.execute(async ports => {
       const topicId = crypto.randomUUID();
       const now = Date.now();
+      const nowIso = new Date(now).toISOString();
       const topic: LearningTopic = {
         id: topicId,
         title: input.topicTitle,
@@ -188,6 +238,12 @@ export async function createTopicWithChunks(
       for (let i = 0; i < input.chunks.length; i++) {
         const chunkDef = input.chunks[i];
         const chunkCreatedAt = now + i; // monotonic ordering within batch
+        const validatorReport = buildValidatorReport(
+          chunkDef.id,
+          lintResult.findings,
+          ruleTierByName,
+          nowIso
+        );
         const chunkRow: LearningChunk = {
           id: chunkDef.id,
           topicId,
@@ -209,6 +265,7 @@ export async function createTopicWithChunks(
           contentStatus: chunkDef.contentStatus ?? 'final',
           condensedSummary: chunkDef.condensedSummary ?? null,
           knowledgeType: chunkDef.knowledgeType ?? null,
+          validatorReport,
           createdAt: chunkCreatedAt,
           updatedAt: now,
         };

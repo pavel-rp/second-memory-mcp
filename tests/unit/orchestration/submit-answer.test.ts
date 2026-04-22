@@ -83,6 +83,7 @@ function makeLearningChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     contentStatus: 'final',
     condensedSummary: null,
     knowledgeType: null,
+    validatorReport: null,
     prerequisitesJson: null,
     tagsJson: null,
     content: 'Content about X...',

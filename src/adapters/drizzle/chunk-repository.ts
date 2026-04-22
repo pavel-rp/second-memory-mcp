@@ -6,6 +6,7 @@ import {
   type LearningChunkRow,
 } from '../../infrastructure/db/schema.js';
 import type { LearningChunk, NewLearningChunk } from '../../domain/types/entities.js';
+import type { ValidatorReport } from '../../domain/types/validator-report.js';
 import type {
   ChunkRepository,
   ChunkContentResult,
@@ -106,6 +107,34 @@ export class DrizzleChunkRepository implements ChunkRepository {
     const res = await this.db
       .update(learningChunks)
       .set({ contentEmbedding: vector })
+      .where(eq(learningChunks.id, chunkId));
+    return res.rowCount ?? 0;
+  }
+
+  async writeValidatorReport(chunkId: string, report: ValidatorReport): Promise<number> {
+    const res = await this.db
+      .update(learningChunks)
+      .set({ validatorReport: report })
+      .where(eq(learningChunks.id, chunkId));
+    return res.rowCount ?? 0;
+  }
+
+  async mergeValidatorReport(
+    chunkId: string,
+    partial: Partial<Omit<ValidatorReport, 'updated_at'>>,
+    updatedAt: string
+  ): Promise<number> {
+    // Atomic single-statement merge using Postgres JSONB `||` (shallow merge).
+    // Replaces whole tier keys present in `partial`, preserves untouched
+    // sections, sets `updated_at`. Avoids the read-then-write race that an
+    // application-level merge would introduce when concurrent callers update
+    // different tiers (e.g. NEU-617 writing tier1b while NEU-620 writes tier2).
+    const overlay = { ...partial, updated_at: updatedAt };
+    const res = await this.db
+      .update(learningChunks)
+      .set({
+        validatorReport: sql`COALESCE(${learningChunks.validatorReport}, '{}'::jsonb) || ${JSON.stringify(overlay)}::jsonb`,
+      })
       .where(eq(learningChunks.id, chunkId));
     return res.rowCount ?? 0;
   }

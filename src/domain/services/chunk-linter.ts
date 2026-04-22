@@ -60,15 +60,27 @@ export type TopicLintInput = {
   chunks: ChunkLintInput[];
 };
 
+/**
+ * Tier classifies the rule for `validator_report` persistence (NEU-629).
+ *  - `tier1a` — structural blocking rules
+ *  - `tier1b` — heuristic warning rules
+ *
+ * Tier 2 (classifier) is not produced by `runLinterSuite` and therefore has no
+ * representation here.
+ */
+export type LinterRuleTier = 'tier1a' | 'tier1b';
+
 export type LinterRule =
   | {
       name: string;
       scope: 'chunk';
+      tier: LinterRuleTier;
       run: (input: ChunkLintInput) => LinterFinding[];
     }
   | {
       name: string;
       scope: 'topic';
+      tier: LinterRuleTier;
       run: (input: TopicLintInput) => LinterFinding[];
     };
 
