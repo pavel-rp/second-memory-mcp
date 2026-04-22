@@ -343,5 +343,23 @@ describe('LangChainContentClassifierAdapter', () => {
       expect(messages[1].content).toContain('prerequisites: basic-algebra');
       expect(messages[1].content).toContain('beta gamma');
     });
+
+    it('renders "(none)" when tags is empty', async () => {
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi.fn();
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig());
+      await adapter.classify(makeInput(), makePrompt());
+      setAllFieldsFulfilled();
+
+      await adapter.classify(makeInput({ chunkId: 'c-empty', tags: [] }), makePrompt());
+
+      const invoke = invokeMocks.get('renderingClarity')!;
+      const lastCallArgs = invoke.mock.calls[invoke.mock.calls.length - 1];
+      const messages = lastCallArgs[0] as Array<{ content: string }>;
+      expect(messages[1].content).toContain('tags: (none)');
+    });
   });
 });
