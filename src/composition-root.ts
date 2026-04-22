@@ -9,11 +9,14 @@ import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-que
 import { DrizzleNotesRepository } from './adapters/drizzle/notes-repository.js';
 import { DrizzleContextTokenRepository } from './adapters/drizzle/context-token-repository.js';
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
+import { LangChainContentClassifierAdapter } from './adapters/langchain/content-classifier-adapter.js';
 import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
 import { resolveEmbeddingConfig } from './config/resolve-embedding-config.js';
+import { resolveClassifierConfig } from './config/resolve-classifier-config.js';
 import { resolveContextTokenConfig } from './config/resolve-context-token-config.js';
 
 import type { EmbeddingPort } from './ports/embedding-port.js';
+import type { ContentClassifierPort } from './ports/content-classifier-port.js';
 import type {
   ChunkRepository,
   ListChunksFilter,
@@ -110,6 +113,7 @@ export interface AppPorts {
   notes: NotesRepository;
   contextTokens: ContextTokenRepository;
   embedding?: EmbeddingPort;
+  classifier?: ContentClassifierPort;
 }
 
 /** Pre-wired orchestration functions grouped by concern */
@@ -307,6 +311,7 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
 export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
   const algorithmConfig = resolveAlgorithmConfig();
   const resolvedEmbedding = resolveEmbeddingConfig();
+  const resolvedClassifier = resolveClassifierConfig();
   const contextTokenConfig = resolveContextTokenConfig();
 
   const ports: AppPorts = {
@@ -321,11 +326,18 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     ports.embedding = new LangChainEmbeddingAdapter(resolvedEmbedding.embedding);
   }
 
+  // Create classifier adapter under the same opt-out semantics. No workflow
+  // invokes the port yet — NEU-620 wires it into create_chunk / topic workflows.
+  if (!('classifier' in (overrides ?? {})) && resolvedClassifier.classifier.provider) {
+    ports.classifier = new LangChainContentClassifierAdapter(resolvedClassifier.classifier);
+  }
+
   const chunkDeps: chunkWorkflows.ChunkDeps = {
     chunks: ports.chunks,
     topics: ports.topics,
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
+    classifier: ports.classifier,
     maxDependencyDepth: algorithmConfig.maxDependencyDepth,
   };
   const topicDeps: topicWorkflows.TopicDeps = {
@@ -333,6 +345,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     chunks: ports.chunks,
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
+    classifier: ports.classifier,
     // Register Tier 1 content-quality rules (NEU-614 … NEU-618) here.
     linterRules: [],
   };

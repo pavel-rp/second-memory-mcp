@@ -3,6 +3,7 @@ import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { TopicRepository } from '../ports/topic-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
+import type { ContentClassifierPort } from '../ports/content-classifier-port.js';
 import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.js';
 import type { ServiceResult, ServiceError } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
@@ -18,6 +19,8 @@ export type ChunkDeps = {
   topics: TopicRepository;
   unitOfWork: UnitOfWorkPort;
   embedding?: EmbeddingPort;
+  /** Tier 2 content classifier (NEU-619). Wired in NEU-620; unused in this ticket. */
+  classifier?: ContentClassifierPort;
   maxDependencyDepth: number;
 };
 

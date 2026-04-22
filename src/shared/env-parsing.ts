@@ -1,6 +1,11 @@
 // Environment variable parsing helpers
 // Used by config resolution functions in the composition root layer
 
+import {
+  CLASSIFIER_REASONING_EFFORTS,
+  type ClassifierReasoningEffort,
+} from '../domain/config/classifier.js';
+
 export function parseNumber(envValue: string | undefined, fallback: number): number {
   if (envValue == null || envValue.trim() === '') return fallback;
   const parsed = Number(envValue);
@@ -54,4 +59,17 @@ export function parseEmbeddingProvider(value: string | undefined): 'openai' | 'o
   const normalized = value?.trim().toLowerCase();
   if (normalized === 'openai' || normalized === 'ollama') return normalized;
   return null;
+}
+
+export function parseClassifierProvider(value: string | undefined): 'openai' | null {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'openai') return normalized;
+  return null;
+}
+
+export function parseReasoningEffort(
+  value: string | undefined,
+  fallback: ClassifierReasoningEffort
+): ClassifierReasoningEffort {
+  return parseEnum(value, CLASSIFIER_REASONING_EFFORTS, fallback);
 }

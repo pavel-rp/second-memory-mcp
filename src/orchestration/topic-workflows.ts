@@ -3,6 +3,7 @@ import type { TopicRepository } from '../ports/topic-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
+import type { ContentClassifierPort } from '../ports/content-classifier-port.js';
 import type {
   LearningChunk,
   LearningTopic,
@@ -28,6 +29,8 @@ export type TopicDeps = {
   chunks: ChunkRepository;
   unitOfWork: UnitOfWorkPort;
   embedding?: EmbeddingPort;
+  /** Tier 2 content classifier (NEU-619). Wired in NEU-620; unused in this ticket. */
+  classifier?: ContentClassifierPort;
   linterRules?: LinterRule[];
 };
 
