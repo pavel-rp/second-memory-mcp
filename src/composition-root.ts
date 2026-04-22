@@ -346,6 +346,7 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
     classifier: ports.classifier,
+    enableClassifierAtCreate: resolvedClassifier.classifier.enableAtCreate,
     // Register Tier 1 content-quality rules (NEU-614 … NEU-618) here.
     linterRules: [],
   };

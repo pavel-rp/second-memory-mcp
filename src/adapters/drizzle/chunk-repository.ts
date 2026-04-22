@@ -6,7 +6,11 @@ import {
   type LearningChunkRow,
 } from '../../infrastructure/db/schema.js';
 import type { LearningChunk, NewLearningChunk } from '../../domain/types/entities.js';
-import type { ValidatorReport } from '../../domain/types/validator-report.js';
+import {
+  ValidatorReportSchema,
+  type ValidatorReport,
+} from '../../domain/types/validator-report.js';
+import { getRequestLogger } from '../../shared/logger.js';
 import type {
   ChunkRepository,
   ChunkContentResult,
@@ -117,6 +121,22 @@ export class DrizzleChunkRepository implements ChunkRepository {
       .set({ validatorReport: report })
       .where(eq(learningChunks.id, chunkId));
     return res.rowCount ?? 0;
+  }
+
+  async getValidatorReport(chunkId: string): Promise<ValidatorReport | null> {
+    const [row] = await this.db
+      .select({ validatorReport: learningChunks.validatorReport })
+      .from(learningChunks)
+      .where(eq(learningChunks.id, chunkId));
+    if (!row || row.validatorReport == null) return null;
+    const parsed = ValidatorReportSchema.safeParse(row.validatorReport);
+    if (!parsed.success) {
+      getRequestLogger().warn(
+        `validator_report for chunk ${chunkId} failed schema validation: ${parsed.error.message}`
+      );
+      return null;
+    }
+    return parsed.data;
   }
 
   async mergeValidatorReport(

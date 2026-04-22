@@ -19,6 +19,7 @@ export function stubChunkRepository(overrides?: Partial<ChunkRepository>): Chunk
     saveContentEmbedding: vi.fn().mockResolvedValue(1),
     writeValidatorReport: vi.fn().mockResolvedValue(1),
     mergeValidatorReport: vi.fn().mockResolvedValue(1),
+    getValidatorReport: vi.fn().mockResolvedValue(null),
     delete: vi.fn().mockResolvedValue(1),
     getContent: vi.fn().mockResolvedValue(null),
     getWithContent: vi.fn().mockResolvedValue(null),
