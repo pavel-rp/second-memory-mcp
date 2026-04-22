@@ -101,8 +101,10 @@ export interface ChunkRepository {
     beforeCreatedAt: number
   ): Promise<Array<{ id: string; title: string; condensedSummary: string | null }>>;
   /**
-   * Overwrite the `validator_report` JSONB column for a chunk. Returns the
-   * affected row count. Used by the create path (NEU-629).
+   * Overwrite the full `validator_report` JSONB column for a chunk. Returns
+   * the affected row count. Intended for overwrite use (e.g. re-running the
+   * full validator suite against an existing chunk); the create path inlines
+   * the report in the initial `INSERT`.
    */
   writeValidatorReport(chunkId: string, report: ValidatorReport): Promise<number>;
   /**
@@ -120,10 +122,13 @@ export interface ChunkRepository {
    *
    * Value constraints: tier payloads must be JSON-serializable. `undefined`
    * is skipped (matches SQL `||`); explicit `null` persists as JSON null.
+   * `updated_at` is owned by the `updatedAt` parameter and excluded from
+   * `partial` at the type level — any value passed in `partial` would be
+   * overwritten.
    */
   mergeValidatorReport(
     chunkId: string,
-    partial: Partial<ValidatorReport>,
+    partial: Partial<Omit<ValidatorReport, 'updated_at'>>,
     updatedAt: string
   ): Promise<number>;
 }

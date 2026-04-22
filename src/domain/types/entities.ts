@@ -60,8 +60,9 @@ export type LearningChunk = {
   knowledgeType: KnowledgeType | null;
   /**
    * Optional because most SELECT projections omit this JSONB column for
-   * payload size reasons. `getById` reads it. Persisted via the dedicated
-   * `writeValidatorReport` / `mergeValidatorReport` adapter methods (NEU-629).
+   * payload size reasons. `getById` reads it. Persisted inline by the create
+   * path and via the `writeValidatorReport` / `mergeValidatorReport` adapter
+   * methods (NEU-629).
    */
   validatorReport?: ValidatorReport | null;
   createdAt: number;

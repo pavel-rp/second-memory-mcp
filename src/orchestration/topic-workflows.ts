@@ -159,10 +159,11 @@ function buildValidatorReport(
       );
     }
   }
-  const report = canonicalEmptyReport(updatedAtIso);
-  if (tier1a.length > 0) report.tier1a = tier1a;
-  if (tier1b.length > 0) report.tier1b = tier1b;
-  return report;
+  return {
+    ...canonicalEmptyReport(updatedAtIso),
+    ...(tier1a.length > 0 ? { tier1a } : {}),
+    ...(tier1b.length > 0 ? { tier1b } : {}),
+  };
 }
 
 export async function createTopicWithChunks(
@@ -243,9 +244,6 @@ export async function createTopicWithChunks(
           ruleTierByName,
           nowIso
         );
-        // `validatorReport` is written by the dedicated `writeValidatorReport`
-        // method below (single source of truth) — do not include it in the
-        // insert payload to avoid a redundant UPDATE round-trip.
         const chunkRow: LearningChunk = {
           id: chunkDef.id,
           topicId,
@@ -267,21 +265,11 @@ export async function createTopicWithChunks(
           contentStatus: chunkDef.contentStatus ?? 'final',
           condensedSummary: chunkDef.condensedSummary ?? null,
           knowledgeType: chunkDef.knowledgeType ?? null,
+          validatorReport,
           createdAt: chunkCreatedAt,
           updatedAt: now,
         };
         await ports.chunks.create(chunkRow);
-        const reportRowCount = await ports.chunks.writeValidatorReport(
-          chunkDef.id,
-          validatorReport
-        );
-        if (reportRowCount !== 1) {
-          throw new Error(
-            `validator_report write affected ${reportRowCount} rows for chunk ${chunkDef.id}`
-          );
-        }
-        // Reflect the persisted state in the in-memory copy returned to callers.
-        chunkRow.validatorReport = validatorReport;
         createdChunks.push(chunkRow);
       }
 

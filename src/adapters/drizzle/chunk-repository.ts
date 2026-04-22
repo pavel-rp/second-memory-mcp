@@ -121,7 +121,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
 
   async mergeValidatorReport(
     chunkId: string,
-    partial: Partial<ValidatorReport>,
+    partial: Partial<Omit<ValidatorReport, 'updated_at'>>,
     updatedAt: string
   ): Promise<number> {
     // Atomic single-statement merge using Postgres JSONB `||` (shallow merge).

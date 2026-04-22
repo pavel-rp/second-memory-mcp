@@ -176,6 +176,45 @@ describe('validator_report persistence (NEU-629)', () => {
     expect(report?.tier1b).toBeUndefined();
   });
 
+  it('writeValidatorReport overwrites the full validator_report for an existing chunk', async () => {
+    const ids = [crypto.randomUUID()];
+    const tier1aRule: LinterRule = {
+      name: 'tier1a-warn',
+      scope: 'chunk',
+      tier: 'tier1a',
+      run: chunk => [
+        {
+          chunkId: chunk.chunkId,
+          rule: 'tier1a-warn',
+          severity: 'warning',
+          category: 'structural',
+          detail: 'tier1a finding',
+        },
+      ],
+    };
+
+    const result = await createTopicWithChunks(makeInput(ids), buildDeps([tier1aRule]));
+    expect(result.success).toBe(true);
+    const before = await readValidatorReport(ids[0]);
+    expect(Array.isArray(before?.tier1a)).toBe(true);
+
+    const repo = new DrizzleChunkRepository(getSql());
+    const newIso = new Date().toISOString();
+    const rowCount = await repo.writeValidatorReport(ids[0], { updated_at: newIso });
+    expect(rowCount).toBe(1);
+
+    const after = await readValidatorReport(ids[0]);
+    expect(after).toEqual({ updated_at: newIso });
+  });
+
+  it('writeValidatorReport returns 0 for an unknown chunk id', async () => {
+    const repo = new DrizzleChunkRepository(getSql());
+    const rowCount = await repo.writeValidatorReport('no-such-chunk-id', {
+      updated_at: new Date().toISOString(),
+    });
+    expect(rowCount).toBe(0);
+  });
+
   it('mergeValidatorReport returns 0 for an unknown chunk id', async () => {
     const repo = new DrizzleChunkRepository(getSql());
     const rowCount = await repo.mergeValidatorReport(

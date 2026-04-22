@@ -39,10 +39,13 @@ export function canonicalEmptyReport(updatedAt: string): ValidatorReport {
  *
  * Used by in-memory adapters and test doubles. The production Drizzle adapter
  * implements the same contract via Postgres `||` for atomicity.
+ *
+ * `updated_at` is owned by the `updatedAt` parameter and excluded from
+ * `partial` at the type level.
  */
 export function mergeReportSections(
   prev: ValidatorReport | null,
-  partial: Partial<ValidatorReport>,
+  partial: Partial<Omit<ValidatorReport, 'updated_at'>>,
   updatedAt: string
 ): ValidatorReport {
   const base: ValidatorReport = prev ?? { updated_at: updatedAt };
