@@ -1,4 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
+  logEvent: vi.fn(),
+}));
+
 import {
   createTopicWithChunks,
   type TopicCreationInput,
@@ -6,6 +12,7 @@ import {
 } from '../../../src/orchestration/topic-workflows.js';
 import type { ContentClassifierPort } from '../../../src/ports/content-classifier-port.js';
 import type { ChunkClassifierVerdict } from '../../../src/domain/types/classifier.js';
+import { logEvent } from '../../../src/shared/logger.js';
 import {
   stubChunkRepository,
   stubTopicRepository,
@@ -137,6 +144,10 @@ function inputNoContent(): TopicCreationInput {
 // ──────────────────────────────────────────────────────────────
 
 describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
   it('does nothing when the classifier port is absent', async () => {
     const { deps, mergeValidatorReport } = buildDeps({ enableClassifierAtCreate: true });
     const result = await createTopicWithChunks(input(), deps);
@@ -337,5 +348,218 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     expect(result.success).toBe(true);
     expect(classify).toHaveBeenCalledTimes(3);
     expect(result.topic?.tier2Findings).toBeUndefined();
+  });
+
+  // ── NEU-639: classifier event logging ────────────────────────────
+  describe('classifier event logging (NEU-639)', () => {
+    it('emits one classifier.chunk_verdict per chunk with snake_case scores and persisted:true', async () => {
+      const classify = vi.fn().mockResolvedValue(cleanVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+
+      const result = await createTopicWithChunks(input(), deps);
+      expect(result.success).toBe(true);
+
+      const verdictCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.chunk_verdict');
+      expect(verdictCalls).toHaveLength(1);
+
+      const [operation, event, data, durationArg] = verdictCalls[0];
+      expect(operation).toBe('classifyChunk');
+      expect(event).toBe('classifier.chunk_verdict');
+      expect(data).toEqual({
+        chunk_id: 'chunk-a',
+        topic_id: expect.any(String),
+        prompt_version: '1.0.0',
+        duration_ms: expect.any(Number),
+        scores: {
+          rendering_clarity: 5,
+          vocabulary_appropriate: 5,
+          math_notation_rendering_risk: 5,
+          definition_constructive: 4,
+          epistemic_consistency: 5,
+          overall_fit: 5,
+        },
+        failed_fields: [],
+        persisted: true,
+        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
+      });
+      // Duration is also passed as the 4th positional arg so pg-event-transport
+      // populates the dedicated `duration_ms` SQL column (not just JSONB data).
+      expect(durationArg).toEqual((data as { duration_ms: number }).duration_ms);
+      expect(typeof durationArg).toBe('number');
+    });
+
+    it('emits classifier.classify_threw when classifier throws', async () => {
+      const classify = vi.fn().mockRejectedValue(new TypeError('rate-limit'));
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+
+      await createTopicWithChunks(input(), deps);
+
+      const threwCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.classify_threw');
+      expect(threwCalls).toHaveLength(1);
+
+      const [operation, event, data, durationArg] = threwCalls[0];
+      expect(operation).toBe('classifyChunk');
+      expect(event).toBe('classifier.classify_threw');
+      expect(data).toEqual({
+        chunk_id: 'chunk-a',
+        error_class: 'TypeError',
+        error_message: 'rate-limit',
+        duration_ms: expect.any(Number),
+        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
+      });
+      expect(durationArg).toEqual((data as { duration_ms: number }).duration_ms);
+
+      // No verdict event when classify throws.
+      const verdictCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.chunk_verdict');
+      expect(verdictCalls).toHaveLength(0);
+    });
+
+    it('handles non-Error throw values from classifier (string rejection)', async () => {
+      // Covers the `: typeof err` and `: String(err)` branches of the ternaries
+      // in classify_threw — exercised when the adapter rejects with a non-Error.
+      const classify = vi.fn().mockRejectedValue('rate-limit string');
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+
+      await createTopicWithChunks(input(), deps);
+
+      const threwCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.classify_threw');
+      expect(threwCalls).toHaveLength(1);
+      expect(threwCalls[0][2]).toEqual({
+        chunk_id: 'chunk-a',
+        error_class: 'string',
+        error_message: 'rate-limit string',
+        duration_ms: expect.any(Number),
+        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
+      });
+    });
+
+    it('swallows event-logger throws so the post-commit phase is not poisoned', async () => {
+      // Covers the `try { logEvent(...) } catch {}` envelopes around both the
+      // chunk_verdict and classify_threw emissions. logEvent is documented to
+      // never throw in production (stderr fallback) but the envelope defends
+      // against composition-root misconfiguration.
+      const cleanClassify = vi.fn().mockResolvedValue(cleanVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify: cleanClassify },
+        enableClassifierAtCreate: true,
+      });
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await createTopicWithChunks(input(), deps);
+      expect(result.success).toBe(true);
+      // Confirm the throwing logEvent was actually invoked (i.e. the envelope
+      // around classifier.chunk_verdict was the catch site).
+      expect(vi.mocked(logEvent).mock.calls.some(c => c[1] === 'classifier.chunk_verdict')).toBe(
+        true
+      );
+
+      // The throwing classify catch envelope: classify rejects, logEvent throws.
+      const throwingClassify = vi.fn().mockRejectedValue(new Error('boom'));
+      const { deps: deps2 } = buildDeps({
+        classifier: { classify: throwingClassify },
+        enableClassifierAtCreate: true,
+      });
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result2 = await createTopicWithChunks(input(), deps2);
+      // Topic creation still succeeds even when both classify and logEvent fail.
+      expect(result2.success).toBe(true);
+      expect(vi.mocked(logEvent).mock.calls.some(c => c[1] === 'classifier.classify_threw')).toBe(
+        true
+      );
+    });
+
+    it('reports persisted:false when mergeValidatorReport returns zero rows', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps, mergeValidatorReport } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      mergeValidatorReport.mockResolvedValueOnce(0);
+
+      await createTopicWithChunks(input(), deps);
+
+      const verdictCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.chunk_verdict');
+      expect(verdictCalls).toHaveLength(1);
+      expect((verdictCalls[0][2] as { persisted: boolean }).persisted).toBe(false);
+    });
+
+    it('reports persisted:false when mergeValidatorReport throws', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps, mergeValidatorReport } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      mergeValidatorReport.mockRejectedValueOnce(new Error('conn reset'));
+
+      await createTopicWithChunks(input(), deps);
+
+      const verdictCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.chunk_verdict');
+      expect(verdictCalls).toHaveLength(1);
+      expect((verdictCalls[0][2] as { persisted: boolean }).persisted).toBe(false);
+    });
+
+    it('emits verdict event with persisted:false for all-null verdicts', async () => {
+      const classify = vi.fn().mockResolvedValue(allNullVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+
+      await createTopicWithChunks(input(), deps);
+
+      const verdictCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.chunk_verdict');
+      expect(verdictCalls).toHaveLength(1);
+      const data = verdictCalls[0][2] as {
+        persisted: boolean;
+        scores: Record<string, number | null>;
+        failed_fields: string[];
+      };
+      expect(data.persisted).toBe(false);
+      expect(Object.values(data.scores).every(s => s === null)).toBe(true);
+      expect(data.failed_fields).toHaveLength(6);
+    });
+
+    it('emits zero classifier events when enableClassifierAtCreate is false', async () => {
+      const classify = vi.fn().mockResolvedValue(cleanVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: false,
+      });
+
+      await createTopicWithChunks(input(), deps);
+
+      const classifierCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => typeof c[1] === 'string' && c[1].startsWith('classifier.'));
+      expect(classifierCalls).toHaveLength(0);
+    });
   });
 });

@@ -44,17 +44,12 @@ vi.mock('@langchain/core/messages', () => ({
 }));
 
 vi.mock('../../../src/shared/logger.js', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
+  logEvent: vi.fn(),
 }));
 
 const { LangChainContentClassifierAdapter } =
   await import('../../../src/adapters/langchain/content-classifier-adapter.js');
-const { logger } = await import('../../../src/shared/logger.js');
+const { logEvent } = await import('../../../src/shared/logger.js');
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -184,9 +179,13 @@ describe('LangChainContentClassifierAdapter', () => {
       for (const field of VERDICT_FIELDS) {
         expect(verdict[field]).toBeNull();
       }
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.stringContaining('No classifier provider configured')
-      );
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.init', {
+        provider: null,
+        model: 'gpt-5.4-mini',
+        reasoning_effort: 'low',
+        available: false,
+        reason: 'no_provider_configured',
+      });
     });
 
     it('stays unavailable when openaiApiKey is missing', async () => {
@@ -196,11 +195,17 @@ describe('LangChainContentClassifierAdapter', () => {
 
       expect(ChatOpenAIMock).not.toHaveBeenCalled();
       expect(verdict.renderingClarity).toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('no API key available'));
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.init', {
+        provider: 'openai',
+        model: 'gpt-5.4-mini',
+        reasoning_effort: 'low',
+        available: false,
+        reason: 'missing_api_key',
+      });
     });
 
     it('catches ChatOpenAI constructor errors and stays unavailable', async () => {
-      ChatOpenAIMock.mockImplementationOnce(() => {
+      ChatOpenAIMock.mockImplementationOnce(function FailingCtor() {
         throw new Error('ctor boom');
       });
       const adapter = new LangChainContentClassifierAdapter(makeConfig());
@@ -210,10 +215,52 @@ describe('LangChainContentClassifierAdapter', () => {
       for (const field of VERDICT_FIELDS) {
         expect(verdict[field]).toBeNull();
       }
-      expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to initialize classifier adapter'),
-        expect.any(Error)
-      );
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.init', {
+        provider: 'openai',
+        model: 'gpt-5.4-mini',
+        reasoning_effort: 'low',
+        available: false,
+        reason: 'ctor boom',
+      });
+    });
+
+    it('falls back to String(err) when init throws a non-Error value', async () => {
+      // Covers the `: String(err)` branch of the init-catch ternary.
+      ChatOpenAIMock.mockImplementationOnce(function FailingCtor() {
+        throw 'ctor string boom';
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig());
+
+      const verdict = await adapter.classify(makeInput(), makePrompt());
+
+      for (const field of VERDICT_FIELDS) {
+        expect(verdict[field]).toBeNull();
+      }
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.init', {
+        provider: 'openai',
+        model: 'gpt-5.4-mini',
+        reasoning_effort: 'low',
+        available: false,
+        reason: 'ctor string boom',
+      });
+    });
+
+    it('emits classifier.init with available:true on successful init', async () => {
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi.fn().mockResolvedValue({ score: 3, rationale: `r-${opts.name}` });
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig());
+
+      await adapter.classify(makeInput(), makePrompt());
+
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.init', {
+        provider: 'openai',
+        model: 'gpt-5.4-mini',
+        reasoning_effort: 'low',
+        available: true,
+      });
     });
   });
 
@@ -227,17 +274,21 @@ describe('LangChainContentClassifierAdapter', () => {
       const adapter = new LangChainContentClassifierAdapter(makeConfig());
       await adapter.classify(makeInput(), makePrompt()); // trigger init
       setAllFieldsFulfilled();
-      (logger.warn as unknown as { mockClear: () => void }).mockClear();
+      vi.mocked(logEvent).mockClear();
 
       const verdict = await adapter.classify(makeInput({ chunkId: 'c-2' }), makePrompt());
 
       for (const field of VERDICT_FIELDS) {
         expect(verdict[field]).toEqual({ score: 3, rationale: `rationale-${field}` });
       }
-      expect(logger.warn).not.toHaveBeenCalledWith(expect.stringContaining('fields failed'));
+      expect(logEvent).not.toHaveBeenCalledWith(
+        'classifier',
+        'classifier.classify_aggregate_failed',
+        expect.anything()
+      );
     });
 
-    it('sets a single failed field to null while others populate, and logs the failure', async () => {
+    it('sets a single failed field to null while others populate, and emits aggregate_failed event', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
         const invoke = vi.fn();
         invokeMocks.set(opts.name, invoke);
@@ -247,6 +298,7 @@ describe('LangChainContentClassifierAdapter', () => {
       await adapter.classify(makeInput(), makePrompt());
       setAllFieldsFulfilled();
       invokeMocks.get('vocabularyAppropriate')!.mockRejectedValueOnce(new Error('rate-limit'));
+      vi.mocked(logEvent).mockClear();
 
       const verdict = await adapter.classify(makeInput({ chunkId: 'c-2' }), makePrompt());
 
@@ -255,10 +307,13 @@ describe('LangChainContentClassifierAdapter', () => {
         score: 3,
         rationale: 'rationale-renderingClarity',
       });
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('vocabularyAppropriate'));
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.classify_aggregate_failed', {
+        chunk_id: 'c-2',
+        failed_fields: ['vocabulary_appropriate'],
+      });
     });
 
-    it('returns all-null verdict when every field fails and logs one aggregated warn', async () => {
+    it('returns all-null verdict when every field fails and emits one aggregate_failed event', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
         const invoke = vi.fn();
         invokeMocks.set(opts.name, invoke);
@@ -269,23 +324,33 @@ describe('LangChainContentClassifierAdapter', () => {
       for (const field of VERDICT_FIELDS) {
         invokeMocks.get(field)!.mockRejectedValue(new Error('boom'));
       }
-      (logger.warn as unknown as { mockClear: () => void }).mockClear();
+      vi.mocked(logEvent).mockClear();
 
       const verdict = await adapter.classify(makeInput({ chunkId: 'c-2' }), makePrompt());
 
       for (const field of VERDICT_FIELDS) {
         expect(verdict[field]).toBeNull();
       }
-      const failedWarnCalls = (
-        logger.warn as unknown as { mock: { calls: string[][] } }
-      ).mock.calls.filter(call => call[0]?.includes('fields failed'));
-      expect(failedWarnCalls.length).toBe(1);
-      for (const field of VERDICT_FIELDS) {
-        expect(failedWarnCalls[0][0]).toContain(field);
-      }
+      const aggregateCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.classify_aggregate_failed');
+      expect(aggregateCalls).toHaveLength(1);
+      const data = aggregateCalls[0][2] as { chunk_id: string; failed_fields: string[] };
+      expect(data.chunk_id).toBe('c-2');
+      expect(data.failed_fields).toHaveLength(VERDICT_FIELDS.length);
+      expect(data.failed_fields).toEqual(
+        expect.arrayContaining([
+          'rendering_clarity',
+          'vocabulary_appropriate',
+          'math_notation_rendering_risk',
+          'definition_constructive',
+          'epistemic_consistency',
+          'overall_fit',
+        ])
+      );
     });
 
-    it('sets a field to null when the runnable returns a schema-invalid verdict, and logs it as failed', async () => {
+    it('emits classifier.field_parse_failed when the runnable returns a schema-invalid verdict', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
         const invoke = vi.fn();
         invokeMocks.set(opts.name, invoke);
@@ -296,6 +361,7 @@ describe('LangChainContentClassifierAdapter', () => {
       setAllFieldsFulfilled();
       // Score 7 is outside [1,5] — defensive safeParse should reject it.
       invokeMocks.get('overallFit')!.mockResolvedValueOnce({ score: 7, rationale: 'too high' });
+      vi.mocked(logEvent).mockClear();
 
       const verdict = await adapter.classify(makeInput({ chunkId: 'c-2' }), makePrompt());
 
@@ -304,9 +370,26 @@ describe('LangChainContentClassifierAdapter', () => {
         score: 3,
         rationale: 'rationale-renderingClarity',
       });
-      // Schema-invalid responses should be surfaced in the aggregated warn,
-      // not silently nulled.
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('overallFit'));
+      const parseFailedCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.field_parse_failed');
+      expect(parseFailedCalls).toHaveLength(1);
+      const data = parseFailedCalls[0][2] as {
+        chunk_id: string;
+        field: string;
+        raw_response: unknown;
+        parse_error: string;
+      };
+      expect(data.chunk_id).toBe('c-2');
+      expect(data.field).toBe('overall_fit');
+      expect(data.raw_response).toEqual({ score: 7, rationale: 'too high' });
+      expect(data.parse_error).toEqual(expect.any(String));
+
+      // Aggregate event also fires for the one failed field.
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.classify_aggregate_failed', {
+        chunk_id: 'c-2',
+        failed_fields: ['overall_fit'],
+      });
     });
 
     it('passes SystemMessage(systemPrompt) and HumanMessage(userPrompt + chunk payload) to invoke', async () => {
