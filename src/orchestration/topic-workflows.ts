@@ -587,12 +587,17 @@ async function classifyChunk(
     // Port contract is fail-open, but defend against a bugged adapter.
     getRequestLogger().warn(`Classifier threw for chunk ${chunk.id}:`, err);
     try {
-      logEvent('classifyChunk', 'classifier.classify_threw', {
-        chunk_id: chunk.id,
-        error_class: err instanceof Error ? err.constructor.name : typeof err,
-        error_message: err instanceof Error ? err.message : String(err),
-        duration_ms: durationMs,
-      });
+      logEvent(
+        'classifyChunk',
+        'classifier.classify_threw',
+        {
+          chunk_id: chunk.id,
+          error_class: err instanceof Error ? err.constructor.name : typeof err,
+          error_message: err instanceof Error ? err.message : String(err),
+          duration_ms: durationMs,
+        },
+        durationMs
+      );
     } catch {
       // A broken event logger must not poison the post-commit phase.
     }
@@ -641,16 +646,21 @@ async function classifyChunk(
   }
 
   try {
-    logEvent('classifyChunk', 'classifier.chunk_verdict', {
-      chunk_id: chunk.id,
-      topic_id: topicId,
-      prompt_version: CLASSIFIER_PROMPT_VERSION,
-      duration_ms: durationMs,
-      scores,
-      failed_fields: failedFields,
-      persisted,
-      rendered_user_prompt: renderedUserPrompt,
-    });
+    logEvent(
+      'classifyChunk',
+      'classifier.chunk_verdict',
+      {
+        chunk_id: chunk.id,
+        topic_id: topicId,
+        prompt_version: CLASSIFIER_PROMPT_VERSION,
+        duration_ms: durationMs,
+        scores,
+        failed_fields: failedFields,
+        persisted,
+        rendered_user_prompt: renderedUserPrompt,
+      },
+      durationMs
+    );
   } catch {
     // A broken event logger must not poison the post-commit phase.
   }

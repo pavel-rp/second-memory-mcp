@@ -228,6 +228,10 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
     expect(data.failed_fields).toEqual([]);
     expect(data.persisted).toBe(true);
     expect(data.rendered_user_prompt).toContain('Content for chunk 1');
+    // Top-level durationMs populates the dedicated `duration_ms` SQL column
+    // via pg-event-transport so duration-based queries don't have to extract
+    // from JSONB.
+    expect(entry.durationMs).toBe(data.duration_ms);
   });
 
   it('captures classifier.classify_threw when the adapter throws', async () => {
@@ -256,6 +260,7 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
     expect(data.error_class).toBe('Error');
     expect(data.error_message).toBe('network down');
     expect(typeof data.duration_ms).toBe('number');
+    expect(entry.durationMs).toBe(data.duration_ms);
 
     // Verdict event is NOT emitted when classify throws.
     expect(eventsByName('classifier.chunk_verdict')).toHaveLength(0);

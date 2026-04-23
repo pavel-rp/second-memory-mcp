@@ -224,6 +224,27 @@ describe('LangChainContentClassifierAdapter', () => {
       });
     });
 
+    it('falls back to String(err) when init throws a non-Error value', async () => {
+      // Covers the `: String(err)` branch of the init-catch ternary.
+      ChatOpenAIMock.mockImplementationOnce(function FailingCtor() {
+        throw 'ctor string boom';
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig());
+
+      const verdict = await adapter.classify(makeInput(), makePrompt());
+
+      for (const field of VERDICT_FIELDS) {
+        expect(verdict[field]).toBeNull();
+      }
+      expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.init', {
+        provider: 'openai',
+        model: 'gpt-5.4-mini',
+        reasoning_effort: 'low',
+        available: false,
+        reason: 'ctor string boom',
+      });
+    });
+
     it('emits classifier.init with available:true on successful init', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
         const invoke = vi.fn().mockResolvedValue({ score: 3, rationale: `r-${opts.name}` });
