@@ -1,6 +1,5 @@
 import {
   VERDICT_FIELDS,
-  type ChunkClassifierInput,
   type ChunkClassifierVerdict,
   type ClassifierPrompt,
   type NullableVerdictField,
@@ -119,9 +118,11 @@ export const CLASSIFIER_FEW_SHOTS: readonly FewShotExample[] = [
  * The system prompt carries the rubric and renders the few-shots as labeled
  * blocks. The user prompt is a short instruction — the adapter's
  * `renderUserPayload` handles chunk serialization.
+ *
+ * The returned prompt does not depend on any per-chunk input, so callers that
+ * classify multiple chunks should build once and reuse across the fan-out.
  */
 export function buildClassifierPrompt(
-  _input: ChunkClassifierInput,
   rubric: string = CLASSIFIER_RUBRIC,
   fewShots: readonly FewShotExample[] = CLASSIFIER_FEW_SHOTS
 ): ClassifierPrompt {
@@ -192,31 +193,10 @@ export function toPersistedTier2(
 /**
  * Upper bound on the combined system + user prompt length. ~4 KB input tokens
  * maps to roughly 16 000 UTF-8 chars for English text — a conservative guard
- * that catches accidental drift during future rubric edits.
+ * that catches accidental drift during future rubric edits. Enforced by the
+ * `buildClassifierPrompt respects the char budget` unit test.
  */
 export const CLASSIFIER_PROMPT_CHAR_BUDGET = 16_000;
-
-function assertPromptBudget(): void {
-  const canonicalInput: ChunkClassifierInput = {
-    chunkId: '00000000-0000-0000-0000-000000000000',
-    title: 'Budget sentinel chunk',
-    content: 'Sentinel content used only to render the prompt at module load.',
-    chunkType: 'concept',
-    tags: [],
-    prerequisites: [],
-  };
-  const { systemPrompt, userPrompt } = buildClassifierPrompt(canonicalInput);
-  const combined = systemPrompt.length + userPrompt.length;
-  if (combined > CLASSIFIER_PROMPT_CHAR_BUDGET) {
-    throw new Error(
-      `classifier-prompts budget exceeded: rendered prompt is ${combined} chars, budget is ${CLASSIFIER_PROMPT_CHAR_BUDGET}`
-    );
-  }
-}
-
-// Run the budget guard at module-load time so any future rubric edit that
-// blows past the char budget surfaces immediately, not at first classify call.
-assertPromptBudget();
 
 // Keep `VERDICT_FIELDS` re-exported here too — consumers that only want the
 // prompt module should not also need to import the domain types module just

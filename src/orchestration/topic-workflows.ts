@@ -24,6 +24,7 @@ import {
   VERDICT_FIELDS,
   type ChunkClassifierInput,
   type ChunkClassifierVerdict,
+  type ClassifierPrompt,
   type VerdictFieldName,
 } from '../domain/types/classifier.js';
 import {
@@ -535,12 +536,16 @@ async function classifyChunksSoftWarn(
   classifier: ContentClassifierPort,
   chunksRepo: ChunkRepository
 ): Promise<LinterFinding[]> {
+  // The classifier prompt is chunk-independent (rubric + few-shots only), so
+  // build it once for the whole fan-out instead of re-rendering the ~3 KB
+  // string per chunk.
+  const prompt = buildClassifierPrompt();
   // `allSettled` (not `all`) so one chunk's unexpected rejection does not
   // discard already-computed findings from its siblings. `classifyChunk`
   // already absorbs every failure mode it knows about; this is belt-and-
   // suspenders for future helper edits.
   const results = await Promise.allSettled(
-    chunks.map(chunk => classifyChunk(topicId, chunk, classifier, chunksRepo))
+    chunks.map(chunk => classifyChunk(topicId, chunk, prompt, classifier, chunksRepo))
   );
   const findings: LinterFinding[] = [];
   for (let i = 0; i < results.length; i += 1) {
@@ -560,6 +565,7 @@ async function classifyChunksSoftWarn(
 async function classifyChunk(
   topicId: string,
   chunk: LearningChunk,
+  prompt: ClassifierPrompt,
   classifier: ContentClassifierPort,
   chunksRepo: ChunkRepository
 ): Promise<LinterFinding[]> {
@@ -568,7 +574,6 @@ async function classifyChunk(
 
   const startedAt = Date.now();
   const input = toClassifierInput(chunk);
-  const prompt = buildClassifierPrompt(input);
 
   let verdict: ChunkClassifierVerdict;
   try {
@@ -583,9 +588,11 @@ async function classifyChunk(
 
   // Emit telemetry regardless of verdict shape so ops can see "classifier was
   // invoked but produced nothing" and "classifier produced a full verdict".
+  // `failed_fields` uses the same snake_case keys as `scores` below so
+  // downstream log aggregation can join on field name.
   const failedFields: string[] = [];
   for (const field of VERDICT_FIELDS) {
-    if (verdict[field] === null) failedFields.push(field);
+    if (verdict[field] === null) failedFields.push(PERSISTED_TIER2_FIELD_NAMES[field]);
   }
   try {
     const scores: Record<string, number | null> = {};

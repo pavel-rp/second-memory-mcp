@@ -9,24 +9,9 @@ import {
   buildClassifierPrompt,
   toPersistedTier2,
 } from '../../../src/shared/prompts/classifier-prompts.js';
-import type {
-  ChunkClassifierInput,
-  ChunkClassifierVerdict,
-} from '../../../src/domain/types/classifier.js';
+import type { ChunkClassifierVerdict } from '../../../src/domain/types/classifier.js';
 
 const SEMVER = /^\d+\.\d+\.\d+$/;
-
-function stubInput(): ChunkClassifierInput {
-  return {
-    chunkId: '11111111-2222-3333-4444-555555555555',
-    title: 'Binary search on sorted arrays',
-    content:
-      'Given a sorted array A of length n, define lo = 0 and hi = n. Loop while lo < hi: pick mid = (lo + hi) >> 1; if A[mid] < target, lo = mid + 1; else hi = mid. On exit, lo is the leftmost index where target could be inserted while keeping A sorted.',
-    chunkType: 'concept',
-    tags: ['arrays', 'searching'],
-    prerequisites: ['chunk-arrays-index'],
-  };
-}
 
 describe('classifier prompts module', () => {
   it('exposes a semver prompt version', () => {
@@ -65,27 +50,27 @@ describe('classifier prompts module', () => {
   });
 
   it('buildClassifierPrompt returns non-empty system + user prompts', () => {
-    const { systemPrompt, userPrompt } = buildClassifierPrompt(stubInput());
+    const { systemPrompt, userPrompt } = buildClassifierPrompt();
     expect(systemPrompt.length).toBeGreaterThan(0);
     expect(userPrompt.length).toBeGreaterThan(0);
   });
 
   it('buildClassifierPrompt embeds all few-shot labels in the system prompt', () => {
-    const { systemPrompt } = buildClassifierPrompt(stubInput());
+    const { systemPrompt } = buildClassifierPrompt();
     for (const example of CLASSIFIER_FEW_SHOTS) {
       expect(systemPrompt).toContain(example.label);
     }
   });
 
   it('buildClassifierPrompt respects the char budget', () => {
-    const { systemPrompt, userPrompt } = buildClassifierPrompt(stubInput());
+    const { systemPrompt, userPrompt } = buildClassifierPrompt();
     expect(systemPrompt.length + userPrompt.length).toBeLessThanOrEqual(
       CLASSIFIER_PROMPT_CHAR_BUDGET
     );
   });
 
   it('buildClassifierPrompt accepts overrides for rubric and few-shots', () => {
-    const { systemPrompt } = buildClassifierPrompt(stubInput(), 'RUBRIC_MARKER', [
+    const { systemPrompt } = buildClassifierPrompt('RUBRIC_MARKER', [
       {
         label: 'custom-example',
         verdict: 'clean',
