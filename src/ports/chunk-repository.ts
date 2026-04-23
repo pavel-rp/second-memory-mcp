@@ -131,4 +131,17 @@ export interface ChunkRepository {
     partial: Partial<Omit<ValidatorReport, 'updated_at'>>,
     updatedAt: string
   ): Promise<number>;
+  /**
+   * Read the raw `validator_report` for a chunk.
+   *
+   * Returns the stored JSONB as-is (no reshaping, no defaults). Returns `null`
+   * when the chunk does not exist OR the column is null. If the stored value
+   * fails `ValidatorReportSchema` parsing (unlikely but possible if written by
+   * older code), the adapter returns `null` and logs a warning — callers get a
+   * simple "no report available" signal rather than a throw.
+   *
+   * Consumed by NEU-620's integration tests to read back what the classifier
+   * wrote, and by NEU-612's future nightly watchdog.
+   */
+  getValidatorReport(chunkId: string): Promise<ValidatorReport | null>;
 }

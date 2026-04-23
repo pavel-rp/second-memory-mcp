@@ -1,6 +1,6 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningChunks } from '../../../src/infrastructure/db/schema.js';
@@ -223,6 +223,43 @@ describe('validator_report persistence (NEU-629)', () => {
       new Date().toISOString()
     );
     expect(rowCount).toBe(0);
+  });
+
+  it('getValidatorReport returns null when the column is SQL NULL for an existing chunk', async () => {
+    const ids = [crypto.randomUUID()];
+    const result = await createTopicWithChunks(makeInput(ids), buildDeps());
+    expect(result.success).toBe(true);
+
+    // Force the column to SQL NULL to exercise the `row.validatorReport == null`
+    // branch — distinct from the "chunk not found" branch already tested above.
+    const db = getSql();
+    await db
+      .update(learningChunks)
+      .set({ validatorReport: null })
+      .where(eq(learningChunks.id, ids[0]));
+
+    const repo = new DrizzleChunkRepository(db);
+    const report = await repo.getValidatorReport(ids[0]);
+    expect(report).toBeNull();
+  });
+
+  it('getValidatorReport returns null when the persisted JSONB fails schema validation', async () => {
+    const ids = [crypto.randomUUID()];
+    const result = await createTopicWithChunks(makeInput(ids), buildDeps());
+    expect(result.success).toBe(true);
+
+    // Write a malformed validator_report directly into the column. The Zod
+    // schema requires `updated_at` as a string; an object without it (or with
+    // the wrong type) must be rejected by safeParse and surfaced as null.
+    const db = getSql();
+    await db
+      .update(learningChunks)
+      .set({ validatorReport: sql`'{"updated_at": 42}'::jsonb` })
+      .where(eq(learningChunks.id, ids[0]));
+
+    const repo = new DrizzleChunkRepository(db);
+    const report = await repo.getValidatorReport(ids[0]);
+    expect(report).toBeNull();
   });
 
   it('mergeValidatorReport replaces tier sections without disturbing untouched ones', async () => {

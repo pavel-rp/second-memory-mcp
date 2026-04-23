@@ -20,6 +20,19 @@ import {
   type TopicLintInput,
 } from '../domain/services/chunk-linter.js';
 import { canonicalEmptyReport, type ValidatorReport } from '../domain/types/validator-report.js';
+import {
+  VERDICT_FIELDS,
+  type ChunkClassifierInput,
+  type ChunkClassifierVerdict,
+  type ClassifierPrompt,
+  type VerdictFieldName,
+} from '../domain/types/classifier.js';
+import {
+  CLASSIFIER_PROMPT_VERSION,
+  PERSISTED_TIER2_FIELD_NAMES,
+  buildClassifierPrompt,
+  toPersistedTier2,
+} from '../shared/prompts/classifier-prompts.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { getRequestLogger } from '../shared/logger.js';
@@ -29,8 +42,15 @@ export type TopicDeps = {
   chunks: ChunkRepository;
   unitOfWork: UnitOfWorkPort;
   embedding?: EmbeddingPort;
-  /** Tier 2 content classifier (NEU-619). Wired in NEU-620; unused in this ticket. */
+  /** Tier 2 content classifier (NEU-619). Invoked post-commit by NEU-620. */
   classifier?: ContentClassifierPort;
+  /**
+   * Mirrors `CLASSIFIER_ENABLE_AT_CREATE`. When `true` AND `classifier` is
+   * present, NEU-620 runs the classifier after the topic-creation transaction
+   * commits. Defaults to `false` so test fixtures and unconfigured runs keep
+   * the previous behavior.
+   */
+  enableClassifierAtCreate?: boolean;
   linterRules?: LinterRule[];
 };
 
@@ -63,6 +83,13 @@ export type TopicWithChunks = {
   }>;
   createdAt: number;
   updatedAt: number;
+  /**
+   * Tier 2 (classifier) warning findings. Populated post-commit by NEU-620
+   * only when the classifier ran and at least one verdict field scored ≤ 2.
+   * Absent when the classifier was not configured, was disabled, failed, or
+   * produced no low-score fields. These findings never escalate to blocking.
+   */
+  tier2Findings?: LinterFinding[];
 };
 
 export type TopicCreationInput = {
@@ -291,9 +318,34 @@ export async function createTopicWithChunks(
       }
     }
 
+    // Best-effort Tier 2 (classifier) pass — runs outside the transaction for
+    // the same reason embeddings do: the external LLM call has ~2 s p95 latency
+    // and any throw inside `unitOfWork.execute` would roll back topic creation,
+    // breaking the fail-open contract. NEU-621 owns the blocking-mode flip;
+    // `CLASSIFIER_BLOCKING_MODE` has no effect in this ticket by design.
+    let tier2Findings: LinterFinding[] | undefined;
+    if (deps.classifier && deps.enableClassifierAtCreate === true) {
+      try {
+        tier2Findings = await classifyChunksSoftWarn(
+          result.topic.id,
+          result.chunks,
+          deps.classifier,
+          deps.chunks
+        );
+      } catch (err) {
+        // Defensive: port contract is fail-open, but a bugged adapter must not
+        // poison creation.
+        getRequestLogger().warn('Tier 2 classifier pass failed for new topic:', err);
+      }
+    }
+
+    const topicWithChunks = toTopicWithChunks(result.topic, result.chunks, input.topicDescription);
+    if (tier2Findings && tier2Findings.length > 0) {
+      topicWithChunks.tier2Findings = tier2Findings;
+    }
     return {
       success: true,
-      topic: toTopicWithChunks(result.topic, result.chunks, input.topicDescription),
+      topic: topicWithChunks,
     };
   } catch (error) {
     getRequestLogger().error('Failed to create topic with chunks:', error);
@@ -439,6 +491,171 @@ export async function updateTopicSummary(
   } catch (error) {
     return { success: false, error: { type: 'database', message: extractErrorMessage(error) } };
   }
+}
+
+// --- Tier 2 classifier helpers (NEU-620) ---
+
+/**
+ * Low-score threshold for emitting a Tier 2 warning finding. Hardcoded to 2 per
+ * the NEU-620 spec — anything with `score <= 2` surfaces; never blocks.
+ */
+const TIER2_LOW_SCORE_THRESHOLD = 2;
+
+/**
+ * Build the `ChunkClassifierInput` snapshot from a persisted `LearningChunk`.
+ * Chunks with no content are skipped by the caller so this helper assumes a
+ * non-null content string.
+ */
+function toClassifierInput(chunk: LearningChunk): ChunkClassifierInput {
+  return {
+    chunkId: chunk.id,
+    title: chunk.title,
+    content: chunk.content ?? '',
+    chunkType: chunk.chunkType,
+    tags: chunk.tagsJson ?? [],
+    prerequisites: chunk.prerequisitesJson ?? [],
+  };
+}
+
+/** True when every verdict field is null — i.e. the adapter returned `emptyVerdict()`. */
+function isAllNullVerdict(verdict: ChunkClassifierVerdict): boolean {
+  for (const field of VERDICT_FIELDS) {
+    if (verdict[field] !== null) return false;
+  }
+  return true;
+}
+
+/**
+ * Fan out classification across all created chunks. Each chunk is independent:
+ * a throw in one classify() does not stop the others; a failure never blocks
+ * creation. Returns the aggregated Tier 2 warning findings.
+ */
+async function classifyChunksSoftWarn(
+  topicId: string,
+  chunks: readonly LearningChunk[],
+  classifier: ContentClassifierPort,
+  chunksRepo: ChunkRepository
+): Promise<LinterFinding[]> {
+  // The classifier prompt is chunk-independent (rubric + few-shots only), so
+  // build it once for the whole fan-out instead of re-rendering the ~3 KB
+  // string per chunk.
+  const prompt = buildClassifierPrompt();
+  // `allSettled` (not `all`) so one chunk's unexpected rejection does not
+  // discard already-computed findings from its siblings. `classifyChunk`
+  // already absorbs every failure mode it knows about; this is belt-and-
+  // suspenders for future helper edits.
+  const results = await Promise.allSettled(
+    chunks.map(chunk => classifyChunk(topicId, chunk, prompt, classifier, chunksRepo))
+  );
+  const findings: LinterFinding[] = [];
+  for (let i = 0; i < results.length; i += 1) {
+    const outcome = results[i];
+    if (outcome.status === 'fulfilled') {
+      for (const finding of outcome.value) findings.push(finding);
+    } else {
+      getRequestLogger().warn(
+        `Tier 2 classifier pass rejected for chunk ${chunks[i].id}:`,
+        outcome.reason
+      );
+    }
+  }
+  return findings;
+}
+
+async function classifyChunk(
+  topicId: string,
+  chunk: LearningChunk,
+  prompt: ClassifierPrompt,
+  classifier: ContentClassifierPort,
+  chunksRepo: ChunkRepository
+): Promise<LinterFinding[]> {
+  // Skip classification on chunks with no content — nothing meaningful to grade.
+  if (!chunk.content) return [];
+
+  const startedAt = Date.now();
+  const input = toClassifierInput(chunk);
+
+  let verdict: ChunkClassifierVerdict;
+  try {
+    verdict = await classifier.classify(input, prompt);
+  } catch (err) {
+    // Port contract is fail-open, but defend against a bugged adapter.
+    getRequestLogger().warn(`Classifier threw for chunk ${chunk.id}:`, err);
+    return [];
+  }
+
+  const durationMs = Date.now() - startedAt;
+
+  // Emit telemetry regardless of verdict shape so ops can see "classifier was
+  // invoked but produced nothing" and "classifier produced a full verdict".
+  // `failed_fields` uses the same snake_case keys as `scores` below so
+  // downstream log aggregation can join on field name.
+  const failedFields: string[] = [];
+  for (const field of VERDICT_FIELDS) {
+    if (verdict[field] === null) failedFields.push(PERSISTED_TIER2_FIELD_NAMES[field]);
+  }
+  try {
+    const scores: Record<string, number | null> = {};
+    for (const field of VERDICT_FIELDS) {
+      scores[PERSISTED_TIER2_FIELD_NAMES[field]] = verdict[field]?.score ?? null;
+    }
+    // The project's logger adapter (`src/shared/logger.ts::adapt`) routes the
+    // LAST argument: string → plain message; plain object → merging object +
+    // earlier args joined as the message. Keep the structured payload last so
+    // pino records it as a merging object instead of `[object Object]` text.
+    getRequestLogger().info('classifier chunk verdict', {
+      event: 'classifier.chunk',
+      chunk_id: chunk.id,
+      topic_id: topicId,
+      prompt_version: CLASSIFIER_PROMPT_VERSION,
+      duration_ms: durationMs,
+      failed_fields: failedFields,
+      scores,
+    });
+  } catch {
+    // A broken logger must not poison the post-commit phase.
+  }
+
+  // Nothing to persist or surface if every field failed.
+  if (isAllNullVerdict(verdict)) {
+    getRequestLogger().warn(`Classifier returned all-null verdict for chunk ${chunk.id}`);
+    return [];
+  }
+
+  const classifiedAtIso = new Date().toISOString();
+  const persisted = toPersistedTier2(verdict, classifiedAtIso);
+  try {
+    const rowCount = await chunksRepo.mergeValidatorReport(
+      chunk.id,
+      { tier2: persisted },
+      classifiedAtIso
+    );
+    if (rowCount === 0) {
+      // Chunk may have been deleted between commit and classification; not a
+      // blocking condition.
+      getRequestLogger().warn(
+        `mergeValidatorReport affected 0 rows for chunk ${chunk.id} (chunk missing?)`
+      );
+    }
+  } catch (err) {
+    getRequestLogger().warn(`Persisting tier2 verdict failed for chunk ${chunk.id}:`, err);
+  }
+
+  // Build warning findings for every field whose score falls below the threshold.
+  const findings: LinterFinding[] = [];
+  for (const field of VERDICT_FIELDS) {
+    const value = verdict[field];
+    if (value === null) continue;
+    if (value.score > TIER2_LOW_SCORE_THRESHOLD) continue;
+    findings.push({
+      chunkId: chunk.id,
+      rule: `classifier.${PERSISTED_TIER2_FIELD_NAMES[field as VerdictFieldName]}`,
+      severity: 'warning',
+      category: 'tier2',
+      detail: value.rationale,
+    });
+  }
+  return findings;
 }
 
 // --- Embedding helpers ---

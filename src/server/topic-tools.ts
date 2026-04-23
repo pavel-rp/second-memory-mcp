@@ -73,6 +73,11 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
                 topicId: result.topic.topicId,
                 chunkIds: result.topic.chunks.map(c => c.id),
                 createdAt: result.topic.createdAt,
+                // Tier 2 classifier warnings (NEU-620). Always present as an
+                // array; empty when the classifier did not run or produced no
+                // low-score fields. Never signals failure — creation always
+                // succeeds when `result.success === true`.
+                tier2Findings: result.topic.tier2Findings ?? [],
                 message: `Successfully created topic "${input.topicTitle}" with ${result.topic.chunks.length} chunks`,
               })
             );
