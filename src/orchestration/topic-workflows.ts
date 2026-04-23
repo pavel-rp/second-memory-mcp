@@ -33,9 +33,10 @@ import {
   buildClassifierPrompt,
   toPersistedTier2,
 } from '../shared/prompts/classifier-prompts.js';
+import { renderClassifierUserPayload } from '../domain/services/render-classifier-prompt.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
-import { getRequestLogger } from '../shared/logger.js';
+import { getRequestLogger, logEvent } from '../shared/logger.js';
 
 export type TopicDeps = {
   topics: TopicRepository;
@@ -574,71 +575,89 @@ async function classifyChunk(
 
   const startedAt = Date.now();
   const input = toClassifierInput(chunk);
+  // Render once: identical string is sent to the model and persisted in the
+  // verdict event for post-hoc debugging.
+  const renderedUserPrompt = renderClassifierUserPayload(input, prompt.userPrompt);
 
   let verdict: ChunkClassifierVerdict;
   try {
     verdict = await classifier.classify(input, prompt);
   } catch (err) {
+    const durationMs = Date.now() - startedAt;
     // Port contract is fail-open, but defend against a bugged adapter.
     getRequestLogger().warn(`Classifier threw for chunk ${chunk.id}:`, err);
+    try {
+      logEvent('classifyChunk', 'classifier.classify_threw', {
+        chunk_id: chunk.id,
+        error_class: err instanceof Error ? err.constructor.name : typeof err,
+        error_message: err instanceof Error ? err.message : String(err),
+        duration_ms: durationMs,
+      });
+    } catch {
+      // A broken event logger must not poison the post-commit phase.
+    }
     return [];
   }
 
   const durationMs = Date.now() - startedAt;
 
-  // Emit telemetry regardless of verdict shape so ops can see "classifier was
-  // invoked but produced nothing" and "classifier produced a full verdict".
-  // `failed_fields` uses the same snake_case keys as `scores` below so
-  // downstream log aggregation can join on field name.
+  // `failed_fields` uses the snake_case keys so downstream log aggregation can
+  // join verdict events with `classifier.field_parse_failed` and
+  // `classifier.classify_aggregate_failed`.
   const failedFields: string[] = [];
   for (const field of VERDICT_FIELDS) {
     if (verdict[field] === null) failedFields.push(PERSISTED_TIER2_FIELD_NAMES[field]);
   }
-  try {
-    const scores: Record<string, number | null> = {};
-    for (const field of VERDICT_FIELDS) {
-      scores[PERSISTED_TIER2_FIELD_NAMES[field]] = verdict[field]?.score ?? null;
+  const scores: Record<string, number | null> = {};
+  for (const field of VERDICT_FIELDS) {
+    scores[PERSISTED_TIER2_FIELD_NAMES[field]] = verdict[field]?.score ?? null;
+  }
+
+  // Persist before emitting the verdict event so `persisted` reflects the
+  // actual write outcome. All-null verdicts skip persistence and report
+  // `persisted: false` — same log shape so debugging that case stays uniform.
+  const allNull = isAllNullVerdict(verdict);
+  let persisted = false;
+  if (!allNull) {
+    const classifiedAtIso = new Date().toISOString();
+    const persistedTier2 = toPersistedTier2(verdict, classifiedAtIso);
+    try {
+      const rowCount = await chunksRepo.mergeValidatorReport(
+        chunk.id,
+        { tier2: persistedTier2 },
+        classifiedAtIso
+      );
+      persisted = rowCount > 0;
+      if (rowCount === 0) {
+        // Chunk may have been deleted between commit and classification; not a
+        // blocking condition.
+        getRequestLogger().warn(
+          `mergeValidatorReport affected 0 rows for chunk ${chunk.id} (chunk missing?)`
+        );
+      }
+    } catch (err) {
+      getRequestLogger().warn(`Persisting tier2 verdict failed for chunk ${chunk.id}:`, err);
     }
-    // The project's logger adapter (`src/shared/logger.ts::adapt`) routes the
-    // LAST argument: string → plain message; plain object → merging object +
-    // earlier args joined as the message. Keep the structured payload last so
-    // pino records it as a merging object instead of `[object Object]` text.
-    getRequestLogger().info('classifier chunk verdict', {
-      event: 'classifier.chunk',
+  }
+
+  try {
+    logEvent('classifyChunk', 'classifier.chunk_verdict', {
       chunk_id: chunk.id,
       topic_id: topicId,
       prompt_version: CLASSIFIER_PROMPT_VERSION,
       duration_ms: durationMs,
-      failed_fields: failedFields,
       scores,
+      failed_fields: failedFields,
+      persisted,
+      rendered_user_prompt: renderedUserPrompt,
     });
   } catch {
-    // A broken logger must not poison the post-commit phase.
+    // A broken event logger must not poison the post-commit phase.
   }
 
-  // Nothing to persist or surface if every field failed.
-  if (isAllNullVerdict(verdict)) {
+  if (allNull) {
     getRequestLogger().warn(`Classifier returned all-null verdict for chunk ${chunk.id}`);
     return [];
-  }
-
-  const classifiedAtIso = new Date().toISOString();
-  const persisted = toPersistedTier2(verdict, classifiedAtIso);
-  try {
-    const rowCount = await chunksRepo.mergeValidatorReport(
-      chunk.id,
-      { tier2: persisted },
-      classifiedAtIso
-    );
-    if (rowCount === 0) {
-      // Chunk may have been deleted between commit and classification; not a
-      // blocking condition.
-      getRequestLogger().warn(
-        `mergeValidatorReport affected 0 rows for chunk ${chunk.id} (chunk missing?)`
-      );
-    }
-  } catch (err) {
-    getRequestLogger().warn(`Persisting tier2 verdict failed for chunk ${chunk.id}:`, err);
   }
 
   // Build warning findings for every field whose score falls below the threshold.

@@ -13,7 +13,9 @@ import {
   type VerdictFieldName,
 } from '../../domain/types/classifier.js';
 import type { ClassifierConfig } from '../../domain/config/classifier.js';
-import { logger } from '../../shared/logger.js';
+import { renderClassifierUserPayload } from '../../domain/services/render-classifier-prompt.js';
+import { PERSISTED_TIER2_FIELD_NAMES } from '../../shared/prompts/classifier-prompts.js';
+import { logEvent } from '../../shared/logger.js';
 
 /**
  * LangChain-backed OpenAI implementation of `ContentClassifierPort` (NEU-619).
@@ -21,7 +23,9 @@ import { logger } from '../../shared/logger.js';
  * Fans out six parallel `ChatOpenAI.withStructuredOutput(VerdictFieldSchema)`
  * calls — one per verdict field — so a single field's failure does not
  * invalidate the other five. Each failure resolves to `null` in its slot and
- * produces a single aggregated `logger.warn` line; the adapter never throws.
+ * emits a `classifier.classify_aggregate_failed` event; per-field schema
+ * rejections emit `classifier.field_parse_failed`. Init outcomes emit
+ * `classifier.init`. The adapter never throws.
  *
  * Mirrors the lazy-init / dynamic-import / fail-open pattern of
  * `LangChainEmbeddingAdapter`.
@@ -50,15 +54,15 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
 
     const messages: BaseMessage[] = [
       new this.systemMessageCtor(prompt.systemPrompt),
-      new this.humanMessageCtor(renderUserPayload(input, prompt.userPrompt)),
+      new this.humanMessageCtor(renderClassifierUserPayload(input, prompt.userPrompt)),
     ];
 
     const results = await Promise.allSettled(
-      VERDICT_FIELDS.map(field => this.classifyField(field, messages))
+      VERDICT_FIELDS.map(field => this.classifyField(field, messages, input.chunkId))
     );
 
     const verdict = emptyVerdict();
-    const failedFields: string[] = [];
+    const failedFields: VerdictFieldName[] = [];
     for (let i = 0; i < VERDICT_FIELDS.length; i += 1) {
       const field = VERDICT_FIELDS[i];
       const result = results[i];
@@ -71,7 +75,10 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
     }
 
     if (failedFields.length > 0) {
-      logger.warn(`Classifier fields failed: ${failedFields.join(', ')} (chunk ${input.chunkId})`);
+      logEvent('classifier', 'classifier.classify_aggregate_failed', {
+        chunk_id: input.chunkId,
+        failed_fields: failedFields.map(f => PERSISTED_TIER2_FIELD_NAMES[f]),
+      });
     }
 
     return verdict;
@@ -79,7 +86,8 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
 
   private async classifyField(
     field: VerdictFieldName,
-    messages: BaseMessage[]
+    messages: BaseMessage[],
+    chunkId: string
   ): Promise<NullableVerdictField> {
     const model = this.modelsByField.get(field);
     if (!model) return null;
@@ -89,7 +97,12 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
     // than a structurally invalid object.
     const parsed = VerdictFieldSchema.safeParse(raw);
     if (!parsed.success) {
-      logger.warn(`Classifier field ${field} failed schema validation: ${parsed.error.message}`);
+      logEvent('classifier', 'classifier.field_parse_failed', {
+        chunk_id: chunkId,
+        field: PERSISTED_TIER2_FIELD_NAMES[field],
+        raw_response: raw,
+        parse_error: parsed.error.message,
+      });
       return null;
     }
     return parsed.data;
@@ -102,14 +115,24 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
 
   private async doInitialize(): Promise<void> {
     if (this.config.provider !== 'openai') {
-      logger.info('No classifier provider configured — Tier 2 classification disabled');
+      logEvent('classifier', 'classifier.init', {
+        provider: this.config.provider,
+        model: this.config.model,
+        reasoning_effort: this.config.reasoningEffort,
+        available: false,
+        reason: 'no_provider_configured',
+      });
       return;
     }
 
     if (!this.config.openaiApiKey) {
-      logger.warn(
-        'CLASSIFIER_PROVIDER=openai but no API key available (neither CLASSIFIER_OPENAI_API_KEY nor OPENAI_API_KEY is set). Tier 2 classification disabled.'
-      );
+      logEvent('classifier', 'classifier.init', {
+        provider: this.config.provider,
+        model: this.config.model,
+        reasoning_effort: this.config.reasoningEffort,
+        available: false,
+        reason: 'missing_api_key',
+      });
       return;
     }
 
@@ -139,32 +162,21 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
       }
 
       this.available = true;
-      logger.info(
-        `Classifier initialized: openai (${this.config.model}, effort=${this.config.reasoningEffort}, ${VERDICT_FIELDS.length} fields)`
-      );
+      logEvent('classifier', 'classifier.init', {
+        provider: this.config.provider,
+        model: this.config.model,
+        reasoning_effort: this.config.reasoningEffort,
+        available: true,
+      });
     } catch (err) {
-      logger.warn('Failed to initialize classifier adapter:', err);
       this.available = false;
+      logEvent('classifier', 'classifier.init', {
+        provider: this.config.provider,
+        model: this.config.model,
+        reasoning_effort: this.config.reasoningEffort,
+        available: false,
+        reason: err instanceof Error ? err.message : String(err),
+      });
     }
   }
-}
-
-function renderUserPayload(input: ChunkClassifierInput, userPrompt: string): string {
-  // A small, stable serialization so NEU-620's prompt text can reference named
-  // fields. No I/O; pure string assembly.
-  const tags = input.tags.length > 0 ? input.tags.join(', ') : '(none)';
-  const prerequisites = input.prerequisites.length > 0 ? input.prerequisites.join(', ') : '(none)';
-  return [
-    userPrompt,
-    '',
-    '--- CHUNK ---',
-    `id: ${input.chunkId}`,
-    `title: ${input.title}`,
-    `chunkType: ${input.chunkType}`,
-    `tags: ${tags}`,
-    `prerequisites: ${prerequisites}`,
-    '',
-    'content:',
-    input.content,
-  ].join('\n');
 }

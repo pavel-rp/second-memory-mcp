@@ -1,5 +1,6 @@
-import { describe, it, beforeAll, beforeEach, afterAll, expect, vi } from 'vitest';
+import { describe, it, beforeAll, beforeEach, afterAll, afterEach, expect, vi } from 'vitest';
 import crypto from 'node:crypto';
+import type pino from 'pino';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { DrizzleChunkRepository } from '../../../src/adapters/drizzle/chunk-repository.js';
@@ -12,6 +13,7 @@ import {
 } from '../../../src/orchestration/topic-workflows.js';
 import type { ContentClassifierPort } from '../../../src/ports/content-classifier-port.js';
 import type { ChunkClassifierVerdict } from '../../../src/domain/types/classifier.js';
+import { setEventLogger } from '../../../src/shared/logger.js';
 
 function makeInput(chunkIds: string[]): TopicCreationInput {
   return {
@@ -156,5 +158,138 @@ describe('createTopicWithChunks — Tier 2 classifier integration (NEU-620)', ()
     const repo = new DrizzleChunkRepository(getSql());
     const report = await repo.getValidatorReport('no-such-chunk-id');
     expect(report).toBeNull();
+  });
+});
+
+// ── NEU-639: event logging via setEventLogger ──────────────────────
+describe('Tier 2 classifier event logging (NEU-639)', () => {
+  let captured: Array<Record<string, unknown>>;
+
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+
+  beforeEach(async () => {
+    await cleanupTestDb();
+    captured = [];
+    const fakeLogger = {
+      info: (obj: Record<string, unknown>) => {
+        captured.push(obj);
+      },
+    } as unknown as pino.Logger;
+    setEventLogger(fakeLogger);
+  });
+
+  afterEach(() => {
+    setEventLogger(null);
+  });
+
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  function eventsByName(name: string): Array<Record<string, unknown>> {
+    return captured.filter(e => e.event === name);
+  }
+
+  it('captures classifier.chunk_verdict with snake_case data when classify succeeds', async () => {
+    const ids = [crypto.randomUUID()];
+    const classify = vi.fn().mockResolvedValue(lowScoreVerdict());
+    const classifier: ContentClassifierPort = { classify };
+
+    const result = await createTopicWithChunks(
+      makeInput(ids),
+      buildDeps({ classifier, enableClassifierAtCreate: true })
+    );
+    expect(result.success).toBe(true);
+
+    const verdictEvents = eventsByName('classifier.chunk_verdict');
+    expect(verdictEvents).toHaveLength(1);
+
+    const entry = verdictEvents[0];
+    expect(entry.module).toBe('mcp-event');
+    expect(entry.operation).toBe('classifyChunk');
+    const data = entry.data as {
+      chunk_id: string;
+      topic_id: string;
+      prompt_version: string;
+      duration_ms: number;
+      scores: Record<string, number | null>;
+      failed_fields: string[];
+      persisted: boolean;
+      rendered_user_prompt: string;
+    };
+    expect(data.chunk_id).toBe(ids[0]);
+    expect(typeof data.topic_id).toBe('string');
+    expect(data.prompt_version).toBe('1.0.0');
+    expect(typeof data.duration_ms).toBe('number');
+    expect(data.scores.rendering_clarity).toBe(2);
+    expect(data.scores.overall_fit).toBe(2);
+    expect(data.failed_fields).toEqual([]);
+    expect(data.persisted).toBe(true);
+    expect(data.rendered_user_prompt).toContain('Content for chunk 1');
+  });
+
+  it('captures classifier.classify_threw when the adapter throws', async () => {
+    const ids = [crypto.randomUUID()];
+    const classify = vi.fn().mockRejectedValue(new Error('network down'));
+    const classifier: ContentClassifierPort = { classify };
+
+    const result = await createTopicWithChunks(
+      makeInput(ids),
+      buildDeps({ classifier, enableClassifierAtCreate: true })
+    );
+    expect(result.success).toBe(true);
+
+    const threwEvents = eventsByName('classifier.classify_threw');
+    expect(threwEvents).toHaveLength(1);
+    const entry = threwEvents[0];
+    expect(entry.module).toBe('mcp-event');
+    expect(entry.operation).toBe('classifyChunk');
+    const data = entry.data as {
+      chunk_id: string;
+      error_class: string;
+      error_message: string;
+      duration_ms: number;
+    };
+    expect(data.chunk_id).toBe(ids[0]);
+    expect(data.error_class).toBe('Error');
+    expect(data.error_message).toBe('network down');
+    expect(typeof data.duration_ms).toBe('number');
+
+    // Verdict event is NOT emitted when classify throws.
+    expect(eventsByName('classifier.chunk_verdict')).toHaveLength(0);
+  });
+
+  it('emits zero classifier events when classifier is absent', async () => {
+    const ids = [crypto.randomUUID()];
+    const result = await createTopicWithChunks(
+      makeInput(ids),
+      buildDeps({ enableClassifierAtCreate: true })
+    );
+    expect(result.success).toBe(true);
+
+    const classifierEvents = captured.filter(
+      e => typeof e.event === 'string' && (e.event as string).startsWith('classifier.')
+    );
+    expect(classifierEvents).toHaveLength(0);
+  });
+
+  it('emits zero classifier events when enableClassifierAtCreate is false', async () => {
+    const ids = [crypto.randomUUID()];
+    const classify = vi.fn().mockResolvedValue(lowScoreVerdict());
+    const classifier: ContentClassifierPort = { classify };
+
+    const result = await createTopicWithChunks(
+      makeInput(ids),
+      buildDeps({ classifier, enableClassifierAtCreate: false })
+    );
+    expect(result.success).toBe(true);
+    expect(classify).not.toHaveBeenCalled();
+
+    const classifierEvents = captured.filter(
+      e => typeof e.event === 'string' && (e.event as string).startsWith('classifier.')
+    );
+    expect(classifierEvents).toHaveLength(0);
   });
 });
