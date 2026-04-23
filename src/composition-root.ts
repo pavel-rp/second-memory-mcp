@@ -63,6 +63,7 @@ import type {
 } from './domain/types/notes-tools.js';
 import type { CreateNoteInput } from './ports/notes-repository.js';
 
+import { createTier1aRules } from './domain/services/linter-rules/index.js';
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
 import * as topicWorkflows from './orchestration/topic-workflows.js';
 import * as reviewWorkflows from './orchestration/review-workflows.js';
@@ -347,8 +348,10 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     embedding: ports.embedding,
     classifier: ports.classifier,
     enableClassifierAtCreate: resolvedClassifier.classifier.enableAtCreate,
-    // Register Tier 1 content-quality rules (NEU-614 … NEU-618) here.
-    linterRules: [],
+    // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1).
+    // Tier 1b heuristic rules (NEU-617, warning-only) wire in here when
+    // NEU-NEW's OOD harness promotes individual rules to blocking.
+    linterRules: createTier1aRules(),
   };
   const leechDeps: reviewWorkflows.LeechDeps = {
     chunks: ports.chunks,
