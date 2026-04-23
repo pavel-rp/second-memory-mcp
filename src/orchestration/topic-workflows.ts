@@ -595,6 +595,9 @@ async function classifyChunk(
           error_class: err instanceof Error ? err.constructor.name : typeof err,
           error_message: err instanceof Error ? err.message : String(err),
           duration_ms: durationMs,
+          // Include the prompt the model would have seen — for "why did this
+          // chunk's classify call throw?" debugging the prompt is the context.
+          rendered_user_prompt: renderedUserPrompt,
         },
         durationMs
       );

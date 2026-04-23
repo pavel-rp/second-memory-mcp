@@ -415,6 +415,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         error_class: 'TypeError',
         error_message: 'rate-limit',
         duration_ms: expect.any(Number),
+        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
       });
       expect(durationArg).toEqual((data as { duration_ms: number }).duration_ms);
 
@@ -445,6 +446,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         error_class: 'string',
         error_message: 'rate-limit string',
         duration_ms: expect.any(Number),
+        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
       });
     });
 

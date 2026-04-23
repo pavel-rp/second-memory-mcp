@@ -255,12 +255,16 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
       error_class: string;
       error_message: string;
       duration_ms: number;
+      rendered_user_prompt: string;
     };
     expect(data.chunk_id).toBe(ids[0]);
     expect(data.error_class).toBe('Error');
     expect(data.error_message).toBe('network down');
     expect(typeof data.duration_ms).toBe('number');
     expect(entry.durationMs).toBe(data.duration_ms);
+    // The prompt the model would have seen is included so debugging "why did
+    // this chunk's classify throw?" has the same context as a successful run.
+    expect(data.rendered_user_prompt).toContain('Content for chunk 1');
 
     // Verdict event is NOT emitted when classify throws.
     expect(eventsByName('classifier.chunk_verdict')).toHaveLength(0);
