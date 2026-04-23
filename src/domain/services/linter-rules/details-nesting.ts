@@ -4,16 +4,18 @@ import type { ChunkLintInput, LinterFinding, LinterRule } from '../chunk-linter.
 export const DETAILS_NESTING_RULE_NAME = 'tier1a.details-nesting';
 export const DETAILS_MAX_DEPTH = 3;
 
-const TAG_RE = /<details\b[^>]*>|<\/details\s*>/gi;
-
 /**
  * Count `<details>` nesting depth from the given text fragment, updating the
  * running `depth` and `maxDepth`. Mutates the `state` object in place so the
  * caller can aggregate across multiple token fragments.
+ *
+ * A fresh `RegExp` is constructed per call — module-level `g`-flagged regexes
+ * carry `lastIndex` state and would leak between calls if an exception ever
+ * interrupted the exec loop.
  */
 function scanFragment(text: string, state: { depth: number; maxDepth: number }): void {
-  TAG_RE.lastIndex = 0;
-  let match: RegExpExecArray | null = TAG_RE.exec(text);
+  const tagRe = /<details\b[^>]*>|<\/details\s*>/gi;
+  let match: RegExpExecArray | null = tagRe.exec(text);
   while (match !== null) {
     if (match[0].startsWith('</')) {
       if (state.depth > 0) state.depth--;
@@ -21,7 +23,7 @@ function scanFragment(text: string, state: { depth: number; maxDepth: number }):
       state.depth++;
       if (state.depth > state.maxDepth) state.maxDepth = state.depth;
     }
-    match = TAG_RE.exec(text);
+    match = tagRe.exec(text);
   }
 }
 

@@ -68,6 +68,17 @@ describe('tier1a.heading-hierarchy', () => {
     expect(findings[0].detail).toContain('H4');
   });
 
+  it('rejects setext-style H1 followed by an H3 (skip)', () => {
+    // Setext-style `Title\n=====` is normalized to a heading_open token
+    // with tag 'h1' by markdown-it; the hierarchy check must still apply.
+    const content = 'Title\n=====\n\n### Section\n';
+    const findings = headingHierarchyRule.run(makeChunk(content));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe(HEADING_HIERARCHY_RULE_NAME);
+    expect(findings[0].detail).toContain('H1');
+    expect(findings[0].detail).toContain('H3');
+  });
+
   it('allows going backwards (H3 → H2)', () => {
     const content = '# A\n\n## B\n\n### C\n\n## B2\n';
     expect(headingHierarchyRule.run(makeChunk(content))).toEqual([]);
