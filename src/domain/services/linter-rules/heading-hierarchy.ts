@@ -3,7 +3,7 @@ import type { ChunkLintInput, LinterFinding, LinterRule } from '../chunk-linter.
 
 export const HEADING_HIERARCHY_RULE_NAME = 'tier1a.heading-hierarchy';
 
-function tagToLevel(tag: string): number | null {
+export function tagToLevel(tag: string): number | null {
   if (tag.length !== 2 || tag[0] !== 'h') return null;
   const digit = Number(tag[1]);
   return Number.isFinite(digit) && digit >= 1 && digit <= 6 ? digit : null;

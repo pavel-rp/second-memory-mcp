@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   headingHierarchyRule,
   HEADING_HIERARCHY_RULE_NAME,
+  tagToLevel,
 } from '../../../../../src/domain/services/linter-rules/heading-hierarchy.js';
 import type { ChunkLintInput } from '../../../../../src/domain/services/chunk-linter.js';
 
@@ -87,5 +88,33 @@ describe('tier1a.heading-hierarchy', () => {
     const first = headingHierarchyRule.run(makeChunk(content));
     const second = headingHierarchyRule.run(makeChunk(content));
     expect(first).toEqual(second);
+  });
+});
+
+describe('tagToLevel', () => {
+  it('returns the digit for valid h1..h6 tags', () => {
+    for (let level = 1; level <= 6; level++) {
+      expect(tagToLevel(`h${level}`)).toBe(level);
+    }
+  });
+
+  it('returns null when the tag length is not 2', () => {
+    expect(tagToLevel('h10')).toBeNull();
+    expect(tagToLevel('h')).toBeNull();
+    expect(tagToLevel('')).toBeNull();
+  });
+
+  it('returns null when the first character is not "h"', () => {
+    expect(tagToLevel('p1')).toBeNull();
+    expect(tagToLevel('d2')).toBeNull();
+  });
+
+  it('returns null for heading levels outside 1..6', () => {
+    expect(tagToLevel('h7')).toBeNull();
+    expect(tagToLevel('h0')).toBeNull();
+  });
+
+  it('returns null when the second character is not a digit', () => {
+    expect(tagToLevel('hx')).toBeNull();
   });
 });

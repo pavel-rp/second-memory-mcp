@@ -106,6 +106,52 @@ describe('tier1a.code-fence-balance', () => {
     expect(findings[0].rule).toBe(CODE_FENCE_BALANCE_RULE_NAME);
   });
 
+  it('rejects when opening ``` fence is "closed" by ~~~ (marker mismatch)', () => {
+    // Per CommonMark, closing fence must use the same marker as the opener.
+    // ``` ... ~~~ leaves the ``` unclosed and absorbs the tilde line as content.
+    const content = '```typescript\nconst x = 1;\n~~~\n';
+    const findings = codeFenceBalanceRule.run(makeChunk(content));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe(CODE_FENCE_BALANCE_RULE_NAME);
+    expect(findings[0].detail).toContain('```');
+  });
+
+  it('rejects when opening ~~~ fence is "closed" by ```', () => {
+    const content = '~~~python\nprint("x")\n```\n';
+    const findings = codeFenceBalanceRule.run(makeChunk(content));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].detail).toContain('~~~');
+  });
+
+  it('rejects when closing fence is shorter than opening', () => {
+    // Per CommonMark, closing fence length must be >= opening length.
+    // Opening with 4 backticks cannot be closed by 3 backticks.
+    const content = '````typescript\nconst x = 1;\n```\n';
+    const findings = codeFenceBalanceRule.run(makeChunk(content));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe(CODE_FENCE_BALANCE_RULE_NAME);
+  });
+
+  it('passes when closing fence is longer than opening (>= opening length)', () => {
+    const content = '```typescript\nconst x = 1;\n````\n';
+    expect(codeFenceBalanceRule.run(makeChunk(content))).toEqual([]);
+  });
+
+  it('does not treat a fence-marker line with info text as a close (CommonMark)', () => {
+    // Per CommonMark, a closing fence must have no info string. A line that
+    // looks like an opener inside an open fence is literal content. The real
+    // close is the final bare ``` line — this chunk is balanced.
+    const content = '```typescript\n// Example: ```python inside\n```\n';
+    expect(codeFenceBalanceRule.run(makeChunk(content))).toEqual([]);
+  });
+
+  it('still detects an actually unclosed fence even when info-text lines appear', () => {
+    const content = '```typescript\n// trailing info-text line below\n```python more\n';
+    const findings = codeFenceBalanceRule.run(makeChunk(content));
+    expect(findings).toHaveLength(1);
+    expect(findings[0].rule).toBe(CODE_FENCE_BALANCE_RULE_NAME);
+  });
+
   it('is deterministic across repeated calls', () => {
     const content = '```bogus\nx\n```\n';
     const first = codeFenceBalanceRule.run(makeChunk(content));

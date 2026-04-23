@@ -71,6 +71,28 @@ describe('tier1a.details-nesting', () => {
     expect(findings).toHaveLength(1);
   });
 
+  it('tracks maxDepth across re-opens that stay below prior maximum', () => {
+    // First group hits depth 2, second group only depth 1. The maxDepth
+    // branch must handle the "current depth not above recorded max" case.
+    const content = '<details>a<details>b</details></details>\n\n<details>c</details>';
+    expect(detailsNestingRule.run(makeChunk(content))).toEqual([]);
+  });
+
+  it('does not underflow depth on orphan </details> closing tags', () => {
+    // Content with more closes than opens stays at depth 0 — the closing-tag
+    // branch must tolerate state.depth === 0 without going negative.
+    const content = '<details>a</details></details></details>';
+    expect(detailsNestingRule.run(makeChunk(content))).toEqual([]);
+  });
+
+  it('scans inline <details> tags in paragraph text', () => {
+    // Triggers the html_inline branch of the token walker; nesting depth 1
+    // is below the limit, so no finding is expected — but the branch must
+    // still execute for coverage.
+    const content = 'Some prose with <details><summary>x</summary>body</details> inline.';
+    expect(detailsNestingRule.run(makeChunk(content))).toEqual([]);
+  });
+
   it('ignores <details> tags inside fenced code blocks (literal text)', () => {
     const content = [
       '```html',
