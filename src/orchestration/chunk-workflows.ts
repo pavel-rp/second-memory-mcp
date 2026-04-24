@@ -12,7 +12,27 @@ import { extractErrorMessage } from '../shared/errors.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import type { LearningItem } from '../domain/types/recommendations.js';
-import { getRequestLogger } from '../shared/logger.js';
+import { getRequestLogger, logEvent } from '../shared/logger.js';
+
+const CHUNK_PLUMBING_FIELDS = new Set([
+  'updatedAt',
+  'contentVersion',
+  'contentUpdatedAt',
+  'contentStatus',
+  'easeFactor',
+  'repetitions',
+  'nextReviewAt',
+  'lastReviewedAt',
+]);
+
+const CHUNK_FIELD_ALIASES: Record<string, string> = {
+  tagsJson: 'tags',
+  prerequisitesJson: 'prerequisites',
+};
+
+function toEventFieldName(key: string): string {
+  return CHUNK_FIELD_ALIASES[key] ?? key;
+}
 
 export type ChunkDeps = {
   chunks: ChunkRepository;
@@ -91,6 +111,14 @@ async function updateChunkFields(
       return { success: false, error: { type: 'database', message: 'Failed to update chunk' } };
     }
     const updated = await deps.chunks.getById(id);
+    const fieldsChanged = Object.keys(fields)
+      .filter(k => !CHUNK_PLUMBING_FIELDS.has(k))
+      .map(toEventFieldName);
+    try {
+      logEvent('updateChunk', 'chunk_updated', { chunkId: id, fieldsChanged });
+    } catch {
+      // A broken event logger must not poison a successful commit.
+    }
     return { success: true, chunk: updated, progressReset };
   } catch (error) {
     return { success: false, error: { type: 'database', message: extractErrorMessage(error) } };
@@ -285,6 +313,16 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
       if (deleted === 0) throw new Error('Failed to delete chunk from database');
     });
 
+    try {
+      logEvent('deleteChunk', 'chunk_deleted', {
+        chunkId: id,
+        topicId: chunkToDelete.topicId,
+        title: chunkToDelete.title,
+      });
+    } catch {
+      // A broken event logger must not poison a successful commit.
+    }
+
     return { success: true, chunk: chunkToDelete, removedDependencies: cleanups };
   } catch (error) {
     return {
@@ -300,6 +338,7 @@ export async function createChunkWithTopic(
 ): Promise<ServiceResult<LearningChunk>> {
   try {
     let topicId = input.topicId;
+    let autoCreatedTopic: { id: string; title: string } | null = null;
 
     if (input.topicTitle && !topicId) {
       // Find existing topic by title+subject or create one
@@ -319,6 +358,7 @@ export async function createChunkWithTopic(
           createdAt: now,
           updatedAt: now,
         });
+        autoCreatedTopic = { id: topicId, title: input.topicTitle };
       }
     }
 
@@ -331,6 +371,23 @@ export async function createChunkWithTopic(
         type: 'database',
         message: `Failed to create chunk with id: ${input.id}`,
       });
+    }
+
+    try {
+      if (autoCreatedTopic) {
+        logEvent('createTopic', 'topic_created', {
+          topicId: autoCreatedTopic.id,
+          title: autoCreatedTopic.title,
+          chunkCount: 1,
+        });
+      }
+      logEvent('createChunk', 'chunk_created', {
+        chunkId: created.id,
+        topicId: created.topicId,
+        title: created.title,
+      });
+    } catch {
+      // A broken event logger must not poison a successful commit.
     }
 
     // Generate embedding for chunk content (best-effort, outside transaction)

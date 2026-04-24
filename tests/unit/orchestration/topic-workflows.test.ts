@@ -1,4 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
+  logEvent: vi.fn(),
+}));
+
 import {
   createTopicWithChunks,
   updateTopicSummary,
@@ -6,6 +12,7 @@ import {
   type TopicCreationInput,
   type TopicDeps,
 } from '../../../src/orchestration/topic-workflows.js';
+import { logEvent } from '../../../src/shared/logger.js';
 import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { LearningTopic } from '../../../src/domain/types/entities.js';
@@ -796,5 +803,240 @@ describe('updateTopicMetadata', () => {
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('validation');
     expect(result.error?.field).toBe('subject');
+  });
+});
+
+// --- NEU-362: operation_event_log emissions ---
+
+describe('topic workflows — event emissions (NEU-362)', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
+  describe('createTopicWithChunks', () => {
+    it('emits topic_created after successful create with topicId, title, chunkCount', async () => {
+      const { deps } = stubDeps();
+      const input: TopicCreationInput = {
+        ...inputWithContent(),
+        chunks: [
+          { ...inputWithContent().chunks[0], id: 'c1' },
+          { ...inputWithContent().chunks[0], id: 'c2' },
+        ],
+      };
+
+      const result = await createTopicWithChunks(input, deps);
+
+      expect(result.success).toBe(true);
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toBe('createTopic');
+      expect(calls[0][2]).toEqual({
+        topicId: expect.any(String),
+        title: 'Algebra Basics',
+        chunkCount: 2,
+      });
+    });
+
+    it('does not emit topic_created when linter blocks creation', async () => {
+      const { deps } = stubDeps();
+      deps.linterRules = [
+        {
+          name: 'block',
+          scope: 'chunk',
+          tier: 'tier1a',
+          blockingEligible: true,
+          run: chunk => [
+            {
+              chunkId: chunk.chunkId,
+              rule: 'block',
+              severity: 'blocking',
+              category: 'content',
+              detail: 'blocked',
+            },
+          ],
+        },
+      ];
+
+      await createTopicWithChunks(inputWithContent(), deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created');
+      expect(calls).toHaveLength(0);
+    });
+
+    it('does not emit topic_created when unitOfWork throws', async () => {
+      const { deps } = stubDeps();
+      deps.unitOfWork.execute = vi.fn().mockRejectedValue(new Error('tx failed'));
+
+      await createTopicWithChunks(inputWithContent(), deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created');
+      expect(calls).toHaveLength(0);
+    });
+  });
+
+  describe('updateTopicSummary', () => {
+    it('emits topic_updated with fieldsChanged=[summary] on success', async () => {
+      const deps = summaryDeps();
+
+      const result = await updateTopicSummary('topic-1', 'New summary text', deps);
+
+      expect(result.success).toBe(true);
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toBe('updateTopic');
+      expect(calls[0][2]).toEqual({ topicId: 'topic-1', fieldsChanged: ['summary'] });
+    });
+
+    it('does not emit on not_found', async () => {
+      const deps = summaryDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await updateTopicSummary('missing-id', 'Summary', deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
+
+    it('does not emit on validation failure', async () => {
+      const deps = summaryDeps();
+
+      await updateTopicSummary('topic-1', '', deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
+
+    it('does not emit when update returns success: false', async () => {
+      const deps = summaryDeps();
+      (deps.topics.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: false,
+        error: { type: 'database', message: 'update failed' },
+      });
+
+      await updateTopicSummary('topic-1', 'Valid summary', deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
+  });
+
+  describe('logEvent fail-open envelopes', () => {
+    it('createTopicWithChunks — workflow still returns success when logEvent throws', async () => {
+      const { deps } = stubDeps();
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await createTopicWithChunks(inputWithContent(), deps);
+
+      expect(result.success).toBe(true);
+      expect(result.topic).toBeDefined();
+    });
+
+    it('updateTopicMetadata — workflow still returns success when logEvent throws', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubTopic())
+        .mockResolvedValueOnce(stubTopic({ title: 'New Title' }));
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await updateTopicMetadata('topic-1', { title: 'New Title' }, deps);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('updateTopicSummary — workflow still returns success when logEvent throws', async () => {
+      const deps = summaryDeps();
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await updateTopicSummary('topic-1', 'Valid summary text', deps);
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('updateTopicMetadata', () => {
+    it('emits topic_updated with fieldsChanged=[title] for title-only update', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubTopic())
+        .mockResolvedValueOnce(stubTopic({ title: 'New Title' }));
+
+      await updateTopicMetadata('topic-1', { title: 'New Title' }, deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][2]).toEqual({ topicId: 'topic-1', fieldsChanged: ['title'] });
+    });
+
+    it('emits topic_updated with fieldsChanged=[subject] for subject-only update', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubTopic())
+        .mockResolvedValueOnce(stubTopic({ subject: 'Science' }));
+
+      await updateTopicMetadata('topic-1', { subject: 'Science' }, deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][2]).toEqual({ topicId: 'topic-1', fieldsChanged: ['subject'] });
+    });
+
+    it('emits topic_updated with fieldsChanged=[title, subject] when both change', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubTopic())
+        .mockResolvedValueOnce(stubTopic({ title: 'New', subject: 'Science' }));
+
+      await updateTopicMetadata('topic-1', { title: 'New', subject: 'Science' }, deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][2]).toEqual({
+        topicId: 'topic-1',
+        fieldsChanged: ['title', 'subject'],
+      });
+    });
+
+    it('does not emit on not_found', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await updateTopicMetadata('missing-id', { title: 'New' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
+
+    it('does not emit on validation failure', async () => {
+      const { deps } = metadataDeps();
+
+      await updateTopicMetadata('topic-1', { title: '' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
+
+    it('does not emit when title-only update fails', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+        success: false,
+        error: { type: 'database', message: 'update failed' },
+      });
+
+      await updateTopicMetadata('topic-1', { title: 'New Title' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
+
+    it('does not emit when subject-change transaction throws', async () => {
+      const { deps } = metadataDeps();
+      (deps.unitOfWork.execute as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('tx failure')
+      );
+
+      await updateTopicMetadata('topic-1', { subject: 'Science' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
   });
 });

@@ -1,4 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
+  logEvent: vi.fn(),
+}));
+
 import {
   updateChunkContent,
   updateChunkContentWithAutoReset,
@@ -8,6 +14,7 @@ import {
   createChunkWithTopic,
   type ChunkDeps,
 } from '../../../src/orchestration/chunk-workflows.js';
+import { logEvent } from '../../../src/shared/logger.js';
 import type { EmbeddingPort } from '../../../src/ports/embedding-port.js';
 import type { TransactionPorts } from '../../../src/ports/unit-of-work-port.js';
 import type { LearningChunk, NewLearningChunk } from '../../../src/domain/types/entities.js';
@@ -705,5 +712,334 @@ describe('createChunkWithTopic', () => {
     if (!result.success) {
       expect(result.error.type).toBe('database');
     }
+  });
+});
+
+// ── NEU-362: operation_event_log emissions ──────────────────────
+
+describe('chunk workflows — event emissions (NEU-362)', () => {
+  beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
+  });
+
+  describe('updateChunkContent', () => {
+    it('emits chunk_updated with user-intent fields only (no plumbing)', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubChunk())
+        .mockResolvedValueOnce(stubChunk({ content: 'New' }));
+
+      await updateChunkContent('chunk-1', { content: 'New', condensedSummary: 'Summary' }, deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toBe('updateChunk');
+      const data = calls[0][2] as { chunkId: string; fieldsChanged: string[] };
+      expect(data.chunkId).toBe('chunk-1');
+      expect(data.fieldsChanged).toEqual(expect.arrayContaining(['content', 'condensedSummary']));
+      // Plumbing fields must NOT appear
+      for (const pf of [
+        'updatedAt',
+        'contentVersion',
+        'contentUpdatedAt',
+        'contentStatus',
+        'easeFactor',
+        'repetitions',
+        'nextReviewAt',
+        'lastReviewedAt',
+      ]) {
+        expect(data.fieldsChanged).not.toContain(pf);
+      }
+    });
+
+    it('does not emit when chunk not found', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await updateChunkContent('missing', { content: 'x' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated')).toHaveLength(0);
+    });
+
+    it('does not emit when update returns 0 rows', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValueOnce(stubChunk());
+      (deps.chunks.update as ReturnType<typeof vi.fn>).mockResolvedValue(0);
+
+      await updateChunkContent('chunk-1', { content: 'New' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated')).toHaveLength(0);
+    });
+
+    it('does not emit when getById throws', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('db crash'));
+
+      await updateChunkContent('chunk-1', { content: 'New' }, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated')).toHaveLength(0);
+    });
+  });
+
+  describe('updateChunkContentWithAutoReset', () => {
+    it('emits chunk_updated on success', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubChunk())
+        .mockResolvedValueOnce(stubChunk({ content: 'New content here' }));
+
+      await updateChunkContentWithAutoReset(
+        'chunk-1',
+        { content: 'Completely different content' },
+        deps
+      );
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated');
+      expect(calls).toHaveLength(1);
+      const data = calls[0][2] as { chunkId: string; fieldsChanged: string[] };
+      expect(data.chunkId).toBe('chunk-1');
+      expect(data.fieldsChanged).toContain('content');
+    });
+  });
+
+  describe('updateChunkMetadata', () => {
+    it('emits chunk_updated with metadata field names only', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubChunk())
+        .mockResolvedValueOnce(stubChunk({ title: 'New Title' }));
+
+      await updateChunkMetadata(
+        'chunk-1',
+        { title: 'New Title', difficulty: 8, tags: ['math'], prerequisites: ['p1'] },
+        deps
+      );
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated');
+      expect(calls).toHaveLength(1);
+      const data = calls[0][2] as { chunkId: string; fieldsChanged: string[] };
+      expect(data.fieldsChanged).toEqual(
+        expect.arrayContaining(['title', 'difficulty', 'tags', 'prerequisites'])
+      );
+      // Internal Drizzle column names must NOT leak to event consumers.
+      expect(data.fieldsChanged).not.toContain('tagsJson');
+      expect(data.fieldsChanged).not.toContain('prerequisitesJson');
+      expect(data.fieldsChanged).not.toContain('updatedAt');
+    });
+  });
+
+  describe('updateChunkWithProgressReset', () => {
+    it('emits chunk_updated on success', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubChunk())
+        .mockResolvedValueOnce(stubChunk({ title: 'New' }));
+
+      await updateChunkWithProgressReset('chunk-1', { title: 'New', forceReset: true }, deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated');
+      expect(calls).toHaveLength(1);
+      const data = calls[0][2] as { chunkId: string; fieldsChanged: string[] };
+      expect(data.fieldsChanged).toContain('title');
+    });
+  });
+
+  describe('createChunkWithTopic', () => {
+    const baseInput: NewLearningChunk & { topicTitle?: string } = {
+      id: 'new-chunk',
+      topicId: 'existing-topic',
+      title: 'New Chunk',
+      subject: 'CS',
+      difficulty: 5,
+      nextReviewAt: NOW,
+      easeFactor: 2.5,
+      repetitions: 0,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      content: 'Some content',
+      createdAt: NOW,
+      updatedAt: NOW,
+    };
+
+    it('emits chunk_created with chunkId, topicId, title on plain create', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+        stubChunk({ id: 'new-chunk', topicId: 'existing-topic', title: 'New Chunk' })
+      );
+
+      await createChunkWithTopic(baseInput, deps);
+
+      const createdCalls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created');
+      expect(createdCalls).toHaveLength(1);
+      expect(createdCalls[0][0]).toBe('createChunk');
+      expect(createdCalls[0][2]).toEqual({
+        chunkId: 'new-chunk',
+        topicId: 'existing-topic',
+        title: 'New Chunk',
+      });
+      // No auto-created topic event when topicId already supplied
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created')).toHaveLength(0);
+    });
+
+    it('emits both topic_created and chunk_created when auto-creating a topic', async () => {
+      const deps = stubDeps();
+      (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+        stubChunk({ id: 'new-chunk', title: 'New Chunk' })
+      );
+      const input = { ...baseInput, topicId: '', topicTitle: 'Fresh Topic' };
+
+      await createChunkWithTopic(input, deps);
+
+      const topicCalls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created');
+      expect(topicCalls).toHaveLength(1);
+      expect(topicCalls[0][0]).toBe('createTopic');
+      const topicData = topicCalls[0][2] as {
+        topicId: string;
+        title: string;
+        chunkCount: number;
+      };
+      expect(topicData.title).toBe('Fresh Topic');
+      expect(topicData.chunkCount).toBe(1);
+      expect(typeof topicData.topicId).toBe('string');
+
+      const chunkCalls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created');
+      expect(chunkCalls).toHaveLength(1);
+    });
+
+    it('emits only chunk_created when reusing an existing topic by title', async () => {
+      const deps = stubDeps();
+      const existingTopic = { id: 'found-topic', title: 'React', subject: 'CS' };
+      (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([existingTopic]);
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+        stubChunk({ id: 'new-chunk', topicId: 'found-topic', title: 'New Chunk' })
+      );
+      const input = { ...baseInput, topicId: '', topicTitle: 'React' };
+
+      await createChunkWithTopic(input, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created')).toHaveLength(0);
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created')).toHaveLength(1);
+    });
+
+    it('does not emit when getById returns undefined after create', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await createChunkWithTopic(baseInput, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created')).toHaveLength(0);
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_created')).toHaveLength(0);
+    });
+
+    it('does not emit when chunks.create throws', async () => {
+      const deps = stubDeps();
+      (deps.chunks.create as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('constraint violation')
+      );
+
+      await createChunkWithTopic(baseInput, deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created')).toHaveLength(0);
+    });
+  });
+
+  describe('logEvent fail-open envelopes', () => {
+    it('updateChunkFields — workflow still returns success when logEvent throws', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubChunk())
+        .mockResolvedValueOnce(stubChunk());
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await updateChunkContent('chunk-1', { content: 'New' }, deps);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('deleteChunk — workflow still returns success when logEvent throws', async () => {
+      const deps = stubDeps();
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await deleteChunk('chunk-1', deps);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('createChunkWithTopic — workflow still returns success when logEvent throws', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+        stubChunk({ id: 'new-chunk' })
+      );
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken');
+      });
+
+      const result = await createChunkWithTopic(
+        {
+          id: 'new-chunk',
+          topicId: 'existing-topic',
+          title: 'New Chunk',
+          subject: 'CS',
+          difficulty: 5,
+          nextReviewAt: NOW,
+          easeFactor: 2.5,
+          repetitions: 0,
+          estimatedDuration: 10,
+          chunkType: 'new',
+          content: 'Some content',
+          createdAt: NOW,
+          updatedAt: NOW,
+        },
+        deps
+      );
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('deleteChunk', () => {
+    it('emits chunk_deleted with chunkId, topicId, title after successful delete', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+        stubChunk({ id: 'chunk-1', topicId: 'topic-1', title: 'Test Chunk' })
+      );
+      (deps.chunks.findDependents as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      await deleteChunk('chunk-1', deps);
+
+      const calls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_deleted');
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toBe('deleteChunk');
+      expect(calls[0][2]).toEqual({
+        chunkId: 'chunk-1',
+        topicId: 'topic-1',
+        title: 'Test Chunk',
+      });
+    });
+
+    it('does not emit when chunk not found', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      await deleteChunk('missing', deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_deleted')).toHaveLength(0);
+    });
+
+    it('does not emit when transaction throws', async () => {
+      const deps = stubDeps();
+      (deps.unitOfWork.execute as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('tx failed')
+      );
+
+      await deleteChunk('chunk-1', deps);
+
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_deleted')).toHaveLength(0);
+    });
   });
 });
