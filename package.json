@@ -41,6 +41,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/infrastructure/db/migrate.ts",
     "db:seed": "tsx src/infrastructure/db/seed.ts",
+    "lint:validate": "tsx scripts/lint-validate.ts",
+    "lint:corpus:seed": "tsx scripts/lint-corpus-seed.ts",
     "db:studio": "drizzle-kit studio",
     "db:studio:prod": "dotenv -e .env.prod -- drizzle-kit studio",
     "db:studio:test": "dotenv -e .env -- drizzle-kit studio",

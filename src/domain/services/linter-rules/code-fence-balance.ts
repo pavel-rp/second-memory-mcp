@@ -189,5 +189,6 @@ export const codeFenceBalanceRule = {
   name: CODE_FENCE_BALANCE_RULE_NAME,
   scope: 'chunk',
   tier: 'tier1a',
+  blockingEligible: true,
   run: runCodeFenceBalance,
 } satisfies LinterRule;

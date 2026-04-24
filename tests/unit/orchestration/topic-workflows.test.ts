@@ -379,6 +379,7 @@ describe('createTopicWithChunks', () => {
       name: 'no-empty-content',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -409,6 +410,7 @@ describe('createTopicWithChunks', () => {
       name: 'soft-check',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -454,6 +456,7 @@ describe('createTopicWithChunks', () => {
       name: 'boom-rule',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: () => {
         throw new Error('rule exploded');
       },
@@ -473,6 +476,7 @@ describe('createTopicWithChunks', () => {
         name: 'multi',
         scope: 'chunk',
         tier: 'tier1a',
+        blockingEligible: true,
         run: chunk => [
           {
             chunkId: chunk.chunkId,

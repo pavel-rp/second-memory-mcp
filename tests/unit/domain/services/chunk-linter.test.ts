@@ -62,6 +62,7 @@ describe('runLinterSuite', () => {
       name: 'chunk-order-rule',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => {
         seen.push(chunk.chunkId);
         return [makeFinding({ chunkId: chunk.chunkId, rule: 'chunk-order-rule' })];
@@ -88,6 +89,7 @@ describe('runLinterSuite', () => {
       name: 'topic-rule',
       scope: 'topic',
       tier: 'tier1a',
+      blockingEligible: true,
       run: topic => {
         received.push(topic);
         return [makeFinding({ chunkId: topic.topicId || '<topic>', rule: 'topic-rule' })];
@@ -108,18 +110,21 @@ describe('runLinterSuite', () => {
       name: 'rule-A',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-A' })],
     };
     const topicRule: LinterRule = {
       name: 'rule-T',
       scope: 'topic',
       tier: 'tier1a',
+      blockingEligible: true,
       run: topic => [makeFinding({ chunkId: topic.topicId || '<topic>', rule: 'rule-T' })],
     };
     const chunkRuleB: LinterRule = {
       name: 'rule-B',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-B' })],
     };
     const input = makeInput({
@@ -142,6 +147,7 @@ describe('runLinterSuite', () => {
       name: 'blocking-rule',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [
         makeFinding({
           chunkId: chunk.chunkId,
@@ -162,6 +168,7 @@ describe('runLinterSuite', () => {
       name: 'warn-rule',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, severity: 'warning' })],
     };
 
@@ -176,12 +183,14 @@ describe('runLinterSuite', () => {
       name: 'good-rule',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'good-rule' })],
     };
     const throwingRule: LinterRule = {
       name: 'throwing-rule',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: () => {
         throw new Error('boom');
       },
@@ -204,6 +213,7 @@ describe('runLinterSuite', () => {
       name: 'topic-boom',
       scope: 'topic',
       tier: 'tier1a',
+      blockingEligible: true,
       run: () => {
         throw new Error('topic boom');
       },
@@ -212,6 +222,7 @@ describe('runLinterSuite', () => {
       name: 'follow-up',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'follow-up' })],
     };
 
@@ -232,6 +243,7 @@ describe('runLinterSuite', () => {
       name: 'rule-x',
       scope: 'topic',
       tier: 'tier1a',
+      blockingEligible: true,
       run: () => {
         throw new Error('boom');
       },
@@ -240,6 +252,7 @@ describe('runLinterSuite', () => {
       name: 'rule-y',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [makeFinding({ chunkId: chunk.chunkId, rule: 'rule-y' })],
     };
 
@@ -255,11 +268,135 @@ describe('runLinterSuite', () => {
       name: 'rule-silent',
       scope: 'topic',
       tier: 'tier1a',
+      blockingEligible: true,
       run: () => {
         throw new Error('quiet boom');
       },
     };
 
     expect(() => runLinterSuite([throwingRule], makeInput())).not.toThrow();
+  });
+
+  it('downgrades blocking findings to warning when rule is not blockingEligible', () => {
+    const rule: LinterRule = {
+      name: 'tier1b.ineligible',
+      scope: 'chunk',
+      tier: 'tier1b',
+      blockingEligible: false,
+      run: chunk => [
+        makeFinding({
+          chunkId: chunk.chunkId,
+          rule: 'tier1b.ineligible',
+          severity: 'blocking',
+          detail: 'would be blocking if eligible',
+        }),
+      ],
+    };
+
+    const result = runLinterSuite([rule], makeInput());
+
+    expect(result.findings.every(f => f.severity === 'warning')).toBe(true);
+    expect(result.findings.map(f => f.detail)).toEqual([
+      'would be blocking if eligible',
+      'would be blocking if eligible',
+    ]);
+    expect(result.blocking).toBe(false);
+  });
+
+  it('keeps blocking severity when rule is blockingEligible', () => {
+    const rule: LinterRule = {
+      name: 'tier1b.eligible',
+      scope: 'chunk',
+      tier: 'tier1b',
+      blockingEligible: true,
+      run: chunk => [
+        makeFinding({
+          chunkId: chunk.chunkId,
+          rule: 'tier1b.eligible',
+          severity: 'blocking',
+        }),
+      ],
+    };
+
+    const result = runLinterSuite([rule], makeInput());
+
+    expect(result.findings.every(f => f.severity === 'blocking')).toBe(true);
+    expect(result.blocking).toBe(true);
+  });
+
+  it('blocks on eligible Tier 1a finding even when a Tier 1b ineligible rule also emits blocking', () => {
+    const tier1a: LinterRule = {
+      name: 'tier1a.structural',
+      scope: 'chunk',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: chunk =>
+        chunk.chunkId === 'c1'
+          ? [
+              makeFinding({
+                chunkId: chunk.chunkId,
+                rule: 'tier1a.structural',
+                severity: 'blocking',
+              }),
+            ]
+          : [],
+    };
+    const tier1bIneligible: LinterRule = {
+      name: 'tier1b.heuristic',
+      scope: 'chunk',
+      tier: 'tier1b',
+      blockingEligible: false,
+      run: chunk => [
+        makeFinding({
+          chunkId: chunk.chunkId,
+          rule: 'tier1b.heuristic',
+          severity: 'blocking',
+        }),
+      ],
+    };
+
+    const result = runLinterSuite([tier1a, tier1bIneligible], makeInput());
+
+    const blockingFindings = result.findings.filter(f => f.severity === 'blocking');
+    expect(blockingFindings.map(f => f.rule)).toEqual(['tier1a.structural']);
+    expect(result.blocking).toBe(true);
+  });
+
+  it('preserves rule-order × chunk-order under downgrade', () => {
+    const ineligible: LinterRule = {
+      name: 'rule-ineligible',
+      scope: 'chunk',
+      tier: 'tier1b',
+      blockingEligible: false,
+      run: chunk => [
+        makeFinding({
+          chunkId: chunk.chunkId,
+          rule: 'rule-ineligible',
+          severity: 'blocking',
+        }),
+      ],
+    };
+    const eligible: LinterRule = {
+      name: 'rule-eligible',
+      scope: 'chunk',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: chunk => [
+        makeFinding({
+          chunkId: chunk.chunkId,
+          rule: 'rule-eligible',
+          severity: 'warning',
+        }),
+      ],
+    };
+
+    const result = runLinterSuite([ineligible, eligible], makeInput());
+
+    expect(result.findings.map(f => `${f.rule}:${f.chunkId}:${f.severity}`)).toEqual([
+      'rule-ineligible:c1:warning',
+      'rule-ineligible:c2:warning',
+      'rule-eligible:c1:warning',
+      'rule-eligible:c2:warning',
+    ]);
   });
 });

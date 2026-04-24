@@ -159,28 +159,42 @@ function toTopicWithChunks(
 }
 
 /**
+ * Per-finding shape persisted under `validator_report.tier1b`. Extends the
+ * in-memory `LinterFinding` with the owning rule's `blockingEligible` flag,
+ * renamed to `blocking_eligible` for snake_case DB convention. This makes
+ * every stored Tier 1b finding self-describing — downstream analytics can
+ * answer "why was this warning and not blocking?" without re-joining against
+ * the rule registry or the eligibility report.
+ */
+type Tier1bFindingEntry = LinterFinding & { blocking_eligible: boolean };
+
+type RuleMeta = { tier: LinterRuleTier; blockingEligible: boolean };
+
+/**
  * Build the per-chunk `validator_report` payload from the suite-wide findings.
  * Routes findings into `tier1a`/`tier1b` sections by looking up each finding's
- * rule name in `ruleTierByName`. Findings whose rule isn't in the map are
- * dropped (defensive — would only happen if a rule emitted with an unknown
- * name). Empty buckets are omitted; the returned object always carries
- * `updated_at`, even when no findings exist (canonical empty).
+ * rule name in `ruleMetaByName`. Tier 1b entries carry a per-finding
+ * `blocking_eligible` flag so the stored report records the eligibility
+ * decision that was in effect at persist time. Findings whose rule isn't in
+ * the map are dropped (defensive — would only happen if a rule emitted with
+ * an unknown name). Empty buckets are omitted; the returned object always
+ * carries `updated_at`, even when no findings exist (canonical empty).
  */
 function buildValidatorReport(
   chunkId: string,
   allFindings: readonly LinterFinding[],
-  ruleTierByName: ReadonlyMap<string, LinterRuleTier>,
+  ruleMetaByName: ReadonlyMap<string, RuleMeta>,
   updatedAtIso: string
 ): ValidatorReport {
   const tier1a: LinterFinding[] = [];
-  const tier1b: LinterFinding[] = [];
+  const tier1b: Tier1bFindingEntry[] = [];
   for (const finding of allFindings) {
     if (finding.chunkId !== chunkId) continue;
-    const tier = ruleTierByName.get(finding.rule);
-    if (tier === 'tier1a') {
+    const meta = ruleMetaByName.get(finding.rule);
+    if (meta?.tier === 'tier1a') {
       tier1a.push(finding);
-    } else if (tier === 'tier1b') {
-      tier1b.push(finding);
+    } else if (meta?.tier === 'tier1b') {
+      tier1b.push({ ...finding, blocking_eligible: meta.blockingEligible });
     } else {
       // Defensive: a rule emitted a finding tagged with a rule name absent
       // from the registered rules map. Drop it from persistence and warn —
@@ -239,12 +253,12 @@ export async function createTopicWithChunks(
     };
   }
 
-  // Build a rule-name → tier map once so per-chunk grouping below is O(1).
-  // Findings carry only `rule: string`, not the rule definition itself
-  // (see chunk-linter.ts), so we look up the tier here.
-  const ruleTierByName = new Map<string, LinterRuleTier>();
+  // Build a rule-name → {tier, blockingEligible} map once so per-chunk
+  // grouping below is O(1). Findings carry only `rule: string`, not the rule
+  // definition itself (see chunk-linter.ts), so we look up rule metadata here.
+  const ruleMetaByName = new Map<string, RuleMeta>();
   for (const rule of deps.linterRules ?? []) {
-    ruleTierByName.set(rule.name, rule.tier);
+    ruleMetaByName.set(rule.name, { tier: rule.tier, blockingEligible: rule.blockingEligible });
   }
 
   try {
@@ -272,7 +286,7 @@ export async function createTopicWithChunks(
         const validatorReport = buildValidatorReport(
           chunkDef.id,
           lintResult.findings,
-          ruleTierByName,
+          ruleMetaByName,
           nowIso
         );
         const chunkRow: LearningChunk = {

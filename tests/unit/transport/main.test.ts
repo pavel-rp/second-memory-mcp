@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Mock all dependencies BEFORE importing main.ts
 const mockInitializeDatabase = vi.fn().mockResolvedValue(undefined);
 const mockCreateAppContext = vi.fn().mockReturnValue({ fake: true, contextTokenTtlMs: 7_200_000 });
+const mockLoadInitialRuleReports = vi.fn().mockResolvedValue([]);
 const mockResolveTransportConfig = vi.fn();
 const mockResolveAuthConfig = vi.fn().mockReturnValue(null);
 const mockCreateMcpServer = vi.fn();
@@ -17,6 +18,7 @@ vi.mock('../../../src/infrastructure/db/migrate.js', () => ({
 
 vi.mock('../../../src/composition-root.js', () => ({
   createAppContext: mockCreateAppContext,
+  loadInitialRuleReports: mockLoadInitialRuleReports,
 }));
 
 vi.mock('../../../src/config/resolve-transport-config.js', () => ({

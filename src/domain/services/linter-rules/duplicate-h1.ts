@@ -35,5 +35,6 @@ export const duplicateH1Rule = {
   name: DUPLICATE_H1_RULE_NAME,
   scope: 'chunk',
   tier: 'tier1a',
+  blockingEligible: true,
   run: runDuplicateH1,
 } satisfies LinterRule;

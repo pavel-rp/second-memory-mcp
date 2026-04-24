@@ -70,17 +70,30 @@ export type TopicLintInput = {
  */
 export type LinterRuleTier = 'tier1a' | 'tier1b';
 
+/**
+ * `blockingEligible` gates whether a rule's `severity: 'blocking'` findings
+ * actually block topic creation. When `false`, the suite downgrades any
+ * blocking finding from this rule to `severity: 'warning'` before aggregation.
+ *
+ * Tier 1a rules are eligible by construction — they are parser-level structural
+ * checks with zero false positives on well-formed input. Tier 1b rules default
+ * to ineligible; the OOD validation harness (NEU-627) promotes individual
+ * rules to eligible once they clear precision/recall thresholds on a labeled
+ * held-out and adversarial corpus.
+ */
 export type LinterRule =
   | {
       name: string;
       scope: 'chunk';
       tier: LinterRuleTier;
+      blockingEligible: boolean;
       run: (input: ChunkLintInput) => LinterFinding[];
     }
   | {
       name: string;
       scope: 'topic';
       tier: LinterRuleTier;
+      blockingEligible: boolean;
       run: (input: TopicLintInput) => LinterFinding[];
     };
 
@@ -106,11 +119,11 @@ export function runLinterSuite(
     if (rule.scope === 'chunk') {
       for (const chunk of input.chunks) {
         const produced = safeRun(() => rule.run(chunk), rule.name, onRuleError);
-        for (const finding of produced) findings.push(finding);
+        for (const finding of produced) findings.push(applyEligibility(finding, rule));
       }
     } else {
       const produced = safeRun(() => rule.run(input), rule.name, onRuleError);
-      for (const finding of produced) findings.push(finding);
+      for (const finding of produced) findings.push(applyEligibility(finding, rule));
     }
   }
 
@@ -118,6 +131,18 @@ export function runLinterSuite(
     findings,
     blocking: findings.some(f => f.severity === 'blocking'),
   };
+}
+
+/**
+ * Pure per-finding severity transform. When the emitting rule is not
+ * blocking-eligible, any `severity: 'blocking'` finding is rewritten to
+ * `severity: 'warning'`. All other fields are preserved unchanged. Eligible
+ * rules pass findings through by reference.
+ */
+function applyEligibility(finding: LinterFinding, rule: LinterRule): LinterFinding {
+  if (rule.blockingEligible) return finding;
+  if (finding.severity !== 'blocking') return finding;
+  return { ...finding, severity: 'warning' };
 }
 
 function safeRun(

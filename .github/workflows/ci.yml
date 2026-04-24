@@ -51,6 +51,16 @@ jobs:
       - name: Lint code
         run: pnpm run lint
 
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/second_memory_test
+        run: pnpm run db:migrate
+
+      - name: Validate linter rule eligibility
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/second_memory_test
+        run: pnpm run lint:validate
+
       - name: Type check
         run: pnpm run type-check
 

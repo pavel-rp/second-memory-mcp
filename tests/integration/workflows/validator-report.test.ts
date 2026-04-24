@@ -88,6 +88,7 @@ describe('validator_report persistence (NEU-629)', () => {
       name: 'flag-first-chunk',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk =>
         chunk.chunkId === ids[0]
           ? [
@@ -124,6 +125,7 @@ describe('validator_report persistence (NEU-629)', () => {
       name: 'tier1b-warn',
       scope: 'chunk',
       tier: 'tier1b',
+      blockingEligible: false,
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -141,7 +143,17 @@ describe('validator_report persistence (NEU-629)', () => {
     const report = await readValidatorReport(ids[0]);
     expect(report).not.toBeNull();
     expect(Array.isArray(report?.tier1b)).toBe(true);
-    expect((report?.tier1b as unknown[]).length).toBe(1);
+    const tier1bEntries = report?.tier1b as Array<{
+      rule: string;
+      severity: string;
+      blocking_eligible: boolean;
+    }>;
+    expect(tier1bEntries.length).toBe(1);
+    // NEU-627: every persisted tier1b entry carries the eligibility decision
+    // that was in effect at persist time. The stub rule registered above is
+    // `blockingEligible: false`, so the stored flag must match.
+    expect(tier1bEntries[0].blocking_eligible).toBe(false);
+    expect(tier1bEntries[0].severity).toBe('warning');
     expect(report?.tier1a).toBeUndefined();
     expect(report?.tier2).toBeUndefined();
   });
@@ -155,6 +167,7 @@ describe('validator_report persistence (NEU-629)', () => {
       name: 'real-rule-name',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -182,6 +195,7 @@ describe('validator_report persistence (NEU-629)', () => {
       name: 'tier1a-warn',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [
         {
           chunkId: chunk.chunkId,
@@ -268,6 +282,7 @@ describe('validator_report persistence (NEU-629)', () => {
       name: 'tier1a-warn',
       scope: 'chunk',
       tier: 'tier1a',
+      blockingEligible: true,
       run: chunk => [
         {
           chunkId: chunk.chunkId,

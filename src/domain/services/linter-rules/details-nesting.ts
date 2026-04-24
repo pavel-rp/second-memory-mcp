@@ -69,5 +69,6 @@ export const detailsNestingRule = {
   name: DETAILS_NESTING_RULE_NAME,
   scope: 'chunk',
   tier: 'tier1a',
+  blockingEligible: true,
   run: runDetailsNesting,
 } satisfies LinterRule;

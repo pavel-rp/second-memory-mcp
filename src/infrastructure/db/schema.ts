@@ -1,12 +1,15 @@
 import {
   pgTable,
+  pgSchema,
   text,
   integer,
   smallint,
   bigint,
+  bigserial,
   real,
   boolean,
   jsonb,
+  timestamp,
   index,
   uniqueIndex,
   check,
@@ -256,7 +259,69 @@ export const contextTokens = pgTable(
   table => [index('idx_context_tokens_expires_at').on(table.expiresAt)]
 );
 
+// --- NEU-627: OOD validation harness for linter rules ------------------
+//
+// The two tables below live in the `infrastructure` schema (not `public`)
+// alongside `mcp_request_log` and `operation_event_log`. They hold the
+// labeled corpus and per-rule precision/recall report used to decide whether
+// a Tier 1b linter rule is eligible to block topic creation. Managed here as
+// Drizzle tables so the `LinterValidationRepository` adapter can query them
+// through the ORM rather than via raw SQL.
+export const infrastructureSchema = pgSchema('infrastructure');
+
+export const linterValidationCorpus = infrastructureSchema.table(
+  'linter_validation_corpus',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    ruleId: text('rule_id').notNull(),
+    chunkId: text('chunk_id')
+      .notNull()
+      .references(() => learningChunks.id, { onDelete: 'cascade' }),
+    split: text('split')
+      .notNull()
+      .$type<'derivation' | 'held_out' | 'adversarial_negative' | 'random_sample'>(),
+    expectedVerdict: text('expected_verdict').notNull().$type<'should_flag' | 'clean'>(),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  /* v8 ignore next 12 -- Drizzle index/check definitions; executed internally, not reachable from app code */
+  table => [
+    uniqueIndex('uq_linter_validation_corpus_rule_chunk').on(table.ruleId, table.chunkId),
+    index('idx_linter_validation_corpus_rule').on(table.ruleId),
+    check(
+      'chk_linter_corpus_split',
+      sql`${table.split} IN ('derivation', 'held_out', 'adversarial_negative', 'random_sample')`
+    ),
+    check(
+      'chk_linter_corpus_expected_verdict',
+      sql`${table.expectedVerdict} IN ('should_flag', 'clean')`
+    ),
+  ]
+);
+
+export const linterRuleValidationReport = infrastructureSchema.table(
+  'linter_rule_validation_report',
+  {
+    ruleId: text('rule_id').primaryKey().notNull(),
+    computedAt: timestamp('computed_at', { withTimezone: true }).notNull(),
+    precisionHeldOut: real('precision_held_out'),
+    recallHeldOut: real('recall_held_out'),
+    f1HeldOut: real('f1_held_out'),
+    precisionAdversarial: real('precision_adversarial'),
+    heldOutCount: integer('held_out_count').notNull().default(0),
+    adversarialCount: integer('adversarial_count').notNull().default(0),
+    blockingEligible: boolean('blocking_eligible').notNull().default(false),
+    thresholdsVersion: integer('thresholds_version').notNull().default(1),
+  }
+);
+
 // Types
+export type LinterValidationCorpusRow = InferSelectModel<typeof linterValidationCorpus>;
+export type NewLinterValidationCorpusRow = InferInsertModel<typeof linterValidationCorpus>;
+export type LinterRuleValidationReportRow = InferSelectModel<typeof linterRuleValidationReport>;
+export type NewLinterRuleValidationReportRow = InferInsertModel<typeof linterRuleValidationReport>;
+
 export type ContextTokenRow = InferSelectModel<typeof contextTokens>;
 export type NewContextTokenRow = InferInsertModel<typeof contextTokens>;
 

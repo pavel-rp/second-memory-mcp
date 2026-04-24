@@ -8,6 +8,7 @@ import type { UnitOfWorkPort, TransactionPorts } from '../../src/ports/unit-of-w
 import type { SearchPort } from '../../src/ports/search-port.js';
 import type { EmbeddingPort } from '../../src/ports/embedding-port.js';
 import type { NotesRepository } from '../../src/ports/notes-repository.js';
+import type { LinterValidationRepository } from '../../src/ports/linter-validation-repository.js';
 
 // ── ChunkRepository ─────────────────────────────────────────────
 
@@ -220,6 +221,22 @@ export function stubNotesRepository(overrides?: Partial<NotesRepository>): Notes
     getNotesByTarget: vi.fn().mockResolvedValue([]),
     getNotesForChunkIds: vi.fn().mockResolvedValue([]),
     deleteNote: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
+// ── LinterValidationRepository ─────────────────────────────────
+
+export function stubLinterValidationRepository(
+  overrides?: Partial<LinterValidationRepository>
+): LinterValidationRepository {
+  return {
+    listCorpusByRule: vi.fn().mockResolvedValue([]),
+    upsertCorpusEntry: vi.fn().mockResolvedValue(undefined),
+    deleteCorpusEntry: vi.fn().mockResolvedValue(1),
+    getReport: vi.fn().mockResolvedValue(null),
+    upsertReport: vi.fn().mockResolvedValue(undefined),
+    listReports: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
