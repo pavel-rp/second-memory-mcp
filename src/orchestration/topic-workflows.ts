@@ -449,9 +449,10 @@ export async function updateTopicMetadata(
     const fieldsChanged: string[] = [];
     if (updates.title !== undefined) fieldsChanged.push('title');
     if (updates.subject !== undefined) fieldsChanged.push('subject');
-    // Skip emission when no user-facing field actually changed — emitting
+    // Skip emission when the caller specified no user-facing field — emitting
     // `topic_updated` with an empty `fieldsChanged` is ambiguous noise for
-    // downstream consumers.
+    // downstream consumers. `fieldsChanged` reflects user intent (which fields
+    // the caller asked to change), not an actual DB diff.
     if (fieldsChanged.length > 0) {
       try {
         logEvent('updateTopic', 'topic_updated', { topicId, fieldsChanged });

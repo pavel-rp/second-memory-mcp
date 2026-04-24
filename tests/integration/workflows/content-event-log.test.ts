@@ -17,6 +17,7 @@ import {
   updateChunkContent,
   type ChunkDeps,
 } from '../../../src/orchestration/chunk-workflows.js';
+import { updateTopicMetadata } from '../../../src/orchestration/topic-workflows.js';
 import { setEventLogger } from '../../../src/shared/logger.js';
 
 function topicDeps(): TopicDeps {
@@ -173,6 +174,31 @@ describe('Content CRUD event logging (NEU-362)', () => {
     for (const pf of ['updatedAt', 'contentVersion', 'contentUpdatedAt', 'contentStatus']) {
       expect(data.fieldsChanged).not.toContain(pf);
     }
+  });
+
+  it('emits topic_updated with module: mcp-event when updating topic metadata', async () => {
+    const seedChunkId = crypto.randomUUID();
+    const seed = await createTopicWithChunks(makeTopicInput(seedChunkId), topicDeps());
+    expect(seed.success).toBe(true);
+    const topicId = seed.topic!.topicId;
+    captured.length = 0; // discard topic_created from seed
+
+    const updated = await updateTopicMetadata(
+      topicId,
+      { title: 'Renamed Integration Topic' },
+      topicDeps()
+    );
+    expect(updated.success).toBe(true);
+
+    const updateEvents = eventsByName('topic_updated');
+    expect(updateEvents).toHaveLength(1);
+    const entry = updateEvents[0];
+    expect(entry.module).toBe('mcp-event');
+    expect(entry.operation).toBe('updateTopic');
+    expect(entry.data).toEqual({
+      topicId,
+      fieldsChanged: ['title'],
+    });
   });
 
   it('emits chunk_deleted preserving topicId and title after deletion', async () => {
