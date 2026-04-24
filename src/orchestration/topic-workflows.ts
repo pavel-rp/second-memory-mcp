@@ -449,10 +449,15 @@ export async function updateTopicMetadata(
     const fieldsChanged: string[] = [];
     if (updates.title !== undefined) fieldsChanged.push('title');
     if (updates.subject !== undefined) fieldsChanged.push('subject');
-    try {
-      logEvent('updateTopic', 'topic_updated', { topicId, fieldsChanged });
-    } catch {
-      // A broken event logger must not poison a successful commit.
+    // Skip emission when no user-facing field actually changed — emitting
+    // `topic_updated` with an empty `fieldsChanged` is ambiguous noise for
+    // downstream consumers.
+    if (fieldsChanged.length > 0) {
+      try {
+        logEvent('updateTopic', 'topic_updated', { topicId, fieldsChanged });
+      } catch {
+        // A broken event logger must not poison a successful commit.
+      }
     }
     return { success: true, topic: updated };
   } catch (error) {

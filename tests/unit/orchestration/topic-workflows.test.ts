@@ -1038,5 +1038,17 @@ describe('topic workflows — event emissions (NEU-362)', () => {
 
       expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
     });
+
+    it('does not emit when updates object has neither title nor subject', async () => {
+      const { deps } = metadataDeps();
+      (deps.topics.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubTopic())
+        .mockResolvedValueOnce(stubTopic());
+
+      const result = await updateTopicMetadata('topic-1', {}, deps);
+
+      expect(result.success).toBe(true);
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'topic_updated')).toHaveLength(0);
+    });
   });
 });

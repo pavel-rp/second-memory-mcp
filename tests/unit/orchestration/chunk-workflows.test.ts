@@ -842,6 +842,19 @@ describe('chunk workflows — event emissions (NEU-362)', () => {
       const data = calls[0][2] as { chunkId: string; fieldsChanged: string[] };
       expect(data.fieldsChanged).toContain('title');
     });
+
+    it('does not emit chunk_updated when only plumbing fields change (forceReset-only)', async () => {
+      const deps = stubDeps();
+      (deps.chunks.getById as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce(stubChunk())
+        .mockResolvedValueOnce(stubChunk({ repetitions: 0 }));
+
+      const result = await updateChunkWithProgressReset('chunk-1', { forceReset: true }, deps);
+
+      expect(result.success).toBe(true);
+      expect(result.progressReset).toBe(true);
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_updated')).toHaveLength(0);
+    });
   });
 
   describe('createChunkWithTopic', () => {
@@ -905,6 +918,24 @@ describe('chunk workflows — event emissions (NEU-362)', () => {
 
       const chunkCalls = vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created');
       expect(chunkCalls).toHaveLength(1);
+    });
+
+    it('still emits chunk_created when topic_created emission throws', async () => {
+      const deps = stubDeps();
+      (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+        stubChunk({ id: 'new-chunk', title: 'New Chunk' })
+      );
+      // First logEvent call is topic_created — make that one throw; chunk_created must still fire.
+      vi.mocked(logEvent).mockImplementationOnce(() => {
+        throw new Error('event logger broken on topic_created');
+      });
+      const input = { ...baseInput, topicId: '', topicTitle: 'Fresh Topic' };
+
+      const result = await createChunkWithTopic(input, deps);
+
+      expect(result.success).toBe(true);
+      expect(vi.mocked(logEvent).mock.calls.filter(c => c[1] === 'chunk_created')).toHaveLength(1);
     });
 
     it('emits only chunk_created when reusing an existing topic by title', async () => {

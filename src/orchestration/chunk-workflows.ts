@@ -114,10 +114,15 @@ async function updateChunkFields(
     const fieldsChanged = Object.keys(fields)
       .filter(k => !CHUNK_PLUMBING_FIELDS.has(k))
       .map(toEventFieldName);
-    try {
-      logEvent('updateChunk', 'chunk_updated', { chunkId: id, fieldsChanged });
-    } catch {
-      // A broken event logger must not poison a successful commit.
+    // Skip emission when only plumbing (updatedAt, SR state, etc.) changed —
+    // emitting `chunk_updated` with an empty `fieldsChanged` is ambiguous
+    // noise for downstream consumers.
+    if (fieldsChanged.length > 0) {
+      try {
+        logEvent('updateChunk', 'chunk_updated', { chunkId: id, fieldsChanged });
+      } catch {
+        // A broken event logger must not poison a successful commit.
+      }
     }
     return { success: true, chunk: updated, progressReset };
   } catch (error) {
@@ -373,14 +378,20 @@ export async function createChunkWithTopic(
       });
     }
 
-    try {
-      if (autoCreatedTopic) {
+    // Wrap each emission in its own try/catch so a failure on the optional
+    // auto-created-topic event can't suppress the required chunk_created event.
+    if (autoCreatedTopic) {
+      try {
         logEvent('createTopic', 'topic_created', {
           topicId: autoCreatedTopic.id,
           title: autoCreatedTopic.title,
           chunkCount: 1,
         });
+      } catch {
+        // A broken event logger must not poison a successful commit.
       }
+    }
+    try {
       logEvent('createChunk', 'chunk_created', {
         chunkId: created.id,
         topicId: created.topicId,
