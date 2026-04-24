@@ -81,15 +81,25 @@ function rowToChunkLintInput(row: typeof learningChunks.$inferSelect): ChunkLint
   };
 }
 
-/** Returns whether `rule` produced any finding for `chunk`. */
+/**
+ * Returns whether `rule` produced any finding for `chunk`. Fails open on
+ * rule exceptions — logs the failure with rule + chunk IDs and treats the
+ * chunk as unflagged, mirroring `runLinterSuite.safeRun` in
+ * `src/domain/services/chunk-linter.ts`. Without this, a single throwing
+ * rule would abort the CLI before other rules' reports were persisted.
+ */
 function ruleFlagsChunk(rule: LinterRule, chunk: ChunkLintInput): boolean {
-  let findings: LinterFinding[];
-  if (rule.scope === 'chunk') {
-    findings = rule.run(chunk);
-  } else {
-    findings = rule.run(chunkToTopicEnvelope(chunk));
+  try {
+    const findings: LinterFinding[] =
+      rule.scope === 'chunk' ? rule.run(chunk) : rule.run(chunkToTopicEnvelope(chunk));
+    return findings.length > 0;
+  } catch (error) {
+    logger.warn(
+      `lint-validate: rule "${rule.name}" threw for chunk "${chunk.chunkId}" — treating as unflagged:`,
+      error
+    );
+    return false;
   }
-  return findings.length > 0;
 }
 
 type SplitObservations = {
@@ -240,8 +250,9 @@ export async function runValidate(
   logSummary(evaluations);
 
   let exitCode = 0;
+  const intentLookup = RULE_INTENT as Readonly<Record<string, { intendedBlocking: boolean }>>;
   for (const ev of evaluations) {
-    const intent = RULE_INTENT[ev.ruleId];
+    const intent = intentLookup[ev.ruleId];
     if (!intent) continue; // Composition-root parity check covers this; do not double-fail here.
     if (intent.intendedBlocking && !ev.blockingEligible) {
       exitCode = 1;

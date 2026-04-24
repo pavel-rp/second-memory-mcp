@@ -317,15 +317,18 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
  * Load the current per-rule validation reports at startup. Fails open to an
  * empty report set on any read error — the caller then boots with Tier 1b
  * rules defaulted to `blockingEligible: false`, which matches the harness's
- * "not validated yet" stance. Caller is responsible for wiring this in
- * before `createAppContext`; pass the result as
- * `initialRuleValidationReports`.
+ * "not validated yet" stance.
+ *
+ * Keeps the transport layer free of adapter knowledge: when `repo` is omitted
+ * this constructs the production `DrizzleLinterValidationRepository`
+ * internally, preserving the composition-root contract ("the only module
+ * that knows about concrete adapter classes"). Tests can inject a stub.
  */
 export async function loadInitialRuleReports(
-  ports: Pick<AppPorts, 'linterValidation'>
+  repo: LinterValidationRepository = new DrizzleLinterValidationRepository(getSql())
 ): Promise<RuleValidationReport[]> {
   try {
-    return await ports.linterValidation.listReports();
+    return await repo.listReports();
   } catch (err) {
     getRequestLogger().warn(
       'loadInitialRuleReports: failed to read linter_rule_validation_report — falling back to defaults',

@@ -21,12 +21,6 @@ vi.mock('../../../src/composition-root.js', () => ({
   loadInitialRuleReports: mockLoadInitialRuleReports,
 }));
 
-vi.mock('../../../src/adapters/drizzle/linter-validation-repository.js', () => ({
-  // The bootstrap path constructs this only to satisfy the
-  // `loadInitialRuleReports` argument shape — the mocked function ignores it.
-  DrizzleLinterValidationRepository: vi.fn(),
-}));
-
 vi.mock('../../../src/config/resolve-transport-config.js', () => ({
   resolveTransportConfig: mockResolveTransportConfig,
 }));

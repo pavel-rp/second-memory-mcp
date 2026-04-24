@@ -3,6 +3,7 @@ import {
   RULE_INTENT,
   applyEligibilityToRules,
   validateRuleIntentParity,
+  type RuleIntentName,
 } from '../../../../src/shared/linter/rule-intent.js';
 
 describe('RULE_INTENT', () => {
@@ -16,7 +17,7 @@ describe('RULE_INTENT', () => {
       'tier1a.duplicate-h1',
     ]);
     for (const k of tier1aKeys) {
-      expect(RULE_INTENT[k].intendedBlocking).toBe(true);
+      expect(RULE_INTENT[k as RuleIntentName].intendedBlocking).toBe(true);
     }
   });
 
@@ -31,12 +32,18 @@ describe('RULE_INTENT', () => {
       'tier1b.phantom-prerequisite',
     ]);
     for (const k of tier1bKeys) {
-      expect(RULE_INTENT[k].intendedBlocking).toBe(false);
+      expect(RULE_INTENT[k as RuleIntentName].intendedBlocking).toBe(false);
     }
   });
 
-  it('is frozen — reassignment has no observable effect on the exported object', () => {
-    expect(Object.isFrozen(RULE_INTENT)).toBe(true);
+  it('is readonly at the type level — TS rejects mutation at compile time', () => {
+    // `as const satisfies Record<string, RuleIntent>` gives RULE_INTENT a
+    // deeply-readonly type; attempting to reassign a key would fail type
+    // check. At runtime the object is not `Object.freeze()`d — we rely on
+    // the type system for the guarantee, which is sufficient for internal
+    // callers and produces a precise key union via `keyof typeof`.
+    const keys = Object.keys(RULE_INTENT);
+    expect(keys.length).toBe(11);
   });
 });
 

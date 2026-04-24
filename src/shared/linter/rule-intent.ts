@@ -22,7 +22,11 @@ export type RuleIntent = {
   intendedBlocking: boolean;
 };
 
-export const RULE_INTENT: Readonly<Record<string, RuleIntent>> = Object.freeze({
+// `as const satisfies` preserves the literal key union (so `RuleIntentName`
+// resolves to the six Tier 1a + six Tier 1b IDs rather than collapsing to
+// `string`) while still validating each value against `RuleIntent`. A plain
+// `Readonly<Record<string, RuleIntent>>` annotation would erase the keys.
+export const RULE_INTENT = {
   // Tier 1a — structural rules, blocking from day one (NEU-628).
   'tier1a.code-fence-balance': { intendedBlocking: true },
   'tier1a.table-structure': { intendedBlocking: true },
@@ -40,7 +44,7 @@ export const RULE_INTENT: Readonly<Record<string, RuleIntent>> = Object.freeze({
   'tier1b.word-count-floor': { intendedBlocking: false },
   'tier1b.word-count-ceiling': { intendedBlocking: false },
   'tier1b.phantom-prerequisite': { intendedBlocking: false },
-});
+} as const satisfies Record<string, RuleIntent>;
 
 export type RuleIntentName = keyof typeof RULE_INTENT;
 

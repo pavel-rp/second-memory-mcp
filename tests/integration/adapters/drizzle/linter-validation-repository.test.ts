@@ -116,6 +116,34 @@ describe('DrizzleLinterValidationRepository (integration)', () => {
     expect(deleted).toBe(0);
   });
 
+  it('treats omitted notes as SQL NULL on upsert', async () => {
+    // Covers the `entry.notes ?? null` fallback when the input has no `notes`
+    // key at all (TS-optional vs explicitly `null`). Without this, the `??`
+    // branch on the undefined side stays uncovered.
+    const chunkId = `chunk-${crypto.randomUUID()}`;
+    await seedChunk(chunkId);
+    await repo.upsertCorpusEntry({
+      ruleId: 'tier1b.bullet-dominant',
+      chunkId,
+      split: 'derivation',
+      expectedVerdict: 'should_flag',
+    });
+    const [row] = await repo.listCorpusByRule('tier1b.bullet-dominant');
+    expect(row.notes).toBeNull();
+
+    // Upsert path also touches `?? null` on conflict — re-upsert with notes
+    // undefined to cover the update branch.
+    await repo.upsertCorpusEntry({
+      ruleId: 'tier1b.bullet-dominant',
+      chunkId,
+      split: 'held_out',
+      expectedVerdict: 'clean',
+    });
+    const [refreshed] = await repo.listCorpusByRule('tier1b.bullet-dominant');
+    expect(refreshed.notes).toBeNull();
+    expect(refreshed.split).toBe('held_out');
+  });
+
   it('FK cascades corpus rows away when the referenced chunk is deleted', async () => {
     const chunkId = `chunk-${crypto.randomUUID()}`;
     await seedChunk(chunkId);
