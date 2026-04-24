@@ -39,6 +39,9 @@ vi.mock('../../src/adapters/drizzle/notes-repository.js', () => ({
 vi.mock('../../src/adapters/drizzle/context-token-repository.js', () => ({
   DrizzleContextTokenRepository: FakeCtor,
 }));
+vi.mock('../../src/adapters/drizzle/linter-validation-repository.js', () => ({
+  DrizzleLinterValidationRepository: FakeCtor,
+}));
 
 const ClassifierAdapterMock = vi.fn(function FakeClassifier(this: { classify: () => void }): void {
   this.classify = () => undefined;

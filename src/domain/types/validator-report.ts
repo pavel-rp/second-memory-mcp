@@ -12,6 +12,14 @@ import { z } from 'zod';
  * project. Per-tier sub-shapes are owned by their respective tickets and are
  * stored here as `unknown` — this module does not constrain or inspect them.
  *
+ * Tier 1b convention (owned by NEU-627): each entry under `tier1b` is a
+ * `LinterFinding & { blocking_eligible: boolean }` snapshot of the rule's
+ * eligibility at persist time. The flag captures whether the rule was
+ * eligible to block topic creation; when `false`, the finding's severity has
+ * already been downgraded from `'blocking'` to `'warning'` by the suite.
+ * Schema stays `z.unknown()` so NEU-617 can evolve the rest of the tier1b
+ * entry shape without a schema-module change.
+ *
  * Merge semantics: each tier key is replaced wholesale by the merging caller
  * (no deep merge inside a tier). Concurrent writes to the same tier are
  * last-write-wins. The Drizzle adapter implements `mergeValidatorReport`

@@ -8,6 +8,7 @@ import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapte
 import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-question-repository.js';
 import { DrizzleNotesRepository } from './adapters/drizzle/notes-repository.js';
 import { DrizzleContextTokenRepository } from './adapters/drizzle/context-token-repository.js';
+import { DrizzleLinterValidationRepository } from './adapters/drizzle/linter-validation-repository.js';
 import { LangChainEmbeddingAdapter } from './adapters/langchain/embedding-adapter.js';
 import { LangChainContentClassifierAdapter } from './adapters/langchain/content-classifier-adapter.js';
 import { resolveAlgorithmConfig } from './config/resolve-algorithm-config.js';
@@ -37,6 +38,10 @@ import type { SessionQuestionRepository } from './ports/session-question-reposit
 import type { NotesRepository } from './ports/notes-repository.js';
 import type { ContextTokenRepository } from './ports/context-token-repository.js';
 import type {
+  LinterValidationRepository,
+  RuleValidationReport,
+} from './ports/linter-validation-repository.js';
+import type {
   LearningItem,
   PaginatedLearningItemsResponse,
   RecommendationInput,
@@ -64,6 +69,8 @@ import type {
 import type { CreateNoteInput } from './ports/notes-repository.js';
 
 import { createTier1aRules } from './domain/services/linter-rules/index.js';
+import { applyEligibilityToRules, validateRuleIntentParity } from './shared/linter/rule-intent.js';
+import { getRequestLogger } from './shared/logger.js';
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
 import * as topicWorkflows from './orchestration/topic-workflows.js';
 import * as reviewWorkflows from './orchestration/review-workflows.js';
@@ -115,6 +122,7 @@ export interface AppPorts {
   contextTokens: ContextTokenRepository;
   embedding?: EmbeddingPort;
   classifier?: ContentClassifierPort;
+  linterValidation: LinterValidationRepository;
 }
 
 /** Pre-wired orchestration functions grouped by concern */
@@ -301,15 +309,48 @@ function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
     sessionQuestions: new DrizzleSessionQuestionRepository(db),
     notes: new DrizzleNotesRepository(db),
     contextTokens: new DrizzleContextTokenRepository(db),
+    linterValidation: new DrizzleLinterValidationRepository(db),
   };
+}
+
+/**
+ * Load the current per-rule validation reports at startup. Fails open to an
+ * empty report set on any read error — the caller then boots with Tier 1b
+ * rules defaulted to `blockingEligible: false`, which matches the harness's
+ * "not validated yet" stance. Caller is responsible for wiring this in
+ * before `createAppContext`; pass the result as
+ * `initialRuleValidationReports`.
+ */
+export async function loadInitialRuleReports(
+  ports: Pick<AppPorts, 'linterValidation'>
+): Promise<RuleValidationReport[]> {
+  try {
+    return await ports.linterValidation.listReports();
+  } catch (err) {
+    getRequestLogger().warn(
+      'loadInitialRuleReports: failed to read linter_rule_validation_report — falling back to defaults',
+      err
+    );
+    return [];
+  }
 }
 
 /**
  * Composition root — the only module that knows about concrete adapter classes.
  * Accepts optional port overrides for testing.
  * Invoked exactly once at startup by the transport layer.
+ *
+ * `initialRuleValidationReports` applies the OOD harness eligibility flag
+ * (NEU-627) to Tier 1b rules at startup. When absent (e.g. tests that do
+ * not exercise the harness), Tier 1a rules keep their eligibility and no
+ * Tier 1b rules are wired in. Fetched from the `linterValidation` port
+ * asynchronously so this function can stay synchronous — call
+ * `loadInitialRuleReports` first, then pass the result here.
  */
-export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
+export function createAppContext(
+  overrides?: Partial<AppPorts>,
+  initialRuleValidationReports: readonly RuleValidationReport[] = []
+): AppContext {
   const algorithmConfig = resolveAlgorithmConfig();
   const resolvedEmbedding = resolveEmbeddingConfig();
   const resolvedClassifier = resolveClassifierConfig();
@@ -349,10 +390,23 @@ export function createAppContext(overrides?: Partial<AppPorts>): AppContext {
     classifier: ports.classifier,
     enableClassifierAtCreate: resolvedClassifier.classifier.enableAtCreate,
     // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1).
-    // Tier 1b heuristic rules (NEU-617, warning-only) wire in here when
-    // NEU-NEW's OOD harness promotes individual rules to blocking.
-    linterRules: createTier1aRules(),
+    // Tier 1b heuristic rules (NEU-617) register here once implemented; the
+    // `applyEligibilityToRules` call below threads per-rule
+    // `blocking_eligible` from the validation report table (NEU-627) into
+    // the rule list so Tier 1b rules only activate blocking severity once
+    // the OOD harness has validated them.
+    linterRules: applyEligibilityToRules(createTier1aRules(), initialRuleValidationReports),
   };
+
+  // Startup parity check: every registered rule must have a declared intent
+  // in `RULE_INTENT`. Logged, not fatal — a missing-intent rule still runs
+  // but gets flagged so the next CI run surfaces the drift.
+  const parityViolations = validateRuleIntentParity(topicDeps.linterRules?.map(r => r.name) ?? []);
+  if (parityViolations.length > 0) {
+    getRequestLogger().warn(
+      `Rule intent parity check found ${parityViolations.length} issue(s): ${parityViolations.join('; ')}`
+    );
+  }
   const leechDeps: reviewWorkflows.LeechDeps = {
     chunks: ports.chunks,
     reviewPersistence: ports.reviewPersistence,

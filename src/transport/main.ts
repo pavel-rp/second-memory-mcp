@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { initializeDatabase } from '../infrastructure/db/migrate.js';
-import { createAppContext } from '../composition-root.js';
+import { createAppContext, loadInitialRuleReports } from '../composition-root.js';
+import { DrizzleLinterValidationRepository } from '../adapters/drizzle/linter-validation-repository.js';
 import { resolveTransportConfig } from '../config/resolve-transport-config.js';
 import { resolveAuthConfig } from '../config/resolve-auth-config.js';
 import { createMcpServer } from './create-server.js';
@@ -31,7 +32,15 @@ async function bootstrap(): Promise<void> {
     : `${SERVER_NAME} v${getVersion()}`;
   logger.info(versionTag);
 
-  const ctx = createAppContext();
+  // NEU-627: load the per-rule OOD validation eligibility flags before
+  // wiring the composition root so Tier 1b rules that have cleared the
+  // harness thresholds register as blocking-eligible on the first request.
+  // Fail-open to empty reports — the composition root then boots with
+  // defaults (Tier 1b = warning-only).
+  const initialRuleReports = await loadInitialRuleReports({
+    linterValidation: new DrizzleLinterValidationRepository(),
+  });
+  const ctx = createAppContext(undefined, initialRuleReports);
   const transportConfig = resolveTransportConfig();
   const authConfig = resolveAuthConfig(transportConfig.mode);
 

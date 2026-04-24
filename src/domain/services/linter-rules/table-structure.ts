@@ -137,5 +137,6 @@ export const tableStructureRule = {
   name: TABLE_STRUCTURE_RULE_NAME,
   scope: 'chunk',
   tier: 'tier1a',
+  blockingEligible: true,
   run: runTableStructure,
 } satisfies LinterRule;

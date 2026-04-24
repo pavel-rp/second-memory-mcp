@@ -40,5 +40,6 @@ export const headingHierarchyRule = {
   name: HEADING_HIERARCHY_RULE_NAME,
   scope: 'chunk',
   tier: 'tier1a',
+  blockingEligible: true,
   run: runHeadingHierarchy,
 } satisfies LinterRule;
