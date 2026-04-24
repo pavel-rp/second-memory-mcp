@@ -15,9 +15,11 @@
  *      `blocking_eligible` flag.
  *   6. Prints a one-line-per-rule summary table.
  *
- * Exit code: `1` if any rule whose `RULE_INTENT[id].intendedBlocking` is
- * `true` has `blocking_eligible: false` (declared intent diverges from
- * measured eligibility). Otherwise `0`.
+ * Exit code: `1` if (a) any rule whose `RULE_INTENT[id].intendedBlocking`
+ * is `true` has `blocking_eligible: false` (declared intent diverges from
+ * measured eligibility), or (b) the registered rule set drifts from
+ * `RULE_INTENT` (missing intent for a registered rule, or a non-Tier-1b
+ * intent entry that is not registered). Otherwise `0`.
  *
  * Chunks listed in the corpus but absent from `learning_chunks` are
  * skipped with a stderr warning and excluded from the metric counts.
@@ -41,9 +43,10 @@ import {
   type LinterRule,
   type TopicLintInput,
 } from '../src/domain/services/chunk-linter.js';
-import { RULE_INTENT } from '../src/shared/linter/rule-intent.js';
+import { RULE_INTENT, validateRuleIntentParity } from '../src/shared/linter/rule-intent.js';
 import {
   DEFAULT_ELIGIBILITY_THRESHOLDS,
+  THRESHOLDS_VERSION,
   computeMetrics,
   evaluateEligibility,
   explainEligibilityMiss,
@@ -51,6 +54,17 @@ import {
   type EligibilityMetrics,
 } from '../src/domain/services/linter-validation/calculator.js';
 import { logger } from '../src/shared/logger.js';
+
+/**
+ * Standard binary-classification F1 = harmonic mean of precision and recall.
+ * Returns `null` when either component is unmeasured; returns `0` (not
+ * `NaN`) when both are zero so the value persists cleanly into a `REAL`
+ * column.
+ */
+function harmonicMean(p: number | null, r: number | null): number | null {
+  if (p === null || r === null) return null;
+  return p + r === 0 ? 0 : (2 * p * r) / (p + r);
+}
 
 /**
  * Build a single-chunk `TopicLintInput` so a topic-scope rule can still be
@@ -110,6 +124,7 @@ type SplitObservations = {
 type RuleEvaluation = {
   ruleId: string;
   metrics: EligibilityMetrics;
+  f1HeldOut: number | null;
   counts: EligibilityCounts;
   blockingEligible: boolean;
 };
@@ -179,8 +194,9 @@ export async function evaluateRule(
   // corpus for rules that don't need one.
   const blockingEligible =
     rule.tier === 'tier1a' ? true : evaluateEligibility(metrics, counts);
+  const f1HeldOut = harmonicMean(metrics.precisionHeldOut, metrics.recallHeldOut);
 
-  return { ruleId: rule.name, metrics, counts, blockingEligible };
+  return { ruleId: rule.name, metrics, f1HeldOut, counts, blockingEligible };
 }
 
 function formatMetric(v: number | null): string {
@@ -199,11 +215,7 @@ function logSummary(evaluations: readonly RuleEvaluation[]): void {
   for (const ev of evaluations) {
     const line = [
       ev.ruleId.padEnd(33),
-      `${formatMetric(ev.metrics.precisionHeldOut)}/${formatMetric(ev.metrics.recallHeldOut)}/${ev.metrics.precisionHeldOut !== null && ev.metrics.recallHeldOut !== null ? (() => {
-        const p = ev.metrics.precisionHeldOut as number;
-        const r = ev.metrics.recallHeldOut as number;
-        return p + r === 0 ? '0.000' : ((2 * p * r) / (p + r)).toFixed(3);
-      })() : '   —'}`.padEnd(19),
+      `${formatMetric(ev.metrics.precisionHeldOut)}/${formatMetric(ev.metrics.recallHeldOut)}/${formatMetric(ev.f1HeldOut)}`.padEnd(19),
       formatMetric(ev.metrics.precisionAdversarial).padEnd(8),
       String(ev.counts.heldOutCount).padEnd(11),
       String(ev.counts.adversarialCount).padEnd(6),
@@ -225,23 +237,17 @@ export async function runValidate(
     const entries = await repository.listCorpusByRule(rule.name);
     const evaluation = await evaluateRule(rule, entries);
 
-    const previous = await repository.getReport(rule.name);
-    const f1HeldOut = harmonicMean(
-      evaluation.metrics.precisionHeldOut,
-      evaluation.metrics.recallHeldOut
-    );
-
     const report: RuleValidationReport = {
       ruleId: rule.name,
       computedAt,
       precisionHeldOut: evaluation.metrics.precisionHeldOut,
       recallHeldOut: evaluation.metrics.recallHeldOut,
-      f1HeldOut,
+      f1HeldOut: evaluation.f1HeldOut,
       precisionAdversarial: evaluation.metrics.precisionAdversarial,
       heldOutCount: evaluation.counts.heldOutCount,
       adversarialCount: evaluation.counts.adversarialCount,
       blockingEligible: evaluation.blockingEligible,
-      thresholdsVersion: previous?.thresholdsVersion ?? 1,
+      thresholdsVersion: THRESHOLDS_VERSION,
     };
     await repository.upsertReport(report);
     evaluations.push(evaluation);
@@ -250,6 +256,19 @@ export async function runValidate(
   logSummary(evaluations);
 
   let exitCode = 0;
+
+  // Registry-vs-intent parity uses the canonical registered rule set rather
+  // than the `rules` argument, so partial rule lists supplied by tests do not
+  // trigger spurious "non-registered" violations. In CI this is effectively
+  // the same set (`runValidate()` defaults to `createTier1aRules()`).
+  const parityViolations = validateRuleIntentParity(createTier1aRules().map(r => r.name));
+  if (parityViolations.length > 0) {
+    for (const violation of parityViolations) {
+      logger.error(`lint-validate: rule intent parity — ${violation}`);
+    }
+    exitCode = 1;
+  }
+
   const intentLookup = RULE_INTENT as Readonly<Record<string, { intendedBlocking: boolean }>>;
   for (const ev of evaluations) {
     const intent = intentLookup[ev.ruleId];
@@ -268,17 +287,6 @@ export async function runValidate(
   }
 
   return { exitCode, evaluations };
-}
-
-/**
- * Standard binary-classification F1 = harmonic mean of precision and recall.
- * Returns `null` when either component is unmeasured; returns `0` (not
- * `NaN`) when both are zero so the value persists cleanly into a `REAL`
- * column.
- */
-function harmonicMean(p: number | null, r: number | null): number | null {
-  if (p === null || r === null) return null;
-  return p + r === 0 ? 0 : (2 * p * r) / (p + r);
 }
 
 /* v8 ignore start */

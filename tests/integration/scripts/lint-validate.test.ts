@@ -6,6 +6,7 @@ import { learningTopics, learningChunks } from '../../../src/infrastructure/db/s
 import { DrizzleLinterValidationRepository } from '../../../src/adapters/drizzle/linter-validation-repository.js';
 import { runValidate } from '../../../scripts/lint-validate.js';
 import type { LinterRule } from '../../../src/domain/services/chunk-linter.js';
+import { THRESHOLDS_VERSION } from '../../../src/domain/services/linter-validation/calculator.js';
 
 async function seedChunk(chunkId: string, content: string): Promise<void> {
   const db = getSql();
@@ -107,6 +108,7 @@ describe('scripts/lint-validate (integration)', () => {
     expect(persisted).not.toBeNull();
     expect(persisted?.heldOutCount).toBe(0);
     expect(persisted?.blockingEligible).toBe(false);
+    expect(persisted?.thresholdsVersion).toBe(THRESHOLDS_VERSION);
   });
 
   it('exits 1 when an intendedBlocking:true rule has no corpus → ineligible', async () => {
@@ -165,5 +167,11 @@ describe('scripts/lint-validate (integration)', () => {
     expect(exitCode).toBe(1);
     expect(evaluations[0].metrics.precisionHeldOut).toBeCloseTo(0.5, 6);
     expect(evaluations[0].blockingEligible).toBe(false);
+    // F1 is exposed on the evaluation (not recomputed at display time) and
+    // persisted onto the report so the CLI summary and the DB row cannot
+    // diverge.
+    expect(evaluations[0].f1HeldOut).toBeCloseTo((2 * 0.5 * 1) / (0.5 + 1), 6);
+    const persisted = await repo.getReport(promotedRule.name);
+    expect(persisted?.f1HeldOut).toBeCloseTo(evaluations[0].f1HeldOut ?? Number.NaN, 6);
   });
 });

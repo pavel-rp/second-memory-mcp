@@ -43,6 +43,14 @@ export const DEFAULT_ELIGIBILITY_THRESHOLDS: EligibilityThresholds = Object.free
 });
 
 /**
+ * Version tag written to `linter_rule_validation_report.thresholds_version` on
+ * every run. Bump alongside any change to `DEFAULT_ELIGIBILITY_THRESHOLDS` so
+ * the persisted value reflects which threshold set produced the report — stale
+ * rows from an earlier version can then be recognized on inspection.
+ */
+export const THRESHOLDS_VERSION = 1;
+
+/**
  * Compute precision, recall, and F1 for a single rule given parallel arrays
  * of expected (`true` = should flag) and observed (`true` = rule flagged)
  * outcomes. Uses the standard binary-classification definitions:

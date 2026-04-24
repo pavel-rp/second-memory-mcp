@@ -1,12 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_ELIGIBILITY_THRESHOLDS,
+  THRESHOLDS_VERSION,
   computeMetrics,
   evaluateEligibility,
   explainEligibilityMiss,
   type EligibilityMetrics,
   type EligibilityCounts,
 } from '../../../../../src/domain/services/linter-validation/calculator.js';
+
+describe('THRESHOLDS_VERSION', () => {
+  it('is a positive integer paired with DEFAULT_ELIGIBILITY_THRESHOLDS', () => {
+    expect(Number.isInteger(THRESHOLDS_VERSION)).toBe(true);
+    expect(THRESHOLDS_VERSION).toBeGreaterThanOrEqual(1);
+  });
+});
 
 describe('computeMetrics', () => {
   it('returns 0/0/0 for empty inputs', () => {
