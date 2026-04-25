@@ -68,7 +68,7 @@ import type {
 } from './domain/types/notes-tools.js';
 import type { CreateNoteInput } from './ports/notes-repository.js';
 
-import { createTier1aRules } from './domain/services/linter-rules/index.js';
+import { createTier1aRules, createTier1bRules } from './domain/services/linter-rules/index.js';
 import { applyEligibilityToRules, validateRuleIntentParity } from './shared/linter/rule-intent.js';
 import { getRequestLogger } from './shared/logger.js';
 import * as chunkWorkflows from './orchestration/chunk-workflows.js';
@@ -392,13 +392,16 @@ export function createAppContext(
     embedding: ports.embedding,
     classifier: ports.classifier,
     enableClassifierAtCreate: resolvedClassifier.classifier.enableAtCreate,
-    // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1).
-    // Tier 1b heuristic rules (NEU-617) register here once implemented; the
-    // `applyEligibilityToRules` call below threads per-rule
+    // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1) +
+    // Tier 1b heuristic rules (NEU-616 phantom-prerequisite onward,
+    // warning-only at ship). `applyEligibilityToRules` threads per-rule
     // `blocking_eligible` from the validation report table (NEU-627) into
     // the rule list so Tier 1b rules only activate blocking severity once
     // the OOD harness has validated them.
-    linterRules: applyEligibilityToRules(createTier1aRules(), initialRuleValidationReports),
+    linterRules: applyEligibilityToRules(
+      [...createTier1aRules(), ...createTier1bRules()],
+      initialRuleValidationReports
+    ),
   };
 
   // Startup parity check: every registered rule must have a declared intent
