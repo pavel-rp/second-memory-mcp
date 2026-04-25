@@ -111,6 +111,35 @@ describe('classifier prompts module', () => {
       }
     });
 
+    it('every "Expected output:" line in every per-field prompt is valid JSON (NEU-660 review)', () => {
+      // Regression pin: `formatExemplar` previously interpolated rationale
+      // strings with template literals and produced broken JSON for rationales
+      // containing double quotes (e.g. `va-undefined-jargon`,
+      // `va-borderline-prereq`). Under `reasoning_effort: low` `gpt-5.4-mini`
+      // pattern-matches the exemplar JSON literally — invalid JSON degrades
+      // the few-shot signal exactly when this prompt is meant to sharpen it.
+      const prompts = buildClassifierPrompt();
+      for (const field of VERDICT_FIELDS) {
+        const lines = prompts[field].systemPrompt
+          .split('\n')
+          .filter(line => line.startsWith('Expected output: '));
+        expect(lines.length).toBeGreaterThan(0);
+        for (const line of lines) {
+          const json = line.slice('Expected output: '.length);
+          expect(() => JSON.parse(json)).not.toThrow();
+          const parsed = JSON.parse(json) as {
+            score: number;
+            rationale: string;
+            applicable: boolean;
+          };
+          expect(parsed.score).toBeGreaterThanOrEqual(1);
+          expect(parsed.score).toBeLessThanOrEqual(5);
+          expect(typeof parsed.rationale).toBe('string');
+          expect(typeof parsed.applicable).toBe('boolean');
+        }
+      }
+    });
+
     it('every per-field system prompt embeds the grounding block verbatim', () => {
       const prompts = buildClassifierPrompt();
       for (const field of VERDICT_FIELDS) {

@@ -229,7 +229,8 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
       scores: Record<string, number | null>;
       failed_fields: string[];
       persisted: boolean;
-      rendered_user_prompt: Record<string, string>;
+      rendered_chunk_payload: string;
+      rendered_user_prompt_prefixes: Record<string, string>;
     };
     expect(data.chunk_id).toBe(ids[0]);
     expect(typeof data.topic_id).toBe('string');
@@ -239,10 +240,12 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
     expect(data.scores.overall_fit).toBe(2);
     expect(data.failed_fields).toEqual([]);
     expect(data.persisted).toBe(true);
-    // NEU-660: rendered_user_prompt is now a per-field record keyed by snake_cased field names.
-    expect(typeof data.rendered_user_prompt).toBe('object');
-    expect(data.rendered_user_prompt.rendering_clarity).toContain('Content for chunk 1');
-    expect(data.rendered_user_prompt.overall_fit).toContain('Content for chunk 1');
+    // NEU-660 (post-review): chunk payload stored once + per-field user-prompt prefixes.
+    expect(typeof data.rendered_chunk_payload).toBe('string');
+    expect(data.rendered_chunk_payload).toContain('Content for chunk 1');
+    expect(typeof data.rendered_user_prompt_prefixes).toBe('object');
+    expect(data.rendered_user_prompt_prefixes.rendering_clarity).toContain('rendering_clarity');
+    expect(data.rendered_user_prompt_prefixes.overall_fit).toContain('overall_fit');
     // Top-level durationMs populates the dedicated `duration_ms` SQL column
     // via pg-event-transport so duration-based queries don't have to extract
     // from JSONB.
@@ -270,18 +273,22 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
       error_class: string;
       error_message: string;
       duration_ms: number;
-      rendered_user_prompt: Record<string, string>;
+      rendered_chunk_payload: string;
+      rendered_user_prompt_prefixes: Record<string, string>;
     };
     expect(data.chunk_id).toBe(ids[0]);
     expect(data.error_class).toBe('Error');
     expect(data.error_message).toBe('network down');
     expect(typeof data.duration_ms).toBe('number');
     expect(entry.durationMs).toBe(data.duration_ms);
-    // The per-field prompts the model would have seen are included so
-    // debugging "why did this chunk's classify throw?" has the same per-field
-    // context as a successful run.
-    expect(typeof data.rendered_user_prompt).toBe('object');
-    expect(data.rendered_user_prompt.rendering_clarity).toContain('Content for chunk 1');
+    // NEU-660 (post-review): the chunk payload the model would have seen is
+    // stored once; per-field user-prompt prefixes are stored separately so
+    // debugging "why did this chunk's classify throw?" has the same surface
+    // as a successful run without 6× JSONB write volume.
+    expect(typeof data.rendered_chunk_payload).toBe('string');
+    expect(data.rendered_chunk_payload).toContain('Content for chunk 1');
+    expect(typeof data.rendered_user_prompt_prefixes).toBe('object');
+    expect(data.rendered_user_prompt_prefixes.rendering_clarity).toContain('rendering_clarity');
 
     // Verdict event is NOT emitted when classify throws.
     expect(eventsByName('classifier.chunk_verdict')).toHaveLength(0);

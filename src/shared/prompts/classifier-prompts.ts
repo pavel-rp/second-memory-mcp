@@ -312,13 +312,24 @@ export const CLASSIFIER_FEW_SHOTS: Record<VerdictFieldName, readonly FewShotExam
 };
 
 function formatExemplar(ex: FewShotExample): string {
+  // `JSON.stringify` so rationales containing double quotes (e.g. the
+  // vocabulary_appropriate exemplars that quote `"Path copying"` /
+  // `"Modular inverse"`) render as syntactically valid JSON. Under
+  // `reasoning_effort: low` `gpt-5.4-mini` is literal — malformed reference
+  // JSON degrades the few-shot signal exactly when this prompt is meant to
+  // sharpen it.
+  const expectedOutput = JSON.stringify({
+    score: ex.expectedScore,
+    rationale: ex.expectedRationale,
+    applicable: ex.expectedApplicable,
+  });
   return [
     `<EXAMPLE label="${ex.label}" expected_score="${ex.expectedScore}" expected_applicable="${ex.expectedApplicable}">`,
     `Title: ${ex.chunkTitle}`,
     '',
     ex.chunkContent,
     '',
-    `Expected output: { "score": ${ex.expectedScore}, "rationale": "${ex.expectedRationale}", "applicable": ${ex.expectedApplicable} }`,
+    `Expected output: ${expectedOutput}`,
     '</EXAMPLE>',
   ].join('\n');
 }

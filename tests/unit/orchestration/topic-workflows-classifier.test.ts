@@ -397,13 +397,16 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         },
         failed_fields: [],
         persisted: true,
-        rendered_user_prompt: {
-          rendering_clarity: expect.stringContaining('Binary search invariant'),
-          vocabulary_appropriate: expect.stringContaining('Binary search invariant'),
-          math_notation_rendering_risk: expect.stringContaining('Binary search invariant'),
-          definition_constructive: expect.stringContaining('Binary search invariant'),
-          epistemic_consistency: expect.stringContaining('Binary search invariant'),
-          overall_fit: expect.stringContaining('Binary search invariant'),
+        // NEU-660 (post-review): chunk payload stored once; per-field user-prompt
+        // prefixes carried in a sibling map. Avoids ~6× duplication of chunk content.
+        rendered_chunk_payload: expect.stringContaining('Binary search invariant'),
+        rendered_user_prompt_prefixes: {
+          rendering_clarity: expect.stringContaining('rendering_clarity'),
+          vocabulary_appropriate: expect.stringContaining('vocabulary_appropriate'),
+          math_notation_rendering_risk: expect.stringContaining('math_notation_rendering_risk'),
+          definition_constructive: expect.stringContaining('definition_constructive'),
+          epistemic_consistency: expect.stringContaining('epistemic_consistency'),
+          overall_fit: expect.stringContaining('overall_fit'),
         },
       });
       // Duration is also passed as the 4th positional arg so pg-event-transport
@@ -434,13 +437,14 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         error_class: 'TypeError',
         error_message: 'rate-limit',
         duration_ms: expect.any(Number),
-        rendered_user_prompt: {
-          rendering_clarity: expect.stringContaining('Binary search invariant'),
-          vocabulary_appropriate: expect.stringContaining('Binary search invariant'),
-          math_notation_rendering_risk: expect.stringContaining('Binary search invariant'),
-          definition_constructive: expect.stringContaining('Binary search invariant'),
-          epistemic_consistency: expect.stringContaining('Binary search invariant'),
-          overall_fit: expect.stringContaining('Binary search invariant'),
+        rendered_chunk_payload: expect.stringContaining('Binary search invariant'),
+        rendered_user_prompt_prefixes: {
+          rendering_clarity: expect.stringContaining('rendering_clarity'),
+          vocabulary_appropriate: expect.stringContaining('vocabulary_appropriate'),
+          math_notation_rendering_risk: expect.stringContaining('math_notation_rendering_risk'),
+          definition_constructive: expect.stringContaining('definition_constructive'),
+          epistemic_consistency: expect.stringContaining('epistemic_consistency'),
+          overall_fit: expect.stringContaining('overall_fit'),
         },
       });
       expect(durationArg).toEqual((data as { duration_ms: number }).duration_ms);
@@ -472,13 +476,14 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         error_class: 'string',
         error_message: 'rate-limit string',
         duration_ms: expect.any(Number),
-        rendered_user_prompt: {
-          rendering_clarity: expect.stringContaining('Binary search invariant'),
-          vocabulary_appropriate: expect.stringContaining('Binary search invariant'),
-          math_notation_rendering_risk: expect.stringContaining('Binary search invariant'),
-          definition_constructive: expect.stringContaining('Binary search invariant'),
-          epistemic_consistency: expect.stringContaining('Binary search invariant'),
-          overall_fit: expect.stringContaining('Binary search invariant'),
+        rendered_chunk_payload: expect.stringContaining('Binary search invariant'),
+        rendered_user_prompt_prefixes: {
+          rendering_clarity: expect.stringContaining('rendering_clarity'),
+          vocabulary_appropriate: expect.stringContaining('vocabulary_appropriate'),
+          math_notation_rendering_risk: expect.stringContaining('math_notation_rendering_risk'),
+          definition_constructive: expect.stringContaining('definition_constructive'),
+          epistemic_consistency: expect.stringContaining('epistemic_consistency'),
+          overall_fit: expect.stringContaining('overall_fit'),
         },
       });
     });
