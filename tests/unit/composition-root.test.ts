@@ -43,13 +43,17 @@ vi.mock('../../src/adapters/drizzle/linter-validation-repository.js', () => ({
   DrizzleLinterValidationRepository: FakeCtor,
 }));
 
-// Registered rules are controlled per test via `mockCreateTier1aRules` so we
-// can verify both the happy path (every registered rule has a matching
-// RULE_INTENT entry) and the parity-warn path (a registered rule with no
-// intent produces a logged warning).
+// Registered rules are controlled per test via `mockCreateTier1aRules` and
+// `mockCreateTier1bRules` so we can verify both the happy path (every
+// registered rule has a matching RULE_INTENT entry) and the parity-warn path
+// (a registered rule with no intent produces a logged warning). The composition
+// root concatenates both factories before threading them through
+// `applyEligibilityToRules`.
 const mockCreateTier1aRules = vi.fn();
+const mockCreateTier1bRules = vi.fn();
 vi.mock('../../src/domain/services/linter-rules/index.js', () => ({
   createTier1aRules: mockCreateTier1aRules,
+  createTier1bRules: mockCreateTier1bRules,
 }));
 
 const mockLoggerWarn = vi.fn();
@@ -82,8 +86,17 @@ describe('createAppContext — classifier wiring', () => {
   beforeEach(() => {
     ClassifierAdapterMock.mockClear();
     mockLoggerWarn.mockClear();
-    // Default: every Tier 1a rule name matches a RULE_INTENT entry, so the
+    // Default: every registered rule name matches a RULE_INTENT entry, so the
     // parity check stays silent. Individual tests override as needed.
+    mockCreateTier1bRules.mockReturnValue([
+      {
+        name: 'tier1b.phantom-prerequisite',
+        tier: 'tier1b',
+        blockingEligible: false,
+        scope: 'chunk',
+        run: () => [],
+      },
+    ]);
     mockCreateTier1aRules.mockReturnValue([
       {
         name: 'tier1a.code-fence-balance',

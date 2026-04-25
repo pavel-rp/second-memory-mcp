@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
   createTier1aRules,
+  createTier1bRules,
   codeFenceBalanceRule,
   tableStructureRule,
   headingHierarchyRule,
   detailsNestingRule,
   duplicateH1Rule,
+  phantomPrerequisiteRule,
 } from '../../../../../src/domain/services/linter-rules/index.js';
 
 describe('createTier1aRules', () => {
@@ -31,6 +33,28 @@ describe('createTier1aRules', () => {
   it('returns a fresh array on each call', () => {
     const a = createTier1aRules();
     const b = createTier1aRules();
+    expect(a).not.toBe(b);
+    expect(a).toEqual(b);
+  });
+});
+
+describe('createTier1bRules', () => {
+  it('returns the phantom-prerequisite rule', () => {
+    const rules = createTier1bRules();
+    expect(rules).toEqual([phantomPrerequisiteRule]);
+  });
+
+  it('returns rules all tagged as chunk-scope, tier1b, blockingEligible: false', () => {
+    for (const rule of createTier1bRules()) {
+      expect(rule.scope).toBe('chunk');
+      expect(rule.tier).toBe('tier1b');
+      expect(rule.blockingEligible).toBe(false);
+    }
+  });
+
+  it('returns a fresh array on each call', () => {
+    const a = createTier1bRules();
+    const b = createTier1bRules();
     expect(a).not.toBe(b);
     expect(a).toEqual(b);
   });
