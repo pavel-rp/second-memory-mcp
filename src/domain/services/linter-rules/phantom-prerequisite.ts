@@ -22,12 +22,12 @@ function stripDeterminerSurface(text: string): string {
 function extractNounPhrases(text: string): Phrase[] {
   const phrases: Phrase[] = [];
   const json = nlp(text).nouns().toSingular().json({ normal: true, text: true }) as Array<{
-    text?: string;
-    normal?: string;
+    text: string;
+    normal: string;
   }>;
   for (const entry of json) {
-    const surface = stripDeterminerSurface((entry.text ?? '').toString());
-    const normal = stripDeterminerLower((entry.normal ?? '').toString());
+    const surface = stripDeterminerSurface(entry.text);
+    const normal = stripDeterminerLower(entry.normal);
     if (!surface || !normal) continue;
     phrases.push({ surface, normal });
   }
@@ -41,8 +41,8 @@ function buildPrerequisiteSet(prerequisites: readonly string[]): Set<string> {
     const phrases = extractNounPhrases(prereq);
     if (phrases.length === 0) {
       // Compromise rejected the input (e.g. all stopwords). Best-effort
-      // fallback: store the lowercased, trimmed, de-articled prereq verbatim.
-      // No singularization is applied here, so a fallback prereq like
+      // fallback: apply lowercase + de-article + punctuation-strip
+      // normalization without singularization. So a fallback prereq like
       // `"foos"` will not match a content phrase compromise singularizes to
       // `"foo"`. Acceptable trade-off — this branch only fires when compromise
       // disagrees with the user's classification, which is rare for normal
@@ -67,6 +67,7 @@ function runPhantomPrerequisite(chunk: ChunkLintInput): LinterFinding[] {
   const seen = new Set<string>();
   for (const { surface, normal } of extractNounPhrases(chunk.content)) {
     if (surface.length < MIN_SURFACE_LENGTH) continue;
+    /* v8 ignore next -- defensive: compromise's noun extraction never emits a phrase whose normal is pure digits/punctuation, so this guard is unreachable today; retained against future lexicon changes */
     if (PURE_NUMERIC.test(normal)) continue;
     if (seen.has(normal)) continue;
     seen.add(normal);

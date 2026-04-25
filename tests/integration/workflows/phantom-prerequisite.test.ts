@@ -69,6 +69,12 @@ type Tier1bEntry = {
   blocking_eligible: boolean;
 };
 
+// Scope note: the linter suite is invoked from `topic-workflows`'s topic
+// creation path. `chunk-workflows` (`updateChunkContent`,
+// `updateChunkMetadata`) does not re-run the linter, so this file
+// intentionally covers only the create path. Adding update-path coverage
+// here would assert behavior that does not exist; if update-path linting is
+// introduced later, add a new describe block alongside this one.
 describe('tier1b.phantom-prerequisite — create path persistence (NEU-616)', () => {
   beforeAll(async () => {
     await setupTestDb();

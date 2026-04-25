@@ -129,14 +129,37 @@ describe('tier1b.phantom-prerequisite', () => {
       expect(findings).toEqual([]);
     });
 
-    it('falls back to verbatim normalization when compromise rejects a prereq', () => {
-      // Compromise returns no nouns for the bare article `'the'`. The
-      // fallback in buildPrerequisiteSet stores `'the'` verbatim so an author
-      // who declares the prereq as-is is honored even when the parser
-      // disagrees. The test asserts the rule does not flag a content phrase
-      // that matches the fallback-normalized prereq.
-      const content = 'The foundation is solid.';
-      const findings = phantomPrerequisiteRule.run(makeChunk(content, ['foundation']));
+    it('honors a prereq that compromise rejects via the normalized fallback', () => {
+      // `'xyzzy'` is not in compromise's lexicon, so `extractNounPhrases`
+      // returns `[]` and `buildPrerequisiteSet` takes the fallback branch,
+      // adding the lowercased + de-articled + punct-stripped form to the
+      // set. The content phrase `"xyzzy"` is then matched against that
+      // fallback entry and produces no finding.
+      const content = 'Run xyzzy to advance.';
+      const findings = phantomPrerequisiteRule.run(makeChunk(content, ['xyzzy']));
+      expect(findings).toEqual([]);
+    });
+
+    it('discards a prereq whose fallback normalizes to empty', () => {
+      // The bare article `'the'` is rejected by compromise AND is stripped
+      // to `''` by the fallback's de-article step, so it must not be added
+      // to the prereq set. The content term `"foundation"` is therefore
+      // flagged because the only declared prereq contributed nothing.
+      const content = 'The foundation matters.';
+      const findings = phantomPrerequisiteRule.run(makeChunk(content, ['the']));
+      expect(findings.some(f => f.detail.includes('foundation'))).toBe(true);
+    });
+
+    it('ignores whitespace-only entries in prerequisites', () => {
+      // Per CLAUDE.md: every nullish/empty/whitespace guard branch needs
+      // its own fixture. The `if (!prereq)` guard in `buildPrerequisiteSet`
+      // does not catch `'   '` — it falls through to `extractNounPhrases`
+      // (returns `[]`), then to the fallback whose stripped form is `''`,
+      // which is rejected by `if (fallback)`. Net effect: no poisoning.
+      const content = 'Use recursion. Walk the binary tree.';
+      const findings = phantomPrerequisiteRule.run(
+        makeChunk(content, ['   ', 'recursion', 'binary tree'])
+      );
       expect(findings).toEqual([]);
     });
   });
@@ -148,6 +171,16 @@ describe('tier1b.phantom-prerequisite', () => {
       for (const f of findings) {
         expect(f.detail).not.toMatch(/"\d+"/);
       }
+    });
+
+    it('skips noun phrases whose surface or normal strips to empty', () => {
+      // Compromise emits `'!!!'` as a single noun whose `text` and `normal`
+      // both reduce to `''` after `stripDeterminerSurface` /
+      // `stripDeterminerLower`. The `if (!surface || !normal) continue;`
+      // guard in `extractNounPhrases` discards it, so no findings emerge.
+      const content = '!!!';
+      const findings = phantomPrerequisiteRule.run(makeChunk(content, []));
+      expect(findings).toEqual([]);
     });
 
     it('skips short surface forms (< 3 chars)', () => {
