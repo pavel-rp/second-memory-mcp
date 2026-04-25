@@ -626,6 +626,13 @@ async function classifyChunk(
   // event payload preserves the per-field debugging surface (snake-cased keys
   // joinable with `classifier.field_parse_failed` /
   // `classifier.classify_aggregate_failed`) at 1/6 the size.
+  //
+  // With an empty `userPrompt`, `renderClassifierUserPayload` returns
+  // `'\n\n--- CHUNK ---\n...'` — two leading newlines from the empty prefix
+  // and the blank-line separator. This is intentional: prepending any
+  // per-field `userPrompt` (string ending without a trailing newline)
+  // reconstructs the exact bytes the adapter sends to the model, so the
+  // event log is fully lossless for `prefix + chunk_payload` reconstruction.
   const renderedChunkPayload = renderClassifierUserPayload(input, '');
   const renderedUserPromptPrefixes: Record<string, string> = {};
   for (const field of VERDICT_FIELDS) {
