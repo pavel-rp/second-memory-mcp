@@ -321,6 +321,16 @@ export async function createTopicWithChunks(
       return { topic, chunks: createdChunks };
     });
 
+    try {
+      logEvent('createTopic', 'topic_created', {
+        topicId: result.topic.id,
+        title: result.topic.title,
+        chunkCount: result.chunks.length,
+      });
+    } catch {
+      // A broken event logger must not poison a successful commit.
+    }
+
     // Best-effort embedding generation — runs outside the transaction intentionally.
     // Awaited so embeddings are ready before returning, but failures are caught and
     // do not invalidate the topic/chunk data. Embeddings will be regenerated on the
@@ -436,6 +446,20 @@ export async function updateTopicMetadata(
     }
 
     const updated = await deps.topics.getById(topicId);
+    const fieldsChanged: string[] = [];
+    if (updates.title !== undefined) fieldsChanged.push('title');
+    if (updates.subject !== undefined) fieldsChanged.push('subject');
+    // Skip emission when the caller specified no user-facing field — emitting
+    // `topic_updated` with an empty `fieldsChanged` is ambiguous noise for
+    // downstream consumers. `fieldsChanged` reflects user intent (which fields
+    // the caller asked to change), not an actual DB diff.
+    if (fieldsChanged.length > 0) {
+      try {
+        logEvent('updateTopic', 'topic_updated', { topicId, fieldsChanged });
+      } catch {
+        // A broken event logger must not poison a successful commit.
+      }
+    }
     return { success: true, topic: updated };
   } catch (error) {
     return { success: false, error: { type: 'database', message: extractErrorMessage(error) } };
@@ -502,6 +526,11 @@ export async function updateTopicSummary(
     if (!result.success) return { success: false, error: result.error };
 
     const updated = await deps.topics.getById(topicId);
+    try {
+      logEvent('updateTopic', 'topic_updated', { topicId, fieldsChanged: ['summary'] });
+    } catch {
+      // A broken event logger must not poison a successful commit.
+    }
     return { success: true, topic: updated };
   } catch (error) {
     return { success: false, error: { type: 'database', message: extractErrorMessage(error) } };
