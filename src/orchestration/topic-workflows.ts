@@ -24,7 +24,7 @@ import {
   VERDICT_FIELDS,
   type ChunkClassifierInput,
   type ChunkClassifierVerdict,
-  type ClassifierPrompt,
+  type PerFieldClassifierPrompts,
   type VerdictFieldName,
 } from '../domain/types/classifier.js';
 import {
@@ -580,16 +580,17 @@ async function classifyChunksSoftWarn(
   classifier: ContentClassifierPort,
   chunksRepo: ChunkRepository
 ): Promise<LinterFinding[]> {
-  // The classifier prompt is chunk-independent (rubric + few-shots only), so
-  // build it once for the whole fan-out instead of re-rendering the ~3 KB
-  // string per chunk.
-  const prompt = buildClassifierPrompt();
+  // The classifier prompt map is chunk-independent (rubric + few-shots only),
+  // so build it once for the whole fan-out instead of re-rendering per chunk.
+  // NEU-660: returns one ClassifierPrompt per VerdictFieldName instead of one
+  // shared prompt — see classifier-prompts.ts.
+  const prompts = buildClassifierPrompt();
   // `allSettled` (not `all`) so one chunk's unexpected rejection does not
   // discard already-computed findings from its siblings. `classifyChunk`
   // already absorbs every failure mode it knows about; this is belt-and-
   // suspenders for future helper edits.
   const results = await Promise.allSettled(
-    chunks.map(chunk => classifyChunk(topicId, chunk, prompt, classifier, chunksRepo))
+    chunks.map(chunk => classifyChunk(topicId, chunk, prompts, classifier, chunksRepo))
   );
   const findings: LinterFinding[] = [];
   for (let i = 0; i < results.length; i += 1) {
@@ -609,7 +610,7 @@ async function classifyChunksSoftWarn(
 async function classifyChunk(
   topicId: string,
   chunk: LearningChunk,
-  prompt: ClassifierPrompt,
+  prompts: PerFieldClassifierPrompts,
   classifier: ContentClassifierPort,
   chunksRepo: ChunkRepository
 ): Promise<LinterFinding[]> {
@@ -618,13 +619,20 @@ async function classifyChunk(
 
   const startedAt = Date.now();
   const input = toClassifierInput(chunk);
-  // Render once: identical string is sent to the model and persisted in the
-  // verdict event for post-hoc debugging.
-  const renderedUserPrompt = renderClassifierUserPayload(input, prompt.userPrompt);
+  // NEU-660: per-field rendered user prompts, snake-cased keys for joinability
+  // with `classifier.field_parse_failed` / `classifier.classify_aggregate_failed`
+  // events. Persisted in the verdict event for post-hoc debugging.
+  const renderedUserPrompt: Record<string, string> = {};
+  for (const field of VERDICT_FIELDS) {
+    renderedUserPrompt[PERSISTED_TIER2_FIELD_NAMES[field]] = renderClassifierUserPayload(
+      input,
+      prompts[field].userPrompt
+    );
+  }
 
   let verdict: ChunkClassifierVerdict;
   try {
-    verdict = await classifier.classify(input, prompt);
+    verdict = await classifier.classify(input, prompts);
   } catch (err) {
     const durationMs = Date.now() - startedAt;
     // Port contract is fail-open, but defend against a bugged adapter.

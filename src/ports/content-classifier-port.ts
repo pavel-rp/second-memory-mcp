@@ -1,7 +1,7 @@
 import type {
   ChunkClassifierInput,
   ChunkClassifierVerdict,
-  ClassifierPrompt,
+  PerFieldClassifierPrompts,
 } from '../domain/types/classifier.js';
 
 /**
@@ -24,9 +24,15 @@ export interface ContentClassifierPort {
   /**
    * Produce a six-field verdict for the given chunk snapshot.
    *
-   * @param input  Chunk data the classifier evaluates.
-   * @param prompt System + user prompt supplied by the caller. NEU-620 owns
-   *               the rubric/few-shots; the adapter remains prompt-agnostic.
+   * @param input   Chunk data the classifier evaluates.
+   * @param prompts Per-field system + user prompts supplied by the caller.
+   *                NEU-660 split the previous shared prompt into a per-field
+   *                map so each fan-out call carries its field's rubric line,
+   *                exemplars, and grounding rules. NEU-620 owns the prompt
+   *                content; the adapter remains content-agnostic.
    */
-  classify(input: ChunkClassifierInput, prompt: ClassifierPrompt): Promise<ChunkClassifierVerdict>;
+  classify(
+    input: ChunkClassifierInput,
+    prompts: PerFieldClassifierPrompts
+  ): Promise<ChunkClassifierVerdict>;
 }

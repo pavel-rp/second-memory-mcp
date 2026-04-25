@@ -7,8 +7,8 @@ import {
   VERDICT_FIELDS,
   type ChunkClassifierInput,
   type ChunkClassifierVerdict,
-  type ClassifierPrompt,
   type NullableVerdictField,
+  type PerFieldClassifierPrompts,
   type VerdictField,
   type VerdictFieldName,
 } from '../../domain/types/classifier.js';
@@ -45,20 +45,15 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
 
   async classify(
     input: ChunkClassifierInput,
-    prompt: ClassifierPrompt
+    prompts: PerFieldClassifierPrompts
   ): Promise<ChunkClassifierVerdict> {
     await this.ensureInitialized();
     if (!this.available || this.modelsByField.size === 0) {
       return emptyVerdict();
     }
 
-    const messages: BaseMessage[] = [
-      new this.systemMessageCtor(prompt.systemPrompt),
-      new this.humanMessageCtor(renderClassifierUserPayload(input, prompt.userPrompt)),
-    ];
-
     const results = await Promise.allSettled(
-      VERDICT_FIELDS.map(field => this.classifyField(field, messages, input.chunkId))
+      VERDICT_FIELDS.map(field => this.classifyField(field, input, prompts[field]))
     );
 
     const verdict = emptyVerdict();
@@ -86,11 +81,15 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
 
   private async classifyField(
     field: VerdictFieldName,
-    messages: BaseMessage[],
-    chunkId: string
+    input: ChunkClassifierInput,
+    prompt: PerFieldClassifierPrompts[VerdictFieldName]
   ): Promise<NullableVerdictField> {
     const model = this.modelsByField.get(field);
     if (!model) return null;
+    const messages: BaseMessage[] = [
+      new this.systemMessageCtor(prompt.systemPrompt),
+      new this.humanMessageCtor(renderClassifierUserPayload(input, prompt.userPrompt)),
+    ];
     const raw = await model.invoke(messages);
     // The runnable is bound with VerdictFieldSchema; re-parse defensively so a
     // schema drift in future LangChain versions becomes a null verdict rather
@@ -98,7 +97,7 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
     const parsed = VerdictFieldSchema.safeParse(raw);
     if (!parsed.success) {
       logEvent('classifier', 'classifier.field_parse_failed', {
-        chunk_id: chunkId,
+        chunk_id: input.chunkId,
         field: PERSISTED_TIER2_FIELD_NAMES[field],
         raw_response: raw,
         parse_error: parsed.error.message,

@@ -36,12 +36,12 @@ function makeInput(chunkIds: string[]): TopicCreationInput {
 
 function lowScoreVerdict(): ChunkClassifierVerdict {
   return {
-    renderingClarity: { score: 2, rationale: 'fence balance risk' },
-    vocabularyAppropriate: { score: 4, rationale: 'ok' },
-    mathNotationRenderingRisk: { score: 5, rationale: 'no math' },
-    definitionConstructive: { score: 4, rationale: 'constructive' },
-    epistemicConsistency: { score: 4, rationale: 'consistent' },
-    overallFit: { score: 2, rationale: 'smells like TOC' },
+    renderingClarity: { score: 2, rationale: 'fence balance risk', applicable: true },
+    vocabularyAppropriate: { score: 4, rationale: 'ok', applicable: true },
+    mathNotationRenderingRisk: { score: 5, rationale: 'no math', applicable: false },
+    definitionConstructive: { score: 4, rationale: 'constructive', applicable: true },
+    epistemicConsistency: { score: 4, rationale: 'consistent', applicable: true },
+    overallFit: { score: 2, rationale: 'smells like TOC', applicable: true },
   };
 }
 
@@ -96,10 +96,22 @@ describe('createTopicWithChunks — Tier 2 classifier integration (NEU-620)', ()
       expect(report).not.toBeNull();
       const tier2 = report?.tier2 as Record<string, unknown> | undefined;
       expect(tier2).toBeDefined();
-      expect(tier2?.rendering_clarity).toEqual({ score: 2, rationale: 'fence balance risk' });
-      expect(tier2?.overall_fit).toEqual({ score: 2, rationale: 'smells like TOC' });
-      expect(tier2?.vocabulary_appropriate).toEqual({ score: 4, rationale: 'ok' });
-      expect(tier2?.prompt_version).toBe('1.0.0');
+      expect(tier2?.rendering_clarity).toEqual({
+        score: 2,
+        rationale: 'fence balance risk',
+        applicable: true,
+      });
+      expect(tier2?.overall_fit).toEqual({
+        score: 2,
+        rationale: 'smells like TOC',
+        applicable: true,
+      });
+      expect(tier2?.vocabulary_appropriate).toEqual({
+        score: 4,
+        rationale: 'ok',
+        applicable: true,
+      });
+      expect(tier2?.prompt_version).toBe('1.1.0');
       expect(typeof tier2?.classified_at).toBe('string');
     }
 
@@ -217,17 +229,20 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
       scores: Record<string, number | null>;
       failed_fields: string[];
       persisted: boolean;
-      rendered_user_prompt: string;
+      rendered_user_prompt: Record<string, string>;
     };
     expect(data.chunk_id).toBe(ids[0]);
     expect(typeof data.topic_id).toBe('string');
-    expect(data.prompt_version).toBe('1.0.0');
+    expect(data.prompt_version).toBe('1.1.0');
     expect(typeof data.duration_ms).toBe('number');
     expect(data.scores.rendering_clarity).toBe(2);
     expect(data.scores.overall_fit).toBe(2);
     expect(data.failed_fields).toEqual([]);
     expect(data.persisted).toBe(true);
-    expect(data.rendered_user_prompt).toContain('Content for chunk 1');
+    // NEU-660: rendered_user_prompt is now a per-field record keyed by snake_cased field names.
+    expect(typeof data.rendered_user_prompt).toBe('object');
+    expect(data.rendered_user_prompt.rendering_clarity).toContain('Content for chunk 1');
+    expect(data.rendered_user_prompt.overall_fit).toContain('Content for chunk 1');
     // Top-level durationMs populates the dedicated `duration_ms` SQL column
     // via pg-event-transport so duration-based queries don't have to extract
     // from JSONB.
@@ -255,16 +270,18 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
       error_class: string;
       error_message: string;
       duration_ms: number;
-      rendered_user_prompt: string;
+      rendered_user_prompt: Record<string, string>;
     };
     expect(data.chunk_id).toBe(ids[0]);
     expect(data.error_class).toBe('Error');
     expect(data.error_message).toBe('network down');
     expect(typeof data.duration_ms).toBe('number');
     expect(entry.durationMs).toBe(data.duration_ms);
-    // The prompt the model would have seen is included so debugging "why did
-    // this chunk's classify throw?" has the same context as a successful run.
-    expect(data.rendered_user_prompt).toContain('Content for chunk 1');
+    // The per-field prompts the model would have seen are included so
+    // debugging "why did this chunk's classify throw?" has the same per-field
+    // context as a successful run.
+    expect(typeof data.rendered_user_prompt).toBe('object');
+    expect(data.rendered_user_prompt.rendering_clarity).toContain('Content for chunk 1');
 
     // Verdict event is NOT emitted when classify throws.
     expect(eventsByName('classifier.chunk_verdict')).toHaveLength(0);
