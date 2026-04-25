@@ -26,23 +26,23 @@ import {
 
 function cleanVerdict(): ChunkClassifierVerdict {
   return {
-    renderingClarity: { score: 5, rationale: 'clean' },
-    vocabularyAppropriate: { score: 5, rationale: 'clear' },
-    mathNotationRenderingRisk: { score: 5, rationale: 'no math' },
-    definitionConstructive: { score: 4, rationale: 'constructive' },
-    epistemicConsistency: { score: 5, rationale: 'consistent' },
-    overallFit: { score: 5, rationale: 'good atom' },
+    renderingClarity: { score: 5, rationale: 'clean', applicable: true },
+    vocabularyAppropriate: { score: 5, rationale: 'clear', applicable: true },
+    mathNotationRenderingRisk: { score: 5, rationale: 'no math', applicable: false },
+    definitionConstructive: { score: 4, rationale: 'constructive', applicable: true },
+    epistemicConsistency: { score: 5, rationale: 'consistent', applicable: true },
+    overallFit: { score: 5, rationale: 'good atom', applicable: true },
   };
 }
 
 function twoLowVerdict(): ChunkClassifierVerdict {
   return {
-    renderingClarity: { score: 1, rationale: 'unbalanced fences' },
-    vocabularyAppropriate: { score: 4, rationale: 'ok' },
-    mathNotationRenderingRisk: { score: 5, rationale: 'no math' },
-    definitionConstructive: { score: 4, rationale: 'constructive' },
-    epistemicConsistency: { score: 3, rationale: 'middling' },
-    overallFit: { score: 2, rationale: 'smells like TOC' },
+    renderingClarity: { score: 1, rationale: 'unbalanced fences', applicable: true },
+    vocabularyAppropriate: { score: 4, rationale: 'ok', applicable: true },
+    mathNotationRenderingRisk: { score: 5, rationale: 'no math', applicable: false },
+    definitionConstructive: { score: 4, rationale: 'constructive', applicable: true },
+    epistemicConsistency: { score: 3, rationale: 'middling', applicable: true },
+    overallFit: { score: 2, rationale: 'smells like TOC', applicable: true },
   };
 }
 
@@ -59,12 +59,12 @@ function allNullVerdict(): ChunkClassifierVerdict {
 
 function partialNullVerdict(): ChunkClassifierVerdict {
   return {
-    renderingClarity: { score: 1, rationale: 'unbalanced fences' },
+    renderingClarity: { score: 1, rationale: 'unbalanced fences', applicable: true },
     vocabularyAppropriate: null,
     mathNotationRenderingRisk: null,
-    definitionConstructive: { score: 4, rationale: 'constructive' },
-    epistemicConsistency: { score: 4, rationale: 'consistent' },
-    overallFit: { score: 3, rationale: 'ok' },
+    definitionConstructive: { score: 4, rationale: 'constructive', applicable: true },
+    epistemicConsistency: { score: 4, rationale: 'consistent', applicable: true },
+    overallFit: { score: 3, rationale: 'ok', applicable: true },
   };
 }
 
@@ -186,9 +186,17 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     expect(chunkId).toBe('chunk-a');
     expect(updatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     const tier2 = (partial as { tier2: Record<string, unknown> }).tier2;
-    expect(tier2.rendering_clarity).toEqual({ score: 1, rationale: 'unbalanced fences' });
-    expect(tier2.overall_fit).toEqual({ score: 2, rationale: 'smells like TOC' });
-    expect(tier2.prompt_version).toBe('1.0.0');
+    expect(tier2.rendering_clarity).toEqual({
+      score: 1,
+      rationale: 'unbalanced fences',
+      applicable: true,
+    });
+    expect(tier2.overall_fit).toEqual({
+      score: 2,
+      rationale: 'smells like TOC',
+      applicable: true,
+    });
+    expect(tier2.prompt_version).toBe('1.1.0');
     expect(tier2.classified_at).toBe(updatedAt);
 
     // Findings surfaced on the response
@@ -239,7 +247,11 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     expect(mergeValidatorReport).toHaveBeenCalledOnce();
     const tier2 = (mergeValidatorReport.mock.calls[0][1] as { tier2: Record<string, unknown> })
       .tier2;
-    expect(tier2.rendering_clarity).toEqual({ score: 1, rationale: 'unbalanced fences' });
+    expect(tier2.rendering_clarity).toEqual({
+      score: 1,
+      rationale: 'unbalanced fences',
+      applicable: true,
+    });
     expect(tier2.vocabulary_appropriate).toBeNull();
     expect(tier2.math_notation_rendering_risk).toBeNull();
 
@@ -373,7 +385,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       expect(data).toEqual({
         chunk_id: 'chunk-a',
         topic_id: expect.any(String),
-        prompt_version: '1.0.0',
+        prompt_version: '1.1.0',
         duration_ms: expect.any(Number),
         scores: {
           rendering_clarity: 5,
@@ -385,7 +397,17 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         },
         failed_fields: [],
         persisted: true,
-        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
+        // NEU-660 (post-review): chunk payload stored once; per-field user-prompt
+        // prefixes carried in a sibling map. Avoids ~6× duplication of chunk content.
+        rendered_chunk_payload: expect.stringContaining('Binary search invariant'),
+        rendered_user_prompt_prefixes: {
+          rendering_clarity: expect.stringContaining('rendering_clarity'),
+          vocabulary_appropriate: expect.stringContaining('vocabulary_appropriate'),
+          math_notation_rendering_risk: expect.stringContaining('math_notation_rendering_risk'),
+          definition_constructive: expect.stringContaining('definition_constructive'),
+          epistemic_consistency: expect.stringContaining('epistemic_consistency'),
+          overall_fit: expect.stringContaining('overall_fit'),
+        },
       });
       // Duration is also passed as the 4th positional arg so pg-event-transport
       // populates the dedicated `duration_ms` SQL column (not just JSONB data).
@@ -415,7 +437,15 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         error_class: 'TypeError',
         error_message: 'rate-limit',
         duration_ms: expect.any(Number),
-        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
+        rendered_chunk_payload: expect.stringContaining('Binary search invariant'),
+        rendered_user_prompt_prefixes: {
+          rendering_clarity: expect.stringContaining('rendering_clarity'),
+          vocabulary_appropriate: expect.stringContaining('vocabulary_appropriate'),
+          math_notation_rendering_risk: expect.stringContaining('math_notation_rendering_risk'),
+          definition_constructive: expect.stringContaining('definition_constructive'),
+          epistemic_consistency: expect.stringContaining('epistemic_consistency'),
+          overall_fit: expect.stringContaining('overall_fit'),
+        },
       });
       expect(durationArg).toEqual((data as { duration_ms: number }).duration_ms);
 
@@ -446,7 +476,15 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
         error_class: 'string',
         error_message: 'rate-limit string',
         duration_ms: expect.any(Number),
-        rendered_user_prompt: expect.stringContaining('Binary search invariant'),
+        rendered_chunk_payload: expect.stringContaining('Binary search invariant'),
+        rendered_user_prompt_prefixes: {
+          rendering_clarity: expect.stringContaining('rendering_clarity'),
+          vocabulary_appropriate: expect.stringContaining('vocabulary_appropriate'),
+          math_notation_rendering_risk: expect.stringContaining('math_notation_rendering_risk'),
+          definition_constructive: expect.stringContaining('definition_constructive'),
+          epistemic_consistency: expect.stringContaining('epistemic_consistency'),
+          overall_fit: expect.stringContaining('overall_fit'),
+        },
       });
     });
 

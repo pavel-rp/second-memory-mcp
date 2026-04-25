@@ -14,7 +14,17 @@ import { z } from 'zod';
 /** A single scored aspect of the classifier verdict. */
 export const VerdictFieldSchema = z.object({
   score: z.number().int().min(1).max(5),
-  rationale: z.string().min(1),
+  rationale: z
+    .string()
+    .min(1)
+    .max(240)
+    .regex(/^[^\n]+$/, 'rationale must be a single line'),
+  // `false` when the model used the "not applicable" escape hatch (typically a
+  // score=5 with a "not applicable: <reason>" rationale). Persisted alongside
+  // score/rationale so dashboards can filter NA out of genuine score-5 counts
+  // without parsing rationale prefixes. Legacy 1.0.0 rows lack this field;
+  // read paths should treat absence as `applicable: true`.
+  applicable: z.boolean(),
 });
 export type VerdictField = z.infer<typeof VerdictFieldSchema>;
 
@@ -83,3 +93,12 @@ export type ClassifierPrompt = {
   systemPrompt: string;
   userPrompt: string;
 };
+
+/**
+ * Per-field prompt map. NEU-660 broke the "build once, reuse across fan-out"
+ * contract because under `gpt-5.4-mini` + `reasoning_effort: low` the model
+ * was scoring against a generic prompt with the field identity smuggled only
+ * via the structured-output schema name. Each entry now carries that field's
+ * rubric line, exemplars, grounding clause, and edge-case clause.
+ */
+export type PerFieldClassifierPrompts = Record<VerdictFieldName, ClassifierPrompt>;

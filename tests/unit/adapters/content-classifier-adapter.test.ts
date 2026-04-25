@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ClassifierConfig } from '../../../src/domain/config/classifier.js';
 import type {
   ChunkClassifierInput,
-  ClassifierPrompt,
+  PerFieldClassifierPrompts,
 } from '../../../src/domain/types/classifier.js';
 import { VERDICT_FIELDS } from '../../../src/domain/types/classifier.js';
 
 // ── Mock LangChain modules ──────────────────────────────────────
 // The adapter uses dynamic `await import(...)` — vi.mock intercepts those.
 
-type VerdictField = { score: number; rationale: string };
+type VerdictField = { score: number; rationale: string; applicable: boolean };
 
 // One invoke mock per field so tests can target individual fields.
 const invokeMocks = new Map<string, ReturnType<typeof vi.fn>>();
@@ -80,19 +80,36 @@ function makeInput(overrides?: Partial<ChunkClassifierInput>): ChunkClassifierIn
   };
 }
 
-function makePrompt(overrides?: Partial<ClassifierPrompt>): ClassifierPrompt {
-  return {
+function makePrompt(
+  overrides?: Partial<{ systemPrompt: string; userPrompt: string }>
+): PerFieldClassifierPrompts {
+  const base = {
     systemPrompt: 'You are a classifier.',
     userPrompt: 'Grade this chunk.',
     ...overrides,
   };
+  return Object.fromEntries(
+    VERDICT_FIELDS.map(field => [
+      field,
+      // Tag the per-field prompt so per-field threading assertions can verify
+      // each fan-out call sees its own field's prompt rather than a shared one.
+      {
+        systemPrompt: `${base.systemPrompt} [${field}]`,
+        userPrompt: `${base.userPrompt} [${field}]`,
+      },
+    ])
+  ) as PerFieldClassifierPrompts;
 }
 
 function setAllFieldsFulfilled(): void {
   for (const field of VERDICT_FIELDS) {
     const invoke = invokeMocks.get(field);
     if (!invoke) throw new Error(`No invoke mock for ${field}`);
-    const verdict: VerdictField = { score: 3, rationale: `rationale-${field}` };
+    const verdict: VerdictField = {
+      score: 3,
+      rationale: `rationale-${field}`,
+      applicable: true,
+    };
     invoke.mockResolvedValue(verdict);
   }
 }
@@ -115,7 +132,9 @@ describe('LangChainContentClassifierAdapter', () => {
       // Instead, prime in advance: withStructuredOutputMock captures the invoke functions.
       // So we need to set invokes *after* the first init. Do it by pre-loading a default.
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
-        const invoke = vi.fn().mockResolvedValue({ score: 4, rationale: `r-${opts.name}` });
+        const invoke = vi
+          .fn()
+          .mockResolvedValue({ score: 4, rationale: `r-${opts.name}`, applicable: true });
         invokeMocks.set(opts.name, invoke);
         return { invoke };
       });
@@ -137,13 +156,15 @@ describe('LangChainContentClassifierAdapter', () => {
       expect(ctorArgs).not.toHaveProperty('temperature');
       expect(withStructuredOutputMock).toHaveBeenCalledTimes(VERDICT_FIELDS.length);
       for (const field of VERDICT_FIELDS) {
-        expect(verdict[field]).toEqual({ score: 4, rationale: `r-${field}` });
+        expect(verdict[field]).toEqual({ score: 4, rationale: `r-${field}`, applicable: true });
       }
     });
 
     it('passes an explicit temperature to ChatOpenAI when config.temperature is not null', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
-        const invoke = vi.fn().mockResolvedValue({ score: 1, rationale: `r-${opts.name}` });
+        const invoke = vi
+          .fn()
+          .mockResolvedValue({ score: 1, rationale: `r-${opts.name}`, applicable: true });
         invokeMocks.set(opts.name, invoke);
         return { invoke };
       });
@@ -156,7 +177,9 @@ describe('LangChainContentClassifierAdapter', () => {
 
     it('reuses the initialized model across multiple classify calls', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
-        const invoke = vi.fn().mockResolvedValue({ score: 2, rationale: `r-${opts.name}` });
+        const invoke = vi
+          .fn()
+          .mockResolvedValue({ score: 2, rationale: `r-${opts.name}`, applicable: true });
         invokeMocks.set(opts.name, invoke);
         return { invoke };
       });
@@ -247,7 +270,9 @@ describe('LangChainContentClassifierAdapter', () => {
 
     it('emits classifier.init with available:true on successful init', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
-        const invoke = vi.fn().mockResolvedValue({ score: 3, rationale: `r-${opts.name}` });
+        const invoke = vi
+          .fn()
+          .mockResolvedValue({ score: 3, rationale: `r-${opts.name}`, applicable: true });
         invokeMocks.set(opts.name, invoke);
         return { invoke };
       });
@@ -279,7 +304,11 @@ describe('LangChainContentClassifierAdapter', () => {
       const verdict = await adapter.classify(makeInput({ chunkId: 'c-2' }), makePrompt());
 
       for (const field of VERDICT_FIELDS) {
-        expect(verdict[field]).toEqual({ score: 3, rationale: `rationale-${field}` });
+        expect(verdict[field]).toEqual({
+          score: 3,
+          rationale: `rationale-${field}`,
+          applicable: true,
+        });
       }
       expect(logEvent).not.toHaveBeenCalledWith(
         'classifier',
@@ -306,6 +335,7 @@ describe('LangChainContentClassifierAdapter', () => {
       expect(verdict.renderingClarity).toEqual({
         score: 3,
         rationale: 'rationale-renderingClarity',
+        applicable: true,
       });
       expect(logEvent).toHaveBeenCalledWith('classifier', 'classifier.classify_aggregate_failed', {
         chunk_id: 'c-2',
@@ -369,6 +399,7 @@ describe('LangChainContentClassifierAdapter', () => {
       expect(verdict.renderingClarity).toEqual({
         score: 3,
         rationale: 'rationale-renderingClarity',
+        applicable: true,
       });
       const parseFailedCalls = vi
         .mocked(logEvent)
@@ -392,7 +423,7 @@ describe('LangChainContentClassifierAdapter', () => {
       });
     });
 
-    it('passes SystemMessage(systemPrompt) and HumanMessage(userPrompt + chunk payload) to invoke', async () => {
+    it('threads per-field system + user prompts to each fan-out call (NEU-660)', async () => {
       withStructuredOutputMock.mockImplementation((_schema, opts) => {
         const invoke = vi.fn();
         invokeMocks.set(opts.name, invoke);
@@ -414,17 +445,20 @@ describe('LangChainContentClassifierAdapter', () => {
         makePrompt({ systemPrompt: 'SYS', userPrompt: 'USR' })
       );
 
-      const invoke = invokeMocks.get('renderingClarity')!;
-      const lastCallArgs = invoke.mock.calls[invoke.mock.calls.length - 1];
-      const messages = lastCallArgs[0] as Array<{ content: string }>;
-      expect(messages).toHaveLength(2);
-      expect(messages[0].content).toBe('SYS');
-      expect(messages[1].content).toContain('USR');
-      expect(messages[1].content).toContain('id: c-xyz');
-      expect(messages[1].content).toContain('title: Alpha');
-      expect(messages[1].content).toContain('tags: math');
-      expect(messages[1].content).toContain('prerequisites: basic-algebra');
-      expect(messages[1].content).toContain('beta gamma');
+      // Each field must receive its own field-tagged system + user prompt.
+      for (const field of VERDICT_FIELDS) {
+        const invoke = invokeMocks.get(field)!;
+        const lastCallArgs = invoke.mock.calls[invoke.mock.calls.length - 1];
+        const messages = lastCallArgs[0] as Array<{ content: string }>;
+        expect(messages).toHaveLength(2);
+        expect(messages[0].content).toBe(`SYS [${field}]`);
+        expect(messages[1].content).toContain(`USR [${field}]`);
+        expect(messages[1].content).toContain('id: c-xyz');
+        expect(messages[1].content).toContain('title: Alpha');
+        expect(messages[1].content).toContain('tags: math');
+        expect(messages[1].content).toContain('prerequisites: basic-algebra');
+        expect(messages[1].content).toContain('beta gamma');
+      }
     });
 
     it('renders "(none)" when tags is empty', async () => {
