@@ -273,9 +273,10 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     expect(result.topic?.tier2Findings).toBeUndefined();
   });
 
-  it('ignores blockingMode — soft-warn never escalates to blocking in this ticket', async () => {
-    // Regression pin: NEU-621 owns the blocking flip. Even if a future code
-    // path reads a flag, this test ensures it does not short-circuit creation.
+  it('soft-warns when blockingFields is empty even with low verdict scores', async () => {
+    // Regression pin: NEU-621's blocking is opt-in per field. With an empty
+    // `blockingFields` set, low-score fields surface as warnings (NEU-620
+    // contract) and never reject creation.
     const classify = vi.fn().mockResolvedValue(twoLowVerdict());
     const { deps } = buildDeps({
       classifier: { classify },
@@ -360,6 +361,118 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     expect(result.success).toBe(true);
     expect(classify).toHaveBeenCalledTimes(3);
     expect(result.topic?.tier2Findings).toBeUndefined();
+  });
+
+  // ── NEU-621: per-field blocking activation ───────────────────────
+  describe('per-field blocking (NEU-621)', () => {
+    it('rejects creation and rolls back the topic when a blockingFields member scores low', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      // Override topics.delete to capture the rollback call; the default stub
+      // returns success.
+      const deleteSpy = vi.fn().mockResolvedValue({ success: true, data: { deleted: true } });
+      deps.topics.delete = deleteSpy;
+      deps.blockingFields = new Set(['renderingClarity']);
+
+      const result = await createTopicWithChunks(input(), deps);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe('validation');
+      expect(result.error?.retryable).toBe(false);
+      expect(result.error?.message).toContain('chunk-a');
+      expect(result.error?.message).toContain('rendering_clarity');
+      const findings = result.error?.findings ?? [];
+      expect(findings.some(f => f.rule === 'classifier.rendering_clarity')).toBe(true);
+      expect(findings.every(f => f.severity === 'blocking')).toBe(true);
+      expect(deleteSpy).toHaveBeenCalledOnce();
+      expect(typeof deleteSpy.mock.calls[0][0]).toBe('string');
+
+      const blockedEvents = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.tier2_blocked');
+      expect(blockedEvents).toHaveLength(1);
+      const data = blockedEvents[0][2] as Record<string, unknown>;
+      expect(data.field).toBe('rendering_clarity');
+      expect(data.score).toBe(1);
+      expect(data.rationale).toBe('unbalanced fences');
+    });
+
+    it('still soft-warns and does not reject when the low-scoring field is not in blockingFields', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      // Block only `vocabularyAppropriate` (which is high in twoLowVerdict).
+      deps.blockingFields = new Set(['vocabularyAppropriate']);
+
+      const result = await createTopicWithChunks(input(), deps);
+      expect(result.success).toBe(true);
+      expect(result.topic?.tier2Findings?.length).toBeGreaterThan(0);
+      const blockedEvents = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.tier2_blocked');
+      expect(blockedEvents).toHaveLength(0);
+    });
+
+    it('does not block on an all-null verdict even with a non-empty blockingFields', async () => {
+      const classify = vi.fn().mockResolvedValue(allNullVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      deps.blockingFields = new Set(['renderingClarity', 'overallFit']);
+      const result = await createTopicWithChunks(input(), deps);
+      expect(result.success).toBe(true);
+      const blockedEvents = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.tier2_blocked');
+      expect(blockedEvents).toHaveLength(0);
+    });
+
+    it('honors the circuit-breaker by removing tripped fields from the effective set', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      deps.blockingFields = new Set(['renderingClarity']);
+      // Breaker reports `renderingClarity` as tripped — return an empty set.
+      deps.tier2CircuitBreaker = {
+        applyTo: vi.fn().mockResolvedValue(new Set()),
+      };
+
+      const result = await createTopicWithChunks(input(), deps);
+      // Block was suppressed by the breaker; soft-warn finding still surfaces.
+      expect(result.success).toBe(true);
+      expect(
+        result.topic?.tier2Findings?.some(f => f.rule === 'classifier.rendering_clarity')
+      ).toBe(true);
+    });
+
+    it('falls open when the circuit-breaker throws — leaves blockingFields unchanged', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      const deleteSpy = vi.fn().mockResolvedValue({ success: true, data: { deleted: true } });
+      deps.topics.delete = deleteSpy;
+      deps.blockingFields = new Set(['renderingClarity']);
+      deps.tier2CircuitBreaker = {
+        applyTo: vi.fn().mockRejectedValue(new Error('stats query failed')),
+      };
+
+      const result = await createTopicWithChunks(input(), deps);
+      // Breaker error did not amplify into a creation failure unrelated to
+      // the actual blocking score; the original block still applies.
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe('validation');
+      expect(deleteSpy).toHaveBeenCalledOnce();
+    });
   });
 
   // ── NEU-639: classifier event logging ────────────────────────────

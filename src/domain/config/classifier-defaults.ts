@@ -1,6 +1,7 @@
 // Hardcoded defaults for classifier configuration (NEU-619).
 // No I/O, no process.env reads.
 
+import type { VerdictFieldName } from '../types/classifier.js';
 import type { ClassifierConfig } from './classifier.js';
 
 export const DEFAULT_CLASSIFIER_CONFIG: ClassifierConfig = {
@@ -15,5 +16,7 @@ export const DEFAULT_CLASSIFIER_CONFIG: ClassifierConfig = {
   // adds a ~2 s p95 external API call to the topic-creation path. Operators
   // who want it set `CLASSIFIER_ENABLE_AT_CREATE=true`.
   enableAtCreate: false,
-  blockingMode: false,
+  // Empty by default — soft-warn only. NEU-621 owns the per-field flip gated
+  // on calibration + OOD precision; see the runbook for activation procedure.
+  blockingFields: new Set<VerdictFieldName>(),
 };

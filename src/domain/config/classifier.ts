@@ -1,6 +1,8 @@
 // Configuration types for the Tier 2 content classifier (NEU-619).
 // Domain layer: type definitions and allowlist constants only — no process.env reads.
 
+import type { VerdictFieldName } from '../types/classifier.js';
+
 export type ClassifierProvider = 'openai';
 
 /** The set of accepted `reasoning_effort` values for the OpenAI responses API. */
@@ -22,6 +24,12 @@ export type ClassifierConfig = {
   openaiApiKey: string | null;
   /** Consumed by NEU-620 — signals whether `create_chunk` should invoke the classifier. */
   enableAtCreate: boolean;
-  /** Consumed by NEU-621 — signals whether low verdict scores should block creation. */
-  blockingMode: boolean;
+  /**
+   * Consumed by NEU-621 — per-field allowlist of verdict fields that, when scored
+   * at or below the soft-warn threshold, will reject topic creation. Empty set
+   * means soft-warn only (the NEU-620 default). Operators flip fields one at a
+   * time after both calibration agreement (≥ 0.85) and OOD precision (≥ 0.85)
+   * have passed; see `docs/runbooks/classifier-blocking-activation.md`.
+   */
+  blockingFields: ReadonlySet<VerdictFieldName>;
 };

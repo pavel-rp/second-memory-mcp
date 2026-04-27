@@ -5,6 +5,7 @@ import {
   parseBoolean,
   parseEnum,
   parseEmbeddingProvider,
+  parseVerdictFieldList,
 } from '../../../src/shared/env-parsing.js';
 
 describe('parseNumber', () => {
@@ -164,5 +165,51 @@ describe('parseEmbeddingProvider', () => {
 
   it('returns null for undefined', () => {
     expect(parseEmbeddingProvider(undefined)).toBeNull();
+  });
+});
+
+describe('parseVerdictFieldList', () => {
+  it('returns an empty set for undefined', () => {
+    expect(parseVerdictFieldList(undefined)).toEqual(new Set());
+  });
+
+  it('returns an empty set for empty string', () => {
+    expect(parseVerdictFieldList('')).toEqual(new Set());
+  });
+
+  it('returns an empty set for whitespace-only string', () => {
+    expect(parseVerdictFieldList('   ')).toEqual(new Set());
+  });
+
+  it('parses a single field by snake-case name', () => {
+    expect(parseVerdictFieldList('rendering_clarity')).toEqual(new Set(['renderingClarity']));
+  });
+
+  it('parses a comma-separated list and trims whitespace', () => {
+    expect(parseVerdictFieldList(' rendering_clarity , overall_fit ')).toEqual(
+      new Set(['renderingClarity', 'overallFit'])
+    );
+  });
+
+  it('skips empty entries from leading or trailing commas', () => {
+    expect(parseVerdictFieldList(', rendering_clarity , ,')).toEqual(new Set(['renderingClarity']));
+  });
+
+  it('throws on unknown verdict-field names', () => {
+    expect(() => parseVerdictFieldList('rendering_clarity, not_a_field')).toThrow(
+      /CLASSIFIER_BLOCKING_FIELDS.*not_a_field/
+    );
+  });
+
+  it('throws when only an unknown name is provided', () => {
+    expect(() => parseVerdictFieldList('mystery_field')).toThrow(
+      /CLASSIFIER_BLOCKING_FIELDS.*mystery_field/
+    );
+  });
+
+  it('rejects camelCase input — operator-facing names are snake-case only', () => {
+    expect(() => parseVerdictFieldList('renderingClarity')).toThrow(
+      /CLASSIFIER_BLOCKING_FIELDS.*renderingClarity/
+    );
   });
 });

@@ -63,7 +63,7 @@ function makeConfig(overrides?: Partial<ClassifierConfig>): ClassifierConfig {
     timeout: 10_000,
     openaiApiKey: 'sk-test-key',
     enableAtCreate: true,
-    blockingMode: false,
+    blockingFields: new Set(),
     ...overrides,
   };
 }

@@ -12,6 +12,7 @@ import {
   parseClassifierProvider,
   parseNumber,
   parseReasoningEffort,
+  parseVerdictFieldList,
 } from '../shared/env-parsing.js';
 
 function parseNullableNumber(envValue: string | undefined, fallback: number | null): number | null {
@@ -53,10 +54,10 @@ export function resolveClassifierConfig(
       env.CLASSIFIER_ENABLE_AT_CREATE,
       DEFAULT_CLASSIFIER_CONFIG.enableAtCreate
     ),
-    blockingMode: parseBoolean(
-      env.CLASSIFIER_BLOCKING_MODE,
-      DEFAULT_CLASSIFIER_CONFIG.blockingMode
-    ),
+    // NEU-621: per-field allowlist of verdict-field names. Empty/unset = soft-warn
+    // only (the NEU-620 default). `enableAtCreate` remains the global kill switch —
+    // when false, no blocking can occur regardless of this list.
+    blockingFields: parseVerdictFieldList(env.CLASSIFIER_BLOCKING_FIELDS),
   };
 
   return { classifier };

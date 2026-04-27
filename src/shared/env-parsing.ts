@@ -5,6 +5,8 @@ import {
   CLASSIFIER_REASONING_EFFORTS,
   type ClassifierReasoningEffort,
 } from '../domain/config/classifier.js';
+import { VERDICT_FIELDS, type VerdictFieldName } from '../domain/types/classifier.js';
+import { PERSISTED_TIER2_FIELD_NAMES } from './prompts/classifier-prompts.js';
 
 export function parseNumber(envValue: string | undefined, fallback: number): number {
   if (envValue == null || envValue.trim() === '') return fallback;
@@ -72,4 +74,38 @@ export function parseReasoningEffort(
   fallback: ClassifierReasoningEffort
 ): ClassifierReasoningEffort {
   return parseEnum(value, CLASSIFIER_REASONING_EFFORTS, fallback);
+}
+
+/**
+ * Parse `CLASSIFIER_BLOCKING_FIELDS` (NEU-621) — a comma-separated list of
+ * verdict-field names in snake_case (the same names persisted under
+ * `validator_report.tier2`). Returns a `Set<VerdictFieldName>` keyed by the
+ * internal camelCase names so consumers can look up directly against
+ * `VERDICT_FIELDS`. Empty/whitespace input returns an empty set. Unknown names
+ * throw — the composition root surfaces the error at startup so misconfigured
+ * deployments fail loudly rather than silently soft-warn.
+ */
+export function parseVerdictFieldList(envValue: string | undefined): Set<VerdictFieldName> {
+  const out = new Set<VerdictFieldName>();
+  if (envValue == null || envValue.trim() === '') return out;
+  // Build the snake → camel reverse lookup once per call. Cheap (six entries)
+  // and avoids capturing module-level state that would break tree-shaking of
+  // the prompts module if env-parsing is ever imported in isolation.
+  const snakeToCamel = new Map<string, VerdictFieldName>();
+  for (const field of VERDICT_FIELDS) {
+    snakeToCamel.set(PERSISTED_TIER2_FIELD_NAMES[field], field);
+  }
+  for (const raw of envValue.split(',')) {
+    const trimmed = raw.trim();
+    if (trimmed === '') continue;
+    const match = snakeToCamel.get(trimmed);
+    if (match === undefined) {
+      const allowed = Array.from(snakeToCamel.keys()).join(', ');
+      throw new Error(
+        `CLASSIFIER_BLOCKING_FIELDS: unknown verdict field "${trimmed}". Allowed: ${allowed}.`
+      );
+    }
+    out.add(match);
+  }
+  return out;
 }
