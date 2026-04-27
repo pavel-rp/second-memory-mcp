@@ -17,6 +17,7 @@ function makeChunk(content: string | null): ChunkLintInput {
     tags: [],
     difficulty: 3,
     estimatedDuration: 10,
+    knowledgeType: null,
   };
 }
 

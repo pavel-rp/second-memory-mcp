@@ -92,6 +92,7 @@ function rowToChunkLintInput(row: typeof learningChunks.$inferSelect): ChunkLint
     tags: row.tagsJson ?? [],
     difficulty: row.difficulty,
     estimatedDuration: row.estimatedDuration,
+    knowledgeType: row.knowledgeType,
   };
 }
 
