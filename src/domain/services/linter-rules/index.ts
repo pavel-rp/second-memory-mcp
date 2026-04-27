@@ -13,6 +13,11 @@ import { headingHierarchyRule } from './heading-hierarchy.js';
 import { detailsNestingRule } from './details-nesting.js';
 import { duplicateH1Rule } from './duplicate-h1.js';
 import { phantomPrerequisiteRule } from './phantom-prerequisite.js';
+import { phantomChapterRule } from './phantom-chapter.js';
+import { scaffoldingSectionRule } from './scaffolding-section.js';
+import { bulletDominantRule } from './bullet-dominant.js';
+import { wordCountFloorRule } from './word-count-floor.js';
+import { wordCountCeilingRule } from './word-count-ceiling.js';
 
 export {
   codeFenceBalanceRule,
@@ -21,6 +26,11 @@ export {
   detailsNestingRule,
   duplicateH1Rule,
   phantomPrerequisiteRule,
+  phantomChapterRule,
+  scaffoldingSectionRule,
+  bulletDominantRule,
+  wordCountFloorRule,
+  wordCountCeilingRule,
 };
 
 export function createTier1aRules(): LinterRule[] {
@@ -34,5 +44,12 @@ export function createTier1aRules(): LinterRule[] {
 }
 
 export function createTier1bRules(): LinterRule[] {
-  return [phantomPrerequisiteRule];
+  return [
+    phantomPrerequisiteRule,
+    phantomChapterRule,
+    scaffoldingSectionRule,
+    bulletDominantRule,
+    wordCountFloorRule,
+    wordCountCeilingRule,
+  ];
 }

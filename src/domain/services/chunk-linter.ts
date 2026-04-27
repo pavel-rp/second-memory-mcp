@@ -28,6 +28,8 @@
  * Rule implementations must follow the same rule (ARCH-F4/F5 compliance).
  */
 
+import type { KnowledgeType } from '../types/entities.js';
+
 export type LinterSeverity = 'blocking' | 'warning';
 
 export type LinterFinding = {
@@ -49,6 +51,13 @@ export type ChunkLintInput = {
   tags: string[];
   difficulty: number;
   estimatedDuration: number;
+  /**
+   * Knowledge-type classification when known. Consumed by the
+   * `tier1b.word-count-floor` rule (NEU-617): `'fact'`-typed chunks are
+   * exempt from the 300-word floor since facts are legitimately terse.
+   * `null` when the author did not tag the chunk.
+   */
+  knowledgeType: KnowledgeType | null;
 };
 
 export type TopicLintInput = {

@@ -18,6 +18,7 @@ function makeChunk(overrides: Partial<ChunkLintInput> = {}): ChunkLintInput {
     tags: [],
     difficulty: 3,
     estimatedDuration: 10,
+    knowledgeType: null,
     ...overrides,
   };
 }

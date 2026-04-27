@@ -119,7 +119,7 @@ describe('tier1b.phantom-prerequisite — create path persistence (NEU-616)', ()
     expect(phantomEntries.some(e => e.detail.includes('Euler'))).toBe(true);
   });
 
-  it('persists no tier1b entries when every noun phrase is in prerequisites', async () => {
+  it('persists no phantom-prerequisite entries when every noun phrase is in prerequisites', async () => {
     const chunkId = crypto.randomUUID();
     const result = await createTopicWithChunks(
       makeInput([
@@ -136,8 +136,11 @@ describe('tier1b.phantom-prerequisite — create path persistence (NEU-616)', ()
 
     const report = await readValidatorReport(chunkId);
     expect(report).toBeDefined();
-    // Canonical empty report: only `updated_at`. No `tier1a` or `tier1b` keys.
-    expect(report?.tier1b).toBeUndefined();
+    // The fixture is a 6-word chunk so unrelated tier1b rules
+    // (`word-count-floor`, etc.) may fire — scope the assertion to the rule
+    // under test rather than the entire tier1b array.
+    const tier1b = (report?.tier1b as Tier1bEntry[] | undefined) ?? [];
+    expect(tier1b.filter(e => e.rule === PHANTOM_RULE_ID)).toEqual([]);
   });
 
   it('persists one entry per distinct phantom term', async () => {

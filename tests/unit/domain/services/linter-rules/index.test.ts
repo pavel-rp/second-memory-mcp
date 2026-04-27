@@ -8,6 +8,11 @@ import {
   detailsNestingRule,
   duplicateH1Rule,
   phantomPrerequisiteRule,
+  phantomChapterRule,
+  scaffoldingSectionRule,
+  bulletDominantRule,
+  wordCountFloorRule,
+  wordCountCeilingRule,
 } from '../../../../../src/domain/services/linter-rules/index.js';
 
 describe('createTier1aRules', () => {
@@ -39,9 +44,16 @@ describe('createTier1aRules', () => {
 });
 
 describe('createTier1bRules', () => {
-  it('returns the phantom-prerequisite rule', () => {
+  it('returns all six Tier 1b rules in registration order', () => {
     const rules = createTier1bRules();
-    expect(rules).toEqual([phantomPrerequisiteRule]);
+    expect(rules).toEqual([
+      phantomPrerequisiteRule,
+      phantomChapterRule,
+      scaffoldingSectionRule,
+      bulletDominantRule,
+      wordCountFloorRule,
+      wordCountCeilingRule,
+    ]);
   });
 
   it('returns rules all tagged as chunk-scope, tier1b, blockingEligible: false', () => {
@@ -50,6 +62,18 @@ describe('createTier1bRules', () => {
       expect(rule.tier).toBe('tier1b');
       expect(rule.blockingEligible).toBe(false);
     }
+  });
+
+  it('returns rules whose names match the declared RULE_INTENT entries', () => {
+    const names = createTier1bRules().map(r => r.name);
+    expect(names).toEqual([
+      'tier1b.phantom-prerequisite',
+      'tier1b.phantom-chapter',
+      'tier1b.scaffolding-section',
+      'tier1b.bullet-dominant',
+      'tier1b.word-count-floor',
+      'tier1b.word-count-ceiling',
+    ]);
   });
 
   it('returns a fresh array on each call', () => {

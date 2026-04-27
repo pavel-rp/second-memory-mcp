@@ -230,6 +230,7 @@ export async function createTopicWithChunks(
       tags: c.tags ?? [],
       difficulty: c.difficulty,
       estimatedDuration: c.estimatedDuration,
+      knowledgeType: c.knowledgeType ?? null,
     })),
   };
   const lintResult = runLinterSuite(deps.linterRules ?? [], topicLintInput, {
