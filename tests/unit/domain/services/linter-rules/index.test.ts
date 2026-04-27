@@ -14,6 +14,7 @@ import {
   wordCountFloorRule,
   wordCountCeilingRule,
 } from '../../../../../src/domain/services/linter-rules/index.js';
+import { RULE_INTENT } from '../../../../../src/shared/linter/rule-intent.js';
 
 describe('createTier1aRules', () => {
   it('returns all five Tier 1a rules', () => {
@@ -64,16 +65,12 @@ describe('createTier1bRules', () => {
     }
   });
 
-  it('returns rules whose names match the declared RULE_INTENT entries', () => {
-    const names = createTier1bRules().map(r => r.name);
-    expect(names).toEqual([
-      'tier1b.phantom-prerequisite',
-      'tier1b.phantom-chapter',
-      'tier1b.scaffolding-section',
-      'tier1b.bullet-dominant',
-      'tier1b.word-count-floor',
-      'tier1b.word-count-ceiling',
-    ]);
+  it('returns rules whose names exactly match the declared Tier 1b RULE_INTENT entries', () => {
+    const registeredNames = new Set(createTier1bRules().map(r => r.name));
+    const declaredTier1bNames = new Set(
+      Object.keys(RULE_INTENT).filter(k => k.startsWith('tier1b.'))
+    );
+    expect(registeredNames).toEqual(declaredTier1bNames);
   });
 
   it('returns a fresh array on each call', () => {
