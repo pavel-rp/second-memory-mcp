@@ -43,6 +43,10 @@ describe('tier1b.word-count-ceiling', () => {
     it('returns no findings for empty content', () => {
       expect(wordCountCeilingRule.run(makeChunk(''))).toEqual([]);
     });
+
+    it('returns no findings for whitespace-only content', () => {
+      expect(wordCountCeilingRule.run(makeChunk('   \n  '))).toEqual([]);
+    });
   });
 
   describe('threshold boundary', () => {

@@ -13,6 +13,8 @@ export const WORD_COUNT_CEILING_RULE_NAME = 'tier1b.word-count-ceiling';
 function runWordCountCeiling(chunk: ChunkLintInput): LinterFinding[] {
   if (!chunk.content) return [];
   const wordCount = countWords(chunk.content);
+  // No explicit `wordCount === 0` guard (unlike word-count-floor): countWords
+  // returns 0 for whitespace-only content and 0 <= CEILING short-circuits here.
   if (wordCount <= WORD_COUNT_CEILING) return [];
 
   return [

@@ -32,6 +32,9 @@ function runBulletDominant(chunk: ChunkLintInput): LinterFinding[] {
         if (listDepth > 0) listDepth--;
         break;
       case 'paragraph_open':
+        // markdown-it emits paragraph_open for tight list items too — list
+        // tightness is a renderer concern, not a token-stream one — so
+        // listDepth > 0 reliably identifies list paragraphs in either mode.
         paragraphCount++;
         if (listDepth > 0) bulletParagraphCount++;
         break;

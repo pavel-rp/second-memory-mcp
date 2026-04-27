@@ -102,5 +102,14 @@ describe('tier1b.phantom-chapter', () => {
       });
       expect(findings[0].detail).toBe('Likely phantom chapter: H2=9, H3=4, bold=12');
     });
+
+    it('ignores headings other than h2/h3 (h4-h6 do not contribute to counts)', () => {
+      // 3 H2 + 3 H3 + 6 bold would fire; replacing H3s with H4s should suppress.
+      const parts: string[] = [];
+      for (let i = 0; i < PHANTOM_CHAPTER_H2_MIN; i++) parts.push(`## Section ${i + 1}\n\nText.`);
+      for (let i = 0; i < PHANTOM_CHAPTER_H3_MIN; i++) parts.push(`#### Sub ${i + 1}\n\nText.`);
+      for (let i = 0; i < PHANTOM_CHAPTER_BOLD_MIN; i++) parts.push(`**bold ${i + 1}**`);
+      expect(phantomChapterRule.run(makeChunk(parts.join('\n\n')))).toEqual([]);
+    });
   });
 });
