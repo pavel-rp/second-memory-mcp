@@ -6,7 +6,7 @@ vi.mock('../../../src/shared/logger.js', () => ({
 }));
 
 import { createTier2CircuitBreaker } from '../../../src/orchestration/tier2-circuit-breaker.js';
-import { logEvent } from '../../../src/shared/logger.js';
+import { logEvent, getRequestLogger } from '../../../src/shared/logger.js';
 import type {
   Tier2BlockingStatsRepository,
   Tier2WeeklyBlockingCounts,
@@ -202,6 +202,76 @@ describe('createTier2CircuitBreaker', () => {
     const data = failures[0][2] as { error_class: string; error_message: string };
     expect(data.error_class).toBe('Error');
     expect(data.error_message).toBe('db unavailable');
+  });
+
+  it('captures non-Error throw values from the stats query in the structured failure event (NEU-672)', async () => {
+    // Adapters can reject with non-Error values (strings, numbers, plain objects).
+    // The error_class fallback must use `typeof` and the error_message must use
+    // `String(err)` so the structured event still carries usable signal.
+    const stats: Tier2BlockingStatsRepository = {
+      getWeeklyBlockingCounts: vi.fn().mockRejectedValue('plain string failure'),
+    };
+    const breaker = createTier2CircuitBreaker({ stats });
+    await breaker.applyTo(new Set<VerdictFieldName>(['renderingClarity']));
+
+    const failures = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.stats_query_failed');
+    expect(failures).toHaveLength(1);
+    const data = failures[0][2] as { error_class: string; error_message: string };
+    expect(data.error_class).toBe('string');
+    expect(data.error_message).toBe('plain string failure');
+  });
+
+  it('skips buckets with empty priorWeeksCounts (no prior history)', async () => {
+    // The adapter should always return length-4 priors, but the breaker is
+    // defensive: an empty priors array means we cannot compute σ and the
+    // bucket is skipped without tripping.
+    const stats = makeStats([
+      {
+        field: 'rendering_clarity',
+        currentWeekCount: 100,
+        priorWeeksCounts: [],
+      },
+    ]);
+    const breaker = createTier2CircuitBreaker({ stats });
+    const blocking = new Set<VerdictFieldName>(['renderingClarity']);
+    const out = await breaker.applyTo(blocking);
+
+    expect(out.has('renderingClarity')).toBe(true);
+    const tripped = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
+    expect(tripped).toHaveLength(0);
+  });
+
+  it('falls back to getRequestLogger().warn when both the stats query and structured logger throw (NEU-672)', async () => {
+    // Stats throws → breaker tries to emit `tier2.stats_query_failed` →
+    // the structured logger itself throws → fallback warn must fire.
+    // Verifies the breaker's fail-open contract holds even when both
+    // telemetry paths are broken.
+    const warnSpy = vi.fn();
+    vi.mocked(getRequestLogger).mockReturnValueOnce({
+      warn: warnSpy,
+      error: vi.fn(),
+      info: vi.fn(),
+      debug: vi.fn(),
+    } as unknown as ReturnType<typeof getRequestLogger>);
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('logger transport down');
+    });
+
+    const stats: Tier2BlockingStatsRepository = {
+      getWeeklyBlockingCounts: vi.fn().mockRejectedValue(new Error('db unavailable')),
+    };
+    const breaker = createTier2CircuitBreaker({ stats });
+    const blocking = new Set<VerdictFieldName>(['renderingClarity']);
+    const out = await breaker.applyTo(blocking);
+
+    // Fail-open contract preserved even when both telemetry paths break.
+    expect(out).toEqual(blocking);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain('Tier 2 circuit-breaker stats query failed');
   });
 
   it('leaves a field un-tripped when logEvent throws on the trip event, retries on next refresh (NEU-672)', async () => {

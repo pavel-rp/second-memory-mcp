@@ -388,15 +388,24 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       expect(result.error?.message).toContain('chunk-a');
       expect(result.error?.message).toContain('rendering_clarity');
       const findings = result.error?.findings ?? [];
-      // NEU-672: error.findings now merges blocking + warning so the caller
-      // sees the full picture for the rejected topic. The blocking entry
-      // for rendering_clarity is required; warning entries (e.g. overall_fit
-      // also scored low but is not in blockingFields) are surfaced too.
+      // NEU-672: error.findings carries blocking + warning entries together so
+      // the caller sees the full picture for the rejected topic. A field is
+      // EITHER a warning OR a blocking hit, never both — `rendering_clarity`
+      // is in blockingFields so it surfaces only as 'blocking'; `overall_fit`
+      // is also low-scoring but not in blockingFields so it surfaces only as
+      // 'warning'. No `(chunkId, rule)` pair appears with both severities.
       expect(
         findings.some(f => f.rule === 'classifier.rendering_clarity' && f.severity === 'blocking')
       ).toBe(true);
-      expect(findings.some(f => f.severity === 'blocking')).toBe(true);
-      expect(findings.some(f => f.severity === 'warning')).toBe(true);
+      expect(
+        findings.some(f => f.rule === 'classifier.rendering_clarity' && f.severity === 'warning')
+      ).toBe(false);
+      expect(
+        findings.some(f => f.rule === 'classifier.overall_fit' && f.severity === 'warning')
+      ).toBe(true);
+      // No duplicate (chunkId, rule) pairs across severities.
+      const keys = findings.map(f => `${f.chunkId}:${f.rule}`);
+      expect(new Set(keys).size).toBe(keys.length);
       expect(deleteSpy).toHaveBeenCalledOnce();
       expect(typeof deleteSpy.mock.calls[0][0]).toBe('string');
 

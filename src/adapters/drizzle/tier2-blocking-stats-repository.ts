@@ -22,8 +22,9 @@ import { VERDICT_FIELDS } from '../../domain/types/classifier.js';
  *     verdict-field set) are filtered at the boundary so the port can return
  *     a typed `PersistedTier2FieldName` union end-to-end.
  *   - A partial index on `(timestamp DESC) WHERE event = 'classifier.tier2_blocked'`
- *     ships in migration `0020_tier2_blocked_event_index.sql` to keep the scan
- *     selective even as the event log grows.
+ *     would keep this scan selective as the event log grows. Deferred —
+ *     adding it requires a Drizzle migration with a regenerated snapshot;
+ *     track as a follow-up if the scan ever shows up hot.
  */
 export class DrizzleTier2BlockingStatsRepository implements Tier2BlockingStatsRepository {
   constructor(private db: SqlDb = getSql()) {}
