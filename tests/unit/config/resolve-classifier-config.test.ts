@@ -98,14 +98,32 @@ describe('resolveClassifierConfig', () => {
     expect(result.classifier.reasoningEffort).toBe(DEFAULT_CLASSIFIER_CONFIG.reasoningEffort);
   });
 
-  it('parses enableAtCreate and blockingMode booleans', () => {
+  it('parses enableAtCreate boolean and CLASSIFIER_BLOCKING_FIELDS list', () => {
     const result = resolveClassifierConfig({
       CLASSIFIER_ENABLE_AT_CREATE: 'false',
-      CLASSIFIER_BLOCKING_MODE: 'true',
+      CLASSIFIER_BLOCKING_FIELDS: 'rendering_clarity, overall_fit',
     });
 
     expect(result.classifier.enableAtCreate).toBe(false);
-    expect(result.classifier.blockingMode).toBe(true);
+    expect(result.classifier.blockingFields).toEqual(new Set(['renderingClarity', 'overallFit']));
+  });
+
+  it('returns an empty blockingFields set when CLASSIFIER_BLOCKING_FIELDS is unset', () => {
+    const result = resolveClassifierConfig({});
+    expect(result.classifier.blockingFields).toEqual(new Set());
+  });
+
+  it('throws on unknown verdict-field name in CLASSIFIER_BLOCKING_FIELDS', () => {
+    expect(() =>
+      resolveClassifierConfig({ CLASSIFIER_BLOCKING_FIELDS: 'rendering_clarity,not_a_field' })
+    ).toThrow(/CLASSIFIER_BLOCKING_FIELDS.*not_a_field/);
+  });
+
+  it('treats whitespace-only and empty entries in the blocking list as no-ops', () => {
+    const result = resolveClassifierConfig({
+      CLASSIFIER_BLOCKING_FIELDS: ' , rendering_clarity , ,',
+    });
+    expect(result.classifier.blockingFields).toEqual(new Set(['renderingClarity']));
   });
 
   it('falls back to defaults on empty-string overrides', () => {
@@ -114,14 +132,14 @@ describe('resolveClassifierConfig', () => {
       CLASSIFIER_REASONING_EFFORT: '',
       CLASSIFIER_TIMEOUT_MS: '',
       CLASSIFIER_ENABLE_AT_CREATE: '',
-      CLASSIFIER_BLOCKING_MODE: '',
+      CLASSIFIER_BLOCKING_FIELDS: '',
     });
 
     expect(result.classifier.model).toBe(DEFAULT_CLASSIFIER_CONFIG.model);
     expect(result.classifier.reasoningEffort).toBe(DEFAULT_CLASSIFIER_CONFIG.reasoningEffort);
     expect(result.classifier.timeout).toBe(DEFAULT_CLASSIFIER_CONFIG.timeout);
     expect(result.classifier.enableAtCreate).toBe(DEFAULT_CLASSIFIER_CONFIG.enableAtCreate);
-    expect(result.classifier.blockingMode).toBe(DEFAULT_CLASSIFIER_CONFIG.blockingMode);
+    expect(result.classifier.blockingFields).toEqual(DEFAULT_CLASSIFIER_CONFIG.blockingFields);
   });
 
   it('falls back to default timeout on non-numeric CLASSIFIER_TIMEOUT_MS', () => {

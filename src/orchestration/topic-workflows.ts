@@ -38,6 +38,16 @@ import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
 
+/**
+ * NEU-621: optional handle that mutates the per-call effective blocking-fields
+ * set in response to elevated rejection rates. The orchestration layer calls
+ * `applyTo` before consuming `blockingFields` for a creation; failure modes
+ * are absorbed by the breaker (returns the input unchanged).
+ */
+export type Tier2CircuitBreakerHandle = {
+  applyTo(blockingFields: ReadonlySet<VerdictFieldName>): Promise<ReadonlySet<VerdictFieldName>>;
+};
+
 export type TopicDeps = {
   topics: TopicRepository;
   chunks: ChunkRepository;
@@ -52,6 +62,20 @@ export type TopicDeps = {
    * the previous behavior.
    */
   enableClassifierAtCreate?: boolean;
+  /**
+   * NEU-621: per-field allowlist of verdict fields that, when scored at or
+   * below the soft-warn threshold, will reject topic creation and roll back
+   * the just-persisted topic. Empty/absent = soft-warn only (the NEU-620
+   * default).
+   */
+  blockingFields?: ReadonlySet<VerdictFieldName>;
+  /**
+   * NEU-621: optional circuit-breaker that may shrink the effective
+   * `blockingFields` set when a field's recent rejection rate exceeds the
+   * rolling-mean + 2σ threshold. Absent in tests and in environments where
+   * the breaker is disabled.
+   */
+  tier2CircuitBreaker?: Tier2CircuitBreakerHandle;
   linterRules?: LinterRule[];
 };
 
@@ -88,7 +112,10 @@ export type TopicWithChunks = {
    * Tier 2 (classifier) warning findings. Populated post-commit by NEU-620
    * only when the classifier ran and at least one verdict field scored ≤ 2.
    * Absent when the classifier was not configured, was disabled, failed, or
-   * produced no low-score fields. These findings never escalate to blocking.
+   * produced no low-score fields. Only fields outside the effective NEU-621
+   * `blockingFields` set surface here as warnings — fields inside that set
+   * route through the blocking branch instead and never appear here on a
+   * successful create.
    */
   tier2Findings?: LinterFinding[];
 };
@@ -347,22 +374,114 @@ export async function createTopicWithChunks(
     // Best-effort Tier 2 (classifier) pass — runs outside the transaction for
     // the same reason embeddings do: the external LLM call has ~2 s p95 latency
     // and any throw inside `unitOfWork.execute` would roll back topic creation,
-    // breaking the fail-open contract. NEU-621 owns the blocking-mode flip;
-    // `CLASSIFIER_BLOCKING_MODE` has no effect in this ticket by design.
+    // breaking the fail-open contract. NEU-621 adds an opt-in per-field
+    // blocking branch: if any verdict field in `deps.blockingFields` scores at
+    // or below the soft-warn threshold, the just-persisted topic is rolled back
+    // and a typed validation error is returned.
     let tier2Findings: LinterFinding[] | undefined;
+    let tier2BlockingHits: Tier2BlockingHit[] = [];
     if (deps.classifier && deps.enableClassifierAtCreate === true) {
+      // Resolve the effective blocking set through the optional circuit-breaker.
+      // The breaker may shrink the configured set when recent rejection rates
+      // are anomalous; on its own error path it returns the input unchanged.
+      let effectiveBlocking: ReadonlySet<VerdictFieldName> = deps.blockingFields ?? new Set();
+      if (effectiveBlocking.size > 0 && deps.tier2CircuitBreaker !== undefined) {
+        try {
+          effectiveBlocking = await deps.tier2CircuitBreaker.applyTo(effectiveBlocking);
+        } catch (err) {
+          getRequestLogger().warn(
+            'Tier 2 circuit-breaker raised while applying — leaving blockingFields unchanged:',
+            err
+          );
+        }
+      }
       try {
-        tier2Findings = await classifyChunksSoftWarn(
+        const passResult = await classifyChunksSoftWarn(
           result.topic.id,
           result.chunks,
           deps.classifier,
-          deps.chunks
+          deps.chunks,
+          effectiveBlocking
         );
+        tier2Findings = passResult.findings;
+        tier2BlockingHits = passResult.blockingHits;
       } catch (err) {
         // Defensive: port contract is fail-open, but a bugged adapter must not
         // poison creation.
         getRequestLogger().warn('Tier 2 classifier pass failed for new topic:', err);
       }
+    }
+
+    if (tier2BlockingHits.length > 0) {
+      // Roll back the just-persisted topic — NEU-621 contract is "creation
+      // rejected" when any blocking-eligible field falls below threshold.
+      // Rollback failure is reported as a retryable database error so the
+      // client/operator knows the persisted topic was NOT cleaned up;
+      // returning the non-retryable rejection in that case would leave the
+      // DB inconsistent with the externally observed outcome and silently
+      // accumulate orphaned rows on retry.
+      let rollbackFailed = false;
+      let rollbackErrorMessage: string | undefined;
+      try {
+        const deleteResult = await deps.topics.delete(result.topic.id);
+        if (!deleteResult.success) {
+          rollbackFailed = true;
+          rollbackErrorMessage = deleteResult.error?.message ?? 'unknown';
+          getRequestLogger().warn(
+            `Tier 2 block: rollback delete failed for topic ${result.topic.id}: ${rollbackErrorMessage}`
+          );
+        }
+      } catch (err) {
+        rollbackFailed = true;
+        rollbackErrorMessage = extractErrorMessage(err);
+        getRequestLogger().warn(
+          `Tier 2 block: rollback delete threw for topic ${result.topic.id}:`,
+          err
+        );
+      }
+      for (const hit of tier2BlockingHits) {
+        try {
+          logEvent('createTopicWithChunks', 'classifier.tier2_blocked', {
+            topic_id: result.topic.id,
+            chunk_id: hit.chunkId,
+            field: hit.field,
+            score: hit.score,
+            rationale: hit.rationale,
+          });
+        } catch {
+          // Defensive: a broken event logger must not change the response.
+        }
+      }
+      if (rollbackFailed) {
+        return {
+          success: false,
+          error: {
+            type: 'database',
+            message: `Tier 2 classifier rejected creation but rollback failed for topic ${result.topic.id} (${rollbackErrorMessage ?? 'unknown'}). Manual cleanup may be required.`,
+            retryable: true,
+          },
+        };
+      }
+      const first = tier2BlockingHits[0];
+      const summary = `Tier 2 classifier rejected creation: chunk ${first.chunkId} field ${first.field} scored ${first.score} (${first.rationale})${tier2BlockingHits.length > 1 ? ` — and ${tier2BlockingHits.length - 1} other field(s)` : ''}.`;
+      // `content_quality` (not `validation`) so the server layer surfaces
+      // the per-field findings to the caller — see src/server/topic-tools.ts
+      // where `findings` is only included when `errorType === 'content_quality'`.
+      return {
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: summary,
+          retryable: false,
+          findings: tier2BlockingHits.map(h => ({
+            chunkId: h.chunkId,
+            rule: `classifier.${h.field}`,
+            severity: 'blocking',
+            category: 'tier2',
+            detail: h.rationale,
+          })),
+        },
+      };
     }
 
     const topicWithChunks = toTopicWithChunks(result.topic, result.chunks, input.topicDescription);
@@ -571,16 +690,37 @@ function isAllNullVerdict(verdict: ChunkClassifierVerdict): boolean {
 }
 
 /**
+ * NEU-621: a single (chunk, field) pair where the verdict score crossed the
+ * blocking threshold. Aggregated by `classifyChunksSoftWarn` and returned to
+ * the orchestration entry point so `createTopicWithChunks` can roll back the
+ * just-persisted topic and emit one `classifier.tier2_blocked` event per hit.
+ */
+type Tier2BlockingHit = {
+  chunkId: string;
+  /** snake_case verdict-field name — matches keys in `validator_report.tier2`. */
+  field: string;
+  score: number;
+  rationale: string;
+};
+
+type ClassifierPassResult = {
+  findings: LinterFinding[];
+  blockingHits: Tier2BlockingHit[];
+};
+
+/**
  * Fan out classification across all created chunks. Each chunk is independent:
  * a throw in one classify() does not stop the others; a failure never blocks
- * creation. Returns the aggregated Tier 2 warning findings.
+ * creation. Returns the aggregated Tier 2 warning findings and any blocking
+ * hits accumulated under the `effectiveBlocking` allowlist (NEU-621).
  */
 async function classifyChunksSoftWarn(
   topicId: string,
   chunks: readonly LearningChunk[],
   classifier: ContentClassifierPort,
-  chunksRepo: ChunkRepository
-): Promise<LinterFinding[]> {
+  chunksRepo: ChunkRepository,
+  effectiveBlocking: ReadonlySet<VerdictFieldName>
+): Promise<ClassifierPassResult> {
   // The classifier prompt map is chunk-independent (rubric + few-shots only),
   // so build it once for the whole fan-out instead of re-rendering per chunk.
   // NEU-660: returns one ClassifierPrompt per VerdictFieldName instead of one
@@ -591,13 +731,17 @@ async function classifyChunksSoftWarn(
   // already absorbs every failure mode it knows about; this is belt-and-
   // suspenders for future helper edits.
   const results = await Promise.allSettled(
-    chunks.map(chunk => classifyChunk(topicId, chunk, prompts, classifier, chunksRepo))
+    chunks.map(chunk =>
+      classifyChunk(topicId, chunk, prompts, classifier, chunksRepo, effectiveBlocking)
+    )
   );
   const findings: LinterFinding[] = [];
+  const blockingHits: Tier2BlockingHit[] = [];
   for (let i = 0; i < results.length; i += 1) {
     const outcome = results[i];
     if (outcome.status === 'fulfilled') {
-      for (const finding of outcome.value) findings.push(finding);
+      for (const finding of outcome.value.findings) findings.push(finding);
+      for (const hit of outcome.value.blockingHits) blockingHits.push(hit);
     } else {
       getRequestLogger().warn(
         `Tier 2 classifier pass rejected for chunk ${chunks[i].id}:`,
@@ -605,7 +749,7 @@ async function classifyChunksSoftWarn(
       );
     }
   }
-  return findings;
+  return { findings, blockingHits };
 }
 
 async function classifyChunk(
@@ -613,10 +757,11 @@ async function classifyChunk(
   chunk: LearningChunk,
   prompts: PerFieldClassifierPrompts,
   classifier: ContentClassifierPort,
-  chunksRepo: ChunkRepository
-): Promise<LinterFinding[]> {
+  chunksRepo: ChunkRepository,
+  effectiveBlocking: ReadonlySet<VerdictFieldName>
+): Promise<ClassifierPassResult> {
   // Skip classification on chunks with no content — nothing meaningful to grade.
-  if (!chunk.content) return [];
+  if (!chunk.content) return { findings: [], blockingHits: [] };
 
   const startedAt = Date.now();
   const input = toClassifierInput(chunk);
@@ -668,7 +813,7 @@ async function classifyChunk(
     } catch {
       // A broken event logger must not poison the post-commit phase.
     }
-    return [];
+    return { findings: [], blockingHits: [] };
   }
 
   const durationMs = Date.now() - startedAt;
@@ -735,24 +880,37 @@ async function classifyChunk(
 
   if (allNull) {
     getRequestLogger().warn(`Classifier returned all-null verdict for chunk ${chunk.id}`);
-    return [];
+    return { findings: [], blockingHits: [] };
   }
 
   // Build warning findings for every field whose score falls below the threshold.
+  // For fields in `effectiveBlocking`, also accumulate a blocking hit. The
+  // outer caller decides whether to roll back creation; this helper just
+  // surfaces the data.
   const findings: LinterFinding[] = [];
+  const blockingHits: Tier2BlockingHit[] = [];
   for (const field of VERDICT_FIELDS) {
     const value = verdict[field];
     if (value === null) continue;
     if (value.score > TIER2_LOW_SCORE_THRESHOLD) continue;
+    const persistedFieldName = PERSISTED_TIER2_FIELD_NAMES[field];
     findings.push({
       chunkId: chunk.id,
-      rule: `classifier.${PERSISTED_TIER2_FIELD_NAMES[field as VerdictFieldName]}`,
+      rule: `classifier.${persistedFieldName}`,
       severity: 'warning',
       category: 'tier2',
       detail: value.rationale,
     });
+    if (effectiveBlocking.has(field)) {
+      blockingHits.push({
+        chunkId: chunk.id,
+        field: persistedFieldName,
+        score: value.score,
+        rationale: value.rationale,
+      });
+    }
   }
-  return findings;
+  return { findings, blockingHits };
 }
 
 // --- Embedding helpers ---
