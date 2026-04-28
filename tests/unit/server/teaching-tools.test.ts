@@ -619,4 +619,98 @@ describe('teaching-tools', () => {
     expect(parsed.status).toBe('error');
     expect(parsed.error.type).toBe('validation');
   });
+
+  // ── revise_grade ─────────────────────────────────────────────
+
+  it('registers revise_grade tool', () => {
+    registerTeachingTools(server as any, ctx);
+    expect(server.tools.has('revise_grade')).toBe(true);
+  });
+
+  it('revise_grade returns orchestration result as JSON on success', async () => {
+    ctx.reviseGrade = vi.fn().mockResolvedValue({
+      action: 'revised',
+      revised_attempt: {
+        attempt_id: 'a1',
+        session_question_id: 'q1',
+        attempt_number: 1,
+        original_quality: 2,
+        new_quality: 4,
+        original_passed: false,
+        new_passed: true,
+      },
+      revision_id: 'rev1',
+      reason: 'agent_misread_prompt',
+      roadblock_cancelled: false,
+      note_id: 'n1',
+    });
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('revise_grade')!.handler;
+
+    const result = await handler({
+      session_question_id: 'q1',
+      new_quality: 4,
+      new_feedback: 'corrected',
+      reason: 'agent_misread_prompt',
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.action).toBe('revised');
+    expect(parsed.data.revision_id).toBe('rev1');
+  });
+
+  it('revise_grade returns validation error on bad input (invalid reason)', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('revise_grade')!.handler;
+
+    const result = await handler({
+      session_question_id: 'q1',
+      new_quality: 4,
+      new_feedback: 'corrected',
+      reason: 'not_a_real_reason',
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('validation');
+  });
+
+  it('revise_grade returns validation error on quality out of range', async () => {
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('revise_grade')!.handler;
+
+    const result = await handler({
+      session_question_id: 'q1',
+      new_quality: 7,
+      new_feedback: 'corrected',
+      reason: 'other',
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('validation');
+  });
+
+  it('revise_grade returns session error when orchestration throws', async () => {
+    ctx.reviseGrade = vi.fn().mockRejectedValue(new Error('DB connection lost'));
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('revise_grade')!.handler;
+
+    const result = await handler({
+      session_question_id: 'q1',
+      new_quality: 4,
+      new_feedback: 'corrected',
+      reason: 'other',
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('internal');
+    expect(parsed.error.retryable).toBe(true);
+  });
 });

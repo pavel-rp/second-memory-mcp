@@ -151,3 +151,25 @@ export type SessionQuestionAttempt = {
   timeSpentMs: number;
   createdAt: number;
 };
+
+export type SessionQuestionAttemptRevisionReason =
+  | 'agent_misread_prompt'
+  | 'agent_misjudged_correctness'
+  | 'agent_applied_wrong_rubric'
+  | 'learner_provided_clarification'
+  | 'other';
+
+export type SessionQuestionAttemptRevision = {
+  id: string;
+  attemptId: string;
+  originalQuality: number | null;
+  originalAgentQuality: number | null;
+  originalPassed: boolean;
+  originalFeedback: string;
+  newQuality: number | null;
+  newAgentQuality: number | null;
+  newPassed: boolean;
+  newFeedback: string;
+  reason: SessionQuestionAttemptRevisionReason;
+  revisedAt: number;
+};

@@ -1,6 +1,8 @@
 import type {
   SessionQuestion,
   SessionQuestionAttempt,
+  SessionQuestionAttemptRevision,
+  SessionQuestionAttemptRevisionReason,
   SessionQuestionStatus,
 } from '../domain/types/entities.js';
 import type { QuestionType } from '../domain/types/teaching.js';
@@ -18,6 +20,27 @@ export type CreateQuestionAttemptInput = {
   questionType: QuestionType | null;
   timeSpentMs: number;
   createdAt: number;
+};
+
+/**
+ * Snapshot of an attempt's grading fields, captured before a revise_grade call
+ * mutates them. Stored verbatim in the revisions table for audit.
+ */
+export type AttemptGradeSnapshot = {
+  quality: number | null;
+  agentQuality: number | null;
+  passed: boolean;
+  feedback: string;
+};
+
+/** Input for revising an existing attempt's grade in place. */
+export type ReviseAttemptInput = {
+  revisionId: string;
+  attemptId: string;
+  original: AttemptGradeSnapshot;
+  next: AttemptGradeSnapshot;
+  reason: SessionQuestionAttemptRevisionReason;
+  revisedAt: number;
 };
 
 /**
@@ -59,4 +82,17 @@ export interface SessionQuestionRepository {
     chunkIds: string[],
     excludeQuestionId?: string
   ): Promise<number | undefined>;
+
+  /**
+   * Revise the grade fields of an existing attempt in place and atomically
+   * append a revision row preserving the original values verbatim. Used by the
+   * `revise_grade` MCP tool. Returns the persisted revision row.
+   */
+  reviseAttempt(input: ReviseAttemptInput): Promise<SessionQuestionAttemptRevision>;
+
+  /**
+   * Get all revisions for an attempt, ordered by `revisedAt` ascending. The
+   * orchestration uses the latest entry to detect idempotent re-revisions.
+   */
+  getRevisionsForAttempt(attemptId: string): Promise<SessionQuestionAttemptRevision[]>;
 }

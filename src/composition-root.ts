@@ -60,6 +60,8 @@ import type {
   StartLearningResult,
   CreateSessionQuestionsInput,
   CreateSessionQuestionsResult,
+  ReviseGradeInput,
+  ReviseGradeResult,
 } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 import type {
@@ -233,6 +235,7 @@ export interface AppContext {
   createSessionQuestions: (
     input: CreateSessionQuestionsInput
   ) => Promise<CreateSessionQuestionsResult>;
+  reviseGrade: (input: ReviseGradeInput) => Promise<ReviseGradeResult>;
 
   // Notes orchestration
   createNote: (input: CreateNoteInput) => Promise<NoteCreated>;
@@ -524,6 +527,13 @@ export function createAppContext(
     submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
     startLearning: input => teachingWorkflows.startLearning(input, startLearningDeps),
     createSessionQuestions: input => teachingWorkflows.createSessionQuestions(input, teachingDeps),
+    reviseGrade: input =>
+      teachingWorkflows.reviseGrade(input, {
+        sessions: ports.sessions,
+        sessionQuestions: ports.sessionQuestions,
+        algorithmConfig,
+        notes: ports.notes,
+      }),
 
     // Notes orchestration
     createNote: input => notesWorkflows.createNote(input, notesDeps),

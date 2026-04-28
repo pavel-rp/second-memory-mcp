@@ -302,6 +302,120 @@ export const SubmitAnswerInputSchema = z
     }
   );
 
+// ── revise_grade types ──────────────────────────────────────────
+
+export type ReviseGradeReason =
+  | 'agent_misread_prompt'
+  | 'agent_misjudged_correctness'
+  | 'agent_applied_wrong_rubric'
+  | 'learner_provided_clarification'
+  | 'other';
+
+export const REVISE_GRADE_REASONS = [
+  'agent_misread_prompt',
+  'agent_misjudged_correctness',
+  'agent_applied_wrong_rubric',
+  'learner_provided_clarification',
+  'other',
+] as const satisfies readonly ReviseGradeReason[];
+
+export type ReviseGradeInput = {
+  sessionQuestionId: string;
+  newQuality: number;
+  newPassed?: boolean;
+  newFeedback: string;
+  reason: ReviseGradeReason;
+};
+
+export type ReviseGradeRevisedAttempt = {
+  attempt_id: string;
+  session_question_id: string;
+  attempt_number: 1 | 2;
+  original_quality: number | null;
+  new_quality: number | null;
+  original_passed: boolean;
+  new_passed: boolean;
+};
+
+export type ReviseGradeSuccess = {
+  action: 'revised';
+  revised_attempt: ReviseGradeRevisedAttempt;
+  revision_id: string;
+  reason: ReviseGradeReason;
+  roadblock_cancelled: boolean;
+  note_id: string;
+};
+
+export type ReviseGradeNoop = {
+  action: 'noop_already_revised';
+  revision_id: string;
+  message: string;
+};
+
+export type ReviseGradeError = {
+  action: 'error';
+  error:
+    | 'session_not_active'
+    | 'question_not_found'
+    | 'attempt_not_found'
+    | 'chunk_already_finalized';
+  message: string;
+};
+
+export type ReviseGradeResult = ReviseGradeSuccess | ReviseGradeNoop | ReviseGradeError;
+
+export const ReviseGradeInputShape = {
+  session_question_id: z
+    .string()
+    .min(1)
+    .describe('The session_question_id whose latest attempt is being revised.'),
+  new_quality: z
+    .number()
+    .int()
+    .min(0)
+    .max(5)
+    .describe(
+      'The corrected quality score (0–5). Replaces the original agent_quality on the live attempt row.'
+    ),
+  new_passed: z
+    .boolean()
+    .optional()
+    .describe('Optional. Derived from `new_quality >= 3` when omitted.'),
+  new_feedback: z
+    .string()
+    .min(1)
+    .describe('Why the original grade was wrong. Replaces the original feedback on the live row.'),
+  reason: z
+    .enum(REVISE_GRADE_REASONS)
+    .describe('Structured cause for analytics — see ReviseGradeReason.'),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
+} as const;
+
+export const ReviseGradeInputSchema = z
+  .object(ReviseGradeInputShape)
+  .transform(
+    ({
+      session_question_id,
+      new_quality,
+      new_passed,
+      new_feedback,
+      reason,
+      context_token: _ct,
+    }) => ({
+      sessionQuestionId: session_question_id,
+      newQuality: new_quality,
+      newPassed: new_passed,
+      newFeedback: new_feedback,
+      reason,
+    })
+  );
+
 // ── start_learning types ────────────────────────────────────────
 
 export type StartLearningInput = {
