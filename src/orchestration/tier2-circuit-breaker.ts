@@ -81,6 +81,12 @@ export function createTier2CircuitBreaker(
       if (out.has(camelField)) continue; // already tripped — skip to prevent re-emit
       const priors = bucket.priorWeeksCounts;
       if (priors.length === 0) continue; // no prior history — cannot compute σ
+      // All-zero priors carry no signal: mean = σ = 0 would set the threshold to
+      // 0 and trip on the first rejection in the current week, which is the
+      // exact opposite of intended behavior for a newly activated field. Treat
+      // as "insufficient history" and skip until the field has at least one
+      // non-zero prior bucket.
+      if (priors.every(p => p === 0)) continue;
       const mean = priors.reduce((acc, x) => acc + x, 0) / priors.length;
       const variance = priors.reduce((acc, x) => acc + (x - mean) * (x - mean), 0) / priors.length;
       const sigma = Math.sqrt(variance);

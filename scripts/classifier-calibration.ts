@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { sql } from 'drizzle-orm';
-import { getSql } from '../src/infrastructure/db/operations.js';
+import { extractExecuteRows, getSql } from '../src/infrastructure/db/operations.js';
 import {
   PERSISTED_TIER2_FIELD_NAMES,
 } from '../src/shared/prompts/classifier-prompts.js';
@@ -110,17 +110,15 @@ function agreement(m: FieldMetrics): number {
 async function fetchVerdicts(chunkIds: string[]): Promise<Map<string, Record<string, Tier2Score>>> {
   if (chunkIds.length === 0) return new Map();
   const db = getSql();
-  const rows = await db.execute<{ id: string; tier2: Record<string, Tier2Score> | null }>(sql`
+  type Row = { id: string; tier2: Record<string, Tier2Score> | null };
+  const result = await db.execute<Row>(sql`
     SELECT id, validator_report->'tier2' AS tier2
     FROM learning_chunks
     WHERE id = ANY(${chunkIds})
   `);
   const out = new Map<string, Record<string, Tier2Score>>();
-  const iterable = (rows as unknown as { rows?: typeof rows }).rows ?? rows;
-  if (Array.isArray(iterable)) {
-    for (const row of iterable) {
-      if (row.tier2) out.set(row.id, row.tier2);
-    }
+  for (const row of extractExecuteRows<Row>(result)) {
+    if (row.tier2) out.set(row.id, row.tier2);
   }
   return out;
 }

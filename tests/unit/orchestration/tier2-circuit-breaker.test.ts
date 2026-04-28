@@ -64,7 +64,8 @@ describe('createTier2CircuitBreaker', () => {
       {
         field: 'overall_fit',
         currentWeekCount: 100,
-        priorWeeksCounts: [0, 0, 0, 0],
+        // mean=2, σ=0, threshold=2 — current=100 trips on first observation.
+        priorWeeksCounts: [2, 2, 2, 2],
       },
     ]);
     let now = 1000;
@@ -74,6 +75,47 @@ describe('createTier2CircuitBreaker', () => {
     now = 1000 + 120_000;
     await breaker.applyTo(new Set<VerdictFieldName>(['overallFit']));
 
+    const tripped = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
+    expect(tripped).toHaveLength(1);
+  });
+
+  it('does not trip when prior history is all-zeros (newly activated field)', async () => {
+    // A freshly enabled field has no rejection history, so any non-zero
+    // current-week count would trip a naive mean+2σ rule (mean=σ=0,
+    // threshold=0). Treat all-zero priors as insufficient signal.
+    const stats = makeStats([
+      {
+        field: 'rendering_clarity',
+        currentWeekCount: 5,
+        priorWeeksCounts: [0, 0, 0, 0],
+      },
+    ]);
+    const breaker = createTier2CircuitBreaker({ stats });
+    const blocking = new Set<VerdictFieldName>(['renderingClarity']);
+    const out = await breaker.applyTo(blocking);
+    expect(out.has('renderingClarity')).toBe(true);
+    const tripped = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
+    expect(tripped).toHaveLength(0);
+  });
+
+  it('still trips once at least one prior bucket has a non-zero signal', async () => {
+    // As soon as history accumulates a single non-zero week, the breaker can
+    // compute a meaningful threshold and resume tripping on spikes.
+    const stats = makeStats([
+      {
+        field: 'rendering_clarity',
+        currentWeekCount: 50,
+        priorWeeksCounts: [0, 0, 0, 1], // mean = 0.25, σ ≈ 0.43
+      },
+    ]);
+    const breaker = createTier2CircuitBreaker({ stats });
+    const blocking = new Set<VerdictFieldName>(['renderingClarity']);
+    const out = await breaker.applyTo(blocking);
+    expect(out.has('renderingClarity')).toBe(false);
     const tripped = vi
       .mocked(logEvent)
       .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
@@ -112,7 +154,7 @@ describe('createTier2CircuitBreaker', () => {
       {
         field: 'unknown_field',
         currentWeekCount: 1000,
-        priorWeeksCounts: [0, 0, 0, 0],
+        priorWeeksCounts: [1, 1, 1, 1],
       },
     ]);
     const breaker = createTier2CircuitBreaker({ stats });

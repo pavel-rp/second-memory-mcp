@@ -380,7 +380,10 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const result = await createTopicWithChunks(input(), deps);
 
       expect(result.success).toBe(false);
-      expect(result.error?.type).toBe('validation');
+      // `content_quality` (not `validation`) so the server layer surfaces
+      // findings to the caller — `topic-tools.ts` only includes `findings`
+      // when `errorType === 'content_quality'`.
+      expect(result.error?.type).toBe('content_quality');
       expect(result.error?.retryable).toBe(false);
       expect(result.error?.message).toContain('chunk-a');
       expect(result.error?.message).toContain('rendering_clarity');
@@ -470,7 +473,59 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       // Breaker error did not amplify into a creation failure unrelated to
       // the actual blocking score; the original block still applies.
       expect(result.success).toBe(false);
-      expect(result.error?.type).toBe('validation');
+      expect(result.error?.type).toBe('content_quality');
+      expect(deleteSpy).toHaveBeenCalledOnce();
+    });
+
+    it('returns a retryable database error when rollback delete reports failure', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      const deleteSpy = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'database', message: 'connection lost' },
+      });
+      deps.topics.delete = deleteSpy;
+      deps.blockingFields = new Set(['renderingClarity']);
+
+      const result = await createTopicWithChunks(input(), deps);
+
+      expect(result.success).toBe(false);
+      // Rollback failure must be retryable — the topic is still persisted and
+      // the client/operator needs to know the DB state is inconsistent with
+      // the rejection response.
+      expect(result.error?.type).toBe('database');
+      expect(result.error?.retryable).toBe(true);
+      expect(result.error?.message).toContain('rollback failed');
+      expect(result.error?.message).toContain('connection lost');
+      expect(deleteSpy).toHaveBeenCalledOnce();
+      // Block events still emit so analytics can correlate the rejected
+      // attempt with the failed rollback.
+      const blockedEvents = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.tier2_blocked');
+      expect(blockedEvents).toHaveLength(1);
+    });
+
+    it('returns a retryable database error when rollback delete throws', async () => {
+      const classify = vi.fn().mockResolvedValue(twoLowVerdict());
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      const deleteSpy = vi.fn().mockRejectedValue(new Error('pool closed'));
+      deps.topics.delete = deleteSpy;
+      deps.blockingFields = new Set(['renderingClarity']);
+
+      const result = await createTopicWithChunks(input(), deps);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe('database');
+      expect(result.error?.retryable).toBe(true);
+      expect(result.error?.message).toContain('rollback failed');
+      expect(result.error?.message).toContain('pool closed');
       expect(deleteSpy).toHaveBeenCalledOnce();
     });
   });

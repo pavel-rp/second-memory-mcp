@@ -112,7 +112,10 @@ export type TopicWithChunks = {
    * Tier 2 (classifier) warning findings. Populated post-commit by NEU-620
    * only when the classifier ran and at least one verdict field scored ≤ 2.
    * Absent when the classifier was not configured, was disabled, failed, or
-   * produced no low-score fields. These findings never escalate to blocking.
+   * produced no low-score fields. Only fields outside the effective NEU-621
+   * `blockingFields` set surface here as warnings — fields inside that set
+   * route through the blocking branch instead and never appear here on a
+   * successful create.
    */
   tier2Findings?: LinterFinding[];
 };
@@ -412,16 +415,25 @@ export async function createTopicWithChunks(
     if (tier2BlockingHits.length > 0) {
       // Roll back the just-persisted topic — NEU-621 contract is "creation
       // rejected" when any blocking-eligible field falls below threshold.
-      // Failure to delete is logged but does not change the externally
-      // observable outcome (the create still returns a validation error).
+      // Rollback failure is reported as a retryable database error so the
+      // client/operator knows the persisted topic was NOT cleaned up;
+      // returning the non-retryable rejection in that case would leave the
+      // DB inconsistent with the externally observed outcome and silently
+      // accumulate orphaned rows on retry.
+      let rollbackFailed = false;
+      let rollbackErrorMessage: string | undefined;
       try {
         const deleteResult = await deps.topics.delete(result.topic.id);
         if (!deleteResult.success) {
+          rollbackFailed = true;
+          rollbackErrorMessage = deleteResult.error?.message ?? 'unknown';
           getRequestLogger().warn(
-            `Tier 2 block: rollback delete failed for topic ${result.topic.id}: ${deleteResult.error?.message ?? 'unknown'}`
+            `Tier 2 block: rollback delete failed for topic ${result.topic.id}: ${rollbackErrorMessage}`
           );
         }
       } catch (err) {
+        rollbackFailed = true;
+        rollbackErrorMessage = extractErrorMessage(err);
         getRequestLogger().warn(
           `Tier 2 block: rollback delete threw for topic ${result.topic.id}:`,
           err
@@ -440,12 +452,25 @@ export async function createTopicWithChunks(
           // Defensive: a broken event logger must not change the response.
         }
       }
+      if (rollbackFailed) {
+        return {
+          success: false,
+          error: {
+            type: 'database',
+            message: `Tier 2 classifier rejected creation but rollback failed for topic ${result.topic.id} (${rollbackErrorMessage ?? 'unknown'}). Manual cleanup may be required.`,
+            retryable: true,
+          },
+        };
+      }
       const first = tier2BlockingHits[0];
       const summary = `Tier 2 classifier rejected creation: chunk ${first.chunkId} field ${first.field} scored ${first.score} (${first.rationale})${tier2BlockingHits.length > 1 ? ` — and ${tier2BlockingHits.length - 1} other field(s)` : ''}.`;
+      // `content_quality` (not `validation`) so the server layer surfaces
+      // the per-field findings to the caller — see src/server/topic-tools.ts
+      // where `findings` is only included when `errorType === 'content_quality'`.
       return {
         success: false,
         error: {
-          type: 'validation',
+          type: 'content_quality',
           message: summary,
           retryable: false,
           findings: tier2BlockingHits.map(h => ({

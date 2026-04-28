@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
+import { extractExecuteRows, getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import type {
   Tier2BlockingStatsRepository,
   Tier2WeeklyBlockingCounts,
@@ -18,11 +18,8 @@ export class DrizzleTier2BlockingStatsRepository implements Tier2BlockingStatsRe
     // The current week is offset 0; the four prior 7-day windows are offsets
     // 1-4. The query filters to the five-week range, so any FLOOR > 4 is
     // pre-excluded by the WHERE clause.
-    const rows = await this.db.execute<{
-      field: string;
-      week_offset: number;
-      event_count: number;
-    }>(sql`
+    type RawRow = { field: string; week_offset: number; event_count: number };
+    const result = await this.db.execute<RawRow>(sql`
       SELECT
         data->>'field' AS field,
         FLOOR(EXTRACT(EPOCH FROM (NOW() - "timestamp")) / (7 * 86400))::int AS week_offset,
@@ -33,11 +30,10 @@ export class DrizzleTier2BlockingStatsRepository implements Tier2BlockingStatsRe
         AND data->>'field' IS NOT NULL
       GROUP BY data->>'field', FLOOR(EXTRACT(EPOCH FROM (NOW() - "timestamp")) / (7 * 86400))
     `);
+    const rows = extractExecuteRows<RawRow>(result);
 
     const byField = new Map<string, { current: number; priors: number[] }>();
-    const dataRows = (rows as unknown as { rows?: typeof rows }).rows ?? rows;
-    const iterable = Array.isArray(dataRows) ? dataRows : [];
-    for (const row of iterable) {
+    for (const row of rows) {
       const field = row.field;
       const offset = row.week_offset;
       const count = row.event_count;
