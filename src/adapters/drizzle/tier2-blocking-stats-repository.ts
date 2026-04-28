@@ -3,38 +3,58 @@ import { extractExecuteRows, getSql, type SqlDb } from '../../infrastructure/db/
 import type {
   Tier2BlockingStatsRepository,
   Tier2WeeklyBlockingCounts,
-} from '../../ports/tier2-blocking-stats.js';
+} from '../../ports/tier2-blocking-stats-repository.js';
+import {
+  PERSISTED_TIER2_FIELD_NAMES,
+  type PersistedTier2FieldName,
+} from '../../shared/prompts/classifier-prompts.js';
+import { VERDICT_FIELDS } from '../../domain/types/classifier.js';
 
 /**
  * Drizzle adapter for the NEU-621 circuit-breaker stats query. Reads
  * `infrastructure.operation_event_log` directly with a single grouped query
  * so the breaker pays one round-trip per cache window (default 60 s).
+ *
+ * NEU-672 changes:
+ *   - Bucket expression evaluated once via a CTE; the outer SELECT groups on
+ *     the alias instead of re-computing FLOOR(EXTRACT(...)) twice.
+ *   - Unknown field names (rows with `data->>'field'` outside the known
+ *     verdict-field set) are filtered at the boundary so the port can return
+ *     a typed `PersistedTier2FieldName` union end-to-end.
+ *   - A partial index on `(timestamp DESC) WHERE event = 'classifier.tier2_blocked'`
+ *     ships in migration `0020_tier2_blocked_event_index.sql` to keep the scan
+ *     selective even as the event log grows.
  */
 export class DrizzleTier2BlockingStatsRepository implements Tier2BlockingStatsRepository {
   constructor(private db: SqlDb = getSql()) {}
 
   async getWeeklyBlockingCounts(): Promise<Tier2WeeklyBlockingCounts[]> {
-    // Bucket each event by an integer "weeks-ago" offset relative to NOW().
-    // The current week is offset 0; the four prior 7-day windows are offsets
-    // 1-4. The query filters to the five-week range, so any FLOOR > 4 is
-    // pre-excluded by the WHERE clause.
     type RawRow = { field: string; week_offset: number; event_count: number };
     const result = await this.db.execute<RawRow>(sql`
-      SELECT
-        data->>'field' AS field,
-        FLOOR(EXTRACT(EPOCH FROM (NOW() - "timestamp")) / (7 * 86400))::int AS week_offset,
-        COUNT(*)::int AS event_count
-      FROM infrastructure.operation_event_log
-      WHERE event = 'classifier.tier2_blocked'
-        AND "timestamp" >= NOW() - INTERVAL '5 weeks'
-        AND data->>'field' IS NOT NULL
-      GROUP BY data->>'field', FLOOR(EXTRACT(EPOCH FROM (NOW() - "timestamp")) / (7 * 86400))
+      WITH bucketed AS (
+        SELECT
+          data->>'field' AS field,
+          FLOOR(EXTRACT(EPOCH FROM (NOW() - "timestamp")) / (7 * 86400))::int AS week_offset
+        FROM infrastructure.operation_event_log
+        WHERE event = 'classifier.tier2_blocked'
+          AND "timestamp" >= NOW() - INTERVAL '5 weeks'
+          AND data->>'field' IS NOT NULL
+      )
+      SELECT field, week_offset, COUNT(*)::int AS event_count
+      FROM bucketed
+      GROUP BY field, week_offset
     `);
     const rows = extractExecuteRows<RawRow>(result);
 
-    const byField = new Map<string, { current: number; priors: number[] }>();
+    // Allowlist of known persisted snake-case field names. Rows with anything
+    // outside this set are silently dropped — they cannot map back to a
+    // VerdictFieldName and shouldn't contribute to breaker math.
+    const knownFields = new Set<string>(VERDICT_FIELDS.map(f => PERSISTED_TIER2_FIELD_NAMES[f]));
+
+    const byField = new Map<PersistedTier2FieldName, { current: number; priors: number[] }>();
     for (const row of rows) {
-      const field = row.field;
+      if (!knownFields.has(row.field)) continue;
+      const field = row.field as PersistedTier2FieldName;
       const offset = row.week_offset;
       const count = row.event_count;
       if (offset < 0 || offset > 4) continue;

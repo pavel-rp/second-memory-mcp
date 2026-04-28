@@ -32,21 +32,14 @@ import {
   PERSISTED_TIER2_FIELD_NAMES,
   buildClassifierPrompt,
   toPersistedTier2,
+  type PersistedTier2FieldName,
 } from '../shared/prompts/classifier-prompts.js';
 import { renderClassifierUserPayload } from '../domain/services/render-classifier-prompt.js';
 import { VALIDATION_CONSTANTS } from '../shared/constants/validation.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
 
-/**
- * NEU-621: optional handle that mutates the per-call effective blocking-fields
- * set in response to elevated rejection rates. The orchestration layer calls
- * `applyTo` before consuming `blockingFields` for a creation; failure modes
- * are absorbed by the breaker (returns the input unchanged).
- */
-export type Tier2CircuitBreakerHandle = {
-  applyTo(blockingFields: ReadonlySet<VerdictFieldName>): Promise<ReadonlySet<VerdictFieldName>>;
-};
+import type { Tier2CircuitBreakerHandle } from './tier2-circuit-breaker.js';
 
 export type TopicDeps = {
   topics: TopicRepository;
@@ -446,7 +439,7 @@ export async function createTopicWithChunks(
             chunk_id: hit.chunkId,
             field: hit.field,
             score: hit.score,
-            rationale: hit.rationale,
+            rationale: truncateRationaleForEvent(hit.rationale),
           });
         } catch {
           // Defensive: a broken event logger must not change the response.
@@ -467,19 +460,24 @@ export async function createTopicWithChunks(
       // `content_quality` (not `validation`) so the server layer surfaces
       // the per-field findings to the caller — see src/server/topic-tools.ts
       // where `findings` is only included when `errorType === 'content_quality'`.
+      // NEU-672: warning-tier `tier2Findings` accumulated for the same topic
+      // are surfaced alongside the blocking ones so the caller sees the full
+      // picture. `severity` distinguishes blocking from warning.
+      const blockingFindings: LinterFinding[] = tier2BlockingHits.map(h => ({
+        chunkId: h.chunkId,
+        rule: `classifier.${h.field}`,
+        severity: 'blocking',
+        category: 'tier2',
+        detail: h.rationale,
+      }));
+      const mergedFindings: LinterFinding[] = [...blockingFindings, ...(tier2Findings ?? [])];
       return {
         success: false,
         error: {
           type: 'content_quality',
           message: summary,
           retryable: false,
-          findings: tier2BlockingHits.map(h => ({
-            chunkId: h.chunkId,
-            rule: `classifier.${h.field}`,
-            severity: 'blocking',
-            category: 'tier2',
-            detail: h.rationale,
-          })),
+          findings: mergedFindings,
         },
       };
     }
@@ -660,10 +658,28 @@ export async function updateTopicSummary(
 // --- Tier 2 classifier helpers (NEU-620) ---
 
 /**
- * Low-score threshold for emitting a Tier 2 warning finding. Hardcoded to 2 per
- * the NEU-620 spec — anything with `score <= 2` surfaces; never blocks.
+ * Low-score threshold for emitting a Tier 2 warning finding. Re-exported as
+ * `BLOCKING_THRESHOLD` from `src/domain/config/classifier.ts` (NEU-672) — the
+ * shared constant is the single source of truth so the calibration script and
+ * the soft-warn / blocking branch never drift.
  */
-const TIER2_LOW_SCORE_THRESHOLD = 2;
+import { BLOCKING_THRESHOLD as TIER2_LOW_SCORE_THRESHOLD } from '../domain/config/classifier.js';
+
+/**
+ * NEU-672 hard gate: cap rationale length before persisting to the
+ * indefinitely-retained `infrastructure.operation_event_log`. Rationales may
+ * quote user-supplied chunk content verbatim, so an unbounded persisted value
+ * would store unbounded PII. Full rationale still flows through the
+ * synchronous `error.findings[].detail` response — only the persisted event
+ * payload is clipped.
+ */
+const RATIONALE_PERSIST_MAX_CHARS = 256;
+const RATIONALE_TRUNCATION_MARKER = '…[truncated]';
+
+function truncateRationaleForEvent(rationale: string): string {
+  if (rationale.length <= RATIONALE_PERSIST_MAX_CHARS) return rationale;
+  return rationale.slice(0, RATIONALE_PERSIST_MAX_CHARS) + RATIONALE_TRUNCATION_MARKER;
+}
 
 /**
  * Build the `ChunkClassifierInput` snapshot from a persisted `LearningChunk`.
@@ -698,7 +714,7 @@ function isAllNullVerdict(verdict: ChunkClassifierVerdict): boolean {
 type Tier2BlockingHit = {
   chunkId: string;
   /** snake_case verdict-field name — matches keys in `validator_report.tier2`. */
-  field: string;
+  field: PersistedTier2FieldName;
   score: number;
   rationale: string;
 };

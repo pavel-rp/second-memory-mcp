@@ -33,3 +33,11 @@ export type ClassifierConfig = {
    */
   blockingFields: ReadonlySet<VerdictFieldName>;
 };
+
+/**
+ * NEU-672: shared blocking-decision threshold. A Tier 2 verdict field with
+ * `score <= BLOCKING_THRESHOLD` either soft-warns (default) or rejects creation
+ * when the field is in `blockingFields`. Single source of truth so the
+ * calibration script and production stay aligned.
+ */
+export const BLOCKING_THRESHOLD = 2;
