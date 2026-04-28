@@ -139,6 +139,45 @@ describe('createTier2CircuitBreaker', () => {
     expect(tripped).toHaveLength(0);
   });
 
+  it('serializes concurrent recomputes after TTL expiry — one DB round-trip, no duplicate trip events', async () => {
+    // Without the in-flight promise, two `applyTo` calls that both observe an
+    // expired cache would each call `getWeeklyBlockingCounts` and each emit a
+    // `tier2.circuit_breaker_tripped` event for the same crossing field.
+    let resolveQuery: ((buckets: Tier2WeeklyBlockingCounts[]) => void) | undefined;
+    const queryFn = vi.fn().mockImplementation(() => {
+      return new Promise<Tier2WeeklyBlockingCounts[]>(resolve => {
+        resolveQuery = resolve;
+      });
+    });
+    const stats: Tier2BlockingStatsRepository = { getWeeklyBlockingCounts: queryFn };
+    const breaker = createTier2CircuitBreaker({ stats });
+    const blocking = new Set<VerdictFieldName>(['renderingClarity']);
+
+    // Launch two concurrent calls. The second must observe the in-flight
+    // promise and await its result rather than starting its own recompute.
+    const p1 = breaker.applyTo(blocking);
+    const p2 = breaker.applyTo(blocking);
+
+    // Resolve the single in-flight DB call.
+    resolveQuery?.([
+      {
+        field: 'rendering_clarity',
+        currentWeekCount: 50,
+        priorWeeksCounts: [1, 0, 1, 1],
+      },
+    ]);
+
+    const [out1, out2] = await Promise.all([p1, p2]);
+    expect(out1.has('renderingClarity')).toBe(false);
+    expect(out2.has('renderingClarity')).toBe(false);
+    expect(queryFn).toHaveBeenCalledTimes(1);
+
+    const tripped = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
+    expect(tripped).toHaveLength(1);
+  });
+
   it('falls open and returns the input unchanged when the stats query throws', async () => {
     const stats: Tier2BlockingStatsRepository = {
       getWeeklyBlockingCounts: vi.fn().mockRejectedValue(new Error('db unavailable')),

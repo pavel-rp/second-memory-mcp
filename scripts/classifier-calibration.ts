@@ -29,6 +29,13 @@ const LABEL_PATH = resolve(process.cwd(), 'scripts', 'classifier-calibration', '
 type Split = 'calibration' | 'ood';
 type ExpectedVerdict = 'should_reject' | 'clean' | 'missed';
 
+const VALID_SPLITS: ReadonlySet<Split> = new Set(['calibration', 'ood']);
+const VALID_VERDICTS: ReadonlySet<ExpectedVerdict> = new Set([
+  'should_reject',
+  'clean',
+  'missed',
+]);
+
 type LabelRow = {
   chunkId: string;
   field: string;
@@ -50,10 +57,46 @@ type FieldMetrics = {
 
 const BLOCKING_THRESHOLD = 2;
 
+/**
+ * Quote-aware single-line CSV split. Handles `"foo, bar"` (commas inside
+ * quotes) and `""` (escaped quote) so an operator-edited `notes` column with
+ * commas does not shift the required-column indices and silently corrupt
+ * gate metrics.
+ */
+function splitCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let cur = '';
+  let inQuote = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') {
+        cur += '"';
+        i += 1;
+      } else {
+        inQuote = !inQuote;
+      }
+    } else if (ch === ',' && !inQuote) {
+      result.push(cur);
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur);
+  return result.map(s => s.trim());
+}
+
 function parseCsv(text: string): LabelRow[] {
-  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '' && !l.startsWith('#'));
+  // Keep the original 1-indexed line number alongside each kept line so the
+  // warnings below point at the row the operator sees in their editor, even
+  // when the CSV has leading blanks or `#` comments.
+  const lines = text
+    .split(/\r?\n/)
+    .map((line, idx) => ({ line, lineNo: idx + 1 }))
+    .filter(({ line }) => line.trim() !== '' && !line.startsWith('#'));
   if (lines.length === 0) return [];
-  const header = lines[0].split(',').map(s => s.trim());
+  const header = splitCsvLine(lines[0].line);
   const idxChunk = header.indexOf('chunk_id');
   const idxField = header.indexOf('field');
   const idxSplit = header.indexOf('split');
@@ -66,12 +109,41 @@ function parseCsv(text: string): LabelRow[] {
   }
   const rows: LabelRow[] = [];
   for (let i = 1; i < lines.length; i += 1) {
-    const cols = lines[i].split(',').map(c => c.trim());
+    const { line, lineNo } = lines[i];
+    const cols = splitCsvLine(line);
+    const rawChunk = cols[idxChunk];
+    const rawField = cols[idxField];
+    const rawSplit = cols[idxSplit];
+    const rawVerdict = cols[idxVerdict];
+    // Skip + warn for short rows missing the identifier columns rather than
+    // pushing `undefined` chunk ids that fail downstream with a confusing
+    // join error.
+    if (!rawChunk || !rawField) {
+      console.warn(`labels.csv row ${lineNo}: missing chunk_id or field. Skipping.`);
+      continue;
+    }
+    // Validate enum values rather than blind-casting — a typo here used to
+    // sail past the cast, route the row to neither bucket, and silently
+    // skew calibration / OOD metrics. Skip + warn so the operator notices.
+    if (!VALID_SPLITS.has(rawSplit as Split)) {
+      console.warn(
+        `labels.csv row ${lineNo}: invalid split "${rawSplit}". Expected one of ` +
+          `${Array.from(VALID_SPLITS).join(', ')}. Skipping.`
+      );
+      continue;
+    }
+    if (!VALID_VERDICTS.has(rawVerdict as ExpectedVerdict)) {
+      console.warn(
+        `labels.csv row ${lineNo}: invalid expected_verdict "${rawVerdict}". Expected one of ` +
+          `${Array.from(VALID_VERDICTS).join(', ')}. Skipping.`
+      );
+      continue;
+    }
     rows.push({
-      chunkId: cols[idxChunk],
-      field: cols[idxField],
-      split: cols[idxSplit] as Split,
-      expectedVerdict: cols[idxVerdict] as ExpectedVerdict,
+      chunkId: rawChunk,
+      field: rawField,
+      split: rawSplit as Split,
+      expectedVerdict: rawVerdict as ExpectedVerdict,
     });
   }
   return rows;

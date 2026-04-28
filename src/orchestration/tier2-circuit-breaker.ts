@@ -55,6 +55,13 @@ export function createTier2CircuitBreaker(
   // if the field's spike continues for weeks.
   const tripped = new Set<VerdictFieldName>();
   let cache: BreakerCache | null = null;
+  // Concurrent callers reaching `applyTo` after TTL expiry would otherwise
+  // each launch their own `recompute()`, exceeding the "one DB round-trip
+  // per minute" cap and risking duplicate `tier2.circuit_breaker_tripped`
+  // events when both observers see a not-yet-tripped field cross threshold.
+  // `inFlight` serializes recomputation: the second-and-later callers await
+  // the first computation's promise instead of starting their own.
+  let inFlight: Promise<Set<VerdictFieldName>> | null = null;
 
   // Snake → camel reverse lookup for verdict-field names; computed once.
   const snakeToCamel = new Map<string, VerdictFieldName>();
@@ -111,6 +118,12 @@ export function createTier2CircuitBreaker(
     return out;
   }
 
+  async function refreshAndCache(): Promise<Set<VerdictFieldName>> {
+    const trippedSet = await recompute();
+    cache = { trippedFields: trippedSet, computedAt: now() };
+    return trippedSet;
+  }
+
   return {
     async applyTo(blockingFields: ReadonlySet<VerdictFieldName>) {
       // Skip the query entirely when there are no blocking fields to shrink —
@@ -120,9 +133,15 @@ export function createTier2CircuitBreaker(
       let trippedSet: Set<VerdictFieldName>;
       if (cache !== null && t - cache.computedAt < CACHE_TTL_MS) {
         trippedSet = cache.trippedFields;
+      } else if (inFlight !== null) {
+        // A concurrent caller already started a recompute — wait for its
+        // result instead of launching another DB round-trip.
+        trippedSet = await inFlight;
       } else {
-        trippedSet = await recompute();
-        cache = { trippedFields: trippedSet, computedAt: t };
+        inFlight = refreshAndCache().finally(() => {
+          inFlight = null;
+        });
+        trippedSet = await inFlight;
       }
       if (trippedSet.size === 0) return blockingFields;
       const shrunk = new Set<VerdictFieldName>();
