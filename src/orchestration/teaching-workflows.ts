@@ -1595,6 +1595,18 @@ export async function reviseGrade(
         'finalized chunks is a deferred follow-up.',
     };
   }
+  // Pick the in-progress chunk for roadblock recomputation + auto-note targeting.
+  // For multi-chunk (assessment-mode) questions, prefer the chunk the learner is
+  // actively in; fall back to any non-completed chunk to handle pending-only
+  // edge cases. The earlier `chunk_already_finalized` guard ensures none are
+  // completed, and the `targetSessionChunks.length === 0` guard above ensures
+  // `targetSessionChunks[0]` is defined. NOTE: this differs from `submit_answer`
+  // (which uses the question's `chunkIds[0]` directly) because the auto-note
+  // must land on the chunk the learner is currently in, not just the first
+  // chunk linked to the question.
+  const primaryChunk = (targetSessionChunks.find(sc => sc.status === 'in_progress') ??
+    targetSessionChunks[0]) as SessionChunk;
+  const chunkIdForGate = primaryChunk.chunkId;
 
   // 4. Load attempts and pick the latest (highest attemptNumber)
   const attempts = await deps.sessionQuestions.getAttemptsForQuestion(question.id);
@@ -1634,16 +1646,32 @@ export async function reviseGrade(
     };
   }
 
-  // 7. Capture pre-revision roadblock state for cancellation detection
-  const chunkIdForGate = chunkIds[0] as string; // length >= 1 guaranteed by step 3
-  const wasRoadblocked = await isChunkRoadblocked(
+  // 7. Pre-fetch session questions + chunk mapping + pre-revision attempts in
+  // parallel. The questions and chunk-mapping are stable across the revision
+  // (we only mutate one attempt row), so they're reused by both the pre- and
+  // post-revision roadblock checks. Attempts are re-fetched after the revision
+  // lands when (and only when) the original grade triggered a roadblock.
+  const [allQuestions, preAttemptsRaw] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(session.id),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
+  ]);
+  const chunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(
+    allQuestions.map(q => q.id)
+  );
+  const chunkQuestions = allQuestions.filter(q =>
+    (chunkMapping.get(q.id) ?? []).includes(chunkIdForGate)
+  );
+
+  // 8. Pre-revision roadblock state — derived from the parallel fetch above.
+  const wasRoadblocked = chunkIsRoadblocked(
     chunkIdForGate,
-    session.id,
-    deps.sessionQuestions,
+    chunkQuestions,
+    groupAttemptsByQuestion(preAttemptsRaw),
+    chunkMapping,
     deps.algorithmConfig.roadblockFollowups
   );
 
-  // 8. Persist the revision (atomic update + insert)
+  // 9. Persist the revision (atomic update + insert)
   const now = Date.now();
   const revision = await deps.sessionQuestions.reviseAttempt({
     revisionId: crypto.randomUUID(),
@@ -1664,16 +1692,23 @@ export async function reviseGrade(
     revisedAt: now,
   });
 
-  // 9. Roadblock cancellation check — recompute against current attempt rows
-  const isRoadblockedNow = await isChunkRoadblocked(
-    chunkIdForGate,
-    session.id,
-    deps.sessionQuestions,
-    deps.algorithmConfig.roadblockFollowups
-  );
-  const roadblockCancelled = wasRoadblocked && !isRoadblockedNow;
+  // 10. Roadblock cancellation check — only meaningful when the original grade
+  // triggered a roadblock. Skipping the post-revision fetch otherwise saves a
+  // round-trip on the common case (most revisions don't lift a gate).
+  let roadblockCancelled = false;
+  if (wasRoadblocked) {
+    const postAttemptsRaw = await deps.sessionQuestions.getAllAttemptsForSession(session.id);
+    const isRoadblockedNow = chunkIsRoadblocked(
+      chunkIdForGate,
+      chunkQuestions,
+      groupAttemptsByQuestion(postAttemptsRaw),
+      chunkMapping,
+      deps.algorithmConfig.roadblockFollowups
+    );
+    roadblockCancelled = !isRoadblockedNow;
+  }
 
-  // 10. Auto-note: structured payload on the chunk for audit trail
+  // 11. Auto-note: structured payload on the chunk for audit trail
   let noteId = '';
   if (deps.notes) {
     try {
@@ -1721,21 +1756,29 @@ export async function reviseGrade(
   };
 }
 
-async function isChunkRoadblocked(
-  chunkId: string,
-  sessionId: string,
-  sessionQuestions: SessionQuestionRepository,
-  followupMap: Record<number, number>
-): Promise<boolean> {
-  const allQuestions = await sessionQuestions.getQuestionsForSession(sessionId);
-  if (allQuestions.length === 0) return false;
-  const chunkMapping = await sessionQuestions.getChunkIdsForQuestions(allQuestions.map(q => q.id));
-  const chunkQuestions = allQuestions.filter(q => (chunkMapping.get(q.id) ?? []).includes(chunkId));
-  if (chunkQuestions.length === 0) return false;
-  const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
-  for (const q of chunkQuestions) {
-    attemptsByQuestion.set(q.id, await sessionQuestions.getAttemptsForQuestion(q.id));
+function groupAttemptsByQuestion(
+  attempts: SessionQuestionAttempt[]
+): Map<string, SessionQuestionAttempt[]> {
+  const map = new Map<string, SessionQuestionAttempt[]>();
+  for (const a of attempts) {
+    const list = map.get(a.sessionQuestionId);
+    if (list) {
+      list.push(a);
+    } else {
+      map.set(a.sessionQuestionId, [a]);
+    }
   }
+  return map;
+}
+
+function chunkIsRoadblocked(
+  chunkId: string,
+  chunkQuestions: SessionQuestion[],
+  attemptsByQuestion: Map<string, SessionQuestionAttempt[]>,
+  chunkMapping: Map<string, string[]>,
+  followupMap: Record<number, number>
+): boolean {
+  if (chunkQuestions.length === 0) return false;
   return (
     evaluateRoadblock(chunkId, chunkQuestions, attemptsByQuestion, chunkMapping, followupMap) !==
     null

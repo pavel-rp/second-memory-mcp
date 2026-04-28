@@ -1,5 +1,5 @@
 import type { ContentStatus } from './recommendations.js';
-import type { QuestionType } from './teaching.js';
+import type { QuestionType, ReviseGradeReason } from './teaching.js';
 import type { ValidatorReport } from './validator-report.js';
 
 export type KnowledgeType = 'fact' | 'concept' | 'procedure' | 'principle';
@@ -152,12 +152,7 @@ export type SessionQuestionAttempt = {
   createdAt: number;
 };
 
-export type SessionQuestionAttemptRevisionReason =
-  | 'agent_misread_prompt'
-  | 'agent_misjudged_correctness'
-  | 'agent_applied_wrong_rubric'
-  | 'learner_provided_clarification'
-  | 'other';
+export type SessionQuestionAttemptRevisionReason = ReviseGradeReason;
 
 export type SessionQuestionAttemptRevision = {
   id: string;

@@ -304,20 +304,20 @@ export const SubmitAnswerInputSchema = z
 
 // ── revise_grade types ──────────────────────────────────────────
 
-export type ReviseGradeReason =
-  | 'agent_misread_prompt'
-  | 'agent_misjudged_correctness'
-  | 'agent_applied_wrong_rubric'
-  | 'learner_provided_clarification'
-  | 'other';
-
+/**
+ * Single source of truth for the set of structured `revise_grade` reasons.
+ * The Zod input enum, the persisted-revision domain type, and the migration's
+ * CHECK constraint must all stay in sync with this list.
+ */
 export const REVISE_GRADE_REASONS = [
   'agent_misread_prompt',
   'agent_misjudged_correctness',
   'agent_applied_wrong_rubric',
   'learner_provided_clarification',
   'other',
-] as const satisfies readonly ReviseGradeReason[];
+] as const;
+
+export type ReviseGradeReason = (typeof REVISE_GRADE_REASONS)[number];
 
 export type ReviseGradeInput = {
   sessionQuestionId: string;

@@ -260,21 +260,19 @@ describe('reviseGrade', () => {
   });
 
   it('reports roadblock_cancelled=true when revision lifts a roadblock', async () => {
-    // attempt at quality 2 triggers a roadblock (followups[2]=2). After revising to 4 (followups[4]=1)
-    // the gate still has remaining=1 so we need to also have a qualifying followup.
-    // Simpler: pre-revision attempt q=1 (followups=3 required, 0 completed) => roadblocked.
-    // Post-revision via reviseAttempt mock — we simulate the post-state by having
-    // getAttemptsForQuestion return a high-quality attempt on the second call.
+    // Pre-revision attempt q=1 (followups[1]=3 required, 0 completed) → roadblocked.
+    // After reviseAttempt mock, getAllAttemptsForSession returns a high-quality
+    // attempt → no longer roadblocked → cancellation flag set.
     const lowAttempt = makeAttempt({ quality: 1, agentQuality: 1 });
     const highAttempt = makeAttempt({ quality: 5, agentQuality: 5, passed: true });
     const sessionQuestionsStub = stubSessionQuestionRepository({
       getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
       getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
-      getAttemptsForQuestion: vi
-        .fn<(qid: string) => Promise<SessionQuestionAttempt[]>>()
-        .mockResolvedValueOnce([lowAttempt]) // step 4: load latest
-        .mockResolvedValueOnce([lowAttempt]) // step 7: pre-revision roadblock check
-        .mockResolvedValue([highAttempt]), // step 9: post-revision roadblock check
+      getAttemptsForQuestion: vi.fn().mockResolvedValue([lowAttempt]),
+      getAllAttemptsForSession: vi
+        .fn<(sid: string) => Promise<SessionQuestionAttempt[]>>()
+        .mockResolvedValueOnce([lowAttempt]) // pre-revision roadblock check
+        .mockResolvedValue([highAttempt]), // post-revision roadblock check
       getRevisionsForAttempt: vi.fn().mockResolvedValue([]),
       getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion()]),
       getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['q1', ['c1']]])),
@@ -302,6 +300,7 @@ describe('reviseGrade', () => {
       getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
       getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
       getAttemptsForQuestion: vi.fn().mockResolvedValue([goodAttempt]),
+      getAllAttemptsForSession: vi.fn().mockResolvedValue([goodAttempt]),
       getRevisionsForAttempt: vi.fn().mockResolvedValue([]),
       getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion()]),
       getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['q1', ['c1']]])),
@@ -319,6 +318,75 @@ describe('reviseGrade', () => {
     const result = await reviseGrade(baseInput, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
     expect(result.roadblock_cancelled).toBe(false);
+  });
+
+  it('selects the in-progress chunk when the question links multiple session chunks', async () => {
+    // Multi-chunk (assessment-mode style) question linked to chunks cA (pending) and cB (in_progress).
+    // Auto-note must target cB — the chunk the learner is currently in.
+    const sessionChunkA = makeSessionChunk({
+      id: 'sc-a',
+      chunkId: 'cA',
+      status: 'pending',
+    });
+    const sessionChunkB = makeSessionChunk({
+      id: 'sc-b',
+      chunkId: 'cB',
+      status: 'in_progress',
+    });
+    const notes = stubNotesRepository();
+    const deps: ReviseGradeDeps = {
+      sessions: stubSessionRepository({
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi.fn().mockResolvedValue([sessionChunkA, sessionChunkB]),
+      }),
+      sessionQuestions: stubSessionQuestionRepository({
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getChunkIdsForQuestion: vi.fn().mockResolvedValue(['cA', 'cB']),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([makeAttempt()]),
+        getRevisionsForAttempt: vi.fn().mockResolvedValue([]),
+        getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion()]),
+        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['q1', ['cA', 'cB']]])),
+        getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+        reviseAttempt: vi.fn().mockResolvedValue(makeRevision()),
+      }),
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      notes,
+    };
+    const result = await reviseGrade(baseInput, deps);
+    if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
+    const createNoteMock = notes.createNote as ReturnType<typeof vi.fn>;
+    expect(createNoteMock).toHaveBeenCalledTimes(1);
+    expect(createNoteMock.mock.calls[0]?.[0]?.targetId).toBe('cB');
+  });
+
+  it('falls back to the first session chunk when none are in-progress', async () => {
+    // Edge case: question is linked to a single pending chunk (e.g. session
+    // hasn't advanced yet). The earlier completed-chunk guard ensures the
+    // fallback is safe; the auto-note targets that chunk.
+    const sessionChunkPending = makeSessionChunk({ chunkId: 'c1', status: 'pending' });
+    const notes = stubNotesRepository();
+    const deps: ReviseGradeDeps = {
+      sessions: stubSessionRepository({
+        getActiveSession: vi.fn().mockResolvedValue(makeSession()),
+        getSessionChunks: vi.fn().mockResolvedValue([sessionChunkPending]),
+      }),
+      sessionQuestions: stubSessionQuestionRepository({
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
+        getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
+        getAttemptsForQuestion: vi.fn().mockResolvedValue([makeAttempt()]),
+        getRevisionsForAttempt: vi.fn().mockResolvedValue([]),
+        getQuestionsForSession: vi.fn().mockResolvedValue([makeQuestion()]),
+        getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['q1', ['c1']]])),
+        getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
+        reviseAttempt: vi.fn().mockResolvedValue(makeRevision()),
+      }),
+      algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
+      notes,
+    };
+    const result = await reviseGrade(baseInput, deps);
+    if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
+    const createNoteMock = notes.createNote as ReturnType<typeof vi.fn>;
+    expect(createNoteMock.mock.calls[0]?.[0]?.targetId).toBe('c1');
   });
 
   it('skips note creation when notes dep is absent and returns empty note_id', async () => {
