@@ -14,6 +14,47 @@ import {
   parseReasoningEffort,
   parseVerdictFieldList,
 } from '../shared/env-parsing.js';
+import { getRequestLogger } from '../shared/logger.js';
+
+/**
+ * Resolve the classifier "is wired" toggle from env, honoring the legacy
+ * `CLASSIFIER_ENABLE_AT_CREATE` alias for one release. `CLASSIFIER_ENABLE`
+ * is canonical. When only the legacy var is set, a deprecation warning is
+ * logged at resolution time — effectively one-shot per process because the
+ * composition root invokes `resolveClassifierConfig` exactly once at
+ * startup. When both are set with disagreeing parsed booleans, this throws
+ * so misconfigured deployments fail fast at startup.
+ */
+function resolveEnableToggle(env: Record<string, string | undefined>): boolean {
+  const canonicalRaw = env.CLASSIFIER_ENABLE;
+  const legacyRaw = env.CLASSIFIER_ENABLE_AT_CREATE;
+  const canonicalPresent = canonicalRaw != null && canonicalRaw.trim() !== '';
+  const legacyPresent = legacyRaw != null && legacyRaw.trim() !== '';
+
+  if (!canonicalPresent && !legacyPresent) {
+    return DEFAULT_CLASSIFIER_CONFIG.enable;
+  }
+  if (canonicalPresent && !legacyPresent) {
+    return parseBoolean(canonicalRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
+  }
+  if (!canonicalPresent && legacyPresent) {
+    getRequestLogger().warn(
+      'CLASSIFIER_ENABLE_AT_CREATE is deprecated and will be removed in a future release; set CLASSIFIER_ENABLE instead.'
+    );
+    return parseBoolean(legacyRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
+  }
+  // Both set — compare parsed booleans so equivalent string forms (e.g.
+  // `true` and `on`) agree silently. Disagreement is a config error and
+  // must fail fast so the operator notices before serving traffic.
+  const canonicalParsed = parseBoolean(canonicalRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
+  const legacyParsed = parseBoolean(legacyRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
+  if (canonicalParsed !== legacyParsed) {
+    throw new Error(
+      `Conflicting classifier toggle: CLASSIFIER_ENABLE=${JSON.stringify(canonicalRaw)} (parsed as ${canonicalParsed}) but CLASSIFIER_ENABLE_AT_CREATE=${JSON.stringify(legacyRaw)} (parsed as ${legacyParsed}). Set only CLASSIFIER_ENABLE, or set both to the same value.`
+    );
+  }
+  return canonicalParsed;
+}
 
 function parseNullableNumber(envValue: string | undefined, fallback: number | null): number | null {
   if (envValue == null || envValue.trim() === '') return fallback;
@@ -50,12 +91,9 @@ export function resolveClassifierConfig(
     maxRetries: parseNumber(env.CLASSIFIER_MAX_RETRIES, DEFAULT_CLASSIFIER_CONFIG.maxRetries),
     timeout: parseNumber(env.CLASSIFIER_TIMEOUT_MS, DEFAULT_CLASSIFIER_CONFIG.timeout),
     openaiApiKey,
-    enableAtCreate: parseBoolean(
-      env.CLASSIFIER_ENABLE_AT_CREATE,
-      DEFAULT_CLASSIFIER_CONFIG.enableAtCreate
-    ),
+    enable: resolveEnableToggle(env),
     // NEU-621: per-field allowlist of verdict-field names. Empty/unset = soft-warn
-    // only (the NEU-620 default). `enableAtCreate` remains the global kill switch —
+    // only (the NEU-620 default). `enable` remains the global kill switch —
     // when false, no blocking can occur regardless of this list.
     blockingFields: parseVerdictFieldList(env.CLASSIFIER_BLOCKING_FIELDS),
   };

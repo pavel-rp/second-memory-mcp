@@ -393,7 +393,7 @@ export function createAppContext(
     unitOfWork: ports.unitOfWork,
     embedding: ports.embedding,
     classifier: ports.classifier,
-    enableClassifierAtCreate: resolvedClassifier.classifier.enableAtCreate,
+    enableClassifier: resolvedClassifier.classifier.enable,
     // NEU-621: per-field allowlist of verdict fields that, when scored at or
     // below the soft-warn threshold, will reject topic creation. Empty by
     // default; operators flip fields one at a time after both calibration and

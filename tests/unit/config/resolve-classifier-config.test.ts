@@ -1,8 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const warnSpy = vi.fn();
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: () => ({
+    warn: warnSpy,
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  }),
+  withRequestContext: <T>(_id: string, fn: () => T) => fn(),
+  logEvent: vi.fn(),
+}));
+
 import { DEFAULT_CLASSIFIER_CONFIG } from '../../../src/domain/config/classifier-defaults.js';
 import { resolveClassifierConfig } from '../../../src/config/resolve-classifier-config.js';
 
 describe('resolveClassifierConfig', () => {
+  beforeEach(() => {
+    warnSpy.mockClear();
+  });
+
   it('returns all defaults with empty env', () => {
     const result = resolveClassifierConfig({});
 
@@ -11,6 +29,7 @@ describe('resolveClassifierConfig', () => {
       provider: null,
       openaiApiKey: null,
     });
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('resolves provider + CLASSIFIER_OPENAI_API_KEY', () => {
@@ -98,14 +117,15 @@ describe('resolveClassifierConfig', () => {
     expect(result.classifier.reasoningEffort).toBe(DEFAULT_CLASSIFIER_CONFIG.reasoningEffort);
   });
 
-  it('parses enableAtCreate boolean and CLASSIFIER_BLOCKING_FIELDS list', () => {
+  it('parses enable boolean and CLASSIFIER_BLOCKING_FIELDS list', () => {
     const result = resolveClassifierConfig({
-      CLASSIFIER_ENABLE_AT_CREATE: 'false',
+      CLASSIFIER_ENABLE: 'false',
       CLASSIFIER_BLOCKING_FIELDS: 'rendering_clarity, overall_fit',
     });
 
-    expect(result.classifier.enableAtCreate).toBe(false);
+    expect(result.classifier.enable).toBe(false);
     expect(result.classifier.blockingFields).toEqual(new Set(['renderingClarity', 'overallFit']));
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('returns an empty blockingFields set when CLASSIFIER_BLOCKING_FIELDS is unset', () => {
@@ -131,6 +151,7 @@ describe('resolveClassifierConfig', () => {
       CLASSIFIER_MODEL: '',
       CLASSIFIER_REASONING_EFFORT: '',
       CLASSIFIER_TIMEOUT_MS: '',
+      CLASSIFIER_ENABLE: '',
       CLASSIFIER_ENABLE_AT_CREATE: '',
       CLASSIFIER_BLOCKING_FIELDS: '',
     });
@@ -138,8 +159,11 @@ describe('resolveClassifierConfig', () => {
     expect(result.classifier.model).toBe(DEFAULT_CLASSIFIER_CONFIG.model);
     expect(result.classifier.reasoningEffort).toBe(DEFAULT_CLASSIFIER_CONFIG.reasoningEffort);
     expect(result.classifier.timeout).toBe(DEFAULT_CLASSIFIER_CONFIG.timeout);
-    expect(result.classifier.enableAtCreate).toBe(DEFAULT_CLASSIFIER_CONFIG.enableAtCreate);
+    expect(result.classifier.enable).toBe(DEFAULT_CLASSIFIER_CONFIG.enable);
     expect(result.classifier.blockingFields).toEqual(DEFAULT_CLASSIFIER_CONFIG.blockingFields);
+    // Empty alias must not trigger the deprecation warning — empty strings are
+    // treated as "unset" by the presence check.
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('falls back to default timeout on non-numeric CLASSIFIER_TIMEOUT_MS', () => {
@@ -162,5 +186,70 @@ describe('resolveClassifierConfig', () => {
     // and returns a syntactically valid config. Value-level assertions would
     // be flaky depending on the runner's real environment.
     expect(() => resolveClassifierConfig()).not.toThrow();
+  });
+
+  describe('CLASSIFIER_ENABLE alias migration', () => {
+    it('canonical CLASSIFIER_ENABLE alone resolves to enable=true with no warning', () => {
+      const result = resolveClassifierConfig({ CLASSIFIER_ENABLE: 'true' });
+
+      expect(result.classifier.enable).toBe(true);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('legacy CLASSIFIER_ENABLE_AT_CREATE alone resolves to enable=true with one deprecation warning', () => {
+      const result = resolveClassifierConfig({ CLASSIFIER_ENABLE_AT_CREATE: 'true' });
+
+      expect(result.classifier.enable).toBe(true);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const warningMessage = warnSpy.mock.calls[0][0] as string;
+      expect(warningMessage).toContain('CLASSIFIER_ENABLE_AT_CREATE');
+      expect(warningMessage).toContain('CLASSIFIER_ENABLE');
+      expect(warningMessage.toLowerCase()).toContain('deprecated');
+    });
+
+    it('legacy alias with whitespace-only value is treated as unset (no warning, default applies)', () => {
+      const result = resolveClassifierConfig({ CLASSIFIER_ENABLE_AT_CREATE: '   ' });
+
+      expect(result.classifier.enable).toBe(DEFAULT_CLASSIFIER_CONFIG.enable);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws when CLASSIFIER_ENABLE=true and CLASSIFIER_ENABLE_AT_CREATE=false disagree', () => {
+      expect(() =>
+        resolveClassifierConfig({
+          CLASSIFIER_ENABLE: 'true',
+          CLASSIFIER_ENABLE_AT_CREATE: 'false',
+        })
+      ).toThrow(/CLASSIFIER_ENABLE.*CLASSIFIER_ENABLE_AT_CREATE/);
+    });
+
+    it('throws when CLASSIFIER_ENABLE=false and CLASSIFIER_ENABLE_AT_CREATE=true disagree', () => {
+      expect(() =>
+        resolveClassifierConfig({
+          CLASSIFIER_ENABLE: 'false',
+          CLASSIFIER_ENABLE_AT_CREATE: 'true',
+        })
+      ).toThrow(/CLASSIFIER_ENABLE.*CLASSIFIER_ENABLE_AT_CREATE/);
+    });
+
+    it('accepts both vars when parsed booleans agree (true=on equivalence) without warning', () => {
+      const result = resolveClassifierConfig({
+        CLASSIFIER_ENABLE: 'true',
+        CLASSIFIER_ENABLE_AT_CREATE: 'on',
+      });
+
+      expect(result.classifier.enable).toBe(true);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('accepts both vars when parsed booleans agree (false=0 equivalence) without warning', () => {
+      const result = resolveClassifierConfig({
+        CLASSIFIER_ENABLE: 'false',
+        CLASSIFIER_ENABLE_AT_CREATE: '0',
+      });
+
+      expect(result.classifier.enable).toBe(false);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
   });
 });

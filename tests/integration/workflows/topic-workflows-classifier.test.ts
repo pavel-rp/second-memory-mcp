@@ -47,7 +47,7 @@ function lowScoreVerdict(): ChunkClassifierVerdict {
 
 function buildDeps(options: {
   classifier?: ContentClassifierPort;
-  enableClassifierAtCreate?: boolean;
+  enableClassifier?: boolean;
 }): TopicDeps {
   const db = getSql();
   return {
@@ -57,8 +57,8 @@ function buildDeps(options: {
     embedding: undefined,
     linterRules: [],
     ...(options.classifier ? { classifier: options.classifier } : {}),
-    ...(options.enableClassifierAtCreate !== undefined
-      ? { enableClassifierAtCreate: options.enableClassifierAtCreate }
+    ...(options.enableClassifier !== undefined
+      ? { enableClassifier: options.enableClassifier }
       : {}),
   };
 }
@@ -83,7 +83,7 @@ describe('createTopicWithChunks — Tier 2 classifier integration (NEU-620)', ()
 
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ classifier, enableClassifierAtCreate: true })
+      buildDeps({ classifier, enableClassifier: true })
     );
     expect(result.success).toBe(true);
     expect(classify).toHaveBeenCalledTimes(2);
@@ -134,7 +134,7 @@ describe('createTopicWithChunks — Tier 2 classifier integration (NEU-620)', ()
     const ids = [crypto.randomUUID()];
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ enableClassifierAtCreate: true })
+      buildDeps({ enableClassifier: true })
     );
     expect(result.success).toBe(true);
     expect(result.topic?.tier2Findings).toBeUndefined();
@@ -146,14 +146,14 @@ describe('createTopicWithChunks — Tier 2 classifier integration (NEU-620)', ()
     expect(report?.tier2).toBeUndefined();
   });
 
-  it('produces no tier2 key when enableClassifierAtCreate is false', async () => {
+  it('produces no tier2 key when enableClassifier is false', async () => {
     const ids = [crypto.randomUUID()];
     const classify = vi.fn().mockResolvedValue(lowScoreVerdict());
     const classifier: ContentClassifierPort = { classify };
 
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ classifier, enableClassifierAtCreate: false })
+      buildDeps({ classifier, enableClassifier: false })
     );
     expect(result.success).toBe(true);
     expect(classify).not.toHaveBeenCalled();
@@ -211,7 +211,7 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
 
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ classifier, enableClassifierAtCreate: true })
+      buildDeps({ classifier, enableClassifier: true })
     );
     expect(result.success).toBe(true);
 
@@ -259,7 +259,7 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
 
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ classifier, enableClassifierAtCreate: true })
+      buildDeps({ classifier, enableClassifier: true })
     );
     expect(result.success).toBe(true);
 
@@ -298,7 +298,7 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
     const ids = [crypto.randomUUID()];
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ enableClassifierAtCreate: true })
+      buildDeps({ enableClassifier: true })
     );
     expect(result.success).toBe(true);
 
@@ -308,14 +308,14 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
     expect(classifierEvents).toHaveLength(0);
   });
 
-  it('emits zero classifier events when enableClassifierAtCreate is false', async () => {
+  it('emits zero classifier events when enableClassifier is false', async () => {
     const ids = [crypto.randomUUID()];
     const classify = vi.fn().mockResolvedValue(lowScoreVerdict());
     const classifier: ContentClassifierPort = { classify };
 
     const result = await createTopicWithChunks(
       makeInput(ids),
-      buildDeps({ classifier, enableClassifierAtCreate: false })
+      buildDeps({ classifier, enableClassifier: false })
     );
     expect(result.success).toBe(true);
     expect(classify).not.toHaveBeenCalled();

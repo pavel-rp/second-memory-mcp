@@ -75,7 +75,7 @@ type BuiltDeps = {
 
 function buildDeps(options: {
   classifier?: ContentClassifierPort;
-  enableClassifierAtCreate?: boolean;
+  enableClassifier?: boolean;
 }): BuiltDeps {
   const mergeValidatorReport = vi.fn().mockResolvedValue(1);
 
@@ -96,8 +96,8 @@ function buildDeps(options: {
     }),
     unitOfWork: stubUnitOfWork(undefined, txPorts),
     ...(options.classifier ? { classifier: options.classifier } : {}),
-    ...(options.enableClassifierAtCreate !== undefined
-      ? { enableClassifierAtCreate: options.enableClassifierAtCreate }
+    ...(options.enableClassifier !== undefined
+      ? { enableClassifier: options.enableClassifier }
       : {}),
   };
 
@@ -149,18 +149,18 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
   });
 
   it('does nothing when the classifier port is absent', async () => {
-    const { deps, mergeValidatorReport } = buildDeps({ enableClassifierAtCreate: true });
+    const { deps, mergeValidatorReport } = buildDeps({ enableClassifier: true });
     const result = await createTopicWithChunks(input(), deps);
     expect(result.success).toBe(true);
     expect(result.topic?.tier2Findings).toBeUndefined();
     expect(mergeValidatorReport).not.toHaveBeenCalled();
   });
 
-  it('does nothing when enableClassifierAtCreate is false', async () => {
+  it('does nothing when enableClassifier is false', async () => {
     const classify = vi.fn().mockResolvedValue(cleanVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: false,
+      enableClassifier: false,
     });
     const result = await createTopicWithChunks(input(), deps);
     expect(result.success).toBe(true);
@@ -173,7 +173,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(twoLowVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const result = await createTopicWithChunks(input(), deps);
 
@@ -214,7 +214,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockRejectedValue(new Error('OpenAI 503'));
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const result = await createTopicWithChunks(input(), deps);
     expect(result.success).toBe(true);
@@ -226,7 +226,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(allNullVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const result = await createTopicWithChunks(input(), deps);
     expect(result.success).toBe(true);
@@ -239,7 +239,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(partialNullVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const result = await createTopicWithChunks(input(), deps);
     expect(result.success).toBe(true);
@@ -264,7 +264,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(cleanVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const result = await createTopicWithChunks(inputNoContent(), deps);
     expect(result.success).toBe(true);
@@ -280,7 +280,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(twoLowVerdict());
     const { deps } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const result = await createTopicWithChunks(input(), deps);
     expect(result.success).toBe(true);
@@ -293,7 +293,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(twoLowVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     // Simulate a transient DB failure during the post-commit merge.
     mergeValidatorReport.mockRejectedValueOnce(new Error('conn reset'));
@@ -309,7 +309,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(twoLowVerdict());
     const { deps, mergeValidatorReport } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     // Simulate the "chunk was deleted between commit and classification" race.
     mergeValidatorReport.mockResolvedValueOnce(0);
@@ -324,7 +324,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
     const classify = vi.fn().mockResolvedValue(cleanVerdict());
     const { deps } = buildDeps({
       classifier: { classify },
-      enableClassifierAtCreate: true,
+      enableClassifier: true,
     });
     const multi: TopicCreationInput = {
       topicTitle: 'Multi-chunk topic',
@@ -369,7 +369,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       // Override topics.delete to capture the rollback call; the default stub
       // returns success.
@@ -407,7 +407,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       // Block only `vocabularyAppropriate` (which is high in twoLowVerdict).
       deps.blockingFields = new Set(['vocabularyAppropriate']);
@@ -425,7 +425,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(allNullVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       deps.blockingFields = new Set(['renderingClarity', 'overallFit']);
       const result = await createTopicWithChunks(input(), deps);
@@ -440,7 +440,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       deps.blockingFields = new Set(['renderingClarity']);
       // Breaker reports `renderingClarity` as tripped — return an empty set.
@@ -460,7 +460,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       const deleteSpy = vi.fn().mockResolvedValue({ success: true, data: { deleted: true } });
       deps.topics.delete = deleteSpy;
@@ -481,7 +481,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       const deleteSpy = vi.fn().mockResolvedValue({
         success: false,
@@ -513,7 +513,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       const deleteSpy = vi.fn().mockRejectedValue(new Error('pool closed'));
       deps.topics.delete = deleteSpy;
@@ -536,7 +536,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(cleanVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
 
       const result = await createTopicWithChunks(input(), deps);
@@ -587,7 +587,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockRejectedValue(new TypeError('rate-limit'));
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
 
       await createTopicWithChunks(input(), deps);
@@ -630,7 +630,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockRejectedValue('rate-limit string');
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
 
       await createTopicWithChunks(input(), deps);
@@ -664,7 +664,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const cleanClassify = vi.fn().mockResolvedValue(cleanVerdict());
       const { deps } = buildDeps({
         classifier: { classify: cleanClassify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       vi.mocked(logEvent).mockImplementationOnce(() => {
         throw new Error('event logger broken');
@@ -682,7 +682,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const throwingClassify = vi.fn().mockRejectedValue(new Error('boom'));
       const { deps: deps2 } = buildDeps({
         classifier: { classify: throwingClassify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       vi.mocked(logEvent).mockImplementationOnce(() => {
         throw new Error('event logger broken');
@@ -700,7 +700,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps, mergeValidatorReport } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       mergeValidatorReport.mockResolvedValueOnce(0);
 
@@ -717,7 +717,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(twoLowVerdict());
       const { deps, mergeValidatorReport } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
       mergeValidatorReport.mockRejectedValueOnce(new Error('conn reset'));
 
@@ -734,7 +734,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const classify = vi.fn().mockResolvedValue(allNullVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: true,
+        enableClassifier: true,
       });
 
       await createTopicWithChunks(input(), deps);
@@ -753,11 +753,11 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       expect(data.failed_fields).toHaveLength(6);
     });
 
-    it('emits zero classifier events when enableClassifierAtCreate is false', async () => {
+    it('emits zero classifier events when enableClassifier is false', async () => {
       const classify = vi.fn().mockResolvedValue(cleanVerdict());
       const { deps } = buildDeps({
         classifier: { classify },
-        enableClassifierAtCreate: false,
+        enableClassifier: false,
       });
 
       await createTopicWithChunks(input(), deps);
