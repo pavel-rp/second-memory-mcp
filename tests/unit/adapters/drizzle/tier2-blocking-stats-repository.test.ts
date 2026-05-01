@@ -89,4 +89,24 @@ describe('DrizzleTier2BlockingStatsRepository.getWeeklyBlockingCounts', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('drops rows whose field is outside the known verdict-field allowlist (NEU-672)', async () => {
+    // The CTE-based query already filters NULL fields, but a stale or
+    // adversarial event-log row could carry an unknown `data->>'field'` value.
+    // Boundary cast at the adapter must drop such rows so the port returns a
+    // typed `PersistedTier2FieldName` union end-to-end.
+    const rows: RawRow[] = [
+      { field: 'rendering_clarity', week_offset: 0, event_count: 7 },
+      { field: 'fictitious_field', week_offset: 0, event_count: 99 },
+      { field: 'another_unknown', week_offset: 1, event_count: 50 },
+    ];
+    const { db } = makeDb({ rows });
+    const repo = new DrizzleTier2BlockingStatsRepository(db);
+
+    const result = await repo.getWeeklyBlockingCounts();
+
+    expect(result).toHaveLength(1);
+    expect(result[0].field).toBe('rendering_clarity');
+    expect(result[0].currentWeekCount).toBe(7);
+  });
 });

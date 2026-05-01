@@ -17,12 +17,24 @@
 
 import { VERDICT_FIELDS, type VerdictFieldName } from '../domain/types/classifier.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
-import { PERSISTED_TIER2_FIELD_NAMES } from '../shared/prompts/classifier-prompts.js';
+import {
+  PERSISTED_TIER2_FIELD_NAMES,
+  type PersistedTier2FieldName,
+} from '../shared/prompts/classifier-prompts.js';
 import type {
   Tier2BlockingStatsRepository,
   Tier2WeeklyBlockingCounts,
-} from '../ports/tier2-blocking-stats.js';
-import type { Tier2CircuitBreakerHandle } from './topic-workflows.js';
+} from '../ports/tier2-blocking-stats-repository.js';
+
+/**
+ * NEU-621: optional handle that mutates the per-call effective blocking-fields
+ * set in response to elevated rejection rates. The orchestration layer calls
+ * `applyTo` before consuming `blockingFields` for a creation; failure modes
+ * are absorbed by the breaker (returns the input unchanged).
+ */
+export type Tier2CircuitBreakerHandle = {
+  applyTo(blockingFields: ReadonlySet<VerdictFieldName>): Promise<ReadonlySet<VerdictFieldName>>;
+};
 
 /** Multiplier on σ for the trip threshold. Hardcoded per spec; not auto-tuned. */
 const SIGMA_MULTIPLIER = 2;
@@ -64,9 +76,11 @@ export function createTier2CircuitBreaker(
   let inFlight: Promise<Set<VerdictFieldName>> | null = null;
 
   // Snake → camel reverse lookup for verdict-field names; computed once.
-  const snakeToCamel = new Map<string, VerdictFieldName>();
+  // Typed as Record<PersistedTier2FieldName, VerdictFieldName> so the indexing
+  // call below narrows without a defensive runtime undefined check (NEU-672).
+  const snakeToCamel = {} as Record<PersistedTier2FieldName, VerdictFieldName>;
   for (const field of VERDICT_FIELDS) {
-    snakeToCamel.set(PERSISTED_TIER2_FIELD_NAMES[field], field);
+    snakeToCamel[PERSISTED_TIER2_FIELD_NAMES[field]] = field;
   }
 
   async function recompute(): Promise<Set<VerdictFieldName>> {
@@ -79,12 +93,25 @@ export function createTier2CircuitBreaker(
     } catch (err) {
       // Fail-open: log and return whatever we already had tripped. The caller
       // will see the unchanged set and apply it; downstream creates proceed.
-      getRequestLogger().warn('Tier 2 circuit-breaker stats query failed:', err);
+      // NEU-672: emit as a structured event so the runbook's telemetry section
+      // can alert on stats-query failures. A broken event logger must not
+      // re-throw — the breaker contract is fail-open even for telemetry.
+      const errorClass = err instanceof Error ? err.constructor.name : typeof err;
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      try {
+        logEvent('tier2CircuitBreaker', 'tier2.stats_query_failed', {
+          error_class: errorClass,
+          error_message: errorMessage,
+        });
+      } catch {
+        // The logger itself is broken — fall back to the request logger so the
+        // failure is at least visible somewhere.
+        getRequestLogger().warn('Tier 2 circuit-breaker stats query failed:', err);
+      }
       return out;
     }
     for (const bucket of buckets) {
-      const camelField = snakeToCamel.get(bucket.field);
-      if (camelField === undefined) continue; // unknown field name — defensive
+      const camelField = snakeToCamel[bucket.field];
       if (out.has(camelField)) continue; // already tripped — skip to prevent re-emit
       const priors = bucket.priorWeeksCounts;
       if (priors.length === 0) continue; // no prior history — cannot compute σ
@@ -99,8 +126,11 @@ export function createTier2CircuitBreaker(
       const sigma = Math.sqrt(variance);
       const threshold = mean + SIGMA_MULTIPLIER * sigma;
       if (bucket.currentWeekCount > threshold) {
-        out.add(camelField);
-        tripped.add(camelField);
+        // NEU-672: only mark the field as tripped after the trip event has been
+        // durably emitted. If `logEvent` throws, leave the field un-tripped so
+        // the next refresh re-evaluates the same data and tries again — the
+        // runbook's "trips are visible in the log" guarantee depends on this.
+        let logged = false;
         try {
           logEvent('tier2CircuitBreaker', 'tier2.circuit_breaker_tripped', {
             field: bucket.field,
@@ -109,9 +139,15 @@ export function createTier2CircuitBreaker(
             sigma,
             sample_window_days: 7,
           });
+          logged = true;
         } catch {
-          // A broken event logger must not poison creation. Trip state still
-          // advances — the field remains disabled for the rest of the process.
+          // A broken event logger must not poison creation, but it must also
+          // not silently lose the trip from the log. Leave un-tripped so the
+          // next refresh attempts the emit again.
+        }
+        if (logged) {
+          out.add(camelField);
+          tripped.add(camelField);
         }
       }
     }

@@ -6,11 +6,11 @@ vi.mock('../../../src/shared/logger.js', () => ({
 }));
 
 import { createTier2CircuitBreaker } from '../../../src/orchestration/tier2-circuit-breaker.js';
-import { logEvent } from '../../../src/shared/logger.js';
+import { logEvent, getRequestLogger } from '../../../src/shared/logger.js';
 import type {
   Tier2BlockingStatsRepository,
   Tier2WeeklyBlockingCounts,
-} from '../../../src/ports/tier2-blocking-stats.js';
+} from '../../../src/ports/tier2-blocking-stats-repository.js';
 import type { VerdictFieldName } from '../../../src/domain/types/classifier.js';
 
 function makeStats(buckets: Tier2WeeklyBlockingCounts[]): Tier2BlockingStatsRepository {
@@ -188,17 +188,129 @@ describe('createTier2CircuitBreaker', () => {
     expect(out).toEqual(blocking);
   });
 
-  it('ignores buckets for unknown field names (defensive)', async () => {
+  it('emits a structured tier2.stats_query_failed event when the stats query throws (NEU-672)', async () => {
+    const stats: Tier2BlockingStatsRepository = {
+      getWeeklyBlockingCounts: vi.fn().mockRejectedValue(new Error('db unavailable')),
+    };
+    const breaker = createTier2CircuitBreaker({ stats });
+    await breaker.applyTo(new Set<VerdictFieldName>(['renderingClarity']));
+
+    const failures = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.stats_query_failed');
+    expect(failures).toHaveLength(1);
+    const data = failures[0][2] as { error_class: string; error_message: string };
+    expect(data.error_class).toBe('Error');
+    expect(data.error_message).toBe('db unavailable');
+  });
+
+  it('captures non-Error throw values from the stats query in the structured failure event (NEU-672)', async () => {
+    // Adapters can reject with non-Error values (strings, numbers, plain objects).
+    // The error_class fallback must use `typeof` and the error_message must use
+    // `String(err)` so the structured event still carries usable signal.
+    const stats: Tier2BlockingStatsRepository = {
+      getWeeklyBlockingCounts: vi.fn().mockRejectedValue('plain string failure'),
+    };
+    const breaker = createTier2CircuitBreaker({ stats });
+    await breaker.applyTo(new Set<VerdictFieldName>(['renderingClarity']));
+
+    const failures = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.stats_query_failed');
+    expect(failures).toHaveLength(1);
+    const data = failures[0][2] as { error_class: string; error_message: string };
+    expect(data.error_class).toBe('string');
+    expect(data.error_message).toBe('plain string failure');
+  });
+
+  it('skips buckets with empty priorWeeksCounts (no prior history)', async () => {
+    // The adapter should always return length-4 priors, but the breaker is
+    // defensive: an empty priors array means we cannot compute σ and the
+    // bucket is skipped without tripping.
     const stats = makeStats([
       {
-        field: 'unknown_field',
-        currentWeekCount: 1000,
-        priorWeeksCounts: [1, 1, 1, 1],
+        field: 'rendering_clarity',
+        currentWeekCount: 100,
+        priorWeeksCounts: [],
       },
     ]);
     const breaker = createTier2CircuitBreaker({ stats });
     const blocking = new Set<VerdictFieldName>(['renderingClarity']);
     const out = await breaker.applyTo(blocking);
-    expect(out).toEqual(blocking);
+
+    expect(out.has('renderingClarity')).toBe(true);
+    const tripped = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
+    expect(tripped).toHaveLength(0);
   });
+
+  it('falls back to getRequestLogger().warn when both the stats query and structured logger throw (NEU-672)', async () => {
+    // Stats throws → breaker tries to emit `tier2.stats_query_failed` →
+    // the structured logger itself throws → fallback warn must fire.
+    // Verifies the breaker's fail-open contract holds even when both
+    // telemetry paths are broken.
+    const warnSpy = vi.fn();
+    vi.mocked(getRequestLogger).mockReturnValueOnce({
+      warn: warnSpy,
+      error: vi.fn(),
+      info: vi.fn(),
+      debug: vi.fn(),
+    } as unknown as ReturnType<typeof getRequestLogger>);
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('logger transport down');
+    });
+
+    const stats: Tier2BlockingStatsRepository = {
+      getWeeklyBlockingCounts: vi.fn().mockRejectedValue(new Error('db unavailable')),
+    };
+    const breaker = createTier2CircuitBreaker({ stats });
+    const blocking = new Set<VerdictFieldName>(['renderingClarity']);
+    const out = await breaker.applyTo(blocking);
+
+    // Fail-open contract preserved even when both telemetry paths break.
+    expect(out).toEqual(blocking);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toContain('Tier 2 circuit-breaker stats query failed');
+  });
+
+  it('leaves a field un-tripped when logEvent throws on the trip event, retries on next refresh (NEU-672)', async () => {
+    const buckets: Tier2WeeklyBlockingCounts[] = [
+      {
+        field: 'rendering_clarity',
+        currentWeekCount: 50,
+        priorWeeksCounts: [1, 0, 1, 1],
+      },
+    ];
+    const stats = makeStats(buckets);
+    let now = 1000;
+    const breaker = createTier2CircuitBreaker({ stats, now: () => now });
+
+    // First refresh: logEvent throws → trip should NOT be recorded.
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('transport flake');
+    });
+    const out1 = await breaker.applyTo(new Set<VerdictFieldName>(['renderingClarity']));
+    expect(out1.has('renderingClarity')).toBe(true); // not tripped — left in the blocking set
+
+    // Advance past TTL, second refresh with working logger: trip is recorded.
+    now += 120_000;
+    const out2 = await breaker.applyTo(new Set<VerdictFieldName>(['renderingClarity']));
+    expect(out2.has('renderingClarity')).toBe(false); // tripped — removed from set
+
+    // The mock records both invocations (the first threw, the second
+    // succeeded). The behavioral contract — "leave un-tripped on the throw,
+    // retry on the next refresh" — is verified by the out1/out2 assertions
+    // above: out1 keeps the field (un-tripped), out2 removes it (tripped).
+    const tripCalls = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'tier2.circuit_breaker_tripped');
+    expect(tripCalls).toHaveLength(2); // both attempted; only the second persisted
+  });
+
+  // NEU-672: removed the "ignores unknown field names (defensive)" test. The
+  // port now returns `field: PersistedTier2FieldName` (a literal union) so an
+  // unknown field name is statically impossible at the breaker level. The
+  // boundary filter lives in DrizzleTier2BlockingStatsRepository and is
+  // covered by the adapter's unit tests.
 });

@@ -376,14 +376,21 @@ export function buildClassifierPrompt(
 }
 
 /** Camel → snake conversion for verdict field names, with a compile-time exhaustive map. */
-export const PERSISTED_TIER2_FIELD_NAMES: Record<VerdictFieldName, string> = {
+export const PERSISTED_TIER2_FIELD_NAMES = {
   renderingClarity: 'rendering_clarity',
   vocabularyAppropriate: 'vocabulary_appropriate',
   mathNotationRenderingRisk: 'math_notation_rendering_risk',
   definitionConstructive: 'definition_constructive',
   epistemicConsistency: 'epistemic_consistency',
   overallFit: 'overall_fit',
-};
+} as const satisfies Record<VerdictFieldName, string>;
+
+/**
+ * NEU-672: snake-case verdict field name as a literal union. Used by the
+ * Tier 2 blocking-stats port and circuit-breaker so `field` is type-narrowed
+ * end-to-end (no `string` widening, no defensive runtime guards).
+ */
+export type PersistedTier2FieldName = (typeof PERSISTED_TIER2_FIELD_NAMES)[VerdictFieldName];
 
 /** Snake-cased JSONB payload stored under `validator_report.tier2`. */
 export type Tier2PersistedShape = {

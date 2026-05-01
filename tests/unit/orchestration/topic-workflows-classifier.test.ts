@@ -388,8 +388,24 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       expect(result.error?.message).toContain('chunk-a');
       expect(result.error?.message).toContain('rendering_clarity');
       const findings = result.error?.findings ?? [];
-      expect(findings.some(f => f.rule === 'classifier.rendering_clarity')).toBe(true);
-      expect(findings.every(f => f.severity === 'blocking')).toBe(true);
+      // NEU-672: error.findings carries blocking + warning entries together so
+      // the caller sees the full picture for the rejected topic. A field is
+      // EITHER a warning OR a blocking hit, never both — `rendering_clarity`
+      // is in blockingFields so it surfaces only as 'blocking'; `overall_fit`
+      // is also low-scoring but not in blockingFields so it surfaces only as
+      // 'warning'. No `(chunkId, rule)` pair appears with both severities.
+      expect(
+        findings.some(f => f.rule === 'classifier.rendering_clarity' && f.severity === 'blocking')
+      ).toBe(true);
+      expect(
+        findings.some(f => f.rule === 'classifier.rendering_clarity' && f.severity === 'warning')
+      ).toBe(false);
+      expect(
+        findings.some(f => f.rule === 'classifier.overall_fit' && f.severity === 'warning')
+      ).toBe(true);
+      // No duplicate (chunkId, rule) pairs across severities.
+      const keys = findings.map(f => `${f.chunkId}:${f.rule}`);
+      expect(new Set(keys).size).toBe(keys.length);
       expect(deleteSpy).toHaveBeenCalledOnce();
       expect(typeof deleteSpy.mock.calls[0][0]).toBe('string');
 
@@ -400,7 +416,46 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       const data = blockedEvents[0][2] as Record<string, unknown>;
       expect(data.field).toBe('rendering_clarity');
       expect(data.score).toBe(1);
+      // NEU-672: rationale is truncated at 256 chars + marker before persist.
+      // Short rationales pass through verbatim.
       expect(data.rationale).toBe('unbalanced fences');
+    });
+
+    it('truncates classifier.tier2_blocked rationale to 256 chars + marker (NEU-672 hard gate)', async () => {
+      const longRationale = 'r'.repeat(1000);
+      const classify = vi.fn().mockResolvedValue({
+        renderingClarity: { score: 1, rationale: longRationale, applicable: true },
+        vocabularyAppropriate: { score: 4, rationale: 'ok', applicable: true },
+        mathNotationRenderingRisk: { score: 5, rationale: 'no math', applicable: false },
+        definitionConstructive: { score: 4, rationale: 'constructive', applicable: true },
+        epistemicConsistency: { score: 4, rationale: 'consistent', applicable: true },
+        overallFit: { score: 4, rationale: 'fits', applicable: true },
+      });
+      const { deps } = buildDeps({
+        classifier: { classify },
+        enableClassifierAtCreate: true,
+      });
+      deps.topics.delete = vi.fn().mockResolvedValue({ success: true, data: { deleted: true } });
+      deps.blockingFields = new Set(['renderingClarity']);
+
+      const result = await createTopicWithChunks(input(), deps);
+      expect(result.success).toBe(false);
+
+      // Persisted event payload is bounded.
+      const blockedEvents = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.tier2_blocked');
+      expect(blockedEvents).toHaveLength(1);
+      const data = blockedEvents[0][2] as Record<string, unknown>;
+      const persistedRationale = data.rationale as string;
+      expect(persistedRationale.length).toBeLessThanOrEqual(256 + '…[truncated]'.length);
+      expect(persistedRationale.endsWith('…[truncated]')).toBe(true);
+      expect(persistedRationale.startsWith('rrrrrrrrrr')).toBe(true);
+
+      // Synchronous response retains the full rationale via error.findings[].detail.
+      const findings = result.error?.findings ?? [];
+      const blocking = findings.find(f => f.severity === 'blocking');
+      expect(blocking?.detail).toBe(longRationale);
     });
 
     it('still soft-warns and does not reject when the low-scoring field is not in blockingFields', async () => {

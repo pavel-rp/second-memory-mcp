@@ -23,6 +23,7 @@ import {
   PERSISTED_TIER2_FIELD_NAMES,
 } from '../src/shared/prompts/classifier-prompts.js';
 import { VERDICT_FIELDS } from '../src/domain/types/classifier.js';
+import { BLOCKING_THRESHOLD } from '../src/domain/config/classifier.js';
 
 const LABEL_PATH = resolve(process.cwd(), 'scripts', 'classifier-calibration', 'labels.csv');
 
@@ -54,8 +55,6 @@ type FieldMetrics = {
   trueNegative: number;
   falseNegative: number;
 };
-
-const BLOCKING_THRESHOLD = 2;
 
 /**
  * Quote-aware single-line CSV split. Handles `"foo, bar"` (commas inside

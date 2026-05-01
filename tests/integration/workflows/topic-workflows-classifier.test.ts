@@ -14,6 +14,9 @@ import {
 import type { ContentClassifierPort } from '../../../src/ports/content-classifier-port.js';
 import type { ChunkClassifierVerdict } from '../../../src/domain/types/classifier.js';
 import { setEventLogger } from '../../../src/shared/logger.js';
+import { sql } from 'drizzle-orm';
+import { createTier2CircuitBreaker } from '../../../src/orchestration/tier2-circuit-breaker.js';
+import { DrizzleTier2BlockingStatsRepository } from '../../../src/adapters/drizzle/tier2-blocking-stats-repository.js';
 
 function makeInput(chunkIds: string[]): TopicCreationInput {
   return {
@@ -324,5 +327,154 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
       e => typeof e.event === 'string' && (e.event as string).startsWith('classifier.')
     );
     expect(classifierEvents).toHaveLength(0);
+  });
+});
+
+// ── NEU-672: blocking + rollback + circuit-breaker integration ─────────
+describe('createTopicWithChunks — Tier 2 blocking + breaker (NEU-672)', () => {
+  let captured: Array<Record<string, unknown>>;
+
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+
+  beforeEach(async () => {
+    await cleanupTestDb();
+    captured = [];
+    const fakeLogger = {
+      info: (obj: Record<string, unknown>) => {
+        captured.push(obj);
+      },
+    } as unknown as pino.Logger;
+    setEventLogger(fakeLogger);
+  });
+
+  afterEach(() => {
+    setEventLogger(null);
+  });
+
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  function eventsByName(name: string): Array<Record<string, unknown>> {
+    return captured.filter(e => e.event === name);
+  }
+
+  it('rejects + rolls back the topic and emits a truncated classifier.tier2_blocked event', async () => {
+    const ids = [crypto.randomUUID()];
+    const longRationale = 'r'.repeat(1000);
+    const classify = vi.fn().mockResolvedValue({
+      renderingClarity: { score: 1, rationale: longRationale, applicable: true },
+      vocabularyAppropriate: { score: 4, rationale: 'ok', applicable: true },
+      mathNotationRenderingRisk: { score: 5, rationale: 'no math', applicable: false },
+      definitionConstructive: { score: 4, rationale: 'constructive', applicable: true },
+      epistemicConsistency: { score: 4, rationale: 'consistent', applicable: true },
+      overallFit: { score: 4, rationale: 'fits', applicable: true },
+    });
+
+    const deps = buildDeps({ classifier: { classify }, enableClassifierAtCreate: true });
+    deps.blockingFields = new Set(['renderingClarity']);
+
+    const result = await createTopicWithChunks(makeInput(ids), deps);
+
+    // 1. Result is a content_quality rejection with non-empty findings.
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('content_quality');
+    expect((result.error?.findings ?? []).length).toBeGreaterThan(0);
+    expect(
+      (result.error?.findings ?? []).some(
+        f => f.severity === 'blocking' && f.rule === 'classifier.rendering_clarity'
+      )
+    ).toBe(true);
+
+    // 2. The topic row was rolled back from learning_topics.
+    const db = getSql();
+    const topicRows = await db.execute<{ count: number }>(
+      sql`SELECT COUNT(*)::int AS count FROM learning_topics WHERE title = 'Tier 2 Classifier Integration Topic'`
+    );
+    const topicCount = (Array.isArray(topicRows) ? topicRows[0] : topicRows.rows?.[0]) as {
+      count: number;
+    };
+    expect(topicCount.count).toBe(0);
+
+    // 3. Exactly one classifier.tier2_blocked event captured, with truncated rationale.
+    const blockedEvents = eventsByName('classifier.tier2_blocked');
+    expect(blockedEvents).toHaveLength(1);
+    const data = blockedEvents[0].data as {
+      topic_id: string;
+      chunk_id: string;
+      field: string;
+      score: number;
+      rationale: string;
+    };
+    expect(data.field).toBe('rendering_clarity');
+    expect(data.score).toBe(1);
+    expect(data.chunk_id).toBe(ids[0]);
+    expect(data.rationale.length).toBeLessThanOrEqual(256 + '…[truncated]'.length);
+    expect(data.rationale.endsWith('…[truncated]')).toBe(true);
+  });
+
+  it('circuit-breaker trips once on synthetic 2σ rows; subsequent call within TTL stays one-shot', async () => {
+    const db = getSql();
+    // Seed `infrastructure.operation_event_log` with synthetic
+    // `classifier.tier2_blocked` rows so the current week's count exceeds
+    // rolling-mean + 2σ for `rendering_clarity`. priors all-zero except one
+    // small prior so the threshold is computable but still trippable.
+    // priors = [0, 0, 0, 1] → mean=0.25, σ≈0.43, threshold≈1.11; current=50 trips.
+    const insertEvent = async (timestampOffsetDays: number) => {
+      await db.execute(sql`
+        INSERT INTO infrastructure.operation_event_log
+          (timestamp, level, operation, event, data)
+        VALUES
+          (NOW() - (${timestampOffsetDays} || ' days')::interval,
+           'info',
+           'createTopicWithChunks',
+           'classifier.tier2_blocked',
+           ${JSON.stringify({
+             topic_id: crypto.randomUUID(),
+             chunk_id: crypto.randomUUID(),
+             field: 'rendering_clarity',
+             score: 1,
+             rationale: 'seed',
+           })}::jsonb)
+      `);
+    };
+    // 50 rows in the last 7 days (offset 0 = current week).
+    for (let i = 0; i < 50; i++) await insertEvent(0);
+    // 1 row in the 7-14 day prior bucket (offset 1).
+    await insertEvent(8);
+    // 0 rows for the older 3 prior buckets.
+
+    const breaker = createTier2CircuitBreaker({
+      stats: new DrizzleTier2BlockingStatsRepository(db),
+    });
+
+    // Build deps with breaker + low-score classifier.
+    const lowScore = vi.fn().mockResolvedValue({
+      renderingClarity: { score: 1, rationale: 'low', applicable: true },
+      vocabularyAppropriate: { score: 4, rationale: 'ok', applicable: true },
+      mathNotationRenderingRisk: { score: 5, rationale: 'no math', applicable: false },
+      definitionConstructive: { score: 4, rationale: 'ok', applicable: true },
+      epistemicConsistency: { score: 4, rationale: 'ok', applicable: true },
+      overallFit: { score: 4, rationale: 'fits', applicable: true },
+    });
+    const deps = buildDeps({ classifier: { classify: lowScore }, enableClassifierAtCreate: true });
+    deps.blockingFields = new Set(['renderingClarity']);
+    deps.tier2CircuitBreaker = breaker;
+
+    // First call: breaker shrinks the blocking set (rendering_clarity tripped),
+    // creation proceeds (success). Trip event fires exactly once.
+    const result1 = await createTopicWithChunks(makeInput([crypto.randomUUID()]), deps);
+    expect(result1.success).toBe(true);
+    const tripEvents1 = eventsByName('tier2.circuit_breaker_tripped');
+    expect(tripEvents1).toHaveLength(1);
+    expect((tripEvents1[0].data as { field: string }).field).toBe('rendering_clarity');
+
+    // Second call within the 60 s cache TTL: same outcome, no new trip event.
+    const result2 = await createTopicWithChunks(makeInput([crypto.randomUUID()]), deps);
+    expect(result2.success).toBe(true);
+    const tripEvents2 = eventsByName('tier2.circuit_breaker_tripped');
+    expect(tripEvents2).toHaveLength(1); // still one
   });
 });
