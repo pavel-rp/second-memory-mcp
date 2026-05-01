@@ -296,7 +296,7 @@ const SEED_ENTRIES: CorpusEntryInput[] = [
       chunkId,
       'adversarial_negative',
       'clean',
-      'NEU-664 adversarial negative — short by design (definition card with knowledge_type≠fact carve-out)'
+      'NEU-664 adversarial negative — under 300 words and knowledge_type !== "fact" (so the floor rule fires), but content is intentionally concise and judged correct'
     )
   ),
   ...WORD_COUNT_CEILING_ADVERSARIAL.map(chunkId =>
