@@ -8,6 +8,8 @@ import {
   StartLearningInputSchema,
   CreateSessionQuestionsInputShape,
   CreateSessionQuestionsInputSchema,
+  ReviseGradeInputShape,
+  ReviseGradeInputSchema,
 } from '../domain/types/teaching.js';
 import { getRequestLogger, withRequestContext } from '../shared/logger.js';
 import { toSnakeCase } from '../shared/case-convert.js';
@@ -166,6 +168,50 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
           }
           getRequestLogger().error('start_learning failed:', error);
           return toolError(`Failed to start learning: ${msg}`, {
+            type: 'session',
+            message: msg,
+            retryable: true,
+          });
+        }
+      })
+  );
+
+  server.registerTool(
+    'revise_grade',
+    {
+      title: 'Revise Grade',
+      description:
+        'Overwrite a previously-recorded session_question_attempt grade when YOU graded incorrectly. ' +
+        "Use this when you graded incorrectly, not for retries on a learner's second attempt — " +
+        "that's still submit_answer with session_question_id. " +
+        'The original attempt values are preserved verbatim for audit; the live attempt row is ' +
+        'updated in place so the SRS engine reads the corrected quality at chunk finalization. ' +
+        'If the original grade had triggered a roadblock and the revised grade no longer warrants ' +
+        'one, pending follow-up requirements drop. An audit note is auto-filed on the chunk. ' +
+        'Constraint: the targeted chunk must still be in-progress; revisions on already-finalized ' +
+        'chunks return chunk_already_finalized (SRS-recalc for finalized chunks is a deferred ' +
+        'follow-up). Reason must be one of: agent_misread_prompt, agent_misjudged_correctness, ' +
+        'agent_applied_wrong_rubric, learner_provided_clarification, other.',
+      inputSchema: ReviseGradeInputShape,
+    },
+    async input =>
+      withRequestContext('revise_grade', async () => {
+        try {
+          const parsed = ReviseGradeInputSchema.parse(input);
+          const result = await ctx.reviseGrade(parsed);
+          return toolData(result);
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          if (error instanceof ZodError) {
+            getRequestLogger().error('Invalid revise_grade input:', error);
+            return toolError(`Failed to revise grade: ${msg}`, {
+              type: 'validation',
+              message: msg,
+              retryable: false,
+            });
+          }
+          getRequestLogger().error('revise_grade failed:', error);
+          return toolError(`Failed to revise grade: ${msg}`, {
             type: 'session',
             message: msg,
             retryable: true,

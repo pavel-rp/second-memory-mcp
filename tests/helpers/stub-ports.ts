@@ -207,6 +207,21 @@ export function stubSessionQuestionRepository(
     getAttemptsForQuestion: vi.fn().mockResolvedValue([]),
     getAllAttemptsForSession: vi.fn().mockResolvedValue([]),
     getMinPriorQuality: vi.fn().mockResolvedValue(undefined),
+    reviseAttempt: vi.fn().mockResolvedValue({
+      id: 'rev-stub',
+      attemptId: 'sqa-stub',
+      originalQuality: null,
+      originalAgentQuality: null,
+      originalPassed: false,
+      originalFeedback: '',
+      newQuality: null,
+      newAgentQuality: null,
+      newPassed: false,
+      newFeedback: '',
+      reason: 'other',
+      revisedAt: 0,
+    }),
+    getRevisionsForAttempt: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

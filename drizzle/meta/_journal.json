@@ -141,6 +141,13 @@
       "when": 1774220000000,
       "tag": "0019_create_linter_validation_corpus",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1774230000000,
+      "tag": "0020_add_session_question_attempt_revisions",
+      "breakpoints": true
     }
   ]
 }
