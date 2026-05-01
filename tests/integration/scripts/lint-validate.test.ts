@@ -7,6 +7,10 @@ import { DrizzleLinterValidationRepository } from '../../../src/adapters/drizzle
 import { runValidate } from '../../../scripts/lint-validate.js';
 import type { LinterRule } from '../../../src/domain/services/chunk-linter.js';
 import { THRESHOLDS_VERSION } from '../../../src/domain/services/linter-validation/calculator.js';
+import {
+  createTier1aRules,
+  createTier1bRules,
+} from '../../../src/domain/services/linter-rules/index.js';
 
 async function seedChunk(chunkId: string, content: string): Promise<void> {
   const db = getSql();
@@ -173,5 +177,34 @@ describe('scripts/lint-validate (integration)', () => {
     expect(evaluations[0].f1HeldOut).toBeCloseTo((2 * 0.5 * 1) / (0.5 + 1), 6);
     const persisted = await repo.getReport(promotedRule.name);
     expect(persisted?.f1HeldOut).toBeCloseTo(evaluations[0].f1HeldOut ?? Number.NaN, 6);
+  });
+
+  it('default rule set covers every registered Tier 1a + Tier 1b rule', async () => {
+    // Regression guard for NEU-664. The harness's default rule list must mirror
+    // the composition root's `[...createTier1aRules(), ...createTier1bRules()]`
+    // wiring — otherwise `pnpm lint:validate` silently skips Tier 1b rules.
+    const repo = new DrizzleLinterValidationRepository(getSql());
+    const expectedRuleNames = new Set([
+      ...createTier1aRules().map(r => r.name),
+      ...createTier1bRules().map(r => r.name),
+    ]);
+
+    const { exitCode, evaluations } = await runValidate(undefined, repo);
+
+    expect(exitCode).toBe(0);
+    expect(evaluations).toHaveLength(expectedRuleNames.size);
+    expect(new Set(evaluations.map(ev => ev.ruleId))).toEqual(expectedRuleNames);
+
+    const tier1aNames = new Set(createTier1aRules().map(r => r.name));
+    for (const ev of evaluations) {
+      if (tier1aNames.has(ev.ruleId)) {
+        // Tier 1a rules are eligible-by-construction even without a corpus.
+        expect(ev.blockingEligible).toBe(true);
+      } else {
+        // Tier 1b rules with no corpus stay ineligible — the only path to
+        // `true` is hitting the precision/recall thresholds via real data.
+        expect(ev.blockingEligible).toBe(false);
+      }
+    }
   });
 });
