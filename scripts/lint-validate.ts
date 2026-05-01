@@ -36,7 +36,10 @@ import type {
   LinterValidationRepository,
   RuleValidationReport,
 } from '../src/ports/linter-validation-repository.js';
-import { createTier1aRules } from '../src/domain/services/linter-rules/index.js';
+import {
+  createTier1aRules,
+  createTier1bRules,
+} from '../src/domain/services/linter-rules/index.js';
 import {
   type ChunkLintInput,
   type LinterFinding,
@@ -226,8 +229,18 @@ function logSummary(evaluations: readonly RuleEvaluation[]): void {
   }
 }
 
+/**
+ * Canonical rule set evaluated by `pnpm lint:validate`. Mirrors the composition
+ * root's wiring (`[...createTier1aRules(), ...createTier1bRules()]`) so the
+ * harness validates the same rules that the runtime registers — preventing the
+ * harness and the production rule list from drifting silently.
+ */
+function defaultRegisteredRules(): LinterRule[] {
+  return [...createTier1aRules(), ...createTier1bRules()];
+}
+
 export async function runValidate(
-  rules: readonly LinterRule[] = createTier1aRules(),
+  rules: readonly LinterRule[] = defaultRegisteredRules(),
   repo?: LinterValidationRepository
 ): Promise<{ exitCode: number; evaluations: RuleEvaluation[] }> {
   const repository = repo ?? new DrizzleLinterValidationRepository(getSql());
@@ -260,9 +273,10 @@ export async function runValidate(
 
   // Registry-vs-intent parity uses the canonical registered rule set rather
   // than the `rules` argument, so partial rule lists supplied by tests do not
-  // trigger spurious "non-registered" violations. In CI this is effectively
-  // the same set (`runValidate()` defaults to `createTier1aRules()`).
-  const parityViolations = validateRuleIntentParity(createTier1aRules().map(r => r.name));
+  // trigger spurious "non-registered" violations. The canonical set covers
+  // both Tier 1a (structural) and Tier 1b (heuristic) rules, matching what
+  // `composition-root` registers at runtime.
+  const parityViolations = validateRuleIntentParity(defaultRegisteredRules().map(r => r.name));
   if (parityViolations.length > 0) {
     for (const violation of parityViolations) {
       logger.error(`lint-validate: rule intent parity — ${violation}`);
