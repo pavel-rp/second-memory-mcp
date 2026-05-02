@@ -78,22 +78,33 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           } as NewLearningChunk & { topicTitle?: string });
 
           if (!result.success) {
+            const errorType = result.error.type;
             return toolError(
               `Failed to create learning item "${input.title}": ${result.error.message}`,
               {
-                type: result.error.type,
+                type: errorType,
                 message: result.error.message,
+                retryable: result.error.retryable,
+                ...(errorType === 'content_quality'
+                  ? { findings: toSnakeCase(result.error.findings ?? []) }
+                  : {}),
               }
             );
           }
 
+          const { chunk, tier2Findings } = result.data;
           return toolData(
             toSnakeCase({
-              chunkId: result.data.id,
-              topicId: result.data.topicId,
-              createdAt: result.data.createdAt,
+              chunkId: chunk.id,
+              topicId: chunk.topicId,
+              createdAt: chunk.createdAt,
+              // Tier 2 classifier warnings (NEU-686). Always present as an
+              // array; empty when the classifier did not run or produced no
+              // low-score fields. Never signals failure — creation always
+              // succeeds when `result.success === true`.
+              tier2Findings: tier2Findings ?? [],
               message: `Successfully created learning item "${input.title}"`,
-              consistencyReminder: buildConsistencyReminder(result.data.topicId, 'created'),
+              consistencyReminder: buildConsistencyReminder(chunk.topicId, 'created'),
             })
           );
         } catch (error) {
@@ -132,16 +143,23 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
                 contentVersion: result.chunk.contentVersion,
                 progressReset: result.progressReset,
                 updatedAt: result.chunk.updatedAt,
+                // NEU-686: Tier 2 classifier warnings, mirroring topic-tools.
+                tier2Findings: result.tier2Findings ?? [],
                 message: `Successfully updated content for chunk "${result.chunk.title}"`,
                 consistencyReminder: buildConsistencyReminder(result.chunk.topicId),
               })
             );
           } else {
+            const errorType = result.error?.type || 'database';
             return toolError(
               `Failed to update chunk content: ${result.error?.message || 'Unknown error'}`,
               {
-                type: result.error?.type || 'database',
+                type: errorType,
                 message: result.error?.message || 'Unknown error',
+                retryable: result.error?.retryable,
+                ...(errorType === 'content_quality'
+                  ? { findings: toSnakeCase(result.error?.findings ?? []) }
+                  : {}),
               }
             );
           }
@@ -234,16 +252,23 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
                 contentVersion: result.chunk.contentVersion,
                 progressReset: result.progressReset,
                 updatedAt: result.chunk.updatedAt,
+                // NEU-686: Tier 2 classifier warnings, mirroring topic-tools.
+                tier2Findings: result.tier2Findings ?? [],
                 message: `Successfully updated chunk "${result.chunk.title}"${result.progressReset ? ' (progress reset)' : ''}`,
                 consistencyReminder: buildConsistencyReminder(result.chunk.topicId),
               })
             );
           } else {
+            const errorType = result.error?.type || 'database';
             return toolError(
               `Failed to update chunk: ${result.error?.message || 'Unknown error'}`,
               {
-                type: result.error?.type || 'database',
+                type: errorType,
                 message: result.error?.message || 'Unknown error',
+                retryable: result.error?.retryable,
+                ...(errorType === 'content_quality'
+                  ? { findings: toSnakeCase(result.error?.findings ?? []) }
+                  : {}),
               }
             );
           }

@@ -349,6 +349,11 @@ export async function createTopicWithChunks(
             field: hit.field,
             score: hit.score,
             rationale: truncateRationaleForEvent(hit.rationale),
+            // NEU-686: discriminator string identifying which orchestration
+            // entry point emitted the block — uniform across all five
+            // chunk-content write paths so downstream telemetry can split
+            // rejections by surface.
+            audit_path: 'create_topic_with_chunks',
           });
         } catch {
           // Defensive: a broken event logger must not change the response.

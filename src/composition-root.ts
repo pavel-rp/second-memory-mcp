@@ -63,7 +63,7 @@ import type {
   ReviseGradeInput,
   ReviseGradeResult,
 } from './domain/types/teaching.js';
-import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
+import type { LearningSession, SessionChunk } from './domain/types/entities.js';
 import type {
   NoteCreated,
   NoteListResult,
@@ -134,7 +134,7 @@ export interface AppContext {
   // Chunk orchestration
   createChunkWithTopic: (
     input: Parameters<typeof chunkWorkflows.createChunkWithTopic>[0]
-  ) => Promise<ServiceResult<LearningChunk>>;
+  ) => Promise<ServiceResult<chunkWorkflows.CreateChunkResult>>;
   updateChunkContent: (
     id: string,
     input: { content: string; resetProgress?: boolean; condensedSummary?: string }
@@ -382,6 +382,29 @@ export function createAppContext(
     ports.classifier = new LangChainContentClassifierAdapter(resolvedClassifier.classifier);
   }
 
+  // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1) +
+  // Tier 1b heuristic rules (NEU-616 phantom-prerequisite onward,
+  // warning-only at ship). `applyEligibilityToRules` threads per-rule
+  // `blocking_eligible` from the validation report table (NEU-627) into
+  // the rule list so Tier 1b rules only activate blocking severity once
+  // the OOD harness has validated them. NEU-686 shares the same rule list
+  // between `chunkDeps` and `topicDeps` so chunk and topic write paths run
+  // the same Tier 1 suite.
+  const linterRules = applyEligibilityToRules(
+    [...createTier1aRules(), ...createTier1bRules()],
+    initialRuleValidationReports
+  );
+
+  // NEU-621/NEU-672/NEU-686: in-process circuit-breaker that auto-disables a
+  // blocking field when its weekly rejection rate spikes above rolling-mean
+  // + 2σ. Constructed once when `blockingFields` is non-empty and shared by
+  // both `chunkDeps` and `topicDeps` so per-process state stays unified.
+  // Matches the conditional adapter pattern used for `embedding`/`classifier`.
+  const tier2CircuitBreaker =
+    resolvedClassifier.classifier.blockingFields.size > 0
+      ? createTier2CircuitBreaker({ stats: new DrizzleTier2BlockingStatsRepository() })
+      : undefined;
+
   const chunkDeps: chunkWorkflows.ChunkDeps = {
     chunks: ports.chunks,
     topics: ports.topics,
@@ -389,6 +412,10 @@ export function createAppContext(
     embedding: ports.embedding,
     classifier: ports.classifier,
     maxDependencyDepth: algorithmConfig.maxDependencyDepth,
+    enableClassifier: resolvedClassifier.classifier.enable,
+    blockingFields: resolvedClassifier.classifier.blockingFields,
+    ...(tier2CircuitBreaker !== undefined ? { tier2CircuitBreaker } : {}),
+    linterRules,
   };
   const topicDeps: topicWorkflows.TopicDeps = {
     topics: ports.topics,
@@ -402,28 +429,8 @@ export function createAppContext(
     // default; operators flip fields one at a time after both calibration and
     // OOD precision gates have passed.
     blockingFields: resolvedClassifier.classifier.blockingFields,
-    // NEU-621/NEU-672: in-process circuit-breaker that auto-disables a blocking
-    // field when its weekly rejection rate spikes above rolling-mean + 2σ. Only
-    // constructed when `blockingFields` is non-empty so an unconfigured
-    // deployment never even allocates the adapter — matches the conditional
-    // adapter pattern used for `embedding`/`classifier` above.
-    ...(resolvedClassifier.classifier.blockingFields.size > 0
-      ? {
-          tier2CircuitBreaker: createTier2CircuitBreaker({
-            stats: new DrizzleTier2BlockingStatsRepository(),
-          }),
-        }
-      : {}),
-    // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1) +
-    // Tier 1b heuristic rules (NEU-616 phantom-prerequisite onward,
-    // warning-only at ship). `applyEligibilityToRules` threads per-rule
-    // `blocking_eligible` from the validation report table (NEU-627) into
-    // the rule list so Tier 1b rules only activate blocking severity once
-    // the OOD harness has validated them.
-    linterRules: applyEligibilityToRules(
-      [...createTier1aRules(), ...createTier1bRules()],
-      initialRuleValidationReports
-    ),
+    ...(tier2CircuitBreaker !== undefined ? { tier2CircuitBreaker } : {}),
+    linterRules,
   };
 
   // Startup parity check: every registered rule must have a declared intent

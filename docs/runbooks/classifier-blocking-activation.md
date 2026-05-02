@@ -126,6 +126,8 @@ In the "insufficient data" case, mark every field as `no-go (insufficient)` and 
 
 **One field per deploy.** Bulk-flipping multiple fields makes failure attribution much harder.
 
+**Scope reminder (NEU-686):** activating a field affects every chunk-content write path — topic creation, single-chunk creation, and the three update entry points. See [section 7b](#7b-update-path-behavior-neu-686) for the per-entry-point reverse-UPDATE / delete-rollback semantics and the `audit_path` discriminator that lets you split telemetry by surface.
+
 1. Add the snake-case field name to `CLASSIFIER_BLOCKING_FIELDS` in deployment config:
 
    ```
@@ -181,6 +183,74 @@ Recovery:
 1. Check stderr for the unknown-field name (the thrown error names the offender).
 2. Compare against the allowlist in section 1 above (`rendering_clarity`, `vocabulary_appropriate`, `math_notation_rendering_risk`, `definition_constructive`, `epistemic_consistency`, `overall_fit`).
 3. Correct the env var; redeploy.
+
+---
+
+## 7b. Update-path behavior (NEU-686)
+
+NEU-686 wires the same Tier 1 + Tier 2 audit chain documented above into every chunk-content write path, not just `create_topic_with_chunks`. Soft-warn (the default with `CLASSIFIER_BLOCKING_FIELDS` empty/unset) surfaces low-score Tier 2 findings on the success response without rolling anything back. Blocking-mode (one or more fields listed in `CLASSIFIER_BLOCKING_FIELDS`) rejects the write and reverses the row to its pre-call state.
+
+**Affected entry points:**
+
+| MCP tool                                 | Orchestration entry point         | `audit_path` discriminator             |
+| ---------------------------------------- | --------------------------------- | -------------------------------------- |
+| `create_topic_with_chunks`               | `createTopicWithChunks`           | `create_topic_with_chunks`             |
+| `create_learning_item`                   | `createChunkWithTopic`            | `create_chunk_with_topic`              |
+| `update_chunk_content`                   | `updateChunkContent`              | `update_chunk_content`                 |
+| `update_chunk_content` (auto-reset path) | `updateChunkContentWithAutoReset` | `update_chunk_content_with_auto_reset` |
+| `update_chunk`                           | `updateChunkWithProgressReset`    | `update_chunk_with_progress_reset`     |
+
+`update_chunk_metadata` does not mutate content and intentionally bypasses the audit chain — content-quality findings only attach to writes that touch content. See section 6 for the per-field flip procedure; activation is unchanged across all five entry points.
+
+### Reverse-UPDATE on Tier 2 block (the three update entry points)
+
+When Tier 2 rejects an update, the orchestration issues a single compensating `chunks.update(id, snapshot)` call that restores 14 captured columns to their pre-update state:
+
+- `content`, `contentVersion`, `contentUpdatedAt`, `contentStatus`, `condensedSummary` — the content + content-version fields.
+- `repetitions`, `easeFactor`, `nextReviewAt`, `lastReviewedAt` — the SR-state fields. Rejecting an update unwinds any progress reset triggered by the proposed content change.
+- `title`, `difficulty`, `estimatedDuration`, `prerequisitesJson`, `tagsJson` — the metadata fields `update_chunk` may write alongside content.
+
+`updatedAt` is intentionally **not** in the snapshot — it always advances on every write, including the rollback. The `validator_report.tier1*` sections written during the audit also stay (they're the persistent record of the audit decision); only `tier2` is overwritten by the rejecting verdict.
+
+After a successful reverse-UPDATE the orchestration also re-embeds the restored content best-effort: when the pre-update content was a string, the new vector is computed from that string; when the pre-update content was null but the original update had written a string + embedding, the now-stale vector is cleared back to null. Either way the row never carries an embedding that points at content the row no longer contains.
+
+### Delete-rollback on Tier 2 block (`createChunkWithTopic`)
+
+`create_learning_item` is the only update-path entry point that is also a creation, so its rollback is delete-based instead of UPDATE-based. The orchestration deletes the just-created chunk first; if the topic was **auto-created in this same call** (i.e. `topicTitle` was supplied without a matching existing topic) the topic is then deleted too. A topic that already existed (matched by `title + subject`, or supplied explicitly via `topicId`) is **not** deleted on chunk rollback — only the row this call brought into existence.
+
+### Rollback-failure operator response
+
+When the reverse-UPDATE fails — `rowCount === 0` (chunk was deleted between commit and the Tier 2 fan-out) or the call throws — the orchestration emits the `classifier.tier2_blocked` event regardless and returns:
+
+```json
+{
+  "type": "database",
+  "retryable": true,
+  "message": "Tier 2 classifier rejected update but rollback failed for chunk <id> (<reason>). Manual cleanup may be required."
+}
+```
+
+The `<id>` is the affected chunk's UUID. Locate the chunk in `learning_chunks` and consult `validator_report.tier2` to see the verdict that triggered the block; decide whether to restore the pre-update content manually or accept the new content (e.g. by issuing a fresh update without the offending classifier-blocking field present).
+
+The same shape applies on `createChunkWithTopic` rollback failures (chunk-delete or topic-delete failure) — the message names the chunk_id (and sometimes the topic_id when the topic delete failed) so operators can finish the cleanup by hand.
+
+### Telemetry — `audit_path` field
+
+Every `classifier.tier2_blocked` event now carries an `audit_path` string set by the orchestration entry point that emitted it. Use it to split rejection telemetry by surface:
+
+```sql
+SELECT
+  data->>'audit_path' AS audit_path,
+  data->>'field' AS field,
+  COUNT(*) AS rejection_count
+FROM infrastructure.operation_event_log
+WHERE event = 'classifier.tier2_blocked'
+  AND timestamp >= NOW() - INTERVAL '7 days'
+GROUP BY data->>'audit_path', data->>'field'
+ORDER BY rejection_count DESC;
+```
+
+A spike on a specific `audit_path` may indicate a calibration drift specific to that surface (e.g. update flows producing different distributions than create flows). The circuit-breaker (section 7) is process-wide and field-scoped, not `audit_path`-scoped, so a runaway on one entry point will trip the field for all five surfaces.
 
 ---
 

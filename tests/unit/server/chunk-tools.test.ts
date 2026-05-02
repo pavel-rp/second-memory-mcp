@@ -63,7 +63,7 @@ describe('chunk-tools', () => {
       };
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: mockChunkRow,
+        data: { chunk: mockChunkRow },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -81,7 +81,7 @@ describe('chunk-tools', () => {
     it('includes consistency_reminder in success response', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -117,26 +117,28 @@ describe('chunk-tools', () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
         data: {
-          id: 'c2',
-          topicId: 't1',
-          title: 'Linked Lists',
-          subject: 'CS',
-          difficulty: 5,
-          nextReviewAt: Date.now(),
-          easeFactor: 2.5,
-          repetitions: 0,
-          lastReviewedAt: null,
-          estimatedDuration: 10,
-          intervalDays: null,
-          chunkType: 'new',
-          prerequisitesJson: ['c1'],
-          tagsJson: ['data-structures'],
-          content: null,
-          contentVersion: null,
-          contentUpdatedAt: null,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          topicTitle: 'DS',
+          chunk: {
+            id: 'c2',
+            topicId: 't1',
+            title: 'Linked Lists',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewAt: Date.now(),
+            easeFactor: 2.5,
+            repetitions: 0,
+            lastReviewedAt: null,
+            estimatedDuration: 10,
+            intervalDays: null,
+            chunkType: 'new',
+            prerequisitesJson: ['c1'],
+            tagsJson: ['data-structures'],
+            content: null,
+            contentVersion: null,
+            contentUpdatedAt: null,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            topicTitle: 'DS',
+          },
         },
       });
       registerChunkTools(server as any, ctx);
@@ -191,7 +193,7 @@ describe('chunk-tools', () => {
     it('defaults contentStatus to final when not provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -205,7 +207,7 @@ describe('chunk-tools', () => {
     it('passes explicit content_status draft through', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -228,7 +230,7 @@ describe('chunk-tools', () => {
     it('passes knowledge_type through to ctx', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -242,7 +244,7 @@ describe('chunk-tools', () => {
     it('defaults knowledgeType to null when not provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
