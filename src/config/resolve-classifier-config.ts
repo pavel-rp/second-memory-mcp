@@ -19,8 +19,9 @@ import { getRequestLogger } from '../shared/logger.js';
 /**
  * Resolve the classifier "is wired" toggle from env, honoring the legacy
  * `CLASSIFIER_ENABLE_AT_CREATE` alias for one release. `CLASSIFIER_ENABLE`
- * is canonical. When only the legacy var is set, a deprecation warning is
- * logged at resolution time — effectively one-shot per process because the
+ * is canonical. Whenever the legacy var is present (alone, or alongside
+ * `CLASSIFIER_ENABLE` in agreement) a deprecation warning is logged at
+ * resolution time — effectively one-shot per process because the
  * composition root invokes `resolveClassifierConfig` exactly once at
  * startup. When both are set with disagreeing parsed booleans, this throws
  * so misconfigured deployments fail fast at startup.
@@ -44,15 +45,21 @@ function resolveEnableToggle(env: Record<string, string | undefined>): boolean {
     return parseBoolean(legacyRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
   }
   // Both set — compare parsed booleans so equivalent string forms (e.g.
-  // `true` and `on`) agree silently. Disagreement is a config error and
-  // must fail fast so the operator notices before serving traffic.
+  // `true` and `on`) agree without a hard failure. Disagreement is a config
+  // error and must fail fast so the operator notices before serving traffic.
+  // Even when they agree, emit the deprecation warning: an operator who left
+  // the legacy var in place needs the same migration nudge as one who set
+  // only the legacy var.
   const canonicalParsed = parseBoolean(canonicalRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
   const legacyParsed = parseBoolean(legacyRaw, DEFAULT_CLASSIFIER_CONFIG.enable);
   if (canonicalParsed !== legacyParsed) {
     throw new Error(
-      `Conflicting classifier toggle: CLASSIFIER_ENABLE=${JSON.stringify(canonicalRaw)} (parsed as ${canonicalParsed}) but CLASSIFIER_ENABLE_AT_CREATE=${JSON.stringify(legacyRaw)} (parsed as ${legacyParsed}). Set only CLASSIFIER_ENABLE, or set both to the same value.`
+      `Conflicting classifier toggle: CLASSIFIER_ENABLE=${JSON.stringify(canonicalRaw)} (parsed as ${canonicalParsed}) but CLASSIFIER_ENABLE_AT_CREATE=${JSON.stringify(legacyRaw)} (parsed as ${legacyParsed}). Remove CLASSIFIER_ENABLE_AT_CREATE and set CLASSIFIER_ENABLE to the desired value.`
     );
   }
+  getRequestLogger().warn(
+    'CLASSIFIER_ENABLE_AT_CREATE is deprecated and will be removed in a future release; set CLASSIFIER_ENABLE instead.'
+  );
   return canonicalParsed;
 }
 

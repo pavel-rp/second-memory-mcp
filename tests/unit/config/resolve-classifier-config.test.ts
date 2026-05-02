@@ -232,24 +232,27 @@ describe('resolveClassifierConfig', () => {
       ).toThrow(/CLASSIFIER_ENABLE.*CLASSIFIER_ENABLE_AT_CREATE/);
     });
 
-    it('accepts both vars when parsed booleans agree (true=on equivalence) without warning', () => {
+    it('accepts both vars when parsed booleans agree (true=on equivalence) and emits deprecation warning', () => {
       const result = resolveClassifierConfig({
         CLASSIFIER_ENABLE: 'true',
         CLASSIFIER_ENABLE_AT_CREATE: 'on',
       });
 
       expect(result.classifier.enable).toBe(true);
-      expect(warnSpy).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const warningMessage = warnSpy.mock.calls[0][0] as string;
+      expect(warningMessage).toContain('CLASSIFIER_ENABLE_AT_CREATE');
+      expect(warningMessage.toLowerCase()).toContain('deprecated');
     });
 
-    it('accepts both vars when parsed booleans agree (false=0 equivalence) without warning', () => {
+    it('accepts both vars when parsed booleans agree (false=0 equivalence) and emits deprecation warning', () => {
       const result = resolveClassifierConfig({
         CLASSIFIER_ENABLE: 'false',
         CLASSIFIER_ENABLE_AT_CREATE: '0',
       });
 
       expect(result.classifier.enable).toBe(false);
-      expect(warnSpy).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
