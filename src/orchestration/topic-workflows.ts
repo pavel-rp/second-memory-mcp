@@ -50,12 +50,13 @@ export type TopicDeps = {
   /** Tier 2 content classifier (NEU-619). Invoked post-commit by NEU-620. */
   classifier?: ContentClassifierPort;
   /**
-   * Mirrors `CLASSIFIER_ENABLE_AT_CREATE`. When `true` AND `classifier` is
-   * present, NEU-620 runs the classifier after the topic-creation transaction
-   * commits. Defaults to `false` so test fixtures and unconfigured runs keep
-   * the previous behavior.
+   * Mirrors `CLASSIFIER_ENABLE`. When `true` AND `classifier` is present,
+   * the Tier 2 classifier runs on every audit-eligible write path (post-
+   * commit on creation today; NEU-680 extends to update paths). Defaults
+   * to `false` so test fixtures and unconfigured runs keep the previous
+   * behavior.
    */
-  enableClassifierAtCreate?: boolean;
+  enableClassifier?: boolean;
   /**
    * NEU-621: per-field allowlist of verdict fields that, when scored at or
    * below the soft-warn threshold, will reject topic creation and roll back
@@ -374,7 +375,7 @@ export async function createTopicWithChunks(
     // and a typed validation error is returned.
     let tier2Findings: LinterFinding[] | undefined;
     let tier2BlockingHits: Tier2BlockingHit[] = [];
-    if (deps.classifier && deps.enableClassifierAtCreate === true) {
+    if (deps.classifier && deps.enableClassifier === true) {
       // Resolve the effective blocking set through the optional circuit-breaker.
       // The breaker may shrink the configured set when recent rejection rates
       // are anomalous; on its own error path it returns the input unchanged.

@@ -22,8 +22,15 @@ export type ClassifierConfig = {
   maxRetries: number;
   timeout: number;
   openaiApiKey: string | null;
-  /** Consumed by NEU-620 — signals whether `create_chunk` should invoke the classifier. */
-  enableAtCreate: boolean;
+  /**
+   * Global "is the classifier wired" kill switch. When `true` AND a classifier
+   * port is configured, every audit-eligible write path invokes the Tier 2
+   * classifier. Mirrors the `CLASSIFIER_ENABLE` env var; the legacy
+   * `CLASSIFIER_ENABLE_AT_CREATE` is accepted as a deprecated alias for one
+   * release. NEU-680 extends Tier 2 audits to update paths, so this is no
+   * longer create-only.
+   */
+  enable: boolean;
   /**
    * Consumed by NEU-621 — per-field allowlist of verdict fields that, when scored
    * at or below the soft-warn threshold, will reject topic creation. Empty set

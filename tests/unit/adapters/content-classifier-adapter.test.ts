@@ -62,7 +62,7 @@ function makeConfig(overrides?: Partial<ClassifierConfig>): ClassifierConfig {
     maxRetries: 2,
     timeout: 10_000,
     openaiApiKey: 'sk-test-key',
-    enableAtCreate: true,
+    enable: true,
     blockingFields: new Set(),
     ...overrides,
   };

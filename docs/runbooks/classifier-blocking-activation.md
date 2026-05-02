@@ -1,7 +1,7 @@
 # Tier 2 Classifier Blocking Activation — Operator Runbook
 
 **Owner:** NEU-621 (hardening: NEU-672)
-**Last updated:** 2026-04-28
+**Last updated:** 2026-05-01
 
 This runbook describes how to safely activate `CLASSIFIER_BLOCKING_FIELDS` for one or more Tier 2 verdict fields. Blocking is opt-in per field and gated on two empirical thresholds — never flip a field without going through every step.
 
@@ -11,7 +11,7 @@ This runbook describes how to safely activate `CLASSIFIER_BLOCKING_FIELDS` for o
 
 Before considering any flip:
 
-1. **Confirm soft-warn deployment** — `CLASSIFIER_ENABLE_AT_CREATE=true` has been live for ≥ 4 weeks. The soft-warn corpus is what calibration measures against.
+1. **Confirm soft-warn deployment** — `CLASSIFIER_ENABLE=true` has been live for ≥ 4 weeks. The soft-warn corpus is what calibration measures against.
 2. **Verify the verdict-field name** is one of (snake_case, as it appears in `validator_report.tier2`):
    - `rendering_clarity`
    - `vocabulary_appropriate`
@@ -188,7 +188,7 @@ Recovery:
 
 If a wrong flip causes a creation outage:
 
-1. Set `CLASSIFIER_ENABLE_AT_CREATE=false` to halt all classifier-driven blocking immediately. Soft-warn is also disabled, but creates resume.
+1. Set `CLASSIFIER_ENABLE=false` to halt all classifier-driven blocking immediately. Soft-warn is also disabled, but creates resume.
 2. Deploy.
 3. Investigate the calibration report for the offending field — re-run with a larger or more recent sample.
-4. Once the cause is understood, re-enable soft-warn (`CLASSIFIER_ENABLE_AT_CREATE=true`) but keep the field out of `CLASSIFIER_BLOCKING_FIELDS` until a fresh calibration passes.
+4. Once the cause is understood, re-enable soft-warn (`CLASSIFIER_ENABLE=true`) but keep the field out of `CLASSIFIER_BLOCKING_FIELDS` until a fresh calibration passes.

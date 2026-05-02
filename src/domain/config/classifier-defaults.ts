@@ -12,10 +12,11 @@ export const DEFAULT_CLASSIFIER_CONFIG: ClassifierConfig = {
   maxRetries: 2,
   timeout: 10_000,
   openaiApiKey: null,
-  // Off by default: classification on create is an explicit opt-in because it
-  // adds a ~2 s p95 external API call to the topic-creation path. Operators
-  // who want it set `CLASSIFIER_ENABLE_AT_CREATE=true`.
-  enableAtCreate: false,
+  // Off by default: classifier invocation is an explicit opt-in because it
+  // adds a ~2 s p95 external API call to every audit-eligible write path.
+  // Operators who want it set `CLASSIFIER_ENABLE=true` (or, during the
+  // deprecation window, the legacy `CLASSIFIER_ENABLE_AT_CREATE` alias).
+  enable: false,
   // Empty by default — soft-warn only. NEU-621 owns the per-field flip gated
   // on calibration + OOD precision; see the runbook for activation procedure.
   blockingFields: new Set<VerdictFieldName>(),
