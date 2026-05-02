@@ -1,7 +1,7 @@
 # Tier 2 Classifier Blocking Activation — Operator Runbook
 
-**Owner:** NEU-621
-**Last updated:** 2026-04-29
+**Owner:** NEU-621 (hardening: NEU-672)
+**Last updated:** 2026-05-01
 
 This runbook describes how to safely activate `CLASSIFIER_BLOCKING_FIELDS` for one or more Tier 2 verdict fields. Blocking is opt-in per field and gated on two empirical thresholds — never flip a field without going through every step.
 
@@ -133,7 +133,7 @@ In the "insufficient data" case, mark every field as `no-go (insufficient)` and 
    ```
 
 2. Deploy. Watch:
-   - Operation log for `classifier.tier2_blocked` events. Spike rate should match calibration FP rate.
+   - Operation log for `classifier.tier2_blocked` events. Spike rate should match calibration FP rate. NEU-672: `data.rationale` is truncated to 256 characters with a `…[truncated]` suffix before persistence — full rationale flows through the synchronous `error.findings[].detail` response and is not stored in the long-retention event log.
    - Operation log for `tier2.circuit_breaker_tripped` events. Any trip means the breaker auto-disabled the field for that process — investigate before re-enabling.
 3. Soak for ≥ 1 week. If rejection rate stays within calibration bounds, leave it. If rejection rate spikes, the breaker will disable in process; on the next deploy, remove the field from the env and run a fresh calibration cycle.
 
@@ -163,6 +163,24 @@ GROUP BY data->>'field';
 ```
 
 Trip events repeat per-process — a horizontally scaled deployment with N replicas can emit up to N trip events per field per restart cycle. This is intentional (in-memory state per process). For permanent disable, remove the field from `CLASSIFIER_BLOCKING_FIELDS` on the next deploy.
+
+**Per-process-lifetime trip semantics (NEU-672):** the breaker's "exactly once" trip guarantee is _per-process-lifetime_, not per-deployment. After a process restart the breaker re-evaluates from scratch: previously tripped fields may trip again on the same calendar week's data and emit a fresh event. A horizontally scaled deployment with N replicas can therefore emit up to N trip events per field per restart cycle. The persistent disable path is removing the field from `CLASSIFIER_BLOCKING_FIELDS` on the next deploy, not relying on in-memory state.
+
+The breaker emits a second event class for stats-query failures (NEU-672):
+
+- `tier2.stats_query_failed` — fired when reading `infrastructure.operation_event_log` for the rolling-window count throws. Fail-open: the breaker returns its previously-tripped set unchanged; downstream creates proceed. Includes `error_class` (the throwing constructor name) and `error_message`. Alert on a non-zero rate of this event — it indicates the breaker is no longer observing fresh data.
+
+---
+
+## 7a. Startup-crash failure mode for invalid config (NEU-672)
+
+`parseVerdictFieldList` validates `CLASSIFIER_BLOCKING_FIELDS` against the snake-case verdict-field allowlist. An unknown field name causes a synchronous throw out of `resolveClassifierConfig` → `createAppContext`, **before any structured logger is configured**. The process exits with a stack trace on stderr — there is no `mcp_request_log` row, no `operation_event_log` row, and no JSON-formatted log line.
+
+Recovery:
+
+1. Check stderr for the unknown-field name (the thrown error names the offender).
+2. Compare against the allowlist in section 1 above (`rendering_clarity`, `vocabulary_appropriate`, `math_notation_rendering_risk`, `definition_constructive`, `epistemic_consistency`, `overall_fit`).
+3. Correct the env var; redeploy.
 
 ---
 

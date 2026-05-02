@@ -40,6 +40,7 @@ Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/help
 - **Orchestration** (`src/orchestration/`): Result objects for expected failures; throw for unexpected.
 - **Server** (`src/server/*-tools.ts`): try/catch everything. `toolOk()`/`toolJson()` for success, `toolError()` for caught exceptions.
 - **Fail-open**: Log to stderr, always return valid MCP responses, never crash.
+- **Structured `findings` only flow through `error.type === 'content_quality'`.** The server tool layer (`src/server/topic-tools.ts`) only serializes the `findings` array on `content_quality` errors; any other error type silently drops them. If you need to surface per-item structured failure data (chunk id, field, score, rationale), use `content_quality` — not `validation`.
 
 ## Drizzle Migrations
 
@@ -80,6 +81,7 @@ gh api --method POST "repos/OWNER/REPO/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/r
 - Don't import types you don't use.
 - Keep PR description accurate — mention all changes (e.g., lint config), not just tests.
 - Cover every early-return guard (`undefined`, `""`, `"  "`) — don't assume one nullish test covers all branches.
+- **Integration tests are non-negotiable for DB-mutating blocking paths.** If a plan touches rollback (`delete` after a commit), circuit-breakers that query the event log, or any branch that rejects a request _after_ persisting state, a DB-backed `tests/integration/` test is a hard ship-gate — never deferred to a follow-up. Unit tests with stubbed ports cannot prove the rollback actually rolls back, and concurrency races on cached DB queries are invisible to single-process unit tests. If integration-test infra is broken, fix the infra in the same PR; do not skip the test.
 
 ## Linear
 

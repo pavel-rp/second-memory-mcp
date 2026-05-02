@@ -223,6 +223,46 @@ export const sessionQuestionAttempts = pgTable(
   ]
 );
 
+// NEU-676: revise_grade preserves the original attempt values verbatim while
+// the live `session_question_attempts` row is updated in place. The supersede
+// behavior keeps `aggregateQuestionQualities` and the roadblock gate untouched.
+export const sessionQuestionAttemptRevisions = pgTable(
+  'session_question_attempt_revisions',
+  {
+    id: text('id').primaryKey().notNull(),
+    attemptId: text('attempt_id')
+      .notNull()
+      .references(() => sessionQuestionAttempts.id, { onDelete: 'cascade' }),
+    originalQuality: integer('original_quality'),
+    originalAgentQuality: smallint('original_agent_quality'),
+    originalPassed: boolean('original_passed').notNull(),
+    originalFeedback: text('original_feedback').notNull(),
+    newQuality: integer('new_quality'),
+    newAgentQuality: smallint('new_agent_quality'),
+    newPassed: boolean('new_passed').notNull(),
+    newFeedback: text('new_feedback').notNull(),
+    reason: text('reason').notNull(),
+    revisedAt: bigint('revised_at', { mode: 'number' }).notNull(), // epoch ms
+  },
+  /* v8 ignore next 13 -- Drizzle index/check definitions; executed internally, not reachable from app code */
+  table => [
+    index('idx_sqar_attempt_id').on(table.attemptId),
+    index('idx_sqar_revised_at').on(table.revisedAt),
+    check(
+      'chk_revision_reason',
+      sql`${table.reason} IN ('agent_misread_prompt', 'agent_misjudged_correctness', 'agent_applied_wrong_rubric', 'learner_provided_clarification', 'other')`
+    ),
+    check(
+      'chk_revision_original_agent_quality',
+      sql`${table.originalAgentQuality} IS NULL OR ${table.originalAgentQuality} BETWEEN 0 AND 5`
+    ),
+    check(
+      'chk_revision_new_agent_quality',
+      sql`${table.newAgentQuality} IS NULL OR ${table.newAgentQuality} BETWEEN 0 AND 5`
+    ),
+  ]
+);
+
 // Notes are immutable: deleted and re-added, never updated in place — no updatedAt column.
 export const notes = pgTable(
   'notes',
@@ -342,3 +382,10 @@ export type NewSessionQuestionRow = InferInsertModel<typeof sessionQuestions>;
 export type NewSessionQuestionChunkRow = InferInsertModel<typeof sessionQuestionChunks>;
 
 export type NewSessionQuestionAttemptRow = InferInsertModel<typeof sessionQuestionAttempts>;
+
+export type SessionQuestionAttemptRevisionRow = InferSelectModel<
+  typeof sessionQuestionAttemptRevisions
+>;
+export type NewSessionQuestionAttemptRevisionRow = InferInsertModel<
+  typeof sessionQuestionAttemptRevisions
+>;

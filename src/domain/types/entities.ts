@@ -1,5 +1,5 @@
 import type { ContentStatus } from './recommendations.js';
-import type { QuestionType } from './teaching.js';
+import type { QuestionType, ReviseGradeReason } from './teaching.js';
 import type { ValidatorReport } from './validator-report.js';
 
 export type KnowledgeType = 'fact' | 'concept' | 'procedure' | 'principle';
@@ -150,4 +150,21 @@ export type SessionQuestionAttempt = {
   questionType: QuestionType | null;
   timeSpentMs: number;
   createdAt: number;
+};
+
+export type SessionQuestionAttemptRevisionReason = ReviseGradeReason;
+
+export type SessionQuestionAttemptRevision = {
+  id: string;
+  attemptId: string;
+  originalQuality: number | null;
+  originalAgentQuality: number | null;
+  originalPassed: boolean;
+  originalFeedback: string;
+  newQuality: number | null;
+  newAgentQuality: number | null;
+  newPassed: boolean;
+  newFeedback: string;
+  reason: SessionQuestionAttemptRevisionReason;
+  revisedAt: number;
 };

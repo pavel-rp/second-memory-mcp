@@ -60,6 +60,8 @@ import type {
   StartLearningResult,
   CreateSessionQuestionsInput,
   CreateSessionQuestionsResult,
+  ReviseGradeInput,
+  ReviseGradeResult,
 } from './domain/types/teaching.js';
 import type { LearningChunk, LearningSession, SessionChunk } from './domain/types/entities.js';
 import type {
@@ -233,6 +235,7 @@ export interface AppContext {
   createSessionQuestions: (
     input: CreateSessionQuestionsInput
   ) => Promise<CreateSessionQuestionsResult>;
+  reviseGrade: (input: ReviseGradeInput) => Promise<ReviseGradeResult>;
 
   // Notes orchestration
   createNote: (input: CreateNoteInput) => Promise<NoteCreated>;
@@ -399,15 +402,18 @@ export function createAppContext(
     // default; operators flip fields one at a time after both calibration and
     // OOD precision gates have passed.
     blockingFields: resolvedClassifier.classifier.blockingFields,
-    // NEU-621: in-process circuit-breaker that auto-disables a blocking field
-    // when its weekly rejection rate spikes above rolling-mean + 2σ. Kept as a
-    // process singleton — its tripped-field set persists across requests so
-    // the trip event is emitted exactly once per (process, field). The
-    // breaker short-circuits when `blockingFields` is empty, so unconfigured
-    // deployments never pay the stats query.
-    tier2CircuitBreaker: createTier2CircuitBreaker({
-      stats: new DrizzleTier2BlockingStatsRepository(),
-    }),
+    // NEU-621/NEU-672: in-process circuit-breaker that auto-disables a blocking
+    // field when its weekly rejection rate spikes above rolling-mean + 2σ. Only
+    // constructed when `blockingFields` is non-empty so an unconfigured
+    // deployment never even allocates the adapter — matches the conditional
+    // adapter pattern used for `embedding`/`classifier` above.
+    ...(resolvedClassifier.classifier.blockingFields.size > 0
+      ? {
+          tier2CircuitBreaker: createTier2CircuitBreaker({
+            stats: new DrizzleTier2BlockingStatsRepository(),
+          }),
+        }
+      : {}),
     // Tier 1a structural-hygiene rules (NEU-628, blocking from day 1) +
     // Tier 1b heuristic rules (NEU-616 phantom-prerequisite onward,
     // warning-only at ship). `applyEligibilityToRules` threads per-rule
@@ -524,6 +530,13 @@ export function createAppContext(
     submitAnswer: input => teachingWorkflows.submitAnswer(input, teachingDeps),
     startLearning: input => teachingWorkflows.startLearning(input, startLearningDeps),
     createSessionQuestions: input => teachingWorkflows.createSessionQuestions(input, teachingDeps),
+    reviseGrade: input =>
+      teachingWorkflows.reviseGrade(input, {
+        sessions: ports.sessions,
+        sessionQuestions: ports.sessionQuestions,
+        algorithmConfig,
+        notes: ports.notes,
+      }),
 
     // Notes orchestration
     createNote: input => notesWorkflows.createNote(input, notesDeps),

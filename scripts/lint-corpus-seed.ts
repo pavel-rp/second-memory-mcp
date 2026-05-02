@@ -1,12 +1,21 @@
 #!/usr/bin/env tsx
 /**
- * `pnpm lint:corpus:seed` (NEU-627).
+ * `pnpm lint:corpus:seed` (NEU-627, extended NEU-664).
  *
- * Idempotently writes the derivation-split labels into
- * `infrastructure.linter_validation_corpus`. The chunk IDs below come from
- * the NEU-616 / NEU-617 spec material — they are the chunks the rule was
- * derived from and serve as the smoke-test corpus until proper held-out
- * labelling lands.
+ * Idempotently writes labelled corpus rows into
+ * `infrastructure.linter_validation_corpus`. Three splits are seeded today:
+ *
+ *   - `derivation` — chunks the rule was tuned on (NEU-616 / NEU-617 spec
+ *     material). Smoke-test only; not used by the OOD threshold gate.
+ *   - `held_out` (NEU-664) — chunks the rule should fire on, drawn from
+ *     outside the rule's derivation set. Counts feed the precision / recall
+ *     numbers in `linter_rule_validation_report`.
+ *   - `adversarial_negative` (NEU-664) — chunks that match the rule's
+ *     surface feature but were judged correct on inspection. `clean` verdict.
+ *
+ * Counts intentionally stay below `DEFAULT_ELIGIBILITY_THRESHOLDS.minHeldOutCount`
+ * (50) and `minAdversarialCount` (20). Reaching those minimums requires the
+ * full hand-labelling pass against `mcp_request_log` (deferred follow-up).
  *
  * The script tolerates missing chunk rows (skipped with a stderr warning,
  * not a fatal error) so it can be re-run safely after a local DB reset
@@ -21,6 +30,11 @@ import { learningChunks } from '../src/infrastructure/db/schema.js';
 import { DrizzleLinterValidationRepository } from '../src/adapters/drizzle/linter-validation-repository.js';
 import type { CorpusEntryInput } from '../src/ports/linter-validation-repository.js';
 import { logger } from '../src/shared/logger.js';
+
+// ───────────────────────────────────────────────────────────────────────────
+// Derivation-split chunk IDs (NEU-616 / NEU-617 spec material). These are the
+// chunks the rules were originally tuned against.
+// ───────────────────────────────────────────────────────────────────────────
 
 const PHANTOM_PREREQUISITE_CHUNKS = ['neu-537-hld-euler-tour'];
 const PHANTOM_CHAPTER_CHUNKS = [
@@ -71,28 +85,229 @@ const SCAFFOLDING_SECTION_PRACTICE_CHUNKS = [
   'e5-practice-038',
 ];
 
+// ───────────────────────────────────────────────────────────────────────────
+// Held-out positives (NEU-664). Chunks that *should* trigger the rule but
+// are drawn from sessions / retros outside each rule's derivation set
+// (NEU-446 / NEU-465 / NEU-534 / NEU-537 are excluded per NEU-627). Counts
+// stay well below the 50-row eligibility minimum — full hand-labelling is
+// deferred to a follow-up ticket.
+// ───────────────────────────────────────────────────────────────────────────
+
+const PHANTOM_PREREQUISITE_HELD_OUT = [
+  'pareto-frontier-decision-card',
+  'bias-variance-tradeoff-card',
+  'hld-distributed-consensus',
+];
+const PHANTOM_CHAPTER_HELD_OUT = [
+  'systems-design-overview-chapter',
+  'attention-mechanisms-survey-chapter',
+  'transformer-architecture-deep-dive',
+  'kubernetes-control-plane-tour',
+];
+const SCAFFOLDING_SECTION_HELD_OUT = [
+  'classifier-eval-walkthrough',
+  'retrieval-pipeline-summary',
+  'embeddings-evaluation-summary',
+];
+const BULLET_DOMINANT_HELD_OUT = [
+  'decision-tree-bullets-explainer',
+  'feature-flag-checklist-explainer',
+  'sre-on-call-runbook',
+];
+const WORD_COUNT_FLOOR_HELD_OUT = [
+  'cap-theorem-stub',
+  'loss-functions-stub',
+  'vector-quantization-stub',
+];
+const WORD_COUNT_CEILING_HELD_OUT = [
+  'distributed-systems-treatise',
+  'attention-is-everything-essay',
+  'systems-architecture-grand-tour',
+];
+
+// ───────────────────────────────────────────────────────────────────────────
+// Adversarial negatives (NEU-664). Chunks that match each rule's surface
+// feature (regex hit, threshold crossed) but were judged correct on
+// inspection — `expectedVerdict: 'clean'`. These guard the rule against
+// false positives. Same caveat: counts well below the 20-row minimum.
+// ───────────────────────────────────────────────────────────────────────────
+
+const PHANTOM_PREREQUISITE_ADVERSARIAL = [
+  'glossary-cross-reference-card',
+  'algorithm-comparison-card',
+];
+const PHANTOM_CHAPTER_ADVERSARIAL = [
+  'reference-card-data-structures',
+  'reference-card-design-patterns',
+];
+const SCAFFOLDING_SECTION_ADVERSARIAL = [
+  'practice-problems-standalone-page',
+  'exercises-companion-card',
+];
+const BULLET_DOMINANT_ADVERSARIAL = [
+  'enumerated-error-codes-card',
+  'config-flags-reference-card',
+];
+const WORD_COUNT_FLOOR_ADVERSARIAL = [
+  'definition-card-eigenvalue',
+  'definition-card-monad',
+];
+const WORD_COUNT_CEILING_ADVERSARIAL = [
+  'reference-textbook-chapter-vectors',
+  'reference-textbook-chapter-graphs',
+];
+
+function makeEntry(
+  ruleId: string,
+  chunkId: string,
+  split: CorpusEntryInput['split'],
+  expectedVerdict: CorpusEntryInput['expectedVerdict'],
+  notes: string
+): CorpusEntryInput {
+  return { ruleId, chunkId, split, expectedVerdict, notes };
+}
+
 const SEED_ENTRIES: CorpusEntryInput[] = [
-  ...PHANTOM_PREREQUISITE_CHUNKS.map(chunkId => ({
-    ruleId: 'tier1b.phantom-prerequisite',
-    chunkId,
-    split: 'derivation' as const,
-    expectedVerdict: 'should_flag' as const,
-    notes: 'NEU-616/NEU-617 derivation seed',
-  })),
-  ...PHANTOM_CHAPTER_CHUNKS.map(chunkId => ({
-    ruleId: 'tier1b.phantom-chapter',
-    chunkId,
-    split: 'derivation' as const,
-    expectedVerdict: 'should_flag' as const,
-    notes: 'NEU-616/NEU-617 derivation seed',
-  })),
-  ...SCAFFOLDING_SECTION_PRACTICE_CHUNKS.map(chunkId => ({
-    ruleId: 'tier1b.scaffolding-section',
-    chunkId,
-    split: 'derivation' as const,
-    expectedVerdict: 'should_flag' as const,
-    notes: 'NEU-616/NEU-617 derivation seed (E5 ## Practice Problems chunk)',
-  })),
+  // Derivation positives — NEU-616 / NEU-617 spec material.
+  ...PHANTOM_PREREQUISITE_CHUNKS.map(chunkId =>
+    makeEntry(
+      'tier1b.phantom-prerequisite',
+      chunkId,
+      'derivation',
+      'should_flag',
+      'NEU-616/NEU-617 derivation seed'
+    )
+  ),
+  ...PHANTOM_CHAPTER_CHUNKS.map(chunkId =>
+    makeEntry(
+      'tier1b.phantom-chapter',
+      chunkId,
+      'derivation',
+      'should_flag',
+      'NEU-616/NEU-617 derivation seed'
+    )
+  ),
+  ...SCAFFOLDING_SECTION_PRACTICE_CHUNKS.map(chunkId =>
+    makeEntry(
+      'tier1b.scaffolding-section',
+      chunkId,
+      'derivation',
+      'should_flag',
+      'NEU-616/NEU-617 derivation seed (E5 ## Practice Problems chunk)'
+    )
+  ),
+
+  // Held-out positives — NEU-664.
+  ...PHANTOM_PREREQUISITE_HELD_OUT.map(chunkId =>
+    makeEntry(
+      'tier1b.phantom-prerequisite',
+      chunkId,
+      'held_out',
+      'should_flag',
+      'NEU-664 held-out positive — chunk surfaces a noun phrase missing from prerequisites'
+    )
+  ),
+  ...PHANTOM_CHAPTER_HELD_OUT.map(chunkId =>
+    makeEntry(
+      'tier1b.phantom-chapter',
+      chunkId,
+      'held_out',
+      'should_flag',
+      'NEU-664 held-out positive — multi-section chapter outside derivation set'
+    )
+  ),
+  ...SCAFFOLDING_SECTION_HELD_OUT.map(chunkId =>
+    makeEntry(
+      'tier1b.scaffolding-section',
+      chunkId,
+      'held_out',
+      'should_flag',
+      'NEU-664 held-out positive — scaffolding heading outside E5-practice derivation set'
+    )
+  ),
+  ...BULLET_DOMINANT_HELD_OUT.map(chunkId =>
+    makeEntry(
+      'tier1b.bullet-dominant',
+      chunkId,
+      'held_out',
+      'should_flag',
+      'NEU-664 held-out positive — bullet ratio above 0.7 in a teaching chunk'
+    )
+  ),
+  ...WORD_COUNT_FLOOR_HELD_OUT.map(chunkId =>
+    makeEntry(
+      'tier1b.word-count-floor',
+      chunkId,
+      'held_out',
+      'should_flag',
+      'NEU-664 held-out positive — under-developed teaching chunk (<300 words, knowledge_type≠fact)'
+    )
+  ),
+  ...WORD_COUNT_CEILING_HELD_OUT.map(chunkId =>
+    makeEntry(
+      'tier1b.word-count-ceiling',
+      chunkId,
+      'held_out',
+      'should_flag',
+      'NEU-664 held-out positive — over-stuffed chunk (>1500 words)'
+    )
+  ),
+
+  // Adversarial negatives — NEU-664. Surface feature present, content correct.
+  ...PHANTOM_PREREQUISITE_ADVERSARIAL.map(chunkId =>
+    makeEntry(
+      'tier1b.phantom-prerequisite',
+      chunkId,
+      'adversarial_negative',
+      'clean',
+      'NEU-664 adversarial negative — noun phrase reads as cross-reference, not phantom prereq'
+    )
+  ),
+  ...PHANTOM_CHAPTER_ADVERSARIAL.map(chunkId =>
+    makeEntry(
+      'tier1b.phantom-chapter',
+      chunkId,
+      'adversarial_negative',
+      'clean',
+      'NEU-664 adversarial negative — legitimate multi-section reference card, not phantom chapter'
+    )
+  ),
+  ...SCAFFOLDING_SECTION_ADVERSARIAL.map(chunkId =>
+    makeEntry(
+      'tier1b.scaffolding-section',
+      chunkId,
+      'adversarial_negative',
+      'clean',
+      'NEU-664 adversarial negative — practice/exercises heading is the chunk topic, not a scaffolded sub-section'
+    )
+  ),
+  ...BULLET_DOMINANT_ADVERSARIAL.map(chunkId =>
+    makeEntry(
+      'tier1b.bullet-dominant',
+      chunkId,
+      'adversarial_negative',
+      'clean',
+      'NEU-664 adversarial negative — bullet-heavy by genre (reference card), not by neglect'
+    )
+  ),
+  ...WORD_COUNT_FLOOR_ADVERSARIAL.map(chunkId =>
+    makeEntry(
+      'tier1b.word-count-floor',
+      chunkId,
+      'adversarial_negative',
+      'clean',
+      'NEU-664 adversarial negative — under 300 words and knowledge_type !== "fact" (so the floor rule fires), but content is intentionally concise and judged correct'
+    )
+  ),
+  ...WORD_COUNT_CEILING_ADVERSARIAL.map(chunkId =>
+    makeEntry(
+      'tier1b.word-count-ceiling',
+      chunkId,
+      'adversarial_negative',
+      'clean',
+      'NEU-664 adversarial negative — long-form reference content, legitimately above ceiling'
+    )
+  ),
 ];
 
 export async function seed(): Promise<{ inserted: number; skipped: number }> {

@@ -12,9 +12,11 @@
  * grouping windows. Implementations live in the Drizzle adapter; the breaker
  * itself is pure logic.
  */
+import type { PersistedTier2FieldName } from '../shared/prompts/classifier-prompts.js';
+
 export type Tier2WeeklyBlockingCounts = {
   /** Snake-case verdict-field name (matches keys in `validator_report.tier2`). */
-  field: string;
+  field: PersistedTier2FieldName;
   /** Block events in the last 7 days. */
   currentWeekCount: number;
   /**

@@ -18,6 +18,8 @@ import type {
   StartLearningResult,
   CreateSessionQuestionsInput,
   CreateSessionQuestionsResult,
+  ReviseGradeInput,
+  ReviseGradeResult,
 } from '../domain/types/teaching.js';
 import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/entities.js';
 import crypto from 'node:crypto';
@@ -1522,4 +1524,263 @@ export async function startLearning(
     first_chunk: firstChunk,
     recommendation_summary: `Picked topic "${topRec.topicTitle}" (urgency ${topRec.urgencyScore}): ${topRec.urgencyReason}`,
   };
+}
+
+// ── revise_grade ────────────────────────────────────────────────
+
+export type ReviseGradeDeps = {
+  sessions: SessionRepository;
+  sessionQuestions: SessionQuestionRepository;
+  algorithmConfig: AlgorithmConfig;
+  notes?: NotesRepository;
+};
+
+/**
+ * Overwrite a previously-graded session_question_attempt's quality, passed
+ * flag, and feedback when the agent realizes its own grading was wrong.
+ *
+ * The original attempt values are preserved verbatim in
+ * `session_question_attempt_revisions`; the live attempt row is updated in
+ * place so the existing SRS aggregation reads the corrected value at chunk
+ * finalization. Roadblock state is recomputed against the now-current attempt
+ * values — when the revised aggregate no longer triggers a roadblock that the
+ * original grade did, `roadblock_cancelled` is true.
+ *
+ * Constraint: the chunk targeted by the question must still be in-progress.
+ * Already-finalized chunks return `chunk_already_finalized` (SRS-recalc is a
+ * deferred follow-up — current schema does not preserve the pre-review
+ * baseline needed to reverse a recorded review).
+ */
+export async function reviseGrade(
+  input: ReviseGradeInput,
+  deps: ReviseGradeDeps
+): Promise<ReviseGradeResult> {
+  // 1. Active-session gate
+  const session = await deps.sessions.getActiveSession();
+  if (!session || session.status !== 'active') {
+    return {
+      action: 'error',
+      error: 'session_not_active',
+      message: 'No active session, or session is not in an active state.',
+    };
+  }
+
+  // 2. Load the question and confirm it belongs to the active session
+  const question = await deps.sessionQuestions.getQuestionById(input.sessionQuestionId);
+  if (!question || question.sessionId !== session.id) {
+    return {
+      action: 'error',
+      error: 'question_not_found',
+      message: `Session question ${input.sessionQuestionId} not found in the active session.`,
+    };
+  }
+
+  // 3. Resolve the chunk linkage and verify the chunk is still in-progress
+  const chunkIds = await deps.sessionQuestions.getChunkIdsForQuestion(question.id);
+  const sessionChunks = await deps.sessions.getSessionChunks(session.id);
+  const targetSessionChunks = sessionChunks.filter(sc => chunkIds.includes(sc.chunkId));
+  if (targetSessionChunks.length === 0) {
+    return {
+      action: 'error',
+      error: 'question_not_found',
+      message: 'Session question is not linked to any session chunk.',
+    };
+  }
+  if (targetSessionChunks.some(sc => sc.status === 'completed')) {
+    return {
+      action: 'error',
+      error: 'chunk_already_finalized',
+      message:
+        'Cannot revise a grade on an already-finalized chunk. SRS recalculation for ' +
+        'finalized chunks is a deferred follow-up.',
+    };
+  }
+  // Pick the in-progress chunk for roadblock recomputation + auto-note targeting.
+  // For multi-chunk (assessment-mode) questions, prefer the chunk the learner is
+  // actively in; fall back to any non-completed chunk to handle pending-only
+  // edge cases. The earlier `chunk_already_finalized` guard ensures none are
+  // completed, and the `targetSessionChunks.length === 0` guard above ensures
+  // `targetSessionChunks[0]` is defined. NOTE: this differs from `submit_answer`
+  // (which uses the question's `chunkIds[0]` directly) because the auto-note
+  // must land on the chunk the learner is currently in, not just the first
+  // chunk linked to the question.
+  const primaryChunk = (targetSessionChunks.find(sc => sc.status === 'in_progress') ??
+    targetSessionChunks[0]) as SessionChunk;
+  const chunkIdForGate = primaryChunk.chunkId;
+
+  // 4. Load attempts and pick the latest (highest attemptNumber)
+  const attempts = await deps.sessionQuestions.getAttemptsForQuestion(question.id);
+  if (attempts.length === 0) {
+    return {
+      action: 'error',
+      error: 'attempt_not_found',
+      message: 'No attempt has been recorded for this question yet.',
+    };
+  }
+  const latestAttempt = attempts.reduce((latest, curr) =>
+    curr.attemptNumber > latest.attemptNumber ? curr : latest
+  );
+
+  // 5. Compute new values. Skip session-scoped quality cap on revise — the
+  // agent is correcting its own mistake, not submitting a fresh attempt.
+  const newQuality = input.newQuality;
+  const newAgentQuality = input.newQuality;
+  const newPassed = input.newPassed ?? input.newQuality >= 3;
+  const newFeedback = input.newFeedback;
+
+  // 6. Idempotency: if an existing revision matches the request exactly, no-op.
+  const priorRevisions = await deps.sessionQuestions.getRevisionsForAttempt(latestAttempt.id);
+  const matchingRevision = priorRevisions.find(
+    r =>
+      r.newQuality === newQuality &&
+      r.newAgentQuality === newAgentQuality &&
+      r.newPassed === newPassed &&
+      r.newFeedback === newFeedback &&
+      r.reason === input.reason
+  );
+  if (matchingRevision) {
+    return {
+      action: 'noop_already_revised',
+      revision_id: matchingRevision.id,
+      message: 'Identical revision already recorded for this attempt.',
+    };
+  }
+
+  // 7. Pre-fetch session questions + chunk mapping + pre-revision attempts in
+  // parallel. The questions and chunk-mapping are stable across the revision
+  // (we only mutate one attempt row), so they're reused by both the pre- and
+  // post-revision roadblock checks. Attempts are re-fetched after the revision
+  // lands when (and only when) the original grade triggered a roadblock.
+  const [allQuestions, preAttemptsRaw] = await Promise.all([
+    deps.sessionQuestions.getQuestionsForSession(session.id),
+    deps.sessionQuestions.getAllAttemptsForSession(session.id),
+  ]);
+  const chunkMapping = await deps.sessionQuestions.getChunkIdsForQuestions(
+    allQuestions.map(q => q.id)
+  );
+  const chunkQuestions = allQuestions.filter(q =>
+    (chunkMapping.get(q.id) ?? []).includes(chunkIdForGate)
+  );
+
+  // 8. Pre-revision roadblock state — derived from the parallel fetch above.
+  const wasRoadblocked = chunkIsRoadblocked(
+    chunkIdForGate,
+    chunkQuestions,
+    groupAttemptsByQuestion(preAttemptsRaw),
+    chunkMapping,
+    deps.algorithmConfig.roadblockFollowups
+  );
+
+  // 9. Persist the revision (atomic update + insert)
+  const now = Date.now();
+  const revision = await deps.sessionQuestions.reviseAttempt({
+    revisionId: crypto.randomUUID(),
+    attemptId: latestAttempt.id,
+    original: {
+      quality: latestAttempt.quality,
+      agentQuality: latestAttempt.agentQuality,
+      passed: latestAttempt.passed,
+      feedback: latestAttempt.feedback,
+    },
+    next: {
+      quality: newQuality,
+      agentQuality: newAgentQuality,
+      passed: newPassed,
+      feedback: newFeedback,
+    },
+    reason: input.reason,
+    revisedAt: now,
+  });
+
+  // 10. Roadblock cancellation check — only meaningful when the original grade
+  // triggered a roadblock. Skipping the post-revision fetch otherwise saves a
+  // round-trip on the common case (most revisions don't lift a gate).
+  let roadblockCancelled = false;
+  if (wasRoadblocked) {
+    const postAttemptsRaw = await deps.sessionQuestions.getAllAttemptsForSession(session.id);
+    const isRoadblockedNow = chunkIsRoadblocked(
+      chunkIdForGate,
+      chunkQuestions,
+      groupAttemptsByQuestion(postAttemptsRaw),
+      chunkMapping,
+      deps.algorithmConfig.roadblockFollowups
+    );
+    roadblockCancelled = !isRoadblockedNow;
+  }
+
+  // 11. Auto-note: structured payload on the chunk for audit trail
+  let noteId = '';
+  if (deps.notes) {
+    try {
+      const payload = {
+        kind: 'grade_revision',
+        session_question_id: question.id,
+        attempt_id: latestAttempt.id,
+        attempt_number: latestAttempt.attemptNumber,
+        original_quality: latestAttempt.quality,
+        new_quality: newQuality,
+        original_passed: latestAttempt.passed,
+        new_passed: newPassed,
+        reason: input.reason,
+        new_feedback: newFeedback,
+        revised_at: toIsoTimestamp(now),
+      };
+      const created = await deps.notes.createNote({
+        targetType: 'chunk',
+        targetId: chunkIdForGate,
+        noteType: 'confusion',
+        content: JSON.stringify(payload),
+        author: 'agent',
+      });
+      noteId = created.id;
+    } catch (err) {
+      getRequestLogger().error('revise_grade auto-note creation failed', err);
+    }
+  }
+
+  return {
+    action: 'revised',
+    revised_attempt: {
+      attempt_id: latestAttempt.id,
+      session_question_id: question.id,
+      attempt_number: latestAttempt.attemptNumber,
+      original_quality: latestAttempt.quality,
+      new_quality: newQuality,
+      original_passed: latestAttempt.passed,
+      new_passed: newPassed,
+    },
+    revision_id: revision.id,
+    reason: input.reason,
+    roadblock_cancelled: roadblockCancelled,
+    note_id: noteId,
+  };
+}
+
+function groupAttemptsByQuestion(
+  attempts: SessionQuestionAttempt[]
+): Map<string, SessionQuestionAttempt[]> {
+  const map = new Map<string, SessionQuestionAttempt[]>();
+  for (const a of attempts) {
+    const list = map.get(a.sessionQuestionId);
+    if (list) {
+      list.push(a);
+    } else {
+      map.set(a.sessionQuestionId, [a]);
+    }
+  }
+  return map;
+}
+
+function chunkIsRoadblocked(
+  chunkId: string,
+  chunkQuestions: SessionQuestion[],
+  attemptsByQuestion: Map<string, SessionQuestionAttempt[]>,
+  chunkMapping: Map<string, string[]>,
+  followupMap: Record<number, number>
+): boolean {
+  if (chunkQuestions.length === 0) return false;
+  return (
+    evaluateRoadblock(chunkId, chunkQuestions, attemptsByQuestion, chunkMapping, followupMap) !==
+    null
+  );
 }
