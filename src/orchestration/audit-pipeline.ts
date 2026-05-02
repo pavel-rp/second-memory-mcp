@@ -1,11 +1,5 @@
 /**
- * Shared audit-pipeline helpers — Tier 1 (linter) + Tier 2 (classifier post-commit) —
- * extracted from `topic-workflows.ts` per NEU-685.
- *
- * Consumers: `createTopicWithChunks` today; chunk-workflow update paths in
- * NEU-686. No behavior change vs. the prior in-file implementation; this module
- * is a pure code-motion target so both call sites resolve to a single canonical
- * audit pipeline.
+ * Shared audit-pipeline helpers — Tier 1 (linter) + Tier 2 (classifier post-commit).
  *
  * Layering: depends only on `domain/`, `ports/`, `shared/`, and the sibling
  * `tier2-circuit-breaker.ts`. No `adapters/`, no `infrastructure/` (beyond

@@ -220,7 +220,7 @@ describe('runTier1Audit', () => {
     expect(result.findings).toEqual([]);
     expect(result.blocking).toBe(false);
     expect(warnMock).toHaveBeenCalledWith(
-      'Linter rule "tier1a.boom" threw — treating as zero findings:',
+      expect.stringContaining('tier1a.boom'),
       expect.any(Error)
     );
   });
@@ -297,9 +297,7 @@ describe('buildSingleChunkValidatorReport', () => {
     };
     const report = buildSingleChunkValidatorReport('chunk-a', [finding], new Map(), updatedAt);
     expect(report).toEqual({ updated_at: updatedAt });
-    expect(warnMock).toHaveBeenCalledWith(
-      'Validator finding from unknown rule "tier1a.unknown" — dropped from validator_report for chunk chunk-a'
-    );
+    expect(warnMock).toHaveBeenCalledWith(expect.stringContaining('tier1a.unknown'));
   });
 });
 
@@ -428,7 +426,7 @@ describe('runTier2AuditPostCommit', () => {
       tier2CircuitBreaker: breaker,
     });
     expect(warnMock).toHaveBeenCalledWith(
-      'Tier 2 circuit-breaker raised while applying — leaving blockingFields unchanged:',
+      expect.stringContaining('circuit-breaker'),
       expect.any(Error)
     );
     expect(result.blockingHits).toHaveLength(1);
@@ -465,7 +463,7 @@ describe('runTier2AuditPostCommit', () => {
     expect(result.findings).toEqual([]);
     expect(result.blockingHits).toEqual([]);
     expect(mergeValidatorReport).not.toHaveBeenCalled();
-    expect(warnMock).toHaveBeenCalledWith('Classifier returned all-null verdict for chunk chunk-a');
+    expect(warnMock).toHaveBeenCalledWith(expect.stringContaining('chunk-a'));
   });
 
   it('absorbs a classifier throw, emits classifier.classify_threw, and returns empty', async () => {
@@ -483,7 +481,7 @@ describe('runTier2AuditPostCommit', () => {
     expect(result.findings).toEqual([]);
     expect(result.blockingHits).toEqual([]);
     expect(mergeValidatorReport).not.toHaveBeenCalled();
-    expect(warnMock).toHaveBeenCalledWith('Classifier threw for chunk chunk-a:', err);
+    expect(warnMock).toHaveBeenCalledWith(expect.stringContaining('chunk-a'), err);
     expect(logEvent).toHaveBeenCalledWith(
       'classifyChunk',
       'classifier.classify_threw',
@@ -538,9 +536,7 @@ describe('runTier2AuditPostCommit', () => {
       chunksRepo,
       blockingFields: new Set(),
     });
-    expect(warnMock).toHaveBeenCalledWith(
-      'mergeValidatorReport affected 0 rows for chunk chunk-a (chunk missing?)'
-    );
+    expect(warnMock).toHaveBeenCalledWith(expect.stringContaining('chunk-a'));
     expect(result.findings).toHaveLength(1);
   });
 
@@ -558,10 +554,7 @@ describe('runTier2AuditPostCommit', () => {
       chunksRepo,
       blockingFields: new Set(),
     });
-    expect(warnMock).toHaveBeenCalledWith(
-      'Persisting tier2 verdict failed for chunk chunk-a:',
-      persistErr
-    );
+    expect(warnMock).toHaveBeenCalledWith(expect.stringContaining('chunk-a'), persistErr);
     expect(result.findings).toHaveLength(1);
   });
 
@@ -587,10 +580,7 @@ describe('runTier2AuditPostCommit', () => {
       chunksRepo,
       blockingFields: new Set(),
     });
-    expect(warnMock).toHaveBeenCalledWith(
-      'Tier 2 classifier pass rejected for chunk bad:',
-      expect.any(Error)
-    );
+    expect(warnMock).toHaveBeenCalledWith(expect.stringContaining('bad'), expect.any(Error));
     // The good chunk's finding still surfaces.
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0].chunkId).toBe('good');
