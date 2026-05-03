@@ -1107,6 +1107,104 @@ describe('createChunkWithTopic — Tier 1 topicId forwarding (NEU-686 PR feedbac
     }
   });
 
+  it('multiple Tier 2 blocking hits on update — message includes "and N other field(s)"', async () => {
+    const verdict = highScoreVerdict();
+    verdict.renderingClarity = { score: 1, rationale: 'low rc', applicable: true };
+    verdict.overallFit = { score: 1, rationale: 'low fit', applicable: true };
+    const classifier: ContentClassifierPort = {
+      classify: vi.fn().mockResolvedValue(verdict),
+    };
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity', 'overallFit']),
+      linterRules: [],
+    });
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('content_quality');
+    expect(result.error?.message).toContain('and 1 other field(s)');
+  });
+
+  it('chunk with contentVersion=null — `|| 1` fallback fires on updateChunkContent', async () => {
+    const deps = stubDeps({});
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ contentVersion: null }))
+      .mockResolvedValueOnce(stubChunk({ contentVersion: 2 }));
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(true);
+    // `|| 1` fallback yields contentVersion=2
+    expect(deps.chunks.update).toHaveBeenCalledWith(
+      'chunk-1',
+      expect.objectContaining({ contentVersion: 2 })
+    );
+  });
+
+  it('chunk with contentVersion=null — `|| 1` fallback fires on updateChunkContentWithAutoReset', async () => {
+    const deps = stubDeps({});
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ contentVersion: null, content: null }))
+      .mockResolvedValueOnce(stubChunk({ contentVersion: 2 }));
+
+    const result = await updateChunkContentWithAutoReset(
+      'chunk-1',
+      { content: 'Brand new content' },
+      deps
+    );
+
+    expect(result.success).toBe(true);
+    expect(deps.chunks.update).toHaveBeenCalledWith(
+      'chunk-1',
+      expect.objectContaining({ contentVersion: 2 })
+    );
+  });
+
+  it('chunk with contentVersion=null — `|| 1` fallback fires on updateChunkWithProgressReset', async () => {
+    const deps = stubDeps({});
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ contentVersion: null }))
+      .mockResolvedValueOnce(stubChunk({ contentVersion: 2 }));
+
+    const result = await updateChunkWithProgressReset(
+      'chunk-1',
+      { content: 'Brand new content' },
+      deps
+    );
+
+    expect(result.success).toBe(true);
+    expect(deps.chunks.update).toHaveBeenCalledWith(
+      'chunk-1',
+      expect.objectContaining({ contentVersion: 2 })
+    );
+  });
+
+  it('Tier 2 soft-warn merges into final findings on success', async () => {
+    // Test that on success the tier2Findings array is populated AND merged into result.
+    const lowField: VerdictFieldName = 'vocabularyAppropriate';
+    const verdict = highScoreVerdict();
+    verdict[lowField] = { score: 2, rationale: 'borderline', applicable: true };
+    const classifier: ContentClassifierPort = {
+      classify: vi.fn().mockResolvedValue(verdict),
+    };
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      // No blockingFields — this routes the field to warning findings.
+      linterRules: [],
+    });
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(true);
+    expect(result.tier2Findings).toBeDefined();
+    expect(result.tier2Findings?.length).toBeGreaterThan(0);
+    expect(result.tier2Findings?.[0]?.severity).toBe('warning');
+  });
+
   it('Tier 2 rationale > 256 chars — truncated with marker in event payload', async () => {
     const longRationale = 'r'.repeat(500);
     const verdict = highScoreVerdict();
