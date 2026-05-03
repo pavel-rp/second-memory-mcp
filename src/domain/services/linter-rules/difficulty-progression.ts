@@ -23,21 +23,23 @@ function runDifficultyProgression(input: TopicLintInput): LinterFinding[] {
   }
 
   let maxDifficulty = -1;
-  let maxIndex = 0;
   for (let i = 0; i < chunks.length; i++) {
     if (chunks[i].difficulty > maxDifficulty) {
       maxDifficulty = chunks[i].difficulty;
-      maxIndex = i;
     }
   }
   const secondHalfStart = Math.ceil(chunks.length / 2);
-  if (maxIndex < secondHalfStart) {
+  const hasMaxInSecondHalf = chunks
+    .slice(secondHalfStart)
+    .some(c => c.difficulty === maxDifficulty);
+  if (!hasMaxInSecondHalf) {
+    const firstMaxIndex = chunks.findIndex(c => c.difficulty === maxDifficulty);
     findings.push({
-      chunkId: chunks[maxIndex].chunkId,
+      chunkId: chunks[firstMaxIndex].chunkId,
       rule: DIFFICULTY_PROGRESSION_RULE_NAME,
       severity: 'warning',
       category: 'difficulty_progression',
-      detail: `Max difficulty chunk at position ${maxIndex + 1}/${chunks.length} — expected in second half`,
+      detail: `Max difficulty chunk at position ${firstMaxIndex + 1}/${chunks.length} — expected in second half`,
     });
   }
 

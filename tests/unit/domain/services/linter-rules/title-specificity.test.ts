@@ -189,7 +189,7 @@ describe('tier1b.title-specificity', () => {
   });
 
   describe('chunk titles', () => {
-    it('produces findings for chunk titles with the chunk chunkId', () => {
+    it('uses the chunk ID for chunk-title findings', () => {
       const findings = titleSpecificityRule.run(
         makeInput({
           topicTitle: 'A sufficiently long topic title here',

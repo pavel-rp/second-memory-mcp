@@ -138,6 +138,18 @@ describe('tier1b.difficulty-progression', () => {
       const placementFindings = findings.filter(f => f.detail.includes('position'));
       expect(placementFindings).toHaveLength(0);
     });
+
+    it('does not fire when max appears in both halves (tie)', () => {
+      const findings = difficultyProgressionRule.run(makeInput([8, 3, 8]));
+      const placementFindings = findings.filter(f => f.detail.includes('position'));
+      expect(placementFindings).toHaveLength(0);
+    });
+
+    it('does not fire when all chunks have equal difficulty', () => {
+      const findings = difficultyProgressionRule.run(makeInput([5, 5, 5]));
+      const placementFindings = findings.filter(f => f.detail.includes('position'));
+      expect(placementFindings).toHaveLength(0);
+    });
   });
 
   describe('fixture: euler-tour [2, 4, 5, 6, 8] passes entirely', () => {
