@@ -576,6 +576,254 @@ describe('createChunkWithTopic — Tier 1 topicId forwarding (NEU-686 PR feedbac
     expect(result.success).toBe(true);
   });
 
+  it('topic load returns undefined — falls back to safe defaults, audit still runs', async () => {
+    const seenContext: Array<{ topicId: string; topicTitle: string; topicSummary: string }> = [];
+    const captureRule: LinterRule = {
+      name: 'test.tier1a.records-context',
+      scope: 'topic',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        seenContext.push({
+          topicId: input.topicId,
+          topicTitle: input.topicTitle,
+          topicSummary: input.topicSummary,
+        });
+        return [];
+      },
+    };
+    const deps = stubDeps({ linterRules: [captureRule] });
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(true);
+    expect(seenContext).toHaveLength(1);
+    expect(seenContext[0].topicTitle).toBe('');
+    expect(seenContext[0].topicSummary).toBe('');
+    // current.topicId is still passed (the topic load failure doesn't change that).
+    expect(seenContext[0].topicId).toBe('topic-1');
+  });
+
+  it('topic.summary is null — defaults to empty string in lint input', async () => {
+    const seenSummaries: string[] = [];
+    const captureRule: LinterRule = {
+      name: 'test.tier1a.records-summary',
+      scope: 'topic',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        seenSummaries.push(input.topicSummary);
+        return [];
+      },
+    };
+    const deps = stubDeps({
+      linterRules: [captureRule],
+      topic: { id: 'topic-1', title: 'T', subject: 'CS', summary: null },
+    });
+
+    await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(seenSummaries).toEqual(['']);
+  });
+
+  it('updateChunkWithProgressReset with no content — audit still runs, no clear-stale-embedding step', async () => {
+    const deps = stubDeps({ linterRules: [warningTier1bRule()] });
+
+    const result = await updateChunkWithProgressReset('chunk-1', { title: 'New Title Only' }, deps);
+
+    expect(result.success).toBe(true);
+    // No content field → no embedding clear, no re-embed.
+    expect(deps.chunks.saveContentEmbedding).not.toHaveBeenCalled();
+    expect(deps.chunks.mergeValidatorReport).toHaveBeenCalledOnce();
+  });
+
+  it('updateChunkContent with chunk having null prerequisites/tags — buildUpdateLintInput uses [] fallback', async () => {
+    const seenInputs: Array<{ prerequisites: readonly string[]; tags: readonly string[] }> = [];
+    const captureRule: LinterRule = {
+      name: 'test.tier1a.records-arrays',
+      scope: 'chunk',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        seenInputs.push({ prerequisites: input.prerequisites, tags: input.tags });
+        return [];
+      },
+    };
+    const deps = stubDeps({ linterRules: [captureRule] });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ prerequisitesJson: null, tagsJson: null }))
+      .mockResolvedValueOnce(stubChunk());
+
+    await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(seenInputs[0].prerequisites).toEqual([]);
+    expect(seenInputs[0].tags).toEqual([]);
+  });
+
+  it('multiple Tier 1a blocking findings — plural "findings" in error message', async () => {
+    const multiBlockRule: LinterRule = {
+      name: 'test.tier1a.multi-block',
+      scope: 'chunk',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => [
+        {
+          chunkId: input.chunkId,
+          rule: 'test.tier1a.multi-block',
+          severity: 'blocking',
+          category: 'tier1a',
+          detail: 'first',
+        },
+        {
+          chunkId: input.chunkId,
+          rule: 'test.tier1a.multi-block',
+          severity: 'blocking',
+          category: 'tier1a',
+          detail: 'second',
+        },
+      ],
+    };
+    const deps = stubDeps({ linterRules: [multiBlockRule] });
+
+    const result = await updateChunkContent('chunk-1', { content: 'x' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.message).toContain('2 content-quality findings');
+  });
+
+  it('Tier 1a non-blocking-eligible rule produces warning finding — merged into tier1a section', async () => {
+    const tier1aWarnRule: LinterRule = {
+      name: 'test.tier1a.warn-only',
+      scope: 'chunk',
+      tier: 'tier1a',
+      blockingEligible: true, // blocking-eligible but rule itself emits warning severity
+      run: input => [
+        {
+          chunkId: input.chunkId,
+          rule: 'test.tier1a.warn-only',
+          severity: 'warning',
+          category: 'tier1a',
+          detail: 'tier1a warning',
+        },
+      ],
+    };
+    const deps = stubDeps({ linterRules: [tier1aWarnRule] });
+
+    await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(deps.chunks.mergeValidatorReport).toHaveBeenCalledOnce();
+    const [, partial] = (deps.chunks.mergeValidatorReport as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    expect(partial.tier1a).toBeDefined();
+    expect(Array.isArray(partial.tier1a)).toBe(true);
+  });
+
+  it('Tier 2 block — saveContentEmbedding rowCount=0 on rollback re-embed (string content)', async () => {
+    const embedding = stubEmbeddingPort({
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
+    });
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      embedding,
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    // Initial pre-update clear (1), post-update re-embed (1), rollback re-embed → 0 rows
+    (deps.chunks.saveContentEmbedding as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0);
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('content_quality');
+  });
+
+  it('Tier 2 block — re-embed throws on rollback (string content) — fail-open warn', async () => {
+    let embedCallCount = 0;
+    const embedding = stubEmbeddingPort({
+      embedText: vi.fn().mockImplementation(async () => {
+        embedCallCount += 1;
+        // 1st call: post-update re-embed succeeds. 2nd call: rollback re-embed throws.
+        if (embedCallCount === 2) throw new Error('embed crashed');
+        return [0.1, 0.2];
+      }),
+    });
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      embedding,
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    // Workflow still returns content_quality (rollback re-embed is best-effort).
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('content_quality');
+  });
+
+  it('Tier 2 block — saveContentEmbedding rowCount=0 on rollback clear (null content)', async () => {
+    const embedding = stubEmbeddingPort({
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
+    });
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      embedding,
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(chunkWithContent(null))
+      .mockResolvedValueOnce(stubChunk({ content: 'New content here' }));
+    // Pre-update clear (1), post-update re-embed (1), rollback clear → 0 rows
+    (deps.chunks.saveContentEmbedding as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0);
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(false);
+  });
+
+  it('Tier 2 block — saveContentEmbedding throws on rollback clear (null content) — fail-open', async () => {
+    let saveCallCount = 0;
+    const embedding = stubEmbeddingPort({
+      embedText: vi.fn().mockResolvedValue([0.1, 0.2]),
+    });
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      embedding,
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(chunkWithContent(null))
+      .mockResolvedValueOnce(stubChunk({ content: 'New content here' }));
+    (deps.chunks.saveContentEmbedding as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      saveCallCount += 1;
+      // 1st: pre-clear OK. 2nd: post-update embed OK. 3rd: rollback clear THROWS.
+      if (saveCallCount === 3) throw new Error('embedding write crashed');
+      return 1;
+    });
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    // Workflow still returns content_quality.
+    expect(result.success).toBe(false);
+  });
+
   it('passes empty topicId on auto-create branch (topicId not yet allocated)', async () => {
     const seenTopicIds: string[] = [];
     const customRule: LinterRule = {
@@ -617,6 +865,291 @@ describe('createChunkWithTopic — Tier 1 topicId forwarding (NEU-686 PR feedbac
     // Empty topicId is correct here — caller did not supply one and the
     // topic UUID is allocated downstream of the lint.
     expect(seenTopicIds).toEqual(['']);
+  });
+
+  it('topics.getById throws — falls back to empty topic context, audit still runs', async () => {
+    const deps = stubDeps({ linterRules: [warningTier1bRule()] });
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('topic load crashed in create path')
+    );
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+
+    const result = await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: 'existing-topic',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      deps
+    );
+
+    // Topic load failure does not block creation.
+    expect(result.success).toBe(true);
+  });
+
+  it('topic.summary is null on existing topic — defaults to empty string in lint input', async () => {
+    const seenSummaries: string[] = [];
+    const captureRule: LinterRule = {
+      name: 'test.tier1a.create-records-summary',
+      scope: 'topic',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        seenSummaries.push(input.topicSummary);
+        return [];
+      },
+    };
+    const deps = stubDeps({
+      linterRules: [captureRule],
+      topic: { id: 'topic-1', title: 'T', subject: 'CS', summary: null },
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+
+    await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: 'topic-1',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      deps
+    );
+
+    expect(seenSummaries).toEqual(['']);
+  });
+
+  it('Tier 2 classifier throws — chunk creation still succeeds (fail-open)', async () => {
+    const classifier: ContentClassifierPort = {
+      classify: vi.fn().mockRejectedValue(new Error('classifier crashed')),
+    };
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      linterRules: [],
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+
+    const result = await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: 'existing-topic',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      deps
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it('Tier 2 block — chunk delete throws: returns database retryable with chunk_id', async () => {
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+    (deps.chunks.delete as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('chunk delete crashed')
+    );
+
+    const result = await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: 'existing-topic',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      deps
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.retryable).toBe(true);
+      expect(result.error.message).toContain('new-chunk');
+      expect(result.error.message).toContain('chunk delete crashed');
+    }
+  });
+
+  it('Tier 2 block — auto-topic delete returns success:false: returns database retryable', async () => {
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+    (deps.topics.delete as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      error: { type: 'database', message: 'foreign-key constraint' },
+    });
+
+    const result = await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: '',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+        topicTitle: 'Auto Created Topic',
+      },
+      deps
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.retryable).toBe(true);
+      expect(result.error.message).toContain('foreign-key constraint');
+    }
+  });
+
+  it('Tier 2 block — auto-topic delete returns success:false with no error message: still rollback failed', async () => {
+    const classifier = classifierStub(lowScoreVerdict('renderingClarity', 1));
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+    (deps.topics.delete as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+    });
+
+    const result = await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: '',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+        topicTitle: 'Auto Created Topic',
+      },
+      deps
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toContain('unknown');
+    }
+  });
+
+  it('Tier 2 rationale > 256 chars — truncated with marker in event payload', async () => {
+    const longRationale = 'r'.repeat(500);
+    const verdict = highScoreVerdict();
+    verdict.renderingClarity = { score: 1, rationale: longRationale, applicable: true };
+    const classifier: ContentClassifierPort = {
+      classify: vi.fn().mockResolvedValue(verdict),
+    };
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      blockingFields: new Set<VerdictFieldName>(['renderingClarity']),
+      linterRules: [],
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+
+    await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: 'existing-topic',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      deps
+    );
+
+    const blockEvents = vi
+      .mocked(logEvent)
+      .mock.calls.filter(c => c[1] === 'classifier.tier2_blocked');
+    expect(blockEvents).toHaveLength(1);
+    const data = blockEvents[0][2] as { rationale: string };
+    expect(data.rationale.endsWith('…[truncated]')).toBe(true);
+    expect(data.rationale.length).toBeLessThanOrEqual(256 + '…[truncated]'.length);
   });
 });
 
