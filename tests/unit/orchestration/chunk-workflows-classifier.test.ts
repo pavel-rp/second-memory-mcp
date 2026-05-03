@@ -436,6 +436,188 @@ describe('updateChunkContent — Tier 1 + Tier 2 audit chain', () => {
       .calls[0];
     expect(partial.tier2).toBeUndefined();
   });
+
+  it('returns database retryable when chunk disappears between update and reload', async () => {
+    const deps = stubDeps({});
+    (deps.chunks.getById as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk()) // initial load
+      .mockResolvedValueOnce(undefined); // post-update reload — concurrent delete
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(false);
+    expect(result.error?.type).toBe('database');
+    expect(result.error?.retryable).toBe(true);
+    expect(result.error?.message).toContain('chunk-1');
+  });
+
+  it('mergeValidatorReport throw — chunk update still succeeds (fail-open)', async () => {
+    const deps = stubDeps({ linterRules: [warningTier1bRule()] });
+    (deps.chunks.mergeValidatorReport as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('jsonb merge crashed')
+    );
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('Tier 1 audit when topics.getById throws — falls back to safe defaults, audit still runs', async () => {
+    const deps = stubDeps({ linterRules: [warningTier1bRule()] });
+    (deps.topics.getById as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('topic load crashed')
+    );
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    // Topic load failure does not block the audit — Tier 1 runs against a
+    // synthetic empty topic context and the row update proceeds.
+    expect(result.success).toBe(true);
+    expect(deps.chunks.mergeValidatorReport).toHaveBeenCalledOnce();
+  });
+
+  it('passes current.topicId in TopicLintInput on update path (NEU-686 PR feedback)', async () => {
+    const customRule: LinterRule = {
+      name: 'test.tier1a.captures-topic-id',
+      scope: 'topic',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        if (input.topicId !== 'topic-1') {
+          // Surface as a finding so the assertion below can read the value.
+          return [
+            {
+              chunkId: input.chunks[0]?.chunkId ?? '',
+              rule: 'test.tier1a.captures-topic-id',
+              severity: 'blocking',
+              category: 'tier1a',
+              detail: `expected topic-1, got "${input.topicId}"`,
+            },
+          ];
+        }
+        return [];
+      },
+    };
+    const deps = stubDeps({ linterRules: [customRule] });
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    // The topic-scoped rule receives `current.topicId` (not '').
+    expect(result.success).toBe(true);
+  });
+
+  it('Tier 2 runs when blockingFields omitted — high-score path produces no findings, no snapshot capture', async () => {
+    const classifier = classifierStub(highScoreVerdict());
+    const deps = stubDeps({
+      classifier,
+      enableClassifier: true,
+      // No blockingFields — Tier 2 fans out for warnings only, snapshot gate skipped.
+      linterRules: [],
+    });
+
+    const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
+
+    expect(result.success).toBe(true);
+    expect(classifier.classify).toHaveBeenCalled();
+    // No reverse-UPDATE because no blocking hits.
+    expect(deps.chunks.update).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── createChunkWithTopic — topicId forwarding regression guard ─────
+
+describe('createChunkWithTopic — Tier 1 topicId forwarding (NEU-686 PR feedback)', () => {
+  it('passes input.topicId in TopicLintInput when caller supplies an existing topicId', async () => {
+    const customRule: LinterRule = {
+      name: 'test.tier1a.captures-topic-id-create',
+      scope: 'topic',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        if (input.topicId !== 'existing-topic') {
+          return [
+            {
+              chunkId: input.chunks[0]?.chunkId ?? '',
+              rule: 'test.tier1a.captures-topic-id-create',
+              severity: 'blocking',
+              category: 'tier1a',
+              detail: `expected existing-topic, got "${input.topicId}"`,
+            },
+          ];
+        }
+        return [];
+      },
+    };
+    const deps = stubDeps({ linterRules: [customRule] });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk', topicId: 'existing-topic' })
+    );
+
+    const result = await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: 'existing-topic',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+      deps
+    );
+
+    // Lint rule passes because it received the real topicId, not ''.
+    expect(result.success).toBe(true);
+  });
+
+  it('passes empty topicId on auto-create branch (topicId not yet allocated)', async () => {
+    const seenTopicIds: string[] = [];
+    const customRule: LinterRule = {
+      name: 'test.tier1a.records-topic-id',
+      scope: 'topic',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        seenTopicIds.push(input.topicId);
+        return [];
+      },
+    };
+    const deps = stubDeps({ linterRules: [customRule] });
+    (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+
+    await createChunkWithTopic(
+      {
+        id: 'new-chunk',
+        topicId: '',
+        title: 'New Chunk',
+        subject: 'CS',
+        difficulty: 5,
+        nextReviewAt: NOW,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 10,
+        chunkType: 'new',
+        content: 'Some valid content for the chunk.',
+        createdAt: NOW,
+        updatedAt: NOW,
+        topicTitle: 'Auto Created',
+      },
+      deps
+    );
+
+    // Empty topicId is correct here — caller did not supply one and the
+    // topic UUID is allocated downstream of the lint.
+    expect(seenTopicIds).toEqual(['']);
+  });
 });
 
 // ── updateChunkContentWithAutoReset — branch coverage ──────────

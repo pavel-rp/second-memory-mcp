@@ -238,7 +238,10 @@ async function buildUpdateLintInput(
     : current.condensedSummary;
 
   return {
-    topicId: '',
+    // For update paths the real `topicId` is known; pass it so any topic-scoped
+    // Tier 1 rule keys/diagnostics work. The `TopicLintInput` JSDoc empty-string
+    // exception applies only to pre-persist create-path lints.
+    topicId: current.topicId,
     topicTitle,
     subject,
     topicSummary,
@@ -372,6 +375,22 @@ async function updateChunkFields(
     }
 
     const updated = await deps.chunks.getById(id);
+    if (!updated) {
+      // Concurrent delete between the UPDATE and this reload — the row no
+      // longer exists. Surface as a retryable database error rather than
+      // returning `{ success: true, chunk: undefined }` (which the server
+      // tool layer's `if (result.success && result.chunk)` guard hides
+      // behind an opaque "Unknown error" instead of the actual
+      // concurrent-delete signal).
+      return {
+        success: false,
+        error: {
+          type: 'database',
+          message: `Chunk ${id} disappeared between update and reload (concurrent delete?)`,
+          retryable: true,
+        },
+      };
+    }
     const fieldsChanged = Object.keys(fields)
       .filter(k => !CHUNK_PLUMBING_FIELDS.has(k))
       .map(toEventFieldName);
@@ -395,8 +414,7 @@ async function updateChunkFields(
     if (
       auditPath !== undefined &&
       deps.enableClassifier === true &&
-      deps.classifier !== undefined &&
-      updated !== undefined
+      deps.classifier !== undefined
     ) {
       try {
         const passResult = await runTier2AuditPostCommit({
@@ -807,7 +825,11 @@ export async function createChunkWithTopic(
     let tier1RuleMeta: Awaited<ReturnType<typeof runTier1Audit>>['ruleMetaByName'] | undefined;
     if (deps.linterRules && deps.linterRules.length > 0) {
       const lintInput: TopicLintInput = {
-        topicId: '',
+        // When `input.topicId` is supplied (caller picked an existing topic)
+        // pass it so topic-scoped Tier 1 rules see the real id; the empty
+        // string only applies to the auto-create branch where the topic UUID
+        // is allocated downstream of the lint.
+        topicId: input.topicId || '',
         topicTitle: lintTopicTitle,
         subject: lintSubject,
         topicSummary: lintTopicSummary,
@@ -868,7 +890,11 @@ export async function createChunkWithTopic(
 
     const { topicTitle: _tt, ...chunkInput } = input;
     void _tt; // stripped before persistence — topicTitle is a helper-only field
-    const isoNow = new Date().toISOString();
+    // Anchor the Tier 1 validator-report timestamp to the chunk's persisted
+    // `updatedAt` so audit and row timestamps line up — mirrors the update
+    // path which uses `new Date(now).toISOString()` where `now` is the same
+    // value written to the row.
+    const isoNow = new Date(input.updatedAt).toISOString();
     const validatorReport =
       tier1RuleMeta !== undefined
         ? buildSingleChunkValidatorReport(input.id, tier1Findings, tier1RuleMeta, isoNow)
