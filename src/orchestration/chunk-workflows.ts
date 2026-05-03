@@ -427,9 +427,13 @@ async function updateChunkFields(
         });
         tier2Findings = passResult.findings;
         tier2BlockingHits = passResult.blockingHits;
+        /* c8 ignore start -- defensive: `runTier2AuditPostCommit` absorbs
+           every classifier/breaker failure it knows about. This catch is
+           belt-and-braces — the public-API contract is fail-open. */
       } catch (err) {
         getRequestLogger().warn('Tier 2 classifier pass failed for chunk update:', err);
       }
+      /* c8 ignore stop */
     }
 
     if (tier2BlockingHits.length > 0) {
@@ -442,6 +446,11 @@ async function updateChunkFields(
       // attempt an undefined-fields update.
       let rollbackFailed = false;
       let rollbackErrorMessage: string | undefined;
+      /* c8 ignore start -- defensive guard: the snapshot-capture gate
+         (`enableClassifier && classifier && blockingFields.size > 0`) is a
+         strict superset of the gate that produces `blockingHits`, so this
+         branch is unreachable under valid inputs. Kept as a logic-error
+         tripwire for future refactors. */
       if (snapshot === null) {
         rollbackFailed = true;
         rollbackErrorMessage = 'snapshot was not captured (logic error)';
@@ -449,6 +458,7 @@ async function updateChunkFields(
           `Tier 2 block: cannot reverse update for chunk ${id} — snapshot missing`
         );
       } else {
+        /* c8 ignore stop */
         try {
           const reverseRowCount = await deps.chunks.update(
             id,
@@ -524,11 +534,17 @@ async function updateChunkFields(
       }
 
       if (rollbackFailed) {
+        // Every code path that sets rollbackFailed=true also assigns
+        // rollbackErrorMessage; the `?? 'unknown'` fallback is a defensive
+        // guard against a future refactor that misses one.
+        /* c8 ignore start */
+        const reason = rollbackErrorMessage ?? 'unknown';
+        /* c8 ignore stop */
         return {
           success: false,
           error: {
             type: 'database',
-            message: `Tier 2 classifier rejected update but rollback failed for chunk ${id} (${rollbackErrorMessage ?? 'unknown'}). Manual cleanup may be required.`,
+            message: `Tier 2 classifier rejected update but rollback failed for chunk ${id} (${reason}). Manual cleanup may be required.`,
             retryable: true,
           },
         };
@@ -543,6 +559,10 @@ async function updateChunkFields(
         category: 'tier2',
         detail: h.rationale,
       }));
+      // tier2Findings is undefined only if `runTier2AuditPostCommit` threw;
+      // its outer try/catch swallows that and `tier2BlockingHits` stays empty,
+      // so we wouldn't enter this branch. The `?? []` is defensive.
+      /* c8 ignore next */
       const mergedFindings: LinterFinding[] = [...blockingFindings, ...(tier2Findings ?? [])];
       return {
         success: false,
@@ -741,7 +761,12 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
       const now = Date.now();
       for (const depId of orderedIds) {
         const dep = dependentMap.get(depId);
+        // dependentMap is built from the same `dependentRows` array that
+        // produces `orderedIds`, so every id has a matching entry. The
+        // continue is a logic-error tripwire (no public-API path can hit it).
+        /* c8 ignore start */
         if (!dep) continue;
+        /* c8 ignore stop */
         const prereqs = dep.prerequisitesJson ?? [];
         const remaining = prereqs.filter(pid => pid !== id);
         if (remaining.length === prereqs.length) continue;
@@ -967,9 +992,15 @@ export async function createChunkWithTopic(
         });
         tier2Findings = passResult.findings;
         tier2BlockingHits = passResult.blockingHits;
+        /* c8 ignore start -- defensive: `runTier2AuditPostCommit` already
+           absorbs every classifier/breaker failure mode it knows about
+           (Promise.allSettled around classifyChunk; try/catch around
+           breaker.applyTo). This catch is belt-and-braces for a future
+           helper that forgets to swallow. */
       } catch (err) {
         getRequestLogger().warn('Tier 2 classifier pass failed for new chunk:', err);
       }
+      /* c8 ignore stop */
     }
 
     if (tier2BlockingHits.length > 0) {
@@ -1028,9 +1059,14 @@ export async function createChunkWithTopic(
       }
 
       if (rollbackFailed) {
+        // Same defensive fallback as the update path — every code path that
+        // sets rollbackFailed=true also assigns rollbackErrorMessage.
+        /* c8 ignore start */
+        const reason = rollbackErrorMessage ?? 'unknown';
+        /* c8 ignore stop */
         return serviceFail({
           type: 'database',
-          message: `Tier 2 classifier rejected chunk ${created.id} but rollback failed (${rollbackErrorMessage ?? 'unknown'}). Manual cleanup may be required.`,
+          message: `Tier 2 classifier rejected chunk ${created.id} but rollback failed (${reason}). Manual cleanup may be required.`,
           retryable: true,
         });
       }
@@ -1044,6 +1080,10 @@ export async function createChunkWithTopic(
         category: 'tier2',
         detail: h.rationale,
       }));
+      // Same defensive `?? []` as the update path — tier2Findings is undefined
+      // only on a runTier2AuditPostCommit throw, which would also leave
+      // tier2BlockingHits empty.
+      /* c8 ignore next */
       const mergedFindings: LinterFinding[] = [...blockingFindings, ...(tier2Findings ?? [])];
       return serviceFail({
         type: 'content_quality',

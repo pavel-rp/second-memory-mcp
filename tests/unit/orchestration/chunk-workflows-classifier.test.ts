@@ -638,6 +638,30 @@ describe('createChunkWithTopic — Tier 1 topicId forwarding (NEU-686 PR feedbac
     expect(deps.chunks.mergeValidatorReport).toHaveBeenCalledOnce();
   });
 
+  it('updateChunkContent with condensedSummary in input — lint sees proposed condensed summary', async () => {
+    const seenSummaries: Array<string | null> = [];
+    const captureRule: LinterRule = {
+      name: 'test.tier1a.records-condensed',
+      scope: 'chunk',
+      tier: 'tier1a',
+      blockingEligible: true,
+      run: input => {
+        seenSummaries.push(input.condensedSummary);
+        return [];
+      },
+    };
+    const deps = stubDeps({ linterRules: [captureRule] });
+
+    await updateChunkContent(
+      'chunk-1',
+      { content: 'New content here', condensedSummary: 'Updated summary.' },
+      deps
+    );
+
+    // hasCondensedSummaryField=true branch: lint receives the proposed value.
+    expect(seenSummaries[0]).toBe('Updated summary.');
+  });
+
   it('updateChunkContent with chunk having null prerequisites/tags — buildUpdateLintInput uses [] fallback', async () => {
     const seenInputs: Array<{ prerequisites: readonly string[]; tags: readonly string[] }> = [];
     const captureRule: LinterRule = {
