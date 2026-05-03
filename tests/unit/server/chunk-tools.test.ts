@@ -170,6 +170,26 @@ describe('chunk-tools', () => {
       expect(parsed.data.tier2_findings[0].rule).toBe('classifier.overall_fit');
     });
 
+    it('content_quality error with no findings key — empty array fallback (NEU-686)', async () => {
+      // Exercises the `result.error.findings ?? []` fallback in chunk-tools.
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 1 rejected',
+          retryable: false,
+          // findings intentionally omitted
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toEqual([]);
+    });
+
     it('passes prerequisites and tags when provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
@@ -427,6 +447,31 @@ describe('chunk-tools', () => {
 
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
+    });
+
+    it('content_quality error with no findings key — empty array fallback (NEU-686)', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 2 rejected the update',
+          retryable: false,
+          // findings intentionally omitted
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
+        condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toEqual([]);
     });
 
     it('surfaces snake-cased findings on content_quality error (NEU-686)', async () => {
@@ -795,6 +840,25 @@ describe('chunk-tools', () => {
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('content_quality error with no findings key — empty array fallback (NEU-686)', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 2 rejected the update',
+          retryable: false,
+          // findings intentionally omitted
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toEqual([]);
     });
 
     it('surfaces snake-cased findings on content_quality error (NEU-686)', async () => {
