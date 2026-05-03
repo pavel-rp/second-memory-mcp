@@ -30,6 +30,8 @@ describe('RULE_INTENT', () => {
       'tier1b.word-count-floor',
       'tier1b.word-count-ceiling',
       'tier1b.phantom-prerequisite',
+      'tier1b.title-specificity',
+      'tier1b.difficulty-progression',
     ]);
     for (const k of tier1bKeys) {
       expect(RULE_INTENT[k as RuleIntentName].intendedBlocking).toBe(false);
@@ -43,7 +45,7 @@ describe('RULE_INTENT', () => {
     // the type system for the guarantee, which is sufficient for internal
     // callers and produces a precise key union via `keyof typeof`.
     const keys = Object.keys(RULE_INTENT);
-    expect(keys.length).toBe(11);
+    expect(keys.length).toBe(13);
   });
 });
 
