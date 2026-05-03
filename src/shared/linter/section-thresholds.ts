@@ -59,3 +59,9 @@ export const SCAFFOLDING_SECTION_HEADINGS: readonly string[] = [
   'Exercises',
   'Summary',
 ];
+
+/** Title-specificity rule (NEU-618): titles with fewer than this many words trigger the short-title check. */
+export const TITLE_MIN_WORD_COUNT = 5;
+
+/** Difficulty-progression rule (NEU-618): adjacent-pair difficulty drop ≥ this value triggers a warning. */
+export const DIFFICULTY_RETROGRADE_THRESHOLD = 3;

@@ -18,6 +18,8 @@ import { scaffoldingSectionRule } from './scaffolding-section.js';
 import { bulletDominantRule } from './bullet-dominant.js';
 import { wordCountFloorRule } from './word-count-floor.js';
 import { wordCountCeilingRule } from './word-count-ceiling.js';
+import { titleSpecificityRule } from './title-specificity.js';
+import { difficultyProgressionRule } from './difficulty-progression.js';
 
 export {
   codeFenceBalanceRule,
@@ -31,6 +33,8 @@ export {
   bulletDominantRule,
   wordCountFloorRule,
   wordCountCeilingRule,
+  titleSpecificityRule,
+  difficultyProgressionRule,
 };
 
 export function createTier1aRules(): LinterRule[] {
@@ -51,5 +55,7 @@ export function createTier1bRules(): LinterRule[] {
     bulletDominantRule,
     wordCountFloorRule,
     wordCountCeilingRule,
+    titleSpecificityRule,
+    difficultyProgressionRule,
   ];
 }

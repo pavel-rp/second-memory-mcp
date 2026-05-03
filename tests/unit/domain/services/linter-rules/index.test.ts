@@ -13,6 +13,8 @@ import {
   bulletDominantRule,
   wordCountFloorRule,
   wordCountCeilingRule,
+  titleSpecificityRule,
+  difficultyProgressionRule,
 } from '../../../../../src/domain/services/linter-rules/index.js';
 import { RULE_INTENT } from '../../../../../src/shared/linter/rule-intent.js';
 
@@ -45,7 +47,7 @@ describe('createTier1aRules', () => {
 });
 
 describe('createTier1bRules', () => {
-  it('returns all six Tier 1b rules in registration order', () => {
+  it('returns all eight Tier 1b rules in registration order', () => {
     const rules = createTier1bRules();
     expect(rules).toEqual([
       phantomPrerequisiteRule,
@@ -54,12 +56,13 @@ describe('createTier1bRules', () => {
       bulletDominantRule,
       wordCountFloorRule,
       wordCountCeilingRule,
+      titleSpecificityRule,
+      difficultyProgressionRule,
     ]);
   });
 
-  it('returns rules all tagged as chunk-scope, tier1b, blockingEligible: false', () => {
+  it('returns rules all tagged as tier1b, blockingEligible: false', () => {
     for (const rule of createTier1bRules()) {
-      expect(rule.scope).toBe('chunk');
       expect(rule.tier).toBe('tier1b');
       expect(rule.blockingEligible).toBe(false);
     }
