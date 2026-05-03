@@ -8,6 +8,13 @@ export type ServiceError = {
   message: string;
   field?: string;
   retryable?: boolean;
+  /**
+   * NEU-686: structured per-finding details surfaced only on
+   * `type === 'content_quality'` errors. Typed as `unknown` so the
+   * domain types module stays free of `domain/services/` imports —
+   * concrete consumers (server tool layer) cast as needed.
+   */
+  findings?: unknown;
 };
 
 export type ServiceResult<T = void> =

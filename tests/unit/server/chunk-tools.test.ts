@@ -63,7 +63,7 @@ describe('chunk-tools', () => {
       };
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: mockChunkRow,
+        data: { chunk: mockChunkRow },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -81,7 +81,7 @@ describe('chunk-tools', () => {
     it('includes consistency_reminder in success response', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -113,30 +113,109 @@ describe('chunk-tools', () => {
       expect(parsed.error).toBeDefined();
     });
 
+    it('surfaces snake-cased findings on content_quality error (NEU-686)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 1 rejected the chunk',
+          retryable: false,
+          findings: [
+            {
+              chunkId: 'c1',
+              rule: 'tier1a.code-fence-balance',
+              severity: 'blocking',
+              category: 'tier1a',
+              detail: 'unbalanced fences',
+            },
+          ],
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.findings[0].chunk_id).toBe('c1');
+      expect(parsed.error.findings[0].rule).toBe('tier1a.code-fence-balance');
+    });
+
+    it('surfaces tier2_findings on success (NEU-686)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: {
+          chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+          tier2Findings: [
+            {
+              chunkId: 'c1',
+              rule: 'classifier.overall_fit',
+              severity: 'warning',
+              category: 'tier2',
+              detail: 'borderline',
+            },
+          ],
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.tier2_findings).toBeInstanceOf(Array);
+      expect(parsed.data.tier2_findings[0].rule).toBe('classifier.overall_fit');
+    });
+
+    it('content_quality error with no findings key — empty array fallback (NEU-686)', async () => {
+      // Exercises the `result.error.findings ?? []` fallback in chunk-tools.
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 1 rejected',
+          retryable: false,
+          // findings intentionally omitted
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toEqual([]);
+    });
+
     it('passes prerequisites and tags when provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
         data: {
-          id: 'c2',
-          topicId: 't1',
-          title: 'Linked Lists',
-          subject: 'CS',
-          difficulty: 5,
-          nextReviewAt: Date.now(),
-          easeFactor: 2.5,
-          repetitions: 0,
-          lastReviewedAt: null,
-          estimatedDuration: 10,
-          intervalDays: null,
-          chunkType: 'new',
-          prerequisitesJson: ['c1'],
-          tagsJson: ['data-structures'],
-          content: null,
-          contentVersion: null,
-          contentUpdatedAt: null,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          topicTitle: 'DS',
+          chunk: {
+            id: 'c2',
+            topicId: 't1',
+            title: 'Linked Lists',
+            subject: 'CS',
+            difficulty: 5,
+            nextReviewAt: Date.now(),
+            easeFactor: 2.5,
+            repetitions: 0,
+            lastReviewedAt: null,
+            estimatedDuration: 10,
+            intervalDays: null,
+            chunkType: 'new',
+            prerequisitesJson: ['c1'],
+            tagsJson: ['data-structures'],
+            content: null,
+            contentVersion: null,
+            contentUpdatedAt: null,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            topicTitle: 'DS',
+          },
         },
       });
       registerChunkTools(server as any, ctx);
@@ -191,7 +270,7 @@ describe('chunk-tools', () => {
     it('defaults contentStatus to final when not provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -205,7 +284,7 @@ describe('chunk-tools', () => {
     it('passes explicit content_status draft through', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -228,7 +307,7 @@ describe('chunk-tools', () => {
     it('passes knowledge_type through to ctx', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -242,7 +321,7 @@ describe('chunk-tools', () => {
     it('defaults knowledgeType to null when not provided', async () => {
       ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
         success: true,
-        data: { id: 'c1', topicId: 't1', createdAt: Date.now() },
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
       });
       registerChunkTools(server as any, ctx);
       const handler = server.tools.get('create_learning_item')!.handler;
@@ -368,6 +447,99 @@ describe('chunk-tools', () => {
 
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('not_found');
+    });
+
+    it('content_quality error with no findings key — empty array fallback (NEU-686)', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 2 rejected the update',
+          retryable: false,
+          // findings intentionally omitted
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
+        condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toEqual([]);
+    });
+
+    it('surfaces snake-cased findings on content_quality error (NEU-686)', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 2 rejected the update',
+          retryable: false,
+          findings: [
+            {
+              chunkId: 'c1',
+              rule: 'classifier.rendering_clarity',
+              severity: 'blocking',
+              category: 'tier2',
+              detail: 'low score',
+            },
+          ],
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
+        condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.findings).toBeInstanceOf(Array);
+      expect(parsed.error.findings[0].chunk_id).toBe('c1');
+      expect(parsed.error.findings[0].rule).toBe('classifier.rendering_clarity');
+    });
+
+    it('does not include findings on non-content_quality errors (NEU-686)', async () => {
+      ctx.updateChunkContent = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'database',
+          message: 'rollback failed',
+          retryable: true,
+          // Even if findings were attached, they should NOT surface on non-content-quality errors.
+          findings: [
+            { chunkId: 'c1', rule: 'x', severity: 'warning', category: 'tier2', detail: 'x' },
+          ],
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk_content')!.handler;
+
+      const result = await handler({
+        chunk_id: 'c1',
+        content:
+          'Updated content for arrays that covers the fundamentals of contiguous memory allocation, constant-time element access by index, and the trade-offs between arrays and other data structures. Arrays are foundational to computer science and algorithm design.',
+        condensed_summary: 'Updated arrays summary.',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      // `toolError`'s ERROR_TYPE_MAP normalizes `'database'` → `'internal'`;
+      // the gate is on the original `errorType` value, not the normalized one.
+      expect(parsed.error.findings).toBeUndefined();
     });
 
     it('returns system error when ctx throws', async () => {
@@ -668,6 +840,91 @@ describe('chunk-tools', () => {
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('Unknown error');
+    });
+
+    it('content_quality error with no findings key — empty array fallback (NEU-686)', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 2 rejected the update',
+          retryable: false,
+          // findings intentionally omitted
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toEqual([]);
+    });
+
+    it('surfaces snake-cased findings on content_quality error (NEU-686)', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'Tier 2 rejected the update',
+          retryable: false,
+          findings: [
+            {
+              chunkId: 'c1',
+              rule: 'classifier.overall_fit',
+              severity: 'blocking',
+              category: 'tier2',
+              detail: 'low score',
+            },
+          ],
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.findings[0].chunk_id).toBe('c1');
+      expect(parsed.error.findings[0].rule).toBe('classifier.overall_fit');
+    });
+
+    it('does not include findings on non-content_quality errors (NEU-686)', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'database', message: 'rollback failed', retryable: true },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.error.findings).toBeUndefined();
+    });
+
+    it('surfaces tier2_findings array (empty) on success (NEU-686)', async () => {
+      ctx.updateChunkWithProgressReset = vi.fn().mockResolvedValue({
+        success: true,
+        chunk: {
+          id: 'c1',
+          topicId: 't1',
+          title: 'Arrays',
+          contentVersion: 1,
+          updatedAt: Date.now(),
+        },
+        progressReset: false,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('update_chunk')!.handler;
+
+      const result = await handler({ chunk_id: 'c1', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.tier2_findings).toEqual([]);
     });
 
     it('uses fallback defaults when error object is entirely absent', async () => {

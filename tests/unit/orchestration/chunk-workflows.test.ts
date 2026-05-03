@@ -578,7 +578,7 @@ describe('createChunkWithTopic', () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.id).toBe('new-chunk');
+      expect(result.data.chunk.id).toBe('new-chunk');
     }
     expect(deps.chunks.create).toHaveBeenCalledOnce();
     expect(deps.topics.list).not.toHaveBeenCalled();
