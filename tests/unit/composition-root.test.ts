@@ -173,6 +173,18 @@ describe('createAppContext — classifier wiring', () => {
     expect(mockLoggerWarn).not.toHaveBeenCalled();
   });
 
+  it('constructs the tier2CircuitBreaker when CLASSIFIER_BLOCKING_FIELDS is non-empty (NEU-686)', () => {
+    // Triggers the truthy side of the conditional `tier2CircuitBreaker` spread
+    // in both `chunkDeps` and `topicDeps`. Without `CLASSIFIER_BLOCKING_FIELDS`
+    // the breaker stays `undefined` and the spread is a no-op (covered by every
+    // other test in this file).
+    process.env.CLASSIFIER_BLOCKING_FIELDS = 'rendering_clarity';
+    const ctx = createAppContext();
+    expect(ctx).toBeDefined();
+    expect(typeof ctx.createTopicWithChunks).toBe('function');
+    expect(typeof ctx.createChunkWithTopic).toBe('function');
+  });
+
   it('warns when a registered rule has no RULE_INTENT entry', () => {
     // Defensive branch: simulate a future contributor registering a rule
     // without updating RULE_INTENT. The composition root must log (not throw)
