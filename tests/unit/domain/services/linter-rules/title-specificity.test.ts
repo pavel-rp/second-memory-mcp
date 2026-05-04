@@ -93,6 +93,14 @@ describe('tier1b.title-specificity', () => {
       expect(shortFindings).toHaveLength(0);
     });
 
+    it('fires on a hyphenated compound-word title (hyphen is not a math signal)', () => {
+      const findings = titleSpecificityRule.run(makeInput({ topicTitle: 'A-B' }));
+      const shortFindings = findings.filter(
+        f => f.chunkId === '' && f.detail.includes('specificity')
+      );
+      expect(shortFindings).toHaveLength(1);
+    });
+
     it(`does not fire on a title with ${TITLE_MIN_WORD_COUNT} or more words`, () => {
       const longTitle = Array.from({ length: TITLE_MIN_WORD_COUNT }, (_, i) => `word${i}`).join(
         ' '

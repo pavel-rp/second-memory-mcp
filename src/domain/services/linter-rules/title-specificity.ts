@@ -9,7 +9,7 @@ const COORDINATOR_SLASH = /\s\/\s/;
 const COORDINATOR_COMMA = /,\s/;
 const HAS_COLON = /:/;
 const HAS_DIGIT = /\d/;
-const HAS_MATH_SYMBOL = /[+\-*=<>≤≥∑∫∀∃∈∉∪∩×÷±∞≈≠∝∂∇λΣΠ]/;
+const HAS_MATH_SYMBOL = /[+*=<>≤≥∑∫∀∃∈∉∪∩×÷±∞≈≠∝∂∇λΣΠ−]/;
 
 function hasVerb(title: string): boolean {
   const doc = nlp(title);
