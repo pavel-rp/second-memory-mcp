@@ -44,6 +44,10 @@ export const RULE_INTENT = {
   'tier1b.word-count-floor': { intendedBlocking: false },
   'tier1b.word-count-ceiling': { intendedBlocking: false },
   'tier1b.phantom-prerequisite': { intendedBlocking: false },
+
+  // Tier 1b — topic-level metadata rules (NEU-618).
+  'tier1b.title-specificity': { intendedBlocking: false },
+  'tier1b.difficulty-progression': { intendedBlocking: false },
 } as const satisfies Record<string, RuleIntent>;
 
 export type RuleIntentName = keyof typeof RULE_INTENT;
