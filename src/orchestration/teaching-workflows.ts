@@ -50,6 +50,7 @@ import {
   resolveStalePrerequisites,
   type PrerequisiteChunkMeta,
 } from '../domain/algorithms/resolve-stale-prerequisites.js';
+import { computePacing } from '../domain/algorithms/compute-pacing.js';
 
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
@@ -629,6 +630,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     topic_staleness_profile: topicProfile,
     is_first_chunk_in_topic: isFirstChunkInTopic,
     dominant_tier: topicProfile.dominantTier,
+    pacing: computePacing(chunkData.difficulty),
   };
 }
 

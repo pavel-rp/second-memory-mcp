@@ -282,6 +282,39 @@ describe('getNextTeachingStep', () => {
     expect(result.drill_format).toBe('explanation');
   });
 
+  it('includes pacing object calibrated to chunk difficulty', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ difficulty: 5 })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
+    expect(result.pacing).toBeDefined();
+    expect(result.pacing!.delivery_mode).toBe('incremental');
+    expect(result.pacing!.checkpoint_cadence).toBe('after_each_concept');
+    expect(result.pacing!.directive).toBeTruthy();
+  });
+
+  it('returns full pacing for low-difficulty chunk', async () => {
+    const deps = makeDeps({
+      chunks: {
+        getWithContent: vi.fn().mockResolvedValue(makeChunkData({ difficulty: 2 })),
+      },
+    });
+
+    const result = await getNextTeachingStep(deps);
+
+    expect(result.action).toBe('teach');
+    if (result.action !== 'teach') throw new Error('Expected teach');
+    expect(result.pacing).toBeDefined();
+    expect(result.pacing!.delivery_mode).toBe('full');
+    expect(result.pacing!.checkpoint_cadence).toBe('end_of_chunk');
+  });
+
   // VC-02, VC-05: Fresh pending prioritized over re-queued failure (interleaving)
   it('prioritizes fresh pending over re-queued failure', async () => {
     const sqRepo = stubSessionQuestionRepository();

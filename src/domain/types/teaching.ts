@@ -34,6 +34,12 @@ export type ReviewUpdate = {
   is_leech: boolean;
 };
 
+export type Pacing = {
+  delivery_mode: 'incremental' | 'full';
+  checkpoint_cadence: 'after_each_concept' | 'end_of_chunk';
+  directive: string;
+};
+
 export type TeachNextTeach = {
   action: 'teach';
   session_id: string;
@@ -61,6 +67,8 @@ export type TeachNextTeach = {
   topic_staleness_profile?: TopicStalenessProfile;
   is_first_chunk_in_topic?: boolean;
   dominant_tier?: TeachingApproach;
+  // NEU-592: delivery pacing directive
+  pacing?: Pacing;
 };
 
 export type TeachNextComplete = {

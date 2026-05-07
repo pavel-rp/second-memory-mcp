@@ -686,6 +686,9 @@ class PromptPack {
       '',
       ...this.formatQualityRubric(),
       '',
+      ...this.formatEpistemicConsistencyDirective(),
+      ...this.formatVocabularyPrecheckDirective(),
+      '',
       'Style: concise, supportive, and precise.',
     ]
       .filter(Boolean)
@@ -727,6 +730,9 @@ class PromptPack {
       '',
       ...this.formatQualityRubric(),
       '',
+      ...this.formatEpistemicConsistencyDirective(),
+      ...this.formatVocabularyPrecheckDirective(),
+      '',
       'Style: patient, encouraging. Normalize partial recall as a learning signal.',
     ]
       .filter(Boolean)
@@ -766,6 +772,9 @@ class PromptPack {
       '- If the recall probe shows more knowledge than expected, switch to cued_recall approach',
       '',
       ...this.formatQualityRubric(),
+      '',
+      ...this.formatEpistemicConsistencyDirective(),
+      ...this.formatVocabularyPrecheckDirective(),
       '',
       'Style: efficient, matter-of-fact. Frame as "refreshing" not "relearning".',
     ]
@@ -807,6 +816,9 @@ class PromptPack {
       '- If the learner shows unexpected recall, escalate to cued_recall approach',
       '',
       ...this.formatQualityRubric(),
+      '',
+      ...this.formatEpistemicConsistencyDirective(),
+      ...this.formatVocabularyPrecheckDirective(),
       '',
       'Style: warm, normalizing. Emphasize that forgetting is part of learning.',
     ]
@@ -853,6 +865,28 @@ class PromptPack {
       '',
       'NOTE: Address any reported pain points with extra care and scaffolding.',
     ].join('\n');
+  }
+
+  private formatEpistemicConsistencyDirective(): string[] {
+    return [
+      '',
+      '## Epistemic Consistency',
+      '',
+      'When the learner pushes back or asks for clarification, DO NOT generate a new answer from scratch.',
+      "Anchor every response to the chunk's canonical statement.",
+      'If the chunk is ambiguous, say so explicitly and defer to the condensed_summary rather than improvising.',
+    ];
+  }
+
+  private formatVocabularyPrecheckDirective(): string[] {
+    return [
+      '',
+      '## Vocabulary Precheck',
+      '',
+      'Before teaching new material, verify the learner has working knowledge of terms from the prerequisite_context.',
+      'If any prerequisite term is unknown, pause and briefly define it using the condensed_summary before proceeding.',
+      'Do NOT use terminology the learner has not encountered.',
+    ];
   }
 }
 
