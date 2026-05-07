@@ -662,6 +662,25 @@ describe('promptPack', () => {
       expect(scaffold).toContain('(1/1)');
       expect(scaffold).toContain('<untitled chunk>');
     });
+
+    it('all four tier instructions include epistemic consistency directive', () => {
+      const tiers = ['recall', 'cued_recall', 'reteach', 'scaffold'] as const;
+      for (const tier of tiers) {
+        const text = promptPack.getTierInstruction(tier, baseContext);
+        expect(text).toContain('## Epistemic Consistency');
+        expect(text).toContain('canonical');
+        expect(text).toContain('condensed_summary');
+      }
+    });
+
+    it('all four tier instructions include vocabulary precheck directive', () => {
+      const tiers = ['recall', 'cued_recall', 'reteach', 'scaffold'] as const;
+      for (const tier of tiers) {
+        const text = promptPack.getTierInstruction(tier, baseContext);
+        expect(text).toContain('## Vocabulary Precheck');
+        expect(text).toContain('prerequisite_context');
+      }
+    });
   });
 
   describe('teaching content integrity', () => {
