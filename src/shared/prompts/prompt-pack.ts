@@ -874,7 +874,7 @@ class PromptPack {
       '',
       'When the learner pushes back or asks for clarification, DO NOT generate a new answer from scratch.',
       "Anchor every response to the chunk's canonical statement.",
-      'If the chunk is ambiguous, say so explicitly and defer to the condensed_summary rather than improvising.',
+      'If the chunk is ambiguous, say so explicitly and call get_chunk_content to retrieve the condensed_summary rather than improvising.',
     ];
   }
 
