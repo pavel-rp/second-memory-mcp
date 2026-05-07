@@ -30,7 +30,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'with prompt_text, chunk_ids, response, pass/fail assessment, feedback, and time_spent_ms. ' +
         'A progression gate requires at least one submit_answer before advancing to the next chunk. ' +
         "When submit_answer returns action 'recorded', call teach_next to get the next action: 'teach' → present instruction, 'roadblock' → follow-up questions required before progression (follow roadblock_detail.instruction), 'complete' → end session, 'blocked'/'error' → surface message. " +
-        "Epistemic rule: when the learner challenges a claim, anchor your response to the chunk's canonical content. Do not generate new answers from scratch. If the chunk is ambiguous, say so and defer to condensed_summary.",
+        "Epistemic rule: when the learner challenges a claim, anchor your response to the chunk's canonical content (in the instruction field) rather than generating new answers. If ambiguous, say so and call get_chunk_content for the condensed_summary.",
       inputSchema: z.object({
         context_token: z
           .string()

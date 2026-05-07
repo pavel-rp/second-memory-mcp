@@ -884,7 +884,7 @@ class PromptPack {
       '## Vocabulary Precheck',
       '',
       'Before teaching new material, verify the learner has working knowledge of terms from the prerequisite_context.',
-      'If any prerequisite term is unknown, pause and briefly define it using the condensed_summary before proceeding.',
+      'If any prerequisite term is unknown, pause and briefly define it using the condensed_summary before proceeding. If condensed_summary is unavailable, use the prerequisite title or call get_chunk_content.',
       'Do NOT use terminology the learner has not encountered.',
     ];
   }
