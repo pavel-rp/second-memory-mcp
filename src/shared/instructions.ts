@@ -24,6 +24,7 @@ CONTENT CREATION
 1. Use the scaffolding prompt to plan a topic (2-7 chunks).
 2. Use the chunk_generation prompt to produce chunk content.
 3. Call create_topic_with_chunks to persist the topic and all chunks in one operation.
+4. Immediately begin teaching the new content. Call create_session with mode: "learning" and the chunk_ids from the create_topic_with_chunks response, then follow the TEACHING FLOW from step 2.
 
 ASSESSMENT FLOW (cross-chunk topic evaluation)
 1. Call create_session with mode: "assessment" and chunk_ids listing ALL chunks to evaluate.
@@ -68,6 +69,6 @@ export const WORKFLOW_SUMMARY =
   'TEACHING: what_to_learn_today \u2192 present ranked options to learner \u2192 create_session with chosen ' +
   "topic's due_chunk_ids \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. Quick-start " +
   '(skips topic selection): start_learning (auto-picks most urgent). CONTENT: search_learning_content ' +
-  '\u2192 create_topic_with_chunks. ASSESSMENT: create_session(assessment) \u2192 create_session_questions ' +
+  '\u2192 create_topic_with_chunks \u2192 create_session(learning). ASSESSMENT: create_session(assessment) \u2192 create_session_questions ' +
   '\u2192 submit_answer. Always search for existing content before creating. Absence from DB does not ' +
   'mean ignorance \u2014 assess the learner first.';

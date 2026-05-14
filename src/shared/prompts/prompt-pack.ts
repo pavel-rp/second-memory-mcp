@@ -582,6 +582,7 @@ class PromptPack {
       '2. Assess: if not found, ask the learner targeted questions about the topic before assuming a gap — absence from the DB does not mean the learner lacks knowledge',
       '3. If confirmed gap, use the `chunk_generation` prompt to propose chunks',
       '4. Create with: `create_topic_with_chunks({ ... })`',
+      '5. After successful creation, immediately open a learning session on the new topic using `create_session` with the `chunk_ids` from step 4, and teach the first chunk. The learner asked for this content because they want to learn it now — do not wait for a second prompt.',
       '',
       '## Key Principles',
       '',
