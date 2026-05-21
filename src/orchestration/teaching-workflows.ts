@@ -1252,6 +1252,19 @@ async function submitAnswerForAssessmentQuestion(
     throw err;
   }
 
+  logEvent('submitAnswer', 'answer_recorded', {
+    sessionId: session.id,
+    sessionQuestionId,
+    questionChunkIds,
+    passed,
+    quality,
+    agentQuality: input.quality,
+    questionType: input.questionType,
+    timeSpentMs: input.timeSpentMs,
+    attempt: 1,
+    mode: 'assessment',
+  });
+
   await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
 
   // Fan out SR update to ALL mapped chunks
@@ -1270,6 +1283,18 @@ async function submitAnswerForAssessmentQuestion(
       )
     )
   );
+
+  reviewResults.forEach((r, i) => {
+    if (r.success) {
+      logEvent('submitAnswer', 'sr_updated', {
+        chunkId: questionChunkIds[i],
+        easeFactor: r.data.updated.easeFactor,
+        interval: r.data.updated.intervalDays,
+        nextReviewDate: toIsoTimestamp(r.data.updated.nextReviewAt),
+        mode: 'assessment',
+      });
+    }
+  });
 
   // Align with teaching mode: surface SR persistence failures
   const srFailures = reviewResults.filter(r => !r.success);
