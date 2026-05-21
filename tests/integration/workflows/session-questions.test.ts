@@ -4,7 +4,9 @@ import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-
 import { DrizzleSessionQuestionRepository } from '../../../src/adapters/drizzle/session-question-repository.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
+import type pino from 'pino';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { setEventLogger } from '../../../src/shared/logger.js';
 
 describe('session question workflows', () => {
   let ctx: AppContext;
@@ -517,5 +519,88 @@ describe('session question workflows', () => {
     expect(allAttempts).toHaveLength(2);
     expect(allAttempts[0]!.attemptNumber).toBe(1);
     expect(allAttempts[1]!.attemptNumber).toBe(1);
+  });
+
+  // ── NEU-714: assessment-mode event emissions ──────────────────
+
+  it('assessment submit_answer emits answer_recorded and sr_updated events', async () => {
+    const captured: Array<Record<string, unknown>> = [];
+    const fakeLogger = {
+      info: (obj: Record<string, unknown>) => {
+        captured.push(obj);
+      },
+    } as unknown as pino.Logger;
+    setEventLogger(fakeLogger);
+
+    try {
+      const now = Date.now();
+      await seedTopicAndChunks('t1', ['c1', 'c2'], now);
+
+      // Create assessment session
+      const sessionResult = await ctx.createSession({
+        chunkIds: ['c1', 'c2'],
+        mode: 'assessment',
+      });
+      expect(sessionResult.success).toBe(true);
+      if (!sessionResult.success) throw new Error('Failed to create session');
+      const sessionId = sessionResult.data.sessionId;
+
+      // Create cross-chunk question mapping both chunks
+      const createResult = await ctx.createSessionQuestions({
+        sessionId,
+        questions: [{ promptText: 'How do A and B relate?', chunkIds: ['c1', 'c2'] }],
+      });
+      expect(createResult.action).toBe('created');
+      if (createResult.action !== 'created') throw new Error('Expected created');
+      const [q1Id] = createResult.questionIds;
+
+      // Submit passing answer
+      const answer = await ctx.submitAnswer({
+        response: 'They relate through X',
+        quality: 4,
+        questionType: 'analyze_create',
+        feedback: 'Good understanding',
+        timeSpentMs: 6000,
+        sessionQuestionId: q1Id,
+      });
+      expect(answer.action).toBe('recorded');
+
+      // Assert answer_recorded event
+      const answerEvents = captured.filter(e => e.event === 'answer_recorded');
+      expect(answerEvents).toHaveLength(1);
+      const ae = answerEvents[0]!;
+      expect(ae.operation).toBe('submitAnswer');
+      const aeData = ae.data as Record<string, unknown>;
+      expect(aeData.questionChunkIds).toHaveLength(2);
+      expect(ae.data).toMatchObject({
+        sessionId,
+        sessionQuestionId: q1Id,
+        questionChunkIds: expect.arrayContaining(['c1', 'c2']),
+        passed: true,
+        quality: 5,
+        agentQuality: 4,
+        questionType: 'analyze_create',
+        attemptNumber: 1,
+        mode: 'assessment',
+      });
+
+      // Assert sr_updated events — one per fan-out chunk
+      const srEvents = captured.filter(e => e.event === 'sr_updated');
+      expect(srEvents).toHaveLength(2);
+
+      const srChunkIds = srEvents.map(e => (e.data as Record<string, unknown>).chunkId).sort();
+      expect(srChunkIds).toEqual(['c1', 'c2']);
+
+      for (const sr of srEvents) {
+        expect(sr.operation).toBe('submitAnswer');
+        const data = sr.data as Record<string, unknown>;
+        expect(data.mode).toBe('assessment');
+        expect(data.easeFactor).toEqual(expect.any(Number));
+        expect(data.interval).toEqual(expect.any(Number));
+        expect(data.nextReviewDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+      }
+    } finally {
+      setEventLogger(null);
+    }
   });
 });
