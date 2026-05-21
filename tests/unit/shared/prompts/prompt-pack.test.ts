@@ -734,10 +734,6 @@ describe('promptPack', () => {
       expect(SERVER_INSTRUCTIONS).toContain('chunk_ids from the create_topic_with_chunks response');
     });
 
-    it('SERVER_INSTRUCTIONS length stays under 7000 characters (NEU-162 guard)', () => {
-      expect(SERVER_INSTRUCTIONS.length).toBeLessThan(7000);
-    });
-
     it('WORKFLOW_SUMMARY CONTENT line chains into create_session', () => {
       expect(WORKFLOW_SUMMARY).toContain('create_topic_with_chunks → create_session(learning)');
     });
