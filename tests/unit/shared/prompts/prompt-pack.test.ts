@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { promptPack } from '../../../../src/shared/prompts/prompt-pack.js';
-import { SERVER_INSTRUCTIONS } from '../../../../src/shared/instructions.js';
+import { SERVER_INSTRUCTIONS, WORKFLOW_SUMMARY } from '../../../../src/shared/instructions.js';
 
 describe('promptPack', () => {
   it('returns workflow guidance with tool names', () => {
@@ -723,6 +723,25 @@ describe('promptPack', () => {
       expect(SERVER_INSTRUCTIONS.indexOf('TEACHING CONTENT INTEGRITY')).toBeLessThan(
         SERVER_INSTRUCTIONS.indexOf('QUESTION QUALITY')
       );
+    });
+  });
+
+  describe('content creation → teaching chain (NEU-593)', () => {
+    it('SERVER_INSTRUCTIONS CONTENT CREATION chains into a learning session', () => {
+      expect(SERVER_INSTRUCTIONS).toContain(
+        'Immediately begin teaching the new content. Call create_session with mode: "learning"'
+      );
+      expect(SERVER_INSTRUCTIONS).toContain('chunk_ids from the create_topic_with_chunks response');
+    });
+
+    it('WORKFLOW_SUMMARY CONTENT line chains into create_session', () => {
+      expect(WORKFLOW_SUMMARY).toContain('create_topic_with_chunks → create_session(learning)');
+    });
+
+    it('learning_session prompt "Creating New Topics" includes post-create teaching instruction', () => {
+      const text = promptPack.getPrompt('learning_session', {});
+      expect(text).toContain('After successful creation, immediately open a learning session');
+      expect(text).toContain('do not wait for a second prompt');
     });
   });
 });
