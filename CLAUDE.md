@@ -99,6 +99,10 @@ gh api --method POST "repos/OWNER/REPO/pulls/{PR_NUMBER}/comments/{COMMENT_ID}/r
 - **No `ls` with glob patterns** for file/folder existence checks — use the Glob tool.
 - **No `$?`** or shell variable interpolation in commands — triggers security warnings.
 
+## Status Breadcrumb
+
+When writing the status breadcrumb (Linear task ID), write to `.current-task` in the project root instead of `$HOME/.claude/statusline-cache/current-task.txt`. This avoids permission prompts from `.claude/` directory protection.
+
 ## Package manager
 
 pnpm, not npm.
