@@ -570,15 +570,17 @@ describe('session question workflows', () => {
       expect(answerEvents).toHaveLength(1);
       const ae = answerEvents[0]!;
       expect(ae.operation).toBe('submitAnswer');
+      const aeData = ae.data as Record<string, unknown>;
+      expect(aeData.questionChunkIds).toHaveLength(2);
       expect(ae.data).toMatchObject({
         sessionId,
         sessionQuestionId: q1Id,
-        questionChunkIds: ['c1', 'c2'],
+        questionChunkIds: expect.arrayContaining(['c1', 'c2']),
         passed: true,
         quality: 5,
         agentQuality: 4,
         questionType: 'analyze_create',
-        attempt: 1,
+        attemptNumber: 1,
         mode: 'assessment',
       });
 

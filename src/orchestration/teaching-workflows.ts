@@ -1255,13 +1255,13 @@ async function submitAnswerForAssessmentQuestion(
   logEvent('submitAnswer', 'answer_recorded', {
     sessionId: session.id,
     sessionQuestionId,
-    questionChunkIds,
+    questionChunkIds: [...questionChunkIds].sort(),
     passed,
     quality,
     agentQuality: input.quality,
     questionType: input.questionType,
     timeSpentMs: input.timeSpentMs,
-    attempt: 1,
+    attemptNumber: 1,
     mode: 'assessment',
   });
 
@@ -1296,7 +1296,7 @@ async function submitAnswerForAssessmentQuestion(
     }
   });
 
-  // Align with teaching mode: surface SR persistence failures
+  // Assessment mode fails explicitly; teaching mode logs and continues
   const srFailures = reviewResults.filter(r => !r.success);
   if (srFailures.length > 0) {
     return {
