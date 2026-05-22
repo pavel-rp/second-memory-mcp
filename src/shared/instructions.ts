@@ -37,7 +37,7 @@ ASSESSMENT FLOW (cross-chunk topic evaluation)
 WHEN TO USE ASSESSMENT MODE
 Only create an assessment session (mode: "assessment") when one of these triggers applies:
 - The learner explicitly asks to be evaluated ("quiz me", "test me on X", "give me an exam").
-- All chunks in a topic have been completed at least once AND no formal assessment has been recorded recently.
+- All chunks in a topic have been taught at least once and you judge a formal cross-chunk evaluation would benefit the learner.
 - The calling application decides to run a formal evaluation at the end of a learning module.
 Do NOT use assessment mode for routine teaching, probing prior knowledge, or scaffolding — those use learning/retrieval sessions and conversational probing.
 
@@ -77,6 +77,6 @@ export const WORKFLOW_SUMMARY =
   "topic's due_chunk_ids \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. Quick-start " +
   '(skips topic selection): start_learning (auto-picks most urgent). CONTENT: search_learning_content ' +
   '\u2192 create_topic_with_chunks \u2192 create_session(learning) \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT: create_session(assessment) \u2192 create_session_questions ' +
-  '\u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT TRIGGERS: learner explicitly asks to be evaluated, all chunks completed with no recent assessment, or app-driven end-of-module evaluation. ' +
+  '\u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT TRIGGERS: learner explicitly asks to be evaluated, all chunks taught and cross-chunk evaluation would benefit, or app-driven end-of-module evaluation. ' +
   'Always search for existing content before creating. Absence from DB does not ' +
   'mean ignorance \u2014 probe the learner first.';
