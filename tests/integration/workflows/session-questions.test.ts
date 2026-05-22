@@ -755,6 +755,110 @@ describe('session question workflows', () => {
     expect(sq2.chunk_ids.sort()).toEqual(['c2', 'c3']);
   });
 
+  it('assessment complete returns question-centric summary with per_question and weak_chunks', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2', 'c3'], now);
+
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2', 'c3'],
+      mode: 'assessment',
+    });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    // Create 2 cross-chunk questions:
+    // Q1 maps to all 3 chunks (will pass)
+    // Q2 maps to c2 + c3 (will fail)
+    const createResult = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [
+        { promptText: 'Q1: explain all concepts', chunkIds: ['c1', 'c2', 'c3'] },
+        { promptText: 'Q2: compare two patterns', chunkIds: ['c2', 'c3'] },
+      ],
+    });
+    expect(createResult.action).toBe('created');
+    if (createResult.action !== 'created') throw new Error('Expected created');
+    const [q1Id, q2Id] = createResult.questionIds;
+
+    // teach_next returns Q1
+    const step1 = await ctx.getNextTeachingStep();
+    expect(step1.action).toBe('teach');
+
+    // Submit pass for Q1
+    await ctx.submitAnswer({
+      sessionQuestionId: q1Id,
+      response: 'Good answer covering all concepts',
+      quality: 5,
+      questionType: 'explain_apply',
+      feedback: 'Excellent coverage',
+      timeSpentMs: 10000,
+    });
+
+    // teach_next returns Q2
+    const step2 = await ctx.getNextTeachingStep();
+    expect(step2.action).toBe('teach');
+
+    // Submit fail for Q2
+    await ctx.submitAnswer({
+      sessionQuestionId: q2Id,
+      response: 'Incomplete comparison',
+      quality: 2,
+      questionType: 'analyze_create',
+      feedback: 'Missing key differences',
+      timeSpentMs: 8000,
+    });
+
+    // teach_next should now return assessment complete
+    const complete = await ctx.getNextTeachingStep();
+    expect(complete.action).toBe('complete');
+    if (complete.action !== 'complete') throw new Error('Expected complete');
+
+    const summary = complete.summary as {
+      total_questions: number;
+      passed: number;
+      failed: number;
+      pass_rate: number;
+      average_quality: number;
+      per_question: Array<{
+        question_id: string;
+        prompt_text: string;
+        chunk_ids: string[];
+        passed: boolean;
+        quality: number | null;
+        question_type: string | null;
+        time_spent_ms: number;
+      }>;
+      weak_chunks: string[];
+    };
+
+    expect(summary.total_questions).toBe(2);
+    expect(summary.passed).toBe(1);
+    expect(summary.failed).toBe(1);
+    expect(summary.pass_rate).toBe(0.5);
+    // quality is SR-overridden: pass→5, fail→1 (agent quality preserved in agent_quality)
+    expect(summary.average_quality).toBe(3);
+
+    // per_question has both entries
+    expect(summary.per_question).toHaveLength(2);
+    const pq1 = summary.per_question.find(pq => pq.prompt_text === 'Q1: explain all concepts')!;
+    expect(pq1.passed).toBe(true);
+    expect(pq1.quality).toBe(5);
+    expect(pq1.question_type).toBe('explain_apply');
+    expect(pq1.time_spent_ms).toBe(10000);
+    expect(pq1.chunk_ids.sort()).toEqual(['c1', 'c2', 'c3']);
+
+    const pq2 = summary.per_question.find(pq => pq.prompt_text === 'Q2: compare two patterns')!;
+    expect(pq2.passed).toBe(false);
+    expect(pq2.quality).toBe(1); // SR-overridden: fail→1
+    expect(pq2.question_type).toBe('analyze_create');
+    expect(pq2.time_spent_ms).toBe(8000);
+    expect(pq2.chunk_ids.sort()).toEqual(['c2', 'c3']);
+
+    // weak_chunks contains exactly the chunks mapped to the failing question
+    expect(summary.weak_chunks.sort()).toEqual(['c2', 'c3']);
+  });
+
   it('get_active_session omits session_questions for assessment session with no questions', async () => {
     const now = Date.now();
     await seedTopicAndChunks('t1', ['c1'], now);
