@@ -123,7 +123,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'When action is "recorded", check for roadblock_forecast — if present, follow-up questions are required before progression. ' +
         'Consider calling add_note if something notable happened: ' +
         'insight (mental models, analogies), confusion (misconceptions corrected), ' +
-        'connection (links to other topics), deeper_exploration (beyond stored content). ' +
+        'connection (links to other topics), deeper_exploration (beyond stored content), gap (confirmed knowledge gaps). ' +
         'Then call teach_next to get the next action.',
       inputSchema: SubmitAnswerInputShape,
     },

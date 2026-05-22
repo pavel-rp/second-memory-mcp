@@ -52,6 +52,32 @@ describe('notes-tools', () => {
       );
     });
 
+    it('accepts gap note type', async () => {
+      ctx.createNote = vi
+        .fn()
+        .mockResolvedValue({ id: 'note-gap', createdAt: '2023-11-14T22:13:20.000Z' });
+      registerNotesTools(server as any, ctx);
+      const handler = server.tools.get('add_note')!.handler;
+
+      const result = await handler({
+        target_type: 'chunk',
+        target_id: 'chunk-1',
+        note_type: 'gap',
+        content: 'Learner lacks binary search knowledge',
+        author: 'agent',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.id).toBe('note-gap');
+      expect(ctx.createNote).toHaveBeenCalledWith(
+        expect.objectContaining({
+          noteType: 'gap',
+        })
+      );
+    });
+
     it('returns validation error for invalid target_type', async () => {
       registerNotesTools(server as any, ctx);
       const handler = server.tools.get('add_note')!.handler;

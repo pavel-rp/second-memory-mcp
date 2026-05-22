@@ -44,6 +44,33 @@ describe('Integration: notes tools', () => {
     expect(parsed.data.created_at).toEqual(expect.any(String));
   });
 
+  it('add_note creates a gap note and round-trips via list_notes', async () => {
+    const createResult = await addNote.handler({
+      target_type: 'chunk',
+      target_id: 'chunk-gap',
+      note_type: 'gap',
+      content: 'Learner lacks binary search knowledge',
+      author: 'agent',
+      context_token: 'ctx-test',
+    });
+
+    const createParsed = parseToolResult(createResult);
+    expect(createParsed.status).toBe('ok');
+    expect(createParsed.data.id).toEqual(expect.any(String));
+
+    const listResult = await listNotes.handler({
+      target_type: 'chunk',
+      target_id: 'chunk-gap',
+      context_token: 'ctx-test',
+    });
+
+    const listParsed = parseToolResult(listResult);
+    expect(listParsed.status).toBe('ok');
+    expect(listParsed.data.notes).toHaveLength(1);
+    expect(listParsed.data.notes[0].note_type).toBe('gap');
+    expect(listParsed.data.notes[0].content).toBe('Learner lacks binary search knowledge');
+  });
+
   it('add_note rejects invalid target_type', async () => {
     const result = await addNote.handler({
       target_type: 'invalid',
