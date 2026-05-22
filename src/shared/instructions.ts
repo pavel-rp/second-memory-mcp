@@ -34,8 +34,15 @@ ASSESSMENT FLOW (cross-chunk topic evaluation)
 5. Repeat steps 3-4 until teach_next returns data.action "complete".
 6. Call complete_session with session_id and optional feedback.
 
-ASSESSMENT-FIRST SCAFFOLDING
-Before creating a topic: search existing content, then assess the learner — absence from DB does not mean ignorance. Create only for confirmed gaps.
+WHEN TO USE ASSESSMENT MODE
+Only create an assessment session (mode: "assessment") when one of these triggers applies:
+- The learner explicitly asks to be evaluated ("quiz me", "test me on X", "give me an exam").
+- All chunks in a topic have been taught at least once and you judge a formal cross-chunk evaluation would benefit the learner.
+- The calling application decides to run a formal evaluation at the end of a learning module.
+Do NOT use assessment mode for routine teaching, probing prior knowledge, or scaffolding — those use learning/retrieval sessions and conversational probing.
+
+PROBE-FIRST SCAFFOLDING
+Before creating a topic: search existing content, then probe the learner — absence from DB does not mean ignorance. Create only for confirmed gaps.
 
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
@@ -47,7 +54,7 @@ OPERATIONAL CONSTRAINTS
 - Never skip drills; the server decides when a chunk is mastered.
 - Do not manually hydrate prompt templates; call prompts through the MCP protocol.
 - The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
-- The response field in submit_answer must be the learner's exact words — never paraphrase, sanitize, or censor. Use feedback for your assessment.
+- The response field in submit_answer must be the learner's exact words — never paraphrase, sanitize, or censor. Use feedback for your evaluation.
 
 TEACHING CONTENT INTEGRITY
 All content items provided by the server must be presented to the learner before they are referenced in any question.
@@ -59,7 +66,7 @@ You are responsible for asking high-quality questions using the three-level taxo
 - Level 1 (Recall): "What is...?" / "List the steps..." — factual retrieval
 - Level 2 (Explain/Apply): "In your own words, why...?" / "Given this scenario..." — understanding and transfer
 - Level 3 (Analyze/Create): "What would break if...?" / "Design a solution..." — synthesis and evaluation
-Use the quality rubric (0–5) with scaffolding ceilings to assess answers fairly. If you provided hints, cap quality at the ceiling (1 hint → max 3, 2+ hints → max 2). Target quality 3–4 as the healthy range.`;
+Use the quality rubric (0–5) with scaffolding ceilings to evaluate answers fairly. If you provided hints, cap quality at the ceiling (1 hint → max 3, 2+ hints → max 2). Target quality 3–4 as the healthy range.`;
 
 /**
  * Compressed workflow summary for init_agent_context.
@@ -70,5 +77,6 @@ export const WORKFLOW_SUMMARY =
   "topic's due_chunk_ids \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. Quick-start " +
   '(skips topic selection): start_learning (auto-picks most urgent). CONTENT: search_learning_content ' +
   '\u2192 create_topic_with_chunks \u2192 create_session(learning) \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT: create_session(assessment) \u2192 create_session_questions ' +
-  '\u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. Always search for existing content before creating. Absence from DB does not ' +
-  'mean ignorance \u2014 assess the learner first.';
+  '\u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT TRIGGERS: learner explicitly asks to be evaluated, all chunks taught and cross-chunk evaluation would benefit, or app-driven end-of-module evaluation. ' +
+  'Always search for existing content before creating. Absence from DB does not ' +
+  'mean ignorance \u2014 probe the learner first.';

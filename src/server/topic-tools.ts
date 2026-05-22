@@ -51,7 +51,7 @@ export function registerTopicTools(server: McpServer, ctx: AppContext): void {
         'CONDENSED_SUMMARY FIELD: A 2–4 sentence distillation used for quick refreshers when the ' +
         'learner\'s memory is fading but not gone. Think "the TL;DR a student writes on a sticky note." ' +
         'Always call search_learning_content first to check for existing coverage. Absence from the ' +
-        'database does not mean the learner lacks the knowledge — assess the learner before creating.',
+        'database does not mean the learner lacks the knowledge — probe the learner before creating.',
       inputSchema: CreateTopicWithChunksInputShape,
     },
     async (rawInput: unknown) =>
