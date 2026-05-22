@@ -12,6 +12,7 @@ import { registerNotesTools } from './notes-tools.js';
 import { registerServerInfoTools } from './server-info-tools.js';
 import { registerServerWorkflowTools } from './server-workflow-tools.js';
 import { registerServerContextTools } from './server-context-tools.js';
+import { registerRemediationTools } from './remediation-tools.js';
 
 export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerSpacedRepetitionTools(server, ctx);
@@ -26,4 +27,5 @@ export function registerServerTools(server: McpServer, ctx: AppContext): void {
   registerServerInfoTools(server);
   registerServerWorkflowTools(server);
   registerServerContextTools(server, ctx);
+  registerRemediationTools(server, ctx);
 }

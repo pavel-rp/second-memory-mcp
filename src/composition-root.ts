@@ -86,6 +86,7 @@ import * as analyticsWorkflows from './orchestration/analytics-workflows.js';
 import * as teachingWorkflows from './orchestration/teaching-workflows.js';
 import * as notesWorkflows from './orchestration/notes-workflows.js';
 import * as learnerContextWorkflows from './orchestration/learner-context-workflows.js';
+import * as remediationWorkflows from './orchestration/remediation-workflows.js';
 
 import { mapChunkRowToLearningItem } from './shared/chunk-mapping.js';
 import {
@@ -112,6 +113,7 @@ import type {
 import type { SessionStatus } from './domain/types/session.js';
 import type { DailyKpis, AnalyticsOutput } from './domain/types/analytics.js';
 import type { LearnerContext } from './orchestration/learner-context-workflows.js';
+import type { RemediationPlan } from './domain/types/remediation.js';
 
 /** Ports — injectable for testing */
 export interface AppPorts {
@@ -296,6 +298,9 @@ export interface AppContext {
   getSessionStatus: (sessionData: SessionInput) => SessionStatus;
   validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
+
+  // Remediation orchestration
+  recommendRemediation: (sessionId: string) => Promise<ServiceResult<RemediationPlan>>;
 
   // Learner context orchestration
   buildLearnerContext: () => Promise<LearnerContext>;
@@ -483,6 +488,13 @@ export function createAppContext(
     notes: ports.notes,
   };
 
+  const remediationDeps: remediationWorkflows.RemediationDeps = {
+    sessions: ports.sessions,
+    chunks: ports.chunks,
+    notes: ports.notes,
+    algorithmConfig,
+  };
+
   const learnerContextDeps: learnerContextWorkflows.LearnerContextDeps = {
     chunks: ports.chunks,
     topics: ports.topics,
@@ -593,6 +605,10 @@ export function createAppContext(
     getSessionStatus: sessionData => getSessionStatus(sessionData, algorithmConfig, new Date()),
     validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
+
+    // Remediation orchestration
+    recommendRemediation: sessionId =>
+      remediationWorkflows.recommendRemediation(sessionId, remediationDeps, new Date()),
 
     // Learner context orchestration
     buildLearnerContext: () =>
