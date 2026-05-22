@@ -712,6 +712,8 @@ async function getNextAssessmentStep(
     instruction: nextQuestion.promptText,
     drill_format: 'open_ended',
     content_status: chunkMeta?.contentStatus ?? 'final',
+    session_question_id: nextQuestion.id,
+    assessment_chunk_ids: questionChunkIds,
   };
 }
 
@@ -768,6 +770,15 @@ export async function submitAnswer(
       action: 'error',
       message:
         'No active session. It may have auto-completed or not been created yet. Start a new session to continue.',
+    };
+  }
+
+  // 1b. Assessment mode does not support inline question creation
+  if (session.mode === 'assessment') {
+    return {
+      action: 'error',
+      message:
+        'Assessment mode requires session_question_id from teach_next. Do not use prompt_text + chunk_ids for assessment sessions.',
     };
   }
 

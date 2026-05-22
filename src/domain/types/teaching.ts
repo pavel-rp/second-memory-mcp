@@ -69,6 +69,9 @@ export type TeachNextTeach = {
   dominant_tier?: TeachingApproach;
   // NEU-592: delivery pacing directive
   pacing?: Pacing;
+  // NEU-715: assessment-mode fields — only populated when mode === 'assessment'
+  session_question_id?: string;
+  assessment_chunk_ids?: string[];
 };
 
 export type TeachNextComplete = {

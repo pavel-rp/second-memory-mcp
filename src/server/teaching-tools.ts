@@ -46,34 +46,50 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         try {
           const result = await ctx.getNextTeachingStep();
           if (result.action === 'teach') {
+            const workflowHint =
+              result.mode === 'assessment'
+                ? {
+                    action: 'USE_SESSION_QUESTION_ID',
+                    sessionId: result.session_id,
+                    chunkId: result.chunk_id,
+                    mode: result.mode,
+                    sessionQuestionId: result.session_question_id,
+                    instruction:
+                      'Present the question verbatim to the learner. Take a single answer. ' +
+                      'Call submit_answer({ session_question_id, response, quality, question_type, feedback, time_spent_ms }). ' +
+                      'No retries — one attempt per question.',
+                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id ?? ''}", response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                  }
+                : {
+                    action: 'USE_INLINE_SUBMIT',
+                    sessionId: result.session_id,
+                    chunkId: result.chunk_id,
+                    mode: result.mode,
+                    dominantTier: result.dominant_tier,
+                    instruction: [
+                      'Per-chunk probing algorithm:',
+                      result.teaching_approach === 'scaffold'
+                        ? 'Start with recognition questions (multiple choice/true-false). Escalate to open recall only after recognition succeeds. Stay at Level 1 (Recall) only.'
+                        : result.teaching_approach === 'reteach'
+                          ? 'Brief recall probe first. If weak, do compressed re-presentation then retrieval check. Stay at Level 1 (Recall) only.'
+                          : result.teaching_approach === 'cued_recall'
+                            ? 'Ask what they remember first. On failure, provide graduated hints (context → structure → partial answer). Stay at Recall and Explain/Apply levels.'
+                            : 'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). If correct → escalate one level if time permits → move to next chunk. If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
+                      result.teaching_approach === 'scaffold'
+                        ? 'Guardrails: min 1 recognition + 1 Recall question; max 5–7 attempts per chunk.'
+                        : result.teaching_approach === 'reteach'
+                          ? 'Guardrails: recall probe first, then re-presentation + retrieval check. Stay at Level 1 only; max 5–7 attempts per chunk.'
+                          : 'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
+                      'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
+                      'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
+                    ].join(' '),
+                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                  };
+
             return toolData(
               toSnakeCase({
                 ...result,
-                workflowHint: {
-                  action: 'USE_INLINE_SUBMIT',
-                  sessionId: result.session_id,
-                  chunkId: result.chunk_id,
-                  mode: result.mode,
-                  dominantTier: result.dominant_tier,
-                  instruction: [
-                    'Per-chunk probing algorithm:',
-                    result.teaching_approach === 'scaffold'
-                      ? 'Start with recognition questions (multiple choice/true-false). Escalate to open recall only after recognition succeeds. Stay at Level 1 (Recall) only.'
-                      : result.teaching_approach === 'reteach'
-                        ? 'Brief recall probe first. If weak, do compressed re-presentation then retrieval check. Stay at Level 1 (Recall) only.'
-                        : result.teaching_approach === 'cued_recall'
-                          ? 'Ask what they remember first. On failure, provide graduated hints (context → structure → partial answer). Stay at Recall and Explain/Apply levels.'
-                          : 'Ask a question at the current taxonomy level (Recall → Explain/Apply → Analyze/Create). If correct → escalate one level if time permits → move to next chunk. If wrong → give feedback → ask another question at the same level (max 3 attempts per level → move on).',
-                    result.teaching_approach === 'scaffold'
-                      ? 'Guardrails: min 1 recognition + 1 Recall question; max 5–7 attempts per chunk.'
-                      : result.teaching_approach === 'reteach'
-                        ? 'Guardrails: recall probe first, then re-presentation + retrieval check. Stay at Level 1 only; max 5–7 attempts per chunk.'
-                        : 'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
-                    'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
-                    'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
-                  ].join(' '),
-                  nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
-                },
+                workflowHint,
               })
             );
           }

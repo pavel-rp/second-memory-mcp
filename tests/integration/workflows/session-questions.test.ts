@@ -603,4 +603,155 @@ describe('session question workflows', () => {
       setEventLogger(null);
     }
   });
+
+  // ── NEU-715: fresh-agent assessment flow via teach_next → submit_answer ──
+
+  it('fresh agent completes assessment using only teach_next → submit_answer (no retained question IDs)', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2', 'c3'], now);
+
+    // 1. Create assessment session
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2', 'c3'],
+      mode: 'assessment',
+    });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    // 2. Create questions — immediately discard the returned questionIds
+    const createResult = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [
+        { promptText: 'How do A and B relate?', chunkIds: ['c1', 'c2'] },
+        { promptText: 'Compare B and C', chunkIds: ['c2', 'c3'] },
+      ],
+    });
+    expect(createResult.action).toBe('created');
+    // Deliberately NOT capturing questionIds — simulating a fresh agent
+
+    // 3. teach_next returns first question with session_question_id and assessment_chunk_ids
+    const step1 = await ctx.getNextTeachingStep();
+    expect(step1.action).toBe('teach');
+    if (step1.action !== 'teach') throw new Error('Expected teach');
+    expect(step1.mode).toBe('assessment');
+    expect(step1.instruction).toBe('How do A and B relate?');
+    expect(step1.session_question_id).toBeDefined();
+    expect(step1.assessment_chunk_ids).toBeDefined();
+    expect(step1.assessment_chunk_ids).toEqual(expect.arrayContaining(['c1', 'c2']));
+    expect(step1.assessment_chunk_ids).toHaveLength(2);
+
+    // 4. Submit answer using session_question_id from teach_next
+    const answer1 = await ctx.submitAnswer({
+      response: 'They relate through concept X',
+      quality: 4,
+      questionType: 'analyze_create',
+      feedback: 'Good analysis',
+      timeSpentMs: 7000,
+      sessionQuestionId: step1.session_question_id!,
+    });
+    expect(answer1.action).toBe('recorded');
+
+    // 5. teach_next returns second question
+    const step2 = await ctx.getNextTeachingStep();
+    expect(step2.action).toBe('teach');
+    if (step2.action !== 'teach') throw new Error('Expected teach');
+    expect(step2.instruction).toBe('Compare B and C');
+    expect(step2.session_question_id).toBeDefined();
+    expect(step2.assessment_chunk_ids).toEqual(expect.arrayContaining(['c2', 'c3']));
+
+    // 6. Submit second answer
+    const answer2 = await ctx.submitAnswer({
+      response: 'B focuses on X while C focuses on Y',
+      quality: 5,
+      questionType: 'analyze_create',
+      feedback: 'Excellent comparison',
+      timeSpentMs: 9000,
+      sessionQuestionId: step2.session_question_id!,
+    });
+    expect(answer2.action).toBe('recorded');
+
+    // 7. teach_next returns complete
+    const step3 = await ctx.getNextTeachingStep();
+    expect(step3.action).toBe('complete');
+
+    // 8. All chunks completed
+    const chunks = await ctx.getSessionChunks(sessionId);
+    for (const sc of chunks) {
+      expect(sc.status).toBe('completed');
+    }
+  });
+
+  it('inline submit_answer returns clear error for assessment sessions', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2'], now);
+
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2'],
+      mode: 'assessment',
+    });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    await ctx.createSessionQuestions({
+      sessionId,
+      questions: [{ promptText: 'Test Q', chunkIds: ['c1', 'c2'] }],
+    });
+
+    // Attempt inline submit_answer (prompt_text + chunk_ids form)
+    const result = await ctx.submitAnswer({
+      promptText: 'Test Q',
+      chunkIds: ['c1'],
+      response: 'Some answer',
+      quality: 3,
+      questionType: 'recall',
+      feedback: 'OK',
+      timeSpentMs: 2000,
+    });
+
+    expect(result.action).toBe('error');
+    if (result.action !== 'error') throw new Error('Expected error');
+    expect(result.message).toContain('session_question_id');
+  });
+
+  it('get_active_session exposes session_questions for assessment mode', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1', 'c2', 'c3'], now);
+
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1', 'c2', 'c3'],
+      mode: 'assessment',
+    });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    const createResult = await ctx.createSessionQuestions({
+      sessionId,
+      questions: [
+        { promptText: 'Q1', chunkIds: ['c1', 'c2'] },
+        { promptText: 'Q2', chunkIds: ['c2', 'c3'] },
+      ],
+    });
+    expect(createResult.action).toBe('created');
+
+    // Retrieve session via convertSessionToInput (same path as get_active_session)
+    const sessionInput = await ctx.convertSessionToInput(sessionId);
+    expect(sessionInput).not.toBeNull();
+    expect(sessionInput!.session_questions).toBeDefined();
+    expect(sessionInput!.session_questions).toHaveLength(2);
+
+    const sq1 = sessionInput!.session_questions![0]!;
+    expect(sq1.prompt_text).toBe('Q1');
+    expect(sq1.status).toBe('pending');
+    expect(sq1.question_index).toBe(1);
+    expect(sq1.chunk_ids.sort()).toEqual(['c1', 'c2']);
+    expect(sq1.id).toBeDefined();
+
+    const sq2 = sessionInput!.session_questions![1]!;
+    expect(sq2.prompt_text).toBe('Q2');
+    expect(sq2.question_index).toBe(2);
+    expect(sq2.chunk_ids.sort()).toEqual(['c2', 'c3']);
+  });
 });
