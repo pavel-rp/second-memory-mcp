@@ -13,7 +13,7 @@ import type {
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { generateRecommendations } from './recommendation-workflows.js';
-import { logEvent } from '../shared/logger.js';
+import { logEvent, getRequestLogger } from '../shared/logger.js';
 
 export type RemediationDeps = {
   sessions: SessionRepository;
@@ -210,6 +210,13 @@ async function writeGapNotes(
       return { chunkId, noteId: note.id } satisfies GapNoteWritten;
     })
   );
+
+  const rejected = settled.filter(r => r.status === 'rejected');
+  if (rejected.length > 0) {
+    getRequestLogger().warn(
+      `writeGapNotes: ${rejected.length} of ${settled.length} gap note writes failed`
+    );
+  }
 
   return settled
     .filter((r): r is PromiseFulfilledResult<GapNoteWritten> => r.status === 'fulfilled')

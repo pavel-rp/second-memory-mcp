@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { toCamelCaseKeys } from '../../shared/case-convert.js';
+import type { SessionMode } from './session.js';
 
 // ── Reason codes ───────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export type PrerequisiteChunk = {
 };
 
 export type RecommendedSession = {
-  mode: string;
+  mode: SessionMode;
   topicId: string | null;
   chunkIds: string[];
   estimatedDurationMinutes: number;
