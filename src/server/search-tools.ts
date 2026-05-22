@@ -23,7 +23,7 @@ export function registerSearchTools(server: McpServer, ctx: AppContext): void {
         'with the chunk IDs before proceeding. This enables tracking of historical feedback about what the ' +
         'learner found difficult in previous sessions. ' +
         'NOTE: A not-found result means "not tracked by Second Memory," not "the learner does not know this." ' +
-        'Always assess the learner before concluding there is a gap.',
+        'Always probe the learner before concluding there is a gap.',
       inputSchema: SearchLearningContentInputShape,
     },
     async (rawInput: unknown) =>

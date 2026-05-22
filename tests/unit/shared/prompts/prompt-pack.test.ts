@@ -482,20 +482,26 @@ describe('promptPack', () => {
     });
   });
 
-  describe('assessment-first scaffolding', () => {
-    it('SERVER_INSTRUCTIONS contains ASSESSMENT-FIRST SCAFFOLDING section', () => {
-      expect(SERVER_INSTRUCTIONS).toContain('ASSESSMENT-FIRST SCAFFOLDING');
+  describe('probe-first scaffolding', () => {
+    it('SERVER_INSTRUCTIONS contains PROBE-FIRST SCAFFOLDING section', () => {
+      expect(SERVER_INSTRUCTIONS).toContain('PROBE-FIRST SCAFFOLDING');
       expect(SERVER_INSTRUCTIONS).toContain('absence from DB does not mean ignorance');
       expect(SERVER_INSTRUCTIONS).toContain('confirmed gaps');
     });
 
-    it('scaffolding prompt includes search and assessment steps before chunk design', () => {
+    it('SERVER_INSTRUCTIONS contains assessment mode trigger conditions', () => {
+      expect(SERVER_INSTRUCTIONS).toContain('WHEN TO USE ASSESSMENT MODE');
+      expect(SERVER_INSTRUCTIONS).toContain('learner explicitly asks to be evaluated');
+      expect(SERVER_INSTRUCTIONS).toContain('Do NOT use assessment mode for routine teaching');
+    });
+
+    it('scaffolding prompt includes search and probe steps before chunk design', () => {
       const text = promptPack.getPrompt('scaffolding', { problem: 'Binary Trees' });
       expect(text).toContain('Before designing chunks:');
       expect(text).toContain('SEARCH EXISTING CONTENT');
       expect(text).toContain('search_learning_content');
-      expect(text).toContain('ASSESS PRIOR KNOWLEDGE');
-      expect(text).toContain('assess before assuming a gap');
+      expect(text).toContain('PROBE PRIOR KNOWLEDGE');
+      expect(text).toContain('probe before assuming a gap');
     });
 
     it('scaffolding prompt includes mastery-skip and content_status constraints', () => {
@@ -506,9 +512,9 @@ describe('promptPack', () => {
       expect(text).toContain('content_status');
     });
 
-    it('workflow guidance includes proactive assessment-first scaffolding flow', () => {
+    it('workflow guidance includes proactive probe-first scaffolding flow', () => {
       const text = promptPack.getPrompt('workflow_guidance');
-      expect(text).toContain('Assessment-First Scaffolding (Proactive Flow)');
+      expect(text).toContain('Probe-First Scaffolding (Proactive Flow)');
       expect(text).toContain('search_learning_content for each prerequisite');
       expect(text).toContain('prerequisite graph grows only where real gaps exist');
     });
@@ -545,7 +551,7 @@ describe('promptPack', () => {
       expect(text).toContain('5–7 total attempts');
     });
 
-    it('learning session prompt includes assessment step in creating new topics', () => {
+    it('learning session prompt includes probe step in creating new topics', () => {
       const text = promptPack.getPrompt('learning_session', {});
       expect(text).toContain('Creating New Topics');
       expect(text).toContain('absence from the DB does not mean the learner lacks knowledge');
