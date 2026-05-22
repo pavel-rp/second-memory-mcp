@@ -270,7 +270,7 @@ export const notes = pgTable(
     id: text('id').primaryKey().notNull(),
     targetType: text('target_type').notNull(), // 'chunk' | 'topic' | 'session'
     targetId: text('target_id').notNull(),
-    noteType: text('note_type').notNull(), // 'insight' | 'confusion' | 'connection' | 'deeper_exploration'
+    noteType: text('note_type').notNull(), // 'insight' | 'confusion' | 'connection' | 'deeper_exploration' | 'gap'
     content: text('content').notNull(),
     author: text('author').notNull(), // 'agent' | 'user'
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
@@ -282,7 +282,7 @@ export const notes = pgTable(
     check('chk_note_target_type', sql`${table.targetType} IN ('chunk', 'topic', 'session')`),
     check(
       'chk_note_type',
-      sql`${table.noteType} IN ('insight', 'confusion', 'connection', 'deeper_exploration')`
+      sql`${table.noteType} IN ('insight', 'confusion', 'connection', 'deeper_exploration', 'gap')`
     ),
     check('chk_note_author', sql`${table.author} IN ('agent', 'user')`),
   ]

@@ -7,7 +7,7 @@ import { toCamelCaseKeys } from '../../shared/case-convert.js';
 export const NoteTargetType = z.enum(['chunk', 'topic', 'session']);
 export type NoteTargetType = z.infer<typeof NoteTargetType>;
 
-export const NoteType = z.enum(['insight', 'confusion', 'connection', 'deeper_exploration']);
+export const NoteType = z.enum(['insight', 'confusion', 'connection', 'deeper_exploration', 'gap']);
 export type NoteType = z.infer<typeof NoteType>;
 
 export const NoteAuthor = z.enum(['agent', 'user']);
@@ -19,7 +19,7 @@ export const AddNoteInputShape = {
   target_type: NoteTargetType.describe('Type of entity to annotate: chunk, topic, or session'),
   target_id: z.string().min(1, 'Target ID cannot be empty').describe('ID of the target entity'),
   note_type: NoteType.describe(
-    'Classification of the note: insight, confusion, connection, or deeper_exploration'
+    'Classification of the note: insight, confusion, connection, deeper_exploration, or gap'
   ),
   content: z
     .string()

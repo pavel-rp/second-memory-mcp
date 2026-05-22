@@ -397,8 +397,7 @@ class PromptPack {
       '2) If the learner demonstrates understanding → not a real gap. Adjust your teaching approach instead',
       '3) If the learner cannot explain → confirmed gap:',
       '   - search_learning_content for the prerequisite',
-      // interim: using "confusion" note type until a dedicated "gap" type exists
-      '   - add_note({ note_type: "confusion", ... }) to record the gap',
+      '   - add_note({ note_type: "gap", ... }) to record the gap',
       '   - complete_session with feedback describing the gap',
       '   - Create the prerequisite topic with create_topic_with_chunks',
       '   - Teach the prerequisite, then return to the original topic',

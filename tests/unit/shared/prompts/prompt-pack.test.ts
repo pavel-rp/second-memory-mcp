@@ -517,7 +517,7 @@ describe('promptPack', () => {
       const text = promptPack.getPrompt('workflow_guidance');
       expect(text).toContain('Reactive Gap Detection');
       expect(text).toContain('probe to confirm the gap');
-      expect(text).toContain('note_type: "confusion"');
+      expect(text).toContain('note_type: "gap"');
       expect(text).toContain('complete_session with feedback describing the gap');
     });
 
