@@ -25,7 +25,10 @@ import type {
   ChunkWithTopicTitle,
   ChunkMinimalMetadata,
 } from '../../../src/ports/chunk-repository.js';
-import type { TeachNextComplete } from '../../../src/domain/types/teaching.js';
+import type {
+  TeachNextComplete,
+  TeachNextAssessmentComplete,
+} from '../../../src/domain/types/teaching.js';
 import type { HistoricalFeedback } from '../../../src/domain/types/session.js';
 import type { TopicRecommendationOutput } from '../../../src/domain/types/recommendations.js';
 import type { SessionQuestionRepository } from '../../../src/ports/session-question-repository.js';
@@ -1485,17 +1488,11 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect('total_questions' in result.summary).toBe(true);
-    const summary = result.summary as {
-      total_questions: number;
-      passed: number;
-      per_question: unknown[];
-      weak_chunks: string[];
-    };
-    expect(summary.total_questions).toBe(1);
-    expect(summary.passed).toBe(1);
-    expect(summary.per_question).toHaveLength(1);
-    expect(summary.weak_chunks).toEqual([]);
+    const complete = result as TeachNextAssessmentComplete;
+    expect(complete.summary.total_questions).toBe(1);
+    expect(complete.summary.passed).toBe(1);
+    expect(complete.summary.per_question).toHaveLength(1);
+    expect(complete.summary.weak_chunks).toEqual([]);
   });
 
   it('assessment mode falls back gracefully when question has no chunk mapping', async () => {
@@ -1578,16 +1575,11 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    const summary = result.summary as {
-      total_questions: number;
-      failed: number;
-      per_question: Array<{ chunk_ids: string[] }>;
-      weak_chunks: string[];
-    };
-    expect(summary.total_questions).toBe(1);
-    expect(summary.failed).toBe(1);
-    expect(summary.per_question[0]!.chunk_ids).toEqual([]);
-    expect(summary.weak_chunks).toEqual([]);
+    const complete = result as TeachNextAssessmentComplete;
+    expect(complete.summary.total_questions).toBe(1);
+    expect(complete.summary.failed).toBe(1);
+    expect(complete.summary.per_question[0]!.chunk_ids).toEqual([]);
+    expect(complete.summary.weak_chunks).toEqual([]);
   });
 
   // ── NEU-347: teach_next completes in-progress chunks ──────────

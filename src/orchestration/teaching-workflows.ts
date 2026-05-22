@@ -1442,10 +1442,7 @@ export function buildAssessmentCompleteResponse(
   const passedCount = perQuestion.filter(r => r.passed).length;
   const failedCount = totalQuestions - passedCount;
   const passRate = totalQuestions > 0 ? Math.round((passedCount / totalQuestions) * 100) / 100 : 0;
-  const averageQuality =
-    qualities.length > 0
-      ? Math.round((qualities.reduce((sum, q) => sum + q, 0) / qualities.length) * 100) / 100
-      : 0;
+  const averageQuality = aggregateQuestionQualities(qualities);
 
   return {
     action: 'complete',

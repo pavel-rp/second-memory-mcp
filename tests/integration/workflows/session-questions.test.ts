@@ -1,4 +1,5 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
+import type { TeachNextAssessmentComplete } from '../../../src/domain/types/teaching.js';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { DrizzleSessionRepository } from '../../../src/adapters/drizzle/session-repository.js';
 import { DrizzleSessionQuestionRepository } from '../../../src/adapters/drizzle/session-question-repository.js';
@@ -814,23 +815,8 @@ describe('session question workflows', () => {
     expect(complete.action).toBe('complete');
     if (complete.action !== 'complete') throw new Error('Expected complete');
 
-    const summary = complete.summary as {
-      total_questions: number;
-      passed: number;
-      failed: number;
-      pass_rate: number;
-      average_quality: number;
-      per_question: Array<{
-        question_id: string;
-        prompt_text: string;
-        chunk_ids: string[];
-        passed: boolean;
-        quality: number | null;
-        question_type: string | null;
-        time_spent_ms: number;
-      }>;
-      weak_chunks: string[];
-    };
+    const assessed = complete as TeachNextAssessmentComplete;
+    const summary = assessed.summary;
 
     expect(summary.total_questions).toBe(2);
     expect(summary.passed).toBe(1);
