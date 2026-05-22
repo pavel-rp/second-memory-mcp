@@ -722,4 +722,67 @@ describe('recommendRemediation', () => {
       expect(result.data.recommendedNextSession.chunkIds).toContain('new-c1');
     }
   });
+
+  it('skips failed chunk when batchFetchMinimal does not return its metadata', async () => {
+    const input = stubSessionInput();
+    // Return metadata for c1 and c3 but NOT c2 (the failed chunk)
+    const chunkMetas = [
+      stubChunkMeta({ id: 'c1', chunkType: 'review' }),
+      stubChunkMeta({ id: 'c3', chunkType: 'review' }),
+    ];
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(input),
+      },
+      chunks: {
+        batchFetchMinimal: vi.fn().mockResolvedValue(chunkMetas),
+        list: vi.fn().mockResolvedValue([]),
+        countByTopicIds: vi.fn().mockResolvedValue(new Map()),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // c2 was failed but had no metadata — skipped
+      expect(result.data.weakChunks).toHaveLength(0);
+      expect(result.data.recommendedNextSession.reasonCode).toBe('NEW_MATERIAL');
+    }
+  });
+
+  it('skips prerequisites that are already in the session', async () => {
+    // c2 is failed, has prerequisite c1 which IS in the session
+    const input = stubSessionInput();
+    const sessionChunkMetas = [
+      stubChunkMeta({ id: 'c1', chunkType: 'review' }),
+      stubChunkMeta({ id: 'c2', chunkType: 'review', prerequisitesJson: ['c1'] }),
+      stubChunkMeta({ id: 'c3', chunkType: 'review' }),
+    ];
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(input),
+      },
+      chunks: {
+        batchFetchMinimal: vi.fn().mockResolvedValue(sessionChunkMetas),
+      },
+      notes: {
+        createNote: vi.fn().mockResolvedValue({ id: 'note-1', createdAt: NOW.toISOString() }),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // c1 is a prereq of c2 but c1 is already in the session — should not appear in prerequisites
+      expect(result.data.prerequisiteChunksToRevisit).toHaveLength(0);
+      // batchFetchMinimal should only be called once (for session chunks, NOT for prereqs)
+      expect(deps.chunks.batchFetchMinimal).toHaveBeenCalledTimes(1);
+    }
+  });
 });
