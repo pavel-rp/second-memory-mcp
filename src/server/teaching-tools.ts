@@ -58,7 +58,7 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                       'Present the question verbatim to the learner. Take a single answer. ' +
                       'Call submit_answer({ session_question_id, response, quality, question_type, feedback, time_spent_ms }). ' +
                       'No retries — one attempt per question.',
-                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id ?? ''}", response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   }
                 : {
                     action: 'USE_INLINE_SUBMIT',

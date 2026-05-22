@@ -754,4 +754,22 @@ describe('session question workflows', () => {
     expect(sq2.question_index).toBe(2);
     expect(sq2.chunk_ids.sort()).toEqual(['c2', 'c3']);
   });
+
+  it('get_active_session omits session_questions for assessment session with no questions', async () => {
+    const now = Date.now();
+    await seedTopicAndChunks('t1', ['c1'], now);
+
+    const sessionResult = await ctx.createSession({
+      chunkIds: ['c1'],
+      mode: 'assessment',
+    });
+    expect(sessionResult.success).toBe(true);
+    if (!sessionResult.success) throw new Error('Failed to create session');
+    const sessionId = sessionResult.data.sessionId;
+
+    const sessionInput = await ctx.convertSessionToInput(sessionId);
+    expect(sessionInput).not.toBeNull();
+    expect(sessionInput!.mode).toBe('assessment');
+    expect(sessionInput!.session_questions).toBeUndefined();
+  });
 });
