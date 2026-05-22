@@ -27,6 +27,20 @@ export async function recommendRemediation(
   deps: RemediationDeps,
   now: Date
 ): Promise<ServiceResult<RemediationPlan>> {
+  try {
+    return await recommendRemediationImpl(sessionId, deps, now);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    getRequestLogger().error('recommendRemediation unexpected error:', error);
+    return serviceFail({ type: 'database', message: msg, retryable: true });
+  }
+}
+
+async function recommendRemediationImpl(
+  sessionId: string,
+  deps: RemediationDeps,
+  now: Date
+): Promise<ServiceResult<RemediationPlan>> {
   const session = await deps.sessions.getSessionById(sessionId);
   if (!session) {
     return serviceFail({ type: 'not_found', message: `Session not found: ${sessionId}` });
