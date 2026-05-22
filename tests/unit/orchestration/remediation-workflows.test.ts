@@ -645,4 +645,81 @@ describe('recommendRemediation', () => {
       expect(leechEntry!.leech).toBe(true);
     }
   });
+
+  it('returns not_found when convertSessionToSessionInput returns null', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(null),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('not_found');
+      expect(result.error.message).toContain('unavailable');
+    }
+  });
+
+  it('returns new-material recommendation with due chunks when clean pass', async () => {
+    const cleanInput = stubSessionInput({
+      chunks: [
+        {
+          chunk_id: 'c1',
+          session_chunk_id: 'sc1',
+          title: 'Chunk 1',
+          status: 'completed',
+          attempts: [
+            {
+              timestamp: '2026-05-22T11:05:00Z',
+              question: 'Q',
+              response: 'A',
+              passed: true,
+              feedback: 'Good',
+              quality: 5,
+              time_spent_ms: 20000,
+            },
+          ],
+          quality_scores: [5],
+          time_spent_ms: 20000,
+          estimated_duration: 10,
+        },
+      ],
+    });
+
+    const dueChunk = {
+      ...stubChunkMeta({
+        id: 'new-c1',
+        topicId: 'topic-2',
+        nextReviewAt: NOW.getTime() - 86400_000,
+        lastReviewedAt: null,
+      }),
+      topicTitle: 'New Topic',
+    };
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(cleanInput),
+      },
+      chunks: {
+        batchFetchMinimal: vi.fn().mockResolvedValue([stubChunkMeta()]),
+        list: vi.fn().mockResolvedValue([dueChunk]),
+        countByTopicIds: vi.fn().mockResolvedValue(new Map([['topic-2', 5]])),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.weakChunks).toHaveLength(0);
+      expect(result.data.recommendedNextSession.reasonCode).toBe('NEW_MATERIAL');
+      expect(result.data.recommendedNextSession.mode).toBe('learning');
+      expect(result.data.recommendedNextSession.topicId).toBe('topic-2');
+      expect(result.data.recommendedNextSession.chunkIds).toContain('new-c1');
+    }
+  });
 });
