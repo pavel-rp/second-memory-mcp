@@ -25,6 +25,10 @@ import type {
   ChunkWithTopicTitle,
   ChunkMinimalMetadata,
 } from '../../../src/ports/chunk-repository.js';
+import type {
+  TeachNextComplete,
+  TeachNextAssessmentComplete,
+} from '../../../src/domain/types/teaching.js';
 import type { HistoricalFeedback } from '../../../src/domain/types/session.js';
 import type { TopicRecommendationOutput } from '../../../src/domain/types/recommendations.js';
 import type { SessionQuestionRepository } from '../../../src/ports/session-question-repository.js';
@@ -468,9 +472,10 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.total).toBe(2);
-    expect(result.summary.passed_first_try).toBe(1);
-    expect(result.summary.needed_retry).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.total).toBe(2);
+    expect(complete.summary.passed_first_try).toBe(1);
+    expect(complete.summary.needed_retry).toBe(1);
   });
 
   // VC-06: Summary counts computed correctly
@@ -508,9 +513,10 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.total).toBe(3);
-    expect(result.summary.passed_first_try).toBe(2);
-    expect(result.summary.needed_retry).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.total).toBe(3);
+    expect(complete.summary.passed_first_try).toBe(2);
+    expect(complete.summary.needed_retry).toBe(1);
   });
 
   // Summary: exhausted_retries counted when no attempt passed
@@ -536,8 +542,9 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.passed_first_try).toBe(1);
-    expect(result.summary.exhausted_retries).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.passed_first_try).toBe(1);
+    expect(complete.summary.exhausted_retries).toBe(1);
   });
 
   // VC-07: Chunk not found in DB → error
@@ -818,9 +825,10 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.total).toBe(2);
-    expect(result.summary.passed_first_try).toBe(1);
-    expect(result.summary.needed_retry).toBe(0);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.total).toBe(2);
+    expect(complete.summary.passed_first_try).toBe(1);
+    expect(complete.summary.needed_retry).toBe(0);
   });
 
   // Branch: completed chunk where all attempts failed (no pass) — counts as exhausted
@@ -846,9 +854,10 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.passed_first_try).toBe(0);
-    expect(result.summary.needed_retry).toBe(0);
-    expect(result.summary.exhausted_retries).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.passed_first_try).toBe(0);
+    expect(complete.summary.needed_retry).toBe(0);
+    expect(complete.summary.exhausted_retries).toBe(1);
   });
 
   // Grind loop: exhausted_retries counted for force-completed chunks
@@ -873,9 +882,10 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.exhausted_retries).toBe(1);
-    expect(result.summary.passed_first_try).toBe(0);
-    expect(result.summary.needed_retry).toBe(0);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.exhausted_retries).toBe(1);
+    expect(complete.summary.passed_first_try).toBe(0);
+    expect(complete.summary.needed_retry).toBe(0);
   });
 
   // Grind loop: summary with mixed outcomes (passed, retried, exhausted)
@@ -917,10 +927,11 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.total).toBe(3);
-    expect(result.summary.passed_first_try).toBe(1);
-    expect(result.summary.needed_retry).toBe(1);
-    expect(result.summary.exhausted_retries).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.total).toBe(3);
+    expect(complete.summary.passed_first_try).toBe(1);
+    expect(complete.summary.needed_retry).toBe(1);
+    expect(complete.summary.exhausted_retries).toBe(1);
   });
 
   // Ordering: selects first pending by session.chunkIds order, not DB row order
@@ -996,7 +1007,8 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.passed_first_try).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.passed_first_try).toBe(1);
   });
 
   // Summary with mixed legacy + modern attempts (passed + retry)
@@ -1028,8 +1040,9 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.passed_first_try).toBe(1);
-    expect(result.summary.needed_retry).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.passed_first_try).toBe(1);
+    expect(complete.summary.needed_retry).toBe(1);
   });
 
   // Ordering: fallback sort by createdAt when session.chunkIds is null
@@ -1188,7 +1201,8 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.passed_first_try).toBe(0);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.passed_first_try).toBe(0);
   });
 
   // Attempt without passed field defaults to false in normalized data
@@ -1212,8 +1226,9 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.passed_first_try).toBe(0);
-    expect(result.summary.needed_retry).toBe(0);
+    const complete = result as TeachNextComplete;
+    expect(complete.summary.passed_first_try).toBe(0);
+    expect(complete.summary.needed_retry).toBe(0);
   });
 
   it('includes content_status in teach response', async () => {
@@ -1473,8 +1488,11 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.total).toBe(1);
-    expect(result.summary.passed_first_try).toBe(1);
+    const complete = result as TeachNextAssessmentComplete;
+    expect(complete.summary.total_questions).toBe(1);
+    expect(complete.summary.passed).toBe(1);
+    expect(complete.summary.per_question).toHaveLength(1);
+    expect(complete.summary.weak_chunks).toEqual([]);
   });
 
   it('assessment mode falls back gracefully when question has no chunk mapping', async () => {
@@ -1557,7 +1575,11 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.summary.exhausted_retries).toBe(0);
+    const complete = result as TeachNextAssessmentComplete;
+    expect(complete.summary.total_questions).toBe(1);
+    expect(complete.summary.failed).toBe(1);
+    expect(complete.summary.per_question[0]!.chunk_ids).toEqual([]);
+    expect(complete.summary.weak_chunks).toEqual([]);
   });
 
   // ── NEU-347: teach_next completes in-progress chunks ──────────
@@ -1818,9 +1840,10 @@ describe('getNextTeachingStep', () => {
 
     expect(result.action).toBe('complete');
     if (result.action !== 'complete') throw new Error('Expected complete');
-    expect(result.review_update).toBeDefined();
-    expect(result.review_update!.next_review_date).toBeDefined();
-    expect(result.summary.total).toBe(1);
+    const complete = result as TeachNextComplete;
+    expect(complete.review_update).toBeDefined();
+    expect(complete.review_update!.next_review_date).toBeDefined();
+    expect(complete.summary.total).toBe(1);
   });
 
   it('does not return review_update when no chunk was completed', async () => {

@@ -4,6 +4,7 @@ import {
   createSessionQuestions,
   aggregateQuestionQualities,
   buildCompleteResponse,
+  buildAssessmentCompleteResponse,
   type TeachingDeps,
 } from '../../../src/orchestration/teaching-workflows.js';
 import { SUBMIT_ANSWER_REFLECT_PROMPT } from '../../../src/shared/constants/prompts.js';
@@ -3020,5 +3021,158 @@ describe('buildCompleteResponse', () => {
     expect(result.summary.passed_first_try).toBe(1);
     expect(result.summary.needed_retry).toBe(1);
     expect(result.summary.exhausted_retries).toBe(0);
+  });
+});
+
+// ── NEU-717: buildAssessmentCompleteResponse ────────────────────
+
+describe('buildAssessmentCompleteResponse', () => {
+  it('returns correct counts for mixed pass/fail questions', () => {
+    const questions = [
+      makeQuestion({ id: 'sq-1', promptText: 'Q1' }),
+      makeQuestion({ id: 'sq-2', promptText: 'Q2' }),
+    ];
+    const attempts = [
+      makeQuestionAttempt({ sessionQuestionId: 'sq-1', passed: true, quality: 5 }),
+      makeQuestionAttempt({ id: 'sqa-2', sessionQuestionId: 'sq-2', passed: false, quality: 2 }),
+    ];
+    const chunkMapping = new Map([
+      ['sq-1', ['c1', 'c2']],
+      ['sq-2', ['c2', 'c3']],
+    ]);
+
+    const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
+
+    expect(result.action).toBe('complete');
+    expect(result.message).toBe('Assessment complete.');
+    expect(result.summary.total_questions).toBe(2);
+    expect(result.summary.passed).toBe(1);
+    expect(result.summary.failed).toBe(1);
+    expect(result.summary.pass_rate).toBe(0.5);
+    expect(result.summary.average_quality).toBe(3.5);
+  });
+
+  it('populates per_question with correct fields', () => {
+    const questions = [makeQuestion({ id: 'sq-1', promptText: 'Explain X' })];
+    const attempts = [
+      makeQuestionAttempt({
+        sessionQuestionId: 'sq-1',
+        passed: true,
+        quality: 4,
+        agentQuality: 3,
+        questionType: 'explain_apply',
+        timeSpentMs: 8000,
+      }),
+    ];
+    const chunkMapping = new Map([['sq-1', ['c1', 'c2']]]);
+
+    const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
+
+    expect(result.summary.per_question).toHaveLength(1);
+    const pq = result.summary.per_question[0]!;
+    expect(pq.question_id).toBe('sq-1');
+    expect(pq.prompt_text).toBe('Explain X');
+    expect(pq.chunk_ids).toEqual(['c1', 'c2']);
+    expect(pq.passed).toBe(true);
+    expect(pq.quality).toBe(4);
+    expect(pq.agent_quality).toBe(3);
+    expect(pq.question_type).toBe('explain_apply');
+    expect(pq.time_spent_ms).toBe(8000);
+  });
+
+  it('weak_chunks contains only chunk IDs from failing questions, deduplicated', () => {
+    const questions = [
+      makeQuestion({ id: 'sq-1', promptText: 'Q1' }),
+      makeQuestion({ id: 'sq-2', promptText: 'Q2' }),
+      makeQuestion({ id: 'sq-3', promptText: 'Q3' }),
+    ];
+    const attempts = [
+      makeQuestionAttempt({ sessionQuestionId: 'sq-1', passed: true, quality: 5 }),
+      makeQuestionAttempt({ id: 'sqa-2', sessionQuestionId: 'sq-2', passed: false, quality: 1 }),
+      makeQuestionAttempt({ id: 'sqa-3', sessionQuestionId: 'sq-3', passed: false, quality: 2 }),
+    ];
+    const chunkMapping = new Map([
+      ['sq-1', ['c1', 'c2']],
+      ['sq-2', ['c2', 'c3']],
+      ['sq-3', ['c3', 'c4']],
+    ]);
+
+    const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
+
+    expect(result.summary.weak_chunks).toHaveLength(3);
+    expect(new Set(result.summary.weak_chunks)).toEqual(new Set(['c2', 'c3', 'c4']));
+  });
+
+  it('returns empty arrays and zero counts for empty questions list', () => {
+    const result = buildAssessmentCompleteResponse([], [], new Map());
+
+    expect(result.summary.total_questions).toBe(0);
+    expect(result.summary.passed).toBe(0);
+    expect(result.summary.failed).toBe(0);
+    expect(result.summary.pass_rate).toBe(0);
+    expect(result.summary.average_quality).toBe(0);
+    expect(result.summary.per_question).toEqual([]);
+    expect(result.summary.weak_chunks).toEqual([]);
+  });
+
+  it('handles questions with no matching attempt', () => {
+    const questions = [makeQuestion({ id: 'sq-1', promptText: 'Q1' })];
+    const chunkMapping = new Map([['sq-1', ['c1']]]);
+
+    const result = buildAssessmentCompleteResponse(questions, [], chunkMapping);
+
+    expect(result.summary.total_questions).toBe(1);
+    expect(result.summary.passed).toBe(0);
+    expect(result.summary.failed).toBe(1);
+    expect(result.summary.per_question[0]!.passed).toBe(false);
+    expect(result.summary.per_question[0]!.quality).toBeNull();
+    expect(result.summary.per_question[0]!.time_spent_ms).toBe(0);
+    expect(result.summary.weak_chunks).toEqual(['c1']);
+  });
+
+  it('all-pass scenario returns 100% pass rate and no weak chunks', () => {
+    const questions = [makeQuestion({ id: 'sq-1' }), makeQuestion({ id: 'sq-2' })];
+    const attempts = [
+      makeQuestionAttempt({ sessionQuestionId: 'sq-1', passed: true, quality: 5 }),
+      makeQuestionAttempt({ id: 'sqa-2', sessionQuestionId: 'sq-2', passed: true, quality: 4 }),
+    ];
+    const chunkMapping = new Map([
+      ['sq-1', ['c1']],
+      ['sq-2', ['c2']],
+    ]);
+
+    const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
+
+    expect(result.summary.pass_rate).toBe(1);
+    expect(result.summary.weak_chunks).toEqual([]);
+    expect(result.summary.average_quality).toBe(4.5);
+  });
+
+  it('averages quality only from attempts with non-null quality', () => {
+    const questions = [makeQuestion({ id: 'sq-1' }), makeQuestion({ id: 'sq-2' })];
+    const attempts = [
+      makeQuestionAttempt({ sessionQuestionId: 'sq-1', passed: true, quality: 4 }),
+      makeQuestionAttempt({ id: 'sqa-2', sessionQuestionId: 'sq-2', passed: true, quality: null }),
+    ];
+    const chunkMapping = new Map([
+      ['sq-1', ['c1']],
+      ['sq-2', ['c2']],
+    ]);
+
+    const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
+
+    expect(result.summary.average_quality).toBe(4);
+  });
+
+  it('cross-chunk failing question adds all mapped chunk IDs to weak_chunks', () => {
+    const questions = [makeQuestion({ id: 'sq-1' })];
+    const attempts = [
+      makeQuestionAttempt({ sessionQuestionId: 'sq-1', passed: false, quality: 1 }),
+    ];
+    const chunkMapping = new Map([['sq-1', ['c1', 'c2', 'c3']]]);
+
+    const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
+
+    expect(result.summary.weak_chunks).toEqual(['c1', 'c2', 'c3']);
   });
 });

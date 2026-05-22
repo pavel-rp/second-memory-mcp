@@ -86,6 +86,32 @@ export type TeachNextComplete = {
   review_update?: ReviewUpdate; // SR result from completing the last chunk
 };
 
+export type AssessmentQuestionResult = {
+  question_id: string;
+  prompt_text: string;
+  chunk_ids: string[];
+  passed: boolean;
+  quality: number | null;
+  agent_quality: number | null;
+  question_type: QuestionType | null;
+  time_spent_ms: number;
+};
+
+export type TeachNextAssessmentComplete = {
+  action: 'complete';
+  message: string;
+  summary: {
+    total_questions: number;
+    passed: number;
+    failed: number;
+    pass_rate: number;
+    average_quality: number;
+    per_question: AssessmentQuestionResult[];
+    weak_chunks: string[];
+  };
+  review_update?: ReviewUpdate;
+};
+
 export type TeachNextBlocked = {
   action: 'blocked';
   message: string;
@@ -116,6 +142,7 @@ export type TeachNextRoadblock = {
 export type TeachNextResponse =
   | TeachNextTeach
   | TeachNextComplete
+  | TeachNextAssessmentComplete
   | TeachNextBlocked
   | TeachNextRoadblock
   | TeachNextError;

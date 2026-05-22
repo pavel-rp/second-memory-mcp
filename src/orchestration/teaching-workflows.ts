@@ -10,6 +10,8 @@ import type { SessionMode } from '../domain/types/session.js';
 import type {
   TeachNextResponse,
   TeachNextComplete,
+  TeachNextAssessmentComplete,
+  AssessmentQuestionResult,
   PrerequisiteContextItem,
   ReviewUpdate,
   SubmitAnswerInput,
@@ -669,24 +671,7 @@ async function getNextAssessmentStep(
   const nextQuestion = sorted.find(q => q.status === 'pending');
 
   if (!nextQuestion) {
-    // All questions answered — build complete response
-    const questionsByChunkId = new Map<string, SessionQuestion[]>();
-    for (const q of allQuestions) {
-      for (const cid of mapGetList(chunkMapping, q.id)) {
-        const list = mapGetList(questionsByChunkId, cid);
-        list.push(q);
-        questionsByChunkId.set(cid, list);
-      }
-    }
-
-    const attemptsByQuestion = new Map<string, SessionQuestionAttempt[]>();
-    for (const a of allAttempts) {
-      const list = mapGetList(attemptsByQuestion, a.sessionQuestionId);
-      list.push(a);
-      attemptsByQuestion.set(a.sessionQuestionId, list);
-    }
-
-    return buildCompleteResponse(sessionChunks, questionsByChunkId, attemptsByQuestion);
+    return buildAssessmentCompleteResponse(allQuestions, allAttempts, chunkMapping);
   }
 
   // Use pre-fetched chunk mapping for this question
@@ -1406,6 +1391,70 @@ export function buildCompleteResponse(
       passed_first_try: passedFirstTry,
       needed_retry: neededRetry,
       exhausted_retries: exhaustedRetries,
+    },
+  };
+}
+
+export function buildAssessmentCompleteResponse(
+  allQuestions: SessionQuestion[],
+  allAttempts: SessionQuestionAttempt[],
+  chunkMapping: Map<string, string[]>
+): TeachNextAssessmentComplete {
+  const attemptByQuestion = new Map<string, SessionQuestionAttempt>();
+  for (const a of allAttempts) {
+    if (!attemptByQuestion.has(a.sessionQuestionId)) {
+      attemptByQuestion.set(a.sessionQuestionId, a);
+    }
+  }
+
+  const perQuestion: AssessmentQuestionResult[] = [];
+  const weakChunkSet = new Set<string>();
+  const qualities: number[] = [];
+
+  for (const q of allQuestions) {
+    const attempt = attemptByQuestion.get(q.id);
+    const chunkIds = chunkMapping.get(q.id) ?? [];
+    const passed = attempt?.passed ?? false;
+
+    if (attempt?.quality != null) {
+      qualities.push(attempt.quality);
+    }
+
+    if (!passed) {
+      for (const cid of chunkIds) {
+        weakChunkSet.add(cid);
+      }
+    }
+
+    perQuestion.push({
+      question_id: q.id,
+      prompt_text: q.promptText,
+      chunk_ids: [...chunkIds].sort(),
+      passed,
+      quality: attempt?.quality ?? null,
+      agent_quality: attempt?.agentQuality ?? null,
+      question_type: attempt?.questionType ?? null,
+      time_spent_ms: attempt?.timeSpentMs ?? 0,
+    });
+  }
+
+  const totalQuestions = allQuestions.length;
+  const passedCount = perQuestion.filter(r => r.passed).length;
+  const failedCount = totalQuestions - passedCount;
+  const passRate = totalQuestions > 0 ? Math.round((passedCount / totalQuestions) * 100) / 100 : 0;
+  const averageQuality = aggregateQuestionQualities(qualities);
+
+  return {
+    action: 'complete',
+    message: 'Assessment complete.',
+    summary: {
+      total_questions: totalQuestions,
+      passed: passedCount,
+      failed: failedCount,
+      pass_rate: passRate,
+      average_quality: averageQuality,
+      per_question: perQuestion,
+      weak_chunks: [...weakChunkSet].sort(),
     },
   };
 }
