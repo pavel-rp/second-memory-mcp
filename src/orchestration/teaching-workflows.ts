@@ -1429,7 +1429,7 @@ export function buildAssessmentCompleteResponse(
     perQuestion.push({
       question_id: q.id,
       prompt_text: q.promptText,
-      chunk_ids: chunkIds,
+      chunk_ids: [...chunkIds].sort(),
       passed,
       quality: attempt?.quality ?? null,
       agent_quality: attempt?.agentQuality ?? null,
@@ -1441,9 +1441,11 @@ export function buildAssessmentCompleteResponse(
   const totalQuestions = allQuestions.length;
   const passedCount = perQuestion.filter(r => r.passed).length;
   const failedCount = totalQuestions - passedCount;
-  const passRate = totalQuestions > 0 ? passedCount / totalQuestions : 0;
+  const passRate = totalQuestions > 0 ? Math.round((passedCount / totalQuestions) * 100) / 100 : 0;
   const averageQuality =
-    qualities.length > 0 ? qualities.reduce((sum, q) => sum + q, 0) / qualities.length : 0;
+    qualities.length > 0
+      ? Math.round((qualities.reduce((sum, q) => sum + q, 0) / qualities.length) * 100) / 100
+      : 0;
 
   return {
     action: 'complete',
@@ -1455,7 +1457,7 @@ export function buildAssessmentCompleteResponse(
       pass_rate: passRate,
       average_quality: averageQuality,
       per_question: perQuestion,
-      weak_chunks: [...weakChunkSet],
+      weak_chunks: [...weakChunkSet].sort(),
     },
   };
 }
