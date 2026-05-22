@@ -184,6 +184,41 @@ describe('teaching-tools', () => {
     expect(parsed.data.workflow_hint.instruction).toContain('Level 1 only');
   });
 
+  it('teach_next workflow_hint uses assessment-specific hint when mode is assessment', async () => {
+    const teachResult = {
+      action: 'teach',
+      session_id: 'sess-1',
+      chunk_id: 'c1',
+      session_chunk_id: 'sc-1',
+      chunk_index: 1,
+      total_chunks: 2,
+      mode: 'assessment',
+      instruction: 'What is the relationship between A and B?',
+      drill_format: 'open_ended',
+      content_status: 'final',
+      session_question_id: 'sq-42',
+      assessment_chunk_ids: ['c1', 'c2'],
+    };
+    ctx.getNextTeachingStep = vi.fn().mockResolvedValue(teachResult);
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('teach_next')!.handler;
+
+    const result = await handler({});
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.workflow_hint).toBeDefined();
+    expect(parsed.data.workflow_hint.action).toBe('USE_SESSION_QUESTION_ID');
+    expect(parsed.data.workflow_hint.mode).toBe('assessment');
+    expect(parsed.data.workflow_hint.session_question_id).toBe('sq-42');
+    expect(parsed.data.workflow_hint.instruction).toContain('verbatim');
+    expect(parsed.data.workflow_hint.instruction).toContain('No retries');
+    expect(parsed.data.workflow_hint.next_step).toContain('session_question_id');
+    expect(parsed.data.workflow_hint.next_step).toContain('sq-42');
+    expect(parsed.data.session_question_id).toBe('sq-42');
+    expect(parsed.data.assessment_chunk_ids).toEqual(['c1', 'c2']);
+  });
+
   it('teach_next omits workflow_hint on blocked action', async () => {
     const blockedResult = {
       action: 'blocked',

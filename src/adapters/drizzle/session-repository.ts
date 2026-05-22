@@ -323,7 +323,7 @@ export class DrizzleSessionRepository implements SessionRepository {
         (q): SessionQuestionSummary => ({
           id: q.id,
           prompt_text: q.promptText,
-          status: q.status as 'pending' | 'answered',
+          status: q.status as 'pending' | 'answered' | 'skipped',
           question_index: q.questionIndex,
           chunk_ids: chunkIdsByQuestion.get(q.id) ?? [],
         })

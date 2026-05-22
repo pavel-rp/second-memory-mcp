@@ -48,7 +48,7 @@ export type HistoricalFeedback = {
 export type SessionQuestionSummary = {
   id: string;
   prompt_text: string;
-  status: 'pending' | 'answered';
+  status: 'pending' | 'answered' | 'skipped';
   question_index: number;
   chunk_ids: string[];
 };
