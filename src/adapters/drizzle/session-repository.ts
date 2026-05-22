@@ -24,6 +24,7 @@ import type {
 } from '../../ports/session-repository.js';
 import type {
   SessionInput,
+  SessionQuestionSummary,
   HistoricalFeedback,
   BatchOperation,
   ChunkAttempt,
@@ -309,13 +310,27 @@ export class DrizzleSessionRepository implements SessionRepository {
       });
     }
 
-    return {
+    const result: SessionInput = {
       session_id: session.id,
       mode: session.mode as SessionInput['mode'],
       start_time: toIsoTimestamp(session.startTime),
       chunks,
       historical_feedback,
     };
+
+    if (session.mode === 'assessment' && questionRows.length > 0) {
+      result.session_questions = questionRows.map(
+        (q): SessionQuestionSummary => ({
+          id: q.id,
+          prompt_text: q.promptText,
+          status: q.status as 'pending' | 'answered' | 'skipped',
+          question_index: q.questionIndex,
+          chunk_ids: chunkIdsByQuestion.get(q.id) as string[],
+        })
+      );
+    }
+
+    return result;
   }
 
   async getHistoricalFeedbackForChunks(

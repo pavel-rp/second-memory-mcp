@@ -44,6 +44,15 @@ export type HistoricalFeedback = {
   chunk_ids: string[]; // which chunks this feedback relates to
 };
 
+// Assessment session question summary (exposed in get_session / get_active_session)
+export type SessionQuestionSummary = {
+  id: string;
+  prompt_text: string;
+  status: 'pending' | 'answered' | 'skipped';
+  question_index: number;
+  chunk_ids: string[];
+};
+
 // Main session input data
 export type SessionInput = {
   session_id: string;
@@ -54,6 +63,7 @@ export type SessionInput = {
   context?: Record<string, unknown>; // optional session metadata
   feedback?: string; // current session feedback (if completed)
   historical_feedback?: HistoricalFeedback[]; // feedback from past sessions on same chunks
+  session_questions?: SessionQuestionSummary[]; // assessment-mode only
 };
 
 // Session progress output
