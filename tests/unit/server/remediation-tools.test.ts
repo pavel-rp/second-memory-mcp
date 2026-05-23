@@ -84,6 +84,27 @@ describe('remediation-tools', () => {
       expect(parsed.error.type).toBe('not_found');
     });
 
+    it('defaults retryable to false when error omits it', async () => {
+      ctx.recommendRemediation = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'validation',
+          message: 'Session is not completed',
+        },
+      });
+      registerRemediationTools(server as any, ctx);
+      const handler = server.tools.get('recommend_remediation')!.handler;
+
+      const result = await handler({
+        session_id: 'sess-1',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.retryable).toBe(false);
+    });
+
     it('returns validation error on invalid input', async () => {
       registerRemediationTools(server as any, ctx);
       const handler = server.tools.get('recommend_remediation')!.handler;

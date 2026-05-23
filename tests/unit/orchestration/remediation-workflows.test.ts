@@ -13,14 +13,16 @@ import type { LearningSession } from '../../../src/domain/types/entities.js';
 import type { SessionInput } from '../../../src/domain/types/session.js';
 import type { ChunkMinimalMetadata } from '../../../src/ports/chunk-repository.js';
 
+const mockLogger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+};
+
 vi.mock('../../../src/shared/logger.js', () => ({
   logEvent: vi.fn(),
-  getRequestLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  }),
+  getRequestLogger: () => mockLogger,
 }));
 
 const NOW = new Date('2026-05-22T12:00:00Z');
@@ -558,6 +560,34 @@ describe('recommendRemediation', () => {
         author: 'agent',
       })
     );
+  });
+
+  it('logs warning when gap note write fails', async () => {
+    const input = stubSessionInput();
+    const chunkMetas = [
+      stubChunkMeta({ id: 'c1', chunkType: 'review' }),
+      stubChunkMeta({ id: 'c2', chunkType: 'review' }),
+      stubChunkMeta({ id: 'c3', chunkType: 'review' }),
+    ];
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(input),
+      },
+      chunks: { batchFetchMinimal: vi.fn().mockResolvedValue(chunkMetas) },
+      notes: {
+        createNote: vi.fn().mockRejectedValue(new Error('DB write failed')),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.gapNotesWritten).toHaveLength(0);
+    }
+    expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining('gap note writes failed'));
   });
 
   it('sets mode to review when no leeches are present', async () => {
