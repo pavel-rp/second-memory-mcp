@@ -162,6 +162,23 @@ describe('recommendRemediation', () => {
     vi.clearAllMocks();
   });
 
+  it('returns database error when port throws unexpectedly', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockRejectedValue(new Error('connection reset')),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toContain('connection reset');
+      expect(result.error.retryable).toBe(true);
+    }
+  });
+
   it('returns not_found when session does not exist', async () => {
     const deps = makeDeps({
       sessions: { getSessionById: vi.fn().mockResolvedValue(null) },
