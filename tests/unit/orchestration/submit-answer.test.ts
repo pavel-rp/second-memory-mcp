@@ -2151,7 +2151,7 @@ describe('submitAnswer with session_question_id', () => {
     expect(statusCalls).toHaveLength(0);
   });
 
-  it('returns error when question is already answered', async () => {
+  it('returns error when learning question is already answered', async () => {
     const deps = makeQuestionDeps({
       sessionQuestions: {
         getQuestionById: vi.fn().mockResolvedValue(makeQuestion({ status: 'answered' })),
@@ -2161,7 +2161,20 @@ describe('submitAnswer with session_question_id', () => {
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
     expect(result.action).toBe('error');
-    expect((result as { message: string }).message).toContain('expected "pending"');
+    expect((result as { message: string }).message).toContain('is already answered');
+  });
+
+  it('returns error when question is skipped', async () => {
+    const deps = makeQuestionDeps({
+      sessionQuestions: {
+        getQuestionById: vi.fn().mockResolvedValue(makeQuestion({ status: 'skipped' })),
+      },
+    });
+
+    const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
+
+    expect(result.action).toBe('error');
+    expect((result as { message: string }).message).toContain('"skipped"');
   });
 
   it('returns error when chunk is not in_progress', async () => {
@@ -2462,11 +2475,7 @@ describe('submitAnswer with session_question_id', () => {
     it('assessment rejects second attempt on same question', async () => {
       const deps = makeAssessmentDeps({
         sessionQuestions: {
-          getQuestionById: vi.fn().mockResolvedValue(makeQuestion()),
-          getChunkIdsForQuestion: vi.fn().mockResolvedValue(['c1']),
-          getAttemptsForQuestion: vi
-            .fn()
-            .mockResolvedValue([makeQuestionAttempt({ attemptNumber: 1 })]),
+          getQuestionById: vi.fn().mockResolvedValue(makeQuestion({ status: 'answered' })),
         },
       });
 
