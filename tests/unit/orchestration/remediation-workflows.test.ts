@@ -181,6 +181,45 @@ describe('recommendRemediation', () => {
     }
   });
 
+  it('handles non-Error thrown values in catch block', async () => {
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockRejectedValue('string error'),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toBe('string error');
+    }
+  });
+
+  it('handles session with no chunks', async () => {
+    const emptyInput = stubSessionInput({ chunks: [] });
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(emptyInput),
+      },
+      chunks: {
+        list: vi.fn().mockResolvedValue([]),
+        countByTopicIds: vi.fn().mockResolvedValue(new Map()),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.weakChunks).toHaveLength(0);
+      expect(result.data.recommendedNextSession.reasonCode).toBe('NEW_MATERIAL');
+    }
+  });
+
   it('returns not_found when session does not exist', async () => {
     const deps = makeDeps({
       sessions: { getSessionById: vi.fn().mockResolvedValue(null) },
@@ -614,6 +653,52 @@ describe('recommendRemediation', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.recommendedNextSession.mode).toBe('review');
+    }
+  });
+
+  it('uses default duration when session chunk has no estimated_duration', async () => {
+    const input = stubSessionInput({
+      chunks: [
+        {
+          chunk_id: 'c1',
+          session_chunk_id: 'sc1',
+          title: 'Chunk 1',
+          status: 'completed',
+          attempts: [
+            {
+              timestamp: '2026-05-22T11:05:00Z',
+              question: 'Q',
+              response: 'A',
+              passed: false,
+              feedback: 'Wrong',
+              quality: 1,
+              time_spent_ms: 20000,
+            },
+          ],
+          quality_scores: [1],
+          time_spent_ms: 20000,
+        },
+      ],
+    });
+
+    const deps = makeDeps({
+      sessions: {
+        getSessionById: vi.fn().mockResolvedValue(stubSession()),
+        convertSessionToSessionInput: vi.fn().mockResolvedValue(input),
+      },
+      chunks: {
+        batchFetchMinimal: vi.fn().mockResolvedValue([stubChunkMeta({ id: 'c1' })]),
+      },
+      notes: {
+        createNote: vi.fn().mockResolvedValue({ id: 'note-1', createdAt: NOW.toISOString() }),
+      },
+    });
+
+    const result = await recommendRemediation('sess-1', deps, NOW);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.recommendedNextSession.estimatedDurationMinutes).toBe(10);
     }
   });
 
