@@ -919,18 +919,31 @@ async function submitAnswerForQuestion(
     return { action: 'error', message: `Session question ${sessionQuestionId} not found.` };
   }
 
-  // 1b. Guard: question must still be answerable
+  // 1b. Look up the session that owns this question (needed for mode-aware guards)
+  const session = await deps.sessions.getSessionById(question.sessionId);
+  if (!session) {
+    return { action: 'error', message: 'Session not found for this question.' };
+  }
+
+  // 1c. Guard: question must still be answerable (mode-aware messages)
   if (question.status !== 'pending') {
+    if (question.status === 'answered') {
+      const message =
+        session.mode === 'assessment'
+          ? `Assessment allows 1 attempt per question. Question ${sessionQuestionId} already answered.`
+          : `Question ${sessionQuestionId} is already answered.`;
+      return { action: 'error', message };
+    }
+    if (question.status === 'skipped') {
+      return {
+        action: 'error',
+        message: `Question ${sessionQuestionId} is skipped and cannot be answered.`,
+      };
+    }
     return {
       action: 'error',
       message: `Question ${sessionQuestionId} is "${question.status}", expected "pending".`,
     };
-  }
-
-  // 2. Look up the session that owns this question (not just the active one)
-  const session = await deps.sessions.getSessionById(question.sessionId);
-  if (!session) {
-    return { action: 'error', message: 'Session not found for this question.' };
   }
 
   // 3. Resolve chunk(s) via junction
@@ -1213,15 +1226,6 @@ async function submitAnswerForAssessmentQuestion(
   sessionChunks: SessionChunk[],
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
-  // Assessment: max 1 attempt per question
-  const existingAttempts = await deps.sessionQuestions.getAttemptsForQuestion(sessionQuestionId);
-  if (existingAttempts.length >= 1) {
-    return {
-      action: 'error',
-      message: `Assessment allows 1 attempt per question. Question ${sessionQuestionId} already answered.`,
-    };
-  }
-
   // Assessment: derive passed, then override quality to 5/1 for SR.
   // Agent-provided quality is preserved separately in agentQuality for analytics.
   const passed = input.passed ?? input.quality >= 3;
