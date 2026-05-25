@@ -934,12 +934,6 @@ async function submitAnswerForQuestion(
           : `Question ${sessionQuestionId} is already answered.`;
       return { action: 'error', message };
     }
-    if (question.status === 'skipped') {
-      return {
-        action: 'error',
-        message: `Question ${sessionQuestionId} is skipped and cannot be answered.`,
-      };
-    }
     return {
       action: 'error',
       message: `Question ${sessionQuestionId} is "${question.status}", expected "pending".`,

@@ -2174,7 +2174,7 @@ describe('submitAnswer with session_question_id', () => {
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1' }), deps);
 
     expect(result.action).toBe('error');
-    expect((result as { message: string }).message).toContain('is skipped and cannot be answered');
+    expect((result as { message: string }).message).toContain('"skipped"');
   });
 
   it('returns error when chunk is not in_progress', async () => {
