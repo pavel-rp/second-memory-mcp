@@ -30,7 +30,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT }}
-          envs: SHA,REPO_DIR,COMPOSE_DIR,COMPOSE_FILE
+          envs: SHA,REPO_DIR,COMPOSE_DIR,COMPOSE_FILE,GH_TOKEN
           script: |
             set -e
 
@@ -61,7 +61,11 @@ jobs:
             trap on_exit EXIT
 
             cd "$REPO_DIR"
-            git fetch origin
+            if [ -z "${GH_TOKEN:-}" ]; then
+              echo "Error: GH_TOKEN env is empty; the DEPLOY_GH_TOKEN secret is required to fetch this private repo"
+              exit 1
+            fi
+            git -c http.https://github.com/.extraheader="AUTHORIZATION: bearer $GH_TOKEN" fetch origin
             git reset --hard "$SHA"
             git clean -fd
 
@@ -112,6 +116,7 @@ jobs:
           REPO_DIR: ${{ env.REPO_DIR }}
           COMPOSE_DIR: ${{ env.COMPOSE_DIR }}
           COMPOSE_FILE: ${{ env.COMPOSE_FILE }}
+          GH_TOKEN: ${{ secrets.DEPLOY_GH_TOKEN }}
 
   smoke-test:
     needs: [deploy-test]
