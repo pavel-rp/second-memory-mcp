@@ -60,8 +60,6 @@ chroma.sqlite3
 # Tooling
 /.cursor/
 /.spec-workflow/
-wf.config.js
-wf-audit.md
 
 # Internal docs
 /audit/
