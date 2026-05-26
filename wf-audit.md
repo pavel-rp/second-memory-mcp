@@ -45,7 +45,7 @@ These three patterns alone caused half of all reviewer findings across 11 PRs. C
 
 ## Architecture Layer Purity
 
-15. **`src/domain/**`must stay pure — zero I/O, zero logging.** Files under`src/domain/`must not import from`src/shared/logger`, `src/infrastructure/**`, `src/adapters/**`, `src/transport/**`, or `src/server/**`. They must not call `Date.now()`, `new Date()`(use injected clock instead),`crypto.randomUUID()`, `process.env._`, `fetch`, filesystem APIs, or any Drizzle/DB helper. When a domain function needs to notify callers about internal events (rule exceptions, metric emissions), expose an optional callback via an options parameter (e.g. `{ onRuleError?: (name, err) => void }`) so the orchestration/server layer plumbs in the logger — not the domain module itself. Quick check: `grep -rE "from._(shared/logger|infrastructure|adapters|transport|server)" src/domain/` should return zero hits.
+15. **`src/domain/**`must stay pure — zero I/O, zero logging.** Files under`src/domain/`must not import from`src/shared/logger`, `src/infrastructure/**`, `src/adapters/**`, `src/transport/**`, or `src/server/**`. They must not call `Date.now()`, `new Date()`(use injected clock instead),`crypto.randomUUID()`, `process.env`, `fetch`, filesystem APIs, or any Drizzle/DB helper. When a domain function needs to notify callers about internal events (rule exceptions, metric emissions), expose an optional callback via an options parameter (e.g. `{ onRuleError?: (name, err) => void }`) so the orchestration/server layer plumbs in the logger — not the domain module itself. Quick check: `grep -rE "from.\*(shared/logger|infrastructure|adapters|transport|server)" src/domain/` should return zero hits.
 
 ## Performance & Testing
 
