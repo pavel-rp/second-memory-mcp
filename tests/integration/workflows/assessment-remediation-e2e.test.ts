@@ -20,7 +20,7 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
     topicId: string,
     chunks: Array<{
       id: string;
-      chunkType?: string;
+      chunkType?: 'new' | 'review' | 'remediation';
       easeFactor?: number;
       prerequisitesJson?: string[];
     }>
@@ -87,10 +87,11 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
       if (step.action !== 'teach')
         throw new Error(`Expected teach at step ${i}, got ${step.action}`);
 
+      expect(step.session_question_id).toBeDefined();
       const questionChunkId = step.assessment_chunk_ids?.[0];
       const shouldPass = questionChunkId ? (grades.get(questionChunkId) ?? true) : true;
 
-      await ctx.submitAnswer({
+      const answer = await ctx.submitAnswer({
         response: shouldPass ? 'Correct answer' : 'Wrong answer',
         quality: shouldPass ? 5 : 1,
         questionType: 'recall',
@@ -98,6 +99,7 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
         timeSpentMs: 5000,
         sessionQuestionId: step.session_question_id!,
       });
+      expect(answer.action).toBe('recorded');
     }
 
     const completeStep = await ctx.getNextTeachingStep();
@@ -208,7 +210,8 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
       if (step.action !== 'teach')
         throw new Error(`Expected teach at step ${i}, got ${step.action}`);
 
-      await ctx.submitAnswer({
+      expect(step.session_question_id).toBeDefined();
+      const answer = await ctx.submitAnswer({
         response: 'Wrong answer',
         quality: 1,
         questionType: 'recall',
@@ -216,6 +219,7 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
         timeSpentMs: 5000,
         sessionQuestionId: step.session_question_id!,
       });
+      expect(answer.action).toBe('recorded');
     }
 
     const completeStep = await ctx.getNextTeachingStep();
