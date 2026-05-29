@@ -155,6 +155,13 @@
       "when": 1774240000000,
       "tag": "0021_add_gap_note_type",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1774250000000,
+      "tag": "0022_add_consecutive_failures",
+      "breakpoints": true
     }
   ]
 }

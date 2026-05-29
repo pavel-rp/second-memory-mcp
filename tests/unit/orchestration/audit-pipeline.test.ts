@@ -74,6 +74,7 @@ function chunkRow(overrides: Partial<LearningChunk> = {}): LearningChunk {
     nextReviewAt: 0,
     easeFactor: 2.5,
     repetitions: 0,
+    consecutiveFailures: 0,
     lastReviewedAt: null,
     estimatedDuration: 10,
     intervalDays: null,

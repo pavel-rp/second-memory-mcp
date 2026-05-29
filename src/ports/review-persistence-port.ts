@@ -59,6 +59,7 @@ export interface ReviewPersistencePort {
         LearningChunk,
         | 'easeFactor'
         | 'repetitions'
+        | 'consecutiveFailures'
         | 'intervalDays'
         | 'nextReviewAt'
         | 'chunkType'

@@ -42,6 +42,7 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
         LearningChunk,
         | 'easeFactor'
         | 'repetitions'
+        | 'consecutiveFailures'
         | 'intervalDays'
         | 'nextReviewAt'
         | 'chunkType'

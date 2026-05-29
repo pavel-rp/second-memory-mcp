@@ -77,6 +77,7 @@ function makeLearningChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     nextReviewAt: NOW,
     easeFactor: 2.5,
     repetitions: 0,
+    consecutiveFailures: 0,
     lastReviewedAt: null,
     estimatedDuration: 10,
     intervalDays: null,

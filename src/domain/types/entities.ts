@@ -46,6 +46,7 @@ export type LearningChunk = {
   nextReviewAt: number;
   easeFactor: number;
   repetitions: number;
+  consecutiveFailures: number;
   lastReviewedAt: number | null;
   estimatedDuration: number;
   intervalDays: number | null;

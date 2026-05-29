@@ -20,7 +20,7 @@ export type ReviewDeps = {
 export async function processReviewResult(
   itemId: string,
   quality: number,
-  options: { timeSpentMs?: number; consecutiveFailures?: number; daysOverdue?: number },
+  options: { timeSpentMs?: number; daysOverdue?: number },
   deps: ReviewDeps
 ): Promise<ServiceResult<ReviewResultData>> {
   try {
@@ -28,6 +28,12 @@ export async function processReviewResult(
     if (!currentChunk) {
       return serviceFail({ type: 'not_found', message: `Learning item not found: ${itemId}` });
     }
+
+    // Consecutive-failure count is sourced from the persisted on-chunk counter,
+    // mirroring `repetitions`: a failing review (quality < 3) increments it, any
+    // passing review resets it to 0. This is what makes leech detection reachable
+    // through the MCP tool flow (callers no longer thread the count in).
+    const newConsecutiveFailures = quality < 3 ? currentChunk.consecutiveFailures + 1 : 0;
 
     const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
     const now = new Date();
@@ -40,20 +46,26 @@ export async function processReviewResult(
         easeFactor: currentChunk.easeFactor,
         interval: intervalDays,
         daysOverdue: options.daysOverdue || 0,
-        consecutiveFailures: options.consecutiveFailures || 0,
+        consecutiveFailures: newConsecutiveFailures,
       },
       deps.algorithmConfig,
       now
     );
 
+    // Never downgrade an existing leech: once a chunk is 'remediation' it stays so
+    // until explicitly cleared via resolveLeech. Otherwise a reviewed chunk is 'review'.
+    const nextChunkType =
+      sm2Result.leech || currentChunk.chunkType === 'remediation' ? 'remediation' : 'review';
+
     const updateData = {
       easeFactor: sm2Result.easeFactor,
       repetitions: sm2Result.repetitions,
+      consecutiveFailures: newConsecutiveFailures,
       intervalDays: sm2Result.interval,
       nextReviewAt: new Date(sm2Result.nextReview).getTime(),
       lastReviewedAt: nowMs,
       updatedAt: nowMs,
-      chunkType: sm2Result.leech ? 'remediation' : 'review',
+      chunkType: nextChunkType,
     };
 
     const previous = {
@@ -86,7 +98,7 @@ export async function processReviewResult(
       },
       quality,
       isLapse: quality < 3,
-      consecutiveFailures: options.consecutiveFailures || 0,
+      consecutiveFailures: newConsecutiveFailures,
       isLeech: sm2Result.leech || false,
     });
   } catch (error) {
@@ -135,7 +147,9 @@ export async function resolveLeech(
     }
 
     const nowMs = Date.now();
-    const baseUpdate = { chunkType: 'review' as const, updatedAt: nowMs };
+    // Clearing a leech also clears the failure counter — otherwise a single later
+    // failure (count + 1 >= threshold) would immediately re-flag it as a leech.
+    const baseUpdate = { chunkType: 'review' as const, consecutiveFailures: 0, updatedAt: nowMs };
 
     let rowCount: number;
     switch (resolution) {

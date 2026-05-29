@@ -21,6 +21,7 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     nextReviewAt: NOW,
     easeFactor: 2.5,
     repetitions: 3,
+    consecutiveFailures: 0,
     lastReviewedAt: NOW - 86_400_000,
     estimatedDuration: 15,
     intervalDays: 7,
@@ -87,19 +88,92 @@ describe('processReviewResult', () => {
     }
   });
 
-  it('detects leech with many consecutive failures', async () => {
+  it('increments the persisted consecutive-failure counter on a failing review', async () => {
     const deps = stubDeps();
-    const leechChunk = stubChunk({ repetitions: 0, easeFactor: 1.3 });
     (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce(leechChunk)
-      .mockResolvedValueOnce(leechChunk);
+      .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 1 }))
+      .mockResolvedValueOnce(stubChunk());
 
-    const result = await processReviewResult('item-1', 0, { consecutiveFailures: 10 }, deps);
+    const result = await processReviewResult('item-1', 1, {}, deps);
 
     expect(result.success).toBe(true);
     if (result.success) {
+      expect(result.data.consecutiveFailures).toBe(2);
+      expect(result.data.isLeech).toBe(false);
+    }
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
+      'item-1',
+      expect.objectContaining({ consecutiveFailures: 2, chunkType: 'review' })
+    );
+  });
+
+  it('resets the consecutive-failure counter to 0 on a passing review', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 2 }))
+      .mockResolvedValueOnce(stubChunk());
+
+    const result = await processReviewResult('item-1', 4, {}, deps);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consecutiveFailures).toBe(0);
+    }
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
+      'item-1',
+      expect.objectContaining({ consecutiveFailures: 0 })
+    );
+  });
+
+  it('flags a leech and marks chunk_type=remediation when the count reaches the threshold', async () => {
+    // Default leechConsecutiveFailures is 3 — stored 2 plus this failure makes 3.
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 2, chunkType: 'review' }))
+      .mockResolvedValueOnce(stubChunk());
+
+    const result = await processReviewResult('item-1', 0, {}, deps);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consecutiveFailures).toBe(3);
       expect(result.data.isLeech).toBe(true);
-      expect(result.data.consecutiveFailures).toBe(10);
+      expect(result.data.updated.chunkType).toBe('remediation');
+    }
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
+      'item-1',
+      expect.objectContaining({ chunkType: 'remediation', consecutiveFailures: 3 })
+    );
+  });
+
+  it('does not downgrade an existing remediation chunk on a non-leech review', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ chunkType: 'remediation', consecutiveFailures: 1 }))
+      .mockResolvedValueOnce(stubChunk());
+
+    // Passing review: not a fresh leech, but the chunk must stay 'remediation'.
+    const result = await processReviewResult('item-1', 5, {}, deps);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consecutiveFailures).toBe(0);
+      expect(result.data.isLeech).toBe(false);
+      expect(result.data.updated.chunkType).toBe('remediation');
+    }
+  });
+
+  it('keeps chunk_type=review for a non-leech update on a new chunk', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ chunkType: 'new', consecutiveFailures: 0 }))
+      .mockResolvedValueOnce(stubChunk());
+
+    const result = await processReviewResult('item-1', 4, {}, deps);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.updated.chunkType).toBe('review');
     }
   });
 
