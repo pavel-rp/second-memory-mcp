@@ -241,6 +241,7 @@ export async function createTopicWithChunks(
           nextReviewAt: now,
           easeFactor: 2.5,
           repetitions: 0,
+          consecutiveFailures: 0,
           lastReviewedAt: null,
           estimatedDuration: chunkDef.estimatedDuration,
           intervalDays: null,

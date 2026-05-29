@@ -14,6 +14,7 @@ function makeRow(overrides: Partial<ChunkWithTopicTitle> = {}): ChunkWithTopicTi
     nextReviewAt: NOW_MS,
     easeFactor: 2.5,
     repetitions: 2,
+    consecutiveFailures: 0,
     lastReviewedAt: NOW_MS - 86_400_000, // 1 day ago
     estimatedDuration: 10,
     intervalDays: 3,

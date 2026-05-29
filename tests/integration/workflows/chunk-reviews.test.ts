@@ -150,7 +150,6 @@ describe('chunk-reviews service', () => {
         4,
         {
           timeSpentMs: 30000,
-          consecutiveFailures: 0,
           daysOverdue: 2,
         },
         reviewDeps

@@ -21,6 +21,7 @@ function stubChunkRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicT
     nextReviewAt: NOW_MS - MS_PER_DAY,
     easeFactor: 2.5,
     repetitions: 2,
+    consecutiveFailures: 0,
     lastReviewedAt: NOW_MS - 2 * MS_PER_DAY,
     estimatedDuration: 10,
     intervalDays: 7,

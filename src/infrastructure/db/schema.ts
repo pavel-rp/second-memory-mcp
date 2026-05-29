@@ -59,6 +59,7 @@ export const learningChunks = pgTable(
     nextReviewAt: bigint('next_review_at', { mode: 'number' }).notNull(), // epoch ms
     easeFactor: real('ease_factor').notNull(),
     repetitions: integer('repetitions').notNull(),
+    consecutiveFailures: integer('consecutive_failures').notNull().default(0), // consecutive failing reviews (quality < 3); drives leech detection
     lastReviewedAt: bigint('last_reviewed_at', { mode: 'number' }), // epoch ms, optional
     estimatedDuration: integer('estimated_duration').notNull(), // minutes
     intervalDays: integer('interval_days'), // days until next review (from last SM-2 calculation)

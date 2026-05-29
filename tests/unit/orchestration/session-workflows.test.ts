@@ -55,6 +55,7 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     nextReviewAt: NOW,
     easeFactor: 2.5,
     repetitions: 2,
+    consecutiveFailures: 0,
     lastReviewedAt: NOW - 86_400_000,
     estimatedDuration: 10,
     intervalDays: 7,

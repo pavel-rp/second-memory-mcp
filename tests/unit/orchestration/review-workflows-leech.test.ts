@@ -33,6 +33,7 @@ function makeLeechChunk(overrides?: Partial<LearningChunk>): LearningChunk {
     nextReviewAt: NOW,
     easeFactor: 1.3,
     repetitions: 8,
+    consecutiveFailures: 5,
     lastReviewedAt: NOW - 86400000,
     estimatedDuration: 10,
     intervalDays: 1,

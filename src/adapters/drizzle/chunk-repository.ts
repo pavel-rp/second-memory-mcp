@@ -32,6 +32,7 @@ const CHUNK_COLUMNS_WITH_TOPIC = {
   nextReviewAt: learningChunks.nextReviewAt,
   easeFactor: learningChunks.easeFactor,
   repetitions: learningChunks.repetitions,
+  consecutiveFailures: learningChunks.consecutiveFailures,
   lastReviewedAt: learningChunks.lastReviewedAt,
   estimatedDuration: learningChunks.estimatedDuration,
   intervalDays: learningChunks.intervalDays,
