@@ -328,3 +328,45 @@ describe('SubmitAnswerInputShape feedback whitespace validation (NEU-739)', () =
     expect(preParsed.feedback).toBe('Correct');
   });
 });
+
+describe('ReviseGradeInputShape new_feedback whitespace validation (NEU-745)', () => {
+  const baseInput = {
+    session_question_id: 'q1',
+    new_quality: 4,
+    reason: 'other' as const,
+    context_token: 'ctx-test',
+  };
+
+  it('rejects whitespace-only new_feedback at the handler-parse layer', () => {
+    expect(() =>
+      teaching.ReviseGradeInputSchema.parse({ ...baseInput, new_feedback: '   ' })
+    ).toThrow(z.ZodError);
+  });
+
+  it('rejects whitespace-only new_feedback at the SDK pre-parse layer', () => {
+    expect(() =>
+      z.object(teaching.ReviseGradeInputShape).parse({ ...baseInput, new_feedback: '   ' })
+    ).toThrow(z.ZodError);
+  });
+
+  it('trims surrounding whitespace from valid new_feedback', () => {
+    const preParsed = z
+      .object(teaching.ReviseGradeInputShape)
+      .parse({ ...baseInput, new_feedback: '  fixed  ' });
+    expect(preParsed.new_feedback).toBe('fixed');
+
+    const result = teaching.ReviseGradeInputSchema.parse({
+      ...baseInput,
+      new_feedback: '  fixed  ',
+    });
+    expect((result as Record<string, unknown>).newFeedback).toBe('fixed');
+  });
+
+  it('leaves new_feedback without surrounding whitespace unchanged', () => {
+    const result = teaching.ReviseGradeInputSchema.parse({
+      ...baseInput,
+      new_feedback: 'corrected',
+    });
+    expect((result as Record<string, unknown>).newFeedback).toBe('corrected');
+  });
+});

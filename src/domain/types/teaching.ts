@@ -421,6 +421,7 @@ export const ReviseGradeInputShape = {
     .describe('Optional. Derived from `new_quality >= 3` when omitted.'),
   new_feedback: z
     .string()
+    .trim()
     .min(1)
     .describe('Why the original grade was wrong. Replaces the original feedback on the live row.'),
   reason: z

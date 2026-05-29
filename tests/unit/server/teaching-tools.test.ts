@@ -753,6 +753,26 @@ describe('teaching-tools', () => {
     expect(parsed.error.type).toBe('validation');
   });
 
+  it('revise_grade returns validation error for whitespace-only new_feedback', async () => {
+    ctx.reviseGrade = vi.fn();
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('revise_grade')!.handler;
+
+    const result = await handler({
+      session_question_id: 'q1',
+      new_quality: 4,
+      new_feedback: '   ',
+      reason: 'other',
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+    expect(ctx.reviseGrade).not.toHaveBeenCalled();
+  });
+
   it('revise_grade returns session error when orchestration throws', async () => {
     ctx.reviseGrade = vi.fn().mockRejectedValue(new Error('DB connection lost'));
     registerTeachingTools(server as any, ctx);
