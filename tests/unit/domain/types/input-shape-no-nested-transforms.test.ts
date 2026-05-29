@@ -287,3 +287,44 @@ describe('SubmitAnswerInputSchema strips context_token from transform output', (
     expect((result as Record<string, unknown>).sessionQuestionId).toBe('sq-1');
   });
 });
+
+describe('SubmitAnswerInputShape feedback whitespace validation (NEU-739)', () => {
+  const baseInput = {
+    prompt_text: 'What is X?',
+    chunk_ids: ['c1'],
+    response: 'X is Y',
+    quality: 4,
+    question_type: 'recall' as const,
+    time_spent_ms: 1000,
+    context_token: 'ctx-test',
+  };
+
+  it('rejects whitespace-only feedback at the handler-parse layer', () => {
+    expect(() => teaching.SubmitAnswerInputSchema.parse({ ...baseInput, feedback: '   ' })).toThrow(
+      z.ZodError
+    );
+  });
+
+  it('rejects whitespace-only feedback at the SDK pre-parse layer', () => {
+    expect(() =>
+      z.object(teaching.SubmitAnswerInputShape).parse({ ...baseInput, feedback: '   ' })
+    ).toThrow(z.ZodError);
+  });
+
+  it('trims surrounding whitespace from valid feedback', () => {
+    const preParsed = z
+      .object(teaching.SubmitAnswerInputShape)
+      .parse({ ...baseInput, feedback: '  good  ' });
+    expect(preParsed.feedback).toBe('good');
+
+    const result = teaching.SubmitAnswerInputSchema.parse(preParsed);
+    expect((result as Record<string, unknown>).feedback).toBe('good');
+  });
+
+  it('leaves feedback without surrounding whitespace unchanged', () => {
+    const preParsed = z
+      .object(teaching.SubmitAnswerInputShape)
+      .parse({ ...baseInput, feedback: 'Correct' });
+    expect(preParsed.feedback).toBe('Correct');
+  });
+});
