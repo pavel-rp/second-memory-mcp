@@ -381,6 +381,29 @@ describe('teaching-tools', () => {
     expect(parsed.error.retryable).toBe(false);
   });
 
+  it('submit_answer returns validation error for whitespace-only feedback', async () => {
+    ctx.submitAnswer = vi.fn();
+    registerTeachingTools(server as any, ctx);
+    const handler = server.tools.get('submit_answer')!.handler;
+
+    const result = await handler({
+      prompt_text: 'What is X?',
+      chunk_ids: ['c1'],
+      response: 'X is Y',
+      quality: 5,
+      question_type: 'recall',
+      feedback: '   ',
+      time_spent_ms: 1000,
+      context_token: 'ctx-test',
+    });
+    const parsed = parseResult(result);
+
+    expect(parsed.status).toBe('error');
+    expect(parsed.error.type).toBe('validation');
+    expect(parsed.error.retryable).toBe(false);
+    expect(ctx.submitAnswer).not.toHaveBeenCalled();
+  });
+
   it('submit_answer returns structured error when orchestration throws', async () => {
     ctx.submitAnswer = vi.fn().mockRejectedValue(new Error('Session expired'));
     registerTeachingTools(server as any, ctx);

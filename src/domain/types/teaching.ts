@@ -271,7 +271,7 @@ export const SubmitAnswerInputShape = {
       'The cognitive level of the question asked. ' +
         'recall = factual retrieval, explain_apply = understanding + application, analyze_create = analysis + synthesis.'
     ),
-  feedback: z.string().min(1).describe("Agent's explanation of why right/wrong"),
+  feedback: z.string().trim().min(1).describe("Agent's explanation of why right/wrong"),
   time_spent_ms: z.number().int().min(0).describe('Time the learner spent in milliseconds'),
   session_question_id: z
     .string()
