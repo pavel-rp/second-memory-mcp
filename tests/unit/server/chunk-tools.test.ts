@@ -119,7 +119,8 @@ describe('chunk-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Tier 1 rejected the chunk',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           findings: [
             {
               chunkId: 'c1',
@@ -177,7 +178,8 @@ describe('chunk-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Tier 1 rejected',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           // findings intentionally omitted
         },
       });
@@ -455,7 +457,8 @@ describe('chunk-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Tier 2 rejected the update',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           // findings intentionally omitted
         },
       });
@@ -480,7 +483,8 @@ describe('chunk-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Tier 2 rejected the update',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           findings: [
             {
               chunkId: 'c1',
@@ -848,7 +852,8 @@ describe('chunk-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Tier 2 rejected the update',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           // findings intentionally omitted
         },
       });
@@ -867,7 +872,8 @@ describe('chunk-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Tier 2 rejected the update',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           findings: [
             {
               chunkId: 'c1',

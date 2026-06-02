@@ -338,7 +338,8 @@ describe('topic-tools', () => {
         error: {
           type: 'content_quality',
           message: 'Topic creation blocked by 1 content-quality finding',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
           findings: [
             {
               chunkId: 'c1',
@@ -359,7 +360,8 @@ describe('topic-tools', () => {
 
       expect(parsed.status).toBe('error');
       expect(parsed.error.type).toBe('content_quality');
-      expect(parsed.error.retryable).toBe(false);
+      // NEU-752: server forwards the orchestration retryable flag (true for content_quality).
+      expect(parsed.error.retryable).toBe(true);
       expect(parsed.error.findings).toEqual([
         {
           chunk_id: 'c1',
@@ -378,7 +380,8 @@ describe('topic-tools', () => {
         error: {
           type: 'content_quality',
           message: 'blocked',
-          retryable: false,
+          // NEU-752: orchestration marks content_quality rejections retryable.
+          retryable: true,
         },
       });
       registerTopicTools(server as any, ctx);

@@ -199,7 +199,9 @@ export async function createTopicWithChunks(
         type: 'content_quality',
         message: `Topic creation blocked by ${blockingCount} content-quality finding${blockingCount === 1 ? '' : 's'}`,
         findings: lintFindings,
-        retryable: false,
+        // NEU-752: content_quality rejections are retryable — a corrected payload
+        // passes the same deterministic audit, so signal agents to fix-and-retry.
+        retryable: true,
       },
     };
   }
@@ -391,7 +393,8 @@ export async function createTopicWithChunks(
         error: {
           type: 'content_quality',
           message: summary,
-          retryable: false,
+          // NEU-752: content_quality rejections are retryable (corrected payload can succeed).
+          retryable: true,
           findings: mergedFindings,
         },
       };
