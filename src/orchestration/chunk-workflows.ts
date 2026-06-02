@@ -305,7 +305,8 @@ async function updateChunkFields(
             type: 'content_quality',
             message: `Chunk update blocked for chunk ${id} by ${blockingCount} content-quality finding${blockingCount === 1 ? '' : 's'}`,
             findings: tier1Findings,
-            retryable: false,
+            // NEU-752: content_quality rejections are retryable (corrected payload can succeed).
+            retryable: true,
           },
         };
       }
@@ -569,7 +570,8 @@ async function updateChunkFields(
         error: {
           type: 'content_quality',
           message: summary,
-          retryable: false,
+          // NEU-752: content_quality rejections are retryable (corrected payload can succeed).
+          retryable: true,
           findings: mergedFindings,
         },
       };
@@ -882,7 +884,8 @@ export async function createChunkWithTopic(
           type: 'content_quality',
           message: `Chunk creation blocked for chunk ${input.id} by ${blockingCount} content-quality finding${blockingCount === 1 ? '' : 's'}`,
           findings: tier1Findings,
-          retryable: false,
+          // NEU-752: content_quality rejections are retryable (corrected payload can succeed).
+          retryable: true,
         });
       }
     }
@@ -1088,7 +1091,8 @@ export async function createChunkWithTopic(
       return serviceFail({
         type: 'content_quality',
         message: summary,
-        retryable: false,
+        // NEU-752: content_quality rejections are retryable (corrected payload can succeed).
+        retryable: true,
         findings: mergedFindings,
       });
     }

@@ -210,6 +210,8 @@ describe('updateChunkContent — Tier 1 + Tier 2 audit chain', () => {
     const result = await updateChunkContent('chunk-1', { content: 'New content here' }, deps);
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('content_quality');
+    // NEU-752: content_quality rejections are retryable — a corrected payload can succeed.
+    expect(result.error?.retryable).toBe(true);
     expect(result.error?.message).toContain('chunk-1');
     expect((result.error?.findings as LinterFinding[]).length).toBeGreaterThan(0);
     expect(deps.chunks.update).not.toHaveBeenCalled();
@@ -267,6 +269,8 @@ describe('updateChunkContent — Tier 1 + Tier 2 audit chain', () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('content_quality');
+    // NEU-752: content_quality rejections are retryable — a corrected payload can succeed.
+    expect(result.error?.retryable).toBe(true);
     const findings = result.error?.findings as LinterFinding[];
     expect(findings[0].severity).toBe('blocking');
     expect(findings[0].rule).toBe('classifier.rendering_clarity');
@@ -1403,6 +1407,8 @@ describe('createChunkWithTopic — Tier 1 + Tier 2 audit chain', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.type).toBe('content_quality');
+      // NEU-752: content_quality rejections are retryable — a corrected payload can succeed.
+      expect(result.error.retryable).toBe(true);
       expect(result.error.message).toContain('new-chunk');
     }
     expect(deps.chunks.create).not.toHaveBeenCalled();

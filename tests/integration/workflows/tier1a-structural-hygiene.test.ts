@@ -96,7 +96,8 @@ describe('Tier 1a structural hygiene (NEU-628) — create path', () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('content_quality');
-    expect(result.error?.retryable).toBe(false);
+    // NEU-752: content_quality rejections are retryable — a corrected payload can succeed.
+    expect(result.error?.retryable).toBe(true);
     const findings = result.error?.findings ?? [];
     expect(findings.length).toBeGreaterThan(0);
     expect(findings.some(f => f.rule === 'tier1a.code-fence-balance')).toBe(true);

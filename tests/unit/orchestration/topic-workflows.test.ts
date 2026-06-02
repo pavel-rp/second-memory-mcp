@@ -403,7 +403,8 @@ describe('createTopicWithChunks', () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe('content_quality');
-    expect(result.error?.retryable).toBe(false);
+    // NEU-752: content_quality rejections are retryable — a corrected payload can succeed.
+    expect(result.error?.retryable).toBe(true);
     expect(result.error?.findings).toHaveLength(1);
     expect(result.error?.findings?.[0].severity).toBe('blocking');
     expect(deps.unitOfWork.execute).not.toHaveBeenCalled();

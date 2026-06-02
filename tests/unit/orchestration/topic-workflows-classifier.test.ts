@@ -384,7 +384,8 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       // findings to the caller — `topic-tools.ts` only includes `findings`
       // when `errorType === 'content_quality'`.
       expect(result.error?.type).toBe('content_quality');
-      expect(result.error?.retryable).toBe(false);
+      // NEU-752: content_quality rejections are retryable — a corrected payload can succeed.
+      expect(result.error?.retryable).toBe(true);
       expect(result.error?.message).toContain('chunk-a');
       expect(result.error?.message).toContain('rendering_clarity');
       const findings = result.error?.findings ?? [];
