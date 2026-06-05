@@ -71,6 +71,11 @@ export class LangChainContentClassifierAdapter implements ContentClassifierPort 
 
     const verdict = emptyVerdict();
     const failedFields: VerdictFieldName[] = [];
+    // NEU-757: each result here is the aggregate of `config.samples` samples for
+    // one field. A per-sample failure is dropped inside `classifyFieldSelfConsistent`,
+    // so `result.value === null` means EVERY sample for the field failed — not a
+    // single invoke. `failedFields` (and the `classify_aggregate_failed` event
+    // below) therefore track fully-failed fields, not individual sample failures.
     for (let i = 0; i < VERDICT_FIELDS.length; i += 1) {
       const field = VERDICT_FIELDS[i];
       const result = results[i];
