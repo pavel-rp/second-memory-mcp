@@ -59,6 +59,8 @@ function makeConfig(overrides?: Partial<ClassifierConfig>): ClassifierConfig {
     model: 'gpt-5.4-mini',
     reasoningEffort: 'low',
     temperature: null,
+    seed: 42,
+    samples: 1,
     maxRetries: 2,
     timeout: 10_000,
     openaiApiKey: 'sk-test-key',
@@ -477,6 +479,103 @@ describe('LangChainContentClassifierAdapter', () => {
       const lastCallArgs = invoke.mock.calls[invoke.mock.calls.length - 1];
       const messages = lastCallArgs[0] as Array<{ content: string }>;
       expect(messages[1].content).toContain('tags: (none)');
+    });
+  });
+
+  describe('seed and self-consistency (NEU-757)', () => {
+    it('passes the configured base seed as a per-call invoke option and calls each field once when samples=1', async () => {
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi
+          .fn()
+          .mockResolvedValue({ score: 3, rationale: `r-${opts.name}`, applicable: true });
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig({ seed: 99, samples: 1 }));
+
+      await adapter.classify(makeInput(), makePrompt());
+
+      for (const field of VERDICT_FIELDS) {
+        const invoke = invokeMocks.get(field)!;
+        expect(invoke).toHaveBeenCalledTimes(1);
+        const callArgs = invoke.mock.calls[0];
+        expect(callArgs[1]).toEqual({ seed: 99 });
+      }
+    });
+
+    it('samples each field config.samples times with derived seeds and returns the median (samples=3)', async () => {
+      // Each field returns score 5 at seed 10, 1 at seed 11, 3 at seed 12.
+      // Sorted [1, 3, 5] → lower-median index 1 → score 3 (rationale from the seed-12 sample).
+      const scoreBySeed: Record<number, number> = { 10: 5, 11: 1, 12: 3 };
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi.fn((_messages: unknown, options: { seed?: number } | undefined) => {
+          const seed = options?.seed ?? -1;
+          return Promise.resolve({
+            score: scoreBySeed[seed] ?? 3,
+            rationale: `seed-${seed}`,
+            applicable: true,
+          });
+        });
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig({ seed: 10, samples: 3 }));
+
+      const verdict = await adapter.classify(makeInput(), makePrompt());
+
+      for (const field of VERDICT_FIELDS) {
+        const invoke = invokeMocks.get(field)!;
+        expect(invoke).toHaveBeenCalledTimes(3);
+        const seeds = invoke.mock.calls.map(
+          call => (call[1] as { seed?: number } | undefined)?.seed
+        );
+        expect(seeds).toEqual([10, 11, 12]);
+        expect(verdict[field]).toEqual({ score: 3, rationale: 'seed-12', applicable: true });
+      }
+    });
+
+    it('aggregates only surviving samples and drops failures (fail-open, samples=3)', async () => {
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi.fn();
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig({ seed: 0, samples: 3 }));
+      await adapter.classify(makeInput(), makePrompt()); // trigger init (invokes return undefined)
+
+      for (const field of VERDICT_FIELDS) {
+        invokeMocks
+          .get(field)!
+          .mockRejectedValueOnce(new Error('boom')) // sample dropped
+          .mockResolvedValueOnce({ score: 9, rationale: 'bad', applicable: true }) // parse-fail dropped
+          .mockResolvedValueOnce({ score: 4, rationale: 'ok', applicable: true }); // sole survivor
+      }
+
+      const verdict = await adapter.classify(makeInput({ chunkId: 'c-2' }), makePrompt());
+
+      for (const field of VERDICT_FIELDS) {
+        expect(verdict[field]).toEqual({ score: 4, rationale: 'ok', applicable: true });
+      }
+    });
+
+    it('returns a null field and fires aggregate_failed when every sample fails (samples=3)', async () => {
+      withStructuredOutputMock.mockImplementation((_schema, opts) => {
+        const invoke = vi.fn().mockRejectedValue(new Error('boom'));
+        invokeMocks.set(opts.name, invoke);
+        return { invoke };
+      });
+      const adapter = new LangChainContentClassifierAdapter(makeConfig({ samples: 3 }));
+      vi.mocked(logEvent).mockClear();
+
+      const verdict = await adapter.classify(makeInput({ chunkId: 'c-3' }), makePrompt());
+
+      for (const field of VERDICT_FIELDS) {
+        expect(verdict[field]).toBeNull();
+      }
+      const aggregateCalls = vi
+        .mocked(logEvent)
+        .mock.calls.filter(c => c[1] === 'classifier.classify_aggregate_failed');
+      expect(aggregateCalls).toHaveLength(1);
     });
   });
 });

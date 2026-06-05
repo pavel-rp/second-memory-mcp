@@ -19,6 +19,27 @@ export type ClassifierConfig = {
    * Set a numeric override only for non-reasoning models that support it.
    */
   temperature: number | null;
+  /**
+   * NEU-757: base seed for the per-field model calls, passed as a per-call
+   * option (`invoke(messages, { seed })`). Best-effort reproducibility only: it
+   * pins the OpenAI *Completions* sampler, which applies when `CLASSIFIER_MODEL`
+   * is overridden to a non-reasoning model. The default reasoning model
+   * (`gpt-5.4-mini`) routes to the OpenAI *Responses* API, which has no `seed`
+   * parameter and ignores it — for that path `samples > 1` is the determinism
+   * lever, not the seed. When `samples > 1`, sample `i` uses `seed + i`: a fixed
+   * but distinct seed set (stable ordering where seed is honored, with genuine
+   * variance to majority-vote over).
+   */
+  seed: number;
+  /**
+   * NEU-757: self-consistency sample count per verdict field. `1` (default)
+   * means a single call — same cost and fan-out as before. Operators raise this
+   * (e.g. 3 or 5) to majority-vote over derived seeds and stabilize verdicts
+   * near the blocking threshold; for the default reasoning model (whose
+   * Responses API ignores `seed`) this is the effective determinism lever.
+   * Always `>= 1`.
+   */
+  samples: number;
   maxRetries: number;
   timeout: number;
   openaiApiKey: string | null;

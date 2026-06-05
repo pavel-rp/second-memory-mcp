@@ -14,6 +14,20 @@ export function parseNumber(envValue: string | undefined, fallback: number): num
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ * Parse a positive integer (>= 1). Truncates fractional values toward zero,
+ * then clamps to a minimum of 1, so `"0"`/`"-2"` resolve to 1 and `"2.9"` to 2.
+ * Empty/whitespace or non-finite input falls back. Used for `CLASSIFIER_SAMPLES`
+ * (NEU-757) where a sample count below 1 is meaningless — the classifier kill
+ * switch is `CLASSIFIER_ENABLE`, not a zero sample count.
+ */
+export function parsePositiveInteger(envValue: string | undefined, fallback: number): number {
+  if (envValue == null || envValue.trim() === '') return fallback;
+  const parsed = Number(envValue);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.trunc(parsed));
+}
+
 export function parseRecord(envValue: string | undefined): Record<string, number> {
   // Expect JSON like {"tagA":1.2,"tagB":0.8}
   if (!envValue) return {};

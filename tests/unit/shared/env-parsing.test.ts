@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parseNumber,
+  parsePositiveInteger,
   parseRecord,
   parseBoolean,
   parseEnum,
@@ -35,6 +36,35 @@ describe('parseNumber', () => {
 
   it('parses zero correctly (not treated as falsy)', () => {
     expect(parseNumber('0', 42)).toBe(0);
+  });
+});
+
+describe('parsePositiveInteger', () => {
+  it('returns fallback for undefined, empty, and whitespace-only', () => {
+    expect(parsePositiveInteger(undefined, 1)).toBe(1);
+    expect(parsePositiveInteger('', 1)).toBe(1);
+    expect(parsePositiveInteger('   ', 1)).toBe(1);
+  });
+
+  it('returns fallback for non-finite input', () => {
+    expect(parsePositiveInteger('abc', 1)).toBe(1);
+    expect(parsePositiveInteger('NaN', 1)).toBe(1);
+    expect(parsePositiveInteger('Infinity', 5)).toBe(5);
+  });
+
+  it('parses a valid positive integer', () => {
+    expect(parsePositiveInteger('3', 1)).toBe(3);
+  });
+
+  it('truncates fractional values toward zero', () => {
+    expect(parsePositiveInteger('2.9', 1)).toBe(2);
+    expect(parsePositiveInteger('1.1', 1)).toBe(1);
+  });
+
+  it('clamps zero and negatives up to 1 (not to the fallback)', () => {
+    expect(parsePositiveInteger('0', 9)).toBe(1);
+    expect(parsePositiveInteger('-2', 9)).toBe(1);
+    expect(parsePositiveInteger('-0.5', 9)).toBe(1);
   });
 });
 

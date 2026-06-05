@@ -21,9 +21,18 @@ import {
 const SEMVER = /^\d+\.\d+\.\d+$/;
 
 describe('classifier prompts module', () => {
-  it('exposes a semver prompt version pinned to 1.1.0', () => {
+  it('exposes a semver prompt version pinned to 1.2.0', () => {
     expect(CLASSIFIER_PROMPT_VERSION).toMatch(SEMVER);
-    expect(CLASSIFIER_PROMPT_VERSION).toBe('1.1.0');
+    expect(CLASSIFIER_PROMPT_VERSION).toBe('1.2.0');
+  });
+
+  it('math_notation rubric treats inline backtick code spans as fenced (NEU-757)', () => {
+    const line = CLASSIFIER_RUBRIC.mathNotationRenderingRisk.line.toLowerCase();
+    expect(line).toContain('backtick');
+    expect(line).toContain('fenced');
+    // The clause must reach the built per-field prompt the model actually sees.
+    const prompts = buildClassifierPrompt();
+    expect(prompts.mathNotationRenderingRisk.systemPrompt.toLowerCase()).toContain('backtick');
   });
 
   it('cites Wozniak, Sweller, and Merrill across the rubric lines', () => {

@@ -9,6 +9,15 @@ export const DEFAULT_CLASSIFIER_CONFIG: ClassifierConfig = {
   model: 'gpt-5.4-mini',
   reasoningEffort: 'low',
   temperature: null,
+  // NEU-757: base seed for model calls. Best-effort — pins the Completions
+  // sampler for non-reasoning CLASSIFIER_MODEL overrides; the default reasoning
+  // model's Responses API has no seed param and ignores it (see classifier.ts).
+  // Override via CLASSIFIER_SEED.
+  seed: 42,
+  // NEU-757: single sample by default — identical cost/fan-out to pre-NEU-757.
+  // Raise via CLASSIFIER_SAMPLES to majority-vote; this is the real determinism
+  // lever for the default reasoning model whose Responses API ignores seed.
+  samples: 1,
   maxRetries: 2,
   timeout: 10_000,
   openaiApiKey: null,

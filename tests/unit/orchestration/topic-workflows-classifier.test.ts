@@ -196,7 +196,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       rationale: 'smells like TOC',
       applicable: true,
     });
-    expect(tier2.prompt_version).toBe('1.1.0');
+    expect(tier2.prompt_version).toBe('1.2.0');
     expect(tier2.classified_at).toBe(updatedAt);
 
     // Findings surfaced on the response
@@ -609,7 +609,7 @@ describe('createTopicWithChunks — Tier 2 classifier wiring (NEU-620)', () => {
       expect(data).toEqual({
         chunk_id: 'chunk-a',
         topic_id: expect.any(String),
-        prompt_version: '1.1.0',
+        prompt_version: '1.2.0',
         duration_ms: expect.any(Number),
         scores: {
           rendering_clarity: 5,
