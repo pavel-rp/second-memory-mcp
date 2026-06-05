@@ -11,6 +11,7 @@ import {
   parseBoolean,
   parseClassifierProvider,
   parseNumber,
+  parsePositiveInteger,
   parseReasoningEffort,
   parseVerdictFieldList,
 } from '../shared/env-parsing.js';
@@ -95,6 +96,10 @@ export function resolveClassifierConfig(
       env.CLASSIFIER_TEMPERATURE,
       DEFAULT_CLASSIFIER_CONFIG.temperature
     ),
+    // NEU-757: base seed truncated to an integer (OpenAI's seed is an integer);
+    // samples clamped to >= 1. Together they pin the reasoning model run-to-run.
+    seed: Math.trunc(parseNumber(env.CLASSIFIER_SEED, DEFAULT_CLASSIFIER_CONFIG.seed)),
+    samples: parsePositiveInteger(env.CLASSIFIER_SAMPLES, DEFAULT_CLASSIFIER_CONFIG.samples),
     maxRetries: parseNumber(env.CLASSIFIER_MAX_RETRIES, DEFAULT_CLASSIFIER_CONFIG.maxRetries),
     timeout: parseNumber(env.CLASSIFIER_TIMEOUT_MS, DEFAULT_CLASSIFIER_CONFIG.timeout),
     openaiApiKey,

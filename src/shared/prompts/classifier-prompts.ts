@@ -24,8 +24,17 @@ import {
  * exemplars, and includes explicit grounding + edge-case clauses.
  */
 
-/** Semver-tagged version of the prompt body; stored with every verdict. */
-export const CLASSIFIER_PROMPT_VERSION = '1.1.0';
+/**
+ * Semver-tagged version of the prompt body; stored with every verdict.
+ *
+ * **NEU-757 changes (1.2.0):** the `math_notation_rendering_risk` rubric line
+ * now states that inline `backtick code spans` count as fenced (notation inside
+ * them renders literally and must not be flagged) — only notation in unfenced
+ * running prose scores low. The high-score exemplar (`mn-backtick-fenced`) was
+ * retargeted to demonstrate this. Bumped so verdicts produced under the old
+ * rubric remain distinguishable.
+ */
+export const CLASSIFIER_PROMPT_VERSION = '1.2.0';
 
 /** A single per-field few-shot exemplar. */
 export type FewShotExample = {
@@ -52,7 +61,7 @@ export const CLASSIFIER_RUBRIC: Record<VerdictFieldName, RubricEntry> = {
   },
   mathNotationRenderingRisk: {
     label: 'math_notation_rendering_risk',
-    line: "Will the math notation render unambiguously in prose? Score low when prime marks, subscripts, or superscripts appear in running text without math fences (e.g. `A(n')` rendered as text). Score 5 with applicable=false when the chunk contains no math notation.",
+    line: "Will the math notation render unambiguously in prose? Notation is FENCED — and therefore safe — when it sits inside $...$/$$...$$ math fences OR inline `backtick code spans`, both of which render literally in any Markdown client. Score low ONLY when prime marks, subscripts, or superscripts appear in UNFENCED running text (e.g. A(n') typed as bare prose). Never flag notation that is wrapped in backticks or math fences. Score 5 with applicable=false when the chunk contains no math notation.",
   },
   definitionConstructive: {
     label: 'definition_constructive',
@@ -171,14 +180,14 @@ export const CLASSIFIER_FEW_SHOTS: Record<VerdictFieldName, readonly FewShotExam
   ],
   mathNotationRenderingRisk: [
     {
-      label: 'mn-fenced-math',
+      label: 'mn-backtick-fenced',
       field: 'mathNotationRenderingRisk',
-      chunkTitle: 'Big-O of binary search',
+      chunkTitle: 'Prime-marked notation in inline code',
       chunkContent:
-        'Binary search runs in $O(\\log_2 n)$ time on a sorted array of length $n$. Each iteration halves the search interval, so the count of iterations is bounded by $\\lceil \\log_2 n \\rceil$.',
+        "The derivative `p'(x)` and the count `A(n')` are written as inline backtick code spans, so their prime marks render literally. Display math is fenced too: $O(\\log_2 n)$.",
       expectedScore: 5,
       expectedRationale:
-        'All math notation is enclosed in $...$ math fences; no prime marks or subscripts leak into running text.',
+        'Prime marks appear only inside inline backtick code spans and $...$ math fences — nothing leaks into unfenced prose, so notation renders unambiguously.',
       expectedApplicable: true,
     },
     {

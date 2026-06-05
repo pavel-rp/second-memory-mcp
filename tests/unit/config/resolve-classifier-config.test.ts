@@ -188,6 +188,41 @@ describe('resolveClassifierConfig', () => {
     expect(() => resolveClassifierConfig()).not.toThrow();
   });
 
+  describe('CLASSIFIER_SEED and CLASSIFIER_SAMPLES (NEU-757)', () => {
+    it('defaults seed to 42 and samples to 1 when unset', () => {
+      const result = resolveClassifierConfig({});
+      expect(result.classifier.seed).toBe(DEFAULT_CLASSIFIER_CONFIG.seed);
+      expect(result.classifier.seed).toBe(42);
+      expect(result.classifier.samples).toBe(DEFAULT_CLASSIFIER_CONFIG.samples);
+      expect(result.classifier.samples).toBe(1);
+    });
+
+    it('parses CLASSIFIER_SEED and truncates a fractional value to an integer', () => {
+      expect(resolveClassifierConfig({ CLASSIFIER_SEED: '7' }).classifier.seed).toBe(7);
+      expect(resolveClassifierConfig({ CLASSIFIER_SEED: '7.9' }).classifier.seed).toBe(7);
+      expect(resolveClassifierConfig({ CLASSIFIER_SEED: '0' }).classifier.seed).toBe(0);
+    });
+
+    it('falls back to the default seed on a non-numeric CLASSIFIER_SEED', () => {
+      expect(resolveClassifierConfig({ CLASSIFIER_SEED: 'abc' }).classifier.seed).toBe(
+        DEFAULT_CLASSIFIER_CONFIG.seed
+      );
+    });
+
+    it('parses CLASSIFIER_SAMPLES and clamps to a minimum of 1', () => {
+      expect(resolveClassifierConfig({ CLASSIFIER_SAMPLES: '3' }).classifier.samples).toBe(3);
+      expect(resolveClassifierConfig({ CLASSIFIER_SAMPLES: '2.9' }).classifier.samples).toBe(2);
+      expect(resolveClassifierConfig({ CLASSIFIER_SAMPLES: '0' }).classifier.samples).toBe(1);
+      expect(resolveClassifierConfig({ CLASSIFIER_SAMPLES: '-4' }).classifier.samples).toBe(1);
+    });
+
+    it('falls back to the default sample count on a non-numeric CLASSIFIER_SAMPLES', () => {
+      expect(resolveClassifierConfig({ CLASSIFIER_SAMPLES: 'lots' }).classifier.samples).toBe(
+        DEFAULT_CLASSIFIER_CONFIG.samples
+      );
+    });
+  });
+
   describe('CLASSIFIER_ENABLE alias migration', () => {
     it('canonical CLASSIFIER_ENABLE alone resolves to enable=true with no warning', () => {
       const result = resolveClassifierConfig({ CLASSIFIER_ENABLE: 'true' });

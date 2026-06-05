@@ -114,7 +114,7 @@ describe('createTopicWithChunks — Tier 2 classifier integration (NEU-620)', ()
         rationale: 'ok',
         applicable: true,
       });
-      expect(tier2?.prompt_version).toBe('1.1.0');
+      expect(tier2?.prompt_version).toBe('1.2.0');
       expect(typeof tier2?.classified_at).toBe('string');
     }
 
@@ -237,7 +237,7 @@ describe('Tier 2 classifier event logging (NEU-639)', () => {
     };
     expect(data.chunk_id).toBe(ids[0]);
     expect(typeof data.topic_id).toBe('string');
-    expect(data.prompt_version).toBe('1.1.0');
+    expect(data.prompt_version).toBe('1.2.0');
     expect(typeof data.duration_ms).toBe('number');
     expect(data.scores.rendering_clarity).toBe(2);
     expect(data.scores.overall_fit).toBe(2);
