@@ -1314,5 +1314,35 @@ describe('chunk-tools', () => {
       expect(parsed.error.type).toBe('not_found');
       expect(parsed.error.findings).toBeUndefined();
     });
+
+    it('uses singular wording when a single chunk is reordered', async () => {
+      ctx.reorderChunks = vi.fn().mockResolvedValue({
+        success: true,
+        topicId: 'topic-1',
+        orderedChunkIds: ['only'],
+        count: 1,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler({ ...validInput, ordered_chunk_ids: ['only'] });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('1 chunk in');
+    });
+
+    it('returns a system error when the workflow throws', async () => {
+      ctx.reorderChunks = vi.fn().mockRejectedValue(new Error('boom'));
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
+      expect(parsed.error.message).toContain('boom');
+    });
   });
 });

@@ -151,18 +151,15 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             );
           }
 
-          const errorType = result.error?.type || 'database';
-          return toolError(
-            `Failed to reorder chunks: ${result.error?.message || 'Unknown error'}`,
-            {
-              type: errorType,
-              message: result.error?.message || 'Unknown error',
-              retryable: result.error?.retryable,
-              ...(errorType === 'content_quality'
-                ? { findings: toSnakeCase(result.error?.findings ?? []) }
-                : {}),
-            }
-          );
+          const { error } = result;
+          return toolError(`Failed to reorder chunks: ${error.message}`, {
+            type: error.type,
+            message: error.message,
+            retryable: error.retryable,
+            ...(error.type === 'content_quality'
+              ? { findings: toSnakeCase(error.findings ?? []) }
+              : {}),
+          });
         } catch (error) {
           const msg = extractErrorMessage(error);
           return toolError(`System error while reordering chunks: ${msg}`, {

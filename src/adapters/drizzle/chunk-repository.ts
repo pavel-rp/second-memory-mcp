@@ -326,11 +326,14 @@ export class DrizzleChunkRepository implements ChunkRepository {
   }
 
   async getMaxOrderIndex(topicId: string): Promise<number> {
+    // A non-grouped aggregate with COALESCE always returns exactly one row with
+    // a non-null `max`, so the row is asserted rather than optional-chained
+    // (avoids an uncoverable defensive branch).
     const [row] = await this.db
       .select({ max: sql<number>`COALESCE(MAX(${learningChunks.orderIndex}), 0)` })
       .from(learningChunks)
       .where(eq(learningChunks.topicId, topicId));
-    return Number(row?.max ?? 0);
+    return Number((row as { max: number }).max);
   }
 
   async shiftOrderIndexesAtOrAbove(

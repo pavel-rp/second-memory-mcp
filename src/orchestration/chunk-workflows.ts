@@ -197,14 +197,15 @@ export type DeleteChunkResult = {
   error?: ServiceError;
 };
 
-export type ReorderChunksResult = {
-  success: boolean;
-  topicId?: string;
-  /** The persisted order (1-based `order_index` matches array position + 1). */
-  orderedChunkIds?: string[];
-  count?: number;
-  error?: ServiceError;
-};
+export type ReorderChunksResult =
+  | {
+      success: true;
+      topicId: string;
+      /** The persisted order (1-based `order_index` matches array position + 1). */
+      orderedChunkIds: string[];
+      count: number;
+    }
+  | { success: false; error: ServiceError };
 
 /**
  * Build a `TopicLintInput` for a single-chunk update. Loads minimal topic
@@ -1018,15 +1019,17 @@ export async function createChunkWithTopic(
 
     // ─── NEU-758: resolve the new chunk's order_index ────────────────
     // `order` omitted → append at the end of the topic. `order` provided →
-    // insert at that position (clamped to end+1) and shift later peers down.
-    // A prerequisite already sitting at or after the requested position is a
+    // insert at that position (clamped to end+1), shifting later peers down.
+    // A prerequisite already at/after the requested position is a
     // content-quality rejection with no rows mutated. (An auto-created topic
     // is empty, so this branch only rejects for pre-existing topics — no
-    // orphan-topic risk.) On a later Tier 2 rollback the shifted peers keep
-    // their bumped order_index, leaving a harmless gap — the sequence stays
-    // monotonic and `order_index`-sorted ordering is unaffected by gaps.
+    // orphan-topic risk.) `shiftFromOrder` defers the peer-shift so it can run
+    // in the SAME transaction as the insert below — a failed insert can't leave
+    // peers shifted. A post-commit Tier 2 rejection still leaves a harmless
+    // order_index gap — ordering is by relative value, unaffected by gaps.
     const nowMs = Date.now();
     let orderIndex: number;
+    let shiftFromOrder: number | null = null;
     if (input.order !== undefined) {
       const existing = await deps.chunks.batchFetchMinimal({ topicId });
       const maxOrder = existing.reduce((m, c) => (c.orderIndex > m ? c.orderIndex : m), 0);
@@ -1051,9 +1054,7 @@ export async function createChunkWithTopic(
           findings,
         });
       }
-      if (targetOrder <= maxOrder) {
-        await deps.chunks.shiftOrderIndexesAtOrAbove(topicId, targetOrder, nowMs);
-      }
+      if (targetOrder <= maxOrder) shiftFromOrder = targetOrder;
       orderIndex = targetOrder;
     } else {
       orderIndex = (await deps.chunks.getMaxOrderIndex(topicId)) + 1;
@@ -1071,12 +1072,23 @@ export async function createChunkWithTopic(
       tier1RuleMeta !== undefined
         ? buildSingleChunkValidatorReport(input.id, tier1Findings, tier1RuleMeta, isoNow)
         : undefined;
-    await deps.chunks.create({
+    const newChunk = {
       ...chunkInput,
       topicId,
       orderIndex,
       ...(validatorReport !== undefined ? { validatorReport } : {}),
-    });
+    };
+    if (shiftFromOrder === null) {
+      await deps.chunks.create(newChunk);
+    } else {
+      // Atomic peer-shift + insert (Copilot review): a failed insert must not
+      // leave existing chunks shifted into a gapped sequence.
+      const shiftAt = shiftFromOrder;
+      await deps.unitOfWork.execute(async ports => {
+        await ports.chunks.shiftOrderIndexesAtOrAbove(topicId, shiftAt, nowMs);
+        await ports.chunks.create(newChunk);
+      });
+    }
     const created = await deps.chunks.getById(input.id);
     if (!created) {
       return serviceFail({

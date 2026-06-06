@@ -155,10 +155,7 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
  */
 function toposortDueChunks(chunks: DueChunkInfo[], maxDependencyDepth: number): string[] {
   const ordered = [...chunks].sort(
-    (a, b) =>
-      a.orderIndex - b.orderIndex ||
-      a.createdAt - b.createdAt ||
-      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+    (a, b) => a.orderIndex - b.orderIndex || a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1)
   );
   const hasAnyPrereqs = chunks.some(c => c.prerequisites && c.prerequisites.length > 0);
 

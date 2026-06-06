@@ -98,6 +98,7 @@ describe('chunk reorder (NEU-758)', () => {
 
     const result = await ctx.reorderChunks(topicId, ['c', 'a', 'b']);
     expect(result.success).toBe(true);
+    if (!result.success) throw new Error('expected success');
     expect(result.count).toBe(3);
 
     const after = {
@@ -150,8 +151,9 @@ describe('chunk reorder (NEU-758)', () => {
 
     const result = await ctx.reorderChunks(topicId, ['a', 'b']); // missing 'c'
     expect(result.success).toBe(false);
-    expect(result.error?.type).toBe('content_quality');
-    expect((result.error?.findings as unknown[]).length).toBeGreaterThan(0);
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('content_quality');
+    expect((result.error.findings as unknown[]).length).toBeGreaterThan(0);
 
     // No rows mutated.
     expect((await chunkRepo.getById('a'))?.orderIndex).toBe(1);
@@ -183,9 +185,10 @@ describe('chunk reorder (NEU-758)', () => {
 
     const result = await ctx.reorderChunks(topicId, ['b', 'a']); // b before its prereq a
     expect(result.success).toBe(false);
-    expect(result.error?.type).toBe('content_quality');
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('content_quality');
     expect(
-      (result.error?.findings as Array<{ rule: string }>).some(
+      (result.error.findings as Array<{ rule: string }>).some(
         f => f.rule === 'order.prerequisite_violation'
       )
     ).toBe(true);

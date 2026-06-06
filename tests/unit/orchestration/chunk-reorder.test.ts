@@ -103,6 +103,7 @@ describe('reorderChunks', () => {
     const result = await reorderChunks('topic-1', ['c', 'a', 'b'], deps);
 
     expect(result.success).toBe(true);
+    if (!result.success) throw new Error('expected success');
     expect(result.count).toBe(3);
     expect(result.orderedChunkIds).toEqual(['c', 'a', 'b']);
     expect(txUpdate).toHaveBeenCalledTimes(3);
@@ -136,9 +137,10 @@ describe('reorderChunks', () => {
     const result = await reorderChunks('topic-1', ['a', 'b'], deps);
 
     expect(result.success).toBe(false);
-    expect(result.error?.type).toBe('content_quality');
-    expect((result.error?.findings as unknown[]).length).toBeGreaterThan(0);
-    expect(result.error?.retryable).toBe(true);
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('content_quality');
+    expect((result.error.findings as unknown[]).length).toBeGreaterThan(0);
+    expect(result.error.retryable).toBe(true);
     expect(txUpdate).not.toHaveBeenCalled();
   });
 
@@ -148,9 +150,10 @@ describe('reorderChunks', () => {
     const result = await reorderChunks('topic-1', ['b', 'a'], deps);
 
     expect(result.success).toBe(false);
-    expect(result.error?.type).toBe('content_quality');
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('content_quality');
     expect(
-      (result.error?.findings as Array<{ rule: string }>).some(
+      (result.error.findings as Array<{ rule: string }>).some(
         f => f.rule === 'order.prerequisite_violation'
       )
     ).toBe(true);
@@ -161,7 +164,8 @@ describe('reorderChunks', () => {
     const { deps } = makeDeps([]);
     const result = await reorderChunks('topic-x', ['a'], deps);
     expect(result.success).toBe(false);
-    expect(result.error?.type).toBe('not_found');
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('not_found');
   });
 
   it('rolls back (database error) if a chunk disappears mid-transaction', async () => {
@@ -183,8 +187,9 @@ describe('reorderChunks', () => {
     const result = await reorderChunks('topic-1', ['a', 'b'], deps);
 
     expect(result.success).toBe(false);
-    expect(result.error?.type).toBe('database');
-    expect(result.error?.retryable).toBe(true);
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('database');
+    expect(result.error.retryable).toBe(true);
   });
 });
 
@@ -196,20 +201,28 @@ describe('createChunkWithTopic order placement', () => {
   }) {
     const shift = vi.fn().mockResolvedValue(1);
     const create = vi.fn().mockResolvedValue(undefined);
+    // Shared chunk stub so assertions on shift/create hold whether the call
+    // goes through deps.chunks (append path) or the unit-of-work txPorts
+    // (atomic insert-with-shift path).
+    const chunks = stubChunkRepository({
+      batchFetchMinimal: vi.fn().mockResolvedValue(opts.existing ?? []),
+      getMaxOrderIndex: vi.fn().mockResolvedValue(opts.maxOrder ?? 0),
+      shiftOrderIndexesAtOrAbove: shift,
+      create,
+      getById: vi.fn().mockResolvedValue(opts.created ?? makeChunk()),
+    });
     const deps: ChunkDeps = {
-      chunks: stubChunkRepository({
-        batchFetchMinimal: vi.fn().mockResolvedValue(opts.existing ?? []),
-        getMaxOrderIndex: vi.fn().mockResolvedValue(opts.maxOrder ?? 0),
-        shiftOrderIndexesAtOrAbove: shift,
-        create,
-        getById: vi.fn().mockResolvedValue(opts.created ?? makeChunk()),
-      }),
+      chunks,
       topics: stubTopicRepository({
         getById: vi
           .fn()
           .mockResolvedValue({ id: 'topic-1', title: 'T', subject: 'CS', summary: null }),
       }),
-      unitOfWork: stubUnitOfWork(),
+      unitOfWork: stubUnitOfWork(undefined, {
+        chunks,
+        topics: stubTopicRepository(),
+        sessions: stubSessionRepository(),
+      }),
       maxDependencyDepth: 5,
       // no linterRules / classifier → audit chain skipped
     };
@@ -243,7 +256,7 @@ describe('createChunkWithTopic order placement', () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ orderIndex: 4 }));
   });
 
-  it('inserts at the requested position and shifts peers', async () => {
+  it('inserts at the requested position and shifts peers atomically', async () => {
     const { deps, create, shift } = makeDeps({
       existing: [makeMeta('a', 1), makeMeta('b', 2), makeMeta('c', 3)],
     });
@@ -263,7 +276,7 @@ describe('createChunkWithTopic order placement', () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ orderIndex: 4 }));
   });
 
-  it('rejects when the requested order is at or before a prerequisite', async () => {
+  it('rejects when the requested order is at or before a single prerequisite', async () => {
     const { deps, create, shift } = makeDeps({
       existing: [makeMeta('p', 1), makeMeta('q', 2)],
     });
@@ -274,6 +287,23 @@ describe('createChunkWithTopic order placement', () => {
     expect(result.success).toBe(false);
     if (result.success) throw new Error('expected failure');
     expect(result.error.type).toBe('content_quality');
+    expect(result.error.message).toContain('prerequisite');
+    expect(create).not.toHaveBeenCalled();
+    expect(shift).not.toHaveBeenCalled();
+  });
+
+  it('rejects when the requested order is at or before multiple prerequisites', async () => {
+    const { deps, create, shift } = makeDeps({
+      existing: [makeMeta('p', 1), makeMeta('q', 2)],
+    });
+    const result = await createChunkWithTopic(
+      { ...baseInput, order: 1, prerequisitesJson: ['p', 'q'] },
+      deps
+    );
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error('expected failure');
+    expect(result.error.type).toBe('content_quality');
+    expect(result.error.message).toContain('prerequisites');
     expect(create).not.toHaveBeenCalled();
     expect(shift).not.toHaveBeenCalled();
   });
