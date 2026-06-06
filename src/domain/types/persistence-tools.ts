@@ -338,6 +338,17 @@ export const CreateLearningItemInputShape = {
   prerequisites: z.array(z.string()).default([]).describe('Prerequisites for this learning item'),
   tags: z.array(z.string()).default([]).describe('Tags for categorization'),
   topic_title: z.string().optional().describe('Optional topic title; creates a topic if missing'),
+  order: z
+    .number()
+    .int('Order must be an integer')
+    .min(1, 'Order must be at least 1')
+    .optional()
+    .describe(
+      'Optional 1-based teaching-sequence position within the topic. When provided, ' +
+        'the new chunk takes that position and existing chunks at or after it shift down; ' +
+        'when omitted, the chunk is appended at the end. Must be after all of its ' +
+        'prerequisites, or the call is rejected.'
+    ),
   content_status: z
     .enum(['draft', 'final'], {
       errorMap: () => ({
@@ -528,6 +539,34 @@ export const DeleteChunkInputShape = {
 } as const;
 
 export const DeleteChunkInputSchema = z.object(DeleteChunkInputShape).transform(toCamelCaseKeys);
+
+export const ReorderChunksInputShape = {
+  topic_id: z
+    .string()
+    .min(1, 'Topic ID cannot be empty')
+    .describe('ID of the topic whose chunks should be re-sequenced'),
+  ordered_chunk_ids: z
+    .array(z.string().min(1, 'Chunk ID cannot be empty'))
+    .min(1, 'ordered_chunk_ids must contain at least one chunk ID')
+    .describe(
+      "The topic's COMPLETE chunk set, listed in the desired teaching order. " +
+        'Every chunk in the topic must appear exactly once — partial reorders are ' +
+        'rejected. Each chunk must be positioned after all of its prerequisites. ' +
+        'Spaced-repetition history (ease, repetitions, next review) is preserved; ' +
+        'only the teaching sequence changes.'
+    ),
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
+} as const;
+
+export const ReorderChunksInputSchema = z
+  .object(ReorderChunksInputShape)
+  .transform(toCamelCaseKeys);
 
 export const UpdateTopicInputShape = {
   topic_id: z.string().min(1, 'Topic ID cannot be empty').describe('ID of the topic to update'),

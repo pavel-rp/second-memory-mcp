@@ -10,6 +10,7 @@ import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { hasSignificantContentChange } from '../shared/content-similarity.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import { validateChunkOrder, type ChunkOrderInput } from '../domain/services/chunk-order.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import type { LearningItem } from '../domain/types/recommendations.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
@@ -195,6 +196,16 @@ export type DeleteChunkResult = {
   removedDependencies?: ChunkDependencyCleanup[];
   error?: ServiceError;
 };
+
+export type ReorderChunksResult =
+  | {
+      success: true;
+      topicId: string;
+      /** The persisted order (1-based `order_index` matches array position + 1). */
+      orderedChunkIds: string[];
+      count: number;
+    }
+  | { success: false; error: ServiceError };
 
 /**
  * Build a `TopicLintInput` for a single-chunk update. Loads minimal topic
@@ -807,6 +818,94 @@ export async function deleteChunk(id: string, deps: ChunkDeps): Promise<DeleteCh
   }
 }
 
+/**
+ * NEU-758: re-sequence every chunk in a topic. `orderedChunkIds` must be the
+ * topic's complete chunk set in the desired teaching order. Validates set
+ * completeness + prerequisite consistency (pure `validateChunkOrder`) before
+ * any write; on violation returns a `content_quality` error carrying structured
+ * `findings` and mutates nothing. On success rewrites `order_index` to 1..N in
+ * a single unit-of-work transaction, touching only `order_index` + `updatedAt`
+ * — spaced-repetition state is never modified.
+ */
+export async function reorderChunks(
+  topicId: string,
+  orderedChunkIds: string[],
+  deps: ChunkDeps
+): Promise<ReorderChunksResult> {
+  try {
+    const rows = await deps.chunks.batchFetchMinimal({ topicId });
+    if (rows.length === 0) {
+      return {
+        success: false,
+        error: {
+          type: 'not_found',
+          message: `Topic "${topicId}" has no chunks to reorder`,
+          retryable: false,
+        },
+      };
+    }
+
+    const chunks: ChunkOrderInput[] = rows.map(r => ({
+      id: r.id,
+      prerequisites: Array.isArray(r.prerequisitesJson) ? r.prerequisitesJson : [],
+    }));
+
+    const { valid, findings } = validateChunkOrder(orderedChunkIds, chunks);
+    if (!valid) {
+      return {
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: `Chunk reorder rejected for topic ${topicId} by ${findings.length} order finding${findings.length === 1 ? '' : 's'}`,
+          findings,
+          // Mirrors NEU-752: structured rejections are retryable — a corrected
+          // ordering passes the same deterministic validation.
+          retryable: true,
+        },
+      };
+    }
+
+    const now = Date.now();
+    await deps.unitOfWork.execute(async ports => {
+      for (let i = 0; i < orderedChunkIds.length; i++) {
+        const rowCount = await ports.chunks.update(orderedChunkIds[i], {
+          orderIndex: i + 1,
+          updatedAt: now,
+        } as Partial<Omit<NewLearningChunk, 'id' | 'topicId' | 'createdAt'>>);
+        // Validation ran against a pre-transaction read; a concurrent delete
+        // could leave a row gone. Throw to roll back the whole UoW so the
+        // "atomic exact 1..N rewrite" contract holds — never a partial reorder.
+        if (rowCount === 0) {
+          throw new Error(
+            `Chunk ${orderedChunkIds[i]} disappeared during reorder (concurrent delete?)`
+          );
+        }
+      }
+    });
+
+    try {
+      logEvent('reorderChunks', 'chunks_reordered', {
+        topicId,
+        count: orderedChunkIds.length,
+      });
+    } catch {
+      // A broken event logger must not poison a successful commit.
+    }
+
+    return {
+      success: true,
+      topicId,
+      orderedChunkIds,
+      count: orderedChunkIds.length,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { type: 'database', message: extractErrorMessage(error), retryable: true },
+    };
+  }
+}
+
 export type CreateChunkResult = {
   chunk: LearningChunk;
   /**
@@ -819,7 +918,9 @@ export type CreateChunkResult = {
 };
 
 export async function createChunkWithTopic(
-  input: NewLearningChunk & { topicTitle?: string },
+  // NEU-758: `orderIndex` is resolved internally (it depends on topic resolution
+  // and the optional `order` preference), so callers supply `order?` instead.
+  input: Omit<NewLearningChunk, 'orderIndex'> & { topicTitle?: string; order?: number },
   deps: ChunkDeps
 ): Promise<ServiceResult<CreateChunkResult>> {
   const auditPath: AuditPath = 'create_chunk_with_topic';
@@ -916,8 +1017,52 @@ export async function createChunkWithTopic(
       }
     }
 
-    const { topicTitle: _tt, ...chunkInput } = input;
+    // ─── NEU-758: resolve the new chunk's order_index ────────────────
+    // `order` omitted → append at the end of the topic. `order` provided →
+    // insert at that position (clamped to end+1), shifting later peers down.
+    // A prerequisite already at/after the requested position is a
+    // content-quality rejection with no rows mutated. (An auto-created topic
+    // is empty, so this branch only rejects for pre-existing topics — no
+    // orphan-topic risk.) `shiftFromOrder` defers the peer-shift so it can run
+    // in the SAME transaction as the insert below — a failed insert can't leave
+    // peers shifted. A post-commit Tier 2 rejection still leaves a harmless
+    // order_index gap — ordering is by relative value, unaffected by gaps.
+    const nowMs = Date.now();
+    let orderIndex: number;
+    let shiftFromOrder: number | null = null;
+    if (input.order !== undefined) {
+      const existing = await deps.chunks.batchFetchMinimal({ topicId });
+      const maxOrder = existing.reduce((m, c) => (c.orderIndex > m ? c.orderIndex : m), 0);
+      const targetOrder = Math.min(Math.max(1, input.order), maxOrder + 1);
+      const orderById = new Map(existing.map(c => [c.id, c.orderIndex]));
+      const prereqViolations = (input.prerequisitesJson ?? []).filter(pid => {
+        const pos = orderById.get(pid);
+        return pos !== undefined && pos >= targetOrder;
+      });
+      if (prereqViolations.length > 0) {
+        const findings: LinterFinding[] = prereqViolations.map(pid => ({
+          chunkId: input.id,
+          rule: 'order.prerequisite_violation',
+          severity: 'blocking',
+          category: 'order',
+          detail: `Chunk "${input.id}" requested at position ${targetOrder} is at or before its prerequisite "${pid}" (position ${orderById.get(pid)}). A chunk must come after all of its prerequisites.`,
+        }));
+        return serviceFail({
+          type: 'content_quality',
+          message: `Chunk creation blocked for chunk ${input.id}: requested order ${targetOrder} is at or before ${prereqViolations.length} prerequisite${prereqViolations.length === 1 ? '' : 's'}`,
+          retryable: true,
+          findings,
+        });
+      }
+      if (targetOrder <= maxOrder) shiftFromOrder = targetOrder;
+      orderIndex = targetOrder;
+    } else {
+      orderIndex = (await deps.chunks.getMaxOrderIndex(topicId)) + 1;
+    }
+
+    const { topicTitle: _tt, order: _order, ...chunkInput } = input;
     void _tt; // stripped before persistence — topicTitle is a helper-only field
+    void _order; // stripped — `order` is a preference, resolved into orderIndex above
     // Anchor the Tier 1 validator-report timestamp to the chunk's persisted
     // `updatedAt` so audit and row timestamps line up — mirrors the update
     // path which uses `new Date(now).toISOString()` where `now` is the same
@@ -927,11 +1072,23 @@ export async function createChunkWithTopic(
       tier1RuleMeta !== undefined
         ? buildSingleChunkValidatorReport(input.id, tier1Findings, tier1RuleMeta, isoNow)
         : undefined;
-    await deps.chunks.create({
+    const newChunk = {
       ...chunkInput,
       topicId,
+      orderIndex,
       ...(validatorReport !== undefined ? { validatorReport } : {}),
-    });
+    };
+    if (shiftFromOrder === null) {
+      await deps.chunks.create(newChunk);
+    } else {
+      // Atomic peer-shift + insert (Copilot review): a failed insert must not
+      // leave existing chunks shifted into a gapped sequence.
+      const shiftAt = shiftFromOrder;
+      await deps.unitOfWork.execute(async ports => {
+        await ports.chunks.shiftOrderIndexesAtOrAbove(topicId, shiftAt, nowMs);
+        await ports.chunks.create(newChunk);
+      });
+    }
     const created = await deps.chunks.getById(input.id);
     if (!created) {
       return serviceFail({

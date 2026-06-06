@@ -47,6 +47,7 @@ function stubSession(overrides?: Partial<LearningSession>): LearningSession {
 
 function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
   return {
+    orderIndex: 1,
     id: 'c1',
     topicId: 'topic-1',
     title: 'Chunk 1',

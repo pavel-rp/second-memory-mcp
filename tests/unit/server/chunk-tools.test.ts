@@ -13,13 +13,14 @@ describe('chunk-tools', () => {
     ctx = createMockAppContext();
   });
 
-  it('registers all 5 chunk tools', () => {
+  it('registers all 6 chunk tools', () => {
     registerChunkTools(server as any, ctx);
     expect(server.tools.has('create_learning_item')).toBe(true);
     expect(server.tools.has('update_chunk_content')).toBe(true);
     expect(server.tools.has('update_chunk_metadata')).toBe(true);
     expect(server.tools.has('update_chunk')).toBe(true);
     expect(server.tools.has('delete_chunk')).toBe(true);
+    expect(server.tools.has('reorder_chunks')).toBe(true);
   });
 
   // ---------------------------------------------------------------
@@ -76,6 +77,22 @@ describe('chunk-tools', () => {
       expect(parsed.data.topic_id).toBe('t1');
       expect(parsed.data.created_at).toBeDefined();
       expect(parsed.data.message).toContain('Arrays');
+    });
+
+    it('forwards the order preference and returns the resolved order (NEU-758)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now(), orderIndex: 2 } },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler({ ...validInput, order: 2 });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.order).toBe(2);
+      expect((ctx.createChunkWithTopic as any).mock.calls[0][0].order).toBe(2);
     });
 
     it('includes consistency_reminder in success response', async () => {
@@ -1218,6 +1235,114 @@ describe('chunk-tools', () => {
       const handler = server.tools.get('delete_chunk')!.handler;
 
       await expect(handler({ chunk_id: '' })).rejects.toThrow();
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // reorder_chunks (NEU-758)
+  // ---------------------------------------------------------------
+  describe('reorder_chunks', () => {
+    const validInput = {
+      topic_id: 'topic-1',
+      ordered_chunk_ids: ['c', 'a', 'b'],
+      context_token: 'ctx-test',
+    };
+
+    it('returns success with the persisted order and forwards args', async () => {
+      ctx.reorderChunks = vi.fn().mockResolvedValue({
+        success: true,
+        topicId: 'topic-1',
+        orderedChunkIds: ['c', 'a', 'b'],
+        count: 3,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.topic_id).toBe('topic-1');
+      expect(parsed.data.ordered_chunk_ids).toEqual(['c', 'a', 'b']);
+      expect(parsed.data.count).toBe(3);
+      expect(parsed.data.consistency_reminder).toBeDefined();
+      expect((ctx.reorderChunks as any).mock.calls[0]).toEqual(['topic-1', ['c', 'a', 'b']]);
+    });
+
+    it('surfaces snake-cased findings on content_quality rejection', async () => {
+      ctx.reorderChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: {
+          type: 'content_quality',
+          message: 'invalid order',
+          retryable: true,
+          findings: [
+            {
+              chunkId: 'b',
+              rule: 'order.prerequisite_violation',
+              severity: 'blocking',
+              category: 'order',
+              detail: 'b before a',
+            },
+          ],
+        },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('content_quality');
+      expect(parsed.error.findings[0].chunk_id).toBe('b');
+      expect(parsed.error.findings[0].rule).toBe('order.prerequisite_violation');
+    });
+
+    it('maps a not_found error without a findings key', async () => {
+      ctx.reorderChunks = vi.fn().mockResolvedValue({
+        success: false,
+        error: { type: 'not_found', message: 'no chunks', retryable: false },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('not_found');
+      expect(parsed.error.findings).toBeUndefined();
+    });
+
+    it('uses singular wording when a single chunk is reordered', async () => {
+      ctx.reorderChunks = vi.fn().mockResolvedValue({
+        success: true,
+        topicId: 'topic-1',
+        orderedChunkIds: ['only'],
+        count: 1,
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler({ ...validInput, ordered_chunk_ids: ['only'] });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.message).toContain('1 chunk in');
+    });
+
+    it('returns a system error when the workflow throws', async () => {
+      ctx.reorderChunks = vi.fn().mockRejectedValue(new Error('boom'));
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('reorder_chunks')!.handler;
+
+      const result = await handler(validInput);
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('internal');
+      expect(parsed.error.message).toContain('boom');
     });
   });
 });

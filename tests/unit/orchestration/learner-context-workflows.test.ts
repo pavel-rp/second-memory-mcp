@@ -23,6 +23,7 @@ const TODAY_START_MS = new Date('2025-06-15T00:00:00Z').getTime();
 
 function makeChunkMinimal(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
   return {
+    orderIndex: 1,
     id: 'c1',
     title: 'Chunk 1',
     subject: 'CS',

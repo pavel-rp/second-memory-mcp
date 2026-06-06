@@ -42,6 +42,7 @@ export type ChunkMinimalMetadata = {
   prerequisitesJson: string[] | null;
   tagsJson: string[] | null;
   contentStatus: ContentStatus;
+  orderIndex: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -96,10 +97,28 @@ export interface ChunkRepository {
     chunkIds?: string[];
   }): Promise<ChunkMinimalMetadata[]>;
   findDependents(chunkId: string): Promise<ChunkDependentRow[]>;
+  /**
+   * Prerequisite context for teaching: chunks positioned earlier in the topic
+   * sequence than `beforeOrderIndex` (NEU-758 — ordered by the persisted
+   * `order_index`, not `createdAt`, so the context stays correct after a
+   * reorder). Ordered ascending by `order_index`, then `id`.
+   */
   getPrerequisiteContext(
     topicId: string,
-    beforeCreatedAt: number
+    beforeOrderIndex: number
   ): Promise<Array<{ id: string; title: string; condensedSummary: string | null }>>;
+  /**
+   * Highest `order_index` among a topic's chunks, or 0 when the topic has none.
+   * Used by `create_learning_item` to append a new chunk at the end (NEU-758).
+   */
+  getMaxOrderIndex(topicId: string): Promise<number>;
+  /**
+   * Shift `order_index` up by one for every chunk in the topic at or above
+   * `fromOrder`, stamping `updated_at = now`. Returns the affected row count.
+   * Used to open a slot when `create_learning_item` inserts at a position
+   * (NEU-758). Single atomic UPDATE.
+   */
+  shiftOrderIndexesAtOrAbove(topicId: string, fromOrder: number, now: number): Promise<number>;
   /**
    * Overwrite the full `validator_report` JSONB column for a chunk. Returns
    * the affected row count. Intended for overwrite use (e.g. re-running the

@@ -35,6 +35,7 @@ const NOW = 1_700_000_000_000;
 
 function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
   return {
+    orderIndex: 1,
     id: 'chunk-1',
     topicId: 'topic-1',
     title: 'Original Title',

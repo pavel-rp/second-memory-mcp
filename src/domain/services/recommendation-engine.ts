@@ -12,6 +12,8 @@ export type DueChunkInfo = {
   easeFactor: number;
   estimatedDuration: number;
   createdAt: number;
+  /** Persisted teaching-sequence position (NEU-758); primary ordering key. */
+  orderIndex: number;
   lastReviewedAt: number | null;
   prerequisites?: string[];
 };
@@ -116,7 +118,8 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
         ? Math.min(1, Math.round((score + RECENCY_BOOST) * 100) / 100)
         : score;
 
-    // Order due chunk IDs topologically (prerequisites first), with createdAt as tiebreaker
+    // Order due chunk IDs topologically (prerequisites first), with order_index
+    // (then createdAt, then id) as the tiebreaker for same-level chunks.
     const orderedChunkIds = toposortDueChunks(chunks, maxDependencyDepth);
 
     recommendations.push({
@@ -145,20 +148,24 @@ export function aggregateTopicRecommendations(input: TopicAggregationInput): Top
 
 /**
  * Topologically sort due chunks within a topic using DependencyResolver.
- * Falls back to createdAt order when no prerequisites exist or toposort fails.
- * Pre-sorts by createdAt so same-level nodes maintain creation order as tiebreaker.
+ * Falls back to order_index order when no prerequisites exist or toposort fails.
+ * Pre-sorts by (order_index, createdAt, id) so same-level nodes follow the
+ * persisted teaching sequence as tiebreaker (NEU-758). `createdAt`/`id` break
+ * ties when order_index is uniform (e.g. legacy rows backfilled to the default).
  */
 function toposortDueChunks(chunks: DueChunkInfo[], maxDependencyDepth: number): string[] {
-  const createdAtSorted = [...chunks].sort((a, b) => a.createdAt - b.createdAt);
+  const ordered = [...chunks].sort(
+    (a, b) => a.orderIndex - b.orderIndex || a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1)
+  );
   const hasAnyPrereqs = chunks.some(c => c.prerequisites && c.prerequisites.length > 0);
 
   if (!hasAnyPrereqs) {
-    return createdAtSorted.map(c => c.id);
+    return ordered.map(c => c.id);
   }
 
   try {
     const chunkIdSet = new Set(chunks.map(c => c.id));
-    const nodes: DependencyNode[] = createdAtSorted.map(c => ({
+    const nodes: DependencyNode[] = ordered.map(c => ({
       id: c.id,
       prerequisites: (c.prerequisites ?? []).filter(p => chunkIdSet.has(p)),
     }));
@@ -171,9 +178,9 @@ function toposortDueChunks(chunks: DueChunkInfo[], maxDependencyDepth: number): 
     }
   } catch {
     // Intentionally silent — this is a domain service (zero I/O), so logging
-    // is not available here. Fallback to createdAt order is always safe and
+    // is not available here. Fallback to order_index order is always safe and
     // toposort failures are non-critical (ordering preference, not correctness).
   }
 
-  return createdAtSorted.map(c => c.id);
+  return ordered.map(c => c.id);
 }

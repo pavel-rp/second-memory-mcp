@@ -33,6 +33,8 @@ export function stubChunkRepository(overrides?: Partial<ChunkRepository>): Chunk
     countByTopicIds: vi.fn().mockResolvedValue(new Map()),
     findDependents: vi.fn().mockResolvedValue([]),
     getPrerequisiteContext: vi.fn().mockResolvedValue([]),
+    getMaxOrderIndex: vi.fn().mockResolvedValue(0),
+    shiftOrderIndexesAtOrAbove: vi.fn().mockResolvedValue(0),
     ...overrides,
   };
 }

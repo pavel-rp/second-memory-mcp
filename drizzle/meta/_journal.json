@@ -162,6 +162,13 @@
       "when": 1774250000000,
       "tag": "0022_add_consecutive_failures",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1774260000000,
+      "tag": "0023_add_chunk_order_index",
+      "breakpoints": true
     }
   ]
 }

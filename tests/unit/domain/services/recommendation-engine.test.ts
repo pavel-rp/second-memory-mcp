@@ -20,6 +20,7 @@ function makeDueChunk(overrides: Partial<DueChunkInfo> = {}): DueChunkInfo {
     easeFactor: 2.5,
     estimatedDuration: 10,
     createdAt: NOW_MS - 10 * MS_PER_DAY,
+    orderIndex: 1,
     lastReviewedAt: null,
     ...overrides,
   };
@@ -36,6 +37,39 @@ describe('aggregateTopicRecommendations', () => {
       maxDependencyDepth: 5,
     });
     expect(result).toEqual([]);
+  });
+
+  it('orders due chunk ids by order_index (over createdAt) as the toposort tiebreaker', () => {
+    // NEU-758: order_index is the primary same-level tiebreaker. Here createdAt
+    // order and order_index order disagree — order_index must win.
+    const chunks = [
+      // Newer createdAt but later order_index → must sort AFTER.
+      makeDueChunk({
+        id: 'late',
+        topicId: 't',
+        topicTitle: 'T',
+        orderIndex: 2,
+        createdAt: NOW_MS - 5 * MS_PER_DAY,
+      }),
+      // Older createdAt but earlier order_index → must sort FIRST.
+      makeDueChunk({
+        id: 'early',
+        topicId: 't',
+        topicTitle: 'T',
+        orderIndex: 1,
+        createdAt: NOW_MS - 10 * MS_PER_DAY,
+      }),
+    ];
+    const result = aggregateTopicRecommendations({
+      dueChunks: chunks,
+      topicChunkCounts: new Map([['t', 2]]),
+      limit: 10,
+      now: NOW,
+      recencyWindowMs: RECENCY_WINDOW_MS,
+      maxDependencyDepth: 5,
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].dueChunkIds).toEqual(['early', 'late']);
   });
 
   it('groups chunks by topic and returns topic-level recommendations', () => {
