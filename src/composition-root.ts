@@ -168,6 +168,10 @@ export interface AppContext {
     }
   ) => Promise<chunkWorkflows.ChunkUpdateResult>;
   deleteChunk: (id: string) => Promise<chunkWorkflows.DeleteChunkResult>;
+  reorderChunks: (
+    topicId: string,
+    orderedChunkIds: string[]
+  ) => Promise<chunkWorkflows.ReorderChunksResult>;
 
   // Topic orchestration
   createTopicWithChunks: (
@@ -513,6 +517,8 @@ export function createAppContext(
     updateChunkWithProgressReset: (id, input) =>
       chunkWorkflows.updateChunkWithProgressReset(id, input, chunkDeps),
     deleteChunk: id => chunkWorkflows.deleteChunk(id, chunkDeps),
+    reorderChunks: (topicId, orderedChunkIds) =>
+      chunkWorkflows.reorderChunks(topicId, orderedChunkIds, chunkDeps),
 
     // Topic orchestration
     createTopicWithChunks: input => topicWorkflows.createTopicWithChunks(input, topicDeps),

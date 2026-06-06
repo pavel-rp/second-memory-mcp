@@ -126,6 +126,7 @@ function stubSessionInput(overrides?: Partial<SessionInput>): SessionInput {
 
 function stubChunkMeta(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
   return {
+    orderIndex: 1,
     id: 'c1',
     title: 'Chunk 1',
     subject: 'CS',

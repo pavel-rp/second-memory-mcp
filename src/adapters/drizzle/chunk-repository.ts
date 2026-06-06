@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lt, lte, ne, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, lt, lte, ne, sql } from 'drizzle-orm';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
   learningChunks,
@@ -42,6 +42,7 @@ const CHUNK_COLUMNS_WITH_TOPIC = {
   contentStatus: learningChunks.contentStatus,
   condensedSummary: learningChunks.condensedSummary,
   knowledgeType: learningChunks.knowledgeType,
+  orderIndex: learningChunks.orderIndex,
   createdAt: learningChunks.createdAt,
   updatedAt: learningChunks.updatedAt,
   topicTitle: learningTopics.title,
@@ -294,6 +295,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
         prerequisitesJson: learningChunks.prerequisitesJson,
         tagsJson: learningChunks.tagsJson,
         contentStatus: learningChunks.contentStatus,
+        orderIndex: learningChunks.orderIndex,
         createdAt: learningChunks.createdAt,
         updatedAt: learningChunks.updatedAt,
       })
@@ -307,7 +309,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
 
   async getPrerequisiteContext(
     topicId: string,
-    beforeCreatedAt: number
+    beforeOrderIndex: number
   ): Promise<Array<{ id: string; title: string; condensedSummary: string | null }>> {
     return await this.db
       .select({
@@ -317,10 +319,30 @@ export class DrizzleChunkRepository implements ChunkRepository {
       })
       .from(learningChunks)
       .where(
-        and(eq(learningChunks.topicId, topicId), lt(learningChunks.createdAt, beforeCreatedAt))
+        and(eq(learningChunks.topicId, topicId), lt(learningChunks.orderIndex, beforeOrderIndex))
       )
-      .orderBy(asc(learningChunks.createdAt), asc(learningChunks.id))
+      .orderBy(asc(learningChunks.orderIndex), asc(learningChunks.id))
       .limit(20);
+  }
+
+  async getMaxOrderIndex(topicId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ max: sql<number>`COALESCE(MAX(${learningChunks.orderIndex}), 0)` })
+      .from(learningChunks)
+      .where(eq(learningChunks.topicId, topicId));
+    return Number(row?.max ?? 0);
+  }
+
+  async shiftOrderIndexesAtOrAbove(
+    topicId: string,
+    fromOrder: number,
+    now: number
+  ): Promise<number> {
+    const res = await this.db
+      .update(learningChunks)
+      .set({ orderIndex: sql`${learningChunks.orderIndex} + 1`, updatedAt: now })
+      .where(and(eq(learningChunks.topicId, topicId), gte(learningChunks.orderIndex, fromOrder)));
+    return res.rowCount ?? 0;
   }
 
   async findDependents(chunkId: string): Promise<ChunkDependentRow[]> {

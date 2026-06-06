@@ -77,6 +77,7 @@ describe('chunk-queries service', () => {
         content: null,
         contentVersion: null,
         contentUpdatedAt: null,
+        orderIndex: 1,
         contentEmbedding: null,
       };
 
@@ -115,6 +116,7 @@ describe('chunk-queries service', () => {
         content: null,
         contentVersion: null,
         contentUpdatedAt: null,
+        orderIndex: 1,
         contentEmbedding: null,
       };
 
@@ -149,6 +151,7 @@ describe('chunk-queries service', () => {
         content: 'My content',
         contentVersion: 2,
         contentUpdatedAt: now,
+        orderIndex: 1,
         contentEmbedding: null,
       };
 

@@ -69,6 +69,7 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
 
 function makeLearningChunk(overrides?: Partial<LearningChunk>): LearningChunk {
   return {
+    orderIndex: 1,
     id: 'c1',
     topicId: 'topic-1',
     title: 'Introduction to X',

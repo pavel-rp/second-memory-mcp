@@ -80,6 +80,7 @@ function makeSessionChunk(overrides?: Partial<SessionChunk>): SessionChunk {
 
 function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicTitle {
   return {
+    orderIndex: 1,
     id: 'c1',
     topicId: 'topic-1',
     title: 'Introduction to X',
@@ -2111,6 +2112,7 @@ describe('getNextTeachingStep', () => {
   describe('NEU-312: tier-branched instruction and topic staleness', () => {
     function makeMinimalChunk(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
       return {
+        orderIndex: 1,
         id: 'c1',
         title: 'Chunk 1',
         subject: 'CS',
@@ -2484,6 +2486,7 @@ describe('getNextTeachingStep', () => {
 
     function makeMinimalChunkMeta(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
       return {
+        orderIndex: 1,
         id: 'c1',
         title: 'Chunk 1',
         subject: 'CS',
@@ -2941,6 +2944,7 @@ describe('getNextTeachingStep', () => {
 
 function makeChunkListRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicTitle {
   return {
+    orderIndex: 1,
     id: 'c1',
     topicId: 'topic-1',
     title: 'Chunk 1',

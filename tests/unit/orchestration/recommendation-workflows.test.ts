@@ -13,6 +13,7 @@ const MS_PER_DAY = 86_400_000;
 
 function stubChunkRow(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopicTitle {
   return {
+    orderIndex: 1,
     id: 'c1',
     topicId: 'topic-1',
     title: 'Chunk 1',

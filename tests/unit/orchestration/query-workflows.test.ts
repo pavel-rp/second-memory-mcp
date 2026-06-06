@@ -21,6 +21,7 @@ function stubChunkRow(
   overrides?: Partial<LearningChunk & { topicTitle?: string | null }>
 ): ChunkWithTopicTitle {
   return {
+    orderIndex: 1,
     id: 'c1',
     topicId: 'topic-1',
     title: 'Chunk 1',

@@ -59,6 +59,8 @@ export type LearningChunk = {
   contentStatus: ContentStatus;
   condensedSummary: string | null;
   knowledgeType: KnowledgeType | null;
+  /** 1-based teaching-sequence position within the topic (NEU-758). */
+  orderIndex: number;
   /**
    * Optional because most SELECT projections omit this JSONB column for
    * payload size reasons. `getById` reads it. Persisted inline by the create
@@ -91,6 +93,13 @@ export type NewLearningChunk = {
   contentStatus?: ContentStatus;
   condensedSummary?: string | null;
   knowledgeType?: KnowledgeType | null;
+  /**
+   * 1-based teaching-sequence position within the topic (NEU-758). Optional to
+   * mirror the `order_index` DB default — production write paths
+   * (`createTopicWithChunks`, `createChunkWithTopic`) always set it explicitly;
+   * ad-hoc inserts that omit it fall back to the column default.
+   */
+  orderIndex?: number;
   validatorReport?: ValidatorReport | null;
   createdAt: number;
   updatedAt: number;

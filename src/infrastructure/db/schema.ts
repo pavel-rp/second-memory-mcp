@@ -73,12 +73,14 @@ export const learningChunks = pgTable(
     contentStatus: text('content_status').notNull().default('final').$type<'draft' | 'final'>(), // CHECK('draft','final') — enforced at DB level
     condensedSummary: text('condensed_summary'), // short distillation of key takeaway (2-4 sentences)
     knowledgeType: text('knowledge_type').$type<'fact' | 'concept' | 'procedure' | 'principle'>(), // CHECK — enforced at DB level
+    orderIndex: integer('order_index').notNull().default(1), // 1-based teaching-sequence position within the topic (NEU-758). Production write paths set it explicitly; the default is a safety net for ad-hoc inserts.
     validatorReport: jsonb('validator_report').$type<ValidatorReport>(),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(),
     updatedAt: bigint('updated_at', { mode: 'number' }).notNull(),
   },
   table => [
     index('idx_learning_chunks_next_review_at').on(table.nextReviewAt),
+    index('idx_learning_chunks_topic_order').on(table.topicId, table.orderIndex),
     index('idx_learning_chunks_prerequisites_json').using('gin', table.prerequisitesJson),
     index('idx_learning_chunks_content_embedding').using(
       'hnsw',
@@ -86,6 +88,7 @@ export const learningChunks = pgTable(
     ),
     check('chk_chunk_type', sql`${table.chunkType} IN ('new', 'review', 'remediation')`),
     check('chk_content_status', sql`${table.contentStatus} IN ('draft', 'final')`),
+    check('chk_order_index_positive', sql`${table.orderIndex} >= 1`),
     check(
       'chk_knowledge_type',
       sql`${table.knowledgeType} IN ('fact', 'concept', 'procedure', 'principle')`

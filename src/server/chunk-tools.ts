@@ -13,6 +13,8 @@ import {
   UpdateChunkInputShape,
   DeleteChunkInputSchema,
   DeleteChunkInputShape,
+  ReorderChunksInputSchema,
+  ReorderChunksInputShape,
 } from '../domain/types/persistence-tools.js';
 import { toSnakeCase } from '../shared/case-convert.js';
 import { withRequestContext } from '../shared/logger.js';
@@ -74,8 +76,9 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             knowledgeType: input.knowledgeType ?? null,
             createdAt: now,
             updatedAt: now,
+            order: input.order,
             topicTitle: input.topicTitle || `Topic: ${input.subject} - ${input.title}`,
-          } as NewLearningChunk & { topicTitle?: string });
+          } as Omit<NewLearningChunk, 'orderIndex'> & { topicTitle?: string; order?: number });
 
           if (!result.success) {
             const errorType = result.error.type;
@@ -98,6 +101,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
               chunkId: chunk.id,
               topicId: chunk.topicId,
               createdAt: chunk.createdAt,
+              // NEU-758: the resolved 1-based teaching-sequence position.
+              order: chunk.orderIndex,
               // Tier 2 classifier warnings (NEU-686). Always present as an
               // array; empty when the classifier did not run or produced no
               // low-score fields. Never signals failure — creation always
@@ -111,6 +116,57 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
           const msg = extractErrorMessage(error);
           return toolError(`Failed to create learning item "${input.title}": ${msg}`, {
             type: 'database',
+            message: msg,
+            retryable: true,
+          });
+        }
+      })
+  );
+
+  server.registerTool(
+    'reorder_chunks',
+    {
+      title: 'Reorder Chunks',
+      description:
+        "Re-sequence all chunks in a topic. Provide the topic's complete chunk set in the " +
+        'desired teaching order. Preserves spaced-repetition history (ease, repetitions, ' +
+        'next review). Rejects incomplete sets and orders that place a chunk before a prerequisite.',
+      inputSchema: ReorderChunksInputShape,
+    },
+    async (rawInput: unknown) =>
+      withRequestContext('reorder_chunks', async () => {
+        const input = ReorderChunksInputSchema.parse(rawInput);
+        try {
+          const result = await ctx.reorderChunks(input.topicId, input.orderedChunkIds);
+
+          if (result.success) {
+            return toolData(
+              toSnakeCase({
+                topicId: result.topicId,
+                orderedChunkIds: result.orderedChunkIds,
+                count: result.count,
+                message: `Reordered ${result.count} chunk${result.count === 1 ? '' : 's'} in topic "${input.topicId}"`,
+                consistencyReminder: buildConsistencyReminder(input.topicId),
+              })
+            );
+          }
+
+          const errorType = result.error?.type || 'database';
+          return toolError(
+            `Failed to reorder chunks: ${result.error?.message || 'Unknown error'}`,
+            {
+              type: errorType,
+              message: result.error?.message || 'Unknown error',
+              retryable: result.error?.retryable,
+              ...(errorType === 'content_quality'
+                ? { findings: toSnakeCase(result.error?.findings ?? []) }
+                : {}),
+            }
+          );
+        } catch (error) {
+          const msg = extractErrorMessage(error);
+          return toolError(`System error while reordering chunks: ${msg}`, {
+            type: 'system',
             message: msg,
             retryable: true,
           });

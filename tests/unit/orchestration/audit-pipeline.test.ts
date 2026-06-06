@@ -66,6 +66,7 @@ function lintInput(): TopicLintInput {
 
 function chunkRow(overrides: Partial<LearningChunk> = {}): LearningChunk {
   return {
+    orderIndex: 1,
     id: 'chunk-a',
     topicId: 'topic-1',
     title: 'Invariant',

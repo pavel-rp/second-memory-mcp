@@ -52,6 +52,7 @@ export async function generateRecommendations(
       easeFactor: r.easeFactor,
       estimatedDuration: r.estimatedDuration,
       createdAt: r.createdAt,
+      orderIndex: r.orderIndex,
       lastReviewedAt: r.lastReviewedAt,
       prerequisites: parsed.success ? parsed.data : [],
     };

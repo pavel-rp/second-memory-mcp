@@ -6,6 +6,7 @@ const NOW_MS = new Date('2025-06-15T12:00:00.000Z').getTime();
 
 function makeRow(overrides: Partial<ChunkWithTopicTitle> = {}): ChunkWithTopicTitle {
   return {
+    orderIndex: 1,
     id: 'chunk-1',
     topicId: 'topic-1',
     title: 'Arrays',

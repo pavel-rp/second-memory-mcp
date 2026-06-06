@@ -25,6 +25,7 @@ const NOW = 1_700_000_000_000;
 
 function makeLeechChunk(overrides?: Partial<LearningChunk>): LearningChunk {
   return {
+    orderIndex: 1,
     id: 'chunk-leech-1',
     topicId: 'topic-1',
     title: 'Leech Item',
@@ -55,6 +56,7 @@ function makeLeechChunk(overrides?: Partial<LearningChunk>): LearningChunk {
 
 function makeMinimalMetadata(overrides?: Partial<ChunkMinimalMetadata>): ChunkMinimalMetadata {
   return {
+    orderIndex: 1,
     id: 'chunk-leech-1',
     title: 'Leech Item',
     subject: 'CS',

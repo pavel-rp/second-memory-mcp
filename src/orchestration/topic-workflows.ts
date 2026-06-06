@@ -256,6 +256,11 @@ export async function createTopicWithChunks(
           contentStatus: chunkDef.contentStatus ?? 'final',
           condensedSummary: chunkDef.condensedSummary ?? null,
           knowledgeType: chunkDef.knowledgeType ?? null,
+          // NEU-758: persist the array-position order explicitly. This equals the
+          // existing effective sequence (the staggered `createdAt = now + i` and
+          // the `order: i + 1` echoed by `toTopicWithChunks`), so create behavior
+          // is unchanged — the column just makes that order durable and mutable.
+          orderIndex: i + 1,
           validatorReport,
           createdAt: chunkCreatedAt,
           updatedAt: now,
