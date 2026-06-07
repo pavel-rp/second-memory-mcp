@@ -366,6 +366,82 @@ describe('chunk-tools', () => {
 
       await expect(handler({})).rejects.toThrow();
     });
+
+    // NEU-759: optional id (slug) and condensed_summary parity with create_topic_with_chunks
+    it('forwards a caller-supplied id and echoes it as chunk_id (NEU-759)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { chunk: { id: 'lc43-arrays', topicId: 't1', createdAt: Date.now() } },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      const result = await handler({ ...validInput, id: 'lc43-arrays' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('lc43-arrays');
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.id).toBe('lc43-arrays');
+    });
+
+    it('generates a UUID id when id is omitted (NEU-759)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler(validInput);
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    });
+
+    it('forwards condensed_summary as condensedSummary when provided (NEU-759)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler({ ...validInput, condensed_summary: 'Arrays store elements contiguously.' });
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.condensedSummary).toBe('Arrays store elements contiguously.');
+    });
+
+    it('defaults condensedSummary to null when not provided (NEU-759)', async () => {
+      ctx.createChunkWithTopic = vi.fn().mockResolvedValue({
+        success: true,
+        data: { chunk: { id: 'c1', topicId: 't1', createdAt: Date.now() } },
+      });
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await handler(validInput);
+
+      const call = (ctx.createChunkWithTopic as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.condensedSummary).toBeNull();
+    });
+
+    it('throws ZodError for empty id (NEU-759)', async () => {
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await expect(handler({ ...validInput, id: '' })).rejects.toThrow('Chunk ID cannot be empty');
+    });
+
+    it('throws ZodError for empty condensed_summary (NEU-759)', async () => {
+      registerChunkTools(server as any, ctx);
+      const handler = server.tools.get('create_learning_item')!.handler;
+
+      await expect(handler({ ...validInput, condensed_summary: '' })).rejects.toThrow(
+        'Condensed summary cannot be empty'
+      );
+    });
   });
 
   // ---------------------------------------------------------------

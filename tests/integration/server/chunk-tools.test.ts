@@ -106,6 +106,32 @@ describe('chunk-tools', () => {
         .where(eq(learningChunks.id, parsed.data.chunk_id));
       expect(row.contentStatus).toBe('final');
     });
+
+    it('persists a caller-supplied slug id and condensed_summary, no follow-up update (NEU-759)', async () => {
+      const handler = server.tools.get('create_learning_item')!.handler;
+      const result = await handler({
+        id: 'lc43-neu759-test',
+        title: 'Parity Item',
+        subject: 'CS',
+        content: 'Arrays store elements in contiguous memory for O(1) indexed access.',
+        difficulty: 4,
+        estimated_duration: 8,
+        condensed_summary: 'Arrays = contiguous memory, O(1) indexing.',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(result);
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.chunk_id).toBe('lc43-neu759-test');
+
+      // Both the slug id and the summary persist directly — no update_chunk_content backfill.
+      const db = getSql();
+      const [row] = await db
+        .select()
+        .from(learningChunks)
+        .where(eq(learningChunks.id, 'lc43-neu759-test'));
+      expect(row.id).toBe('lc43-neu759-test');
+      expect(row.condensedSummary).toBe('Arrays = contiguous memory, O(1) indexing.');
+    });
   });
 
   describe('update_chunk_content', () => {

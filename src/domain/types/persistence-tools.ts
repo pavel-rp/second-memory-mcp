@@ -374,6 +374,27 @@ export const CreateLearningItemInputShape = {
         "'procedure' — a sequence of steps toward a goal; " +
         "'principle' — a cause-effect relationship or rule"
     ),
+  id: z
+    .string()
+    .min(1, 'Chunk ID cannot be empty')
+    .optional()
+    .describe(
+      'Optional chunk identifier. Use a descriptive slug ' +
+        '("binary-indexing-lsb", not "chunk-1") to match the convention used by ' +
+        'create_topic_with_chunks. When omitted, a UUID is generated.'
+    ),
+  condensed_summary: z
+    .string()
+    .min(1, 'Condensed summary cannot be empty')
+    .max(1000, 'Condensed summary cannot exceed 1000 characters')
+    .optional()
+    .describe(
+      '2–4 sentence distillation of the key takeaway. Used for quick refreshers ' +
+        "when the learner's retrievability is low but not zero. Think: the sticky " +
+        'note a student writes after studying the full content. Should be self-contained ' +
+        'enough to trigger recognition without being detailed enough for full recall. ' +
+        'Optional; when omitted the chunk is stored without a summary.'
+    ),
   context_token: z
     .string()
     .min(1)

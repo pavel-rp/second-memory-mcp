@@ -54,7 +54,9 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
         const input = CreateLearningItemInputSchema.parse(rawInput);
         try {
           const now = Date.now();
-          const chunkId = crypto.randomUUID();
+          // NEU-759: honor a caller-supplied slug for parity with
+          // create_topic_with_chunks; fall back to a UUID when omitted.
+          const chunkId = input.id ?? crypto.randomUUID();
 
           const result = await ctx.createChunkWithTopic({
             id: chunkId,
@@ -73,6 +75,8 @@ export function registerChunkTools(server: McpServer, ctx: AppContext): void {
             contentVersion: 1,
             contentUpdatedAt: now,
             contentStatus: input.contentStatus,
+            // NEU-759: persist the optional sticky-note summary; null when omitted.
+            condensedSummary: input.condensedSummary ?? null,
             knowledgeType: input.knowledgeType ?? null,
             createdAt: now,
             updatedAt: now,
