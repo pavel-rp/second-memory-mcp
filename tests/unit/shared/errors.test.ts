@@ -62,7 +62,7 @@ describe('isPgUniqueViolation', () => {
     expect(isPgUniqueViolation(undefined, 'uq_foo')).toBe(false);
   });
 
-  it('returns true when the violation is wrapped in a cause chain (e.g. Drizzle DrizzleQueryError)', () => {
+  it('returns true when the violation is wrapped in a cause chain (e.g. a DrizzleQueryError)', () => {
     const wrapped = new Error('Failed query: insert into "x" ...');
     (wrapped as Error & { cause: unknown }).cause = makePgError('23505', 'uq_foo');
     expect(isPgUniqueViolation(wrapped, 'uq_foo')).toBe(true);
