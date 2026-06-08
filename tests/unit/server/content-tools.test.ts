@@ -45,6 +45,42 @@ describe('content-tools', () => {
       expect(parsed.data.message).toContain('chunk-abc');
     });
 
+    it('returns condensed_summary when the chunk has one (NEU-772)', async () => {
+      ctx.getChunkContent = vi.fn().mockResolvedValue({
+        content: 'Body',
+        contentVersion: 1,
+        contentUpdatedAt: null,
+        knowledgeType: null,
+        condensedSummary: 'TCP uses a three-way handshake.',
+      });
+      registerContentTools(server as any, ctx);
+      const handler = server.tools.get('get_chunk_content')!.handler;
+
+      const result = await handler({ chunk_id: 'chunk-cs', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.condensed_summary).toBe('TCP uses a three-way handshake.');
+    });
+
+    it('returns condensed_summary: null when the chunk has none (NEU-772)', async () => {
+      ctx.getChunkContent = vi.fn().mockResolvedValue({
+        content: 'Body',
+        contentVersion: 1,
+        contentUpdatedAt: null,
+        knowledgeType: null,
+        condensedSummary: null,
+      });
+      registerContentTools(server as any, ctx);
+      const handler = server.tools.get('get_chunk_content')!.handler;
+
+      const result = await handler({ chunk_id: 'chunk-cs-null', context_token: 'ctx-test' });
+      const parsed = parseResult(result);
+
+      expect(parsed.status).toBe('ok');
+      expect(parsed.data.condensed_summary).toBeNull();
+    });
+
     it('omits content_updated_at when null', async () => {
       ctx.getChunkContent = vi.fn().mockResolvedValue({
         content: 'Some content',

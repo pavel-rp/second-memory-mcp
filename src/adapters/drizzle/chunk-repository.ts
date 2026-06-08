@@ -174,6 +174,7 @@ export class DrizzleChunkRepository implements ChunkRepository {
         contentVersion: learningChunks.contentVersion,
         contentUpdatedAt: learningChunks.contentUpdatedAt,
         knowledgeType: learningChunks.knowledgeType,
+        condensedSummary: learningChunks.condensedSummary,
       })
       .from(learningChunks)
       .where(eq(learningChunks.id, id));

@@ -8,7 +8,7 @@ import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.j
 import type { ServiceResult, ServiceError } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { hasSignificantContentChange } from '../shared/content-similarity.js';
-import { extractErrorMessage } from '../shared/errors.js';
+import { extractErrorMessage, isPgUniqueViolation } from '../shared/errors.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
 import { validateChunkOrder, type ChunkOrderInput } from '../domain/services/chunk-order.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
@@ -1259,6 +1259,17 @@ export async function createChunkWithTopic(
     }
     return serviceOk({ chunk: created });
   } catch (error) {
+    // NEU-772: a caller-supplied chunk id that collides with an existing
+    // primary key surfaces as a clean, actionable `conflict` — not a generic
+    // `internal` error carrying the raw Drizzle query + bound parameter values.
+    // Retrying the same id can never succeed, so it is non-retryable.
+    if (isPgUniqueViolation(error, 'learning_chunks_pkey')) {
+      return serviceFail({
+        type: 'conflict',
+        message: `A chunk with id "${input.id}" already exists; choose a different id or update the existing chunk.`,
+        retryable: false,
+      });
+    }
     return serviceFail({ type: 'database', message: extractErrorMessage(error) });
   }
 }

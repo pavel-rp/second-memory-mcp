@@ -132,6 +132,52 @@ describe('chunk-tools', () => {
       expect(row.id).toBe('lc43-neu759-test');
       expect(row.condensedSummary).toBe('Arrays = contiguous memory, O(1) indexing.');
     });
+
+    it('rejects a duplicate caller-supplied id with a clean conflict error; original row intact (NEU-772)', async () => {
+      const handler = server.tools.get('create_learning_item')!.handler;
+      const first = await handler({
+        id: 'lc772-dup',
+        title: 'Original Item',
+        subject: 'CS',
+        content: 'Arrays store elements in contiguous memory for O(1) indexed access.',
+        difficulty: 4,
+        estimated_duration: 8,
+        condensed_summary: 'Arrays = contiguous memory.',
+        topic_title: 'NEU-772 Topic',
+        context_token: 'ctx-test',
+      });
+      expect(parseResult(first).status).toBe('ok');
+
+      const second = await handler({
+        id: 'lc772-dup',
+        title: 'Colliding Item',
+        subject: 'CS',
+        content: 'A different body of content that must never overwrite the original row.',
+        difficulty: 2,
+        estimated_duration: 3,
+        condensed_summary: 'Should not overwrite.',
+        topic_title: 'NEU-772 Topic',
+        context_token: 'ctx-test',
+      });
+      const parsed = parseResult(second);
+      expect(parsed.status).toBe('error');
+      expect(parsed.error.type).toBe('conflict');
+      expect(parsed.error.retryable).toBe(false);
+      expect(parsed.error.message).toContain('lc772-dup');
+      // No raw SQL / bound parameters leaked in the message.
+      expect(parsed.error.message).not.toContain('Failed query');
+      expect(parsed.error.message).not.toContain('insert into');
+
+      // The original row is untouched (no overwrite by the colliding call).
+      const db = getSql();
+      const [row] = await db
+        .select()
+        .from(learningChunks)
+        .where(eq(learningChunks.id, 'lc772-dup'));
+      expect(row.title).toBe('Original Item');
+      expect(row.condensedSummary).toBe('Arrays = contiguous memory.');
+      expect(row.contentVersion).toBe(1);
+    });
   });
 
   describe('update_chunk_content', () => {
