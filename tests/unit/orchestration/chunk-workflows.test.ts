@@ -586,6 +586,48 @@ describe('createChunkWithTopic', () => {
     expect(deps.topics.list).not.toHaveBeenCalled();
   });
 
+  it('maps a duplicate-id PK violation to a clean conflict error, not a leaky internal error (NEU-772)', async () => {
+    const deps = stubDeps();
+    const pgUniqueViolation = Object.assign(
+      new Error('duplicate key value violates unique constraint "learning_chunks_pkey"'),
+      { code: '23505', constraint: 'learning_chunks_pkey' }
+    );
+    // Drizzle wraps the driver error in a DrizzleQueryError; the pg code/constraint
+    // live on `.cause`, so the real thrown value looks like this.
+    const wrapped = Object.assign(new Error('Failed query: insert into "learning_chunks" ...'), {
+      cause: pgUniqueViolation,
+    });
+    (deps.chunks.create as ReturnType<typeof vi.fn>).mockRejectedValue(wrapped);
+
+    const result = await createChunkWithTopic(baseInput, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('conflict');
+      expect(result.error.retryable).toBe(false);
+      expect(result.error.message).toContain('new-chunk');
+      // The raw Drizzle/pg message must not leak through.
+      expect(result.error.message).not.toContain('duplicate key');
+      expect(result.error.message).not.toContain('learning_chunks_pkey');
+      expect(result.error.message).not.toContain('Failed query');
+    }
+  });
+
+  it('still maps a non-collision DB error to a database error (NEU-772 regression guard)', async () => {
+    const deps = stubDeps();
+    (deps.chunks.create as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('connection reset')
+    );
+
+    const result = await createChunkWithTopic(baseInput, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toContain('connection reset');
+    }
+  });
+
   it('finds existing topic by title when topicTitle provided without topicId', async () => {
     const deps = stubDeps();
     const existingTopic = { id: 'found-topic', title: 'React', subject: 'CS' };

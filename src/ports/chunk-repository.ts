@@ -54,6 +54,8 @@ export type ChunkContentResult = {
   contentVersion: number | null;
   contentUpdatedAt: number | null;
   knowledgeType: KnowledgeType | null;
+  // NEU-772: sticky-note summary, surfaced by get_chunk_content. `null` when unset.
+  condensedSummary: string | null;
 };
 
 /** Extended chunk with topic title. Optionally includes contentEmbedding (large vector, excluded by default). */

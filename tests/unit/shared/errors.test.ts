@@ -61,4 +61,16 @@ describe('isPgUniqueViolation', () => {
     expect(isPgUniqueViolation(null, 'uq_foo')).toBe(false);
     expect(isPgUniqueViolation(undefined, 'uq_foo')).toBe(false);
   });
+
+  it('returns true when the violation is wrapped in a cause chain (e.g. Drizzle DrizzleQueryError)', () => {
+    const wrapped = new Error('Failed query: insert into "x" ...');
+    (wrapped as Error & { cause: unknown }).cause = makePgError('23505', 'uq_foo');
+    expect(isPgUniqueViolation(wrapped, 'uq_foo')).toBe(true);
+  });
+
+  it('returns false when a wrapped cause has a different constraint', () => {
+    const wrapped = new Error('Failed query: ...');
+    (wrapped as Error & { cause: unknown }).cause = makePgError('23505', 'uq_bar');
+    expect(isPgUniqueViolation(wrapped, 'uq_foo')).toBe(false);
+  });
 });

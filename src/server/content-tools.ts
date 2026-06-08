@@ -49,6 +49,10 @@ export function registerContentTools(server: McpServer, ctx: AppContext): void {
                 ? toIsoTimestamp(chunkContent.contentUpdatedAt)
                 : undefined,
               knowledgeType: chunkContent.knowledgeType,
+              // NEU-772: surface the chunk's sticky-note summary so callers can
+              // read it back (e.g. low-retrievability refreshers) without a
+              // separate lookup. `null` when the chunk has no summary.
+              condensedSummary: chunkContent.condensedSummary,
               message: `Successfully retrieved content for chunk: ${input.chunkId}`,
               sessionReminder:
                 'If conducting recall/review: Ensure you have created a session first ' +

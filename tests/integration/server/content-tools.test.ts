@@ -362,3 +362,67 @@ describe('Integration: list_items_with_content', () => {
     expect(parsed.data.pagination.total).toBe(0);
   });
 });
+
+describe('Integration: get_chunk_content', () => {
+  let server: CaptureServer;
+  let handler: Function;
+
+  beforeAll(setupTestDb);
+  beforeEach(async () => {
+    await cleanupTestDb();
+    server = new CaptureServer();
+    registerContentTools(server as any, createAppContext({ embedding: undefined }));
+    handler = server.tools.get('get_chunk_content')!.handler;
+  });
+  afterAll(teardownTestDb);
+
+  async function insertChunk(id: string, condensedSummary: string | null): Promise<void> {
+    const now = Date.now();
+    const db = getSql();
+    const topicId = `topic-${id}`;
+    await db.insert(learningTopics).values({
+      id: topicId,
+      title: `Topic ${id}`,
+      subject: 'CS',
+      summary: null,
+      summaryVersion: null,
+      summaryUpdatedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(learningChunks).values({
+      id,
+      topicId,
+      title: `Chunk ${id}`,
+      subject: 'CS',
+      difficulty: 3,
+      nextReviewAt: now,
+      easeFactor: 2.5,
+      repetitions: 0,
+      estimatedDuration: 10,
+      chunkType: 'new',
+      content: 'Body',
+      contentVersion: 1,
+      contentUpdatedAt: now,
+      condensedSummary,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  it('returns condensed_summary when the chunk has one (NEU-772)', async () => {
+    await insertChunk('lc772-with-summary', 'TCP uses a three-way handshake.');
+    const result = await handler({ chunk_id: 'lc772-with-summary', context_token: 'ctx-test' });
+    const parsed = parseToolResult(result);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.condensed_summary).toBe('TCP uses a three-way handshake.');
+  });
+
+  it('returns condensed_summary: null when the chunk has none (NEU-772)', async () => {
+    await insertChunk('lc772-no-summary', null);
+    const result = await handler({ chunk_id: 'lc772-no-summary', context_token: 'ctx-test' });
+    const parsed = parseToolResult(result);
+    expect(parsed.status).toBe('ok');
+    expect(parsed.data.condensed_summary).toBeNull();
+  });
+});
