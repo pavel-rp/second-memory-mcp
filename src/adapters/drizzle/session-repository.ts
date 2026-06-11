@@ -46,21 +46,23 @@ export class DrizzleSessionRepository implements SessionRepository {
       createdAt: input.createdAt,
       updatedAt: input.updatedAt,
     };
-    await this.db.insert(learningSessions).values(row);
+    // Atomic: session row + auto-created session chunks in a single transaction
+    await this.db.transaction(async tx => {
+      await tx.insert(learningSessions).values(row);
 
-    // Auto-create session chunks
-    if (input.chunkIds && input.chunkIds.length > 0) {
-      const chunkRows: NewSessionChunkRow[] = input.chunkIds.map((chunkId, index) => ({
-        id: crypto.randomUUID(),
-        sessionId: input.id,
-        chunkId,
-        status: 'pending',
-        timeSpentMs: 0,
-        createdAt: input.createdAt + index,
-        updatedAt: input.updatedAt + index,
-      }));
-      await this.db.insert(sessionChunks).values(chunkRows);
-    }
+      if (input.chunkIds && input.chunkIds.length > 0) {
+        const chunkRows: NewSessionChunkRow[] = input.chunkIds.map((chunkId, index) => ({
+          id: crypto.randomUUID(),
+          sessionId: input.id,
+          chunkId,
+          status: 'pending',
+          timeSpentMs: 0,
+          createdAt: input.createdAt + index,
+          updatedAt: input.updatedAt + index,
+        }));
+        await tx.insert(sessionChunks).values(chunkRows);
+      }
+    });
   }
 
   async getSessionById(id: string): Promise<LearningSession | null> {
