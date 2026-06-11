@@ -355,6 +355,58 @@ describe('sessions service', () => {
       expect(chunks.map(c => c.chunkId)).toEqual(orderedChunkIds);
     });
 
+    it('should roll back the session row when a chunk insert fails (NEU-773)', async () => {
+      const now = Date.now();
+      await seedTopicAndChunks('topic-tx', ['tx-valid'], now);
+
+      const input: CreateSessionInput = {
+        id: 'session-tx-rollback',
+        topicId: 'topic-tx',
+        chunkIds: ['tx-valid', 'tx-nonexistent'],
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      // FK session_chunks.chunk_id → learning_chunks.id fails on the second insert
+      await expect(sessionRepo.createSession(input)).rejects.toThrow();
+
+      const session = await sessionRepo.getSessionById('session-tx-rollback');
+      expect(session).toBeNull();
+
+      const chunks = await sessionRepo.getSessionChunks('session-tx-rollback');
+      expect(chunks).toHaveLength(0);
+    });
+
+    it('should commit session row and chunk rows together on success (NEU-773)', async () => {
+      const now = Date.now();
+      const chunkIds = ['tx-c1', 'tx-c2', 'tx-c3'];
+      await seedTopicAndChunks('topic-tx-ok', chunkIds, now);
+
+      const input: CreateSessionInput = {
+        id: 'session-tx-ok',
+        topicId: 'topic-tx-ok',
+        chunkIds,
+        mode: 'learning',
+        startTime: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await sessionRepo.createSession(input);
+
+      const session = await sessionRepo.getSessionById('session-tx-ok');
+      expect(session?.id).toBe('session-tx-ok');
+      expect(session?.status).toBe('active');
+
+      const chunks = await sessionRepo.getSessionChunks('session-tx-ok');
+      expect(chunks).toHaveLength(3);
+      expect(chunks.map(c => c.chunkId)).toEqual(chunkIds);
+      for (const [index, chunk] of chunks.entries()) {
+        expect(chunk.status).toBe('pending');
+        expect(Number(chunk.createdAt)).toBe(now + index);
+      }
+    });
+
     it('should preserve insertion order for single-chunk session (index=0, no offset)', async () => {
       const now = Date.now();
       await seedTopicAndChunks('topic-single', ['c-only'], now);
