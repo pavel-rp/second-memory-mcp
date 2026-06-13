@@ -87,25 +87,29 @@ export async function processReviewResult(
       });
     }
 
-    logEvent('processReview', 'review_processed', {
-      chunkId: itemId,
-      quality,
-      easeFactor: updateData.easeFactor,
-      repetitions: updateData.repetitions,
-      intervalDays: updateData.intervalDays,
-      nextReviewAt: updateData.nextReviewAt,
-    });
-
-    // A permanent scheduling change that must be auditable. Log only on the
-    // transition into remediation — not on every later failing review of an
-    // already-flagged leech (previous.chunkType guards against re-emitting).
-    if (sm2Result.leech && previous.chunkType !== 'remediation') {
-      logEvent('processReview', 'leech_flagged', {
+    try {
+      logEvent('processReview', 'review_processed', {
         chunkId: itemId,
-        repetitions: updateData.repetitions,
+        quality,
         easeFactor: updateData.easeFactor,
-        consecutiveFailures: newConsecutiveFailures,
+        repetitions: updateData.repetitions,
+        intervalDays: updateData.intervalDays,
+        nextReviewAt: updateData.nextReviewAt,
       });
+
+      // A permanent scheduling change that must be auditable. Log only on the
+      // transition into remediation — not on every later failing review of an
+      // already-flagged leech (previous.chunkType guards against re-emitting).
+      if (sm2Result.leech && previous.chunkType !== 'remediation') {
+        logEvent('processReview', 'leech_flagged', {
+          chunkId: itemId,
+          repetitions: updateData.repetitions,
+          easeFactor: updateData.easeFactor,
+          consecutiveFailures: newConsecutiveFailures,
+        });
+      }
+    } catch {
+      // A broken event logger must not poison a successful commit.
     }
 
     return serviceOk({
@@ -124,10 +128,14 @@ export async function processReviewResult(
       isLeech: sm2Result.leech || false,
     });
   } catch (error) {
-    logEvent('processReview', 'sr_update_failed', {
-      chunkId: itemId,
-      error: extractErrorMessage(error),
-    });
+    try {
+      logEvent('processReview', 'sr_update_failed', {
+        chunkId: itemId,
+        error: extractErrorMessage(error),
+      });
+    } catch {
+      // A broken event logger must not mask the underlying database failure.
+    }
     return serviceFail({
       type: 'database',
       message: `Failed to process review result: ${extractErrorMessage(error)}`,
@@ -207,7 +215,11 @@ export async function resolveLeech(
       });
     }
 
-    logEvent('resolveLeech', 'leech_resolved', { chunkId, resolution });
+    try {
+      logEvent('resolveLeech', 'leech_resolved', { chunkId, resolution });
+    } catch {
+      // A broken event logger must not poison a successful commit.
+    }
 
     return serviceOk({ chunkId, resolution });
   } catch (error) {

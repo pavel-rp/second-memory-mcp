@@ -282,4 +282,15 @@ describe('resolveLeech', () => {
     expect(result.success).toBe(false);
     expect(logEvent).not.toHaveBeenCalled();
   });
+
+  it('still succeeds when event emission throws', async () => {
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('event logger down');
+    });
+
+    const result = await resolveLeech('chunk-leech-1', 'mark_reviewed', deps);
+
+    // A broken event logger must not poison a successful leech resolution.
+    expect(result.success).toBe(true);
+  });
 });

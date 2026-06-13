@@ -357,4 +357,37 @@ describe('processReviewResult', () => {
       expect.anything()
     );
   });
+
+  it('still succeeds when event emission throws on the success path', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk());
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('event logger down');
+    });
+
+    const result = await processReviewResult('item-1', 4, {}, deps);
+
+    // A broken event logger must not poison a committed SR update.
+    expect(result.success).toBe(true);
+  });
+
+  it('still returns the database failure when event emission throws inside the catch', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.persistReviewUpdate as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('db crash')
+    );
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('event logger down');
+    });
+
+    const result = await processReviewResult('item-1', 4, {}, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+      expect(result.error.message).toContain('Failed to process review result');
+    }
+  });
 });
