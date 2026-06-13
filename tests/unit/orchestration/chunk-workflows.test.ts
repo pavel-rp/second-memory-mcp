@@ -61,28 +61,31 @@ function stubChunk(overrides?: Partial<LearningChunk>): LearningChunk {
 }
 
 function stubDeps(options?: { embedding?: EmbeddingPort }): ChunkDeps {
-  const txChunks = stubChunkRepository({
+  // NEU-771: createChunkWithTopic now persists the auto-created topic + the chunk
+  // through a single unitOfWork. Share the SAME repository stubs between the
+  // top-level deps and the tx-scoped ports so tests can mock/assert on
+  // `deps.chunks.create` / `deps.topics.create` regardless of whether the call
+  // runs inside the unit of work (the tx-scoped repos wrap the same store).
+  const chunks = stubChunkRepository({
+    getById: vi.fn().mockResolvedValue(stubChunk()),
     update: vi.fn().mockResolvedValue(1),
     delete: vi.fn().mockResolvedValue(1),
+    create: vi.fn().mockResolvedValue(undefined),
+    saveContentEmbedding: vi.fn().mockResolvedValue(1),
+    findDependents: vi.fn().mockResolvedValue([]),
+  });
+  const topics = stubTopicRepository({
+    list: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockResolvedValue({ success: true, data: undefined }),
   });
   const txPorts = {
-    chunks: txChunks,
-    topics: stubTopicRepository(),
+    chunks,
+    topics,
     sessions: stubSessionRepository(),
   };
   return {
-    chunks: stubChunkRepository({
-      getById: vi.fn().mockResolvedValue(stubChunk()),
-      update: vi.fn().mockResolvedValue(1),
-      delete: vi.fn().mockResolvedValue(1),
-      create: vi.fn().mockResolvedValue(undefined),
-      saveContentEmbedding: vi.fn().mockResolvedValue(1),
-      findDependents: vi.fn().mockResolvedValue([]),
-    }),
-    topics: stubTopicRepository({
-      list: vi.fn().mockResolvedValue([]),
-      create: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-    }),
+    chunks,
+    topics,
     unitOfWork: stubUnitOfWork(undefined, txPorts),
     maxDependencyDepth: 5,
     ...(options?.embedding ? { embedding: options.embedding } : {}),
@@ -756,6 +759,43 @@ describe('createChunkWithTopic', () => {
     if (!result.success) {
       expect(result.error.type).toBe('database');
     }
+  });
+
+  it('persists the auto-created topic and the chunk through a single unit of work (NEU-771)', async () => {
+    const deps = stubDeps();
+    (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      stubChunk({ id: 'new-chunk' })
+    );
+    const input = { ...baseInput, topicId: '', topicTitle: 'Fresh Topic' };
+
+    const result = await createChunkWithTopic(input, deps);
+
+    expect(result.success).toBe(true);
+    // Topic-create + chunk-create run inside one transaction so a failed insert
+    // rolls back the auto-created topic.
+    expect(deps.unitOfWork.execute).toHaveBeenCalledOnce();
+    expect(deps.topics.create).toHaveBeenCalledOnce();
+    expect(deps.chunks.create).toHaveBeenCalledOnce();
+  });
+
+  it('returns a database error and skips the chunk insert when the auto-created topic insert fails in-transaction (NEU-771)', async () => {
+    const deps = stubDeps();
+    (deps.topics.list as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (deps.topics.create as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      error: { type: 'database', message: 'Failed to create topic' },
+    });
+    const input = { ...baseInput, topicId: '', topicTitle: 'Fresh Topic' };
+
+    const result = await createChunkWithTopic(input, deps);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.type).toBe('database');
+    }
+    // The unit of work aborts on the topic failure before the chunk is inserted.
+    expect(deps.chunks.create).not.toHaveBeenCalled();
   });
 });
 

@@ -131,47 +131,48 @@ type StubDepsOptions = {
 };
 
 function stubDeps(options: StubDepsOptions = {}): ChunkDeps {
-  const txChunks = stubChunkRepository({
-    update: vi.fn().mockResolvedValue(1),
-    delete: vi.fn().mockResolvedValue(1),
-  });
-  const txPorts = {
-    chunks: txChunks,
-    topics: stubTopicRepository(),
-    sessions: stubSessionRepository(),
-  };
   const topic = options.topic ?? {
     id: 'topic-1',
     title: 'Topic 1',
     subject: 'CS',
     summary: 'topic summary',
   };
+  // NEU-771: share repository stubs between top-level deps and the tx-scoped ports
+  // so createChunkWithTopic's single-unit-of-work persistence stays assertable via
+  // `deps.chunks.create` / `deps.topics.create` (the tx repos wrap the same store).
+  const chunks = stubChunkRepository({
+    getById: vi.fn().mockResolvedValue(stubChunk()),
+    update: vi.fn().mockResolvedValue(1),
+    delete: vi.fn().mockResolvedValue(1),
+    create: vi.fn().mockResolvedValue(undefined),
+    saveContentEmbedding: vi.fn().mockResolvedValue(1),
+    mergeValidatorReport: vi.fn().mockResolvedValue(1),
+    findDependents: vi.fn().mockResolvedValue([]),
+  });
+  const topics = stubTopicRepository({
+    getById: vi.fn().mockResolvedValue({
+      id: topic.id,
+      title: topic.title,
+      subject: topic.subject,
+      summary: topic.summary ?? null,
+      summaryVersion: 1,
+      summaryUpdatedAt: NOW,
+      dependencyGraphType: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+    }),
+    list: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockResolvedValue({ success: true, data: undefined }),
+    delete: vi.fn().mockResolvedValue({ success: true, data: { deleted: true } }),
+  });
+  const txPorts = {
+    chunks,
+    topics,
+    sessions: stubSessionRepository(),
+  };
   return {
-    chunks: stubChunkRepository({
-      getById: vi.fn().mockResolvedValue(stubChunk()),
-      update: vi.fn().mockResolvedValue(1),
-      delete: vi.fn().mockResolvedValue(1),
-      create: vi.fn().mockResolvedValue(undefined),
-      saveContentEmbedding: vi.fn().mockResolvedValue(1),
-      mergeValidatorReport: vi.fn().mockResolvedValue(1),
-      findDependents: vi.fn().mockResolvedValue([]),
-    }),
-    topics: stubTopicRepository({
-      getById: vi.fn().mockResolvedValue({
-        id: topic.id,
-        title: topic.title,
-        subject: topic.subject,
-        summary: topic.summary ?? null,
-        summaryVersion: 1,
-        summaryUpdatedAt: NOW,
-        dependencyGraphType: null,
-        createdAt: NOW,
-        updatedAt: NOW,
-      }),
-      list: vi.fn().mockResolvedValue([]),
-      create: vi.fn().mockResolvedValue({ success: true, data: undefined }),
-      delete: vi.fn().mockResolvedValue({ success: true, data: { deleted: true } }),
-    }),
+    chunks,
+    topics,
     unitOfWork: stubUnitOfWork(undefined, txPorts),
     maxDependencyDepth: 5,
     ...(options.embedding ? { embedding: options.embedding } : {}),

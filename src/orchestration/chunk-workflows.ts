@@ -4,7 +4,11 @@ import type { TopicRepository } from '../ports/topic-repository.js';
 import type { UnitOfWorkPort } from '../ports/unit-of-work-port.js';
 import type { EmbeddingPort } from '../ports/embedding-port.js';
 import type { ContentClassifierPort } from '../ports/content-classifier-port.js';
-import type { LearningChunk, NewLearningChunk } from '../domain/types/entities.js';
+import type {
+  LearningChunk,
+  NewLearningChunk,
+  NewLearningTopic,
+} from '../domain/types/entities.js';
 import type { ServiceResult, ServiceError } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { hasSignificantContentChange } from '../shared/content-similarity.js';
@@ -994,6 +998,13 @@ export async function createChunkWithTopic(
     // ─── Topic resolution + chunk insert (existing flow + audit report) ──
     let topicId = input.topicId;
     let autoCreatedTopic: { id: string; title: string } | null = null;
+    // NEU-771: when a topic must be auto-created, capture the row here but DEFER
+    // the INSERT into the same unit-of-work as the chunk insert below, so a failed
+    // chunk insert rolls back the auto-created topic instead of orphaning it.
+    // Mirrors `createTopicWithChunks` / `createSession` (NEU-773). The order-
+    // resolution reads that follow query `learning_chunks` by `topicId` only, so
+    // they return empty/0 for this brand-new id whether or not the row exists yet.
+    let topicToCreate: NewLearningTopic | null = null;
 
     if (input.topicTitle && !topicId) {
       // Find existing topic by title+subject or create one
@@ -1006,13 +1017,13 @@ export async function createChunkWithTopic(
       } else {
         topicId = crypto.randomUUID();
         const now = Date.now();
-        await deps.topics.create({
+        topicToCreate = {
           id: topicId,
           title: input.topicTitle,
           subject: input.subject,
           createdAt: now,
           updatedAt: now,
-        });
+        };
         autoCreatedTopic = { id: topicId, title: input.topicTitle };
       }
     }
@@ -1078,17 +1089,27 @@ export async function createChunkWithTopic(
       orderIndex,
       ...(validatorReport !== undefined ? { validatorReport } : {}),
     };
-    if (shiftFromOrder === null) {
-      await deps.chunks.create(newChunk);
-    } else {
-      // Atomic peer-shift + insert (Copilot review): a failed insert must not
-      // leave existing chunks shifted into a gapped sequence.
-      const shiftAt = shiftFromOrder;
-      await deps.unitOfWork.execute(async ports => {
+    // NEU-771: the auto-created topic (when pending), the optional peer-shift,
+    // and the chunk insert all run in ONE transaction so that a failed insert
+    // rolls back every prior write — no orphan topic, no peers left shifted into
+    // a gapped sequence. Previously the topic was committed separately before a
+    // bare chunk insert, orphaning the topic on any insert failure.
+    const shiftAt = shiftFromOrder;
+    await deps.unitOfWork.execute(async ports => {
+      if (topicToCreate !== null) {
+        // `topics.create` swallows DB errors and returns a ServiceResult rather
+        // than throwing, so its failure would not roll back the transaction on
+        // its own — surface it as a throw to abort the unit of work.
+        const topicResult = await ports.topics.create(topicToCreate);
+        if (!topicResult.success) {
+          throw new Error(topicResult.error.message);
+        }
+      }
+      if (shiftAt !== null) {
         await ports.chunks.shiftOrderIndexesAtOrAbove(topicId, shiftAt, nowMs);
-        await ports.chunks.create(newChunk);
-      });
-    }
+      }
+      await ports.chunks.create(newChunk);
+    });
     const created = await deps.chunks.getById(input.id);
     if (!created) {
       return serviceFail({
