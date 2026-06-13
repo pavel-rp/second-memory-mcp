@@ -1102,7 +1102,7 @@ export async function createChunkWithTopic(
         // its own — surface it as a throw to abort the unit of work.
         const topicResult = await ports.topics.create(topicToCreate);
         if (!topicResult.success) {
-          throw new Error(topicResult.error?.message ?? 'Failed to create topic');
+          throw new Error(topicResult.error.message);
         }
       }
       if (shiftAt !== null) {

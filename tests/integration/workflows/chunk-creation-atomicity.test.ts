@@ -60,6 +60,25 @@ function seedTopicInput(chunkId: string): TopicCreationInput {
   };
 }
 
+function twoChunkTopicInput(chunkIds: [string, string]): TopicCreationInput {
+  return {
+    topicTitle: 'NEU-771 Order Topic',
+    topicDescription: 'Seed topic for NEU-771 order-shift test',
+    subject: SUBJECT,
+    topicSummary: 'Seed summary for NEU-771 order-shift test.',
+    chunks: chunkIds.map((id, i) => ({
+      id,
+      title: `Order Chunk ${i + 1}`,
+      content: `Order chunk ${i + 1} content body.`,
+      difficulty: 3,
+      estimatedDuration: 10,
+      prerequisites: [],
+      tags: [],
+      chunkType: 'new' as const,
+    })),
+  };
+}
+
 // Build a `createChunkWithTopic` input on the auto-create path (topicTitle, no
 // topicId). The explicit return type keeps the literal conformant without `as`.
 function autoCreateInput(
@@ -145,5 +164,46 @@ describe('createChunkWithTopic atomicity (NEU-771)', () => {
     expect(chunkRows).toHaveLength(1);
     expect(chunkRows[0].topicId).toBe(topics[0].id);
     expect(result.data.chunk.topicId).toBe(topics[0].id);
+  });
+
+  it('shifts existing peers within the same transaction when an explicit order is given', async () => {
+    const db = getSql();
+
+    // Seed an existing topic with two chunks at order_index 1 and 2.
+    const seed = await createTopicWithChunks(
+      twoChunkTopicInput(['order-c1', 'order-c2']),
+      topicDeps()
+    );
+    expect(seed.success).toBe(true);
+    const topicId = seed.topic!.topicId;
+
+    // Insert a new chunk at position 2 — the peer currently at 2 shifts to 3.
+    const now = Date.now();
+    const result = await createChunkWithTopic(
+      {
+        id: 'order-inserted',
+        topicId,
+        order: 2,
+        title: 'Inserted Chunk',
+        subject: SUBJECT,
+        difficulty: 4,
+        nextReviewAt: now,
+        easeFactor: 2.5,
+        repetitions: 0,
+        estimatedDuration: 5,
+        chunkType: 'new',
+        content: 'Inserted chunk content body.',
+        createdAt: now,
+        updatedAt: now,
+      },
+      chunkDeps()
+    );
+    expect(result.success).toBe(true);
+
+    const rows = await db.select().from(learningChunks).where(eq(learningChunks.topicId, topicId));
+    const byId = new Map(rows.map(r => [r.id, r.orderIndex]));
+    expect(byId.get('order-c1')).toBe(1);
+    expect(byId.get('order-inserted')).toBe(2);
+    expect(byId.get('order-c2')).toBe(3);
   });
 });
