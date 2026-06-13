@@ -6,6 +6,7 @@ import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
 import { extractErrorMessage } from '../shared/errors.js';
+import { logEvent } from '../shared/logger.js';
 
 /** SM-2 default initial ease factor — used when resetting progress. */
 const SM2_INITIAL_EASE_FACTOR = 2.5;
@@ -86,6 +87,27 @@ export async function processReviewResult(
       });
     }
 
+    logEvent('processReview', 'review_processed', {
+      chunkId: itemId,
+      quality,
+      easeFactor: updateData.easeFactor,
+      repetitions: updateData.repetitions,
+      intervalDays: updateData.intervalDays,
+      nextReviewAt: updateData.nextReviewAt,
+    });
+
+    // A permanent scheduling change that must be auditable. Log only on the
+    // transition into remediation — not on every later failing review of an
+    // already-flagged leech (previous.chunkType guards against re-emitting).
+    if (sm2Result.leech && previous.chunkType !== 'remediation') {
+      logEvent('processReview', 'leech_flagged', {
+        chunkId: itemId,
+        repetitions: updateData.repetitions,
+        easeFactor: updateData.easeFactor,
+        consecutiveFailures: newConsecutiveFailures,
+      });
+    }
+
     return serviceOk({
       previous,
       updated: {
@@ -102,6 +124,10 @@ export async function processReviewResult(
       isLeech: sm2Result.leech || false,
     });
   } catch (error) {
+    logEvent('processReview', 'sr_update_failed', {
+      chunkId: itemId,
+      error: extractErrorMessage(error),
+    });
     return serviceFail({
       type: 'database',
       message: `Failed to process review result: ${extractErrorMessage(error)}`,
@@ -180,6 +206,8 @@ export async function resolveLeech(
         message: `Update affected 0 rows for chunk ${chunkId} — it may have been deleted concurrently`,
       });
     }
+
+    logEvent('resolveLeech', 'leech_resolved', { chunkId, resolution });
 
     return serviceOk({ chunkId, resolution });
   } catch (error) {

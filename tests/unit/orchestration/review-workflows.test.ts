@@ -1,4 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
+  logEvent: vi.fn(),
+}));
+
 import {
   processReviewResult,
   type ReviewDeps,
@@ -6,6 +12,11 @@ import {
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 import type { LearningChunk } from '../../../src/domain/types/entities.js';
 import { stubReviewPersistence } from '../../helpers/stub-ports.js';
+import { logEvent } from '../../../src/shared/logger.js';
+
+beforeEach(() => {
+  vi.mocked(logEvent).mockClear();
+});
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -260,5 +271,90 @@ describe('processReviewResult', () => {
         withoutOverdue.data.updated.intervalDays
       );
     }
+  });
+
+  // ── Event logging (NEU-361) ───────────────────────────────────
+
+  it('emits a review_processed event with SR scalars on success', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk({ repetitions: 4, easeFactor: 2.6 }));
+
+    await processReviewResult('item-1', 4, {}, deps);
+
+    expect(logEvent).toHaveBeenCalledWith(
+      'processReview',
+      'review_processed',
+      expect.objectContaining({
+        chunkId: 'item-1',
+        quality: 4,
+        easeFactor: expect.any(Number),
+        repetitions: expect.any(Number),
+        intervalDays: expect.any(Number),
+        nextReviewAt: expect.any(Number),
+      })
+    );
+  });
+
+  it('emits a leech_flagged event when a chunk newly crosses the leech threshold', async () => {
+    // Stored 2 consecutive failures + this failing review (quality 0) reaches the default threshold of 3.
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 2, chunkType: 'review' }))
+      .mockResolvedValueOnce(stubChunk());
+
+    const result = await processReviewResult('item-1', 0, {}, deps);
+
+    expect(result.success).toBe(true);
+    expect(logEvent).toHaveBeenCalledWith(
+      'processReview',
+      'leech_flagged',
+      expect.objectContaining({
+        chunkId: 'item-1',
+        repetitions: expect.any(Number),
+        easeFactor: expect.any(Number),
+        consecutiveFailures: 3,
+      })
+    );
+  });
+
+  it('does not emit leech_flagged for an already-remediation chunk', async () => {
+    // Already a leech: a further failing review must not re-emit leech_flagged.
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ chunkType: 'remediation', consecutiveFailures: 5 }))
+      .mockResolvedValueOnce(stubChunk());
+
+    await processReviewResult('item-1', 0, {}, deps);
+
+    expect(logEvent).not.toHaveBeenCalledWith('processReview', 'leech_flagged', expect.anything());
+    // The review itself is still recorded.
+    expect(logEvent).toHaveBeenCalledWith(
+      'processReview',
+      'review_processed',
+      expect.objectContaining({ chunkId: 'item-1' })
+    );
+  });
+
+  it('emits an sr_update_failed event when persistReviewUpdate throws', async () => {
+    const deps = stubDeps();
+    (deps.reviewPersistence.persistReviewUpdate as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('db crash')
+    );
+
+    const result = await processReviewResult('item-1', 4, {}, deps);
+
+    expect(result.success).toBe(false);
+    expect(logEvent).toHaveBeenCalledWith(
+      'processReview',
+      'sr_update_failed',
+      expect.objectContaining({ chunkId: 'item-1', error: 'db crash' })
+    );
+    expect(logEvent).not.toHaveBeenCalledWith(
+      'processReview',
+      'review_processed',
+      expect.anything()
+    );
   });
 });
