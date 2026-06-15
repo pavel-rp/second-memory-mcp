@@ -27,8 +27,10 @@ function resolveLevel(): string {
  *
  * Each sensitive field is listed twice: the bare path (`token`) to catch a
  * top-level `{ token }`, and the one-level wildcard (`*.token`) since Pino's
- * `*.x` only matches depth-2 (e.g. `params.token`). Aligned with the field set
- * in `redact-params.ts`, which scrubs the `mcp_request_log.params` JSONB.
+ * `*.x` only matches depth-2 (e.g. `params.token`). `apiKey` (camelCase) and
+ * `apikey` (lowercase) are both listed because Pino redact paths are
+ * case-sensitive, mirroring the case-insensitive `apikey` entry in
+ * `redact-params.ts`, which scrubs the `mcp_request_log.params` JSONB.
  *
  * Learner `response` text is intentionally NOT redacted — it is useful
  * diagnostic data.
@@ -41,6 +43,8 @@ export const LOG_REDACT = {
     '*.token',
     'apiKey',
     '*.apiKey',
+    'apikey',
+    '*.apikey',
     'api_key',
     '*.api_key',
     'authorization',
