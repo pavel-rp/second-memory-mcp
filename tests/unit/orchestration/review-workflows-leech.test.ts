@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+
+vi.mock('../../../src/shared/logger.js', () => ({
+  getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
+  logEvent: vi.fn(),
+}));
+
 import { getLeeches, resolveLeech } from '../../../src/orchestration/review-workflows.js';
 import type { LeechDeps } from '../../../src/orchestration/review-workflows.js';
 import type { ChunkRepository, ChunkMinimalMetadata } from '../../../src/ports/chunk-repository.js';
 import type { ReviewPersistencePort } from '../../../src/ports/review-persistence-port.js';
 import type { LearningChunk } from '../../../src/domain/types/entities.js';
+import { logEvent } from '../../../src/shared/logger.js';
 
 function makeMockDeps(overrides?: {
   batchFetchMinimal?: ChunkRepository['batchFetchMinimal'];
@@ -124,6 +131,7 @@ describe('resolveLeech', () => {
   let mockPersist: Mock<ReviewPersistencePort['persistReviewUpdate']>;
 
   beforeEach(() => {
+    vi.mocked(logEvent).mockClear();
     mockPersist = vi.fn<ReviewPersistencePort['persistReviewUpdate']>().mockResolvedValue(1);
     deps = makeMockDeps({
       getChunk: vi.fn().mockResolvedValue(makeLeechChunk()),
@@ -247,5 +255,42 @@ describe('resolveLeech', () => {
     expect(result.success).toBe(false);
     expect(result.success === false && result.error.type).toBe('database');
     expect(result.success === false && result.error.message).toContain('connection lost');
+  });
+
+  // --- event logging (NEU-361) ---
+  it.each(['reset_progress', 'archive', 'mark_reviewed'] as const)(
+    'emits a leech_resolved event on a successful %s resolution',
+    async resolution => {
+      const result = await resolveLeech('chunk-leech-1', resolution, deps);
+
+      expect(result.success).toBe(true);
+      expect(logEvent).toHaveBeenCalledWith('resolveLeech', 'leech_resolved', {
+        chunkId: 'chunk-leech-1',
+        resolution,
+      });
+    }
+  );
+
+  it('does not emit leech_resolved when the update affects 0 rows', async () => {
+    deps = makeMockDeps({
+      getChunk: vi.fn().mockResolvedValue(makeLeechChunk()),
+      persistReviewUpdate: vi.fn().mockResolvedValue(0),
+    });
+
+    const result = await resolveLeech('chunk-leech-1', 'reset_progress', deps);
+
+    expect(result.success).toBe(false);
+    expect(logEvent).not.toHaveBeenCalled();
+  });
+
+  it('still succeeds when event emission throws', async () => {
+    vi.mocked(logEvent).mockImplementationOnce(() => {
+      throw new Error('event logger down');
+    });
+
+    const result = await resolveLeech('chunk-leech-1', 'mark_reviewed', deps);
+
+    // A broken event logger must not poison a successful leech resolution.
+    expect(result.success).toBe(true);
   });
 });
