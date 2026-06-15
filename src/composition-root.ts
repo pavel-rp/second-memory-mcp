@@ -5,6 +5,7 @@ import { DrizzleSessionRepository } from './adapters/drizzle/session-repository.
 import { DrizzleSearchAdapter } from './adapters/drizzle/search-adapter.js';
 import { DrizzleReviewPersistenceAdapter } from './adapters/drizzle/review-persistence-adapter.js';
 import { DrizzleUnitOfWorkAdapter } from './adapters/drizzle/unit-of-work-adapter.js';
+import { instrument } from './adapters/drizzle/instrument.js';
 import { DrizzleSessionQuestionRepository } from './adapters/drizzle/session-question-repository.js';
 import { DrizzleNotesRepository } from './adapters/drizzle/notes-repository.js';
 import { DrizzleContextTokenRepository } from './adapters/drizzle/context-token-repository.js';
@@ -313,13 +314,16 @@ export interface AppContext {
 /** Create the default production ports wired to the Drizzle/PostgreSQL adapters. */
 function createProductionPorts(vectorSimilarityThreshold?: number): AppPorts {
   const db = getSql();
+  // NEU-363: instrument the target adapters so every public DB method is timed
+  // and persists slow_query/query_failed events to operation_event_log. `topics`
+  // and the other repositories are out of scope for this task's target set.
   return {
-    chunks: new DrizzleChunkRepository(db),
+    chunks: instrument('chunkRepository', new DrizzleChunkRepository(db)),
     topics: new DrizzleTopicRepository(db),
-    sessions: new DrizzleSessionRepository(db),
+    sessions: instrument('sessionRepository', new DrizzleSessionRepository(db)),
     search: new DrizzleSearchAdapter(db, vectorSimilarityThreshold),
-    reviewPersistence: new DrizzleReviewPersistenceAdapter(db),
-    unitOfWork: new DrizzleUnitOfWorkAdapter(),
+    reviewPersistence: instrument('reviewPersistence', new DrizzleReviewPersistenceAdapter(db)),
+    unitOfWork: instrument('unitOfWork', new DrizzleUnitOfWorkAdapter()),
     sessionQuestions: new DrizzleSessionQuestionRepository(db),
     notes: new DrizzleNotesRepository(db),
     contextTokens: new DrizzleContextTokenRepository(db),

@@ -17,7 +17,6 @@ import type {
   WeakAreaResult,
 } from '../../ports/review-persistence-port.js';
 import { toIsoTimestamp } from '../../shared/date-helpers.js';
-import { timedQuery } from './timed-query.js';
 
 const weakAreaRowSchema = z.object({
   chunk_id: z.string(),
@@ -32,10 +31,8 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
   constructor(private db: SqlDb = getSql()) {}
 
   async getChunk(id: string): Promise<LearningChunk | undefined> {
-    return timedQuery('reviewPersistence.getChunk', async () => {
-      const [row] = await this.db.select().from(learningChunks).where(eq(learningChunks.id, id));
-      return row;
-    });
+    const [row] = await this.db.select().from(learningChunks).where(eq(learningChunks.id, id));
+    return row;
   }
 
   async persistReviewUpdate(
@@ -54,68 +51,63 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       >
     >
   ): Promise<number> {
-    return timedQuery('reviewPersistence.persistReviewUpdate', async () => {
-      const res = await this.db
-        .update(learningChunks)
-        .set(updates)
-        .where(eq(learningChunks.id, chunkId));
-      return res.rowCount ?? 0;
-    });
+    const res = await this.db
+      .update(learningChunks)
+      .set(updates)
+      .where(eq(learningChunks.id, chunkId));
+    return res.rowCount ?? 0;
   }
 
   async getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]> {
-    return timedQuery('reviewPersistence.getReviewsByDateRange', async () => {
-      const fromMs = from.getTime();
-      const toMs = to.getTime();
+    const fromMs = from.getTime();
+    const toMs = to.getTime();
 
-      // Note: assessment questions with multiple chunk mappings produce one row per chunk.
-      // This is intentional — each chunk gets its own analytics entry.
-      const rows = await this.db
-        .select({
-          startTime: learningSessions.startTime,
-          quality: sessionQuestionAttempts.quality,
-          chunkType: learningChunks.chunkType,
-          tagsJson: learningChunks.tagsJson,
-          topicTitle: learningTopics.title,
-        })
-        .from(sessionQuestionAttempts)
-        .innerJoin(
-          sessionQuestions,
-          eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+    // Note: assessment questions with multiple chunk mappings produce one row per chunk.
+    // This is intentional — each chunk gets its own analytics entry.
+    const rows = await this.db
+      .select({
+        startTime: learningSessions.startTime,
+        quality: sessionQuestionAttempts.quality,
+        chunkType: learningChunks.chunkType,
+        tagsJson: learningChunks.tagsJson,
+        topicTitle: learningTopics.title,
+      })
+      .from(sessionQuestionAttempts)
+      .innerJoin(
+        sessionQuestions,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestions.id)
+      )
+      .innerJoin(
+        sessionQuestionChunks,
+        eq(sessionQuestions.id, sessionQuestionChunks.sessionQuestionId)
+      )
+      .innerJoin(learningSessions, eq(sessionQuestions.sessionId, learningSessions.id))
+      .innerJoin(learningChunks, eq(sessionQuestionChunks.chunkId, learningChunks.id))
+      .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
+      .where(
+        and(
+          isNotNull(sessionQuestionAttempts.quality),
+          gte(learningSessions.startTime, fromMs),
+          lt(learningSessions.startTime, toMs)
         )
-        .innerJoin(
-          sessionQuestionChunks,
-          eq(sessionQuestions.id, sessionQuestionChunks.sessionQuestionId)
-        )
-        .innerJoin(learningSessions, eq(sessionQuestions.sessionId, learningSessions.id))
-        .innerJoin(learningChunks, eq(sessionQuestionChunks.chunkId, learningChunks.id))
-        .leftJoin(learningTopics, eq(learningChunks.topicId, learningTopics.id))
-        .where(
-          and(
-            isNotNull(sessionQuestionAttempts.quality),
-            gte(learningSessions.startTime, fromMs),
-            lt(learningSessions.startTime, toMs)
-          )
-        );
+      );
 
-      return rows.map(row => ({
-        date: toIsoTimestamp(row.startTime),
-        quality: row.quality as number,
-        isNew: row.chunkType === 'new',
-        topic: row.topicTitle ?? '(unknown)',
-        tags: row.tagsJson ?? [],
-      }));
-    });
+    return rows.map(row => ({
+      date: toIsoTimestamp(row.startTime),
+      quality: row.quality as number,
+      isNew: row.chunkType === 'new',
+      topic: row.topicTitle ?? '(unknown)',
+      tags: row.tagsJson ?? [],
+    }));
   }
 
   async getWeakAreas(options?: GetWeakAreasOptions): Promise<WeakAreaResult[]> {
-    return timedQuery('reviewPersistence.getWeakAreas', async () => {
-      const qualityThreshold = options?.qualityThreshold ?? 2;
-      const minLowCount = options?.minLowCount ?? 2;
-      const lookbackCount = options?.lookbackCount ?? 3;
-      const limit = options?.limit ?? 5;
+    const qualityThreshold = options?.qualityThreshold ?? 2;
+    const minLowCount = options?.minLowCount ?? 2;
+    const lookbackCount = options?.lookbackCount ?? 3;
+    const limit = options?.limit ?? 5;
 
-      const query = sql`
+    const query = sql`
       WITH ranked_attempts AS (
         SELECT
           sqc.chunk_id,
@@ -155,18 +147,17 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
       LIMIT ${limit}
     `;
 
-      const result = await this.db.execute(query);
-      return result.rows.map(row => {
-        const parsed = weakAreaRowSchema.parse(row);
-        return {
-          chunkId: parsed.chunk_id,
-          chunkTitle: parsed.chunk_title,
-          topicTitle: parsed.topic_title,
-          lowCount: parsed.low_count,
-          recentAttempts: parsed.recent_attempts,
-          avgRecentQuality: parsed.avg_recent_quality,
-        };
-      });
+    const result = await this.db.execute(query);
+    return result.rows.map(row => {
+      const parsed = weakAreaRowSchema.parse(row);
+      return {
+        chunkId: parsed.chunk_id,
+        chunkTitle: parsed.chunk_title,
+        topicTitle: parsed.topic_title,
+        lowCount: parsed.low_count,
+        recentAttempts: parsed.recent_attempts,
+        avgRecentQuality: parsed.avg_recent_quality,
+      };
     });
   }
 }
