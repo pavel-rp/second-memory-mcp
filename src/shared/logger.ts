@@ -21,11 +21,46 @@ function resolveLevel(): string {
   return 'info';
 }
 
+/**
+ * Shared Pino `redact` config — censors credential/secret fields to `[REDACTED]`
+ * at serialization time across every pino sink (stderr + both DB transports).
+ *
+ * Each sensitive field is listed twice: the bare path (`token`) to catch a
+ * top-level `{ token }`, and the one-level wildcard (`*.token`) since Pino's
+ * `*.x` only matches depth-2 (e.g. `params.token`). `apiKey` (camelCase) and
+ * `apikey` (lowercase) are both listed because Pino redact paths are
+ * case-sensitive, mirroring the case-insensitive `apikey` entry in
+ * `redact-params.ts`, which scrubs the `mcp_request_log.params` JSONB.
+ *
+ * Learner `response` text is intentionally NOT redacted — it is useful
+ * diagnostic data.
+ */
+export const LOG_REDACT = {
+  paths: [
+    'password',
+    '*.password',
+    'token',
+    '*.token',
+    'apiKey',
+    '*.apiKey',
+    'apikey',
+    '*.apikey',
+    'api_key',
+    '*.api_key',
+    'authorization',
+    '*.authorization',
+    'secret',
+    '*.secret',
+  ],
+  censor: '[REDACTED]',
+};
+
 export const pinoLogger = pino(
   {
     level: resolveLevel(),
     base: { service: 'second-memory-mcp', version: getVersion() },
     timestamp: pino.stdTimeFunctions.isoTime,
+    redact: LOG_REDACT,
   },
   isMcpMode() ? pino.destination(2) : undefined
 );
@@ -145,6 +180,7 @@ export function createAuditPinoLogger(connectionString: string): pino.Logger {
       level: 'info',
       base: { service: 'second-memory-mcp', version: getVersion() },
       timestamp: pino.stdTimeFunctions.isoTime,
+      redact: LOG_REDACT,
     },
     transport
   );
@@ -167,6 +203,7 @@ export function createEventPinoLogger(connectionString: string): pino.Logger {
       level: 'info',
       base: { service: 'second-memory-mcp', version: getVersion() },
       timestamp: pino.stdTimeFunctions.isoTime,
+      redact: LOG_REDACT,
     },
     transport
   );
