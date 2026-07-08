@@ -705,13 +705,27 @@ describe('startHttpTransport with auth', () => {
     expect(res.headers['access-control-allow-origin']).toBe('https://app.test.local');
   });
 
-  it('does not set Access-Control-Allow-Origin for disallowed origin (VC-11)', async () => {
+  it('rejects a disallowed Origin with 403 ahead of CORS/handlers (NEU-834)', async () => {
     const res = await makeRequest(port, {
       method: 'OPTIONS',
       headers: { Origin: 'https://evil.com' },
     });
-    expect(res.status).toBe(204);
+    expect(res.status).toBe(403);
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    const parsed = JSON.parse(res.body);
+    expect(parsed.error.message).toContain('origin not allowed');
+  });
+
+  it('allows a request with no Origin header through the Origin gate (NEU-834)', async () => {
+    // No Origin header — the Origin gate must not reject; jose is mocked so the
+    // request reaches the handler and initializes a session.
+    const res = await makeRequest(port, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer mock-valid-token' },
+      body: { ...INIT_BODY, id: 300 },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers['mcp-session-id']).toBeDefined();
   });
 
   it('sets Vary: Origin when reflecting allowed origin (VC-11)', async () => {

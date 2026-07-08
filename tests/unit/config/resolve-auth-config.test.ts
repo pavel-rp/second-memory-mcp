@@ -96,13 +96,13 @@ describe('resolveAuthConfig', () => {
     expect(result!.corsAllowedOrigins).toEqual(['https://a.com', 'https://b.com', 'https://c.com']);
   });
 
-  it("defaults CORS_ALLOWED_ORIGINS to ['*'] when not set", () => {
-    const result = resolveAuthConfig('http', {
-      AUTH_ISSUER: 'https://auth.example.com',
-      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
-    });
-
-    expect(result!.corsAllowedOrigins).toEqual(['*']);
+  it('throws when CORS_ALLOWED_ORIGINS is unset in HTTP mode (required-and-explicit)', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      })
+    ).toThrow('CORS_ALLOWED_ORIGINS is required when TRANSPORT=http');
   });
 
   // ── Whitespace trimming ────────────────────────────────────
@@ -159,14 +159,24 @@ describe('resolveAuthConfig', () => {
     ).toThrow('AUTH_AUDIENCE');
   });
 
-  it("defaults CORS_ALLOWED_ORIGINS to ['*'] when set to empty string", () => {
-    const result = resolveAuthConfig('http', {
-      AUTH_ISSUER: 'https://auth.example.com',
-      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
-      CORS_ALLOWED_ORIGINS: '',
-    });
+  it('throws when CORS_ALLOWED_ORIGINS is an empty string in HTTP mode', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+        CORS_ALLOWED_ORIGINS: '',
+      })
+    ).toThrow('CORS_ALLOWED_ORIGINS is required when TRANSPORT=http');
+  });
 
-    expect(result!.corsAllowedOrigins).toEqual(['*']);
+  it('throws when CORS_ALLOWED_ORIGINS is only commas/whitespace in HTTP mode', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+        CORS_ALLOWED_ORIGINS: ' , , ',
+      })
+    ).toThrow('CORS_ALLOWED_ORIGINS is required when TRANSPORT=http');
   });
 
   // ── CORS origin normalization ────────────────────────────────
@@ -191,14 +201,24 @@ describe('resolveAuthConfig', () => {
     expect(result!.corsAllowedOrigins).toEqual(['https://app.example.com']);
   });
 
-  it('preserves wildcard "*" as-is during origin normalization', () => {
-    const result = resolveAuthConfig('http', {
-      AUTH_ISSUER: 'https://auth.example.com',
-      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
-      CORS_ALLOWED_ORIGINS: '*',
-    });
+  it('throws when CORS_ALLOWED_ORIGINS is the wildcard "*" in HTTP mode', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+        CORS_ALLOWED_ORIGINS: '*',
+      })
+    ).toThrow('CORS_ALLOWED_ORIGINS must not contain "*"');
+  });
 
-    expect(result!.corsAllowedOrigins).toEqual(['*']);
+  it('throws when CORS_ALLOWED_ORIGINS contains "*" among explicit origins', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+        CORS_ALLOWED_ORIGINS: 'https://app.example.com,*',
+      })
+    ).toThrow('CORS_ALLOWED_ORIGINS must not contain "*"');
   });
 
   it('normalizes multiple CORS origins with trailing slashes and paths', () => {

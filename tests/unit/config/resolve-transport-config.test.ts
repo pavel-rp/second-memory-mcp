@@ -49,4 +49,55 @@ describe('resolveTransportConfig', () => {
   it('falls back to 127.0.0.1 for whitespace-only HTTP_HOST', () => {
     expect(resolveTransportConfig({ HTTP_HOST: '   ' }).httpHost).toBe('127.0.0.1');
   });
+
+  // ── ALLOWED_HOSTS / Host-header DNS-rebinding fail-fast (NEU-834) ──────────
+
+  it('leaves allowedHosts undefined on the default localhost bind', () => {
+    expect(resolveTransportConfig({ TRANSPORT: 'http' }).allowedHosts).toBeUndefined();
+  });
+
+  it.each(['127.0.0.1', 'localhost', '::1'])(
+    'starts a localhost bind (%s) without ALLOWED_HOSTS',
+    host => {
+      const result = resolveTransportConfig({ TRANSPORT: 'http', HTTP_HOST: host });
+      expect(result.httpHost).toBe(host);
+      expect(result.allowedHosts).toBeUndefined();
+    }
+  );
+
+  it('throws when HTTP_HOST is a non-localhost bind and ALLOWED_HOSTS is unset', () => {
+    expect(() => resolveTransportConfig({ TRANSPORT: 'http', HTTP_HOST: '0.0.0.0' })).toThrow(
+      'ALLOWED_HOSTS'
+    );
+  });
+
+  it('parses ALLOWED_HOSTS for a non-localhost bind', () => {
+    const result = resolveTransportConfig({
+      TRANSPORT: 'http',
+      HTTP_HOST: '0.0.0.0',
+      ALLOWED_HOSTS: 'mcp.example.com',
+    });
+    expect(result.allowedHosts).toEqual(['mcp.example.com']);
+  });
+
+  it('trims and splits a comma-separated ALLOWED_HOSTS list', () => {
+    const result = resolveTransportConfig({
+      TRANSPORT: 'http',
+      HTTP_HOST: '0.0.0.0',
+      ALLOWED_HOSTS: ' a.example.com , b.example.com ,, ',
+    });
+    expect(result.allowedHosts).toEqual(['a.example.com', 'b.example.com']);
+  });
+
+  it('does not fail-fast on a non-localhost HTTP_HOST in STDIO mode', () => {
+    const result = resolveTransportConfig({ TRANSPORT: 'stdio', HTTP_HOST: '0.0.0.0' });
+    expect(result.mode).toBe('stdio');
+    expect(result.allowedHosts).toBeUndefined();
+  });
+
+  it('treats whitespace-only ALLOWED_HOSTS as unset (fails on non-localhost bind)', () => {
+    expect(() =>
+      resolveTransportConfig({ TRANSPORT: 'http', HTTP_HOST: '0.0.0.0', ALLOWED_HOSTS: '   ' })
+    ).toThrow('ALLOWED_HOSTS');
+  });
 });

@@ -4,6 +4,10 @@
 // AUTH_AUDIENCE is required so every JWT is validated against it (NEU-833) and
 // doubles as the PRM `resource` identifier and WWW-Authenticate `resource_metadata`
 // base URL — hence it must be a valid absolute URL.
+// CORS_ALLOWED_ORIGINS is required-and-explicit in HTTP mode (NEU-834): the same
+// list backs the transport-level 403 forged-Origin rejection, so an unset value
+// or any wildcard "*" entry fails startup — a wildcard would make that rejection
+// inert. Mirrors the AUTH_ISSUER/AUTH_AUDIENCE fail-fast pattern.
 
 import type { TransportMode } from './resolve-transport-config.js';
 
@@ -33,26 +37,14 @@ function requireUrl(env: Record<string, string | undefined>, key: string): strin
   return value;
 }
 
-function parseStringList(value: string | undefined, fallback: string[]): string[] {
-  const trimmed = value?.trim();
-  if (!trimmed) return fallback;
-  const parsed = trimmed
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
-  return parsed.length > 0 ? parsed : fallback;
-}
-
 /**
  * Normalize CORS origin entries to scheme+host+port only.
  * Browser Origin headers never include paths or trailing slashes,
  * so config values like "https://app.example.com/" or "https://app.example.com/path"
  * would silently fail the includes() check without normalization.
- * The wildcard "*" is passed through unchanged.
  */
 function normalizeOrigins(origins: string[]): string[] {
   return origins.map(entry => {
-    if (entry === '*') return entry;
     try {
       return new URL(entry).origin;
     } catch {
@@ -61,6 +53,34 @@ function normalizeOrigins(origins: string[]): string[] {
       );
     }
   });
+}
+
+/**
+ * Resolve the required-and-explicit CORS origin allowlist (NEU-834).
+ * This list governs both CORS reflection and the transport-level 403 rejection
+ * of forged Origins, so in HTTP mode it must name explicit origins: unset,
+ * empty, or any wildcard "*" entry fails fast at startup. A wildcard would
+ * reflect every Origin and make the 403 rejection inert.
+ */
+function requireCorsAllowedOrigins(env: Record<string, string | undefined>): string[] {
+  const origins = (env.CORS_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  if (origins.length === 0) {
+    throw new Error(
+      'CORS_ALLOWED_ORIGINS is required when TRANSPORT=http. Set it to a comma-separated list ' +
+        'of explicit browser origins (scheme+host+port), e.g. "https://app.example.com". ' +
+        'A wildcard "*" is rejected because it would disable forged-Origin rejection.'
+    );
+  }
+  if (origins.includes('*')) {
+    throw new Error(
+      'CORS_ALLOWED_ORIGINS must not contain "*" when TRANSPORT=http — a wildcard disables ' +
+        'forged-Origin rejection. List explicit origins (scheme+host+port) instead.'
+    );
+  }
+  return normalizeOrigins(origins);
 }
 
 export function resolveAuthConfig(
@@ -72,6 +92,6 @@ export function resolveAuthConfig(
   return {
     issuer: requireUrl(env, 'AUTH_ISSUER'),
     audience: requireUrl(env, 'AUTH_AUDIENCE'),
-    corsAllowedOrigins: normalizeOrigins(parseStringList(env.CORS_ALLOWED_ORIGINS, ['*'])),
+    corsAllowedOrigins: requireCorsAllowedOrigins(env),
   };
 }
