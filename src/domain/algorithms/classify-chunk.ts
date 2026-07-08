@@ -28,7 +28,7 @@ export type TeachingDecision = {
 
 // ── Tier thresholds ────────────────────────────────────────────────────────
 
-const RECALL_THRESHOLD = 0.7;
+export const RECALL_THRESHOLD = 0.7;
 export const CUED_RECALL_THRESHOLD = 0.5;
 const RETEACH_THRESHOLD = 0.3;
 

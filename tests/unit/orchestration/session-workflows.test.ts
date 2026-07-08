@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../../src/shared/logger.js', () => ({
   getRequestLogger: vi.fn(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() })),
@@ -498,6 +498,18 @@ describe('pass-through delegations', () => {
 // ── resolveSessionChunkDependencies ─────────────────────────────
 
 describe('resolveSessionChunkDependencies', () => {
+  // Pin the clock to NOW so classifyChunk's retrievability is deterministic:
+  // a chunk whose nextReviewAt === NOW is due exactly now (daysOverdue = 0 →
+  // R = 1.0), while an older nextReviewAt decays R below the 0.7 recall tier.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('returns empty result for empty input', async () => {
     const deps = stubDeps();
 
@@ -768,6 +780,79 @@ describe('resolveSessionChunkDependencies', () => {
     );
     expect(result.skippedMasteredPrerequisites).toEqual(['p1']);
     expect(result.addedPrerequisites).toEqual(['p2']);
+  });
+
+  // ── Retrievability gate (NEU-840) ──────────────────────────────
+
+  it('includes a never-reviewed prerequisite even though its retrievability is 1.0', async () => {
+    const deps = stubDeps();
+    // repetitions === 0 scores R = 1.0 under classifyChunk, but the repetitions
+    // guard keeps a fresh prerequisite in the session — R alone must never skip.
+    const target = stubChunk({ id: 'target', prerequisitesJson: ['fresh'], repetitions: 0 });
+    const fresh = stubChunk({
+      id: 'fresh',
+      prerequisitesJson: null,
+      repetitions: 0,
+      intervalDays: null,
+      nextReviewAt: NOW,
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, fresh };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.addedPrerequisites).toEqual(['fresh']);
+    expect(result.skippedMasteredPrerequisites).toEqual([]);
+    expect(result.resolvedChunkIds).toContain('fresh');
+  });
+
+  it('re-includes a once-reviewed prerequisite whose retrievability has decayed below 0.7', async () => {
+    const deps = stubDeps();
+    const target = stubChunk({ id: 'target', prerequisitesJson: ['decayed'], repetitions: 0 });
+    // Reviewed before (repetitions > 0) but long overdue → R well below 0.7,
+    // so it re-enters the session instead of being treated as mastered.
+    const decayed = stubChunk({
+      id: 'decayed',
+      prerequisitesJson: null,
+      repetitions: 3,
+      intervalDays: 7,
+      nextReviewAt: NOW - 400 * 86_400_000,
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, decayed };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.addedPrerequisites).toEqual(['decayed']);
+    expect(result.skippedMasteredPrerequisites).toEqual([]);
+    expect(result.resolvedChunkIds).toContain('decayed');
+  });
+
+  it('skips a once-reviewed prerequisite whose retrievability is still at/above 0.7', async () => {
+    const deps = stubDeps();
+    const target = stubChunk({ id: 'target', prerequisitesJson: ['mastered'], repetitions: 0 });
+    // Reviewed before and due exactly now → daysOverdue = 0 → R = 1.0 ≥ 0.7.
+    const mastered = stubChunk({
+      id: 'mastered',
+      prerequisitesJson: null,
+      repetitions: 3,
+      intervalDays: 7,
+      nextReviewAt: NOW,
+    });
+    (deps.chunks.getById as ReturnType<typeof vi.fn>).mockImplementation(async (id: string) => {
+      const map: Record<string, ReturnType<typeof stubChunk>> = { target, mastered };
+      return map[id];
+    });
+
+    const result = await resolveSessionChunkDependencies(['target'], deps);
+
+    expect(result.skippedMasteredPrerequisites).toEqual(['mastered']);
+    expect(result.addedPrerequisites).toEqual([]);
+    expect(result.resolvedChunkIds).not.toContain('mastered');
   });
 
   it('returns skippedMasteredPrerequisites: [] on all fallback paths', async () => {

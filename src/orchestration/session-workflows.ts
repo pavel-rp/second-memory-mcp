@@ -12,6 +12,11 @@ import type { LearningSession, SessionChunk } from '../domain/types/entities.js'
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
 import { DependencyResolver } from '../domain/algorithms/dependency-resolver.js';
+import {
+  classifyChunk,
+  RECALL_THRESHOLD,
+  type ClassifyChunkInput,
+} from '../domain/algorithms/classify-chunk.js';
 import { mapChunkRowToLearningItem } from '../shared/chunk-mapping.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
 
@@ -223,6 +228,9 @@ export async function resolveSessionChunkDependencies(
 
   const inputChunkSet = new Set(chunkIds);
   const chunkMap = new Map<string, LearningItem>();
+  // Retrievability inputs preserved per chunk — LearningItem drops the epoch
+  // nextReviewAt and intervalDays that classifyChunk needs (NEU-840).
+  const classifyInputByChunk = new Map<string, ClassifyChunkInput>();
   const missingPrerequisites: string[] = [];
   const missingRequestedChunks: string[] = [];
   const queue: string[] = [...chunkIds];
@@ -250,6 +258,12 @@ export async function resolveSessionChunkDependencies(
         }
         item = mapChunkRowToLearningItem(chunkRow) as LearningItem;
         chunkMap.set(currentId, item);
+        classifyInputByChunk.set(currentId, {
+          easeFactor: chunkRow.easeFactor,
+          repetitions: chunkRow.repetitions,
+          nextReviewAt: chunkRow.nextReviewAt,
+          intervalDays: chunkRow.intervalDays,
+        });
       }
 
       const prerequisites = item.prerequisites || [];
@@ -306,12 +320,26 @@ export async function resolveSessionChunkDependencies(
     const chunkIdSet = new Set(chunkIds);
     const allAddedPrerequisites = existingResolvedChain.filter((id: string) => !chunkIdSet.has(id));
 
-    // Partition auto-added prerequisites into mastered and non-mastered
+    // Partition auto-added prerequisites into mastered and non-mastered.
+    // Mastery is a compound gate: a prerequisite is skipped only when it has
+    // been successfully reviewed at least once (repetitions > 0) AND its
+    // estimated retrievability is still at/above the recall tier (R >= 0.7).
+    // classifyChunk scores never-reviewed chunks as R = 1.0, so the
+    // repetitions guard is what keeps fresh prerequisites in the session; a
+    // once-reviewed prerequisite whose memory has decayed below 0.7 re-enters
+    // (NEU-840).
+    const now = new Date();
     const skippedMasteredPrerequisites: string[] = [];
     const addedPrerequisites: string[] = [];
     for (const id of allAddedPrerequisites) {
       const item = chunkMap.get(id);
-      if (item && item.repetitions > 0) {
+      const classifyInput = classifyInputByChunk.get(id);
+      const isMastered =
+        item !== undefined &&
+        item.repetitions > 0 &&
+        classifyInput !== undefined &&
+        classifyChunk(classifyInput, now).estimatedRetrievability >= RECALL_THRESHOLD;
+      if (isMastered) {
         skippedMasteredPrerequisites.push(id);
       } else {
         addedPrerequisites.push(id);
