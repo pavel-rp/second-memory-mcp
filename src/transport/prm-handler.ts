@@ -3,7 +3,7 @@ import type { AuthConfig } from '../config/resolve-auth-config.js';
 
 export function createPrmHandler(authConfig: AuthConfig): RequestHandler {
   const document = {
-    ...(authConfig.audience ? { resource: authConfig.audience } : {}),
+    resource: authConfig.audience,
     authorization_servers: [authConfig.issuer],
     scopes_supported: ['openid', 'profile', 'email'],
     bearer_methods_supported: ['header'],

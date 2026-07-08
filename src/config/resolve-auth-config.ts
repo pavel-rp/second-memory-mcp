@@ -1,12 +1,15 @@
 // Composition root layer: reads process.env and returns auth configuration
 // Returns null for STDIO transport (inherently trusted, no auth needed)
-// Throws on missing AUTH_ISSUER when transport=http (fail-fast); AUTH_AUDIENCE is optional
+// Throws on missing AUTH_ISSUER or AUTH_AUDIENCE when transport=http (fail-fast).
+// AUTH_AUDIENCE is required so every JWT is validated against it (NEU-833) and
+// doubles as the PRM `resource` identifier and WWW-Authenticate `resource_metadata`
+// base URL — hence it must be a valid absolute URL.
 
 import type { TransportMode } from './resolve-transport-config.js';
 
 export type AuthConfig = {
   issuer: string;
-  audience: string | undefined;
+  audience: string;
   corsAllowedOrigins: string[];
 };
 
@@ -22,17 +25,6 @@ function requireEnv(env: Record<string, string | undefined>, key: string): strin
 
 function requireUrl(env: Record<string, string | undefined>, key: string): string {
   const value = requireEnv(env, key);
-  try {
-    new URL(value);
-  } catch {
-    throw new Error(`${key} must be a valid absolute URL, got: "${value}"`);
-  }
-  return value;
-}
-
-function optionalUrl(env: Record<string, string | undefined>, key: string): string | undefined {
-  const value = env[key]?.trim();
-  if (!value) return undefined;
   try {
     new URL(value);
   } catch {
@@ -79,7 +71,7 @@ export function resolveAuthConfig(
 
   return {
     issuer: requireUrl(env, 'AUTH_ISSUER'),
-    audience: optionalUrl(env, 'AUTH_AUDIENCE'),
+    audience: requireUrl(env, 'AUTH_AUDIENCE'),
     corsAllowedOrigins: normalizeOrigins(parseStringList(env.CORS_ALLOWED_ORIGINS, ['*'])),
   };
 }

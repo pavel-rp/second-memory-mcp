@@ -53,9 +53,7 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
   const issuer = authConfig.issuer.replace(/\/+$/, '');
   const jwksUri = await discoverJwksUri(issuer);
   const jwks = createRemoteJWKSet(new URL(jwksUri));
-  const prmUrl = authConfig.audience
-    ? new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href
-    : undefined;
+  const prmUrl = new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href;
 
   return async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -72,7 +70,7 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
     try {
       const { payload } = await jwtVerify(token, jwks, {
         issuer,
-        ...(authConfig.audience ? { audience: authConfig.audience } : {}),
+        audience: authConfig.audience,
       });
 
       // For client_credentials grants, Rauthy sets sub=null and uses azp for the client identity
@@ -96,7 +94,7 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
   };
 }
 
-function reply401(res: Parameters<RequestHandler>[1], prmUrl: string | undefined): void {
-  const challenge = prmUrl ? `Bearer resource_metadata="${prmUrl}"` : 'Bearer';
+function reply401(res: Parameters<RequestHandler>[1], prmUrl: string): void {
+  const challenge = `Bearer resource_metadata="${prmUrl}"`;
   res.setHeader('WWW-Authenticate', challenge).status(401).json({ error: 'Unauthorized' }).end();
 }
