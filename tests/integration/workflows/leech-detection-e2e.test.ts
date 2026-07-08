@@ -11,7 +11,9 @@ import { learningTopics, learningChunks } from '../../../src/infrastructure/db/s
  * Unlike assessment-remediation-e2e.test.ts, NO chunk is seeded with
  * chunk_type='remediation'. The chunk starts as 'new' and only becomes a leech
  * because repeated failing reviews drive the persisted consecutive_failures
- * counter past the threshold (default 3).
+ * counter to the threshold (default 3) AND the chunk has accumulated a minimum
+ * lifetime-attempts evidence base (leechFailureThreshold, default 6 — NEU-839).
+ * Each assessChunkOnce records exactly one graded attempt for the chunk.
  */
 describe('leech detection via the MCP tool flow (integration)', () => {
   let ctx: AppContext;
@@ -115,20 +117,46 @@ describe('leech detection via the MCP tool flow (integration)', () => {
     expect(afterTwo.chunkType).toBe('review');
   });
 
-  it('three consecutive failures flip the chunk to a leech and recommend scaffolding', async () => {
+  it('three consecutive failures alone do NOT flag a leech below the evidence base (NEU-839)', async () => {
+    await seedTopicAndChunk('t-early', 'cf1');
+
+    await assessChunkOnce('cf1', false);
+    await assessChunkOnce('cf1', false);
+    await assessChunkOnce('cf1', false);
+
+    // Consecutive-failure threshold (3) is reached, but only 3 lifetime attempts —
+    // below leechFailureThreshold (6). A new-and-hard chunk is no longer branded a
+    // leech on its first three attempts.
+    const row = await getChunkRow('cf1');
+    expect(row.consecutiveFailures).toBe(3);
+    expect(row.chunkType).toBe('review');
+  });
+
+  it('flips to a leech once the evidence base is met with a consecutive-failure run', async () => {
     await seedTopicAndChunk('t-leech', 'cf1');
 
-    await assessChunkOnce('cf1', false);
-    await assessChunkOnce('cf1', false);
-    const thirdSessionId = await assessChunkOnce('cf1', false);
+    // Build a real evidence base: three graded attempts that pass (not a leech).
+    await assessChunkOnce('cf1', true);
+    await assessChunkOnce('cf1', true);
+    await assessChunkOnce('cf1', true);
+    expect((await getChunkRow('cf1')).chunkType).toBe('review');
 
-    // The counter reached the threshold and the chunk became a leech — produced
-    // entirely by the tool flow, with no direct chunk_type seed.
+    // Now fail. After two failures (5 total attempts) the evidence floor (6) is
+    // still not met, so the chunk is not yet a leech.
+    await assessChunkOnce('cf1', false);
+    await assessChunkOnce('cf1', false);
+    const beforeFloor = await getChunkRow('cf1');
+    expect(beforeFloor.consecutiveFailures).toBe(2);
+    expect(beforeFloor.chunkType).toBe('review');
+
+    // The sixth attempt (third consecutive failure) reaches both gates:
+    // consecutive_failures = 3 and total attempts = 6.
+    const finalSessionId = await assessChunkOnce('cf1', false);
     const row = await getChunkRow('cf1');
     expect(row.consecutiveFailures).toBe(3);
     expect(row.chunkType).toBe('remediation');
 
-    const result = await ctx.recommendRemediation(thirdSessionId);
+    const result = await ctx.recommendRemediation(finalSessionId);
     expect(result.success).toBe(true);
     if (!result.success) throw new Error(`Expected success: ${result.error.message}`);
 
@@ -142,6 +170,10 @@ describe('leech detection via the MCP tool flow (integration)', () => {
   it('a passing review resets the counter but the chunk stays remediation until resolved', async () => {
     await seedTopicAndChunk('t-recover', 'cf1');
 
+    // Reach the evidence base (6 attempts) with a trailing 3-failure run → leech.
+    await assessChunkOnce('cf1', true);
+    await assessChunkOnce('cf1', true);
+    await assessChunkOnce('cf1', true);
     await assessChunkOnce('cf1', false);
     await assessChunkOnce('cf1', false);
     await assessChunkOnce('cf1', false);

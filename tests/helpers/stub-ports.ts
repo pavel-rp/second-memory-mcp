@@ -110,6 +110,10 @@ export function stubReviewPersistence(
   return {
     getChunk: vi.fn().mockResolvedValue(undefined),
     persistReviewUpdate: vi.fn().mockResolvedValue(1),
+    // Default to an ample evidence base so leech-focused tests exercise an
+    // established chunk (past the NEU-839 minimum-attempts floor). Override with a
+    // low value to assert the evidence gate blocks flagging.
+    countAttempts: vi.fn().mockResolvedValue(100),
     getReviewsByDateRange: vi.fn().mockResolvedValue([]),
     getWeakAreas: vi.fn().mockResolvedValue([]),
     ...overrides,

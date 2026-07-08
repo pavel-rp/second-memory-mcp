@@ -43,6 +43,13 @@ export async function processReviewResult(
     // through the MCP tool flow (callers no longer thread the count in).
     const newConsecutiveFailures = quality < 3 ? currentChunk.consecutiveFailures + 1 : 0;
 
+    // Minimum evidence base for leech flagging (NEU-839): the lifetime count of
+    // graded attempts on this chunk. Fetched here (I/O) and injected into the pure
+    // calculator so a new-and-hard chunk is not branded a leech before it has been
+    // attempted `leechFailureThreshold` times. The current attempt is already
+    // persisted before this runs, so the count includes it.
+    const totalAttempts = await deps.reviewPersistence.countAttempts(itemId);
+
     const lastReviewedAt = currentChunk.lastReviewedAt || currentChunk.createdAt;
     const now = new Date();
     const nowMs = now.getTime();
@@ -58,6 +65,7 @@ export async function processReviewResult(
         interval: intervalDays,
         daysOverdue: options.daysOverdue || 0,
         consecutiveFailures: newConsecutiveFailures,
+        totalAttempts,
       },
       deps.algorithmConfig,
       now,
@@ -117,6 +125,7 @@ export async function processReviewResult(
           repetitions: updateData.repetitions,
           easeFactor: updateData.easeFactor,
           consecutiveFailures: newConsecutiveFailures,
+          totalAttempts,
         });
       }
     } catch {

@@ -70,6 +70,17 @@ export const CalculateNextReviewAdvancedInputShape = {
     .min(0)
     .optional()
     .describe('Number of consecutive failed reviews'),
+  total_attempts: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe(
+      'Lifetime count of graded attempts on this item. Gates leech flagging: an ' +
+        'item is not flagged a leech until it has been attempted at least ' +
+        'leechFailureThreshold times, even at the consecutive-failure threshold. ' +
+        'Omit (defaults to 0) to keep the leech gate closed.'
+    ),
   context_token: z
     .string()
     .min(1)

@@ -139,6 +139,8 @@ describe('processReviewResult', () => {
 
   it('flags a leech and marks chunk_type=remediation when the count reaches the threshold', async () => {
     // Default leechConsecutiveFailures is 3 — stored 2 plus this failure makes 3.
+    // The stubbed evidence base (countAttempts) is well past the minimum floor, so
+    // this isolates the consecutive-failure threshold.
     const deps = stubDeps();
     (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 2, chunkType: 'review' }))
@@ -156,6 +158,48 @@ describe('processReviewResult', () => {
       'item-1',
       expect.objectContaining({ chunkType: 'remediation', consecutiveFailures: 3 })
     );
+  });
+
+  it('does NOT flag a leech at the consecutive threshold when the attempt evidence base is below the minimum (NEU-839)', async () => {
+    // Reaches leechConsecutiveFailures (3) but only 3 lifetime attempts — below the
+    // default leechFailureThreshold (6), so the evidence gate blocks flagging.
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 2, chunkType: 'review' }))
+      .mockResolvedValueOnce(stubChunk());
+    (deps.reviewPersistence.countAttempts as ReturnType<typeof vi.fn>).mockResolvedValue(3);
+
+    const result = await processReviewResult('item-1', 0, {}, deps);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.consecutiveFailures).toBe(3);
+      expect(result.data.isLeech).toBe(false);
+      expect(result.data.updated.chunkType).toBe('review');
+    }
+    expect(deps.reviewPersistence.countAttempts).toHaveBeenCalledWith('item-1');
+    expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledWith(
+      'item-1',
+      expect.objectContaining({ chunkType: 'review' })
+    );
+  });
+
+  it('flags a leech once the attempt evidence base reaches the minimum floor (NEU-839)', async () => {
+    // Same consecutive-failure streak, but the lifetime attempt count is exactly at
+    // the default floor (6) — the gate opens and the chunk is flagged.
+    const deps = stubDeps();
+    (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk({ consecutiveFailures: 2, chunkType: 'review' }))
+      .mockResolvedValueOnce(stubChunk());
+    (deps.reviewPersistence.countAttempts as ReturnType<typeof vi.fn>).mockResolvedValue(6);
+
+    const result = await processReviewResult('item-1', 0, {}, deps);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.isLeech).toBe(true);
+      expect(result.data.updated.chunkType).toBe('remediation');
+    }
   });
 
   it('does not downgrade an existing remediation chunk on a non-leech review', async () => {

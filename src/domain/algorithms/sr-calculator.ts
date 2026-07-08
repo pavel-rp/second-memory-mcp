@@ -191,6 +191,7 @@ export function calculateNextReviewAdvanced(
 
   const overdue = Math.max(0, Math.floor(input.daysOverdue ?? 0));
   const consecutiveFailures = Math.max(0, Math.floor(input.consecutiveFailures ?? 0));
+  const totalAttempts = Math.max(0, Math.floor(input.totalAttempts ?? 0));
 
   if (overdue > 0 && input.repetitions > 0) {
     // Apply lapse penalty to ease
@@ -205,7 +206,16 @@ export function calculateNextReviewAdvanced(
     interval = Math.max(1, Math.floor(interval * 0.5));
   }
 
-  if (consecutiveFailures >= config.leechConsecutiveFailures) {
+  // Leech flagging requires a minimum evidence base: a chunk cannot be branded a
+  // leech before it has accumulated `leechFailureThreshold` lifetime attempts, in
+  // addition to the `leechConsecutiveFailures` run. Without this floor a new-and-
+  // hard chunk was flagged on its first three attempts — far more aggressive than
+  // Anki's lifetime standard. `totalAttempts` defaults to 0, so an unknown/absent
+  // evidence base keeps the gate closed (never flags).
+  if (
+    totalAttempts >= config.leechFailureThreshold &&
+    consecutiveFailures >= config.leechConsecutiveFailures
+  ) {
     leech = true;
     // stronger ease penalty for leeches using configured adjustments
     ease = clampEaseFactor(
