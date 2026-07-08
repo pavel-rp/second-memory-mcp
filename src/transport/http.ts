@@ -78,7 +78,11 @@ export async function startHttpTransport(
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
   const sessionIdentity = new Map<string, SessionIdentity>();
-  const app = createMcpExpressApp({ host: config.httpHost });
+  // Host-header DNS-rebinding protection (NEU-834): the SDK auto-enables its
+  // localhost Host check on 127.0.0.1/localhost/::1 binds; for non-localhost
+  // binds `config.allowedHosts` (from the required ALLOWED_HOSTS env) engages
+  // the SDK Host check via `allowedHosts`. Undefined keeps the auto behavior.
+  const app = createMcpExpressApp({ host: config.httpHost, allowedHosts: config.allowedHosts });
 
   // Public endpoints — no auth required
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
@@ -87,6 +91,29 @@ export async function startHttpTransport(
   // PRM endpoint (before /mcp, only when auth is enabled)
   if (authConfig) {
     app.all('/.well-known/oauth-protected-resource/mcp', createPrmHandler(authConfig));
+  }
+
+  // Origin validation (ahead of CORS, NEU-834): reject forged / cross-site
+  // Origins with 403 before any handler runs. Only rejects when an Origin header
+  // is present and not in the CORS_ALLOWED_ORIGINS allowlist — non-browser MCP
+  // clients that omit Origin pass through (DNS-rebinding / CSRF attacks originate
+  // from browsers, which always send Origin). No-op without auth (no allowlist)
+  // or on a wildcard allowlist; in HTTP mode CORS_ALLOWED_ORIGINS is
+  // required-and-explicit, so the wildcard guard only spares test transports.
+  if (authConfig && !authConfig.corsAllowedOrigins.includes('*')) {
+    const allowedOrigins = authConfig.corsAllowedOrigins;
+    app.use('/mcp', (req, res, next) => {
+      const origin = req.headers.origin;
+      if (origin !== undefined && !allowedOrigins.includes(origin)) {
+        res.status(403).json({
+          jsonrpc: '2.0',
+          error: { code: JSON_RPC_SERVER_ERROR, message: 'Forbidden: origin not allowed' },
+          id: null,
+        });
+        return;
+      }
+      next();
+    });
   }
 
   // CORS
