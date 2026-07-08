@@ -293,9 +293,9 @@ describe('Startup fail-fast for Origin/Host misconfiguration', () => {
   });
 
   it('fails startup when CORS_ALLOWED_ORIGINS is the wildcard "*"', () => {
-    expect(() =>
-      resolveAuthConfig('http', { ...HTTP_ENV, CORS_ALLOWED_ORIGINS: '*' })
-    ).toThrow('CORS_ALLOWED_ORIGINS');
+    expect(() => resolveAuthConfig('http', { ...HTTP_ENV, CORS_ALLOWED_ORIGINS: '*' })).toThrow(
+      'CORS_ALLOWED_ORIGINS'
+    );
   });
 
   it('fails startup when CORS_ALLOWED_ORIGINS contains "*" among explicit origins', () => {
@@ -316,9 +316,9 @@ describe('Startup fail-fast for Origin/Host misconfiguration', () => {
   });
 
   it('fails startup for a non-localhost HTTP_HOST bind without ALLOWED_HOSTS', () => {
-    expect(() =>
-      resolveTransportConfig({ TRANSPORT: 'http', HTTP_HOST: '0.0.0.0' })
-    ).toThrow('ALLOWED_HOSTS');
+    expect(() => resolveTransportConfig({ TRANSPORT: 'http', HTTP_HOST: '0.0.0.0' })).toThrow(
+      'ALLOWED_HOSTS'
+    );
   });
 
   it('starts a non-localhost bind when ALLOWED_HOSTS is set', () => {
