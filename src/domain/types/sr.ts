@@ -25,6 +25,12 @@ export type PriorityOutput = { priority: number };
 export type AdvancedNextReviewInput = NextReviewInput & {
   daysOverdue?: number; // days overdue beyond scheduled date (>0)
   consecutiveFailures?: number; // recent consecutive failures
+  // Lifetime graded attempts for this chunk. Gates leech flagging behind a
+  // minimum evidence base (config.leechFailureThreshold): a chunk cannot be
+  // branded a leech before it has been attempted enough times. Injected by the
+  // orchestration layer (fetched via an adapter) to keep the calculator pure.
+  // Absent → 0 → the evidence gate stays closed and no leech is flagged.
+  totalAttempts?: number;
 };
 
 export type AdvancedNextReviewOutput = NextReviewOutput & {
