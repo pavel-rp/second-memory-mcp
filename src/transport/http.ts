@@ -15,11 +15,13 @@ import {
 import { getServerInfo } from '../shared/version.js';
 import type { TransportConfig } from '../config/resolve-transport-config.js';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
+import type { RateLimitConfig } from '../config/resolve-rate-limit-config.js';
 import type { ContextTokenRepository } from '../ports/context-token-repository.js';
 import { createJwtMiddleware } from './jwt-middleware.js';
 import { createPrmHandler } from './prm-handler.js';
 import { createAuditMiddleware } from './audit-middleware.js';
 import { createContextTokenMiddleware } from './context-token-middleware.js';
+import { createRateLimiter } from './rate-limit-middleware.js';
 
 /** Standard JSON-RPC 2.0 error codes. */
 const JSON_RPC_INVALID_REQUEST = -32600;
@@ -74,7 +76,8 @@ export async function startHttpTransport(
   createMcpServer: () => McpServer,
   authConfig?: AuthConfig | null,
   contextTokenRepo?: ContextTokenRepository | null,
-  contextTokenTtlMs?: number
+  contextTokenTtlMs?: number,
+  rateLimitConfig?: RateLimitConfig | null
 ): Promise<HttpTransportHandle> {
   const transports = new Map<string, StreamableHTTPServerTransport>();
   const sessionIdentity = new Map<string, SessionIdentity>();
@@ -159,6 +162,15 @@ export async function startHttpTransport(
   // JWT middleware (after CORS, before route handlers — only when auth is enabled)
   if (authConfig) {
     app.use('/mcp', await createJwtMiddleware(authConfig));
+  }
+
+  // Per-subject rate limiter (NEU-835 / OUT-9): after JWT so the authenticated
+  // subject is resolved, and before the audit/context-token/route handlers so an
+  // over-limit request is shed with 429 before any DB work. Keyed on the JWT
+  // subject, not the MCP session. Only mounted when auth is enabled (a subject
+  // exists to key on) and a positive limit is configured.
+  if (authConfig && rateLimitConfig) {
+    app.use('/mcp', createRateLimiter(rateLimitConfig).middleware);
   }
 
   // Audit and event transports (after CORS and JWT, before route handlers)

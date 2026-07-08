@@ -4,6 +4,7 @@ import { initializeDatabase } from '../infrastructure/db/migrate.js';
 import { createAppContext, loadInitialRuleReports } from '../composition-root.js';
 import { resolveTransportConfig } from '../config/resolve-transport-config.js';
 import { resolveAuthConfig } from '../config/resolve-auth-config.js';
+import { resolveRateLimitConfig } from '../config/resolve-rate-limit-config.js';
 import { createMcpServer } from './create-server.js';
 import { startHttpTransport } from './http.js';
 import { logger } from '../shared/logger.js';
@@ -40,6 +41,7 @@ async function bootstrap(): Promise<void> {
   const ctx = createAppContext(undefined, initialRuleReports);
   const transportConfig = resolveTransportConfig();
   const authConfig = resolveAuthConfig(transportConfig.mode);
+  const rateLimitConfig = resolveRateLimitConfig(transportConfig.mode);
 
   if (transportConfig.mode === 'http') {
     await startHttpTransport(
@@ -47,7 +49,8 @@ async function bootstrap(): Promise<void> {
       () => createMcpServer(ctx),
       authConfig,
       ctx.contextTokens,
-      ctx.contextTokenTtlMs
+      ctx.contextTokenTtlMs,
+      rateLimitConfig
     );
   } else {
     const server = createMcpServer(ctx);

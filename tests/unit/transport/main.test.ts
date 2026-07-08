@@ -6,6 +6,7 @@ const mockCreateAppContext = vi.fn().mockReturnValue({ fake: true, contextTokenT
 const mockLoadInitialRuleReports = vi.fn().mockResolvedValue([]);
 const mockResolveTransportConfig = vi.fn();
 const mockResolveAuthConfig = vi.fn().mockReturnValue(null);
+const mockResolveRateLimitConfig = vi.fn().mockReturnValue(null);
 const mockCreateMcpServer = vi.fn();
 const mockStartHttpTransport = vi.fn().mockResolvedValue({ close: vi.fn() });
 const mockConnect = vi.fn().mockResolvedValue(undefined);
@@ -27,6 +28,10 @@ vi.mock('../../../src/config/resolve-transport-config.js', () => ({
 
 vi.mock('../../../src/config/resolve-auth-config.js', () => ({
   resolveAuthConfig: mockResolveAuthConfig,
+}));
+
+vi.mock('../../../src/config/resolve-rate-limit-config.js', () => ({
+  resolveRateLimitConfig: mockResolveRateLimitConfig,
 }));
 
 vi.mock('../../../src/transport/create-server.js', () => ({
@@ -181,7 +186,8 @@ describe('transport/main bootstrap', () => {
       expect.any(Function),
       null,
       undefined,
-      7_200_000
+      7_200_000,
+      null
     );
     expect(mockCreateMcpServer).toHaveBeenCalled();
   });
