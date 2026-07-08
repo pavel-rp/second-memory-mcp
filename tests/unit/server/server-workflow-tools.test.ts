@@ -23,7 +23,7 @@ describe('server-workflow-tools', () => {
     expect(result.data.workflow).toBe(SERVER_INSTRUCTIONS);
   });
 
-  it('returns response in toolJson format', async () => {
+  it('returns response in toolData format', async () => {
     const handler = server.tools.get('get_server_workflow')!.handler;
     const raw = await handler();
     expect(raw.content).toHaveLength(1);

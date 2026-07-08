@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  extractErrorMessage,
-  toolError,
-  toolOk,
-  toolJson,
-  toolData,
-} from '../../../src/server/tool-helpers.js';
+import { extractErrorMessage, toolError, toolData } from '../../../src/server/tool-helpers.js';
 import { parseResult } from '../../helpers/capture-server.js';
 
 describe('tool-helpers', () => {
@@ -34,6 +28,26 @@ describe('tool-helpers', () => {
       expect(parsed.error.type).toBe('internal');
       expect(parsed.error.message).toBe('DB connection lost');
       expect(parsed.error.retryable).toBe(false);
+    });
+
+    it('flags the MCP result with isError: true', () => {
+      const result = toolError('Something failed', {
+        type: 'database',
+        message: 'DB connection lost',
+      });
+
+      expect(result.isError).toBe(true);
+    });
+
+    it('sets isError: true even for content_quality errors carrying findings', () => {
+      const result = toolError('blocked', {
+        type: 'content_quality',
+        message: 'blocked',
+        retryable: false,
+        findings: [{ chunk_id: 'c1', rule: 'no-empty' }],
+      });
+
+      expect(result.isError).toBe(true);
     });
 
     it('includes retryable flag when provided', () => {
@@ -121,54 +135,6 @@ describe('tool-helpers', () => {
     });
   });
 
-  describe('toolOk', () => {
-    it('returns structured success response with envelope', () => {
-      const result = toolOk('All good');
-      const parsed = parseResult(result);
-
-      expect(parsed.status).toBe('ok');
-      expect(parsed.data.message).toBe('All good');
-    });
-
-    it('merges additional data into response envelope', () => {
-      const result = toolOk('Created', { id: '123', count: 5 });
-      const parsed = parseResult(result);
-
-      expect(parsed.status).toBe('ok');
-      expect(parsed.data.message).toBe('Created');
-      expect(parsed.data.id).toBe('123');
-      expect(parsed.data.count).toBe(5);
-    });
-  });
-
-  describe('toolJson', () => {
-    it('serialises arbitrary data without envelope', () => {
-      const result = toolJson({ foo: 'bar', num: 42 });
-      const parsed = parseResult(result);
-
-      expect(parsed.foo).toBe('bar');
-      expect(parsed.num).toBe(42);
-    });
-
-    it('handles arrays', () => {
-      const result = toolJson([1, 2, 3]);
-      const parsed = parseResult(result);
-
-      expect(parsed).toEqual([1, 2, 3]);
-    });
-
-    it('returns error response for circular references', () => {
-      const circular: Record<string, unknown> = {};
-      circular.self = circular;
-
-      const result = toolJson(circular);
-      const parsed = parseResult(result);
-
-      expect(parsed.status).toBe('error');
-      expect(parsed.error.type).toBe('internal');
-    });
-  });
-
   describe('toolData', () => {
     it('wraps data in success envelope', () => {
       const result = toolData({ foo: 'bar', num: 42 });
@@ -210,17 +176,10 @@ describe('tool-helpers', () => {
       });
     });
 
-    it('toolOk emits exactly { status: "ok", data: { ...extra, message } }', () => {
-      expect(parseResult(toolOk('hi', { id: 'x' }))).toEqual({
-        status: 'ok',
-        data: { id: 'x', message: 'hi' },
-      });
-    });
-
-    it('toolError emits exactly { status: "error", error: { type, message, retryable } }', () => {
-      expect(
-        parseResult(toolError('oops', { type: 'not_found', message: 'gone', retryable: false }))
-      ).toEqual({
+    it('toolError emits exactly { status: "error", error: { type, message, retryable } } and flags isError', () => {
+      const result = toolError('oops', { type: 'not_found', message: 'gone', retryable: false });
+      expect(result.isError).toBe(true);
+      expect(parseResult(result)).toEqual({
         status: 'error',
         error: { type: 'not_found', message: 'gone', retryable: false },
       });

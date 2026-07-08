@@ -34,7 +34,7 @@ These scenarios must be included by `/wf:qa-gen` for every feature, in addition 
   - Applies to: session lifecycle tools (create_session, start_learning, complete_session, submit_answer, teach_next)
   - Priority: P0
 
-- **MCP response format:** All tools must return valid MCP responses via toolOk/toolError. No tool may crash, return raw exceptions, or produce malformed JSON. Errors must be user-facing and actionable.
+- **MCP response format:** All tools must return valid MCP responses via toolData/toolError. No tool may crash, return raw exceptions, or produce malformed JSON. Errors must be user-facing and actionable.
   - Applies to: all MCP tools
   - Priority: P0
 
