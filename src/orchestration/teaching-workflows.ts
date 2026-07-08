@@ -78,6 +78,12 @@ export type TeachingDeps = {
   algorithmConfig: AlgorithmConfig;
   sessionQuestions: SessionQuestionRepository;
   notes?: NotesRepository;
+  /**
+   * Randomness source for review-interval fuzz (NEU-838), forwarded to
+   * `processReviewResult`. Wired to `Math.random` at the composition boundary;
+   * omitted in tests, where reviews stay deterministic (no fuzz).
+   */
+  random?: () => number;
 };
 
 /**
@@ -252,6 +258,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       const reviewDeps: reviewWorkflows.ReviewDeps = {
         reviewPersistence: deps.reviewPersistence,
         algorithmConfig: deps.algorithmConfig,
+        random: deps.random,
       };
 
       const reviewResult = await reviewWorkflows.processReviewResult(
@@ -1265,6 +1272,7 @@ async function submitAnswerForAssessmentQuestion(
   const reviewDeps: reviewWorkflows.ReviewDeps = {
     reviewPersistence: deps.reviewPersistence,
     algorithmConfig: deps.algorithmConfig,
+    random: deps.random,
   };
 
   const reviewResults = await Promise.all(

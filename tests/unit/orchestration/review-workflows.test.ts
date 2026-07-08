@@ -248,6 +248,31 @@ describe('processReviewResult', () => {
     }
   });
 
+  it('threads the injected fuzz source into the computed interval (NEU-838)', async () => {
+    const depsLow = stubDeps();
+    depsLow.random = () => 0;
+    (depsLow.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk());
+    const low = await processReviewResult('item-1', 4, {}, depsLow);
+
+    const depsHigh = stubDeps();
+    depsHigh.random = () => 0.999;
+    (depsHigh.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(stubChunk())
+      .mockResolvedValueOnce(stubChunk());
+    const high = await processReviewResult('item-1', 4, {}, depsHigh);
+
+    expect(low.success).toBe(true);
+    expect(high.success).toBe(true);
+    if (low.success && high.success) {
+      // Different injected randoms drift the interval apart within the fuzz window.
+      expect(low.data.updated.intervalDays).not.toBe(high.data.updated.intervalDays);
+      expect(low.data.updated.intervalDays).toBeGreaterThanOrEqual(1);
+      expect(high.data.updated.intervalDays).toBeGreaterThanOrEqual(1);
+    }
+  });
+
   it('passes daysOverdue to SR calculator and it affects the result', async () => {
     const deps = stubDeps();
     (deps.reviewPersistence.getChunk as ReturnType<typeof vi.fn>)

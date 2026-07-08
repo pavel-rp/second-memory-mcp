@@ -482,6 +482,8 @@ export function createAppContext(
     algorithmConfig,
     sessionQuestions: ports.sessionQuestions,
     notes: ports.notes,
+    // Real interval-fuzz source (NEU-838); drawn per review inside the workflow.
+    random: Math.random,
   };
   const startLearningDeps: teachingWorkflows.StartLearningDeps = {
     sessions: ports.sessions,
@@ -603,11 +605,14 @@ export function createAppContext(
     // Shared utilities
     mapChunkRowToLearningItem,
 
-    // Domain — pure functions (config pre-bound)
-    calculateNextReview: input => calculateNextReview(input, algorithmConfig, new Date()),
+    // Domain — pure functions (config pre-bound). `Math.random()` is the real
+    // interval-fuzz source injected here at the composition boundary (NEU-838),
+    // keeping the domain calculator pure.
+    calculateNextReview: input =>
+      calculateNextReview(input, algorithmConfig, new Date(), Math.random()),
     calculatePriorityScore: input => calculatePriorityScore(input, algorithmConfig, new Date()),
     calculateNextReviewAdvanced: input =>
-      calculateNextReviewAdvanced(input, algorithmConfig, new Date()),
+      calculateNextReviewAdvanced(input, algorithmConfig, new Date(), Math.random()),
     rankCandidates: input => rankCandidatesWithConstraints(input, algorithmConfig, new Date()),
     computeDailyAnalytics: date => analyticsWorkflows.computeDailyAnalytics(date, analyticsDeps),
     computeWindowAnalytics: (from, to, options) =>

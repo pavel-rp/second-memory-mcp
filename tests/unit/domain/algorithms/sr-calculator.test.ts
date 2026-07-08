@@ -4,6 +4,8 @@ import {
   calculatePriorityScore,
   calculateNextReviewAdvanced,
   rankCandidatesWithConstraints,
+  applyIntervalFuzz,
+  NEUTRAL_FUZZ,
 } from '../../../../src/domain/algorithms/sr-calculator.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import { resolveAlgorithmConfig } from '../../../../src/config/resolve-algorithm-config.js';
@@ -571,5 +573,94 @@ describe('advanced leech penalty clamp (config)', () => {
     );
     expect(below.leech).toBeFalsy();
     expect(at.leech).toBeTruthy();
+  });
+});
+
+// NEU-838: interval fuzz so batch-taught chunks stop co-landing on the same date
+describe('applyIntervalFuzz', () => {
+  it('never fuzzes a 1-day interval — stays exactly 1 for any random', () => {
+    for (const r of [0, 0.25, NEUTRAL_FUZZ, 0.75, 0.999]) {
+      expect(applyIntervalFuzz(1, r)).toBe(1);
+    }
+  });
+
+  it('never returns below 1 day for any interval/random combination', () => {
+    for (const interval of [0, 1, 2, 3, 6, 10, 30, 100]) {
+      for (const r of [0, NEUTRAL_FUZZ, 0.999]) {
+        expect(applyIntervalFuzz(interval, r)).toBeGreaterThanOrEqual(1);
+      }
+    }
+  });
+
+  it('returns the interval unchanged at the neutral centre', () => {
+    for (const interval of [2, 6, 10, 25, 52, 100]) {
+      expect(applyIntervalFuzz(interval, NEUTRAL_FUZZ)).toBe(interval);
+    }
+  });
+
+  it('is deterministic for a fixed injected random value', () => {
+    expect(applyIntervalFuzz(30, 0.123)).toBe(applyIntervalFuzz(30, 0.123));
+  });
+
+  it('spreads across a window scaled to interval length', () => {
+    // 6-day interval → ±1 day window [5, 7]
+    expect(applyIntervalFuzz(6, 0)).toBe(5);
+    expect(applyIntervalFuzz(6, 0.999)).toBe(7);
+    // 100-day interval → ±5% window [95, 105]
+    expect(applyIntervalFuzz(100, 0)).toBe(95);
+    expect(applyIntervalFuzz(100, 0.999)).toBe(105);
+  });
+
+  it('clamps out-of-range injected values into the window', () => {
+    expect(applyIntervalFuzz(10, -1)).toBe(applyIntervalFuzz(10, 0));
+    // max of the window is base + spread; an over-1 value can never exceed it
+    expect(applyIntervalFuzz(10, 5)).toBeLessThanOrEqual(11);
+    expect(applyIntervalFuzz(10, 5)).toBeGreaterThanOrEqual(9);
+  });
+});
+
+describe('calculateNextReview interval fuzz (NEU-838)', () => {
+  // reps>=2 success path → interval = prevInterval * ease, large enough to fuzz
+  const fuzzableInput = { quality: 5, repetitions: 5, easeFactor: 2.5, interval: 20 };
+
+  it('same state + different injected randoms → different next-review dates', () => {
+    const low = calculateNextReview(fuzzableInput, DEFAULT_ALGORITHM_CONFIG, NOW, 0);
+    const high = calculateNextReview(fuzzableInput, DEFAULT_ALGORITHM_CONFIG, NOW, 0.999);
+    expect(low.interval).not.toBe(high.interval);
+    expect(low.nextReview).not.toBe(high.nextReview);
+  });
+
+  it('keeps a computed 1-day interval at 1 for any injected random', () => {
+    const failInput = { quality: 1, repetitions: 5, easeFactor: 2.5, interval: 10 };
+    for (const r of [0, NEUTRAL_FUZZ, 0.999]) {
+      const out = calculateNextReview(failInput, DEFAULT_ALGORITHM_CONFIG, NOW, r);
+      expect(out.interval).toBe(1);
+    }
+  });
+
+  it('is deterministic for a fixed injected random value', () => {
+    const a = calculateNextReview(fuzzableInput, DEFAULT_ALGORITHM_CONFIG, NOW, 0.37);
+    const b = calculateNextReview(fuzzableInput, DEFAULT_ALGORITHM_CONFIG, NOW, 0.37);
+    expect(a).toEqual(b);
+  });
+
+  it('defaults to the unfuzzed interval when no random is injected', () => {
+    const neutral = calculateNextReview(fuzzableInput, DEFAULT_ALGORITHM_CONFIG, NOW, NEUTRAL_FUZZ);
+    const defaulted = calculateNextReview(fuzzableInput, DEFAULT_ALGORITHM_CONFIG, NOW);
+    expect(defaulted.interval).toBe(neutral.interval);
+  });
+
+  it('drifts same-day chunks apart through the advanced scheduler when not overdue', () => {
+    const input = {
+      quality: 5,
+      repetitions: 5,
+      easeFactor: 2.5,
+      interval: 20,
+      daysOverdue: 0,
+      consecutiveFailures: 0,
+    };
+    const low = calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, NOW, 0);
+    const high = calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, NOW, 0.999);
+    expect(low.interval).not.toBe(high.interval);
   });
 });
