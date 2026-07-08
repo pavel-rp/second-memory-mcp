@@ -257,4 +257,67 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas (integration)', () => {
     // Third: c-1 (avg 1.67, ease 2.0 — higher ease)
     expect(results[2].chunkId).toBe('c-1');
   });
+
+  // ── countAttempts (NEU-839 leech evidence base) ──────────────
+
+  it('counts every graded attempt mapped to a chunk across questions', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Chunk 1');
+    await seedSession('s-1');
+
+    await seedQuestionWithChunk('sq-1', 's-1', 'c-1', 1);
+    await seedQuestionWithChunk('sq-2', 's-1', 'c-1', 2);
+    await seedQuestionWithChunk('sq-3', 's-1', 'c-1', 3);
+    await seedAttempt('a-1', 'sq-1', 1, now - 3000);
+    await seedAttempt('a-2', 'sq-2', 2, now - 2000);
+    await seedAttempt('a-3', 'sq-3', 4, now - 1000);
+
+    expect(await adapter.countAttempts('c-1')).toBe(3);
+  });
+
+  it('excludes ungraded (null-quality) attempts from the count', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Chunk 1');
+    await seedSession('s-1');
+
+    await seedQuestionWithChunk('sq-1', 's-1', 'c-1', 1);
+    await seedQuestionWithChunk('sq-2', 's-1', 'c-1', 2);
+    await seedAttempt('a-1', 'sq-1', 3, now - 2000);
+    // Ungraded attempt (quality NULL) carries no evidence and must not be counted.
+    await db.insert(sessionQuestionAttempts).values({
+      id: 'a-null',
+      sessionQuestionId: 'sq-2',
+      attemptNumber: 1,
+      response: 'ungraded',
+      passed: false,
+      feedback: 'pending',
+      quality: null,
+      timeSpentMs: 1000,
+      createdAt: now - 1000,
+    });
+
+    expect(await adapter.countAttempts('c-1')).toBe(1);
+  });
+
+  it('does not count attempts belonging to other chunks', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Chunk 1');
+    await seedChunk('c-2', 't-1', 'Chunk 2');
+    await seedSession('s-1');
+
+    await seedQuestionWithChunk('sq-1', 's-1', 'c-1', 1);
+    await seedQuestionWithChunk('sq-2', 's-1', 'c-2', 2);
+    await seedAttempt('a-1', 'sq-1', 1, now - 2000);
+    await seedAttempt('a-2', 'sq-2', 1, now - 1000);
+
+    expect(await adapter.countAttempts('c-1')).toBe(1);
+    expect(await adapter.countAttempts('c-2')).toBe(1);
+  });
+
+  it('returns 0 for a chunk with no recorded attempts', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Untouched Chunk');
+
+    expect(await adapter.countAttempts('c-1')).toBe(0);
+  });
 });
