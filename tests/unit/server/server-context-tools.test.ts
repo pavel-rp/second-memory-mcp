@@ -125,7 +125,7 @@ describe('server-context-tools', () => {
     expect(result.data.workflow_summary).toBeDefined();
   });
 
-  it('response is valid JSON in toolJson format (single text content block)', async () => {
+  it('response is valid JSON in toolData format (single text content block)', async () => {
     registerServerContextTools(server as any, makeCtx());
     const handler = server.tools.get('init_agent_context')!.handler;
     const raw = await handler();

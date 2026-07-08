@@ -38,7 +38,7 @@ Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/help
 
 - **Domain** (`src/domain/`): Pure functions, never throw. Return computed values or Result objects.
 - **Orchestration** (`src/orchestration/`): Result objects for expected failures; throw for unexpected.
-- **Server** (`src/server/*-tools.ts`): try/catch everything. `toolOk()`/`toolJson()` for success, `toolError()` for caught exceptions.
+- **Server** (`src/server/*-tools.ts`): try/catch everything. `toolData()` for success, `toolError()` (carries `isError: true`) for caught exceptions.
 - **Fail-open**: Log to stderr, always return valid MCP responses, never crash.
 - **Structured `findings` only flow through `error.type === 'content_quality'`.** The server tool layer (`src/server/topic-tools.ts`) only serializes the `findings` array on `content_quality` errors; any other error type silently drops them. If you need to surface per-item structured failure data (chunk id, field, score, rationale), use `content_quality` — not `validation`.
 

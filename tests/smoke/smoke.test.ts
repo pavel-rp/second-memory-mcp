@@ -69,7 +69,7 @@ async function parseResponse(res: Response): Promise<unknown> {
 
 /**
  * Decode the standard MCP tool-response envelope emitted by
- * `toolData` / `toolOk` / `toolError` in src/server/tool-helpers.ts.
+ * `toolData` / `toolError` in src/server/tool-helpers.ts.
  *
  * Kept local to the smoke suite — production imports are intentionally
  * avoided so the smoke tests exercise the wire contract, not the code.
