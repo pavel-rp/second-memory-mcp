@@ -424,15 +424,9 @@ describe('createJwtMiddleware', () => {
     );
   });
 
-  // ── No-audience config ───────────────────────────────────
+  // ── Audience is always enforced ───────────────────────────
 
-  it('calls jwtVerify without audience option when audience is undefined', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
-    );
-    const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
-    const noAudMiddleware = await createJwtMiddleware(noAudConfig);
-
+  it('always passes audience to jwtVerify (required in HTTP mode)', async () => {
     mockJwtVerify.mockResolvedValue({
       payload: { sub: 'user-123', email: 'user@example.com' },
     });
@@ -440,27 +434,13 @@ describe('createJwtMiddleware', () => {
     const req = createMockReq({ authorization: 'Bearer valid-token' });
     const res = createMockRes();
 
-    await noAudMiddleware(req, res, next);
+    await middleware(req, res, next);
 
     expect(next).toHaveBeenCalled();
     expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', jwksFunction, {
-      issuer: noAudConfig.issuer,
+      issuer: AUTH_CONFIG.issuer,
+      audience: AUTH_CONFIG.audience,
     });
-  });
-
-  it('WWW-Authenticate is plain Bearer when audience is undefined', async () => {
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
-    );
-    const noAudConfig: AuthConfig = { ...AUTH_CONFIG, audience: undefined };
-    const noAudMiddleware = await createJwtMiddleware(noAudConfig);
-
-    const req = createMockReq({}, 'POST');
-    const res = createMockRes();
-
-    await noAudMiddleware(req, res, next);
-
-    expect(res._headers['www-authenticate']).toBe('Bearer');
   });
 
   // ── Valid token with sub but no email ──────────────────────
