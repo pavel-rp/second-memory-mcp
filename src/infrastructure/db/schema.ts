@@ -205,7 +205,7 @@ export const sessionQuestionAttempts = pgTable(
     response: text('response').notNull(),
     passed: boolean('passed').notNull(),
     feedback: text('feedback').notNull(),
-    quality: integer('quality'), // nullable — null for historical data; teaching: agent-provided, assessment: server-derived (pass=5, fail=1)
+    quality: integer('quality'), // nullable — null for historical data; teaching: agent-provided, assessment: server-derived (pass=4, fail=2)
     agentQuality: smallint('agent_quality'), // agent-provided quality 0–5 (nullable for historical data)
     questionType: text('question_type'), // 'recall' | 'explain_apply' | 'analyze_create' (nullable for historical data)
     timeSpentMs: integer('time_spent_ms').notNull(),

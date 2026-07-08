@@ -487,7 +487,7 @@ describe('session question workflows', () => {
     });
     expect(answer1.action).toBe('recorded');
     if (answer1.action !== 'recorded') throw new Error('Expected recorded');
-    expect(answer1.quality).toBe(5); // assessment: passed → quality 5
+    expect(answer1.quality).toBe(4); // assessment: passed → quality 4
     expect(answer1.attempt).toBe(1);
 
     // 6. Submit answer for second question (fail)
@@ -501,7 +501,7 @@ describe('session question workflows', () => {
     });
     expect(answer2.action).toBe('recorded');
     if (answer2.action !== 'recorded') throw new Error('Expected recorded');
-    expect(answer2.quality).toBe(1); // assessment: failed → quality 1
+    expect(answer2.quality).toBe(2); // assessment: failed → quality 2
 
     // 7. Verify session chunks are marked completed
     const chunks = await ctx.getSessionChunks(sessionId);
@@ -578,7 +578,7 @@ describe('session question workflows', () => {
         sessionQuestionId: q1Id,
         questionChunkIds: expect.arrayContaining(['c1', 'c2']),
         passed: true,
-        quality: 5,
+        quality: 4,
         agentQuality: 4,
         questionType: 'analyze_create',
         attemptNumber: 1,

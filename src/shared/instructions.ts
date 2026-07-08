@@ -30,7 +30,7 @@ ASSESSMENT FLOW (cross-chunk topic evaluation)
 1. Call create_session with mode: "assessment" and chunk_ids listing ALL chunks to evaluate.
 2. Call create_session_questions with session_id and questions — each question has chunk_ids (1+) indicating which chunks it evaluates. Questions can span multiple chunks for cross-concept evaluation.
 3. Call teach_next — returns the next unanswered question (no teaching instruction, just the question text).
-4. Call submit_answer with session_question_id, response, pass/fail, feedback, time_spent_ms. Assessment uses single attempt: pass → quality 5, fail → quality 1. No retry. SR updates fan out to ALL mapped chunks per question.
+4. Call submit_answer with session_question_id, response, pass/fail, feedback, time_spent_ms. Assessment uses single attempt: pass → quality 4, fail → quality 2. No retry. SR updates fan out to ALL mapped chunks per question.
 5. Repeat steps 3-4 until teach_next returns data.action "complete".
 6. Call complete_session with session_id and optional feedback.
 
