@@ -28,15 +28,20 @@ describe('resolveAuthConfig', () => {
     ).toThrow('AUTH_ISSUER');
   });
 
-  it('returns AuthConfig with audience undefined when AUTH_AUDIENCE missing and transport=http', () => {
-    const result = resolveAuthConfig('http', {
-      AUTH_ISSUER: 'https://auth.example.com',
-    });
-    expect(result).toEqual({
-      issuer: 'https://auth.example.com',
-      audience: undefined,
-      corsAllowedOrigins: ['*'],
-    });
+  it('throws when AUTH_AUDIENCE missing and transport=http', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+      })
+    ).toThrow('AUTH_AUDIENCE');
+  });
+
+  it('throws with an actionable message naming AUTH_AUDIENCE and the fix', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+      })
+    ).toThrow('AUTH_AUDIENCE is required when TRANSPORT=http');
   });
 
   it('throws when AUTH_ISSUER missing even if AUTH_AUDIENCE also missing', () => {
@@ -136,20 +141,22 @@ describe('resolveAuthConfig', () => {
     ).toThrow('AUTH_ISSUER');
   });
 
-  it('handles whitespace-only AUTH_AUDIENCE as absent (returns undefined)', () => {
-    const result = resolveAuthConfig('http', {
-      AUTH_ISSUER: 'https://auth.example.com',
-      AUTH_AUDIENCE: '   ',
-    });
-    expect(result!.audience).toBeUndefined();
+  it('handles whitespace-only AUTH_AUDIENCE as absent (throws)', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: '   ',
+      })
+    ).toThrow('AUTH_AUDIENCE');
   });
 
-  it('handles empty-string AUTH_AUDIENCE as absent (returns undefined)', () => {
-    const result = resolveAuthConfig('http', {
-      AUTH_ISSUER: 'https://auth.example.com',
-      AUTH_AUDIENCE: '',
-    });
-    expect(result!.audience).toBeUndefined();
+  it('handles empty-string AUTH_AUDIENCE as absent (throws)', () => {
+    expect(() =>
+      resolveAuthConfig('http', {
+        AUTH_ISSUER: 'https://auth.example.com',
+        AUTH_AUDIENCE: '',
+      })
+    ).toThrow('AUTH_AUDIENCE');
   });
 
   it("defaults CORS_ALLOWED_ORIGINS to ['*'] when set to empty string", () => {

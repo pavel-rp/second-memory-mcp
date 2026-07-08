@@ -111,25 +111,6 @@ describe('createPrmHandler', () => {
     expect(body.bearer_methods_supported).toEqual(['header']);
   });
 
-  // ── Optional audience ────────────────────────────────────────
-
-  it('omits resource field when audience is undefined', () => {
-    const noAudConfig: AuthConfig = {
-      issuer: 'https://auth.example.com',
-      audience: undefined,
-      corsAllowedOrigins: ['*'],
-    };
-    const noAudHandler = createPrmHandler(noAudConfig);
-    const req = createMockReq('GET');
-    const res = createMockRes();
-
-    noAudHandler(req, res, vi.fn() as unknown as NextFunction);
-
-    const body = res._body as Record<string, unknown>;
-    expect(body).not.toHaveProperty('resource');
-    expect(body.authorization_servers).toEqual(['https://auth.example.com']);
-  });
-
   // ── CORS headers for cross-origin discovery ────────────────
 
   it('sets Access-Control-Allow-Origin: * on GET response', () => {
