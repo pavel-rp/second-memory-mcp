@@ -29,10 +29,53 @@ function isoDate(date: Date): string {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 }
 
+/**
+ * Fraction of the interval used as the half-width of the fuzz window — a few
+ * percent, matching Anki's spirit. Not a rollout knob (charter decision: no new
+ * config/env): a fixed domain constant that keeps the calculator pure.
+ */
+const INTERVAL_FUZZ_RATIO = 0.05;
+
+/**
+ * Neutral fuzz value. Maps to the centre of the fuzz window, i.e. the unfuzzed
+ * interval, so callers that do not inject randomness get deterministic output.
+ */
+export const NEUTRAL_FUZZ = 0.5;
+
+/**
+ * Apply an Anki-style randomized window to a computed interval so that chunks
+ * introduced together stop co-landing on identical review dates forever. The
+ * window half-width is a few percent of the interval, scaled to its length,
+ * with a minimum spread of ±1 day once the interval is fuzzable — integer-day
+ * intervals cannot de-clump with a sub-day window. A 1-day (or shorter)
+ * interval is never fuzzed, and the result never drops below 1 day.
+ *
+ * Purity: `random` is an injected value in [0, 1) (the real source is wired at
+ * the orchestration/composition boundary — never `Math.random()` in the domain).
+ * `NEUTRAL_FUZZ` (0.5) returns the interval unchanged.
+ */
+export function applyIntervalFuzz(interval: number, random: number): number {
+  const base = Math.max(1, Math.floor(interval));
+  // Never fuzz a 1-day interval: preserves the hard 1-day floor (Anki does the
+  // same — sub-2-day intervals carry no spread).
+  if (base < 2) {
+    return base;
+  }
+  // Clamp the injected value into [0, 1) so an out-of-range input can never
+  // push the result outside the intended window. Domain never throws.
+  const r = Math.min(0.999999, Math.max(0, random));
+  const spread = Math.max(1, Math.round(base * INTERVAL_FUZZ_RATIO));
+  const min = Math.max(1, base - spread);
+  const max = base + spread;
+  const windowSize = max - min + 1;
+  return min + Math.floor(r * windowSize);
+}
+
 export function calculateNextReview(
   input: NextReviewInput,
   config: AlgorithmConfig,
-  now: Date
+  now: Date,
+  random: number = NEUTRAL_FUZZ
 ): NextReviewOutput {
   const quality = Math.max(0, Math.min(5, Math.floor(input.quality)));
   const prevRepetitions = Math.max(0, Math.floor(input.repetitions));
@@ -69,6 +112,10 @@ export function calculateNextReview(
       nextEase = clampEaseFactor(prevEase + config.easeDeltaHard, config.minimumEaseFactor);
     }
   }
+
+  // Spread same-day-introduced chunks apart. Applied last so the fuzz reflects
+  // the final interval; the 1-day floor (failure/first-review) is preserved.
+  nextInterval = applyIntervalFuzz(nextInterval, random);
 
   const today = toStartOfDay(now);
   const nextDate = addDays(today, nextInterval);
@@ -130,9 +177,13 @@ export function calculatePriorityScore(
 export function calculateNextReviewAdvanced(
   input: AdvancedNextReviewInput,
   config: AlgorithmConfig,
-  now: Date
+  now: Date,
+  random: number = NEUTRAL_FUZZ
 ): AdvancedNextReviewOutput {
-  const base = calculateNextReview(input, config, now);
+  // The base interval is already fuzzed; the overdue/lapse adjustments below
+  // operate on it, and the common de-clumping path (not overdue, no reset)
+  // returns it unchanged so same-day chunks still drift apart.
+  const base = calculateNextReview(input, config, now, random);
   let ease = base.easeFactor;
   let interval = base.interval;
   let reps = base.repetitions;
