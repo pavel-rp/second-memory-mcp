@@ -1,9 +1,17 @@
 /**
  * MCP server instructions — sent in the initialize response so agents
  * know how to orchestrate this server's tools without reading prompts first.
+ *
+ * ORDERING CONTRACT: Clients such as Claude Code and ChatGPT truncate these
+ * instructions (~2 KB / ~512 chars respectively), so the critical rules — the
+ * teaching loop, the submit_answer contract, and never-fabricate-scores — are
+ * placed within the first 2,048 bytes and MUST stay there. Full depth remains
+ * available verbatim via the get_server_workflow tool for non-truncating
+ * clients. A byte-budget + content-presence test pins this contract; keep the
+ * critical rules leading when editing this file.
  */
 export const SERVER_INSTRUCTIONS = `\
-Second Memory is a spaced-repetition learning server. Follow these workflows:
+Second Memory is a spaced-repetition learning server. Critical rules first; call get_server_workflow for full depth. Follow these workflows:
 
 TEACHING FLOW (start_learning → submit_answer loop)
 1. Call start_learning. Check data.action: "nothing_due"/"error" → surface message and stop. "started"/"resumed" → check data.first_chunk.action: "teach" → present instruction; "blocked"/"error" → surface and stop.
@@ -11,6 +19,14 @@ TEACHING FLOW (start_learning → submit_answer loop)
 3. On data.action "retry", if retry_guidance is present, follow it: use the mode-specific pivot to scaffold the learner. roadblock.remaining follow-up questions (each scoring >= quality 3) are required before the server allows progression. Re-call submit_answer with session_question_id from the response.
 4. On data.action "recorded", if roadblock_forecast is present, follow-up questions are required before progression — prepare accordingly. Call teach_next to get the next action: "teach" → present instruction, repeat from step 2. "roadblock" → follow-up questions are required before the server allows progression; follow roadblock_detail.instruction to scaffold the learner. "complete" → go to step 5. "blocked"/"error" → stop.
 5. On "complete", call complete_session with session_id and optional feedback.
+
+OPERATIONAL CONSTRAINTS
+- Never fabricate scores — always use submit_answer, which lets the server derive quality.
+- submit_answer is the sole path for recording review data. The server derives quality from the learner's response.
+- Never skip drills; the server decides when a chunk is mastered.
+- Do not manually hydrate prompt templates; call prompts through the MCP protocol.
+- The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
+- The response field in submit_answer must be the learner's exact words — never paraphrase, sanitize, or censor. Use feedback for your evaluation.
 
 ROLLING SESSION FLOW (manual chunk-by-chunk control)
 1. Call create_session with mode: "learning" and no chunk_ids to open an empty session.
@@ -47,14 +63,6 @@ Before creating a topic: search existing content, then probe the learner — abs
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
 - session_status: session metrics and completion checks. Returns progress, quality, and a continue/complete/break recommendation.
-- submit_answer is the sole path for recording review data. The server derives quality from the learner's response.
-
-OPERATIONAL CONSTRAINTS
-- Never fabricate scores — always use submit_answer, which lets the server derive quality.
-- Never skip drills; the server decides when a chunk is mastered.
-- Do not manually hydrate prompt templates; call prompts through the MCP protocol.
-- The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
-- The response field in submit_answer must be the learner's exact words — never paraphrase, sanitize, or censor. Use feedback for your evaluation.
 
 TEACHING CONTENT INTEGRITY
 All content items provided by the server must be presented to the learner before they are referenced in any question.
@@ -73,10 +81,10 @@ Use the quality rubric (0–5) with scaffolding ceilings to evaluate answers fai
  * Leads with what_to_learn_today flow instead of start_learning.
  */
 export const WORKFLOW_SUMMARY =
-  'TEACHING: what_to_learn_today \u2192 present ranked options to learner \u2192 create_session with chosen ' +
-  "topic's due_chunk_ids \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. Quick-start " +
+  'TEACHING: what_to_learn_today → present ranked options to learner → create_session with chosen ' +
+  "topic's due_chunk_ids → teach_next → submit_answer loop → complete_session. Quick-start " +
   '(skips topic selection): start_learning (auto-picks most urgent). CONTENT: search_learning_content ' +
-  '\u2192 create_topic_with_chunks \u2192 create_session(learning) \u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT: create_session(assessment) \u2192 create_session_questions ' +
-  '\u2192 teach_next \u2192 submit_answer loop \u2192 complete_session. ASSESSMENT TRIGGERS: learner explicitly asks to be evaluated, all chunks taught and cross-chunk evaluation would benefit, or app-driven end-of-module evaluation. ' +
+  '→ create_topic_with_chunks → create_session(learning) → teach_next → submit_answer loop → complete_session. ASSESSMENT: create_session(assessment) → create_session_questions ' +
+  '→ teach_next → submit_answer loop → complete_session. ASSESSMENT TRIGGERS: learner explicitly asks to be evaluated, all chunks taught and cross-chunk evaluation would benefit, or app-driven end-of-module evaluation. ' +
   'Always search for existing content before creating. Absence from DB does not ' +
-  'mean ignorance \u2014 probe the learner first.';
+  'mean ignorance — probe the learner first.';
