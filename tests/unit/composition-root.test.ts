@@ -211,6 +211,32 @@ describe('createAppContext — classifier wiring', () => {
     expect(msg).toContain('Rule intent parity check');
     expect(msg).toContain('tier1a.ghost-rule');
   });
+
+  it('exposes SR calculators that run with the injected interval-fuzz source (NEU-838)', () => {
+    // Exercises the calculateNextReview / calculateNextReviewAdvanced closures,
+    // which pass `Math.random()` as the real fuzz source at this boundary.
+    const ctx = createAppContext();
+
+    const basic = ctx.calculateNextReview({
+      quality: 5,
+      repetitions: 5,
+      easeFactor: 2.5,
+      interval: 20,
+    });
+    expect(basic.interval).toBeGreaterThanOrEqual(1);
+    expect(typeof basic.nextReview).toBe('string');
+
+    const advanced = ctx.calculateNextReviewAdvanced({
+      quality: 5,
+      repetitions: 5,
+      easeFactor: 2.5,
+      interval: 20,
+      daysOverdue: 0,
+      consecutiveFailures: 0,
+    });
+    expect(advanced.interval).toBeGreaterThanOrEqual(1);
+    expect(typeof advanced.leech).toBe('boolean');
+  });
 });
 
 describe('loadInitialRuleReports', () => {
