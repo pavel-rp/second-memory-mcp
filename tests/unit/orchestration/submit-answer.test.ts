@@ -2447,7 +2447,7 @@ describe('submitAnswer with session_question_id', () => {
       };
     }
 
-    it('assessment pass records quality 5 with single attempt', async () => {
+    it('assessment pass records quality 4 with single attempt', async () => {
       const deps = makeAssessmentDeps();
 
       const result = await submitAnswer(
@@ -2459,10 +2459,10 @@ describe('submitAnswer with session_question_id', () => {
       if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(true);
-      expect(result.quality).toBe(5);
+      expect(result.quality).toBe(4);
     });
 
-    it('assessment fail records quality 1 with no retry', async () => {
+    it('assessment fail records quality 2 with no retry', async () => {
       const deps = makeAssessmentDeps();
 
       const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
@@ -2471,7 +2471,7 @@ describe('submitAnswer with session_question_id', () => {
       if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(false);
-      expect(result.quality).toBe(1);
+      expect(result.quality).toBe(2);
     });
 
     it('assessment rejects second attempt on same question', async () => {
@@ -2617,7 +2617,7 @@ describe('submitAnswer with session_question_id', () => {
       // Should still succeed — missing chunks are gracefully skipped
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
-      expect(result.quality).toBe(1);
+      expect(result.quality).toBe(2);
     });
 
     it('assessment late submission returns late_submission flag and static complete next', async () => {

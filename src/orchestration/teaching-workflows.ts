@@ -1216,7 +1216,7 @@ async function computeChunkRoadblockState(
 
 /**
  * Assessment mode submit_answer: single attempt per question, SR fan-out to all mapped chunks.
- * Pass → quality 5, fail → quality 1 (no retry).
+ * Pass → quality 4, fail → quality 2 (no retry).
  */
 async function submitAnswerForAssessmentQuestion(
   input: SubmitAnswerInput,
@@ -1227,10 +1227,10 @@ async function submitAnswerForAssessmentQuestion(
   sessionChunks: SessionChunk[],
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
-  // Assessment: derive passed, then override quality to 5/1 for SR.
+  // Assessment: derive passed, then override quality to 4/2 for SR.
   // Agent-provided quality is preserved separately in agentQuality for analytics.
   const passed = input.passed ?? input.quality >= 3;
-  const quality = passed ? 5 : 1;
+  const quality = passed ? 4 : 2;
 
   try {
     await deps.sessionQuestions.createAttempt({

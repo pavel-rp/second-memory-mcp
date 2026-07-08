@@ -487,7 +487,7 @@ describe('session question workflows', () => {
     });
     expect(answer1.action).toBe('recorded');
     if (answer1.action !== 'recorded') throw new Error('Expected recorded');
-    expect(answer1.quality).toBe(5); // assessment: passed → quality 5
+    expect(answer1.quality).toBe(4); // assessment: passed → quality 4
     expect(answer1.attempt).toBe(1);
 
     // 6. Submit answer for second question (fail)
@@ -501,7 +501,7 @@ describe('session question workflows', () => {
     });
     expect(answer2.action).toBe('recorded');
     if (answer2.action !== 'recorded') throw new Error('Expected recorded');
-    expect(answer2.quality).toBe(1); // assessment: failed → quality 1
+    expect(answer2.quality).toBe(2); // assessment: failed → quality 2
 
     // 7. Verify session chunks are marked completed
     const chunks = await ctx.getSessionChunks(sessionId);
@@ -578,7 +578,7 @@ describe('session question workflows', () => {
         sessionQuestionId: q1Id,
         questionChunkIds: expect.arrayContaining(['c1', 'c2']),
         passed: true,
-        quality: 5,
+        quality: 4,
         agentQuality: 4,
         questionType: 'analyze_create',
         attemptNumber: 1,
@@ -822,21 +822,21 @@ describe('session question workflows', () => {
     expect(summary.passed).toBe(1);
     expect(summary.failed).toBe(1);
     expect(summary.pass_rate).toBe(0.5);
-    // quality is SR-overridden: pass→5, fail→1 (agent quality preserved in agent_quality)
+    // quality is SR-overridden: pass→4, fail→2 (agent quality preserved in agent_quality)
     expect(summary.average_quality).toBe(3);
 
     // per_question has both entries
     expect(summary.per_question).toHaveLength(2);
     const pq1 = summary.per_question.find(pq => pq.prompt_text === 'Q1: explain all concepts')!;
     expect(pq1.passed).toBe(true);
-    expect(pq1.quality).toBe(5);
+    expect(pq1.quality).toBe(4);
     expect(pq1.question_type).toBe('explain_apply');
     expect(pq1.time_spent_ms).toBe(10000);
     expect(pq1.chunk_ids.sort()).toEqual(['c1', 'c2', 'c3']);
 
     const pq2 = summary.per_question.find(pq => pq.prompt_text === 'Q2: compare two patterns')!;
     expect(pq2.passed).toBe(false);
-    expect(pq2.quality).toBe(1); // SR-overridden: fail→1
+    expect(pq2.quality).toBe(2); // SR-overridden: fail→2
     expect(pq2.question_type).toBe('analyze_create');
     expect(pq2.time_spent_ms).toBe(8000);
     expect(pq2.chunk_ids.sort()).toEqual(['c2', 'c3']);
