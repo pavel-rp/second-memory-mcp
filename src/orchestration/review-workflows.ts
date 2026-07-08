@@ -4,7 +4,7 @@ import type { ReviewResultData } from '../ports/review-persistence-port.js';
 import type { ChunkRepository, ChunkMinimalMetadata } from '../ports/chunk-repository.js';
 import type { ServiceResult } from '../domain/types/service-result.js';
 import { serviceOk, serviceFail } from '../domain/types/service-result.js';
-import { calculateNextReviewAdvanced } from '../domain/algorithms/sr-calculator.js';
+import { calculateNextReviewAdvanced, NEUTRAL_FUZZ } from '../domain/algorithms/sr-calculator.js';
 import { extractErrorMessage } from '../shared/errors.js';
 import { logEvent } from '../shared/logger.js';
 
@@ -16,6 +16,13 @@ const ARCHIVE_OFFSET_MS = 100 * 365.25 * 24 * 60 * 60 * 1000;
 export type ReviewDeps = {
   reviewPersistence: ReviewPersistencePort;
   algorithmConfig: AlgorithmConfig;
+  /**
+   * Randomness source for interval fuzz (NEU-838). Called once per review so
+   * chunks reviewed in the same batch draw independent values and drift apart.
+   * Wired to `Math.random` at the composition boundary; omitted in tests, where
+   * it defaults to no fuzz for deterministic assertions.
+   */
+  random?: () => number;
 };
 
 export async function processReviewResult(
@@ -40,6 +47,9 @@ export async function processReviewResult(
     const now = new Date();
     const nowMs = now.getTime();
     const intervalDays = Math.floor((nowMs - lastReviewedAt) / (1000 * 60 * 60 * 24)) || 1;
+    // Draw one fuzz value per review. Absent a source (unit tests) the neutral
+    // 0.5 keeps the computed interval unfuzzed and deterministic.
+    const fuzz = deps.random ? deps.random() : NEUTRAL_FUZZ;
     const sm2Result = calculateNextReviewAdvanced(
       {
         quality,
@@ -50,7 +60,8 @@ export async function processReviewResult(
         consecutiveFailures: newConsecutiveFailures,
       },
       deps.algorithmConfig,
-      now
+      now,
+      fuzz
     );
 
     // Never downgrade an existing leech: once a chunk is 'remediation' it stays so
