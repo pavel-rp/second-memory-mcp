@@ -478,7 +478,10 @@ describe('TF-4: timebox truncation in rankCandidatesWithConstraints', () => {
   });
 });
 
-// Config-driven tests to validate leech penalty clamp and thresholds
+// Config-driven tests to validate leech penalty clamp and thresholds.
+// `totalAttempts` is well above the default evidence floor (leechFailureThreshold
+// = 6) on the leech-expecting calls so these tests isolate the consecutive-failure
+// threshold and ease-penalty clamp — the NEU-839 evidence gate is covered below.
 describe('advanced leech penalty clamp (config)', () => {
   const config = resolveAlgorithmConfig({
     SM_LAPSE_PENALTY: '-0.1',
@@ -495,6 +498,7 @@ describe('advanced leech penalty clamp (config)', () => {
         easeFactor: 2.0,
         interval: 10,
         consecutiveFailures: 1,
+        totalAttempts: 8,
       },
       config,
       NOW
@@ -506,6 +510,7 @@ describe('advanced leech penalty clamp (config)', () => {
         easeFactor: 2.0,
         interval: 10,
         consecutiveFailures: 2,
+        totalAttempts: 8,
       },
       config,
       NOW
@@ -529,6 +534,7 @@ describe('advanced leech penalty clamp (config)', () => {
         easeFactor: 2.0,
         interval: 10,
         consecutiveFailures: 1,
+        totalAttempts: 8,
       },
       clampConfig,
       NOW
@@ -540,6 +546,7 @@ describe('advanced leech penalty clamp (config)', () => {
         easeFactor: 2.0,
         interval: 10,
         consecutiveFailures: 2,
+        totalAttempts: 8,
       },
       clampConfig,
       NOW
@@ -556,6 +563,7 @@ describe('advanced leech penalty clamp (config)', () => {
         easeFactor: 2.0,
         interval: 10,
         consecutiveFailures: 1,
+        totalAttempts: 8,
       },
       config,
       NOW
@@ -567,12 +575,80 @@ describe('advanced leech penalty clamp (config)', () => {
         easeFactor: 2.0,
         interval: 10,
         consecutiveFailures: 2,
+        totalAttempts: 8,
       },
       config,
       NOW
     );
     expect(below.leech).toBeFalsy();
     expect(at.leech).toBeTruthy();
+  });
+});
+
+// NEU-839: a chunk cannot be flagged a leech before a minimum evidence base of
+// total lifetime attempts (config.leechFailureThreshold), even when the
+// consecutive-failure threshold is met.
+describe('leech minimum evidence base (NEU-839)', () => {
+  // Default config: leechConsecutiveFailures = 3, leechFailureThreshold = 6.
+  const leechInputAtConsecThreshold = (totalAttempts?: number) => ({
+    quality: 1,
+    repetitions: 0,
+    easeFactor: 2.0,
+    interval: 10,
+    consecutiveFailures: 3,
+    ...(totalAttempts === undefined ? {} : { totalAttempts }),
+  });
+
+  it('does not flag a leech at the consecutive threshold when total attempts are below the minimum', () => {
+    const result = calculateNextReviewAdvanced(
+      leechInputAtConsecThreshold(3), // 3 < leechFailureThreshold (6)
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(result.leech).toBe(false);
+  });
+
+  it('flags a leech when total attempts reach the minimum and consecutive failures hit the threshold', () => {
+    const result = calculateNextReviewAdvanced(
+      leechInputAtConsecThreshold(6), // 6 >= leechFailureThreshold (6)
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(result.leech).toBe(true);
+  });
+
+  it('does not flag a leech one attempt below the minimum', () => {
+    const result = calculateNextReviewAdvanced(
+      leechInputAtConsecThreshold(5), // 5 < 6
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(result.leech).toBe(false);
+  });
+
+  it('treats an absent total-attempts count as zero evidence (gate closed)', () => {
+    const result = calculateNextReviewAdvanced(
+      leechInputAtConsecThreshold(undefined),
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(result.leech).toBe(false);
+  });
+
+  it('honours a custom SM_LEECH_FAIL_THRESHOLD as the evidence floor', () => {
+    const config = resolveAlgorithmConfig({ SM_LEECH_FAIL_THRESHOLD: '10' });
+    const belowFloor = calculateNextReviewAdvanced(
+      leechInputAtConsecThreshold(8), // 8 < 10
+      config,
+      NOW
+    );
+    const atFloor = calculateNextReviewAdvanced(
+      leechInputAtConsecThreshold(10), // 10 >= 10
+      config,
+      NOW
+    );
+    expect(belowFloor.leech).toBe(false);
+    expect(atFloor.leech).toBe(true);
   });
 });
 

@@ -58,6 +58,23 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
     return res.rowCount ?? 0;
   }
 
+  async countAttempts(chunkId: string): Promise<number> {
+    // Lifetime graded-attempt count for a chunk: attempts join to chunks through
+    // session_question_chunks (a question may map to several chunks). Only graded
+    // attempts (quality NOT NULL) count as evidence, matching getWeakAreas.
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(sessionQuestionAttempts)
+      .innerJoin(
+        sessionQuestionChunks,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestionChunks.sessionQuestionId)
+      )
+      .where(
+        and(eq(sessionQuestionChunks.chunkId, chunkId), isNotNull(sessionQuestionAttempts.quality))
+      );
+    return Number(row?.count ?? 0);
+  }
+
   async getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]> {
     const fromMs = from.getTime();
     const toMs = to.getTime();

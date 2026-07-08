@@ -68,6 +68,14 @@ export interface ReviewPersistencePort {
       >
     >
   ): Promise<number>;
+  /**
+   * Count the graded attempts recorded against a chunk over its lifetime.
+   * This is the evidence base that gates leech flagging: a chunk cannot be
+   * branded a leech before it has been attempted a minimum number of times.
+   * Only attempts with a non-null quality are counted (ungraded attempts carry
+   * no signal), mirroring the weak-area derivation.
+   */
+  countAttempts(chunkId: string): Promise<number>;
   /** Fetch reviews in the half-open range [from, to). */
   getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]>;
   /** Identify chunks where the learner is struggling based on recent low-quality reviews. */

@@ -98,8 +98,15 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
     async (rawInput: unknown) =>
       withRequestContext('calculate_next_review_advanced', async () => {
         try {
-          const { quality, repetitions, easeFactor, interval, daysOverdue, consecutiveFailures } =
-            CalculateNextReviewAdvancedInputSchema.parse(rawInput);
+          const {
+            quality,
+            repetitions,
+            easeFactor,
+            interval,
+            daysOverdue,
+            consecutiveFailures,
+            totalAttempts,
+          } = CalculateNextReviewAdvancedInputSchema.parse(rawInput);
           const result = ctx.calculateNextReviewAdvanced({
             quality,
             repetitions,
@@ -107,6 +114,7 @@ export function registerSpacedRepetitionTools(server: McpServer, ctx: AppContext
             interval,
             daysOverdue,
             consecutiveFailures,
+            totalAttempts,
           });
 
           return toolData(
