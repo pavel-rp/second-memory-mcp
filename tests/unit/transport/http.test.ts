@@ -634,7 +634,7 @@ describe('startHttpTransport with audit logging', () => {
 
 vi.mock('jose', () => ({
   jwtVerify: vi.fn().mockResolvedValue({
-    payload: { sub: 'test-user', email: 'test@example.com' },
+    payload: { sub: 'test-user', email: 'test@example.com', aud: 'https://mcp.test.local/mcp' },
   }),
   createRemoteJWKSet: vi.fn().mockReturnValue(vi.fn()),
 }));
@@ -815,7 +815,7 @@ describe('startHttpTransport with auth', () => {
 
     // Now mock jwtVerify to return a different sub
     vi.mocked(jwtVerify).mockResolvedValueOnce({
-      payload: { sub: 'attacker', email: 'attacker@evil.com' },
+      payload: { sub: 'attacker', email: 'attacker@evil.com', aud: 'https://mcp.test.local/mcp' },
       protectedHeader: { alg: 'RS256' },
       key: new Uint8Array(),
     });
