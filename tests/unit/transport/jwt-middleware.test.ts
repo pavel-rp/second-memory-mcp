@@ -93,31 +93,31 @@ describe('createJwtMiddleware', () => {
     );
   });
 
-  it('strips trailing slashes from issuer for discovery and jwtVerify', async () => {
+  it('strips trailing slashes for discovery but accepts both issuer forms in jwtVerify (NEU-882)', async () => {
     mockFetch.mockResolvedValue(
       new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
     );
-    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1' } });
+    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1', aud: AUTH_CONFIG.audience } });
 
     const trailingSlashConfig: AuthConfig = {
       ...AUTH_CONFIG,
       issuer: 'https://auth.example.com/',
     };
     const mw = await createJwtMiddleware(trailingSlashConfig);
+    // Discovery URL is built from the slash-stripped issuer (no double slash)
     expect(mockFetch).toHaveBeenLastCalledWith(
       'https://auth.example.com/.well-known/openid-configuration',
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
 
-    // Verify normalized issuer is also used for jwtVerify
+    // jwtVerify receives BOTH slash variants so a token iss with or without a
+    // trailing slash matches, regardless of how AUTH_ISSUER was configured.
     const req = createMockReq({ authorization: 'Bearer tok' });
     const res = createMockRes();
     await mw(req, res, vi.fn());
-    expect(mockJwtVerify).toHaveBeenCalledWith(
-      'tok',
-      jwksFunction,
-      expect.objectContaining({ issuer: 'https://auth.example.com' })
-    );
+    expect(mockJwtVerify).toHaveBeenCalledWith('tok', jwksFunction, {
+      issuer: ['https://auth.example.com', 'https://auth.example.com/'],
+    });
   });
 
   it('throws when OIDC discovery returns non-200 status', async () => {
@@ -211,7 +211,7 @@ describe('createJwtMiddleware', () => {
 
   it('valid Bearer token calls next() and sets res.locals.auth (VC-06)', async () => {
     mockJwtVerify.mockResolvedValue({
-      payload: { sub: 'user-123', email: 'user@example.com' },
+      payload: { sub: 'user-123', email: 'user@example.com', aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'Bearer valid-token' });
@@ -221,9 +221,9 @@ describe('createJwtMiddleware', () => {
 
     expect(next).toHaveBeenCalled();
     expect(res.locals.auth).toEqual({ sub: 'user-123', email: 'user@example.com' });
+    // Audience is enforced explicitly (not via jose); jose receives both issuer forms.
     expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', jwksFunction, {
-      issuer: AUTH_CONFIG.issuer,
-      audience: AUTH_CONFIG.audience,
+      issuer: ['https://auth.example.com', 'https://auth.example.com/'],
     });
   });
 
@@ -261,12 +261,27 @@ describe('createJwtMiddleware', () => {
 
   // ── Wrong audience → 401 (VC-08) ──────────────────────────
 
-  it('wrong audience returns 401 (VC-08)', async () => {
+  it('token with a non-matching, non-dyn$ audience returns 401 (VC-08)', async () => {
+    // jose no longer enforces audience; the middleware's explicit check rejects it.
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', aud: 'https://someone-else.example.com/mcp' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer wrong-aud-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('propagates a jose claim-validation rejection as 401', async () => {
     const error = new Error('claim validation failed');
     (error as Error & { code: string }).code = 'ERR_JWT_CLAIM_VALIDATION_FAILED';
     mockJwtVerify.mockRejectedValue(error);
 
-    const req = createMockReq({ authorization: 'Bearer wrong-aud-token' });
+    const req = createMockReq({ authorization: 'Bearer bad-claim-token' });
     const res = createMockRes();
 
     await middleware(req, res, next);
@@ -311,7 +326,7 @@ describe('createJwtMiddleware', () => {
 
   it('lowercase "bearer" scheme is accepted', async () => {
     mockJwtVerify.mockResolvedValue({
-      payload: { sub: 'user-123', email: 'user@example.com' },
+      payload: { sub: 'user-123', email: 'user@example.com', aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'bearer valid-token' });
@@ -325,7 +340,7 @@ describe('createJwtMiddleware', () => {
 
   it('uppercase "BEARER" scheme is accepted', async () => {
     mockJwtVerify.mockResolvedValue({
-      payload: { sub: 'user-123', email: 'user@example.com' },
+      payload: { sub: 'user-123', email: 'user@example.com', aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'BEARER valid-token' });
@@ -344,6 +359,21 @@ describe('createJwtMiddleware', () => {
     });
 
     const req = createMockReq({ authorization: 'Bearer no-sub-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('token that passes audience but has no subject returns 401', async () => {
+    // aud matches AUTH_AUDIENCE so the audience gate passes, but there is no sub/azp.
+    mockJwtVerify.mockResolvedValue({
+      payload: { aud: AUTH_CONFIG.audience, email: 'user@example.com' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer no-subject-token' });
     const res = createMockRes();
 
     await middleware(req, res, next);
@@ -383,8 +413,9 @@ describe('createJwtMiddleware', () => {
   });
 
   it('token with missing sub but valid azp uses azp as subject', async () => {
+    // aud matches AUTH_AUDIENCE so audience passes; azp (non-dyn$) is used as the subject.
     mockJwtVerify.mockResolvedValue({
-      payload: { azp: 'my-service-client' },
+      payload: { azp: 'my-service-client', aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'Bearer no-sub-with-azp' });
@@ -424,11 +455,11 @@ describe('createJwtMiddleware', () => {
     );
   });
 
-  // ── Audience is always enforced ───────────────────────────
+  // ── Audience enforcement: AUTH_AUDIENCE or dyn$ DCR id (NEU-882) ──
 
-  it('always passes audience to jwtVerify (required in HTTP mode)', async () => {
+  it('does not pass an audience option to jwtVerify (enforced explicitly)', async () => {
     mockJwtVerify.mockResolvedValue({
-      payload: { sub: 'user-123', email: 'user@example.com' },
+      payload: { sub: 'user-123', aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'Bearer valid-token' });
@@ -436,18 +467,71 @@ describe('createJwtMiddleware', () => {
 
     await middleware(req, res, next);
 
-    expect(next).toHaveBeenCalled();
     expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', jwksFunction, {
-      issuer: AUTH_CONFIG.issuer,
-      audience: AUTH_CONFIG.audience,
+      issuer: ['https://auth.example.com', 'https://auth.example.com/'],
     });
+    expect(mockJwtVerify.mock.calls[0][2]).not.toHaveProperty('audience');
+  });
+
+  it('accepts an aud array that includes AUTH_AUDIENCE', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', aud: ['https://other.example.com', AUTH_CONFIG.audience] },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer multi-aud-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('accepts a dyn$ DCR audience from the trusted issuer', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', aud: 'dyn$ZeqN7HUePudbYlt2' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer dyn-aud-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.locals.auth).toEqual({ sub: 'user-123', email: undefined });
+  });
+
+  it('accepts an aud array that includes a dyn$ DCR id', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', aud: ['dyn$KndFIbVOBcgviRvp'] },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer dyn-array-aud-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('rejects a token with no aud and a non-dyn$ azp (401)', async () => {
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', azp: 'regular-client' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer no-aud-plain-azp' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
   });
 
   // ── Valid token with sub but no email ──────────────────────
 
   it('valid token with sub but no email sets email as undefined', async () => {
     mockJwtVerify.mockResolvedValue({
-      payload: { sub: 'service-account-42' },
+      payload: { sub: 'service-account-42', aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'Bearer no-email-token' });
@@ -463,7 +547,7 @@ describe('createJwtMiddleware', () => {
 
   it('non-string email claim is stored as undefined', async () => {
     mockJwtVerify.mockResolvedValue({
-      payload: { sub: 'user-123', email: ['user@example.com'] },
+      payload: { sub: 'user-123', email: ['user@example.com'], aud: AUTH_CONFIG.audience },
     });
 
     const req = createMockReq({ authorization: 'Bearer array-email-token' });

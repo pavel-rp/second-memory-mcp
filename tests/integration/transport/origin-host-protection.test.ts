@@ -38,10 +38,12 @@ vi.mock('../../../src/shared/logger.js', () => ({
 
 // jose is mocked so any Bearer token verifies — this suite exercises Origin /
 // Host-header protection, not JWT signature validation (which the
-// jwt-audience-enforcement suite covers end-to-end with real jose).
+// jwt-audience-enforcement suite covers end-to-end with real jose). The payload
+// carries an `aud` matching AUTH_AUDIENCE so it clears the middleware's explicit
+// audience check (NEU-882) and reaches the route handler.
 vi.mock('jose', () => ({
   jwtVerify: vi.fn().mockResolvedValue({
-    payload: { sub: 'test-user', email: 'test@example.com' },
+    payload: { sub: 'test-user', email: 'test@example.com', aud: 'https://mcp.test.local/mcp' },
   }),
   createRemoteJWKSet: vi.fn().mockReturnValue(vi.fn()),
 }));
