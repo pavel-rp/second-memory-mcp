@@ -74,7 +74,7 @@ These are empty binding points. This task defines **no content** for them; it on
 
 | Slot | Will hold | Owner | Binds / resolves | Current binding |
 | --- | --- | --- | --- | --- |
-| **LINK-1** | The bounded benchmark suite + journey selection + results. | NEU-900 | INC-1; BM-* journey-suite selection (deferred from NEU-898 `03_…`) | **UNBOUND** |
+| **LINK-1** | The bounded benchmark suite + journey selection + results. | NEU-900 | INC-1; BM-* journey-suite selection (deferred from NEU-898 `03_…`) | **PARTIALLY BOUND** → `../benchmark-suite/` (NEU-900: journey selection `JNY-B1/B2/F1/F2/F3` + batch allocation + creator/AI review protocol). Results pending NEU-904/905; INC-1 stays UNRESOLVED until NEU-906 adjudicates via LINK-4. |
 | **LINK-2** | The validated measurement contract + thresholds + revision rules. | SUB-4 | INC-2, INC-4 | **UNBOUND** |
 | **LINK-3** | The automated-eval reliability protocol + DP-domain results. | OUT-7 / NEU-900+ | INC-3 | **UNBOUND** |
 | **LINK-4** | The evidence/decision STATUS adjudication ledger (mutable status authority). | NEU-906 | Promotion/demotion of PROVISIONAL/UNRESOLVED elements under frozen rules | **UNBOUND** |
