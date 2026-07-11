@@ -37,3 +37,4 @@
 
 - Prior repo research (`docs/research/results/01–04`, `docs/research/SYNTHESIS.md`) is **reused as labeled candidate sources** where its questions still apply (RQ1, RQ3, RQ5, RQ6); its own verification cutoff (2026-07-07) is inherited by claims sourced from it.
 - Downstream consumers: NEU-898 (learner/product model) and siblings NEU-899…907 — this package is their prompt-ready evidence input.
+- **NEU-898 product model** (built directly on this package) lives in `product-model/` — the fixed prerequisite boundary, target learner, jobs/motivations/failure modes, principles, differentiators, exclusions, risks, decisions, rejected alternatives, the feature-wide materiality rule + complete candidate inventory, the benchmark-state matrix, and the evidence-trace/gap-propagation audit. Start at `product-model/README.md`.
