@@ -70,4 +70,37 @@ The one-line update to the `../traceability/03_…` `LINK-1` row records this pa
 ---
 
 **Hand-off.** NEU-906 (adjudication) consumes the raw `supports`/`incomplete` results above under frozen rules; NEU-905 executes `BATCH-FAILURE` independently (no shared cell/vehicle/record with this batch); NEU-907 consumes the bound `LINK-1` once results + adjudication complete. **NEU-904 records raw evidence only.**
+
+---
+
+## 8. Revised-vehicle resolution (2026-07-12, appended — supersedes §§2/3/5/6 by pointer, not overwrite)
+
+Sections 1–7 above were compiled 2026-07-11 when the class-3 creator halves were `INCOMPLETE / pending-creator`. The creator has since **declined the original v1.0 vehicles** and **authorized a lower-fidelity retrospective substitute**. Per the append-only discipline, §§2/3/5/6 are **left intact**; this section records the resolution.
+
+**8.1 Vehicle revision (versioned, reviewable).** `06_vehicle-revision.md` records v1.0 (live loop / simulated-week role-play) → **v1.1 (retrospective privacy-gated aggregates + informal testimony)** for JNY-B1/BM-2 and JNY-B2/BM-6, with rationale and the fidelity delta (a **downgrade**, not coverage). It breaches **none** of NEU-900's `02_…` §4 routing-rule prohibitions: no 4th baseline journey, no prototype, no dropped/downgraded cell, no relabeled `BX-*` wall.
+
+**8.2 Updated execution-state ledger (revised-vehicle rows).**
+
+| Journey | Half | Vehicle | Executed? | Evidence class | Raw result |
+| --- | --- | --- | --- | --- | --- |
+| JNY-B1 | BM-2 spaced-retention | **v1.1 retrospective aggregates + testimony** (`07_…`) | ✅ EXECUTED (2026-07-12) | class-3 `[dogfooding]` RETROSPECTIVE **+** class-6 `[operational-log]` (separate records) | retention-holds direction `present`-leaning (pooled); AI reviews (`09_…`) **unanimous `supports`**; `INC-1` still UNRESOLVED |
+| JNY-B2 | BM-6 motivation/adherence | **v1.1 retrospective aggregates + testimony** (`08_…`) | ✅ EXECUTED (2026-07-12) | class-3 RETROSPECTIVE **+** class-6 (separate records) | adherence-collapse *shape* `present`-leaning; AI reviews (`10_…`) **unanimous `supports`**; `INC-5`/`CLASS-7-DEFERRED` prevalence, R5 High untouched |
+
+The v1.0 reserved runs (`JNY-B1#R-BM2-1/2`, `JNY-B2#R1/R2`) remain **un-filled** (higher-fidelity evidence a future creator session could still add); the revised vehicle substitutes at lower fidelity, it does not retire them.
+
+**8.3 Updated disagreement log (raw, no adjudication).** JNY-B1/BM-2 (`09_…`) = **unanimous `supports`** (opus + sonnet); JNY-B2/BM-6 (`10_…`) = **unanimous `supports`** (opus + sonnet). Both packages: **not `conflicted`** → **zero conflicts to route to NEU-906 from the revised vehicle.** Both reviewer pairs independently preserved load-bearing caveats (pooled-across-chunks / retrospective / n=1 for BM-2; failure-*shape*-only / cause-not-measured / no-prevalence for BM-6). No verdict averaged, smoothed, or turned into a status.
+
+**8.4 Pending-creator list (§5) — status.** Items 1–2 (JNY-B1/BM-2) and 3–4 (JNY-B2/BM-6) are **resolved-via-revised-vehicle** at lower fidelity (`07_…`/`09_…`, `08_…`/`10_…`). The **higher-fidelity v1.0 runs remain optionally open** for a future creator session but are **no longer blocking** — NEU-904 is complete. No prototype was built (none permitted).
+
+**8.5 `LINK-1` results-binding (additive).** In addition to the §6 note, NEU-904 attaches its **revised-vehicle baseline results** to `LINK-1` **without** editing any element's evidence class, limitation, or id, and **without** any mutable STATUS change:
+
+> `LINK-1` results (baseline batch, revised vehicle v1.1) → `../baseline-batch/` (NEU-904): **JNY-B1 BM-2 retention** and **JNY-B2 BM-6 motivation** EXECUTED under v1.1 retrospective vehicle (class-3 RETROSPECTIVE + class-6 operational-log, separate records; 2 isolated AI reviews each, **unanimous `supports`**, caveats preserved). BM-8 inspection result unchanged (§6). `INC-1`/`INC-2`/`INC-5` stay **UNRESOLVED**; R5 (High) non-downgradable; EX3/BX-3 enforced; adjudication pending NEU-906 via `LINK-4`.
+
+**8.6 Self-check delta (claim discipline, revised vehicle).**
+- **Evidence-class integrity.** class-3 RETROSPECTIVE labeled class-3 with its non-standard-provenance limitation stated; class-6 operational-log labeled class-6 and kept **separate**; class-4 AI reviews labeled class-4. **No class-3/6 relabeled as class-7**; no run phrased as user/market/expert validation. ✅
+- **No proxy laundering / no over-read.** Fidelity recorded as a **downgrade**; reviewers' own caveats preserved verbatim-in-substance; "rating-motivated cause not measured" and "X3 not substantiated" carried, not smoothed. ✅
+- **Reviewer isolation.** Each reviewer saw only the sanitized raw aggregates + verbatim testimony + hypothesis/fidelity boundary — **not** any orchestrator interpretation, the other verdict, or raw payloads. ✅
+- **Privacy.** All new records payload-free (aggregate/query-scope/field-list only); the authorized snapshot was **not** re-queried. ✅
+- **Boundary & severity floor.** EX3/BX-3 enforced (no market/prevalence claim, n=1); R5/R1 (High) untouched; BM-2 UNRESOLVED via `INC-1`, BM-6 prevalence `CLASS-7-DEFERRED`/`INC-5`. ✅
+- **No status flips.** No hypothesis/decision/BM-cell status set; NEU-906 retains sole adjudication authority via `LINK-4`. ✅
 </content>

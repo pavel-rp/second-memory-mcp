@@ -57,4 +57,6 @@ Both reviewers of JNY-B1's BM-8 half received the **identical** context package 
 ## Part C — BM-2 spaced-retention reviews (INCOMPLETE / pending-creator)
 
 The two required independent AI reviews of JNY-B1's **BM-2 retention** runs are **not executed**: their input — the creator's `OBS-JNY-B1#R-BM2-1/2` dogfooding records — does not exist yet (creator AFK; `01_…` Part B). Per `04_…` §4, "fewer than two separately initialized verdicts were committed" ⇒ this half is carried as **`incomplete`**, never counted. When the creator completes the BM-2 runs, `≥2` isolated reviews must be initialized against the sealed `OBS-*` package (creator conclusion sealed until both verdicts commit, `03_…` §3). Listed in `05_…` §5 pending-creator actions.
+
+**RESOLUTION via revised vehicle v1.1 (2026-07-12, appended).** The BM-2 half was subsequently executed under the **v1.1 retrospective vehicle** (`06_vehicle-revision.md`; evidence `07_…`). Its `≥2` independent AI reviews are recorded in **`09_JNY-B1-BM2-ai-reviews.md`** (opus + sonnet, isolated, **unanimous `supports`** with the pooled-across-chunks / retrospective / n=1 caveat preserved). This does **not** count the reserved v1.0 live-loop reviews above (still un-executed, higher fidelity), and the settled result stays **UNRESOLVED via `INC-1`** — no BM-cell status set (NEU-906 via `LINK-4`).
 </content>

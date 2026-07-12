@@ -24,4 +24,17 @@ So the pending runs are reproducible when the creator returns, the record shape 
 ## Status carried
 
 BM-6 remains **PROVISIONAL/Gap** (`G6.1`) with **no executed evidence** in this batch; prevalence stays **`CLASS-7-DEFERRED`** (`INC-5`, no in-program owner). R5 (High) untouched and non-downgradable. No status set here (NEU-906 owns adjudication via `LINK-4`). Creator runs listed in `05_…` §5.
+
+---
+
+## RESOLUTION via revised vehicle v1.1 (2026-07-12, appended)
+
+The reserved role-play runs above (`JNY-B2#R1/R2`) describe the **v1.0 simulated-week role-play**, which the creator **explicitly declined**: *"I'm not gonna roleplay a week lol"* (verbatim, 2026-07-12). Per the append-only rule the rows above are **left intact and un-filled**; this section records their resolution by pointer.
+
+- **Vehicle revision:** `06_vehicle-revision.md` §2 (v1.0 role-play → v1.1 retrospective aggregates + informal testimony), versioned and reviewable; breaches no NEU-900 routing-rule prohibition.
+- **Revised-vehicle evidence:** `08_JNY-B2-BM6-retrospective-evidence.md` — class-3 `[dogfooding]` **RETROSPECTIVE** record `OBS-JNY-B2#RETRO-BM6` (Oct grind-heavy onboarding → Dec–Jan lapse → Mar review comeback → relapse; **266/271 overdue** review debt while recent months skew to new-learning) **and** the separately-labeled class-6 `[operational-log]` record `OPLOG-JNY-B2#BM6`.
+- **Independent AI reviews:** `10_JNY-B2-BM6-ai-reviews.md` — 2 isolated reviewers (opus + sonnet), **unanimous `supports`** of the failure *shape*, both noting the "rating-motivated" cause is not directly measured and X3 is not independently substantiated.
+- **Boundary re-asserted (EX3/BX-3):** **failure-*shape* only — no market / demand / preference / prevalence conclusion**; prevalence stays **`CLASS-7-DEFERRED` / `INC-5`**; **R5 (High) non-downgradable**; no status set here (NEU-906 via `LINK-4`).
+
+The v1.1 vehicle is a lower-fidelity substitute (real behavioral aggregates in place of a controlled simulated week), not coverage of BM-6.
 </content>
