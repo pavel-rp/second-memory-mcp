@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthConfig } from '../config/resolve-auth-config.js';
+import { logger } from '../shared/logger.js';
 
 async function discoverJwksUri(issuer: string): Promise<string> {
   const discoveryUrl = `${issuer}/.well-known/openid-configuration`;
@@ -59,21 +60,23 @@ function isDynClientId(value: string): boolean {
 
 /**
  * Audience binding for a single dedicated AS + single resource (NEU-882 / ADR-0001).
- * Accepts a token whose `aud` matches the configured AUTH_AUDIENCE (NEU-833's static
- * client_id / resource binding) OR whose `aud`/`azp` is a `dyn$` DCR client id of the
- * trusted issuer. `iss` + signature over the trusted JWKS (already validated by jose)
- * prove the token was minted by the trusted AS for one of its registered clients; with
- * only one resource behind that AS this satisfies the MCP audience-MUST (confused-deputy
- * requires a multi-resource AS, which this topology is not). A token with an unrelated
- * `aud`, or none at all with no `dyn$` `azp`, is rejected.
+ * Accepts a token whose `aud` matches the configured AUTH_AUDIENCE or one of the
+ * AUTH_ADDITIONAL_AUDIENCES (pre-registered static client ids — Rauthy stamps `aud`
+ * with the OAuth client_id, so e.g. the claude.ai connector's manually provisioned
+ * client can only be bound this way) OR whose `aud`/`azp` is a `dyn$` DCR client id
+ * of the trusted issuer. `iss` + signature over the trusted JWKS (already validated
+ * by jose) prove the token was minted by the trusted AS for one of its registered
+ * clients; with only one resource behind that AS this satisfies the MCP audience-MUST
+ * (confused-deputy requires a multi-resource AS, which this topology is not). A token
+ * with an unrelated `aud`, or none at all with no `dyn$` `azp`, is rejected.
  */
 function audienceMatches(
   aud: string | string[] | undefined,
   azp: string | undefined,
-  expectedAudience: string
+  acceptedAudiences: string[]
 ): boolean {
   const auds = typeof aud === 'string' ? [aud] : Array.isArray(aud) ? aud : [];
-  if (auds.includes(expectedAudience)) return true;
+  if (auds.some(a => acceptedAudiences.includes(a))) return true;
   if (auds.some(isDynClientId)) return true;
   // Fall back to azp only when the token carries no aud claim at all, so an explicit
   // non-matching aud is never overridden by the authorized-party client id.
@@ -86,6 +89,7 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
   const jwksUri = await discoverJwksUri(issuer);
   const jwks = createRemoteJWKSet(new URL(jwksUri));
   const prmUrl = new URL('/.well-known/oauth-protected-resource/mcp', authConfig.audience).href;
+  const acceptedAudiences = [authConfig.audience, ...(authConfig.additionalAudiences ?? [])];
   // Accept the token's `iss` whether or not it carries a trailing slash (NEU-882):
   // Rauthy advertises and mints `iss` with a trailing slash, but AUTH_ISSUER may be
   // configured either way. jose exact-matches the token against each candidate, so any
@@ -96,12 +100,12 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !/^bearer /i.test(authHeader)) {
-      return reply401(res, prmUrl);
+      return reply401(res, prmUrl, 'missing or non-Bearer Authorization header');
     }
 
     const token = authHeader.slice(7).trim();
     if (!token) {
-      return reply401(res, prmUrl);
+      return reply401(res, prmUrl, 'empty Bearer token');
     }
 
     try {
@@ -112,14 +116,18 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
       // For client_credentials grants, Rauthy sets sub=null and uses azp for the client identity
       const azp = typeof payload.azp === 'string' ? payload.azp : undefined;
 
-      if (!audienceMatches(payload.aud, azp, authConfig.audience)) {
-        return reply401(res, prmUrl);
+      if (!audienceMatches(payload.aud, azp, acceptedAudiences)) {
+        return reply401(
+          res,
+          prmUrl,
+          `audience mismatch: aud=${JSON.stringify(payload.aud)} azp=${JSON.stringify(azp)}`
+        );
       }
 
       const subject = (typeof payload.sub === 'string' && payload.sub) || azp || undefined;
 
       if (!subject) {
-        return reply401(res, prmUrl);
+        return reply401(res, prmUrl, 'token carries no usable subject (sub/azp)');
       }
 
       res.locals.auth = {
@@ -127,13 +135,16 @@ export async function createJwtMiddleware(authConfig: AuthConfig): Promise<Reque
         email: typeof payload.email === 'string' ? payload.email : undefined,
       };
       next();
-    } catch {
-      return reply401(res, prmUrl);
+    } catch (err) {
+      return reply401(res, prmUrl, `token verification failed: ${String(err)}`);
     }
   };
 }
 
-function reply401(res: Parameters<RequestHandler>[1], prmUrl: string): void {
+// The reason is logged (never returned to the client) so audience/issuer misconfigurations
+// are diagnosable from server logs — claim values only, never the token itself.
+function reply401(res: Parameters<RequestHandler>[1], prmUrl: string, reason: string): void {
+  logger.warn(`JWT auth rejected: ${reason}`);
   const challenge = `Bearer resource_metadata="${prmUrl}"`;
   res.setHeader('WWW-Authenticate', challenge).status(401).json({ error: 'Unauthorized' }).end();
 }

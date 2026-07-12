@@ -14,6 +14,14 @@ import type { TransportMode } from './resolve-transport-config.js';
 export type AuthConfig = {
   issuer: string;
   audience: string;
+  /**
+   * Extra accepted `aud` values beyond AUTH_AUDIENCE (AUTH_ADDITIONAL_AUDIENCES,
+   * comma-separated). Rauthy stamps `aud` with the OAuth client_id, so a manually
+   * provisioned static client (e.g. the claude.ai connector's pre-registered
+   * client id) can only be accepted by listing that client id here. Sound only
+   * under the dedicated single-resource AS topology (ADR-0001).
+   */
+  additionalAudiences?: string[];
   corsAllowedOrigins: string[];
 };
 
@@ -83,6 +91,13 @@ function requireCorsAllowedOrigins(env: Record<string, string | undefined>): str
   return normalizeOrigins(origins);
 }
 
+function parseAdditionalAudiences(env: Record<string, string | undefined>): string[] {
+  return (env.AUTH_ADDITIONAL_AUDIENCES ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 export function resolveAuthConfig(
   transportMode: TransportMode,
   env: Record<string, string | undefined> = process.env
@@ -92,6 +107,7 @@ export function resolveAuthConfig(
   return {
     issuer: requireUrl(env, 'AUTH_ISSUER'),
     audience: requireUrl(env, 'AUTH_AUDIENCE'),
+    additionalAudiences: parseAdditionalAudiences(env),
     corsAllowedOrigins: requireCorsAllowedOrigins(env),
   };
 }

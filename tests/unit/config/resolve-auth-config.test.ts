@@ -14,6 +14,7 @@ describe('resolveAuthConfig', () => {
     expect(result).toEqual({
       issuer: 'https://auth.example.com',
       audience: 'https://mcp.example.com/mcp',
+      additionalAudiences: [],
       corsAllowedOrigins: ['https://app.example.com'],
     });
   });
@@ -105,6 +106,51 @@ describe('resolveAuthConfig', () => {
     ).toThrow('CORS_ALLOWED_ORIGINS is required when TRANSPORT=http');
   });
 
+  // ── AUTH_ADDITIONAL_AUDIENCES parsing ──────────────────────
+
+  it('parses AUTH_ADDITIONAL_AUDIENCES comma-separated string into array', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      AUTH_ADDITIONAL_AUDIENCES: 'claude-web,other-client',
+      CORS_ALLOWED_ORIGINS: 'https://app.example.com',
+    });
+
+    expect(result!.additionalAudiences).toEqual(['claude-web', 'other-client']);
+  });
+
+  it('returns empty additionalAudiences when AUTH_ADDITIONAL_AUDIENCES is unset', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      CORS_ALLOWED_ORIGINS: 'https://app.example.com',
+    });
+
+    expect(result!.additionalAudiences).toEqual([]);
+  });
+
+  it('trims whitespace and drops empty entries in AUTH_ADDITIONAL_AUDIENCES', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      AUTH_ADDITIONAL_AUDIENCES: ' claude-web , , other-client ,',
+      CORS_ALLOWED_ORIGINS: 'https://app.example.com',
+    });
+
+    expect(result!.additionalAudiences).toEqual(['claude-web', 'other-client']);
+  });
+
+  it('returns empty additionalAudiences when AUTH_ADDITIONAL_AUDIENCES is an empty string', () => {
+    const result = resolveAuthConfig('http', {
+      AUTH_ISSUER: 'https://auth.example.com',
+      AUTH_AUDIENCE: 'https://mcp.example.com/mcp',
+      AUTH_ADDITIONAL_AUDIENCES: '',
+      CORS_ALLOWED_ORIGINS: 'https://app.example.com',
+    });
+
+    expect(result!.additionalAudiences).toEqual([]);
+  });
+
   // ── Whitespace trimming ────────────────────────────────────
 
   it('trims whitespace from all string values', () => {
@@ -117,6 +163,7 @@ describe('resolveAuthConfig', () => {
     expect(result).toEqual({
       issuer: 'https://auth.example.com',
       audience: 'https://mcp.example.com/mcp',
+      additionalAudiences: [],
       corsAllowedOrigins: ['https://a.com', 'https://b.com'],
     });
   });
