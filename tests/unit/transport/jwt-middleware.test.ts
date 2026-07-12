@@ -527,6 +527,88 @@ describe('createJwtMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  // ── Additional audiences: static client ids (AUTH_ADDITIONAL_AUDIENCES) ──
+
+  describe('with additionalAudiences configured', () => {
+    let mw: Awaited<ReturnType<typeof createJwtMiddleware>>;
+
+    beforeEach(async () => {
+      mockFetch.mockResolvedValue(
+        new Response(JSON.stringify({ jwks_uri: MOCK_JWKS_URI }), { status: 200 })
+      );
+      mw = await createJwtMiddleware({ ...AUTH_CONFIG, additionalAudiences: ['claude-web'] });
+    });
+
+    it('accepts a token whose aud is a configured additional audience', async () => {
+      mockJwtVerify.mockResolvedValue({
+        payload: { sub: 'user-123', email: 'user@example.com', aud: 'claude-web' },
+      });
+
+      const req = createMockReq({ authorization: 'Bearer static-client-token' });
+      const res = createMockRes();
+
+      await mw(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(res.locals.auth).toEqual({ sub: 'user-123', email: 'user@example.com' });
+    });
+
+    it('accepts an aud array that includes a configured additional audience', async () => {
+      mockJwtVerify.mockResolvedValue({
+        payload: { sub: 'user-123', aud: ['https://other.example.com', 'claude-web'] },
+      });
+
+      const req = createMockReq({ authorization: 'Bearer static-array-aud-token' });
+      const res = createMockRes();
+
+      await mw(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('still rejects an aud not in the accepted set (401)', async () => {
+      mockJwtVerify.mockResolvedValue({
+        payload: { sub: 'user-123', aud: 'some-other-client' },
+      });
+
+      const req = createMockReq({ authorization: 'Bearer unrelated-aud-token' });
+      const res = createMockRes();
+
+      await mw(req, res, next);
+
+      expect(res._status).toBe(401);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('still accepts AUTH_AUDIENCE itself', async () => {
+      mockJwtVerify.mockResolvedValue({
+        payload: { sub: 'user-123', aud: AUTH_CONFIG.audience },
+      });
+
+      const req = createMockReq({ authorization: 'Bearer primary-aud-token' });
+      const res = createMockRes();
+
+      await mw(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
+  });
+
+  it('rejects a static client aud when additionalAudiences is not configured (401)', async () => {
+    // AUTH_CONFIG carries no additionalAudiences — a bare client_id aud stays rejected.
+    mockJwtVerify.mockResolvedValue({
+      payload: { sub: 'user-123', aud: 'claude-web' },
+    });
+
+    const req = createMockReq({ authorization: 'Bearer static-client-token' });
+    const res = createMockRes();
+
+    await middleware(req, res, next);
+
+    expect(res._status).toBe(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
   // ── Valid token with sub but no email ──────────────────────
 
   it('valid token with sub but no email sets email as undefined', async () => {

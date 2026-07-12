@@ -60,6 +60,12 @@ So `dyn$`-prefixed `aud`/`azp` from the trusted issuer is a sound audience bindi
 - Any `dyn$` DCR client registered with the trusted AS is accepted, not just the Claude connector's specific client. This is acceptable **only** because the AS is dedicated to this single resource — every client it can mint a token for is, by construction, a client of this resource.
 - The `dyn$` prefix is a Rauthy-specific heuristic. If the AS changes its DCR id format, this check must be revisited.
 
+## Amendment (2026-07-12, [NEU-909](https://linear.app/neurasphere/issue/NEU-909)): `AUTH_ADDITIONAL_AUDIENCES` for static clients
+
+The claude.ai connector in production authenticates with a **manually provisioned static client** (`claude-web`) rather than DCR, so its tokens carry `aud = "claude-web"` — rejected by the rule set above (not `AUTH_AUDIENCE`, not `dyn$`), which broke the connector with a silent 401. Since `AUTH_AUDIENCE` doubles as the PRM resource URL, it cannot be set to a bare client id.
+
+The middleware now additionally accepts any `aud` listed in the optional `AUTH_ADDITIONAL_AUDIENCES` env var (comma-separated static client ids; prod sets `claude-web`). This is the same trust argument as the `dyn$` rule — a pre-registered client of the dedicated single-resource AS — but opt-in and explicit per client id, so the "reject unrelated/absent audiences" posture is unchanged. The safety premise below applies to these entries identically.
+
 ## Safety premise and what would change this decision
 
 This decision is valid **only while the deployment is a single dedicated AS serving a single resource.** It must be revisited if either becomes false:
