@@ -27,6 +27,7 @@ Tests: `tests/unit/` (pure logic), `tests/integration/` (DB-backed), `tests/help
 
 - **MemPalace is the ultimate knowledge base.** Always search MemPalace before investigating from scratch — it contains architecture decisions, implementation history, research findings, issue context, and prior session learnings that may already answer your question.
 - Prioritize Sourcebot MCP for fast code lookups.
+- **`docs/GLOSSARY.md` is the domain-term lookup.** Before interpreting unfamiliar or ambiguous project vocabulary (`chunk`, `leech`, `tier`, `roadblock`, `port`, `context token`, …), grep this file — each row resolves a term to its definition, owning module, and defining file in one hop. When you introduce or rename a domain term, add/update its row in the same change.
 
 ## Naming Conventions
 
