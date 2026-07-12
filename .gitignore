@@ -45,7 +45,6 @@ desktop.ini
 ~*
 
 # Claude Code
-.claude/settings.json
 .claude/settings.local.json
 .claude/worktrees/
 .claude/hooks/setup-worktree.sh
@@ -77,6 +76,16 @@ AUDIT.md
 /4.7/
 /4.6/
 .claude/
+# Track only the glossary write-hook config and the worktree setup script;
+# everything else under .claude/ (worktrees/, settings.local.json, ...) stays ignored.
+# Node-first negation: re-include the directory node, re-exclude its contents,
+# then re-include the two tracked files (a bare negation under an excluded dir is inert).
+!.claude/
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/hooks/*
+!.claude/hooks/setup-worktree.sh
 .mcp.json
 second-memory-tech-overview.pptx
 AGENTS.md
