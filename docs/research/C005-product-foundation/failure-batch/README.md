@@ -1,0 +1,33 @@
+# `BATCH-FAILURE` — Executed Failure & Evidence-Conflict Journey Runs (raw evidence)
+
+**Task:** NEU-905 (SUB-8) · **Compiled:** 2026-07-12 · **Child of:** NEU-887 (C005 program).
+**Sole inputs (merged on develop):** NEU-897 (`../`, 7-class taxonomy) · NEU-898 (`../product-model/`) · NEU-899 (`../traceability/`) · NEU-900 (`../benchmark-suite/`, journey suite + protocols) · NEU-901 (`../measurement-contracts/`, frozen `MC-1…11 v1.0`, `GATE-STATE=PASS`, privacy gate `PLA-*`) · NEU-903 (`../autoeval-batch/`, the executed `BATCH-AUTOEVAL` = the JNY-F3 minimal grading-harness) · NEU-904 (`../baseline-batch/`, the vehicle-revision precedent v1.0→v1.1).
+
+This package **executes** the `BATCH-FAILURE` batch that NEU-900 (`../benchmark-suite/02_batch-allocation.md` §2) allocated to NEU-905 — **JNY-F1, JNY-F2, JNY-F3 only** (JNY-B1/B2 are `BATCH-BASELINE` and belong to NEU-904; they are **not** executed here) — and records **raw evidence only**. It sets **no** hypothesis or decision status: adjudication is NEU-906's exclusive authority via `LINK-4`.
+
+**Covers:** OUT-1 (failure/conflict journey runs) + OUT-3 (independent AI review) + OUT-4 (retained, traceable results).
+
+---
+
+## What this package contains
+
+| File | Content |
+| --- | --- |
+| `00_pre-run-gate-check.md` | Verifies NEU-901's complete mapping gate is `PASS` at contract freeze `v1.0`, that every contract applicable to JNY-F1/F2/F3 (`MC-2`/`MC-3`/`MC-4`/`MC-9`) is versioned+frozen, reproduces the blocked-run test, records the privacy pre-condition, records the reserved-prototype gate decision, and records the NEU-904 revision-mechanism precedent state (a **precedent**, not a dependency — the batches are disjoint). **Acceptance scenario 1.** |
+| `01_vehicle-revision.md` | **Versioned, reviewable vehicle revision** (2026-07-12): JNY-F1 (BM-1/BM-7) and JNY-F2 (BM-3/BM-4) v1.0 (live-MCP teaching loop / paper timeline, requiring the live creator) → v1.1 (retrospective privacy-gated aggregates + informal testimony), with rationale and the fidelity **downgrade** the original vehicle would have avoided. JNY-F3's vehicle is **not** revised — its gate opened during NEU-903 and its evidence is bound (not duplicated) from `../autoeval-batch/`. Honors NEU-900's `02_…` §4 routing-rule spirit; overwrites nothing. |
+| `02_JNY-F1-runs.md` | `OBS-*` + `OPLOG-*` raw evidence for JNY-F1 (schema formation vs surface memorization BM-1 + expertise-reversal boundary BM-7). Class-3 RETROSPECTIVE + class-6 operational-log, separately labeled. Honestly records that retrospective aggregates **cannot isolate transfer from recall** and n=1 **cannot** test expertise reversal. |
+| `03_JNY-F1-ai-reviews.md` | `AIR-*` records for JNY-F1's revised-vehicle evidence — 2 separately-initialized isolated reviewers (opus + sonnet), verdicts recorded raw with disagreements preserved. |
+| `04_JNY-F2-runs.md` | `OBS-*` + `OPLOG-*` raw evidence for JNY-F2 (long-horizon decay/relapse BM-4 + hierarchical scheduling BM-3). BM-4 decay/relapse *shape* from real usage-lapse + review-debt aggregates; BM-3 optimal hierarchical schedule stays cap-bound INCOMPLETE (`COLLECTION-GAP`, G1.2). |
+| `05_JNY-F2-ai-reviews.md` | `AIR-*` records for JNY-F2's revised-vehicle evidence — 2 separately-initialized isolated reviewers (opus + sonnet), verdicts recorded raw. |
+| `06_JNY-F3-binding.md` | **Binds** (does not duplicate) NEU-903's `../autoeval-batch/` executed over-validation evidence as JNY-F3's evidence per the trace structure, adds the journey-record layer JNY-F3 requires beyond the eval batch, and records the archetype-specific reading honestly (only the INCOMPLETE archetype was over-validated; SHALLOW/WRONG were correctly failed). |
+| `07_JNY-F3-ai-reviews.md` | `AIR-*` records for the JNY-F3 over-validation package (the class-4 `[ai-critique]` layer NEU-905 adds on top of NEU-903's class-5 grading runs) — 2 separately-initialized isolated reviewers (opus + sonnet), verdicts recorded raw with any split preserved. |
+| `08_batch-integrity-and-handoff.md` | Batch-count check, execution-state ledger, raw disagreement log, reserved-prototype gate determination, incomplete-run register, `LINK-1` + `LINK-3` results-binding notes (additive), pending-run list, adversarial self-check. |
+
+## Execution-fidelity disclosure (read this first — evidence-integrity)
+
+NEU-900's protocol vehicle for the load-bearing halves of JNY-F1 and JNY-F2 is **class-3 `[dogfooding]`: the human creator running the journey as a first-class learner** (`../benchmark-suite/03_creator-dogfooding-protocol.md`; `../01_evidence-taxonomy.md` class 3). At execution time the human creator was **not available for live/paper-artifact runs** and the live Second Memory MCP learning tools (`start_learning` / `submit_answer` / `teach_next`) were **not reachable in this environment** — the same condition NEU-903 and NEU-904 recorded. Per NEU-905's evidence-integrity rule, **no agent-executed run is ever relabeled as class-3 creator evidence, and no creator evidence is fabricated.** The creator has **authorized a lower-fidelity retrospective substitute** (verbatim authorization in `01_…`/`02_…`/`04_…`): read-only, privacy-gated production aggregates + informal testimony. The batch therefore records, truthfully classed:
+
+- **JNY-F1 (BM-1/BM-7)** and **JNY-F2 (BM-3/BM-4):** executed under **vehicle revision v1.1** (`01_…`) — class-3 `[dogfooding]` **RETROSPECTIVE** aggregates **and** separately-labeled class-6 `[operational-log]` aggregates, plus 2 isolated AI reviews each. This is folded in **honestly, as a fidelity downgrade, never as coverage or as external-user/market validation.** Where the cell is unanswerable retrospectively (transfer isolation for BM-1, expertise reversal for BM-7, optimal hierarchical schedule for BM-3), it is carried as **INCOMPLETE / insufficient-evidence**, not counted.
+- **JNY-F3 (BM-5):** its evidence is the **already-executed** NEU-903 `BATCH-AUTOEVAL` (the JNY-F3 minimal grading-harness, the suite's single reserved prototype). NEU-905 **binds and references** it (`06_…`), **does not re-run it**, and adds only the JNY-F3 journey-record layer + the class-4 independent AI-review layer (`07_…`).
+
+No `BX-*` boundary wall is crossed; no BM-cell status is set; every record is payload-free (`PLA-1…3`). The higher-fidelity v1.0 runs (live teaching-loop transfer probes, paper decay timeline) remain optionally open for a future creator session but no longer block NEU-905. **Nothing changes at the status layer:** BM-1/BM-2/BM-4 transfer stays UNRESOLVED via `INC-1`; BM-3 optimum stays cap-bound INCOMPLETE (G1.2); BM-5 reliability stays UNRESOLVED via `INC-3`; R1/R3 (High) non-downgradable; EX3/BX-3 enforced. Adjudication remains NEU-906's via `LINK-4`.
