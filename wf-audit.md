@@ -53,3 +53,7 @@ These three patterns alone caused half of all reviewer findings across 11 PRs. C
 16. **Independent async operations must run in parallel.** `await a(); await b();` where `a` and `b` are independent should be `await Promise.all([a(), b()])`.
 
 17. **Tests must use injected clock, never `Date.now()` or `new Date()`.** The project has a clock injection pattern. Tests creating `Date.now()` timestamps introduce flaky timing dependencies.
+
+## Documentation Currency
+
+18. **A diff that introduces, renames, or moves a domain term must add or update its `docs/GLOSSARY.md` row.** Apply the glossary's own inclusion predicate: a term earns a row when it's project-specific/coined (e.g. `chunk`, `leech`, `roadblock`) or a familiar word the project redefines away from its pretrained/generic meaning (e.g. `session`, `mastery`, `port`/`adapter`). Not every exported symbol qualifies — generic identifiers, framework/library symbols, and implementation-only helpers are excluded by that same predicate. Flag only what the diff touches: a predicate-satisfying term newly introduced, renamed, or moved without a matching added/updated row. Stay clean when the row is added or updated alongside it. Pre-existing stale rows on terms the diff doesn't touch are out of scope — this rule doesn't reach backward.
