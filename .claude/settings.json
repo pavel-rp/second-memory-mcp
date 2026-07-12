@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/setup-worktree.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>{try{var j=JSON.parse(s);var bs=String.fromCharCode(92);var p=((j.tool_input||{}).file_path||'').split(bs).join('/').toLowerCase();var g=p.endsWith('/docs/glossary.md')||p.startsWith('docs/glossary.md');var scope=p.startsWith('docs/')||p.includes('/docs/')||p.startsWith('src/')||p.includes('/src/')||p.startsWith('specs/')||p.includes('/specs/');if(scope&&!g){process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PostToolUse',additionalContext:'Glossary reminder: if this change introduces or renames a domain term, add or update its docs/GLOSSARY.md row.'}}));}}catch(e){}process.exit(0);});\""
+          }
+        ]
+      }
+    ]
+  }
+}
