@@ -16,7 +16,12 @@ This package **executes** the `BATCH-BASELINE` batch that NEU-900 (`../benchmark
 | `02_JNY-B1-ai-reviews.md` | `AIR-*` independent-AI-review records for JNY-B1 (≥2 separately initialized reviewers, isolated initial verdicts). |
 | `03_JNY-B2-runs.md` | `OBS-*` observation records for JNY-B2 (motivation & adherence under grind culture BM-6). |
 | `04_JNY-B2-ai-reviews.md` | `AIR-*` independent-AI-review records for JNY-B2. |
-| `05_batch-integrity-and-handoff.md` | Batch-count check, raw disagreement log, incomplete-run register, `LINK-1` results-binding note, pending-creator action list, adversarial self-check. |
+| `05_batch-integrity-and-handoff.md` | Batch-count check, raw disagreement log, incomplete-run register, `LINK-1` results-binding note, pending-creator action list, adversarial self-check. **§8 (appended 2026-07-12): revised-vehicle resolution** (updated ledger, disagreement log, pending-creator status, additive `LINK-1`, self-check delta). |
+| `06_vehicle-revision.md` | **Versioned, reviewable vehicle revision** (2026-07-12): JNY-B1/BM-2 and JNY-B2/BM-6 v1.0 (live loop / role-play, declined) → v1.1 (retrospective aggregates + informal testimony), with rationale and the fidelity **downgrade** the original vehicle would have avoided. Honors NEU-900's `02_…` §4 routing-rule spirit; overwrites nothing. |
+| `07_JNY-B1-BM2-retrospective-evidence.md` | BM-2 revised-vehicle raw evidence: class-3 `[dogfooding]` RETROSPECTIVE (`OBS-JNY-B1#RETRO-BM2`) **and** separately-labeled class-6 `[operational-log]` (`OPLOG-JNY-B1#BM2`). Payload-free; provenance = query scope + collection date + creator authorization quote. |
+| `08_JNY-B2-BM6-retrospective-evidence.md` | BM-6 revised-vehicle raw evidence: class-3 RETROSPECTIVE (`OBS-JNY-B2#RETRO-BM6`) **and** class-6 (`OPLOG-JNY-B2#BM6`). EX3/BX-3 enforced (failure-*shape* only, no market/prevalence claim). |
+| `09_JNY-B1-BM2-ai-reviews.md` | `AIR-*` records for BM-2's revised-vehicle evidence — 2 separately-initialized isolated reviewers (opus + sonnet), unanimous `supports`, caveats preserved. |
+| `10_JNY-B2-BM6-ai-reviews.md` | `AIR-*` records for BM-6's revised-vehicle evidence — 2 separately-initialized isolated reviewers (opus + sonnet), unanimous `supports` of the failure *shape*, caveats preserved. |
 
 ## Execution-fidelity disclosure (read this first — evidence-integrity)
 
@@ -26,5 +31,13 @@ NEU-904's protocol vehicle for the load-bearing halves of this batch is **class-
 - **Recorded INCOMPLETE / pending-creator (cannot be met without the live creator):** JNY-B1's **BM-2 spaced-retention** runs and **both** JNY-B2 **motivation/adherence** role-play runs — these are class-3 creator dogfooding across spaced/simulated time and **cannot** be authentically produced by an agent. They are carried via the incomplete-run mechanism (`../benchmark-suite/04_ai-review-independence-protocol.md` §4; acceptance scenario 5), **not** as coverage, with a precise creator action list in `05_…`.
 
 No `BX-*` boundary wall is crossed; no BM-cell status is set; every record is payload-free (`PLA-1…3`).
+
+## Revised-vehicle update (2026-07-12 — read after the disclosure above)
+
+The two class-3 halves recorded INCOMPLETE / pending-creator above have since been **executed at lower fidelity** under an authorized **vehicle revision** (`06_vehicle-revision.md`): the creator declined the original live-loop (BM-2) and simulated-week role-play (BM-6) vehicles and authorized a **retrospective, privacy-gated operational aggregate + informal testimony** substitute. This is folded in **honestly, as a fidelity downgrade, never as coverage or as external-user/market validation**:
+
+- **BM-2** (`07_…`, reviews `09_…`) and **BM-6** (`08_…`, reviews `10_…`) each carry class-3 RETROSPECTIVE and class-6 operational-log evidence as **separate labeled records**, plus 2 isolated AI reviews (opus + sonnet), **unanimous `supports`** with all fidelity caveats preserved.
+- The higher-fidelity v1.0 runs remain optionally open but no longer block NEU-904.
+- **Nothing changes at the status layer:** BM-2 stays UNRESOLVED via `INC-1`; BM-6 prevalence stays `CLASS-7-DEFERRED`/`INC-5`; R5 (High) non-downgradable; EX3/BX-3 enforced. Adjudication remains NEU-906's via `LINK-4`.
 </content>
 </invoke>

@@ -65,4 +65,17 @@ Per `../benchmark-suite/04_…` §4, a journey result is **`incomplete`** when "
 | `JNY-B1#R-BM2-2` | BM-2 second spaced re-review; varied dimension = **elapsed `interval_days`** (read from server, never hardcoded — `03_…` §2). | Same live MCP loop at the next SM-2 interval; separate `OBS-*` record. | Same as above **plus** requires a real spaced gap (weeks-not-months window) that cannot be compressed. Pending-creator. |
 
 **Consequence for the fidelity-limited claim:** the BM-2 retention half — the directional retrieval+spacing signal for `H-B1` / `MC-1` (`PROXY-DIRECTIONAL`) and the R1/`INC-1` DP-transfer proxy (`MC-9`) — has **no executed evidence** in this batch. It remains **UNRESOLVED** with its authoritative artifact pending (`INC-1`, owned by the NEU-900 suite / adjudicated NEU-906), and its creator runs are listed in the pending-creator action list (`05_…` §5). No status is set here.
+
+---
+
+## Part B — RESOLUTION via revised vehicle v1.1 (2026-07-12, appended)
+
+The two reserved BM-2 runs above (`JNY-B1#R-BM2-1/2`) describe the **v1.0 live-loop** vehicle, which the creator **declined** in favor of a lower-fidelity substitute. Per the append-only rule the rows above are **left intact and un-filled** (they name a vehicle that never ran); this section records their resolution by pointer, not by overwrite.
+
+- **Vehicle revision:** `06_vehicle-revision.md` §2 (v1.0 live loop → v1.1 retrospective aggregates + informal testimony), recorded as a versioned, reviewable revision that breaches none of NEU-900's routing-rule prohibitions.
+- **Revised-vehicle evidence:** `07_JNY-B1-BM2-retrospective-evidence.md` — class-3 `[dogfooding]` **RETROSPECTIVE** record `OBS-JNY-B1#RETRO-BM2` (repetition/interval ladders, quality distribution, completed-session mix, testimony *"i have learnt dozens of dsa problems with it"*) **and** the separately-labeled class-6 `[operational-log]` record `OPLOG-JNY-B1#BM2` (teach_next=217 + submit_answer=285 loop dominance).
+- **Independent AI reviews:** `09_JNY-B1-BM2-ai-reviews.md` — 2 isolated reviewers (opus + sonnet), **unanimous `supports`**, both flagging the pooled-across-chunks / retrospective / n=1 limitation.
+- **Fidelity is a downgrade, not coverage.** BM-2 stays **UNRESOLVED via `INC-1`**; no effect size, no threshold, no status set here (NEU-906 owns adjudication via `LINK-4`).
+
+The reserved live-loop runs (`#R-BM2-1/2`) remain the *higher-fidelity* evidence that a future creator session could still add; the revised vehicle does not retire them, it substitutes at lower fidelity.
 </content>
