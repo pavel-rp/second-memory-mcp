@@ -161,6 +161,23 @@ The integrative operational mastery model (`../mastery-model/00_operational-mast
 
 ---
 
+## §EXP evidence (NEU-924) — in-charter experiment findings, appended
+
+NEU-924 executed the six in-cap experiments (`../experiments/00_experiment-inventory-and-ranking.md` §5) and registers their results as **new findings in a separate NEU-924 inventory** — the first class-4/5 evidence in this package (the header's "only classes NEU-915 produced" statement is scoped to the NEU-915 inventory; IOC-1's 60-row count is likewise NEU-915-scoped and unaffected). Each row carries the four acceptance-bar fields; **no NEU-915 finding is re-classed, no gap value invented, no status adjudicated here.** None of these findings is, or may ever be presented as, external-user/expert/market validation (classes 4/5 structurally cannot be).
+
+| Finding | Class | Evidence type | Cutoff | Provenance | Structural limitation (additional) | Informs | Gap/Conflict | INC |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **F-EXP-01** | 4 `[ai-critique]` | 2× independent AI review (unanimous `supports`) | 2026-07-13 | `../experiments/01_EXP-01_retrieval-massed-exclusion-ai-review.md` | Static code review by AI reviewers; not runtime proof, not human/expert validation. | M03 | C2 | INC-I1 |
+| **F-EXP-02** | 5 `[automated-eval]` | deterministic oracle on live `calculateNextReview` (6/6 ×2 runs) | 2026-07-13 | `../experiments/02_EXP-02_spacing-intersession-autoeval.md` | Domain-calculator scope only; oracle-encoded facts only. | M04 | C2 | INC-I1 |
+| **F-EXP-03** | 5 `[automated-eval]` | deterministic oracle on reference mapper fixture (12/12 ×2 runs) | 2026-07-13 | `../experiments/03_EXP-03_assessment-mapper-autoeval.md` | Realizability of the control shape only — not the live grading path, not LLM payload quality. | M08 | C4 | INC-I1 |
+| **F-EXP-04** | 5 `[automated-eval]` | deterministic oracle on live SR calculator (9/9 ×2 runs; MM-T14 floor violated 5/5 applicable) | 2026-07-13 | `../experiments/04_EXP-04_lapse-savings-autoeval.md` | Domain-calculator scope; `resolve_leech` path unexercised (deferral O-2). | M09 | C3 | INC-I1 |
+| **F-EXP-05** | 5 `[automated-eval]` | deterministic oracle on live gate pipeline (7/7 ×2 runs; fail-open proven) | 2026-07-13 | `../experiments/05_EXP-05_progression-gate-autoeval.md` | Domain half of the gate; orchestration proceed-after-reteach cited as class-2 (L5). | M10 | C1 | INC-I1 |
+| **F-EXP-06** | 4 `[ai-critique]` | 2× independent AI review (unanimous `supports`) | 2026-07-13 | `../experiments/06_EXP-06_feedback-outcome-gate-ai-review.md` | Static code review by AI reviewers; not runtime proof, not human/expert validation. | M06 | C6 | INC-I1 |
+
+Deferred experiments (dogfooding-unavailable D-1…D-6, cap-overflow O-1/O-2, untestable U-1) are recorded with explicit revision triggers in `../experiments/07_deferral-register.md`; they add no finding rows (no evidence was produced).
+
+---
+
 ## 7. Register-completeness self-attestation (IOC checks)
 
 | Check | Result | Basis |
