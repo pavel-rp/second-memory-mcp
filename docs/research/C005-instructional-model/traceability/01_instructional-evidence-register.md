@@ -85,7 +85,7 @@ Sections are delimited per cluster and per mechanism so downstream NEU-888 sibli
 | **F-M06-1** | 1 | causal | 2026-07-07 | M06 findings | Verbal materials; "494%" relative to a low baseline — direction robust, magnitude study-specific. | M06 | — | INC-I1 |
 | **F-M06-2** | 1 | causal | 2026-07-07 | M06 findings | Origin attribution not re-fetched; persistence findings confirmed. | M06 | — | INC-I1 |
 | **F-M06-3** | 1 | causal (condition comparison) | 2026-07-07 | M06 findings | Right generalization is "some correct-answer exposure after the attempt," not a fixed increment. | M06, M03 | — | INC-I1 |
-| **F-M06-4** | 1 | empirical (LLM evaluation) | 2026-07-07 | M06 findings | **Learning-critical:** makes AI-delivered diagnostic feedback need an enforceable control; the control is a downstream decision. | M06, M08 | C4, C6 | INC-I2 |
+| **F-M06-4** | 1 | empirical (LLM evaluation) | 2026-07-07 | M06 findings | **Learning-critical:** makes AI-delivered diagnostic feedback need an enforceable control; the control is decided in `DR-M06` (constrained payload + adversarial grading fixture). | M06, M08 | C4, C6 | INC-I2 ✓ → `DR-M06` |
 | **F-M06-5** | 2 | code-fact | 2026-07-07 | M06 recon | Availability/absence; records failure and moves on; self-grading implicates F-M06-4. | M06 | C6 | INC-I3 |
 
 ### M07 — Productive struggle (`../mechanisms/M07_productive-struggle.md`)

@@ -57,6 +57,14 @@ Finding ids (`F-Mxx-n`, `F-CL-n`, `F-DD-n`, `F-TR-n`), conflict ids (`C1…C6`),
 
 **NEU-919 practice/review decision records (§C-PRAC):** the three binding mechanism decisions for the practice/review cluster live in `decision-records/` — `DR-M03_retrieval.md`, `DR-M04_spacing.md`, `DR-M05_interleaving.md`. M03 and M04 are **learning-critical (C2)** and each carries a **non-prose enforceable control** on the same-session-massed vs. spaced mastery signal; M05 resolves the interleaving axis to **category** (C5) with a staged durable-vs-speed resolution that **supersedes** the illustrative `framework/00_…` §6 walkthrough (per that framework's revision trigger (c)). All three are **provisional** — no status is `settled`, `INC-I1` (DP transfer) stays open, and the mastery-signal calibration is deferred to `LINK-I2`. Ledger rows updated in `adjudication/01_…` §C-PRAC (see §SELF-CHECK-919).
 
+**NEU-920 decision records (§C-FBK — feedback / struggle / remediation):** the three cluster records live in `decision-records/`:
+
+- `decision-records/DR-M06_feedback.md` — **learning-critical (C6/F-M06-4).** Corrective-feedback + correct-answer-exposure after terminal failure; enforceable control = constrained feedback payload + server-side outcome gate + held-out adversarial grading fixture (fail-closed; threshold → `LINK-I2`).
+- `decision-records/DR-M07_productive-struggle.md` — **not learning-critical.** Bounded struggle (attempt + hinted retry) with retrievability-tiered scaffolding; material durable-vs-speed → staged resolution (struggle preserved in acquisition; per-item fluency gate → `LINK-I2`); enforceable-control field carries the explicit not-applicable rationale.
+- `decision-records/DR-M09_remediation.md` — **learning-critical (C3).** Reformulate-not-suspend leech intervention + savings-preserving lapse schedule; enforceable control = deterministic post-lapse savings-floor invariant + leech-trigger provenance gate (values → `LINK-I2`).
+
+Each closes/guards its cited conflict, carries `INC-I1` (DP transfer) and defers calibrated values to `LINK-I2`, and is `provisional` (never `settled`). Implementing the specified controls and reconciling against the coded roadblock/retry/leech flow is **NEU-923** (`INC-I3`), not NEU-920.
+
 ## Standing rule inherited from NEU-915 and NEU-887
 
 Every finding registered here is **provisional by default**, carries **no class-7 (external-user) evidence** (none exists project-wide), and repeats the **DP-transfer uncertainty** (`INC-I1`, inherited NEU-887 R1 / conflict X1): mechanism effects are unmeasured on dynamic-programming problem-solving. No status in the ledger is `settled` at instructional altitude by this task.
