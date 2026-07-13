@@ -48,6 +48,8 @@ Finding ids (`F-Mxx-n`, `F-CL-n`, `F-DD-n`, `F-TR-n`), conflict ids (`C1…C6`),
 | NEU-917 — durable-mastery-vs-contest-speed framework | cross-cutting (F-TR-*, `02_…` §4) | `adjudication/01_…` §C-FRAME |
 | NEU-925 — assemble adjudicated package | all | drives the whole ledger |
 
+**NEU-917 framework artifact:** the durable-mastery-vs-contest-speed decision logic (material-tension triggers, staged-vs-measured resolution logic, dual-goal evidence requirements, and the adversarial self-review) lives in `framework/00_durable-vs-speed-framework.md`. The cluster sub-tasks (NEU-918…921) apply it when a mechanism's two goals pull apart; it authors no `DR-Mxx` and settles no mechanism.
+
 ## Standing rule inherited from NEU-915 and NEU-887
 
 Every finding registered here is **provisional by default**, carries **no class-7 (external-user) evidence** (none exists project-wide), and repeats the **DP-transfer uncertainty** (`INC-I1`, inherited NEU-887 R1 / conflict X1): mechanism effects are unmeasured on dynamic-programming problem-solving. No status in the ledger is `settled` at instructional altitude by this task.
