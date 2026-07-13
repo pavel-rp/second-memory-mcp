@@ -72,6 +72,8 @@ Sections are delimited per cluster and per mechanism so downstream NEU-888 sibli
 | **F-M05-4** | 1 | causal (directional here) | 2026-07-07 | M05 findings | Primary PDF not re-fetched; metacognitive-illusion point well-replicated. | M05 | — | INC-I1 |
 | **F-M05-5** | 2 | code-fact | 2026-07-07 | M05 recon | Availability/absence; dead config names the wrong axis; adding interleaving is a downstream decision. | M05 | C5 | INC-I3 |
 
+**§C-PRAC binding note (NEU-919).** The practice/review decision records now consume these findings and bind `LINK-I1` (`REL:blocked-by-artifact` `INC-I2` → resolved) for their mechanisms — no finding is re-classed and no row is added: `DR-M03_retrieval.md` consumes F-M03-1…5 (+ F-M04-2, F-DD-2); `DR-M04_spacing.md` consumes F-M04-1…6 (+ F-DD-2); `DR-M05_interleaving.md` consumes F-M05-1…5 (+ F-M01-4, F-DD-2). `INC-I1` (DP transfer) and `INC-I3` (reconciliation verdict on the class-2 code-facts) remain open on the rows that carry them; class-2 findings are consumed for compatibility context only, never as pedagogical endorsement. `LINK-I2` (mastery-signal contract) stays UNBOUND. Row count is unchanged (IOC-1 holds).
+
 ---
 
 ## §C-FBK — Feedback / struggle / remediation cluster (NEU-920)
