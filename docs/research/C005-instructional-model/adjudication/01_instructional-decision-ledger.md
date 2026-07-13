@@ -66,10 +66,10 @@ Each `[literature]`-vs-`[code-evidence]` conflict, seeded `unresolved` pending t
 
 | Conflict | Severity | Dec. status | Blocker | Owner | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| **C1** Prerequisite mastery gate (`repetitions>0` vs high/probabilistic bar; characterization flagged stale) | HIGH | **unresolved** · non-downgradable | INC-I3 (live-rule re-verify) | reconciliation + mastery-model | F-M01-6, F-M10-5, F-M10-1/2 |
+| **C1** Prerequisite mastery gate (`repetitions>0` vs high/probabilistic bar; characterization flagged stale) | HIGH | **unresolved** · non-downgradable | INC-I3 ✓ bound → `../reconciliation/00_conflict-register.md` (verdict: **CONFIRMED GAP** — audit `repetitions>0` corrected to live retrievability-reteach at 0.5, below durability bar, no fail-closed unlock gate; not resolved) | reconciliation (NEU-923) + mastery-model | F-M01-6, F-M10-5, F-M10-1/2 |
 | **C2** Roadblock recovery = same-session massed (26% vs 68% spaced) | HIGH | **unresolved** · non-downgradable | INC-I3 | mechanism-decision (M03/M04) + reconciliation | F-M04-2/6, F-M09-4 |
 | **C3** Lapse full reset vs. savings (repetitions→0 vs FSRS caps-not-zeros) | HIGH | **unresolved** · non-downgradable | INC-I3 | reconciliation | F-M09-3/5 |
-| **C4** Assessment fidelity (LLM over-validation; session cap misses uniform leniency) — **learning-critical** | HIGH | **unresolved** · non-downgradable | INC-I3 · needs enforceable control (`DR-M08`) | reconciliation + mastery-model | F-M08-1/3/5 |
+| **C4** Assessment fidelity (LLM over-validation; session cap misses uniform leniency) — **learning-critical** | HIGH | **unresolved** · non-downgradable | INC-I3 ✓ bound → `../reconciliation/00_conflict-register.md` (verdict: **CONFIRMED CONFLICT** — quality agent-supplied, downward session-cap only, no deterministic mapper / adversarial fixture / rebuttal-invariance, assessment binary-collapses; control = `DR-M08`; not resolved) | reconciliation (NEU-923) + mastery-model | F-M08-1/3/5 |
 | **C5** Interleaving axis (category vs difficulty; none live) | MEDIUM | **unresolved** | INC-I3 | mechanism-decision (M05) | F-M05-3/5, F-M01-3 |
 | **C6** Feedback after failure absent (no correct-answer exposure) | MEDIUM-HIGH | **unresolved** | INC-I3 | mechanism-decision (M06) + reconciliation | F-M06-1/5, F-M03-5 |
 
@@ -150,3 +150,30 @@ NEU-922 authored the integrative operational mastery model (`../mastery-model/00
 - **No external validity; population validity UNEARNED.** Every value is class-1 convention or class-2 default transported into the **unmeasured** DP domain; no class-7 is invoked; the standing validity firewall is stated explicitly (model §2). **PASS.**
 - **No invented value laundered.** Provisional numbers are labeled provisional and tied to their class-1/2 basis or to an open gap (G5/G6/G7) with a widened band — none asserted as measured or DP-established (OC-5). **PASS.**
 - **Untouched (not owned):** every §C-ACQ/PRAC/FBK/ASSESS/FRAME mechanism row, all §CONFLICTS rows (C1–C6 unchanged), and all §GAPS rows. No `F-*` re-classed. **PASS.**
+
+---
+
+## §RECON — Reconciliation verdicts (NEU-923, `INC-I3`) · owner NEU-923
+
+The live-rule reconciliation of the target model against the coded Second Memory behavior. Artifact: `../reconciliation/00_conflict-register.md` (per-mechanism M01–M10, thresholds MM-T1…MM-T15, and conflicts C1–C6, each with an alignment/gap/conflict verdict read directly from source as a class-2 compatibility fact). **Discharges `INC-I3` (the reconciliation was performed); resolves no conflict** — resolution requires the implementation charter to install the DR-specified controls. No source file modified; no MM-T value invented; nothing flipped to `settled`/`accepted`.
+
+| Element | Live-code verdict | Dec. status | INC / blocker | Owner | Note |
+| --- | --- | --- | --- | --- | --- |
+| **C1 live-rule verdict** (M10 progression) | **CONFIRMED GAP** | **unresolved** · non-downgradable | `INC-I3` ✓ bound → register | NEU-923 | Audit `repetitions>0` **corrected** (F-M01-6/F-M10-5 stale): live gate is retrievability-reteach at 0.5, below the durability bar, **no fail-closed unlock lock**. Control = `DR-M10`. Not adopted; not resolved. |
+| **C2 live-rule verdict** (M03/M04) | **CONFIRMED GAP** | **unresolved** · non-downgradable | `INC-I3` ✓ bound → register | NEU-923 | No non-massed/inter-session exclusion in the mastery aggregate. Controls = `DR-M03` (massed exclusion) + `DR-M04` (inter-session gate). Not resolved. |
+| **C3 live-rule verdict** (M09 lapse) | **CONFIRMED CONFLICT** | **unresolved** · non-downgradable | `INC-I3` ✓ bound → register | NEU-923 | Lapse **fully resets** (`reps→0`, `interval→1d`), **no savings floor** (`sr-calculator.ts:92–96`). Control = `DR-M09` savings-floor invariant. Full-reset **not adopted**; not resolved. |
+| **C4 live-rule verdict** (M08 assessment) | **CONFIRMED CONFLICT** | **unresolved** · non-downgradable | `INC-I3` ✓ bound → register | NEU-923 | Quality agent-supplied, downward session-cap only; no deterministic mapper / adversarial fixture / rebuttal-invariance; assessment binary-collapses. Control = `DR-M08`. Not adopted; not resolved. |
+| **C5 live-rule verdict** (M05 interleaving) | **CONFIRMED CONFLICT** | **unresolved** | `INC-I3` ✓ bound → register | NEU-923 | Live axis is **difficulty** (`easy-medium-hard`); target is **category**. Not LC → no non-prose control mandated (`DR-M05`). Not adopted; not resolved. |
+| **C6 live-rule verdict** (M06 feedback) | **CONFIRMED GAP** | **unresolved** | `INC-I3` ✓ bound → register | NEU-923 | No correct-answer-exposure outcome gate after terminal failure. Control = `DR-M06`. Not resolved. |
+| **Mechanism verdicts M01–M10** | ALIGNMENT ×2 (M01, M07) · GAP ×5 (M02, M03, M04, M06, M10) · CONFLICT ×3 (M05, M08, M09-lapse) | **provisional** (record) | `INC-I3` ✓ bound → register · `INC-I1` (DP) open | NEU-923 | Full per-mechanism table in register §5. Class-2 compatibility facts only; no DP effectiveness claimed. |
+| **Threshold verdicts MM-T1…MM-T15** | ALIGNMENT ×2 (MM-T3, MM-T9) · CONFLICT ×2 (MM-T5, MM-T14) · GAP/mixed ×11 | **provisional** (record) | `INC-I3` ✓ bound → register · `INC-I1` (DP) open | NEU-923 | Register §6. No MM-T value resolved or invented (`OC-5`). |
+
+## §SELF-CHECK-923 — NEU-923 update (reconciliation)
+
+NEU-923 authored the reconciliation conflict register (`../reconciliation/00_conflict-register.md`) and updated **only** its owned rows — the C1/C4 §CONFLICTS blocker/verdict cells, the new **§RECON** section, and this self-check:
+
+- **`INC-I3` discharged, no conflict resolved.** The register records a live-code verdict for all ten mechanisms, all fifteen thresholds, and all six conflicts, discharging `INC-I3` (the reconciliation *was performed*). C1 and C4 stay **`unresolved`·non-downgradable**; recording a confirmed live divergence corroborates severity and **never downgrades** it. Resolution routes to a later implementation charter (verdict ≠ fix). **PASS.**
+- **Verified against live code, not the audit.** Prerequisite gating **corrected** to retrievability-reteach (not `repetitions>0`; F-M01-6/F-M10-5 stale); lapse full reset **confirmed** (`sr-calculator.ts:92–96`); LLM over-validation **confirmed** (agent-supplied quality). F-M09-5's "`leechFailureThreshold=6` dead code" **corrected** — the `6` is a live lifetime-attempts floor (`sr-calculator.ts:215–229`). No `F-*` re-classed; corrections recorded as live-code facts, not re-classifications. **PASS.**
+- **No contradicted behavior silently adopted.** Every GAP/CONFLICT marks the coded behavior **not adopted** and states the required target + (for C1/C2/C3/C4/C6) a non-prose enforceable control owned by the relevant `DR-Mxx`. This register **invents no new control**. **PASS.**
+- **No code modified; no value invented; nothing settled.** Zero source files changed; no MM-T value invented (`OC-5`); no status is `settled`/`accepted`; DP transfer stays provisional (`INC-I1` open). **PASS.**
+- **Untouched (not owned):** every mechanism decision row (§C-ACQ/PRAC/FBK/ASSESS/FRAME), §C-MASTERY, the §CONFLICTS severities and C2/C3/C5/C6 status cells (their reconciliation verdicts are recorded in §RECON without flipping their §CONFLICTS Dec. status), and all §GAPS rows. **PASS.**
