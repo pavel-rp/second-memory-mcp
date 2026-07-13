@@ -206,3 +206,54 @@ NEU-924 authored the experiments package (`../experiments/00_…`–`07_…`) an
 - **Evidence discipline.** Every result labeled class 4/5; none presented as external-user/expert/market validation; no raw operational-log payload touched (no class-6 source accessed); no MM-T value invented or calibrated; no source file modified; experiment fixtures are throwaway evidence artifacts, not product code. **PASS.**
 - **Nothing settled.** All six experimented decisions remain `provisional`; C1–C6 remain `unresolved` (C1–C4 non-downgradable); template criteria for `settled` are unmet everywhere (class-7 absent, INC-I1 open). **PASS.**
 - **Untouched (not owned):** every Dec. status cell, all §CONFLICTS/§GAPS/§RECON/§C-MASTERY/§C-FRAME rows, all other tasks' self-checks. No `F-*` re-classed. **PASS.**
+
+---
+
+## §DRIVE — NEU-925 final adjudication drive (the whole ledger)
+
+**Task:** NEU-925 · **Compiled:** 2026-07-13 · **Package:** `../package/` (`00_per-mechanism-index.md`, `02_ships-without-evidence.md`, `03_completeness-gate-and-dry-run.md`, `README.md`).
+
+NEU-925 is the sub-task **authorized to drive this ledger** — to mark every element `settled` / `provisional` / `unresolved` on correctly-classed evidence. Driving is **not** a licence to upgrade: a flip to `settled`/`accepted` requires the decision-record template's settled-criteria (`../decision-records/00_…` §5 items 6–7 + §1 field 10) **fully met**, and the inherited firewall reserves `settled`/`accepted` for audit-settled *discipline* decisions, never for an empirical instructional decision while **class-7 evidence is absent project-wide** and **`INC-I1` (DP transfer) is open**. Both conditions hold. Therefore the drive is a **verification pass**: each element is re-tested against the flip criteria, and the honest verdict is recorded.
+
+### The flip test (applied to every candidate)
+
+An element may flip to `settled` **only if all** hold: (a) a compliant `DR-Mxx` (or equivalent) exists; (b) the decision rests on correctly-classed evidence with **no controlling open uncertainty**; (c) **class-7 validation exists**; (d) no non-downgradable conflict/gap is open against it. For **every** instructional element, **(c) fails** (no class-7 exists) and **(b) fails** (`INC-I1`/G1 is controlling and open). **Result: no element qualifies to flip to `settled`.** This is the expected, correct outcome — the drive confirms it element-by-element rather than asserting it.
+
+### Driven verdicts (by section)
+
+| Section | Elements | Flip test | Driven status |
+| --- | --- | --- | --- |
+| §C-ACQ | M01, M02 | DR authored; (c)/(b) fail | **provisional** (unchanged — confirmed correct) |
+| §C-PRAC | M03, M04, M05 | DR authored; M03/M04 LC controls present; (c)/(b) fail | **provisional** (unchanged) |
+| §C-FBK | M06, M07, M09 | DR authored; M06/M09 LC controls present; (c)/(b) fail | **provisional** (unchanged) |
+| §C-ASSESS | M08, M10 | DR authored; LC controls present; C4/C1 non-downgradable open; (c)/(b)/(d) fail | **provisional** (unchanged) |
+| §C-FRAME | durable-vs-speed | framework authored, `INC-I4` bound; (c)/(b) fail | **provisional** (unchanged) |
+| §C-FRAME | cognitive-load framing, desirable-difficulty framing | framing evidence only; no framework *decision* owned here; `INC-I4`/G8 open | **unresolved** (unchanged) |
+| §C-MASTERY | operational mastery model, `LINK-I2` binding | model authored, values banded-provisional; (c)/(b) fail | **provisional** (unchanged) |
+| §CONFLICTS | C1–C6 | live-code verdict recorded (§RECON) = **confirmed divergence**; a confirmed conflict is corroborated, never downgraded; resolution needs the implementation charter | **unresolved** (unchanged; C1–C4 non-downgradable) |
+| §GAPS | G4, G7 | evidence-quality (direction supported, magnitude/percentage UNVERIFIED) | **provisional** (unchanged) |
+| §GAPS | G1, G2, G3, G5, G6, G8 | artifact-/cap-/inherent-bound; no evidence lands in-charter | **unresolved** (unchanged; G1 non-downgradable) |
+
+**No status changed.** Every element was already labeled by its owning sub-task; the drive re-tested each against the flip criteria and found none eligible to move — the expected outcome given the standing firewall. The value of the drive is the **attestation that the labeling is correct and complete**, not a set of flips.
+
+### Final adjudication tally
+
+| Status | Count | Elements |
+| --- | --- | --- |
+| **settled** | **0** | — (firewall-reserved; class-7 absent, `INC-I1` open — no instructional element eligible) |
+| **provisional** | **15** | M01–M10 (10) · durable-vs-speed framework (1) · operational mastery model + `LINK-I2` binding (2) · G4, G7 (2) |
+| **unresolved** | **14** | cognitive-load framing, desirable-difficulty framing (2) · C1–C6 (6) · G1, G2, G3, G5, G6, G8 (6) |
+
+*(The illustrative §C-FRAME "M05 durable-vs-speed walkthrough" row is not a binding element — `DR-M05` supersedes it — and is excluded from the tally.)*
+
+**Binding vs open, restated for consumers.** All 15 `provisional` mechanism/model/framework elements have a **fixed observable behavior** (and, for the six learning-critical mechanisms, a **non-prose enforceable control**) that a build may target now; what is `provisional` is the **calibrated value** (`LINK-I2`) and the **DP-effectiveness claim** (`INC-I1`). All 14 `unresolved` elements are either open gaps or **confirmed live divergences** whose *fix* routes to an implementation charter — not unknowns. Nothing is `settled`.
+
+## §SELF-CHECK-925 — NEU-925 drive + package assembly
+
+- **Ledger fully driven; every element re-tested and labeled.** All 10 mechanisms + 3 framing rows + 2 §C-MASTERY rows + 6 conflicts + 8 gaps carry a status; the drive applied the flip test to each and recorded the verdict. Zero elements unadjudicated-but-counted. **PASS.**
+- **No status flipped to `settled`/`accepted`.** The flip criteria fail for every instructional element (class-7 absent, `INC-I1` open); C1–C4 and G1 stay non-downgradable; recording the confirmed live divergences (§RECON) corroborated — never downgraded — their severity. Most elements remain `provisional`; the confirmed conflicts remain `unresolved`, exactly as the discipline predicts. **PASS.**
+- **Per-mechanism one-hop view assembled.** `../package/00_per-mechanism-index.md` recovers, for each of the ten mechanisms, evidence+class · observable behavior · mastery signal · reconciliation verdict · uncertainty · rejected alternative · experiment evidence, plus binding-vs-open status — each cell one hop from its authoritative source. **PASS.**
+- **Both deferral classes named symmetrically.** `../package/02_ships-without-evidence.md` lists the dogfooding-deferred decisions (D-1…D-6, creator unavailability) and the cap-overflow-deferred decisions (O-1, O-2) symmetrically, each `provisional` with an explicit revision trigger; U-1 is the untestable residue. **PASS.**
+- **Completeness gate + cold-context dry-run run.** `../package/03_completeness-gate-and-dry-run.md` runs the 4/4 completeness gate and a written cold-context dry-run over two mechanisms (M08, M10) across all recovery axes — no missing hop; standalone claim holds. **PASS.**
+- **Assembly only — no new decision produced.** NEU-925 authored no mechanism decision, threshold, reconciliation verdict, or experiment; it unified the upstream outputs and drove the ledger. No `F-*` re-classed; no MM-T value invented; no source file modified. **PASS.**
+- **Firewall + caps + privacy gate inherited unchanged.** NEU-887's caps, materiality rule, and privacy gate hold; no class-7 claimed; DP-transfer stays provisional. **PASS.**

@@ -39,6 +39,10 @@ It contains **no external-user, expert, or market validation** — NEU-887's cla
 
 The reusable record shape and evidence machinery every later NEU-888 sub-task consumes — the decision-record template, the extended traceability register (all findings registered), and the adjudication ledger skeleton — is `SCAFFOLDING.md` and the `decision-records/`, `traceability/`, `adjudication/` folders in this package. It extends NEU-887's machinery and makes **no** instructional decision. Start at `SCAFFOLDING.md`.
 
+## The assembled decision package (NEU-925, final sub-task)
+
+**If you are a cold-context downstream chapter agent, start in `package/`.** The standalone, prompt-ready package unifies this synthesis, the ten decision records, the durable-vs-speed framework, the mastery model, the reconciliation, and the experiment evidence through one driven adjudication ledger, and presents a **per-mechanism one-hop view** (`package/00_per-mechanism-index.md`) so you can recover any mechanism's evidence, behavior, mastery signal, reconciliation verdict, uncertainty, rejected alternative, and experiment evidence — and tell binding from open — without reconstructing intent from the upstream sub-tasks. Reading order and the final adjudication tally (**0 settled · 15 provisional · 14 unresolved**) are in `package/README.md`.
+
 ## How to consume a mechanism (for a downstream decision agent)
 
 Each `mechanisms/Mxx_*.md` file is self-contained and gives you, in one hop:
