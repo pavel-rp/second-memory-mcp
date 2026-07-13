@@ -155,6 +155,12 @@ Findings from `../02_cognitive-load-desirable-difficulty-transfer.md`. These inf
 
 ---
 
+## §LINK-I2 binding (NEU-922) — mastery-signal contract, provisional
+
+The integrative operational mastery model (`../mastery-model/00_operational-mastery-model.md`) **binds `LINK-I2`** — the mastery-signal contract deferred by every `DR-Mxx`. Each DR-deferred value now has a **provisional value + explicit uncertainty band + evidence class + revision signal** (`MM-T1…MM-T15`), consolidated across M01–M10. This binding **re-classes no finding, adds no register row, and asserts no gap value**: MM-T# values are transported from the already-registered class-1 findings (e.g. F-M04-2/3, F-M08-2/3/4, F-M10-1/2, F-M02-3/4, F-M05-1/2, F-M06-4, F-M09-2/3) and class-2 defaults (F-M08-5, F-M02-5, F-M09-5) cited **for compatibility context only, never as pedagogical endorsement** (inherited firewall). `INC-I1` (DP transfer) stays open on every row; G5/G6/G7 stay carried (widened bands, no invented value); `LINK-I2` moves UNBOUND → bound-`provisional`. No `MM-T#` claims external validity (class-7 absent; population validity UNEARNED). Row count unchanged (IOC-1 holds); no class re-assigned (IOC-2 holds). C1/C4 target bars (MM-T8, MM-T4/T5) are provisional only — the reconciliation verdict stays `INC-I3` / NEU-923.
+
+---
+
 ## 7. Register-completeness self-attestation (IOC checks)
 
 | Check | Result | Basis |
