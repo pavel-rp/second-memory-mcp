@@ -116,6 +116,8 @@ Sections are delimited per cluster and per mechanism so downstream NEU-888 sibli
 | **F-M08-4** | 1 | empirical | 2026-07-07 | M08 findings | Analogous to a learner pushing back on a live score; not measured in this product. | M08 | — | INC-I1 |
 | **F-M08-5** | 2 | code-fact | 2026-07-07 | M08 recon | **Learning-critical:** enforceable-control requirement is evidence here, decision downstream; prior audit's bias percentages UNVERIFIED. | M08 | C4, G7 | INC-I2 |
 
+**M08 binding (NEU-921):** `INC-I2` discharged for M08 → `DR-M08` (`../decision-records/DR-M08_assessment.md`) authored; **`LINK-I1` bound** to `DR-M08`. `LINK-I2` (agreement + over-validation thresholds) still UNBOUND (mastery-model). No M08 finding is re-classed; classes, provenance, cutoffs, and limitations above are unchanged (IOC-2/3/4 hold).
+
 ### M10 — Progression (`../mechanisms/M10_progression.md`) — **learning-critical**
 
 | Finding | Class | Evidence type | Cutoff | Provenance | Structural limitation (additional) | Informs | Gap/Conflict | INC |
@@ -125,6 +127,8 @@ Sections are delimited per cluster and per mechanism so downstream NEU-888 sibli
 | **F-M10-3** | 1 | review / meta-analytic | 2026-07-07 | M10 findings | General ITS effectiveness, not progression-rule-specific; not DP-specific. | M10 | — | INC-I1 |
 | **F-M10-4** | 1 | methodological | 2026-07-07 | M10 findings | Discipline constraint, not an empirical effect; bounds how confidently any threshold may be stated. | M10 | — | INC-I1 |
 | **F-M10-5** | 2 (contested) | contested code-fact | mixed | M10 recon | Highest-severity open reconciliation conflict; the live rule must be re-verified. | M10, M01 | C1 | INC-I3 |
+
+**M10 binding (NEU-921):** `INC-I2` discharged for M10 → `DR-M10` (`../decision-records/DR-M10_progression.md`) authored; **`LINK-I1` bound** to `DR-M10`. `LINK-I2` (durability bar / uncertainty band) still UNBOUND (mastery-model). C1/`INC-I3` (live-rule re-verify) remain open — reconciliation NEU-923. No M10 finding is re-classed (IOC-2/3/4 hold).
 
 ---
 
