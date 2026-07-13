@@ -53,3 +53,8 @@ Finding ids (`F-Mxx-n`, `F-CL-n`, `F-DD-n`, `F-TR-n`), conflict ids (`C1…C6`),
 ## Standing rule inherited from NEU-915 and NEU-887
 
 Every finding registered here is **provisional by default**, carries **no class-7 (external-user) evidence** (none exists project-wide), and repeats the **DP-transfer uncertainty** (`INC-I1`, inherited NEU-887 R1 / conflict X1): mechanism effects are unmeasured on dynamic-programming problem-solving. No status in the ledger is `settled` at instructional altitude by this task.
+
+## Authored decision records (pointers, appended per cluster sub-task)
+
+- NEU-918 · §C-ACQ · M01 Sequencing → `decision-records/DR-M01_sequencing.md` (provisional; prerequisite-first + advance-on-demonstration; durable-vs-speed immateriality-certified).
+- NEU-918 · §C-ACQ · M02 Worked examples → `decision-records/DR-M02_worked-examples.md` (provisional; expertise-weighted worked-example fading; durable-vs-speed measured resolution).

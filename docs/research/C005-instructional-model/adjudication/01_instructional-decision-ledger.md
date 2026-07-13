@@ -14,8 +14,8 @@ Legend: **Dec. status** = mutable decision status. **Ev. status** = evidence sta
 
 | Element | Ev. status (findings) | Dec. status | INC / blocker | Owner | Note |
 | --- | --- | --- | --- | --- | --- |
-| **M01 Sequencing** (decision) | provisional (F-M01-1…4 directional; F-M01-5/6 code) | **unresolved** | INC-I2 (no `DR-M01`) · INC-I1 (DP) | NEU-918 | Not learning-critical; DR must still carry CL-framing + rejected alt. |
-| **M02 Worked examples** (decision) | provisional (F-M02-1/3/4 causal; F-M02-2 magnitude UNVERIFIED) | **unresolved** | INC-I2 (no `DR-M02`) · INC-I1 (DP) · G4 | NEU-918 | Not learning-critical. |
+| **M01 Sequencing** (decision) | provisional (F-M01-1…4 directional; F-M01-5/6 code) | **provisional** | INC-I2 ✓ bound → `../decision-records/DR-M01_sequencing.md` · INC-I1 (DP) still open | NEU-918 | **`DR-M01` authored** (NEU-918): prerequisite-first ordering + advance-on-demonstration; CL-framing (intrinsic-load lever, desirable difficulty preserved at the boundary) + rejected alt (exposure-based advancement). Durable-vs-speed **immateriality-certified** (T2 fails — no evidenced opposing gradient; latent, recorded as gap). C1/C5 **not resolved** (deferred to M10/reconciliation, NEU-919). Not learning-critical. **Not settled.** |
+| **M02 Worked examples** (decision) | provisional (F-M02-1/3/4 causal; F-M02-2 magnitude UNVERIFIED) | **provisional** | INC-I2 ✓ bound → `../decision-records/DR-M02_worked-examples.md` · INC-I1 (DP) still open · G4 | NEU-918 | **`DR-M02` authored** (NEU-918): expertise-weighted worked-example fading; CL-framing (extraneous-load lever = same dial as desirable difficulty at different expertise) + rejected alts (fixed full worked examples; fixed fading schedule). Durable-vs-speed **material → measured resolution** (fade weighted by per-learner expertise signal; threshold → LINK-I2). Not learning-critical. **Not settled.** |
 
 ## §C-PRAC — Practice / review cluster · owner NEU-919
 
@@ -96,3 +96,12 @@ NEU-917 authored the durable-mastery-vs-contest-speed framework (`../framework/0
 - **§C-FRAME durable-vs-speed row → `provisional`** (was `unresolved`): the framework artifact is delivered, so `INC-I4` is bound; the row rests on provisional transfer evidence (F-TR-1/2/3) and carries a provisional walkthrough. **Nothing is `settled`/`accepted`** — the settled-forbidden firewall holds. `INC-I1` (DP measurement) remains open.
 - **M05 walkthrough row (illustrative) → `provisional`, pending creator (Assumption #10)** with an explicit three-part revision trigger. It authors no `DR-M05`, settles no mechanism, and does not touch §C-PRAC (NEU-919 owns the binding M05 decision).
 - **Untouched:** the `cognitive-load framing` / `desirable-difficulty framing` rows (framing evidence), every mechanism decision row (still `unresolved`), and all §CONFLICTS/§GAPS rows. No `F-*` re-classed, no gap filled with an invented value. **PASS.**
+
+## §SELF-CHECK-918 — NEU-918 update (acquisition / sequencing cluster)
+
+NEU-918 authored the two acquisition-cluster decision records (`../decision-records/DR-M01_sequencing.md`, `../decision-records/DR-M02_worked-examples.md`) against the NEU-916 template and updated **only** its owned §C-ACQ rows:
+
+- **§C-ACQ M01 Sequencing → `provisional`** (was `unresolved`): `DR-M01` authored, so `INC-I2` for M01 is bound (LINK-I1 = `DR-M01`); the decision rests on class-1/2 evidence with DP transfer unmeasured. Durable-vs-speed tension **immateriality-certified** (trigger T2 fails; recorded as gap, not a fabricated tradeoff). **Not `settled`/`accepted`** — the firewall holds; `INC-I1` (DP) remains open.
+- **§C-ACQ M02 Worked examples → `provisional`** (was `unresolved`): `DR-M02` authored (LINK-I1 = `DR-M02`; `INC-I2` bound). Durable-vs-speed tension **material → measured resolution** (worked-example fading weighted by a per-learner expertise signal; calibrated fade threshold deferred `LINK-I2`). Carries `G4` (pooled magnitude UNVERIFIED) and `INC-I1`. **Not `settled`.**
+- **No enforceable control invented:** both mechanisms are **not** learning-critical (template §3); each record carries the enforceable-control field with an explicit not-applicable rationale (not blank, not prose-aspirational).
+- **Untouched:** every other cluster's rows (§C-PRAC/§C-FBK/§C-ASSESS/§C-FRAME), all §CONFLICTS rows (C1–C6 — M01 defers C1/C5 without resolving them), and all §GAPS rows. No `F-*` re-classed; no gap filled with an invented value. **PASS.**

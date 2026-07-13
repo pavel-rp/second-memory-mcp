@@ -23,6 +23,8 @@ Sections are delimited per cluster and per mechanism so downstream NEU-888 sibli
 | **F-M01-5** | 2 | code-fact | 2026-07-07 | M01 recon | Availability, not pedagogical validity; reconciliation verdict deferred. | M01 | — | INC-I3 |
 | **F-M01-6** | 2 (contested) | contested code-fact | mixed | M01 recon | Must be re-verified against live code; carried as open conflict, not resolved. | M01, M10 | C1 | INC-I3 |
 
+**LINK-I1 bound (M01)** → `../decision-records/DR-M01_sequencing.md` (NEU-918). The per-mechanism decision record now exists, so `INC-I2` is resolved for M01; `INC-I1` (DP transfer) remains open. No M01 finding is re-classed by this binding.
+
 ### M02 — Worked examples (`../mechanisms/M02_worked-examples.md`)
 
 | Finding | Class | Evidence type | Cutoff | Provenance | Structural limitation (additional) | Informs | Gap/Conflict | INC |
@@ -32,6 +34,8 @@ Sections are delimited per cluster and per mechanism so downstream NEU-888 sibli
 | **F-M02-3** | 1 | causal (expertise×treatment interaction) | 2026-07-13 | M02 findings | "Expertise" is domain-specific and unmeasured for DP sub-skills. | M02 | — | INC-I1 |
 | **F-M02-4** | 1 | causal (fading experiments) | 2026-07-13 | M02 findings | Adaptive fading needs a per-learner expertise estimate; DP feasibility unaddressed. | M02 | — | INC-I1 |
 | **F-M02-5** | 2 | code-fact | 2026-07-07 | M02 recon | Availability only; tiered-instruction-as-fading-proxy is a reconciliation verdict. | M02 | — | INC-I3 |
+
+**LINK-I1 bound (M02)** → `../decision-records/DR-M02_worked-examples.md` (NEU-918). The per-mechanism decision record now exists, so `INC-I2` is resolved for M02; `INC-I1` (DP transfer) and `G4` (pooled magnitude UNVERIFIED) remain open. No M02 finding is re-classed by this binding.
 
 ---
 
