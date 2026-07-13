@@ -50,6 +50,11 @@ Finding ids (`F-Mxx-n`, `F-CL-n`, `F-DD-n`, `F-TR-n`), conflict ids (`C1…C6`),
 
 **NEU-917 framework artifact:** the durable-mastery-vs-contest-speed decision logic (material-tension triggers, staged-vs-measured resolution logic, dual-goal evidence requirements, and the adversarial self-review) lives in `framework/00_durable-vs-speed-framework.md`. The cluster sub-tasks (NEU-918…921) apply it when a mechanism's two goals pull apart; it authors no `DR-Mxx` and settles no mechanism.
 
+**NEU-921 authored records (§C-ASSESS cluster — assessment / progression):**
+
+- `decision-records/DR-M08_assessment.md` — M08 assessment (learning-critical, C4). Enforceable control: constrained rubric-anchored grading payload + deterministic (non-LLM) quality mapper, adversarial fail-closed CI grading fixture, and rebuttal-invariance; enforcement at the server-side `submit_answer` grade-derivation path. Thresholds → `LINK-I2`. Ledger status `provisional` (not settled).
+- `decision-records/DR-M10_progression.md` — M10 progression (learning-critical, C1). Enforceable control: server-side durability gate invariant (multi-observation, not `repetitions>0`), fail-closed single-success regression test, and an observable gate-decision; enforcement at the prerequisite-unlock path. Staged durable-vs-speed resolution (durability-first unlock, speed as a later phase) applying `framework/00_…`. Mastery bar → `LINK-I2`; cross-mechanism thresholds → NEU-922; live-rule reconciliation → NEU-923. Ledger status `provisional` (not settled).
+
 ## Standing rule inherited from NEU-915 and NEU-887
 
 Every finding registered here is **provisional by default**, carries **no class-7 (external-user) evidence** (none exists project-wide), and repeats the **DP-transfer uncertainty** (`INC-I1`, inherited NEU-887 R1 / conflict X1): mechanism effects are unmeasured on dynamic-programming problem-solving. No status in the ledger is `settled` at instructional altitude by this task.
