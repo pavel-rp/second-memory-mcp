@@ -35,6 +35,10 @@ It contains **no external-user, expert, or market validation** — NEU-887's cla
 | M09 | Remediation | `mechanisms/M09_remediation.md` |
 | M10 | Progression | `mechanisms/M10_progression.md` |
 
+## Scaffolding for downstream decisions (NEU-916)
+
+The reusable record shape and evidence machinery every later NEU-888 sub-task consumes — the decision-record template, the extended traceability register (all findings registered), and the adjudication ledger skeleton — is `SCAFFOLDING.md` and the `decision-records/`, `traceability/`, `adjudication/` folders in this package. It extends NEU-887's machinery and makes **no** instructional decision. Start at `SCAFFOLDING.md`.
+
 ## How to consume a mechanism (for a downstream decision agent)
 
 Each `mechanisms/Mxx_*.md` file is self-contained and gives you, in one hop:
