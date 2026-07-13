@@ -46,7 +46,8 @@ Legend: **Dec. status** = mutable decision status. **Ev. status** = evidence sta
 | --- | --- | --- | --- | --- | --- |
 | **Cognitive-load framing** | provisional (F-CL-1/2 theoretical) | **unresolved** | INC-I4 · G8 (capacity precision) | NEU-917 | Framing is evidence; the framework decision is NEU-917's. |
 | **Desirable-difficulty framing** | provisional (F-DD-1/2/3) | **unresolved** | INC-I4 · INC-I1 | NEU-917 | Accomplishable-band boundary unmeasured for DP. |
-| **Durable-mastery-vs-contest-speed** | provisional (F-TR-1/2/3 transfer) | **unresolved** | INC-I4 (framework) · INC-I1 (DP) | NEU-917 | NEU-888 OUT-3; staged-or-measured resolution is downstream. |
+| **Durable-mastery-vs-contest-speed** | provisional (F-TR-1/2/3 transfer) | **provisional** | INC-I4 ✓ bound → `../framework/00_durable-vs-speed-framework.md` · INC-I1 (DP) still open | NEU-917 | NEU-888 OUT-3. **Framework authored** (`../framework/00_…`): material-tension triggers T1–T3, staged-vs-measured logic, dual-goal evidence requirement, no-third-exit invariant, and adversarial self-review (no silent single-goal exit — PASS). Per-mechanism resolutions remain downstream (NEU-918…921). **Not settled.** |
+| **↳ M05 durable-vs-speed walkthrough** (illustrative) | provisional (durable F-M05-1/2 causal; speed F-M05-4/F-DD-2 directional) | **provisional** | INC-I1 (DP) · F-M05-2 blocking-first UNVERIFIED · gate value → LINK-I2 | NEU-917 (demo) → NEU-919 (binding) | Staged resolution (per-technique fluency gate → interleaved consolidation), **provisional pending creator walkthrough** (Assumption #10). Revision trigger: (a) creator validates/rejects the blocking-first ordering; (b) in-domain DP measurement lands (INC-I1/G1); (c) NEU-919 authors `DR-M05`, which supersedes this. Illustrative only — does **not** author `DR-M05`, settle M05, or touch §C-PRAC. |
 
 ---
 
@@ -87,3 +88,11 @@ Recorded, **never filled with an invented value** (`00_…` §3.5). Cap-bound ga
 - **Severity floor honored.** C1–C4 and G1 (`INC-I1`) are marked non-downgradable. **PASS.**
 - **No invented value.** No gap/conflict row carries a threshold, rate, or effect size. **PASS.**
 - **Status discipline.** Every status uses the NEU-906 vocabulary verbatim; the ledger is the sole place a status may later flip. **PASS.**
+
+## §SELF-CHECK-917 — NEU-917 update (framework)
+
+NEU-917 authored the durable-mastery-vs-contest-speed framework (`../framework/00_durable-vs-speed-framework.md`) and updated **only** its owned §C-FRAME rows:
+
+- **§C-FRAME durable-vs-speed row → `provisional`** (was `unresolved`): the framework artifact is delivered, so `INC-I4` is bound; the row rests on provisional transfer evidence (F-TR-1/2/3) and carries a provisional walkthrough. **Nothing is `settled`/`accepted`** — the settled-forbidden firewall holds. `INC-I1` (DP measurement) remains open.
+- **M05 walkthrough row (illustrative) → `provisional`, pending creator (Assumption #10)** with an explicit three-part revision trigger. It authors no `DR-M05`, settles no mechanism, and does not touch §C-PRAC (NEU-919 owns the binding M05 decision).
+- **Untouched:** the `cognitive-load framing` / `desirable-difficulty framing` rows (framing evidence), every mechanism decision row (still `unresolved`), and all §CONFLICTS/§GAPS rows. No `F-*` re-classed, no gap filled with an invented value. **PASS.**
