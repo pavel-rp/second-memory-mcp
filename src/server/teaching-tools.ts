@@ -56,9 +56,10 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                     sessionQuestionId: result.session_question_id,
                     instruction:
                       'Present the question verbatim to the learner. Take a single answer. ' +
-                      'Call submit_answer({ session_question_id, response, quality, question_type, feedback, time_spent_ms }). ' +
+                      'Call submit_answer({ session_question_id, response, grading, question_type, feedback, time_spent_ms }). ' +
+                      'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality. ' +
                       'No retries — one attempt per question.',
-                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ session_question_id: "${result.session_question_id as string}", response: "...", grading: { criteria: { correct_recurrence, correct_base_case, correct_iteration_order, complexity_stated }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   }
                 : {
                     action: 'USE_INLINE_SUBMIT',
@@ -80,10 +81,11 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
                         : result.teaching_approach === 'reteach'
                           ? 'Guardrails: recall probe first, then re-presentation + retrieval check. Stay at Level 1 only; max 5–7 attempts per chunk.'
                           : 'Guardrails: min 1 Recall + 1 Explain question for non-trivial chunks; max 5–7 attempts per chunk.',
-                      'Then call submit_answer({ prompt_text, chunk_ids, response, quality, question_type, feedback, time_spent_ms }).',
+                      'Then call submit_answer({ prompt_text, chunk_ids, response, grading, question_type, feedback, time_spent_ms }). ' +
+                        'grading is the rubric-anchored payload (per-criterion booleans + verbatim justifying spans); the server derives the 0–5 quality.',
                       'If a question fails, retry with submit_answer({ session_question_id, ... }) using the session_question_id from the response.',
                     ].join(' '),
-                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", quality: 0-5, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
+                    nextStep: `submit_answer({ prompt_text: "...", chunk_ids: ["${result.chunk_id}"], response: "...", grading: { criteria: { correct_recurrence, correct_base_case, correct_iteration_order, complexity_stated }, justifying_spans: { ... } }, question_type: "recall|explain_apply|analyze_create", feedback: "...", time_spent_ms: ... })`,
                   };
 
             return toolData(
@@ -117,8 +119,8 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Two modes: (1) Inline question creation — provide prompt_text + chunk_ids to atomically create a question and record the first attempt. ' +
         '(2) Retry — provide session_question_id to record a subsequent attempt on an existing question. ' +
         "The response field must contain the learner's exact words — no paraphrasing, sanitization, or censorship. " +
-        'Agent provides quality (0–5) and question_type per the quality rubric. ' +
-        'passed is optional — derived from quality >= 3 when omitted. ' +
+        'Agent provides a rubric-anchored grading payload (per-criterion booleans + verbatim justifying spans) and question_type; ' +
+        'the server derives the 0–5 quality deterministically and pass = quality >= 3 (no agent-supplied raw quality or pass flag). ' +
         'Returns session_question_id in retry and recorded responses for retry reference. ' +
         'When action is "recorded", check for roadblock_forecast — if present, follow-up questions are required before progression. ' +
         'Consider calling add_note if something notable happened: ' +
@@ -201,6 +203,9 @@ export function registerTeachingTools(server: McpServer, ctx: AppContext): void 
         'Overwrite a previously-recorded session_question_attempt grade when YOU graded incorrectly. ' +
         "Use this when you graded incorrectly, not for retries on a learner's second attempt — " +
         "that's still submit_answer with session_question_id. " +
+        'Supply a corrected rubric-anchored grading payload (per-criterion booleans + verbatim ' +
+        'justifying spans); the server re-derives the 0–5 quality through the same deterministic ' +
+        'mapper as submit_answer — no raw quality is accepted. ' +
         'The original attempt values are preserved verbatim for audit; the live attempt row is ' +
         'updated in place so the SRS engine reads the corrected quality at chunk finalization. ' +
         'If the original grade had triggered a roadblock and the revised grade no longer warrants ' +

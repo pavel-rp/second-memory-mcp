@@ -4,6 +4,7 @@ import type { ContentStatus } from './recommendations.js';
 import type { SessionMode } from './session.js';
 import type { TeachingApproach } from '../algorithms/classify-chunk.js';
 import type { TopicStalenessProfile } from '../algorithms/compute-topic-profile.js';
+import type { RubricGradingPayload } from '../algorithms/grade-mapper.js';
 import { z } from 'zod';
 
 /**
@@ -155,8 +156,7 @@ export type SubmitAnswerInputInline = {
   promptText: string;
   chunkIds: string[];
   response: string;
-  passed?: boolean;
-  quality: number;
+  grading: RubricGradingPayload;
   questionType: QuestionType;
   feedback: string;
   timeSpentMs: number;
@@ -165,8 +165,7 @@ export type SubmitAnswerInputInline = {
 export type SubmitAnswerInputRetry = {
   sessionQuestionId: string;
   response: string;
-  passed?: boolean;
-  quality: number;
+  grading: RubricGradingPayload;
   questionType: QuestionType;
   feedback: string;
   timeSpentMs: number;
@@ -218,6 +217,49 @@ export type SubmitAnswerError = {
 
 export type SubmitAnswerResult = SubmitAnswerRetry | SubmitAnswerRecorded | SubmitAnswerError;
 
+/**
+ * Rubric-anchored grading payload (DR-M08 / EXP-03). The grader supplies
+ * per-criterion booleans plus the verbatim span(s) of the learner's answer that
+ * justify each criterion; the server derives the 0–5 quality deterministically
+ * via the pure grade mapper. There is no agent-supplied raw quality.
+ *
+ * All four criterion booleans are REQUIRED — a payload lacking them is rejected
+ * (Zod failure, fail loudly). Justifying spans are optional per criterion: a
+ * criterion claimed `true` without an evidencing span is uncredited by the mapper
+ * (fail-closed to a lower quality), NOT a schema error. The criterion keys are
+ * snake_case domain identifiers and pass through the tool boundary unchanged.
+ */
+export const GradingPayloadShape = z
+  .object({
+    criteria: z
+      .object({
+        correct_recurrence: z.boolean(),
+        correct_base_case: z.boolean(),
+        correct_iteration_order: z.boolean(),
+        complexity_stated: z.boolean(),
+      })
+      .describe(
+        'Per-criterion booleans for the DP grading rubric. Each is true only if the ' +
+          "learner's answer demonstrably satisfies that criterion. All four are required."
+      ),
+    justifying_spans: z
+      .object({
+        correct_recurrence: z.string().optional(),
+        correct_base_case: z.string().optional(),
+        correct_iteration_order: z.string().optional(),
+        complexity_stated: z.string().optional(),
+      })
+      .describe(
+        "Verbatim span(s) of the learner's OWN answer that justify each criterion claimed " +
+          'true. A criterion claimed true WITHOUT a non-empty justifying span is uncredited ' +
+          '(the derived quality fails closed). Do not invent or paraphrase spans.'
+      ),
+  })
+  .describe(
+    'Rubric-anchored grading payload. The server derives the 0–5 quality deterministically ' +
+      'from these criteria + evidencing spans — you do NOT supply a raw quality number.'
+  );
+
 export const SubmitAnswerInputShape = {
   prompt_text: z
     .string()
@@ -242,29 +284,7 @@ export const SubmitAnswerInputShape = {
         '"[Agent transcription of attached artifact]" block after the verbatim text. ' +
         'Use the feedback field for your assessment, not this field.'
     ),
-  passed: z
-    .boolean()
-    .optional()
-    .describe(
-      'Whether the learner recalled the material correctly. Optional — derived from quality >= 3 when omitted. ' +
-        'Pass = they answered without significant prompting or errors. ' +
-        "Fail = they couldn't answer, needed the answer revealed, or made a meaningful error. " +
-        'When in doubt, fail — spaced repetition benefits from honest assessment.'
-    ),
-  quality: z
-    .number()
-    .int()
-    .min(0)
-    .max(5)
-    .describe(
-      'Agent-judged quality score (0–5) per the quality rubric. ' +
-        '0 = no recall, 1 = wrong but recognized, 2 = wrong but close, ' +
-        '3 = correct with difficulty, 4 = correct with minor hesitation, 5 = perfect instant recall. ' +
-        'Score HONESTLY: a learner who just failed badly cannot realistically score 5 on the very next ' +
-        'question about the same concept. When in doubt, score lower rather than higher. ' +
-        'The server enforces session-scoped caps, but accurate agent scoring produces better ' +
-        'spaced-repetition scheduling.'
-    ),
+  grading: GradingPayloadShape,
   question_type: z
     .enum(['recall', 'explain_apply', 'analyze_create'])
     .describe(
@@ -359,8 +379,7 @@ export type ReviseGradeReason = (typeof REVISE_GRADE_REASONS)[number];
 
 export type ReviseGradeInput = {
   sessionQuestionId: string;
-  newQuality: number;
-  newPassed?: boolean;
+  grading: RubricGradingPayload;
   newFeedback: string;
   reason: ReviseGradeReason;
 };
@@ -407,18 +426,7 @@ export const ReviseGradeInputShape = {
     .string()
     .min(1)
     .describe('The session_question_id whose latest attempt is being revised.'),
-  new_quality: z
-    .number()
-    .int()
-    .min(0)
-    .max(5)
-    .describe(
-      'The corrected quality score (0–5). Replaces the original agent_quality on the live attempt row.'
-    ),
-  new_passed: z
-    .boolean()
-    .optional()
-    .describe('Optional. Derived from `new_quality >= 3` when omitted.'),
+  grading: GradingPayloadShape,
   new_feedback: z
     .string()
     .trim()
@@ -438,22 +446,12 @@ export const ReviseGradeInputShape = {
 
 export const ReviseGradeInputSchema = z
   .object(ReviseGradeInputShape)
-  .transform(
-    ({
-      session_question_id,
-      new_quality,
-      new_passed,
-      new_feedback,
-      reason,
-      context_token: _ct,
-    }) => ({
-      sessionQuestionId: session_question_id,
-      newQuality: new_quality,
-      newPassed: new_passed,
-      newFeedback: new_feedback,
-      reason,
-    })
-  );
+  .transform(({ session_question_id, grading, new_feedback, reason, context_token: _ct }) => ({
+    sessionQuestionId: session_question_id,
+    grading,
+    newFeedback: new_feedback,
+    reason,
+  }));
 
 // ── start_learning types ────────────────────────────────────────
 
