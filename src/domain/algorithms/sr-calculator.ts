@@ -71,6 +71,38 @@ export function applyIntervalFuzz(interval: number, random: number): number {
   return min + Math.floor(r * windowSize);
 }
 
+/**
+ * Post-lapse savings floor (NEU-927). On a graded failure the recomputed
+ * interval is bounded below by `coefficient × prior_interval` (the prior
+ * interval proxies prior stability, per `classify-chunk.ts:50-51` and the
+ * EXP-04 oracle) and never dropped below 1 day. A well-established chunk thus
+ * returns for spaced recovery rather than a first-exposure reset.
+ */
+function lapseSavingsFloorDays(priorInterval: number, config: AlgorithmConfig): number {
+  return Math.max(1, Math.round(config.lapseSavingsCoefficient * priorInterval));
+}
+
+/**
+ * Clamp a post-lapse interval into `[floor, priorInterval]` (NEU-927). Applied
+ * AFTER `applyIntervalFuzz` so fuzz's downward spread cannot push the result
+ * below the savings floor, and after any advanced-path reduction so no lapse
+ * branch escapes the floor. When the prior interval is below the floor
+ * (degenerate/never-established prior — e.g. a null or 0 prior interval), the
+ * bound would ask to floor above the prior it is also bounded by, so the result
+ * is exactly 1 day. Pure and deterministic.
+ */
+export function clampLapseInterval(
+  interval: number,
+  priorInterval: number,
+  config: AlgorithmConfig
+): number {
+  const floor = lapseSavingsFloorDays(priorInterval, config);
+  if (priorInterval < floor) {
+    return 1;
+  }
+  return Math.min(priorInterval, Math.max(floor, interval));
+}
+
 export function calculateNextReview(
   input: NextReviewInput,
   config: AlgorithmConfig,
@@ -90,9 +122,14 @@ export function calculateNextReview(
   let nextInterval = prevInterval;
 
   if (quality < 3) {
-    // Failure: reset reps to 0, interval to 1 day, penalize ease
+    // Failure: reset reps to 0 and penalize ease, but preserve accumulated
+    // learning by flooring the interval (NEU-927) instead of an unconditional
+    // reset to 1 day. A well-established chunk returns at the savings floor
+    // (`coefficient × prior_interval`) for spaced recovery; a degenerate/
+    // never-established prior (below the floor) retries tomorrow.
     nextRepetitions = 0;
-    nextInterval = 1; // schedule retry tomorrow to avoid same-day churn
+    const floor = lapseSavingsFloorDays(prevInterval, config);
+    nextInterval = prevInterval < floor ? 1 : floor;
     nextEase = clampEaseFactor(prevEase + config.easePenaltyFailure, config.minimumEaseFactor);
   } else {
     // Success path
@@ -116,6 +153,12 @@ export function calculateNextReview(
   // Spread same-day-introduced chunks apart. Applied last so the fuzz reflects
   // the final interval; the 1-day floor (failure/first-review) is preserved.
   nextInterval = applyIntervalFuzz(nextInterval, random);
+
+  if (quality < 3) {
+    // Clamp AFTER fuzz (NEU-927) so fuzz's downward spread cannot push the
+    // post-lapse interval below the savings floor (or above the prior interval).
+    nextInterval = clampLapseInterval(nextInterval, prevInterval, config);
+  }
 
   const today = toStartOfDay(now);
   const nextDate = addDays(today, nextInterval);
@@ -192,6 +235,10 @@ export function calculateNextReviewAdvanced(
   const overdue = Math.max(0, Math.floor(input.daysOverdue ?? 0));
   const consecutiveFailures = Math.max(0, Math.floor(input.consecutiveFailures ?? 0));
   const totalAttempts = Math.max(0, Math.floor(input.totalAttempts ?? 0));
+  // Prior interval proxies prior stability for the post-lapse savings floor
+  // (NEU-927); mirrors the normalization in calculateNextReview.
+  const priorInterval = Math.max(0, Math.floor(input.interval));
+  const isLapse = Math.max(0, Math.min(5, Math.floor(input.quality))) < 3;
 
   if (overdue > 0 && input.repetitions > 0) {
     // Apply lapse penalty to ease
@@ -204,6 +251,13 @@ export function calculateNextReviewAdvanced(
     // Harsher reset: reduce repetitions to 0 and shorten interval
     reps = 0;
     interval = Math.max(1, Math.floor(interval * 0.5));
+  }
+
+  if (isLapse) {
+    // Re-apply the savings floor (NEU-927) so the advanced-path reductions above
+    // (overdue pull-in, harsher reset) cannot escape the floor. Idempotent with
+    // the clamp already applied inside calculateNextReview.
+    interval = clampLapseInterval(interval, priorInterval, config);
   }
 
   // Leech flagging requires a minimum evidence base: a chunk cannot be branded a
