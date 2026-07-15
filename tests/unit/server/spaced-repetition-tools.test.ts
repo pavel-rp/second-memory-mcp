@@ -59,7 +59,8 @@ describe('spaced-repetition-tools', () => {
       const parsed = parseResult(result);
       expect(parsed.status).toBe('ok');
       expect(parsed.data.repetitions).toBe(0);
-      expect(parsed.data.interval).toBe(1);
+      // NEU-927: savings floor = round(0.2 × prior interval 10) = 2, not a 1d reset.
+      expect(parsed.data.interval).toBe(2);
     });
 
     it('returns computation error when context throws', async () => {
