@@ -164,6 +164,7 @@ function mockQuestionsAndAttempts(
 function makeDeps(overrides?: {
   sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
+  reviewPersistence?: Partial<Parameters<typeof stubReviewPersistence>[0]>;
   sessionQuestions?: SessionQuestionRepository;
   notes?: NotesRepository;
 }): TeachingDeps {
@@ -185,7 +186,7 @@ function makeDeps(overrides?: {
       getWithContent: vi.fn().mockResolvedValue(makeChunkData()),
       ...overrides?.chunks,
     }),
-    reviewPersistence: stubReviewPersistence(),
+    reviewPersistence: stubReviewPersistence(overrides?.reviewPersistence),
     algorithmConfig: DEFAULT_ALGORITHM_CONFIG,
     sessionQuestions: overrides?.sessionQuestions ?? stubSessionQuestionRepository(),
     notes: overrides?.notes,
@@ -2641,19 +2642,16 @@ describe('getNextTeachingStep', () => {
       expect(result.prerequisite_reteach_needed).toBeUndefined();
     });
 
-    it('serves original chunk when all prerequisites are fresh', async () => {
-      const freshPrereq = makeMinimalChunkMeta({
-        id: 'prereq-1',
-        repetitions: 3,
-        easeFactor: 2.5,
-        intervalDays: 10,
-        nextReviewAt: Date.now() + 86_400_000, // due tomorrow → R ≈ 1.0
-      });
+    it('serves original chunk when all prerequisites clear the durability bar', async () => {
+      // NEU-931: durability is now the retrievability-posterior over persisted
+      // review history, not FSRS freshness. 20 clean successes → posterior
+      // ≈ 0.955, clearing the 0.90 bar, so prereq-1 unlocks the dependent.
+      const durablePrereq = makeMinimalChunkMeta({ id: 'prereq-1' });
 
       const batchFetchMinimal = vi
         .fn()
         // First call: prereq metadata fetch (step 5b)
-        .mockResolvedValueOnce([freshPrereq])
+        .mockResolvedValueOnce([durablePrereq])
         // Second call: topic chunks for topic profile (step 7)
         .mockResolvedValueOnce([makeMinimalChunkMeta()]);
 
@@ -2663,6 +2661,11 @@ describe('getNextTeachingStep', () => {
             .fn()
             .mockResolvedValue(makeChunkData({ prerequisitesJson: ['prereq-1'] })),
           batchFetchMinimal,
+        },
+        reviewPersistence: {
+          getReviewObservations: vi
+            .fn()
+            .mockResolvedValue(new Map([['prereq-1', { successes: 20, failures: 0 }]])),
         },
       });
 

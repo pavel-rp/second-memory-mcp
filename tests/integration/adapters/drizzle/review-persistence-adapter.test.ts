@@ -320,4 +320,69 @@ describe('DrizzleReviewPersistenceAdapter.getWeakAreas (integration)', () => {
 
     expect(await adapter.countAttempts('c-1')).toBe(0);
   });
+
+  // ── getReviewObservations (NEU-931 durability-gate evidence) ──
+
+  it('splits graded attempts into pass/fail counts per chunk', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Chunk 1');
+    await seedSession('s-1');
+
+    // pass = quality >= 3; c-1 gets 2 passes (4, 5) and 1 fail (2).
+    await seedQuestionWithChunk('sq-1', 's-1', 'c-1', 1);
+    await seedQuestionWithChunk('sq-2', 's-1', 'c-1', 2);
+    await seedQuestionWithChunk('sq-3', 's-1', 'c-1', 3);
+    await seedAttempt('a-1', 'sq-1', 4, now - 3000);
+    await seedAttempt('a-2', 'sq-2', 2, now - 2000);
+    await seedAttempt('a-3', 'sq-3', 5, now - 1000);
+
+    const result = await adapter.getReviewObservations(['c-1']);
+
+    expect(result.get('c-1')).toEqual({ successes: 2, failures: 1 });
+  });
+
+  it('records a single success for a single passing attempt', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Chunk 1');
+    await seedSession('s-1');
+
+    await seedQuestionWithChunk('sq-1', 's-1', 'c-1', 1);
+    await seedAttempt('a-1', 'sq-1', 5, now - 1000);
+
+    expect(await adapter.getReviewObservations(['c-1'])).toEqual(
+      new Map([['c-1', { successes: 1, failures: 0 }]])
+    );
+  });
+
+  it('excludes ungraded attempts and omits chunks with no graded history', async () => {
+    await seedTopic('t-1', 'Topic A');
+    await seedChunk('c-1', 't-1', 'Chunk 1');
+    await seedChunk('c-2', 't-1', 'Untouched Chunk');
+    await seedSession('s-1');
+
+    await seedQuestionWithChunk('sq-1', 's-1', 'c-1', 1);
+    await seedAttempt('a-1', 'sq-1', 4, now - 2000);
+    // Ungraded attempt carries no signal and must not be counted.
+    await seedQuestionWithChunk('sq-2', 's-1', 'c-1', 2);
+    await db.insert(sessionQuestionAttempts).values({
+      id: 'a-null',
+      sessionQuestionId: 'sq-2',
+      attemptNumber: 1,
+      response: 'ungraded',
+      passed: false,
+      feedback: 'pending',
+      quality: null,
+      timeSpentMs: 1000,
+      createdAt: now - 1000,
+    });
+
+    const result = await adapter.getReviewObservations(['c-1', 'c-2']);
+
+    expect(result.get('c-1')).toEqual({ successes: 1, failures: 0 });
+    expect(result.has('c-2')).toBe(false);
+  });
+
+  it('returns an empty map for an empty id list without querying', async () => {
+    expect(await adapter.getReviewObservations([])).toEqual(new Map());
+  });
 });
