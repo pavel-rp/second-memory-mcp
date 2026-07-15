@@ -59,6 +59,7 @@ describe('durability gate — single-success prerequisite stays locked (NEU-931)
     // Give A exactly ONE successful graded attempt via the real submit flow.
     const sessionA = await ctx.createSession({ mode: 'learning', chunkIds: ['dur-a'] });
     expect(sessionA.success).toBe(true);
+    if (!sessionA.success) throw new Error('Expected session A creation to succeed');
 
     const teachA = await ctx.getNextTeachingStep();
     expect(teachA.action).toBe('teach');
@@ -87,6 +88,9 @@ describe('durability gate — single-success prerequisite stays locked (NEU-931)
       .where(eq(sessionQuestionChunks.chunkId, 'dur-a'));
     const passed = observations.filter(o => (o.quality ?? 0) >= 3);
     expect(passed.length).toBe(1);
+
+    // Close session A so a fresh session can become active.
+    await ctx.completeSession(sessionA.data.sessionId, undefined);
 
     // New session with ONLY the dependent B. The gate must fail closed: A's
     // single-success posterior is below the bar, so B stays locked and A is
