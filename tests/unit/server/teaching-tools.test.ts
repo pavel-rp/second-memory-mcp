@@ -3,6 +3,7 @@ import { registerTeachingTools } from '../../../src/server/teaching-tools.js';
 import { createMockAppContext } from '../../helpers/mock-app-context.js';
 import { CaptureServer, parseResult } from '../../helpers/capture-server.js';
 import type { AppContext } from '../../../src/composition-root.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 
 describe('teaching-tools', () => {
   let server: CaptureServer;
@@ -314,8 +315,7 @@ describe('teaching-tools', () => {
       prompt_text: 'What is X?',
       chunk_ids: ['c1'],
       response: 'X is Y',
-      passed: true,
-      quality: 5,
+      grading: rubricForQuality(5),
       question_type: 'recall',
       feedback: 'Correct',
       time_spent_ms: 5000,
@@ -339,8 +339,7 @@ describe('teaching-tools', () => {
       prompt_text: 'Q',
       chunk_ids: ['c1'],
       response: 'A',
-      passed: false,
-      quality: 2,
+      grading: rubricForQuality(2),
       question_type: 'recall',
       feedback: 'Wrong',
       time_spent_ms: 3000,
@@ -352,8 +351,7 @@ describe('teaching-tools', () => {
         promptText: 'Q',
         chunkIds: ['c1'],
         response: 'A',
-        passed: false,
-        quality: 2,
+        grading: rubricForQuality(2),
         questionType: 'recall',
         feedback: 'Wrong',
         timeSpentMs: 3000,
@@ -368,7 +366,7 @@ describe('teaching-tools', () => {
     const result = await handler({
       // Neither prompt_text+chunk_ids nor session_question_id
       response: 'A',
-      quality: 5,
+      grading: rubricForQuality(5),
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
@@ -390,7 +388,7 @@ describe('teaching-tools', () => {
       prompt_text: 'What is X?',
       chunk_ids: ['c1'],
       response: 'X is Y',
-      quality: 5,
+      grading: rubricForQuality(5),
       question_type: 'recall',
       feedback: '   ',
       time_spent_ms: 1000,
@@ -413,7 +411,7 @@ describe('teaching-tools', () => {
       prompt_text: 'Q',
       chunk_ids: ['c1'],
       response: 'A',
-      quality: 5,
+      grading: rubricForQuality(5),
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
@@ -616,8 +614,7 @@ describe('teaching-tools', () => {
 
     await handler({
       response: 'A',
-      passed: false,
-      quality: 1,
+      grading: rubricForQuality(1),
       question_type: 'recall',
       feedback: 'Wrong',
       time_spent_ms: 3000,
@@ -641,7 +638,7 @@ describe('teaching-tools', () => {
       chunk_ids: ['c1'],
       session_question_id: 'sq-1',
       response: 'A',
-      quality: 5,
+      grading: rubricForQuality(5),
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
@@ -666,7 +663,7 @@ describe('teaching-tools', () => {
     const result = await handler({
       prompt_text: 'Q',
       response: 'A',
-      quality: 5,
+      grading: rubricForQuality(5),
       question_type: 'recall',
       feedback: 'OK',
       time_spent_ms: 1000,
@@ -707,7 +704,7 @@ describe('teaching-tools', () => {
 
     const result = await handler({
       session_question_id: 'q1',
-      new_quality: 4,
+      grading: rubricForQuality(4),
       new_feedback: 'corrected',
       reason: 'agent_misread_prompt',
       context_token: 'ctx-test',
@@ -725,7 +722,7 @@ describe('teaching-tools', () => {
 
     const result = await handler({
       session_question_id: 'q1',
-      new_quality: 4,
+      grading: rubricForQuality(4),
       new_feedback: 'corrected',
       reason: 'not_a_real_reason',
       context_token: 'ctx-test',
@@ -736,13 +733,21 @@ describe('teaching-tools', () => {
     expect(parsed.error.type).toBe('validation');
   });
 
-  it('revise_grade returns validation error on quality out of range', async () => {
+  it('revise_grade returns validation error on a grading payload missing a criterion', async () => {
     registerTeachingTools(server as any, ctx);
     const handler = server.tools.get('revise_grade')!.handler;
 
     const result = await handler({
       session_question_id: 'q1',
-      new_quality: 7,
+      // criteria object is missing complexity_stated → Zod rejection (fail loudly).
+      grading: {
+        criteria: {
+          correct_recurrence: true,
+          correct_base_case: true,
+          correct_iteration_order: true,
+        },
+        justifying_spans: {},
+      },
       new_feedback: 'corrected',
       reason: 'other',
       context_token: 'ctx-test',
@@ -760,7 +765,7 @@ describe('teaching-tools', () => {
 
     const result = await handler({
       session_question_id: 'q1',
-      new_quality: 4,
+      grading: rubricForQuality(4),
       new_feedback: '   ',
       reason: 'other',
       context_token: 'ctx-test',
@@ -780,7 +785,7 @@ describe('teaching-tools', () => {
 
     const result = await handler({
       session_question_id: 'q1',
-      new_quality: 4,
+      grading: rubricForQuality(4),
       new_feedback: 'corrected',
       reason: 'other',
       context_token: 'ctx-test',

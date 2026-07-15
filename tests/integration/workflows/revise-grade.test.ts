@@ -2,6 +2,7 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import {
   sessionChunks,
@@ -48,7 +49,7 @@ describe('revise_grade (integration)', () => {
       promptText: 'Question A',
       chunkIds: ['rg-c1'],
       response: 'Answer A',
-      quality: initialQuality,
+      grading: rubricForQuality(initialQuality),
       questionType: 'recall',
       feedback: 'Original feedback',
       timeSpentMs: 1000,
@@ -69,7 +70,7 @@ describe('revise_grade (integration)', () => {
 
     const result = await ctx.reviseGrade({
       sessionQuestionId,
-      newQuality: 4,
+      grading: rubricForQuality(4),
       newFeedback: 'I misread the prompt; the answer was correct.',
       reason: 'agent_misread_prompt',
     });
@@ -117,7 +118,7 @@ describe('revise_grade (integration)', () => {
 
     const result = await ctx.reviseGrade({
       sessionQuestionId,
-      newQuality: 4,
+      grading: rubricForQuality(4),
       newFeedback: 'attempting revision after finalization',
       reason: 'agent_misread_prompt',
     });
@@ -136,7 +137,7 @@ describe('revise_grade (integration)', () => {
 
     const first = await ctx.reviseGrade({
       sessionQuestionId,
-      newQuality: 4,
+      grading: rubricForQuality(4),
       newFeedback: 'First revision',
       reason: 'agent_misread_prompt',
     });
@@ -144,7 +145,7 @@ describe('revise_grade (integration)', () => {
 
     const second = await ctx.reviseGrade({
       sessionQuestionId,
-      newQuality: 4,
+      grading: rubricForQuality(4),
       newFeedback: 'First revision',
       reason: 'agent_misread_prompt',
     });

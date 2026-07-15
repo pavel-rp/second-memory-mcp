@@ -1,6 +1,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningChunks, sessionQuestionAttempts } from '../../../src/infrastructure/db/schema.js';
 import { eq, desc } from 'drizzle-orm';
@@ -93,8 +94,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       promptText: 'What is Foundation Concept A?',
       chunkIds: ['stale-a'],
       response: 'This is the foundation concept.',
-      passed: true,
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 3000,
@@ -151,8 +151,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       promptText: 'What is the structure?',
       chunkIds: ['seg-1'],
       response: '1-indexed array of size 4n',
-      passed: true,
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 5000,
@@ -207,8 +206,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       promptText: 'What is the cap concept?',
       chunkIds: ['cap-c1'],
       response: 'Wrong answer',
-      passed: false,
-      quality: 1,
+      grading: rubricForQuality(1),
       questionType: 'recall',
       feedback: 'Incorrect',
       timeSpentMs: 3000,
@@ -222,8 +220,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       promptText: 'What is the cap concept?',
       chunkIds: ['cap-c1'],
       response: 'Correct on retry',
-      passed: true,
-      quality: 2,
+      grading: rubricForQuality(2),
       questionType: 'recall',
       feedback: 'Got it on second try',
       timeSpentMs: 3000,
@@ -236,8 +233,7 @@ describe('teaching workflows (composition-root wiring)', () => {
       promptText: 'Explain the cap concept in detail',
       chunkIds: ['cap-c1'],
       response: 'Perfect detailed answer',
-      passed: true,
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'explain_apply',
       feedback: 'Perfect recall',
       timeSpentMs: 5000,

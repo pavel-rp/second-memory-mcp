@@ -2640,7 +2640,7 @@ describe('submitAnswer with session_question_id', () => {
       // Should still succeed — missing chunks are gracefully skipped
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
-      expect(result.quality).toBe(2);
+      expect(result.quality).toBe(1); // mapper-derived (no 4/2 collapse)
     });
 
     it('assessment late submission returns late_submission flag and static complete next', async () => {
