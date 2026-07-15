@@ -17,6 +17,7 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     difficulty: 0.15,
   },
   lapsePenalty: -0.15,
+  lapseSavingsCoefficient: 0.2,
   maxConsecutiveLapses: 3,
   leechFailureThreshold: 6,
   leechConsecutiveFailures: 3,

@@ -46,6 +46,10 @@ export function resolveAlgorithmConfig(
       ),
     },
     lapsePenalty: parseNumber(env.SM_LAPSE_PENALTY, DEFAULT_ALGORITHM_CONFIG.lapsePenalty),
+    lapseSavingsCoefficient: parseNumber(
+      env.SM_LAPSE_SAVINGS_COEFFICIENT,
+      DEFAULT_ALGORITHM_CONFIG.lapseSavingsCoefficient
+    ),
     maxConsecutiveLapses: parseNumber(
       env.SM_MAX_CONSEC_LAPSES,
       DEFAULT_ALGORITHM_CONFIG.maxConsecutiveLapses
