@@ -740,7 +740,10 @@ function orderBySessionChunkIds(
  * - Inline: `promptText` + `chunkIds` → atomically creates a SessionQuestion, then records the first attempt.
  * - Retry: `sessionQuestionId` → records a subsequent attempt on an existing question.
  *
- * Quality is agent-provided (0–5). `passed` is derived from quality >= 3 when omitted.
+ * Quality is derived deterministically by the rubric grade mapper (DR-M08 /
+ * NEU-928) — never agent-supplied. `passed` follows from the mapper quality
+ * (>= 3); there is no raw agent pass/fail input, so an over-validated
+ * self-report cannot certify a pass or suppress the leech counter (NEU-930).
  */
 export async function submitAnswer(
   input: SubmitAnswerInput,
