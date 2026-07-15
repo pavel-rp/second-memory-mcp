@@ -14,14 +14,15 @@ const NOW = new Date('2025-06-15T12:00:00.000Z');
 const TODAY = NOW.toISOString().slice(0, 10);
 
 describe('calculateNextReview', () => {
-  it('floors ease at 1.3 and resets on failure (quality<3)', () => {
+  it('floors ease at 1.3, resets reps, and floors interval on failure (quality<3)', () => {
     const out = calculateNextReview(
       { quality: 1, repetitions: 5, easeFactor: 1.31, interval: 10 },
       DEFAULT_ALGORITHM_CONFIG,
       NOW
     );
     expect(out.repetitions).toBe(0);
-    expect(out.interval).toBe(1);
+    // NEU-927: savings floor = round(0.2 × prior interval 10) = 2, not a reset to 1d.
+    expect(out.interval).toBe(2);
     expect(out.easeFactor).toBeGreaterThanOrEqual(1.3);
   });
 
@@ -706,8 +707,10 @@ describe('calculateNextReview interval fuzz (NEU-838)', () => {
     expect(low.nextReview).not.toBe(high.nextReview);
   });
 
-  it('keeps a computed 1-day interval at 1 for any injected random', () => {
-    const failInput = { quality: 1, repetitions: 5, easeFactor: 2.5, interval: 10 };
+  it('keeps a degenerate sub-floor lapse at 1 day for any injected random', () => {
+    // NEU-927: a never-established prior (interval 0, below the savings floor)
+    // still retries at exactly 1 day, and fuzz cannot move it.
+    const failInput = { quality: 1, repetitions: 5, easeFactor: 2.5, interval: 0 };
     for (const r of [0, NEUTRAL_FUZZ, 0.999]) {
       const out = calculateNextReview(failInput, DEFAULT_ALGORITHM_CONFIG, NOW, r);
       expect(out.interval).toBe(1);
@@ -738,5 +741,131 @@ describe('calculateNextReview interval fuzz (NEU-838)', () => {
     const low = calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, NOW, 0);
     const high = calculateNextReviewAdvanced(input, DEFAULT_ALGORITHM_CONFIG, NOW, 0.999);
     expect(low.interval).not.toBe(high.interval);
+  });
+});
+
+// NEU-927: post-lapse savings floor preserves accumulated learning instead of a
+// first-exposure reset. floor = max(1, round(coefficient × prior interval)).
+describe('post-lapse savings floor (NEU-927)', () => {
+  const COEFF = DEFAULT_ALGORITHM_CONFIG.lapseSavingsCoefficient; // 0.2
+  const floorFor = (priorInterval: number) => Math.max(1, Math.round(COEFF * priorInterval));
+
+  it('bounds a high-prior-interval lapse within [floor, prior] and is not a 1d reset', () => {
+    const priorInterval = 180;
+    const out = calculateNextReview(
+      { quality: 1, repetitions: 8, easeFactor: 2.5, interval: priorInterval },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW
+    );
+    expect(out.interval).toBeGreaterThanOrEqual(floorFor(priorInterval)); // >= 36
+    expect(out.interval).toBeLessThanOrEqual(priorInterval); // <= 180
+    expect(out.interval).not.toBe(1); // not a first-exposure reset
+    expect(out.repetitions).toBe(0);
+  });
+
+  it('returns exactly 1 day for a degenerate sub-floor prior (never-established)', () => {
+    for (const priorInterval of [0, 1, 2, 3]) {
+      const out = calculateNextReview(
+        { quality: 0, repetitions: 4, easeFactor: 2.5, interval: priorInterval },
+        DEFAULT_ALGORITHM_CONFIG,
+        NOW
+      );
+      // For interval 0 the prior is below the floor (degenerate → 1d); for 1–3
+      // the floor is 1d and the interval cannot exceed the prior, so still 1d.
+      expect(out.interval).toBe(1);
+    }
+  });
+
+  it('holds the floor after fuzz — downward spread cannot push below it', () => {
+    const priorInterval = 180;
+    const floor = floorFor(priorInterval); // 36
+    // r = 0 drives applyIntervalFuzz to the bottom of its window (below the floor).
+    for (const r of [0, 0.001, NEUTRAL_FUZZ, 0.999]) {
+      const out = calculateNextReview(
+        { quality: 2, repetitions: 8, easeFactor: 2.5, interval: priorInterval },
+        DEFAULT_ALGORITHM_CONFIG,
+        NOW,
+        r
+      );
+      expect(out.interval).toBeGreaterThanOrEqual(floor);
+      expect(out.interval).toBeLessThanOrEqual(priorInterval);
+    }
+  });
+
+  it('is monotonic in prior stability — higher prior floors to a longer-or-equal interval', () => {
+    // Neutral fuzz keeps each result at its floor, isolating the mapping.
+    const priors = [10, 30, 90, 180, 365];
+    const results = priors.map(
+      p =>
+        calculateNextReview(
+          { quality: 1, repetitions: 8, easeFactor: 2.5, interval: p },
+          DEFAULT_ALGORITHM_CONFIG,
+          NOW,
+          NEUTRAL_FUZZ
+        ).interval
+    );
+    for (let i = 1; i < results.length; i++) {
+      expect(results[i]).toBeGreaterThanOrEqual(results[i - 1]);
+    }
+    // Each lands at its floor under neutral fuzz.
+    expect(results).toEqual(priors.map(floorFor));
+  });
+
+  it('is deterministic for a fixed injected random value', () => {
+    const input = { quality: 1, repetitions: 8, easeFactor: 2.5, interval: 200 };
+    const a = calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG, NOW, 0.37);
+    const b = calculateNextReview(input, DEFAULT_ALGORITHM_CONFIG, NOW, 0.37);
+    expect(a).toEqual(b);
+  });
+
+  it('honours a custom SM_LAPSE_SAVINGS_COEFFICIENT knob', () => {
+    const config = resolveAlgorithmConfig({ SM_LAPSE_SAVINGS_COEFFICIENT: '0.3' });
+    const out = calculateNextReview(
+      { quality: 1, repetitions: 8, easeFactor: 2.5, interval: 100 },
+      config,
+      NOW,
+      NEUTRAL_FUZZ
+    );
+    expect(out.interval).toBe(Math.round(0.3 * 100)); // 30
+  });
+
+  it('applies the floor on the advanced-path reset (overdue + harsher reset)', () => {
+    const priorInterval = 180;
+    const floor = floorFor(priorInterval); // 36
+    // Heavy overdue pull-in plus a consecutive-failure harsher reset both shrink
+    // the interval; the floor must still hold on the advanced path.
+    const out = calculateNextReviewAdvanced(
+      {
+        quality: 1,
+        repetitions: 8,
+        easeFactor: 2.5,
+        interval: priorInterval,
+        daysOverdue: 60,
+        consecutiveFailures: 5,
+      },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW,
+      0
+    );
+    expect(out.interval).toBeGreaterThanOrEqual(floor);
+    expect(out.interval).toBeLessThanOrEqual(priorInterval);
+    expect(out.interval).not.toBe(1);
+  });
+
+  it('advanced path returns exactly 1 day for a degenerate prior lapse', () => {
+    const out = calculateNextReviewAdvanced(
+      {
+        quality: 1,
+        repetitions: 0,
+        easeFactor: 2.5,
+        interval: 0,
+        daysOverdue: 10,
+        consecutiveFailures: 4,
+      },
+      DEFAULT_ALGORITHM_CONFIG,
+      NOW,
+      0
+    );
+    expect(out.interval).toBe(1);
   });
 });
