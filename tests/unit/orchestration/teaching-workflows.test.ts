@@ -42,6 +42,7 @@ import {
 } from '../../helpers/stub-ports.js';
 import type { NotesRepository } from '../../../src/ports/notes-repository.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -3534,7 +3535,7 @@ describe('submitAnswer logEvent', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'my answer',
-        quality: 4,
+        grading: rubricForQuality(4),
         questionType: 'recall',
         feedback: 'good',
         timeSpentMs: 5000,
@@ -3598,7 +3599,7 @@ describe('submitAnswer quality cap', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'answer',
-        quality: 5,
+        grading: rubricForQuality(5),
         questionType: 'recall',
         feedback: 'good',
         timeSpentMs: 5000,
@@ -3618,7 +3619,7 @@ describe('submitAnswer quality cap', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'answer',
-        quality: 5,
+        grading: rubricForQuality(5),
         questionType: 'recall',
         feedback: 'good',
         timeSpentMs: 5000,
@@ -3638,7 +3639,7 @@ describe('submitAnswer quality cap', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'answer',
-        quality: 5,
+        grading: rubricForQuality(5),
         questionType: 'recall',
         feedback: 'good',
         timeSpentMs: 5000,
@@ -3658,7 +3659,7 @@ describe('submitAnswer quality cap', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'answer',
-        quality: 5,
+        grading: rubricForQuality(5),
         questionType: 'recall',
         feedback: 'good',
         timeSpentMs: 5000,
@@ -3679,7 +3680,7 @@ describe('submitAnswer quality cap', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'answer',
-        quality: 5,
+        grading: rubricForQuality(5),
         questionType: 'recall',
         feedback: 'good',
         timeSpentMs: 5000,
@@ -3743,7 +3744,7 @@ describe('submitAnswer quality cap', () => {
       {
         sessionQuestionId: 'sq-1',
         response: 'retry answer',
-        quality: 5,
+        grading: rubricForQuality(5),
         questionType: 'recall',
         feedback: 'correct now',
         timeSpentMs: 5000,

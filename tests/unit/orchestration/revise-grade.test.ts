@@ -21,6 +21,7 @@ import {
   stubNotesRepository,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 
 const NOW = 1_700_000_000_000;
 
@@ -142,9 +143,10 @@ function happyDeps(overrides?: HappyDepsOverrides): ReviseGradeDeps {
   };
 }
 
+// Rubric mapping to quality 4 (recurrence + base + iteration order).
 const baseInput: ReviseGradeInput = {
   sessionQuestionId: 'q1',
-  newQuality: 4,
+  grading: rubricForQuality(4),
   newFeedback: 'corrected',
   reason: 'agent_misread_prompt',
 };
@@ -245,18 +247,22 @@ describe('reviseGrade', () => {
     expect(result.note_id).toBe('note-stub');
   });
 
-  it('defaults new_passed to (newQuality >= 3) when omitted', async () => {
+  it('derives new_passed=false from a mapper quality < 3', async () => {
     const deps = happyDeps();
-    const result = await reviseGrade({ ...baseInput, newQuality: 2 }, deps);
+    // Rubric mapping to quality 2 (recurrence only) → non-pass.
+    const result = await reviseGrade({ ...baseInput, grading: rubricForQuality(2) }, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
+    expect(result.revised_attempt.new_quality).toBe(2);
     expect(result.revised_attempt.new_passed).toBe(false);
   });
 
-  it('respects an explicit new_passed override', async () => {
+  it('derives new_passed=true from a mapper quality >= 3 (no agent override)', async () => {
     const deps = happyDeps();
-    const result = await reviseGrade({ ...baseInput, newQuality: 5, newPassed: false }, deps);
+    // Rubric mapping to quality 5 (all four criteria) → pass, deterministically.
+    const result = await reviseGrade({ ...baseInput, grading: rubricForQuality(5) }, deps);
     if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
-    expect(result.revised_attempt.new_passed).toBe(false);
+    expect(result.revised_attempt.new_quality).toBe(5);
+    expect(result.revised_attempt.new_passed).toBe(true);
   });
 
   it('reports roadblock_cancelled=true when revision lifts a roadblock', async () => {
