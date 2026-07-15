@@ -73,6 +73,14 @@ export type AlgorithmConfig = {
   // (documented epistemic band, never a measured optimum); on by default. This is
   // a check on the held-out rate, NOT a runtime rate-limiter on any single grade.
   overValidationCeiling: number;
+  // Durability bar for the prerequisite unlock gate (NEU-931 / MM-T8 Gate C
+  // posterior sub-gate). A dependent stays LOCKED until the prerequisite's
+  // retrievability-posterior — a Beta-Binomial estimate of recall reliability
+  // derived from persisted multi-observation review history — reaches at least
+  // this value. Thin/single-success history cannot clear the bar (fail-closed).
+  // Provisional 0.90 (MM-T8; documented epistemic band, never a measured
+  // optimum); on by default.
+  durabilityPosteriorBar: number;
 };
 
 export function clampEaseFactor(
