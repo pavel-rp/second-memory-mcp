@@ -31,6 +31,8 @@ import {
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 import type { AlgorithmConfig } from '../../../src/domain/config/algorithm.js';
+import type { RubricGradingPayload } from '../../../src/domain/algorithms/grade-mapper.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
 
@@ -106,16 +108,32 @@ function makeChunkData(overrides?: Partial<ChunkWithTopicTitle>): ChunkWithTopic
   };
 }
 
-/** Convenience: inline by default, retry when sessionQuestionId is provided. */
-function makeInput(
-  overrides?: Partial<SubmitAnswerInputInline & SubmitAnswerInputRetry>
-): SubmitAnswerInput {
+/**
+ * Convenience: inline by default, retry when sessionQuestionId is provided.
+ *
+ * `quality` selects a rubric payload whose deterministic mapping equals that
+ * quality (via rubricForQuality); pass/fail is then server-derived (quality >= 3).
+ * There is no agent-supplied `passed` any more. Pass a `grading` override
+ * directly to exercise adversarial/fail-closed payloads.
+ */
+type MakeInputOverrides = Omit<
+  Partial<SubmitAnswerInputInline & SubmitAnswerInputRetry>,
+  'grading'
+> & {
+  quality?: number;
+  grading?: RubricGradingPayload;
+  // Accepted for call-site compatibility only. Pass/fail is now server-derived
+  // from the mapper quality (quality >= 3); an agent-supplied passed has no effect.
+  passed?: boolean;
+};
+
+function makeInput(overrides?: MakeInputOverrides): SubmitAnswerInput {
+  const grading = overrides?.grading ?? rubricForQuality(overrides?.quality ?? 5);
   if (overrides && 'sessionQuestionId' in overrides && overrides.sessionQuestionId !== undefined) {
     return {
       sessionQuestionId: overrides.sessionQuestionId,
       response: overrides.response ?? 'X is a concept',
-      passed: overrides.passed,
-      quality: overrides.quality ?? 5,
+      grading,
       questionType: overrides.questionType ?? 'recall',
       feedback: overrides.feedback ?? 'Good explanation',
       timeSpentMs: overrides.timeSpentMs ?? 5000,
@@ -125,8 +143,7 @@ function makeInput(
     promptText: overrides?.promptText ?? 'What is X?',
     chunkIds: overrides?.chunkIds ?? ['c1'],
     response: overrides?.response ?? 'X is a concept',
-    passed: overrides?.passed,
-    quality: overrides?.quality ?? 5,
+    grading,
     questionType: overrides?.questionType ?? 'recall',
     feedback: overrides?.feedback ?? 'Good explanation',
     timeSpentMs: overrides?.timeSpentMs ?? 5000,
@@ -941,7 +958,7 @@ describe('submitAnswer', () => {
     expect(result.action).toBe('retry');
   });
 
-  it('uses explicit passed=true even when quality < 3', async () => {
+  it('mapper-derived fail ignores a legacy passed=true when quality < 3', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi
@@ -953,15 +970,15 @@ describe('submitAnswer', () => {
       },
     });
 
+    // A legacy passed=true is ignored — pass/fail is mapper-derived. quality 2 < 3 → fail → retry.
     const result = await submitAnswer(makeInput({ passed: true, quality: 2 }), deps);
 
-    expect(result.action).toBe('recorded');
-    if (result.action !== 'recorded') throw new Error('Expected recorded');
-    expect(result.passed).toBe(true);
-    expect(result.quality).toBe(2);
+    expect(result.action).toBe('retry');
+    if (result.action !== 'retry') throw new Error('Expected retry');
+    expect(result.attempt).toBe(1);
   });
 
-  it('uses explicit passed=false even when quality >= 3', async () => {
+  it('mapper-derived pass ignores a legacy passed=false when quality >= 3', async () => {
     const deps = makeDeps({
       sessions: {
         getSessionChunks: vi
@@ -972,11 +989,13 @@ describe('submitAnswer', () => {
       },
     });
 
+    // A legacy passed=false is ignored — pass/fail is mapper-derived. quality 4 >= 3 → pass.
     const result = await submitAnswer(makeInput({ passed: false, quality: 4 }), deps);
 
-    expect(result.action).toBe('retry');
-    if (result.action !== 'retry') throw new Error('Expected retry');
-    expect(result.attempt).toBe(1);
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
+    expect(result.passed).toBe(true);
+    expect(result.quality).toBe(4);
   });
 
   // ── NEU-342: retry triggers on !passed && attemptNumber === 1 ───
@@ -1154,16 +1173,6 @@ describe('submitAnswer', () => {
       }
     );
 
-    it('roadblock forecast for quality 5 → required_followups 0', async () => {
-      const deps = retryDeps('recall', 5);
-      const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
-
-      expect(result.action).toBe('retry');
-      const retry = result as SubmitAnswerRetry;
-      expect(retry.retry_guidance!.roadblock.required_followups).toBe(0);
-      expect(retry.retry_guidance!.roadblock.remaining).toBe(0);
-    });
-
     it('quality_floor is always 3', async () => {
       const deps = retryDeps('scaffold', 1);
       const result = await submitAnswer(makeInput({ quality: 1, passed: false }), deps);
@@ -1180,7 +1189,11 @@ describe('submitAnswer', () => {
       expect(retry.retry_guidance!.roadblock.completed_followups).toBe(0);
     });
 
-    it('trigger_quality matches capped quality, not agent quality', async () => {
+    it('roadblock_forecast trigger_quality matches capped quality, not the mapper quality', async () => {
+      // The rubric maps to 5, but the session-scoped cap reduces it to 3. The
+      // capped quality (3) is what is persisted and what the forecast reflects —
+      // the pre-cap mapper quality never surfaces. quality 3 is a pass, so this
+      // lands on the recorded path with a roadblock_forecast.
       const deps = makeDeps({
         sessions: {
           getSessionChunks: vi.fn().mockResolvedValue([
@@ -1190,10 +1203,16 @@ describe('submitAnswer', () => {
               status: 'in_progress',
               teachingApproach: 'recall',
             }),
+            makeSessionChunk({ id: 'sc-2', chunkId: 'c2', status: 'pending' }),
           ]),
         },
         sessionQuestions: {
           getMinPriorQuality: vi.fn().mockResolvedValue(1), // cap at 3
+          getQuestionsForSession: vi
+            .fn()
+            .mockResolvedValueOnce([]) // inline path: compute index
+            .mockResolvedValue([{ ...INLINE_CREATED_QUESTION }]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-created', ['c1']]])),
           // Persisted attempt mirrors the post-cap quality (3), which is what
           // computeRoadblockState reads back.
           getAllAttemptsForSession: vi.fn().mockResolvedValue([
@@ -1202,10 +1221,10 @@ describe('submitAnswer', () => {
               sessionQuestionId: 'sq-created',
               attemptNumber: 1 as const,
               response: 'X is a concept',
-              passed: false,
+              passed: true,
               feedback: '',
               quality: 3,
-              agentQuality: 5,
+              agentQuality: 3,
               questionType: 'recall' as const,
               timeSpentMs: 1000,
               createdAt: NOW,
@@ -1214,12 +1233,13 @@ describe('submitAnswer', () => {
         },
       });
 
-      // Agent says quality 5 but cap will reduce to 3
-      const result = await submitAnswer(makeInput({ quality: 5, passed: false }), deps);
+      // The rubric maps to 5 but the cap reduces it to 3.
+      const result = await submitAnswer(makeInput({ quality: 5 }), deps);
 
-      expect(result.action).toBe('retry');
-      const retry = result as SubmitAnswerRetry;
-      expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(3);
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.quality).toBe(3);
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(3);
     });
 
     it('second attempt fail returns recorded without retry_guidance', async () => {
@@ -1629,18 +1649,19 @@ describe('submitAnswer', () => {
         },
       });
 
-      const result = await submitAnswer(makeInput({ quality: 4, passed: false }), deps);
+      // quality 4 is a pass → recorded path, which still emits the gate-aligned
+      // roadblock_forecast computed from the same session-wide attempt snapshot.
+      const result = await submitAnswer(makeInput({ quality: 4 }), deps);
 
-      expect(result.action).toBe('retry');
-      const retry = result as SubmitAnswerRetry;
-      expect(retry.retry_guidance).toBeDefined();
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeDefined();
       // Min quality across both attempts is 1 (prior). roadblockFollowups[1]=3.
-      // Pre-NEU-600 the static formula would have surfaced trigger_quality=4, required=1.
-      expect(retry.retry_guidance!.roadblock.trigger_quality).toBe(1);
-      expect(retry.retry_guidance!.roadblock.required_followups).toBe(3);
+      expect(recorded.roadblock_forecast!.trigger_quality).toBe(1);
+      expect(recorded.roadblock_forecast!.required_followups).toBe(3);
       // Current attempt (q=4) qualifies as a follow-up for the prior trigger.
-      expect(retry.retry_guidance!.roadblock.completed_followups).toBe(1);
-      expect(retry.retry_guidance!.roadblock.remaining).toBe(2);
+      expect(recorded.roadblock_forecast!.completed_followups).toBe(1);
+      expect(recorded.roadblock_forecast!.remaining).toBe(2);
     });
 
     it('best-effort: roadblock state fetch failure → recorded response degrades to pre-NEU-600 static estimate', async () => {
@@ -2447,7 +2468,7 @@ describe('submitAnswer with session_question_id', () => {
       };
     }
 
-    it('assessment pass records quality 4 with single attempt', async () => {
+    it('assessment records the full mapper quality with a single attempt (no binary collapse)', async () => {
       const deps = makeAssessmentDeps();
 
       const result = await submitAnswer(
@@ -2459,10 +2480,11 @@ describe('submitAnswer with session_question_id', () => {
       if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(true);
-      expect(result.quality).toBe(4);
+      // Mapper-derived, full 0–5 granularity — NOT collapsed to 4.
+      expect(result.quality).toBe(5);
     });
 
-    it('assessment fail records quality 2 with no retry', async () => {
+    it('assessment fail records the mapper quality with no retry (no binary collapse)', async () => {
       const deps = makeAssessmentDeps();
 
       const result = await submitAnswer(makeInput({ quality: 1, sessionQuestionId: 'sq-1' }), deps);
@@ -2471,7 +2493,8 @@ describe('submitAnswer with session_question_id', () => {
       if (result.action !== 'recorded') throw new Error('Expected recorded');
       expect(result.attempt).toBe(1);
       expect(result.passed).toBe(false);
-      expect(result.quality).toBe(2);
+      // Mapper-derived — NOT collapsed to 2.
+      expect(result.quality).toBe(1);
     });
 
     it('assessment rejects second attempt on same question', async () => {
@@ -2617,7 +2640,7 @@ describe('submitAnswer with session_question_id', () => {
       // Should still succeed — missing chunks are gracefully skipped
       expect(result.action).toBe('recorded');
       if (result.action !== 'recorded') throw new Error('Expected recorded');
-      expect(result.quality).toBe(2);
+      expect(result.quality).toBe(1); // mapper-derived (no 4/2 collapse)
     });
 
     it('assessment late submission returns late_submission flag and static complete next', async () => {

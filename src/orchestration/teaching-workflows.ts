@@ -38,6 +38,7 @@ import {
   type RoadblockState,
 } from '../domain/algorithms/roadblock-gate.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
+import { mapRubricToQuality } from '../domain/algorithms/grade-mapper.js';
 import { isPgUniqueViolation } from '../shared/errors.js';
 import {
   classifyChunk,
@@ -1011,11 +1012,16 @@ async function submitAnswerForQuestion(
     [primaryChunkId],
     excludeOnRetry
   );
-  const { quality, wasCapped } = computeQualityCap(minPriorQuality, input.quality);
+  // Derive the 0–5 quality deterministically from the rubric-anchored payload
+  // (DR-M08). The mapper — not the agent — owns the quality; a malformed or
+  // unevidenced payload fails closed to a non-pass. The session-scoped cap then
+  // applies its downward-only adjustment to the mapper-derived value.
+  const rubricQuality = mapRubricToQuality(input.grading);
+  const { quality, wasCapped } = computeQualityCap(minPriorQuality, rubricQuality);
 
-  // Derive passed from (capped) quality when omitted; explicit passed overrides quality-based derivation
-  // (e.g. passed=true + quality=2 is valid — agent has discretion over the pass/fail judgment)
-  const passed = input.passed ?? quality >= 3;
+  // Pass/fail is derived from the (capped) mapper quality — there is no
+  // agent-supplied pass override, so a high self-report cannot certify a pass.
+  const passed = quality >= 3;
 
   // 5. Persist attempt
   try {
@@ -1027,7 +1033,7 @@ async function submitAnswerForQuestion(
       passed,
       feedback: input.feedback,
       quality,
-      agentQuality: input.quality,
+      agentQuality: rubricQuality,
       questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
       createdAt: Date.now(),
@@ -1045,7 +1051,7 @@ async function submitAnswerForQuestion(
     passed,
     quality,
     attemptNumber,
-    ...(wasCapped && { wasCapped: true, agentQuality: input.quality }),
+    ...(wasCapped && { wasCapped: true, rubricQuality }),
   });
 
   // 6. Resolve teaching approach early so we can skip the roadblock-state fetch
@@ -1216,7 +1222,8 @@ async function computeChunkRoadblockState(
 
 /**
  * Assessment mode submit_answer: single attempt per question, SR fan-out to all mapped chunks.
- * Pass → quality 4, fail → quality 2 (no retry).
+ * Quality is derived deterministically from the rubric payload (full 0–5 granularity,
+ * no binary collapse); pass = quality >= 3. No retry.
  */
 async function submitAnswerForAssessmentQuestion(
   input: SubmitAnswerInput,
@@ -1227,10 +1234,11 @@ async function submitAnswerForAssessmentQuestion(
   sessionChunks: SessionChunk[],
   deps: TeachingDeps
 ): Promise<SubmitAnswerResult> {
-  // Assessment: derive passed, then override quality to 4/2 for SR.
-  // Agent-provided quality is preserved separately in agentQuality for analytics.
-  const passed = input.passed ?? input.quality >= 3;
-  const quality = passed ? 4 : 2;
+  // Assessment: derive the 0–5 quality from the rubric payload deterministically
+  // (DR-M08). The full granularity is preserved for SR — no binary 4/2 collapse —
+  // and pass/fail follows from the mapper quality, not an agent self-report.
+  const quality = mapRubricToQuality(input.grading);
+  const passed = quality >= 3;
 
   try {
     await deps.sessionQuestions.createAttempt({
@@ -1241,7 +1249,7 @@ async function submitAnswerForAssessmentQuestion(
       passed,
       feedback: input.feedback,
       quality,
-      agentQuality: input.quality,
+      agentQuality: quality,
       questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
       createdAt: Date.now(),
@@ -1259,7 +1267,6 @@ async function submitAnswerForAssessmentQuestion(
     questionChunkIds: [...questionChunkIds].sort(),
     passed,
     quality,
-    agentQuality: input.quality,
     questionType: input.questionType,
     timeSpentMs: input.timeSpentMs,
     attemptNumber: 1,
@@ -1714,11 +1721,14 @@ export async function reviseGrade(
     curr.attemptNumber > latest.attemptNumber ? curr : latest
   );
 
-  // 5. Compute new values. Skip session-scoped quality cap on revise — the
-  // agent is correcting its own mistake, not submitting a fresh attempt.
-  const newQuality = input.newQuality;
-  const newAgentQuality = input.newQuality;
-  const newPassed = input.newPassed ?? input.newQuality >= 3;
+  // 5. Compute new values. The corrected grade resolves through the SAME
+  // deterministic mapper as submit_answer (DR-M08 all-sites cutover): a revision
+  // can never persist a raw agent-supplied quality. Skip the session-scoped
+  // quality cap on revise — the agent is correcting its own mistake, not
+  // submitting a fresh attempt. Pass/fail follows from the mapper quality.
+  const newQuality = mapRubricToQuality(input.grading);
+  const newAgentQuality = newQuality;
+  const newPassed = newQuality >= 3;
   const newFeedback = input.newFeedback;
 
   // 6. Idempotency: if an existing revision matches the request exactly, no-op.

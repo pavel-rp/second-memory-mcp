@@ -75,11 +75,12 @@ describe('SERVER_INSTRUCTIONS truncation-survival contract', () => {
     });
   }
 
-  it('carries forward the NEU-837 assessment quality mapping (pass -> 4 / fail -> 2)', () => {
-    expect(SERVER_INSTRUCTIONS).toContain('quality 4, fail');
-    expect(SERVER_INSTRUCTIONS).toContain('quality 2');
-    // The stale 5/1 mapping must not have crept back in.
-    expect(SERVER_INSTRUCTIONS).not.toContain('quality 5, fail');
+  it('describes assessment quality as mapper-derived with no binary collapse (NEU-928)', () => {
+    expect(SERVER_INSTRUCTIONS).toContain('rubric grading payload');
+    expect(SERVER_INSTRUCTIONS).toContain('no binary collapse');
+    // The stale pass→quality 4 / fail→quality 2 collapse must be gone.
+    expect(SERVER_INSTRUCTIONS).not.toContain('quality 4, fail');
+    expect(SERVER_INSTRUCTIONS).not.toContain('fail → quality 2');
   });
 
   it('keeps the full instructions within the MCP handshake budget', () => {

@@ -7,6 +7,7 @@ import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import type pino from 'pino';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 import { setEventLogger } from '../../../src/shared/logger.js';
 
 describe('session question workflows', () => {
@@ -154,7 +155,7 @@ describe('session question workflows', () => {
     // 2. Answer Q1 (pass)
     const a1 = await ctx.submitAnswer({
       response: 'Answer 1',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Good',
       timeSpentMs: 2000,
@@ -181,7 +182,7 @@ describe('session question workflows', () => {
     // 4. Answer Q2 (pass)
     const a2 = await ctx.submitAnswer({
       response: 'Answer 2',
-      quality: 4,
+      grading: rubricForQuality(4),
       questionType: 'explain_apply',
       feedback: 'Good',
       timeSpentMs: 2000,
@@ -193,7 +194,7 @@ describe('session question workflows', () => {
     // 5. Answer Q3 (pass) — chunk stays in_progress
     const a3 = await ctx.submitAnswer({
       response: 'Answer 3',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Good',
       timeSpentMs: 2000,
@@ -225,7 +226,7 @@ describe('session question workflows', () => {
     // First attempt — fail → retry
     const retryResult = await ctx.submitAnswer({
       response: 'Wrong answer',
-      quality: 1,
+      grading: rubricForQuality(1),
       questionType: 'recall',
       feedback: 'Incorrect',
       timeSpentMs: 3000,
@@ -242,7 +243,7 @@ describe('session question workflows', () => {
     // Second attempt — pass → recorded (no SR update — deferred to teach_next)
     const recordedResult = await ctx.submitAnswer({
       response: '4',
-      quality: 3,
+      grading: rubricForQuality(3),
       questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 2000,
@@ -289,7 +290,7 @@ describe('session question workflows', () => {
     // Submit answers for both questions (first attempt pass for each)
     await ctx.submitAnswer({
       response: 'A1',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'OK',
       timeSpentMs: 1000,
@@ -297,7 +298,7 @@ describe('session question workflows', () => {
     });
     await ctx.submitAnswer({
       response: 'A2',
-      quality: 4,
+      grading: rubricForQuality(4),
       questionType: 'recall',
       feedback: 'OK',
       timeSpentMs: 1000,
@@ -347,7 +348,7 @@ describe('session question workflows', () => {
       promptText: 'Recall: What is c1?',
       chunkIds: ['c1'],
       response: 'c1 is a concept',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Basic recall correct',
       timeSpentMs: 3000,
@@ -360,7 +361,7 @@ describe('session question workflows', () => {
       promptText: 'Explain: Why is c1 important?',
       chunkIds: ['c1'],
       response: 'c1 matters because...',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'explain_apply',
       feedback: 'Good explanation',
       timeSpentMs: 5000,
@@ -373,7 +374,7 @@ describe('session question workflows', () => {
       promptText: 'Analyze: How does c1 relate to c2?',
       chunkIds: ['c1'],
       response: 'c1 and c2 connect through shared principles...',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'analyze_create',
       feedback: 'Good analysis',
       timeSpentMs: 7000,
@@ -417,7 +418,7 @@ describe('session question workflows', () => {
       promptText: 'What is c1?',
       chunkIds: ['c1'],
       response: 'c1 is...',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Correct',
       timeSpentMs: 5000,
@@ -479,7 +480,7 @@ describe('session question workflows', () => {
     // 5. Submit answer for first question (pass)
     const answer1 = await ctx.submitAnswer({
       response: 'They are related through X',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'analyze_create',
       feedback: 'Good',
       timeSpentMs: 8000,
@@ -487,13 +488,13 @@ describe('session question workflows', () => {
     });
     expect(answer1.action).toBe('recorded');
     if (answer1.action !== 'recorded') throw new Error('Expected recorded');
-    expect(answer1.quality).toBe(4); // assessment: passed → quality 4
+    expect(answer1.quality).toBe(5); // assessment: mapper-derived, full granularity (no 4/2 collapse)
     expect(answer1.attempt).toBe(1);
 
     // 6. Submit answer for second question (fail)
     const answer2 = await ctx.submitAnswer({
       response: 'I do not know',
-      quality: 1,
+      grading: rubricForQuality(1),
       questionType: 'analyze_create',
       feedback: 'Incorrect',
       timeSpentMs: 5000,
@@ -501,7 +502,7 @@ describe('session question workflows', () => {
     });
     expect(answer2.action).toBe('recorded');
     if (answer2.action !== 'recorded') throw new Error('Expected recorded');
-    expect(answer2.quality).toBe(2); // assessment: failed → quality 2
+    expect(answer2.quality).toBe(1); // assessment: mapper-derived, full granularity (no 4/2 collapse)
 
     // 7. Verify session chunks are marked completed
     const chunks = await ctx.getSessionChunks(sessionId);
@@ -558,7 +559,7 @@ describe('session question workflows', () => {
       // Submit passing answer
       const answer = await ctx.submitAnswer({
         response: 'They relate through X',
-        quality: 4,
+        grading: rubricForQuality(4),
         questionType: 'analyze_create',
         feedback: 'Good understanding',
         timeSpentMs: 6000,
@@ -579,7 +580,6 @@ describe('session question workflows', () => {
         questionChunkIds: expect.arrayContaining(['c1', 'c2']),
         passed: true,
         quality: 4,
-        agentQuality: 4,
         questionType: 'analyze_create',
         attemptNumber: 1,
         mode: 'assessment',
@@ -645,7 +645,7 @@ describe('session question workflows', () => {
     // 4. Submit answer using session_question_id from teach_next
     const answer1 = await ctx.submitAnswer({
       response: 'They relate through concept X',
-      quality: 4,
+      grading: rubricForQuality(4),
       questionType: 'analyze_create',
       feedback: 'Good analysis',
       timeSpentMs: 7000,
@@ -664,7 +664,7 @@ describe('session question workflows', () => {
     // 6. Submit second answer
     const answer2 = await ctx.submitAnswer({
       response: 'B focuses on X while C focuses on Y',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'analyze_create',
       feedback: 'Excellent comparison',
       timeSpentMs: 9000,
@@ -705,7 +705,7 @@ describe('session question workflows', () => {
       promptText: 'Test Q',
       chunkIds: ['c1'],
       response: 'Some answer',
-      quality: 3,
+      grading: rubricForQuality(3),
       questionType: 'recall',
       feedback: 'OK',
       timeSpentMs: 2000,
@@ -790,7 +790,7 @@ describe('session question workflows', () => {
     await ctx.submitAnswer({
       sessionQuestionId: q1Id,
       response: 'Good answer covering all concepts',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'explain_apply',
       feedback: 'Excellent coverage',
       timeSpentMs: 10000,
@@ -804,7 +804,7 @@ describe('session question workflows', () => {
     await ctx.submitAnswer({
       sessionQuestionId: q2Id,
       response: 'Incomplete comparison',
-      quality: 2,
+      grading: rubricForQuality(2),
       questionType: 'analyze_create',
       feedback: 'Missing key differences',
       timeSpentMs: 8000,
@@ -822,21 +822,21 @@ describe('session question workflows', () => {
     expect(summary.passed).toBe(1);
     expect(summary.failed).toBe(1);
     expect(summary.pass_rate).toBe(0.5);
-    // quality is SR-overridden: pass→4, fail→2 (agent quality preserved in agent_quality)
-    expect(summary.average_quality).toBe(3);
+    // quality is mapper-derived (full 0–5 granularity): Q1=5, Q2=2 → mean 3.5.
+    expect(summary.average_quality).toBe(3.5);
 
     // per_question has both entries
     expect(summary.per_question).toHaveLength(2);
     const pq1 = summary.per_question.find(pq => pq.prompt_text === 'Q1: explain all concepts')!;
     expect(pq1.passed).toBe(true);
-    expect(pq1.quality).toBe(4);
+    expect(pq1.quality).toBe(5); // mapper-derived (no 4/2 collapse)
     expect(pq1.question_type).toBe('explain_apply');
     expect(pq1.time_spent_ms).toBe(10000);
     expect(pq1.chunk_ids.sort()).toEqual(['c1', 'c2', 'c3']);
 
     const pq2 = summary.per_question.find(pq => pq.prompt_text === 'Q2: compare two patterns')!;
     expect(pq2.passed).toBe(false);
-    expect(pq2.quality).toBe(2); // SR-overridden: fail→2
+    expect(pq2.quality).toBe(2); // mapper-derived (input rubric maps to 2)
     expect(pq2.question_type).toBe('analyze_create');
     expect(pq2.time_spent_ms).toBe(8000);
     expect(pq2.chunk_ids.sort()).toEqual(['c2', 'c3']);

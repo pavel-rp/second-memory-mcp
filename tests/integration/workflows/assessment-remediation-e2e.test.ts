@@ -1,6 +1,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 import { setEventLogger } from '../../../src/shared/logger.js';
@@ -93,7 +94,7 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
 
       const answer = await ctx.submitAnswer({
         response: shouldPass ? 'Correct answer' : 'Wrong answer',
-        quality: shouldPass ? 5 : 1,
+        grading: rubricForQuality(shouldPass ? 5 : 1),
         questionType: 'recall',
         feedback: shouldPass ? 'Good' : 'Incorrect',
         timeSpentMs: 5000,
@@ -213,7 +214,7 @@ describe('assessment → gap-notes → remediation e2e (integration)', () => {
       expect(step.session_question_id).toBeDefined();
       const answer = await ctx.submitAnswer({
         response: 'Wrong answer',
-        quality: 1,
+        grading: rubricForQuality(1),
         questionType: 'recall',
         feedback: 'Incorrect',
         timeSpentMs: 5000,

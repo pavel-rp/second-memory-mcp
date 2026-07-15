@@ -1,6 +1,7 @@
 import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 
 describe('recommend_remediation gap notes (integration)', () => {
   let ctx: AppContext;
@@ -54,7 +55,7 @@ describe('recommend_remediation gap notes (integration)', () => {
       promptText: 'Q1',
       chunkIds: [firstChunkId],
       response: 'Correct',
-      quality: 5,
+      grading: rubricForQuality(5),
       questionType: 'recall',
       feedback: 'Good',
       timeSpentMs: 10000,
@@ -68,7 +69,7 @@ describe('recommend_remediation gap notes (integration)', () => {
       promptText: 'Q2',
       chunkIds: [secondChunkId],
       response: 'Wrong answer',
-      quality: 1,
+      grading: rubricForQuality(1),
       questionType: 'recall',
       feedback: 'Incorrect',
       timeSpentMs: 15000,

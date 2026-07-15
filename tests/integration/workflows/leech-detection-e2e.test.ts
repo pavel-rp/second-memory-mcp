@@ -2,6 +2,7 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
+import { rubricForQuality } from '../../helpers/grading.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import { learningTopics, learningChunks } from '../../../src/infrastructure/db/schema.js';
 
@@ -80,7 +81,7 @@ describe('leech detection via the MCP tool flow (integration)', () => {
 
     const answer = await ctx.submitAnswer({
       response: pass ? 'Correct answer' : 'Wrong answer',
-      quality: pass ? 5 : 1,
+      grading: rubricForQuality(pass ? 5 : 1),
       questionType: 'recall',
       feedback: pass ? 'Good' : 'Incorrect',
       timeSpentMs: 5000,

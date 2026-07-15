@@ -46,7 +46,7 @@ ASSESSMENT FLOW (cross-chunk topic evaluation)
 1. Call create_session with mode: "assessment" and chunk_ids listing ALL chunks to evaluate.
 2. Call create_session_questions with session_id and questions — each question has chunk_ids (1+) indicating which chunks it evaluates. Questions can span multiple chunks for cross-concept evaluation.
 3. Call teach_next — returns the next unanswered question (no teaching instruction, just the question text).
-4. Call submit_answer with session_question_id, response, pass/fail, feedback, time_spent_ms. Assessment uses single attempt: pass → quality 4, fail → quality 2. No retry. SR updates fan out to ALL mapped chunks per question.
+4. Call submit_answer with session_question_id, response, the rubric grading payload, feedback, time_spent_ms. Single attempt, no retry; the server derives quality 0–5 (no binary collapse) and fans SR updates out to all mapped chunks.
 5. Repeat steps 3-4 until teach_next returns data.action "complete".
 6. Call complete_session with session_id and optional feedback.
 
@@ -74,7 +74,7 @@ You are responsible for asking high-quality questions using the three-level taxo
 - Level 1 (Recall): "What is...?" / "List the steps..." — factual retrieval
 - Level 2 (Explain/Apply): "In your own words, why...?" / "Given this scenario..." — understanding and transfer
 - Level 3 (Analyze/Create): "What would break if...?" / "Design a solution..." — synthesis and evaluation
-Use the quality rubric (0–5) with scaffolding ceilings to evaluate answers fairly. If you provided hints, cap quality at the ceiling (1 hint → max 3, 2+ hints → max 2). Target quality 3–4 as the healthy range.`;
+You do NOT supply a raw quality score. Pass submit_answer / revise_grade a rubric-anchored grading payload (per-criterion booleans + the verbatim answer span for each); the server derives the 0–5 quality and fails closed on unevidenced claims or bare rebuttals.`;
 
 /**
  * Compressed workflow summary for init_agent_context.

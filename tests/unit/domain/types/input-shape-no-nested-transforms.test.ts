@@ -28,6 +28,7 @@ import * as teaching from '../../../../src/domain/types/teaching.js';
 import * as contentTools from '../../../../src/domain/types/content-tools.js';
 import * as analytics from '../../../../src/domain/types/analytics.js';
 import * as notesTools from '../../../../src/domain/types/notes-tools.js';
+import { rubricForQuality } from '../../../helpers/grading.js';
 
 /**
  * Recursively check if a Zod schema contains a `.transform()` effect.
@@ -254,7 +255,7 @@ describe('SubmitAnswerInputSchema strips context_token from transform output', (
       prompt_text: 'What is X?',
       chunk_ids: ['c1'],
       response: 'X is Y',
-      quality: 4,
+      grading: rubricForQuality(4),
       question_type: 'recall' as const,
       feedback: 'Good',
       time_spent_ms: 1000,
@@ -267,13 +268,15 @@ describe('SubmitAnswerInputSchema strips context_token from transform output', (
     expect(Object.keys(result)).not.toContain('context_token');
     expect((result as Record<string, unknown>).timeSpentMs).toBe(1000);
     expect((result as Record<string, unknown>).questionType).toBe('recall');
+    // The rubric payload survives the round-trip with its snake_case criteria keys.
+    expect((result as Record<string, unknown>).grading).toEqual(rubricForQuality(4));
   });
 
   it('does not carry context_token through on the retry path', () => {
     const input = {
       session_question_id: 'sq-1',
       response: 'X is Y',
-      quality: 3,
+      grading: rubricForQuality(3),
       question_type: 'explain_apply' as const,
       feedback: 'Close',
       time_spent_ms: 500,
@@ -293,7 +296,7 @@ describe('SubmitAnswerInputShape feedback whitespace validation (NEU-739)', () =
     prompt_text: 'What is X?',
     chunk_ids: ['c1'],
     response: 'X is Y',
-    quality: 4,
+    grading: rubricForQuality(4),
     question_type: 'recall' as const,
     time_spent_ms: 1000,
     context_token: 'ctx-test',
@@ -332,7 +335,7 @@ describe('SubmitAnswerInputShape feedback whitespace validation (NEU-739)', () =
 describe('ReviseGradeInputShape new_feedback whitespace validation (NEU-745)', () => {
   const baseInput = {
     session_question_id: 'q1',
-    new_quality: 4,
+    grading: rubricForQuality(4),
     reason: 'other' as const,
     context_token: 'ctx-test',
   };
@@ -368,5 +371,62 @@ describe('ReviseGradeInputShape new_feedback whitespace validation (NEU-745)', (
       new_feedback: 'corrected',
     });
     expect((result as Record<string, unknown>).newFeedback).toBe('corrected');
+  });
+});
+
+describe('SubmitAnswerInputSchema rubric payload rejection (NEU-928)', () => {
+  const baseInput = {
+    prompt_text: 'What is X?',
+    chunk_ids: ['c1'],
+    response: 'X is Y',
+    question_type: 'recall' as const,
+    feedback: 'Good',
+    time_spent_ms: 1000,
+    context_token: 'ctx-test',
+  };
+
+  it('rejects a submit_answer call with no grading payload', () => {
+    expect(() => teaching.SubmitAnswerInputSchema.parse({ ...baseInput })).toThrow(z.ZodError);
+  });
+
+  it('rejects a grading payload missing a criterion boolean', () => {
+    const grading = {
+      criteria: {
+        correct_recurrence: true,
+        correct_base_case: true,
+        correct_iteration_order: true,
+        // complexity_stated omitted → schema failure (fail loudly)
+      },
+      justifying_spans: {},
+    };
+    expect(() => teaching.SubmitAnswerInputSchema.parse({ ...baseInput, grading })).toThrow(
+      z.ZodError
+    );
+  });
+
+  it('rejects a grading payload missing the criteria object entirely', () => {
+    const grading = { justifying_spans: {} };
+    expect(() => teaching.SubmitAnswerInputSchema.parse({ ...baseInput, grading })).toThrow(
+      z.ZodError
+    );
+  });
+
+  it('accepts a well-formed grading payload (all four criteria present)', () => {
+    const result = teaching.SubmitAnswerInputSchema.parse({
+      ...baseInput,
+      grading: rubricForQuality(5),
+    });
+    expect((result as Record<string, unknown>).grading).toEqual(rubricForQuality(5));
+  });
+
+  it('rejects a revise_grade call with no grading payload', () => {
+    expect(() =>
+      teaching.ReviseGradeInputSchema.parse({
+        session_question_id: 'q1',
+        new_feedback: 'corrected',
+        reason: 'other' as const,
+        context_token: 'ctx-test',
+      })
+    ).toThrow(z.ZodError);
   });
 });

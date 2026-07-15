@@ -31,15 +31,13 @@ describe('promptPack', () => {
     expect(text).toContain('65–75%');
   });
 
-  it('learning prompt contains quality rubric with scaffolding ceilings', () => {
+  it('learning prompt contains the rubric-anchored grading payload guidance', () => {
     const text = promptPack.getPrompt('learning', { chunkTitle: 'Test' });
-    expect(text).toContain('## Quality Rubric');
-    expect(text).toContain('QUALITY 5');
-    expect(text).toContain('QUALITY 0');
-    expect(text).toContain('CEILING');
-    expect(text).toContain('1 hint → max 3');
-    expect(text).toContain('2+ hints → max 2');
-    expect(text).toContain('Be a fair judge');
+    expect(text).toContain('## Grading Rubric');
+    expect(text).toContain('you do NOT supply a raw quality number');
+    expect(text).toContain('correct_recurrence');
+    expect(text).toContain('justifying_spans');
+    expect(text).toContain('a pass is quality >= 3');
   });
 
   it('learning prompt contains adaptive difficulty selection', () => {
@@ -73,10 +71,9 @@ describe('promptPack', () => {
 
   it('retrieval prompt contains quality rubric and taxonomy reference', () => {
     const text = promptPack.getPrompt('retrieval', { chunkTitle: 'Test', masteryLevel: 3 });
-    expect(text).toContain('## Quality Rubric');
-    expect(text).toContain('QUALITY 5');
-    expect(text).toContain('QUALITY 0');
-    expect(text).toContain('CEILING');
+    expect(text).toContain('## Grading Rubric');
+    expect(text).toContain('correct_recurrence');
+    expect(text).toContain('justifying_spans');
     expect(text).toContain('taxonomy levels');
     expect(text).toContain('Recall');
     expect(text).toContain('Explain/Apply');
@@ -88,9 +85,9 @@ describe('promptPack', () => {
       lastReviewed: '2025-01-15',
       masteryLevel: 3,
     });
-    expect(text).toContain('## Quality Rubric');
-    expect(text).toContain('QUALITY 5');
-    expect(text).toContain('QUALITY 0');
+    expect(text).toContain('## Grading Rubric');
+    expect(text).toContain('correct_recurrence');
+    expect(text).toContain('justifying_spans');
     expect(text).toContain('taxonomy-aware');
     expect(text).toContain('Level 1 question');
     expect(text).toContain('Level 2 (Explain/Apply)');
@@ -477,8 +474,8 @@ describe('promptPack', () => {
       expect(SERVER_INSTRUCTIONS).toContain('Level 1 (Recall)');
       expect(SERVER_INSTRUCTIONS).toContain('Level 2 (Explain/Apply)');
       expect(SERVER_INSTRUCTIONS).toContain('Level 3 (Analyze/Create)');
-      expect(SERVER_INSTRUCTIONS).toContain('quality rubric (0–5)');
-      expect(SERVER_INSTRUCTIONS).toContain('scaffolding ceilings');
+      expect(SERVER_INSTRUCTIONS).toContain('You do NOT supply a raw quality score');
+      expect(SERVER_INSTRUCTIONS).toContain('rubric-anchored grading payload');
     });
   });
 
@@ -575,7 +572,7 @@ describe('promptPack', () => {
       expect(text).toContain('(2/5)');
       expect(text).toContain('Binary Search Trees');
       expect(text).toContain('## Question Taxonomy');
-      expect(text).toContain('## Quality Rubric');
+      expect(text).toContain('## Grading Rubric');
       expect(text).toContain('Recall');
       expect(text).toContain('Explain/Apply');
       expect(text).toContain('Analyze/Create');
@@ -588,7 +585,7 @@ describe('promptPack', () => {
       expect(text).toContain('contextual cue');
       expect(text).toContain('structural hint');
       expect(text).toContain('Stay at Recall and Explain/Apply levels');
-      expect(text).toContain('## Quality Rubric');
+      expect(text).toContain('## Grading Rubric');
     });
 
     it('reteach tier includes compressed re-presentation language', () => {
@@ -598,7 +595,7 @@ describe('promptPack', () => {
       expect(text).toContain('recall probe');
       expect(text).toContain('Retrieval check');
       expect(text).toContain('Stay at Recall level only');
-      expect(text).toContain('## Quality Rubric');
+      expect(text).toContain('## Grading Rubric');
     });
 
     it('scaffold tier includes recognition-first language', () => {
@@ -608,7 +605,7 @@ describe('promptPack', () => {
       expect(text).toContain('Re-teach with concrete examples');
       expect(text).toContain('forgetting as normal');
       expect(text).toContain('Stay at Recall level only');
-      expect(text).toContain('## Quality Rubric');
+      expect(text).toContain('## Grading Rubric');
     });
 
     it('each tier generates distinct instruction text', () => {
