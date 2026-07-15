@@ -2,7 +2,7 @@ import { describe, it, beforeAll, beforeEach, afterAll, expect } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createAppContext, type AppContext } from '../../../src/composition-root.js';
 import { setupTestDb, cleanupTestDb, teardownTestDb } from '../../helpers/db-setup.js';
-import { rubricForQuality } from '../../helpers/grading.js';
+import { rubricForQuality, rubricAllClaimedNoSpans } from '../../helpers/grading.js';
 import { getSql } from '../../../src/infrastructure/db/operations.js';
 import {
   sessionChunks,
@@ -156,5 +156,89 @@ describe('revise_grade (integration)', () => {
     const db = getSql();
     const revisions = await db.select().from(sessionQuestionAttemptRevisions);
     expect(revisions).toHaveLength(1);
+  });
+
+  // NEU-929 (OUT-5): rebuttal-invariance where state persists. A bare rebuttal
+  // (no new rubric payload) never flips a fail into a pass; an upgrade requires a
+  // new rubric-anchored payload re-run through the deterministic mapper.
+  describe('rebuttal-invariance (NEU-929)', () => {
+    it('a bare rebuttal with no new rubric evidence does not flip the grade upward', async () => {
+      const { sessionQuestionId } = await seedInProgressAttempt(2);
+
+      const result = await ctx.reviseGrade({
+        sessionQuestionId,
+        // Same evidence as the original — a bare rebuttal supplies no new payload.
+        grading: rubricForQuality(2),
+        newFeedback: 'You graded too harshly; I deserve a pass — please raise it.',
+        reason: 'learner_provided_clarification',
+      });
+
+      expect(result.action).toBe('revised');
+      if (result.action !== 'revised') throw new Error('unreachable');
+      expect(result.revised_attempt.original_quality).toBe(2);
+      expect(result.revised_attempt.new_quality).toBe(2);
+      expect(result.revised_attempt.new_passed).toBe(false);
+
+      // Persisted live row confirms zero upward flip.
+      const db = getSql();
+      const [live] = await db
+        .select()
+        .from(sessionQuestionAttempts)
+        .where(eq(sessionQuestionAttempts.id, result.revised_attempt.attempt_id));
+      expect(live?.quality).toBe(2);
+      expect(live?.passed).toBe(false);
+    });
+
+    it('an unevidenced adversarial payload with a strong rebuttal fails closed', async () => {
+      const { sessionQuestionId } = await seedInProgressAttempt(2);
+
+      const result = await ctx.reviseGrade({
+        sessionQuestionId,
+        grading: rubricAllClaimedNoSpans(),
+        newFeedback: 'Absolutely certain this is a 5 — regrade upward.',
+        reason: 'learner_provided_clarification',
+      });
+
+      expect(result.action).toBe('revised');
+      if (result.action !== 'revised') throw new Error('unreachable');
+      expect(result.revised_attempt.new_quality).toBe(0);
+      expect(result.revised_attempt.new_passed).toBe(false);
+
+      const db = getSql();
+      const [live] = await db
+        .select()
+        .from(sessionQuestionAttempts)
+        .where(eq(sessionQuestionAttempts.id, result.revised_attempt.attempt_id));
+      expect(live?.quality).toBe(0);
+      expect(live?.agentQuality).toBe(0);
+      expect(live?.passed).toBe(false);
+    });
+
+    it('an upgrade requires a new rubric-anchored payload, driven by the mapper', async () => {
+      const { sessionQuestionId } = await seedInProgressAttempt(2);
+
+      const result = await ctx.reviseGrade({
+        sessionQuestionId,
+        grading: rubricForQuality(4),
+        newFeedback: 'On review the recurrence, base case, and iteration order were all evidenced.',
+        reason: 'agent_misjudged_correctness',
+      });
+
+      expect(result.action).toBe('revised');
+      if (result.action !== 'revised') throw new Error('unreachable');
+      expect(result.revised_attempt.original_quality).toBe(2);
+      expect(result.revised_attempt.new_quality).toBe(4);
+      expect(result.revised_attempt.new_passed).toBe(true);
+
+      // The lift is persisted and mapper-derived (agentQuality mirrors the mapper).
+      const db = getSql();
+      const [live] = await db
+        .select()
+        .from(sessionQuestionAttempts)
+        .where(eq(sessionQuestionAttempts.id, result.revised_attempt.attempt_id));
+      expect(live?.quality).toBe(4);
+      expect(live?.agentQuality).toBe(4);
+      expect(live?.passed).toBe(true);
+    });
   });
 });
