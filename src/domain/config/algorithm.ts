@@ -65,6 +65,14 @@ export type AlgorithmConfig = {
   maxDependencyDepth: number; // max depth for dependency graph traversal
   weakAreaEaseThreshold: number; // ease factor below which a chunk is flagged as a weak area
   roadblockFollowups: Record<number, number>; // quality → required follow-up count for roadblock gate
+  // Grading over-validation (false-accept) ceiling (NEU-929 / MM-T5). The maximum
+  // tolerated fraction of KNOWN-INCORRECT held-out grading cases that the
+  // deterministic `grade mapper` may resolve to a pass (quality >= 3). A held-out
+  // CI adversarial-grading fixture measures the aggregate false-accept rate and
+  // FAILS THE BUILD when it exceeds this ceiling (fail-closed). Provisional 0.10
+  // (documented epistemic band, never a measured optimum); on by default. This is
+  // a check on the held-out rate, NOT a runtime rate-limiter on any single grade.
+  overValidationCeiling: number;
 };
 
 export function clampEaseFactor(

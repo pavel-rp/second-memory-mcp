@@ -21,7 +21,7 @@ import {
   stubNotesRepository,
 } from '../../helpers/stub-ports.js';
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
-import { rubricForQuality } from '../../helpers/grading.js';
+import { rubricForQuality, rubricAllClaimedNoSpans } from '../../helpers/grading.js';
 
 const NOW = 1_700_000_000_000;
 
@@ -411,5 +411,104 @@ describe('reviseGrade', () => {
     expect(result.action).toBe('revised');
     if (result.action !== 'revised') throw new Error('unreachable');
     expect(result.note_id).toBe('');
+  });
+});
+
+// NEU-929 (OUT-5): a bare learner rebuttal — persuasive `new_feedback` text with
+// no NEW rubric-anchored evidence — can never flip a grade upward. An upgrade
+// requires a new payload the deterministic mapper credits higher; the rebuttal
+// prose is never an input to the grade.
+describe('reviseGrade — rebuttal-invariance (NEU-929)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const BARE_REBUTTAL =
+    'You graded me far too harshly. I am absolutely certain my answer deserves full marks — please raise it to a 5.';
+
+  it('a bare rebuttal carrying no new rubric evidence produces zero upward flips', async () => {
+    // Original attempt quality is 2 (makeAttempt default). A bare rebuttal re-submits
+    // the SAME rubric evidence (maps to 2) with only persuasive new feedback text.
+    const deps = happyDeps();
+    const result = await reviseGrade(
+      {
+        sessionQuestionId: 'q1',
+        grading: rubricForQuality(2),
+        newFeedback: BARE_REBUTTAL,
+        reason: 'learner_provided_clarification',
+      },
+      deps
+    );
+    if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
+    expect(result.revised_attempt.original_quality).toBe(2);
+    expect(result.revised_attempt.new_quality).toBe(2);
+    expect(result.revised_attempt.new_passed).toBe(false);
+    // Explicit no-upward-flip property.
+    expect(result.revised_attempt.new_quality ?? 0).toBeLessThanOrEqual(
+      result.revised_attempt.original_quality ?? 0
+    );
+  });
+
+  it('an unevidenced adversarial payload with a strong rebuttal fails closed', async () => {
+    const deps = happyDeps();
+    const result = await reviseGrade(
+      {
+        sessionQuestionId: 'q1',
+        grading: rubricAllClaimedNoSpans(),
+        newFeedback: BARE_REBUTTAL,
+        reason: 'learner_provided_clarification',
+      },
+      deps
+    );
+    if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
+    expect(result.revised_attempt.new_quality).toBe(0);
+    expect(result.revised_attempt.new_passed).toBe(false);
+  });
+
+  it('the rebuttal feedback text has zero influence on the derived quality', async () => {
+    // Identical rubric payload, two very different persuasive feedback strings →
+    // identical mapper-derived quality. The prose is not an input to the grade.
+    const mild = await reviseGrade(
+      {
+        sessionQuestionId: 'q1',
+        grading: rubricForQuality(2),
+        newFeedback: 'Minor clarifying note.',
+        reason: 'other',
+      },
+      happyDeps()
+    );
+    const persuasive = await reviseGrade(
+      {
+        sessionQuestionId: 'q1',
+        grading: rubricForQuality(2),
+        newFeedback: BARE_REBUTTAL.repeat(3),
+        reason: 'other',
+      },
+      happyDeps()
+    );
+    if (mild.action !== 'revised' || persuasive.action !== 'revised') {
+      throw new Error('expected both revisions to succeed');
+    }
+    expect(persuasive.revised_attempt.new_quality).toBe(mild.revised_attempt.new_quality);
+    expect(persuasive.revised_attempt.new_quality).toBe(2);
+  });
+
+  it('an upgrade requires a new rubric-anchored payload the mapper credits higher', async () => {
+    // Only a genuinely better-evidenced payload lifts the grade, and the lift is
+    // driven by the mapper (rubricForQuality(4)), not by any rebuttal text.
+    const deps = happyDeps();
+    const result = await reviseGrade(
+      {
+        sessionQuestionId: 'q1',
+        grading: rubricForQuality(4),
+        newFeedback: 'On review the recurrence, base case, and iteration order were all evidenced.',
+        reason: 'agent_misjudged_correctness',
+      },
+      deps
+    );
+    if (result.action !== 'revised') throw new Error(`expected revised, got ${result.action}`);
+    expect(result.revised_attempt.original_quality).toBe(2);
+    expect(result.revised_attempt.new_quality).toBe(4);
+    expect(result.revised_attempt.new_passed).toBe(true);
   });
 });
