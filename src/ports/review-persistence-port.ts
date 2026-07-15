@@ -76,6 +76,18 @@ export interface ReviewPersistencePort {
    * no signal), mirroring the weak-area derivation.
    */
   countAttempts(chunkId: string): Promise<number>;
+  /**
+   * Batched per-chunk graded-attempt outcome counts, the multi-observation
+   * review history that feeds the NEU-931 durability gate's retrievability
+   * posterior. For each requested chunk id, returns the number of graded
+   * attempts (quality NOT NULL) that passed (quality >= GRADE_PASS_THRESHOLD)
+   * vs. failed. Chunks with no graded attempts are omitted from the map, which
+   * the caller treats as an empty history (fail-closed). Attempts join to
+   * chunks through session_question_chunks, matching countAttempts/getWeakAreas.
+   */
+  getReviewObservations(
+    chunkIds: string[]
+  ): Promise<Map<string, { successes: number; failures: number }>>;
   /** Fetch reviews in the half-open range [from, to). */
   getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]>;
   /** Identify chunks where the learner is struggling based on recent low-quality reviews. */

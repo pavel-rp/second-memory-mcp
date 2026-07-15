@@ -183,5 +183,9 @@ export function resolveAlgorithmConfig(
       env.SM_OVER_VALIDATION_CEILING,
       DEFAULT_ALGORITHM_CONFIG.overValidationCeiling
     ),
+    durabilityPosteriorBar: parseNumber(
+      env.SM_DURABILITY_POSTERIOR_BAR,
+      DEFAULT_ALGORITHM_CONFIG.durabilityPosteriorBar
+    ),
   };
 }

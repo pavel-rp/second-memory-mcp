@@ -114,6 +114,7 @@ export function stubReviewPersistence(
     // established chunk (past the NEU-839 minimum-attempts floor). Override with a
     // low value to assert the evidence gate blocks flagging.
     countAttempts: vi.fn().mockResolvedValue(100),
+    getReviewObservations: vi.fn().mockResolvedValue(new Map()),
     getReviewsByDateRange: vi.fn().mockResolvedValue([]),
     getWeakAreas: vi.fn().mockResolvedValue([]),
     ...overrides,

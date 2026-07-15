@@ -5,24 +5,26 @@ import {
   type ResolveStalePrerequisitesInput,
 } from '../../../../src/domain/algorithms/resolve-stale-prerequisites.js';
 
-const MS_PER_DAY = 86_400_000;
 const NOW = new Date('2025-06-15T12:00:00.000Z');
+const DURABILITY_BAR = 0.9;
 
 /**
- * Build chunk metadata with a given retrievability profile.
- * stale = true: 200 days overdue on a 10-day interval → R ≈ 0.42 (below 0.50)
- * stale = false: 0 days overdue → R ≈ 1.0
+ * Build chunk metadata with a given durability profile (NEU-931). The gate now
+ * evaluates a retrievability-posterior from the persisted observation counts —
+ * FSRS scheduling fields no longer drive the lock decision.
+ *   stale = true:  empty history → posterior 0.5 (< 0.90 bar) → locked
+ *   stale = false: 20 successes → posterior ≈ 0.955 (>= 0.90 bar) → unlocked
  */
 function makeMeta(
   opts: { stale: boolean; prerequisiteIds?: string[] } = { stale: false }
 ): PrerequisiteChunkMeta {
-  const daysOverdue = opts.stale ? 200 : 0;
   return {
     easeFactor: 2.5,
     repetitions: 3,
-    nextReviewAt: NOW.getTime() - daysOverdue * MS_PER_DAY,
+    nextReviewAt: NOW.getTime(),
     intervalDays: 10,
     prerequisiteIds: opts.prerequisiteIds ?? [],
+    observations: opts.stale ? { successes: 0, failures: 0 } : { successes: 20, failures: 0 },
   };
 }
 
@@ -35,6 +37,7 @@ function makeInput(
     sessionChunkIds: new Set(),
     maxDepth: 5,
     now: NOW,
+    durabilityBar: DURABILITY_BAR,
     ...overrides,
   };
 }
@@ -47,7 +50,7 @@ describe('resolveStalePrerequisites', () => {
     expect(result.depthCapReached).toBe(false);
   });
 
-  it('returns empty when all prerequisites are fresh (R >= 0.50)', () => {
+  it('returns empty when all prerequisites clear the durability bar', () => {
     const metadata = new Map<string, PrerequisiteChunkMeta>([
       ['prereq-1', makeMeta({ stale: false })],
       ['prereq-2', makeMeta({ stale: false })],
@@ -230,5 +233,41 @@ describe('resolveStalePrerequisites', () => {
     const cIdx = result.stalePrereqIds.indexOf('C');
     const aIdx = result.stalePrereqIds.indexOf('A');
     expect(cIdx).toBeLessThan(aIdx);
+  });
+
+  it('keeps a single-success prerequisite locked (fail-closed regression)', () => {
+    // DR-M10: a single success must NOT unlock a dependent. Posterior with one
+    // success under Beta(1,1) is 2/3 ≈ 0.667 — below the 0.90 bar.
+    const metadata = new Map<string, PrerequisiteChunkMeta>([
+      ['prereq-1', { ...makeMeta({ stale: true }), observations: { successes: 1, failures: 0 } }],
+    ]);
+
+    const result = resolveStalePrerequisites(
+      makeInput({ chunkMetadata: metadata, targetPrerequisiteIds: ['prereq-1'] })
+    );
+
+    expect(result.stalePrereqIds).toEqual(['prereq-1']);
+  });
+
+  it('emits a gate-decision record on both the lock and unlock paths', () => {
+    const metadata = new Map<string, PrerequisiteChunkMeta>([
+      ['locked-1', { ...makeMeta({ stale: true }), observations: { successes: 1, failures: 2 } }],
+      ['unlocked-1', makeMeta({ stale: false })],
+    ]);
+
+    const result = resolveStalePrerequisites(
+      makeInput({
+        chunkMetadata: metadata,
+        targetPrerequisiteIds: ['locked-1', 'unlocked-1'],
+      })
+    );
+
+    const locked = result.gateDecisions.find(d => d.prerequisiteId === 'locked-1');
+    const unlocked = result.gateDecisions.find(d => d.prerequisiteId === 'unlocked-1');
+
+    expect(locked).toMatchObject({ passed: false, bar: DURABILITY_BAR, successes: 1, failures: 2 });
+    expect(locked?.signal).toBeLessThan(DURABILITY_BAR);
+    expect(unlocked).toMatchObject({ passed: true, bar: DURABILITY_BAR, successes: 20 });
+    expect(unlocked?.signal).toBeGreaterThanOrEqual(DURABILITY_BAR);
   });
 });

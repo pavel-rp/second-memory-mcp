@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, gte, lt, isNotNull, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { getSql, type SqlDb } from '../../infrastructure/db/operations.js';
 import {
@@ -17,6 +17,13 @@ import type {
   WeakAreaResult,
 } from '../../ports/review-persistence-port.js';
 import { toIsoTimestamp } from '../../shared/date-helpers.js';
+import { GRADE_PASS_THRESHOLD } from '../../domain/algorithms/over-validation-guard.js';
+
+const reviewObservationRowSchema = z.object({
+  chunk_id: z.string(),
+  successes: z.coerce.number(),
+  failures: z.coerce.number(),
+});
 
 const weakAreaRowSchema = z.object({
   chunk_id: z.string(),
@@ -73,6 +80,44 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
         and(eq(sessionQuestionChunks.chunkId, chunkId), isNotNull(sessionQuestionAttempts.quality))
       );
     return Number(row?.count ?? 0);
+  }
+
+  async getReviewObservations(
+    chunkIds: string[]
+  ): Promise<Map<string, { successes: number; failures: number }>> {
+    const result = new Map<string, { successes: number; failures: number }>();
+    if (chunkIds.length === 0) return result;
+
+    // Per-chunk graded-attempt outcome counts (multi-observation history for the
+    // NEU-931 durability gate). Only graded attempts (quality NOT NULL) count as
+    // evidence, matching countAttempts/getWeakAreas. pass = quality >= threshold.
+    const rows = await this.db
+      .select({
+        chunk_id: sessionQuestionChunks.chunkId,
+        successes: sql<number>`count(*) filter (where ${sessionQuestionAttempts.quality} >= ${GRADE_PASS_THRESHOLD})`,
+        failures: sql<number>`count(*) filter (where ${sessionQuestionAttempts.quality} < ${GRADE_PASS_THRESHOLD})`,
+      })
+      .from(sessionQuestionAttempts)
+      .innerJoin(
+        sessionQuestionChunks,
+        eq(sessionQuestionAttempts.sessionQuestionId, sessionQuestionChunks.sessionQuestionId)
+      )
+      .where(
+        and(
+          inArray(sessionQuestionChunks.chunkId, chunkIds),
+          isNotNull(sessionQuestionAttempts.quality)
+        )
+      )
+      .groupBy(sessionQuestionChunks.chunkId);
+
+    for (const row of rows) {
+      const parsed = reviewObservationRowSchema.parse(row);
+      result.set(parsed.chunk_id, {
+        successes: parsed.successes,
+        failures: parsed.failures,
+      });
+    }
+    return result;
   }
 
   async getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]> {
