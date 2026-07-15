@@ -59,4 +59,5 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
   maxDependencyDepth: 5,
   weakAreaEaseThreshold: 2.5,
   roadblockFollowups: { 0: 3, 1: 3, 2: 2, 3: 1, 4: 1, 5: 0 },
+  overValidationCeiling: 0.1, // NEU-929 / MM-T5 — provisional false-accept ceiling
 };

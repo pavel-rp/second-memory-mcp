@@ -179,5 +179,9 @@ export function resolveAlgorithmConfig(
       return Math.max(parsed, minimumEaseFactor);
     })(),
     roadblockFollowups: DEFAULT_ALGORITHM_CONFIG.roadblockFollowups,
+    overValidationCeiling: parseNumber(
+      env.SM_OVER_VALIDATION_CEILING,
+      DEFAULT_ALGORITHM_CONFIG.overValidationCeiling
+    ),
   };
 }
