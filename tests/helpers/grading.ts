@@ -35,3 +35,22 @@ export function rubricForQuality(quality: number): RubricGradingPayload {
   }
   return { criteria: credited, justifying_spans: spans };
 }
+
+/**
+ * An adversarial payload: every criterion is claimed true but NO justifying spans
+ * are supplied. A well-formed schema accepts it (all criterion booleans present),
+ * but the deterministic mapper credits nothing (fail-closed) → quality 0, non-pass.
+ * Used to prove the grade is mapper-derived with no raw-quality path: a bare
+ * high self-report cannot become a pass.
+ */
+export function rubricAllClaimedNoSpans(): RubricGradingPayload {
+  return {
+    criteria: {
+      correct_recurrence: true,
+      correct_base_case: true,
+      correct_iteration_order: true,
+      complexity_stated: true,
+    },
+    justifying_spans: {},
+  };
+}
