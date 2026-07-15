@@ -375,10 +375,24 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
             nextReviewAt: c.nextReviewAt,
             intervalDays: c.intervalDays,
             prerequisiteIds: c.prerequisitesJson ?? [],
+            // Placeholder — patched with persisted review history below. An empty
+            // history fails closed (NEU-931), so this default is a safe fallback.
+            observations: { successes: 0, failures: 0 },
           });
           nextFrontier.push(...(c.prerequisitesJson ?? []));
         }
         frontier = nextFrontier;
+      }
+
+      // Hydrate each prerequisite's multi-observation review history for the
+      // durability gate (NEU-931). Chunks with no graded attempts are absent
+      // from the map and keep the fail-closed empty-history default above.
+      const observationCounts = await deps.reviewPersistence.getReviewObservations([
+        ...metadataMap.keys(),
+      ]);
+      for (const [id, meta] of metadataMap) {
+        const counts = observationCounts.get(id);
+        if (counts) meta.observations = counts;
       }
 
       const sessionChunkIdSet = new Set(sessionChunks.map(sc => sc.chunkId));
@@ -388,9 +402,25 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
         sessionChunkIds: sessionChunkIdSet,
         maxDepth,
         now: new Date(),
+        durabilityBar: deps.algorithmConfig.durabilityPosteriorBar,
       });
 
       stalePrereqIds = result.stalePrereqIds;
+
+      // OUT-7: emit an auditable gate-decision record for every evaluated
+      // prerequisite — on BOTH the unlock and lock/fail-closed paths — so the
+      // decision is observable rather than advancing implicitly.
+      for (const decision of result.gateDecisions) {
+        logEvent('prerequisite_durability_gate', decision.passed ? 'unlocked' : 'locked', {
+          prerequisiteId: decision.prerequisiteId,
+          dependentChunkId: selected.chunkId,
+          signal: decision.signal,
+          bar: decision.bar,
+          passed: decision.passed,
+          successes: decision.successes,
+          failures: decision.failures,
+        });
+      }
 
       if (result.circularDetected) {
         getRequestLogger().warn(
