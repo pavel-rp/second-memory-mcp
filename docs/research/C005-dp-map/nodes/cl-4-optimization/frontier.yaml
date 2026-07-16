@@ -2085,9 +2085,11 @@ self_check:
       target is registered in boundary-register.yaml at version 1.0.0: anchor.segment-tree
       and anchor.convex-hull-envelope-geometry are the only two used.
   - check: "6. Every cross_cluster_attachments entry has to_name, to_cluster, rationale, status: declared."
-    result: "Pass — 4 attachments, all four fields present on each, all status \"declared\"."
+    result: >-
+      Pass — 5 attachments (slope trick, slope trick on trees, Aliens trick, kinetic
+      segment tree DP, SMAWK), all four fields present on each, all status "declared".
   - check: "7. attachment_id matches xc.<from>-><to_node>; from == the node's own id."
-    result: "Pass — 4/4."
+    result: "Pass — 5/5, checked mechanically."
   - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
     result: "Pass — 19/19 on all three. No dimension invented (INC-S3). Every js note is an observation, explicitly labelled 'not a verdict'."
   - check: "9. No node is settled without a ledger entry; no node carries frozen: true."
