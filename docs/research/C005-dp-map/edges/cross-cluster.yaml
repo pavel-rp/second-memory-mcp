@@ -36,8 +36,10 @@
 #   => Resolution ran on `to_name` + `rationale` + `to_cluster` FIRST. `to_node` was
 #      used as a hint only. An exact-id-match-only resolver would have silently
 #      dropped real dependencies — see the audit trail in §RESOLUTION OUTCOME below:
-#      **11 of 27 declared `to_node` ids did not resolve, while every one of those
-#      11 resolved unambiguously on `to_name` + `rationale`.**
+#      **10 of the 25 resolvable declarations carried a `to_node` id that matches no
+#      node in the graph, and every one of those 10 resolved unambiguously on
+#      `to_name` + `rationale`.** A resolver keyed on `to_node` would have shipped a
+#      graph missing 40% of its cross-cluster edges and called it complete.
 #
 # RESOLUTION RULES (as applied)
 #   R1. One declaration -> one edge. Mappers declare from ONE side, so a genuine
@@ -79,11 +81,18 @@
 #   Root/anchor edges re-drawn ................................  0
 #   Node files edited by SUB-12 ...............................  0
 #
-#   Resolution key that actually carried the pass:
-#     to_node matched a real node as declared ................. 16 / 27
-#     to_node was STALE; resolved on to_name + rationale ...... 11 / 27   <-- the point
-#       of which: id wrong, cluster right ..................... 9
-#       of which: id AND to_cluster both wrong ................ 2  (see §CLUSTER CORRECTIONS)
+#   Resolution key that actually carried the pass (over the 25 resolvable):
+#     to_node matched a real node as declared ................. 15 / 25
+#     to_node was STALE; resolved on to_name + rationale ...... 10 / 25   <-- the point
+#       of which: id wrong, cluster right ..................... 8
+#       of which: id AND to_cluster both wrong ................ 2  (filed as F-939-2)
+#
+#   The split tracks exactly one thing — whether the mapper rebased against the merged
+#   sibling files before landing. Rebased (SUB-4, SUB-13) and SUB-6's six rebased CL-1
+#   predictions: 15/15 ids correct. Not rebased (SUB-5, SUB-6's CL-2/CL-3 guesses):
+#   0/10 ids correct, 10/10 names correct. `to_name` was right in 25 of 25 cases.
+#   This is the fourth independent confirmation of the §4.3 design call, and the
+#   sharpest: the schema's own worked example ships a stale id (see knuth-yao below).
 #
 # =============================================================================
 # HOW TO READ AN EDGE
@@ -110,7 +119,7 @@
 #     "to_node"  — the mapper's predicted id matched a real node. Nothing to report.
 #     "to_name"  — the predicted id was stale; the human name + rationale resolved it.
 #     Both are validated resolutions. "to_name" is not a weaker edge — it is the
-#     schema's designed primary key (§4.3), and it carried 11 of 27.
+#     schema's designed primary key (§4.3), and it carried 10 of the 25.
 #
 # YAML: 1.2 core schema. All string enums quoted.
 # =============================================================================
@@ -801,9 +810,10 @@ soft_findings:
 #   CL-2 -> CL-1 ...  4      CL-4 -> CL-1 ... 11      CL-4 -> CL-2 ... 4
 #   CL-3 -> CL-1 ...  3      CL-3 -> CL-2 ...  2      CL-4 -> CL-3 ... 1
 # All 25 edges point "down" the dependency order (optimization -> base formulation,
-# compressed encoding -> ordinary encoding). Nothing points out of CL-1, which is
-# consistent with CL-1 being the foundational cluster: it declares no attachments at
-# all (its 55 `cross_cluster_attachments` keys are all empty).
+# compressed encoding -> ordinary encoding). Nothing points out of CL-1, and CL-1
+# declares no attachments at all — every one of its nodes carries an empty
+# `cross_cluster_attachments` list. That is consistent with CL-1 being the
+# foundational cluster and is a fact about the corpus, not a rule SUB-12 enforced.
 #
 # -----------------------------------------------------------------------------
 # VALIDATION (V-1..V-18, 01_node-and-edge-schema.md §6) — run against this file
