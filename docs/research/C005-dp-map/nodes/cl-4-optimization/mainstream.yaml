@@ -115,11 +115,11 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.recognize-envelope-structured-transition->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.recognize-envelope-structured-transition->cl-1.formulate-1d-sequence-dp"
         from: "cl-4.recognize-envelope-structured-transition"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
         relation: "requires"
         rationale: >-
           The recognition is performed ON an already-correct linear-sequence DP; there is
@@ -172,11 +172,11 @@ nodes:
       boundary_anchors:
         - "anchor.convex-hull-envelope-geometry@1.0.0"
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.convex-hull-trick-monotonic->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.convex-hull-trick-monotonic->cl-1.formulate-1d-sequence-dp"
         from: "cl-4.convex-hull-trick-monotonic"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
         relation: "requires"
         rationale: >-
           The optimization is parasitic on a linear-sequence DP that must already be
@@ -278,11 +278,11 @@ nodes:
         - "anchor.segment-tree@1.0.0"
         - "anchor.convex-hull-envelope-geometry@1.0.0"
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.li-chao-tree-dp-application->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.li-chao-tree-dp-application->cl-1.formulate-1d-sequence-dp"
         from: "cl-4.li-chao-tree-dp-application"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
         relation: "requires"
         rationale: >-
           Same parasitism as the deque form: the Li Chao tree accelerates an already-correct
@@ -765,11 +765,11 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.monotonic-queue-optimization->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.monotonic-queue-optimization->cl-1.formulate-1d-sequence-dp"
         from: "cl-4.monotonic-queue-optimization"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
         relation: "requires"
         rationale: >-
           The optimization is parasitic on an already-correct linear-sequence recurrence with a
@@ -912,11 +912,11 @@ nodes:
         - "anchor.linear-algebra@1.0.0"
         - "anchor.modular-arithmetic@1.0.0"
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.matrix-exponentiation-dp->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.matrix-exponentiation-dp->cl-1.formulate-1d-sequence-dp"
         from: "cl-4.matrix-exponentiation-dp"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
         relation: "requires"
         rationale: >-
           The optimization is parasitic on an already-correct linear-sequence recurrence with a fixed
@@ -1127,11 +1127,11 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.select-mainstream-optimization->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.select-mainstream-optimization->cl-1.formulate-1d-sequence-dp"
         from: "cl-4.select-mainstream-optimization"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
         relation: "requires"
         rationale: >-
           The choice is made about an already-correct DP; without the ability to formulate one there
@@ -1218,8 +1218,20 @@ authoring_record:
           - "cl-4.matrix-exponentiation-dp"
           - "cl-4.implement-modular-matrix-power"
     declared_optimized_family_attachments:
-      - to_name: "Linear-sequence DP"
+      - to_name: "Formulate a 1D sequence DP"
         to_cluster: "CL-1"
+        target_verified_present: true
+        note: >-
+          CL-1 (NEU-934) merged while this PR was open, so this target's id was checked against
+          the real file rather than left as a prediction: CL-1 mints no single "Linear-sequence DP"
+          node — it splits the shape into cl-1.linear-sequence-dp-1d (knowledge) and
+          cl-1.formulate-1d-sequence-dp (skill), plus 2D counterparts. The skill node is the correct
+          target: every rationale below asserts the learner must be ABLE TO FORMULATE the recurrence,
+          which is that node exactly. STILL DECLARED, NOT DRAWN — a sibling cluster's node is a
+          cross_cluster_attachment regardless of whether its file happens to exist yet (schema V-7
+          prohibits any prerequisites.* target in a different non-root cluster, and edges are
+          SUB-12's to realize in edges/cross-cluster.yaml). Verifying the id only makes SUB-12's
+          resolution exact instead of fuzzy; it does not license drawing the edge.
         declared_by:
           - "cl-4.recognize-envelope-structured-transition"
           - "cl-4.convex-hull-trick-monotonic"
