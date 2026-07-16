@@ -10,7 +10,7 @@ Produce findings that directly inform implementation decisions. Analyze code, qu
 
 - **MemPalace** — 10,000+ drawers of project knowledge spanning architecture decisions, implementation history, research findings, session diaries, and prior learnings. Always search MemPalace before investigating from scratch — it may already have the answer or critical context.
 - **Full codebase and Sourcebot** — read anything. Prefer Sourcebot for fast lookups. Trace code paths, audit prompt text, check schemas.
-- **Prior research results** — `B:\Projects\second-memory\docs\research` (local, not source-controlled). Contains cognitive science foundations, enforcement/compliance analyses, chunk-rule compliance audits, classifier calibration, instruction drafts, and spike reports. Check here before duplicating prior work.
+- **Prior research results** — `docs/research/` in the repo. Contains the C005 curriculum research packages (product foundation, instructional model, DP knowledge-and-skill map), cognitive science foundations, enforcement/compliance analyses, classifier calibration, and behavior specs. Check here before duplicating prior work.
 - **Linear (NEU project)** — issues, specs, verification reports, retrospectives. Past decisions and their evidence are in issue descriptions, not wikis.
 - **Second Memory MCP tools** — query the live learning database. `init_agent_context` → get a context token → use any tool.
 - **Prod database logs** — two tables in the `infrastructure` schema:
