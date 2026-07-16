@@ -470,22 +470,28 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.slope-trick-on-trees->cl-2.tree-dp"
+      - attachment_id: "xc.cl-4.slope-trick-on-trees->cl-2.formulate-subtree-recurrence"
         from: "cl-4.slope-trick-on-trees"
         to_cluster: "CL-2"
-        to_node: "cl-2.tree-dp"
-        to_name: "Tree DP"
+        to_node: "cl-2.formulate-subtree-recurrence"
+        to_name: "Formulate a subtree recurrence: decide what a subtree must summarize"
         relation: "requires"
         rationale: >-
           THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. The tree
           variant of slope trick accelerates a tree DP whose recurrence must already be
           correct — the child-to-parent value-function combination is given; this node
           only makes it affordable. A learner cannot acquire it without first being
-          able to formulate a tree DP recurrence. D-F4 §3.2 assigns tree DP to CL-2 on
+          able to formulate that subtree recurrence. D-F4 §3.2 assigns tree DP to CL-2 on
           T3 (the tree is the state's index and respecting it is the difficulty), and
-          per D-F4 §3.1 the optimization node stays CL-4's. DECLARED, never drawn:
-          SUB-4 is writing cl-2-combinatorial.yaml concurrently and its ids are not
-          visible to SUB-13. Not a root edge and must not be resolved into one.
+          per D-F4 §3.1 the optimization node stays CL-4's. DECLARED, never drawn. Not a
+          root edge and must not be resolved into one.
+          THE TARGET IS EXACT, AND ITS OWN WORDS SAY WHY: cl-2.formulate-subtree-
+          recurrence is "decide the contract between a subtree and its parent: what a
+          child must report so that the parent can decide without looking inside it".
+          That contract is PRECISELY what this optimization changes the representation
+          of — the child reports its convex value function as a breakpoint multiset
+          rather than a value table. The contract must exist and be correct before its
+          representation can be made cheap, which is T1's precondition exactly.
         confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
@@ -1382,7 +1388,7 @@ out6_endpoints:
       cl-1.root.state-transition-base-case-formulation (DRAWN root edge) AND
       anchor.convex-hull-envelope-geometry@1.0.0 (DRAWN, registered, sanctioned
       terminal).
-    declared_attachment_on_path: "xc.cl-4.slope-trick-on-trees->cl-2.tree-dp"
+    declared_attachment_on_path: "xc.cl-4.slope-trick-on-trees->cl-2.formulate-subtree-recurrence"
     caveat: >-
       AR-1-b is in flight against this path (the (min,+)-convolution fact). Every node
       on it is `status: "provisional"` and the dependency is recorded in `notes`, not
@@ -2033,11 +2039,40 @@ cl1_id_resolution:
     All four remain cross_cluster_attachments with status "declared". None is drawn.
     SUB-12 still resolves and realizes them; the verified ids are a hint that should
     make that cheap, not a substitute for it.
+  cl2_resolution:
+    cl2_merged_at: "PR #617 (NEU-935), merged to develop before this PR"
+    original_prediction: "cl-2.tree-dp"
+    prediction_outcome: "MISS — no such id exists in the merged CL-2 file."
+    resolved:
+      - from: "cl-4.slope-trick-on-trees"
+        to_node: "cl-2.formulate-subtree-recurrence"
+        to_name: "Formulate a subtree recurrence: decide what a subtree must summarize"
+        confidence: "named"
+        basis: >-
+          Exact. SUB-4 mapped the tree family as a set of shapes rather than one "Tree
+          DP" node, so the prediction had nothing to hit. The right target is the node
+          this optimization's own rationale already named in prose — the ability to
+          formulate the subtree recurrence. Its summary ("what a child must report so
+          that the parent can decide without looking inside it") IS the contract whose
+          representation slope trick makes cheap.
+  prediction_scorecard: >-
+    RECORDED BECAUSE IT IS EVIDENCE ABOUT THE CONVENTION, NOT ABOUT SUB-13. Five
+    cross-cluster attachments, five grammar-derived predictions, all made blind:
+    4 MISSES (cl-1.linear-sequence-dp x4 — no such node) and, counting the sibling CL-4
+    file's intra-cluster ids, 1 HIT (cl-4.divide-and-conquer-optimization) and 1 MISS
+    (cl-4.convex-hull-trick -> cl-4.convex-hull-trick-monotonic), plus this CL-2 MISS.
+    THE ID PREDICTIONS WERE MOSTLY WRONG AND THE `to_name` + `rationale` WERE RIGHT
+    EVERY TIME — which is exactly why 01_node-and-edge-schema.md §4.3 makes `to_name`
+    required and `to_node` a hint, and why an exact-id-match-only resolver "would
+    silently drop real dependencies". This file is a live confirmation of that design
+    decision rather than a counterexample to it. SUB-12 should keep resolving on
+    to_name + to_cluster + rationale even where an id now looks authoritative.
   note_for_sub12: >-
-    The CL-2 attachment (xc.cl-4.slope-trick-on-trees->cl-2.tree-dp) is STILL a genuine
-    prediction — cl-2-combinatorial.yaml had not merged when this file was written, so
-    "cl-2.tree-dp" is grammar-derived and, on the evidence of the CL-1 miss above,
-    should be assumed wrong. Resolve it on to_name ("Tree DP") + to_cluster + rationale.
+    ALL FIVE attachments now carry looked-up ids: CL-1 (#615), CL-2 (#617) and the
+    sibling CL-4 file (#614) all merged before this PR. None is a blind prediction any
+    more. They nevertheless remain DECLARED, status "declared", not drawn — SUB-12 still
+    owns realization in edges/cross-cluster.yaml. Do not read a verified id as a licence
+    to skip resolution; read it as a resolution that should now be cheap.
 
 # =============================================================================
 # CARRIED CONFLICTS (preserved, not smoothed — NEU-887 discipline, inherited)
