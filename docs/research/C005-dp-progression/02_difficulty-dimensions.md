@@ -44,7 +44,7 @@ Every mapped technique node carries **all ten keys**. No key is optional; a miss
 | --- | --- | --- | --- |
 | `dimension_set_version` | `string` | — | `"1.0.0"` — pins the node to *this* rubric |
 | `progression_stage` | `string` | — | `PS-0`…`PS-4` — see `01_progression-stages.md` |
-| `entry_gate` | `string` | — | `gate-a` \| `gate-c` \| `gate-c+gate-d` — the NEU-888 gate governing entry |
+| `entry_gate` | `string` | — | `"gate-a"` (PS-1) \| `"gate-c"` (PS-2+) — the NEU-888 gate governing entry |
 | `prerequisite_depth` | `int` | — | Longest DP-technique path back to the floor |
 | `state_formulation_load` | `int 1–5` | **intrinsic** | Interacting elements in *choosing the state* |
 | `transition_derivation_load` | `int 1–5` | **intrinsic** | Interacting elements in *deriving the recurrence* |

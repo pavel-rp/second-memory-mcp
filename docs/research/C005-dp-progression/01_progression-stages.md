@@ -69,53 +69,87 @@ depth(node)            = 1 + max(depth(p) for p in DP-technique prerequisites of
                                       #   (i.e. it rests only on roots and/or anchors)
 ```
 
-Inputs: `prerequisites.intra_cluster` + `prerequisites.roots` (**drawn**) and
-`cross_cluster_attachments` with `relation: "requires"` (**declared** — see §5 for why declared
-edges count and what revises them). Boundary anchors bottom out at 0 by **D-S3**: an anchor is a
-*sanctioned terminal*, not a DP prerequisite, so it adds no DP depth.
+Inputs: `prerequisites.intra_cluster` (**drawn**) and `cross_cluster_attachments` with
+`relation: "requires"` **only where the mapper's own `to_node` hint resolves exactly to an
+existing node** (see §5.2 — resolving the rest is SUB-12's grant, not ours). Roots and boundary
+anchors bottom out at 0: a root is the floor, and by **D-S3** an anchor is a *sanctioned
+terminal*, not a DP prerequisite, so neither adds a DP step.
 
 | Stage | Depth | The stratum | Entry gate (NEU-888) |
 | --- | --- | --- | --- |
 | **PS-0** | 0 | **First-principles floor.** The 8 frozen roots. Terminal by construction. | — (floor; nothing precedes it) |
-| **PS-1** | 1 | **Foundational acquisition.** Rests only on roots and/or anchors. The learner's first real DP techniques. | **Gate A** (`MM-T9`) on its roots |
-| **PS-2** | 2 | **Dependent consolidation.** Rests on ≥1 PS-1 technique. | **Gate C** (`MM-T8`) on its prerequisites |
-| **PS-3** | 3 | **Composite application.** Rests on ≥1 PS-2 technique; typically requires choosing *which* technique applies. | **Gate C** (`MM-T8`), **+ Gate D** (`MM-T11`/`MM-T12`) where technique selection is material |
-| **PS-4** | ≥4 | **Frontier refinement.** Rests on ≥1 PS-3 technique. Presupposes an already-durable base technique it refines or accelerates. | **Gate C** (`MM-T8`); Gate E (`MM-T15`) pursued here but **never lowers** A–C |
+| **PS-1** | 1 | **Foundational acquisition.** Rests only on roots and/or anchors. The learner's first real DP techniques. | **Gate A** (`MM-T9`) — *advance* off the floor |
+| **PS-2** | 2 | **Dependent consolidation.** Rests on ≥1 PS-1 technique. | **Gate C** (`MM-T8`) — *unlock* |
+| **PS-3** | 3 | **Composite application.** Rests on ≥1 PS-2 technique. | **Gate C** (`MM-T8`) — *unlock* |
+| **PS-4** | ≥4 | **Deep composite.** Rests on ≥1 PS-3 technique. Typically a technique's own implementation/debugging/selection skills, or a refinement presupposing an already-durable base. | **Gate C** (`MM-T8`) — *unlock*; Gate E (`MM-T15`) pursued here but **never lowers** A–C |
 
-**PS-4 is open-ended above** (depth ≥4) rather than minting PS-5, PS-6… per depth. A stage must
-carry a distinct *gate semantics* to earn its existence (§3); depth 5 and depth 4 are entered
-under the identical gate, so a separate stage would be an **invented** distinction — exactly
-what `D-P1` forbids. Depth is preserved losslessly in the `prerequisite_depth` dimension, so
-nothing is lost by the ceiling.
+### 2.1 ⚠️ FLAGGED — the PS-2/PS-3/PS-4 boundaries are NOT grounded in NEU-888
+
+Stated plainly, because the acceptance criterion requires it: **NEU-888 grounds the *principle*
+(order by prerequisite depth, DR-M01 b1) and the *gates* (A vs C, §3). It does not ground a
+depth granularity.** NEU-888 contains nothing that says a curriculum has five stages, or that the
+ceiling belongs at 4 rather than 3 or 6.
+
+- **What IS grounded:** the **PS-1 / PS-2+** split. That boundary is NEU-888's own
+  *advance* (`MM-T9`) vs *unlock* (`MM-T8`) distinction — a real, cited change of gate (§3).
+- **What is NOT grounded:** the subdivision of depth ≥2 into **PS-2 / PS-3 / PS-4**, and the
+  **ceiling at depth ≥4**. All three strata are entered under the *identical* Gate C. The
+  subdivision is a **presentation choice about granularity**, made so the field is usable for
+  curriculum sequencing, and it is recorded as such — **not** as an interpreted NEU-888 semantic.
+
+**This is a flagged unmet requirement, carried openly rather than dressed up as grounding**
+(`03_grounding-trace.md` §3, row `PS-GRAN`; `04_consistency-check.md` §4). **Owner:** the
+creator's progression-plausibility review — **deferred** under Assumption #11 (`DR-P03`).
+**Revision trigger:** the creator (or in-domain calibration) judging the granularity wrong —
+which would re-bucket stages **without touching `prerequisite_depth`**, since depth is preserved
+losslessly per node and the stage is a pure function of it (§2). Re-bucketing is therefore a
+cheap, mechanical change, which is *why* the exact depth is stored alongside the stage.
+
+**Observed distribution** (`04_consistency-check.md` §2): PS-1 20 · PS-2 32 · PS-3 36 · PS-4 91.
+**PS-4 holds 51% of the graph** — the ceiling's cost, reported rather than tuned away. The
+depth range is 1–9 and the depth histogram is preserved in full in `04_consistency-check.md`.
 
 ---
 
 ## 3. Entry gates — where the mastery ladder legitimately re-enters
 
-A stage earns its existence only if **a named NEU-888 gate governs entry into it**. This is the
-test that separates an interpreted stage from an invented one, and it is why there are five
-stages rather than any other number.
+The stage says *where* a node sits; the **entry gate** says *what NEU-888 requires to cross into
+it*. `entry_gate` takes exactly **two** values, because NEU-888 draws exactly one gate
+distinction that a node's graph position determines:
 
-| Gate | NEU-888 source | Rule (verbatim shape) | Threshold |
-| --- | --- | --- | --- |
-| **Gate A** | mastery model §4 · `DR-M01` behavior 3 | *"≥1 **unaided** correct application of the prerequisite (demonstration, not exposure, not `repetitions>0`)"* | `MM-T9` |
-| **Gate C** | mastery model §4 · `DR-M10` Stage 1 | *"prerequisite composite ≥ **durability bar B\*** (Gate B cleared **and** retrievability posterior ≥ B\*), server-evaluated from persisted multi-session history"* | `MM-T8` (prov. 0.90, band 0.85–0.95) |
-| **Gate D** | mastery model §4 · `DR-M05` | *"per-technique **fluency gate** fires (Stage-1→Stage-2)"*; technique-selection accuracy across mixed types | `MM-T11`, `MM-T12` |
-| **Gate E** | mastery model §4 · `DR-M10` Stage 2 | *"after Gate C, a **latency** criterion is pursued; it may **not** relax any of A–C"* | `MM-T15` |
+| `entry_gate` | Applies to | NEU-888 source | Rule (verbatim shape) | Threshold |
+| --- | --- | --- | --- | --- |
+| `"gate-a"` | **PS-1** | mastery model §4 Gate A · `DR-M01` behavior 3 | *"≥1 **unaided** correct application of the prerequisite (demonstration, not exposure, not `repetitions>0`)"* | `MM-T9` |
+| `"gate-c"` | **PS-2, PS-3, PS-4** | mastery model §4 Gate C · `DR-M10` Stage 1 | *"prerequisite composite ≥ **durability bar B\*** (Gate B cleared **and** retrievability posterior ≥ B\*), server-evaluated from persisted multi-session history"* | `MM-T8` (prov. 0.90, band 0.85–0.95) |
 
-**Why PS-1 is Gate A but PS-2+ is Gate C.** This is NEU-888's own distinction, not ours:
-`MM-T9` is *advance*, `MM-T8` is *unlock*, and the mastery model states the difference
-explicitly — *"MM-T9 keeps **advance** (single demonstration) distinct from **unlock** (MM-T8).
-No single success unlocks."* PS-0→PS-1 is an **advance within a path** off the frozen floor
-(Gate A). PS-1→PS-2 and every deeper crossing is a **dependent unlock** across a real
-prerequisite edge, which `DR-M10`'s durability gate governs (Gate C). Using Gate A for a
-PS-2 crossing would be exactly the `repetitions>0` rule `DR-M10` rejects as **C1**.
+**Why PS-1 is Gate A but PS-2+ is Gate C — NEU-888's own distinction, not ours.** `MM-T9` is
+*advance*; `MM-T8` is *unlock*; the mastery model states the difference explicitly:
+*"MM-T9 keeps **advance** (single demonstration) distinct from **unlock** (MM-T8). No single
+success unlocks."* PS-0→PS-1 is an **advance within a path** off the frozen floor — the
+prerequisite is a *root*, and Gate A is `DR-M01`'s prerequisite→dependent transition. Every
+deeper crossing is a **dependent unlock** across a real technique prerequisite edge, which
+`DR-M10`'s durability gate governs. **Using Gate A for a PS-2+ crossing would be precisely the
+`repetitions>0` rule `DR-M10` rejects as C1** — the highest-severity conflict in NEU-888.
 
-**Gate E never becomes an entry gate.** PS-4 nodes are where contest-speed work concentrates,
-but `DR-M10` Stage 2 is emphatic: speed *"may **not** be used to relax Stage 1"* and
-*"**Speed alone never unlocks**."* So PS-4's entry gate is **Gate C**, identical to PS-2/PS-3.
-Gate E is listed on PS-4 as a *pursued criterion*, never a *lowered bar*. See §4.1 for the
-conflation this deliberately avoids.
+### 3.1 Gates D and E are NOT entry gates — and are deliberately not written as one
+
+Both appear on the mastery ladder, and it would be easy (and wrong) to bolt them onto a stage:
+
+- **Gate D** (`MM-T11`/`MM-T12`, `DR-M05`) governs *"technique enters interleaved pool"* —
+  **blocked acquisition → interleaved review**. That is a **transition in a chunk's lifecycle**,
+  not a crossing into a graph position. A node does not "sit in" Gate D. Its per-node signal is
+  carried where it belongs: **`recognition_load`** is `DR-M05`'s category/discrimination axis, so
+  a node scoring `recognition_load ≥ 4` is where interleaved discrimination practice earns most
+  (`02_difficulty-dimensions.md` §3.5). **Gate D is read off that dimension, not off the stage.**
+- **Gate E** (`MM-T15`, `DR-M10` Stage 2) governs contest speed. `DR-M10` is emphatic: speed
+  *"may **not** be used to relax Stage 1"* and *"**Speed alone never unlocks**."* Making it an
+  entry gate anywhere would invert that invariant. PS-4 is where speed work concentrates, but
+  PS-4's entry gate is **`gate-c`**, identical to PS-2/PS-3. §4.1 covers the conflation this
+  avoids.
+
+**Net:** `entry_gate ∈ {"gate-a", "gate-c"}` and is a pure function of depth
+(`depth == 1 → gate-a`, `depth ≥ 2 → gate-c`). `04_consistency-check.md` §3 verifies that
+invariant mechanically on all 179 nodes.
 
 ---
 
@@ -160,15 +194,26 @@ Covered in §1.1. Restated because it is the charter's named **High** risk.
    evidences, and **not** a **learnability order**, which nothing measures. CL-1's two `transfer`
    nodes carry this uncertainty already; this package does not weaken it.
 
-2. **Declared cross-cluster attachments feed depth, and SUB-12 may move them.** Depth is computed
-   over drawn edges **plus** `relation: "requires"` attachments that are still `declared`, because
-   ignoring them would understate depth for exactly the nodes most likely to be deep (CL-4 nodes
-   that require a CL-2 base DP). But `03_per-node-record-template.md` §3 is explicit that
-   `to_node` is *"A PREDICTION"* resolved by SUB-12 on `to_name`.
-   **Revision trigger:** when **SUB-12 (NEU-939)** realizes `edges/cross-cluster.yaml`, any
-   attachment that resolves to a different node, resolves to nothing (a coverage finding), or is
-   found to be a cycle **revises the dependent's `prerequisite_depth` and may move its stage.**
-   Recompute is mechanical (§2) — `04_consistency-check.md` §5 names the exposed nodes.
+2. **Declared cross-cluster attachments feed depth only on the mapper's own exact hint — the
+   rest are SUB-12's, and are flagged, not guessed.** Depth counts drawn intra-cluster edges plus
+   `relation: "requires"` attachments **whose `to_node` resolves exactly to an existing node**
+   (15 of 27). Ignoring attachments entirely would badly understate depth for the nodes most
+   likely to be deep (a CL-4 optimization requiring a CL-2 base DP would score depth 1 —
+   "foundational" — which is plainly wrong). But `03_per-node-record-template.md` §3 is explicit
+   that `to_node` is *"A PREDICTION"*, resolved by **SUB-12 on `to_name`**.
+
+   For the **12 attachments that do not resolve exactly**, this package **does not guess**. Their
+   `to_name`s point at nodes that exist under different names, in different clusters, or not at
+   all (`cl-4.sos-dp` and `cl-4.bitset-word-parallel-optimization` do not exist — the known
+   `D-F4a` / AR-1 open items, left alone per the charter). Resolving them is
+   **SUB-12/NEU-939's grant**, being executed concurrently; pre-empting it would both exceed
+   OUT-3's scope and risk contradicting `edges/cross-cluster.yaml`.
+
+   **Consequence, carried openly:** the **9 affected nodes** carry a depth that is a **LOWER
+   BOUND**, and are listed in `04_consistency-check.md` §5. **Revision trigger:** when SUB-12
+   realizes `edges/cross-cluster.yaml`, any attachment resolving to a real node **revises that
+   node's `prerequisite_depth` and may move its stage** (recompute is the mechanical §2 formula).
+   This is a genuine, named dependency — not a smoothed one.
 
 3. **The gate thresholds themselves are provisional.** `MM-T8`'s 0.90 is *"a provisional starting
    point, not a measured optimum"* with band 0.85–0.95 (mastery model §2). This package inherits
