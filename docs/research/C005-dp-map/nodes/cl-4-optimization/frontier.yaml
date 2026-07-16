@@ -113,6 +113,15 @@
 #      named owner (SUB-5 / CL-3). It is NOT silently dropped and NOT quietly
 #      claimed. See `residual_exclusions` RX-1 and `carried_conflicts` X-938-1.
 #
+# CL-1 LANDED WHILE THIS FILE WAS IN REVIEW — READ `cl1_id_resolution` AT THE BOTTOM.
+#   NEU-934 (SUB-3) merged cl-1-foundational.yaml before this PR. The four CL-1
+#   attachment targets below therefore carry REAL, LOOKED-UP ids rather than
+#   predictions. THEY ARE STILL DECLARED, NOT DRAWN — the disposition table keys on
+#   WHAT THE TARGET IS (a sibling cluster's node), not on whether the mapper happened
+#   to be able to see it. V-7 forbids a drawn cross-cluster edge unconditionally, and
+#   SUB-12 still owns realization. Verifying the id makes SUB-12's job easier; it does
+#   not transfer the job.
+#
 # TWO AR-1 ANCHOR REQUESTS ARE IN FLIGHT (see `ar1_requests` at the bottom).
 #   As INC-S1 predicted, the frontier hit real non-DP prerequisites the register
 #   does not name. Neither is invented locally, faked as a root edge, nor declared
@@ -278,11 +287,11 @@ nodes:
       boundary_anchors:
         - "anchor.convex-hull-envelope-geometry@1.0.0"
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.slope-trick-application->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.slope-trick-application->cl-1.linear-sequence-dp-2d"
         from: "cl-4.slope-trick-application"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.linear-sequence-dp-2d"
+        to_name: "2D linear/sequence DP (index-pair state)"
         relation: "requires"
         rationale: >-
           THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. Slope
@@ -291,12 +300,11 @@ nodes:
           instance is the O(n * V) "make the sequence non-decreasing at minimum total
           |a_i - b_i| cost" tabulation. A learner cannot acquire slope trick without
           first being able to formulate that recurrence. Per D-F4 §3.1 the base DP is
-          owned by the cluster the cascade assigns it (CL-1: plain index tuple over a
-          linear domain, T4) and the OPTIMIZATION node is CL-4's — two nodes, not one
-          contested node. DECLARED, never drawn: CL-1's technique nodes are being
-          written concurrently and their ids are not visible to SUB-13. This is NOT a
-          root edge and must not be resolved into one; the roots are the four DP first
-          principles, not the linear-sequence family.
+          owned by the cluster the cascade assigns it (CL-1 by T4: a plain index tuple
+          over a linear domain) and the OPTIMIZATION node is CL-4's — two nodes, not one
+          contested node. DECLARED, never drawn — see `notes` on id resolution. This is
+          NOT a root edge and must not be resolved into one; the roots are the four DP
+          first principles, not the linear-sequence family.
         confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
@@ -587,22 +595,22 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.aliens-trick-application->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.aliens-trick-application->cl-1.sequence-partition-dp"
         from: "cl-4.aliens-trick-application"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.sequence-partition-dp"
+        to_name: "Sequence partition DP (index-plus-count state)"
         relation: "requires"
         rationale: >-
-          THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. The
-          Aliens trick is parasitic on a base DP over (index, count-used) — canonically
-          the "partition a sequence into exactly k segments at minimum cost"
-          recurrence — which must already be correct before there is a count dimension
-          to remove. A learner cannot acquire it without first being able to formulate
-          that recurrence. Per D-F4 §3.1 the base DP is owned by the cluster the
-          cascade assigns it (CL-1: plain index tuple over a linear domain, T4) and the
-          OPTIMIZATION node is CL-4's — two nodes, not one contested node. DECLARED,
-          never drawn: CL-1's technique nodes are being written concurrently.
+          THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES, and the
+          cleanest instance of the pattern in this file. The Aliens trick is parasitic
+          on a base DP over (index, count-used) — canonically "partition a sequence into
+          exactly k segments at minimum cost" — which must already be correct before
+          there is a count dimension to remove. THE COUNT INDEX THAT DEFINES THE TARGET
+          NODE IS PRECISELY WHAT THIS OPTIMIZATION DELETES: that is the whole technique.
+          A learner cannot acquire it without first being able to formulate that
+          recurrence. Per D-F4 §3.1 the base DP is CL-1's by T4 and the OPTIMIZATION node
+          is CL-4's — two nodes, not one contested node. DECLARED, never drawn.
         confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
@@ -868,11 +876,11 @@ nodes:
         - "anchor.segment-tree@1.0.0"
         - "anchor.convex-hull-envelope-geometry@1.0.0"
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.kinetic-segment-tree-dp->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.kinetic-segment-tree-dp->cl-1.sequence-partition-dp"
         from: "cl-4.kinetic-segment-tree-dp"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.sequence-partition-dp"
+        to_name: "Sequence partition DP (index-plus-count state)"
         relation: "requires"
         rationale: >-
           THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. The
@@ -880,17 +888,19 @@ nodes:
           max/min over linear functions of the index — the recurrence must already be
           correct before there is anything to accelerate; this node only makes the
           transition affordable. A learner cannot acquire it without first being able
-          to formulate that recurrence. Per D-F4 §3.1 the base DP is owned by the
-          cluster the cascade assigns it (CL-1 on T4: plain index tuple over a linear
-          domain) and the OPTIMIZATION node is CL-4's. DECLARED, never drawn: SUB-3 is
-          writing CL-1's technique nodes concurrently and their ids are not visible to
-          SUB-13. THIS IS NOT A ROOT EDGE AND MUST NOT BE RESOLVED INTO ONE — the roots
-          are the four DP first principles, not the linear-sequence family. This node
-          is the NEU-938 acceptance scenario's worked case: it carries a DRAWN
-          registered anchor (anchor.segment-tree@1.0.0) AND this DECLARED
-          optimized-family attachment simultaneously, so before SUB-12 runs it reads as
-          complete-but-pending-integration rather than broken.
-        confidence: "named"
+          to formulate that recurrence. Per D-F4 §3.1 the base DP is CL-1's by T4 and
+          the OPTIMIZATION node is CL-4's. DECLARED, never drawn. THIS IS NOT A ROOT
+          EDGE AND MUST NOT BE RESOLVED INTO ONE — the roots are the four DP first
+          principles, not the linear-sequence family. This node is the NEU-938
+          acceptance scenario's worked case: it carries a DRAWN registered anchor
+          (anchor.segment-tree@1.0.0) AND this DECLARED optimized-family attachment
+          simultaneously, so before SUB-12 runs it reads as complete-but-pending-
+          integration rather than broken.
+          CONFIDENCE IS "conjectured" DELIBERATELY — see `notes`. The target named is
+          the closest CL-1 node, but the base this technique actually optimizes is the
+          COUNT-FREE variant of that shape (dp[i] = min over j of dp[j] + cost(j,i)),
+          and SUB-13 is not confident CL-1 mints it as its own node.
+        confidence: "conjectured"
         status: "declared"
     difficulty_dimensions: {}
     javascript_materiality:
@@ -1182,22 +1192,26 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-4.smawk-application->cl-1.linear-sequence-dp"
+      - attachment_id: "xc.cl-4.smawk-application->cl-1.sequence-partition-dp"
         from: "cl-4.smawk-application"
         to_cluster: "CL-1"
-        to_node: "cl-1.linear-sequence-dp"
-        to_name: "Linear-sequence DP"
+        to_node: "cl-1.sequence-partition-dp"
+        to_name: "Sequence partition DP (index-plus-count state)"
         relation: "requires"
         rationale: >-
           THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. SMAWK is
           parasitic on a base DP whose transition is a row-minimum over a cost matrix —
-          canonically the "partition a sequence into segments at minimum total cost"
-          recurrence — which must already be correct before its row minima are worth
-          finding faster. A learner cannot acquire SMAWK-for-DP without first being able
-          to formulate that recurrence. Per D-F4 §3.1 the base DP is owned by the
-          cluster the cascade assigns it (CL-1 on T4) and the OPTIMIZATION node is
-          CL-4's — two nodes, not one contested node. DECLARED, never drawn: CL-1's
-          technique nodes are being written concurrently by SUB-3.
+          canonically "partition a sequence into segments at minimum total cost" — which
+          must already be correct before its row minima are worth finding faster. A
+          learner cannot acquire SMAWK-for-DP without first being able to formulate that
+          recurrence. Per D-F4 §3.1 the base DP is CL-1's by T4 and the OPTIMIZATION node
+          is CL-4's — two nodes, not one contested node. DECLARED, never drawn.
+          CORROBORATED BY THE TARGET ITSELF: cl-1.sequence-partition-dp's own summary
+          names this exact relationship from the other side — "makes this family the
+          standard base for the divide-and-conquer and Knuth optimizations. Those
+          optimizations are NOT this node and NOT this cluster (D-F4 T1 -> CL-4;
+          recorded as EXC-4)." SMAWK is the linear-time strengthening of that same
+          exploitation, so it attaches to the same base.
         confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
@@ -1947,6 +1961,91 @@ scope_boundary:
     falsifiable by OUT-7 finding one instance, and each one names that as its revision
     trigger. This is the weakest link in NEU-938's chain and it is named here rather
     than left for an audit to discover.
+
+# =============================================================================
+# CL-1 ATTACHMENT-ID RESOLUTION — verified against the merged CL-1 file
+# =============================================================================
+# NEU-934 (SUB-3) merged nodes/cl-1-foundational.yaml (PR #615) while this file was
+# being written. That is a coordination WINDFALL, not a licence, and this block
+# records exactly what SUB-13 did and did not do with it.
+#
+# WHAT CHANGED: the four CL-1 attachment targets carry looked-up ids and verbatim
+#   to_names instead of grammar-predicted guesses. SUB-13's ORIGINAL prediction was
+#   "cl-1.linear-sequence-dp" for all four — AND IT WAS WRONG. No such node exists.
+#   This is the schema's own warning landing exactly as written
+#   (03_per-node-record-template.md §3: "to_node is a PREDICTION... SUB-4 may name it
+#   something else entirely. So SUB-12 resolves on to_name + to_cluster + rationale").
+#   Recorded rather than quietly corrected, because it is live evidence FOR the
+#   convention: had CL-1 not landed early, SUB-12 would have resolved these four on
+#   to_name and rationale, and the id hint would have been a miss. That is the design
+#   working, not failing.
+#
+# WHAT DID *NOT* CHANGE — the important half:
+#   The four attachments are STILL `cross_cluster_attachments`, STILL
+#   `status: "declared"`, and are NOT drawn as edges. The disposition table
+#   (01_node-and-edge-schema.md §4.1) keys on WHAT THE TARGET IS — a sibling cluster's
+#   node — not on whether the mapper could see it. V-7 forbids a drawn cross-cluster
+#   edge with no visibility exception, and SUB-12 owns realization in
+#   edges/cross-cluster.yaml. The one-line rule ("draw an edge to anything that
+#   already exists; declare an attachment to anything that doesn't") is the RATIONALE
+#   for the table, not an override of it — reading it as an override would have SUB-13
+#   drawing CL-1 edges from a file it does not own, racing SUB-12, and producing
+#   exactly the duplicate-edge corruption D-S4's X-S1 note warns about for root edges.
+#   The conservative reading is taken deliberately.
+# =============================================================================
+cl1_id_resolution:
+  cl1_merged_at: "PR #615 (NEU-934), merged to develop before this PR"
+  original_prediction: "cl-1.linear-sequence-dp"
+  prediction_outcome: "MISS — no such id exists in the merged CL-1 file."
+  resolved:
+    - from: "cl-4.slope-trick-application"
+      to_node: "cl-1.linear-sequence-dp-2d"
+      to_name: "2D linear/sequence DP (index-pair state)"
+      confidence: "named"
+      basis: >-
+        The target's own summary names the shape slope trick optimizes: "a position
+        paired with a resource count". Slope trick's base is the O(n * V) DP over
+        (index, value) — precisely that.
+    - from: "cl-4.aliens-trick-application"
+      to_node: "cl-1.sequence-partition-dp"
+      to_name: "Sequence partition DP (index-plus-count state)"
+      confidence: "named"
+      basis: >-
+        Exact match. The target's defining second index IS the count the Aliens trick
+        deletes.
+    - from: "cl-4.smawk-application"
+      to_node: "cl-1.sequence-partition-dp"
+      to_name: "Sequence partition DP (index-plus-count state)"
+      confidence: "named"
+      basis: >-
+        Corroborated FROM THE TARGET'S SIDE: cl-1.sequence-partition-dp's summary says
+        it "makes this family the standard base for the divide-and-conquer and Knuth
+        optimizations. Those optimizations are NOT this node and NOT this cluster (D-F4
+        T1 -> CL-4; recorded as EXC-4)." SUB-3 anticipated CL-4's attachment and routed
+        it out of CL-1 explicitly. SMAWK is the linear-time strengthening of the same
+        exploitation.
+    - from: "cl-4.kinetic-segment-tree-dp"
+      to_node: "cl-1.sequence-partition-dp"
+      to_name: "Sequence partition DP (index-plus-count state)"
+      confidence: "conjectured"
+      basis: >-
+        DELIBERATELY DOWNGRADED to "conjectured" rather than asserted. The base this
+        technique optimizes is the COUNT-FREE variant of the partition shape
+        (dp[i] = min over j of dp[j] + cost(j,i)); the named target is the closest CL-1
+        node but carries a count index the kinetic base does not have. Per
+        03_…-template.md §3, "conjectured" means the target SHOULD exist but the mapper
+        is unsure it is mapped — and a conjecture that resolves to nothing is a coverage
+        finding for OUT-7, not a mapper's error. Flagging it is the honest move; naming
+        it "named" would launder a real uncertainty into false precision.
+  unchanged_deliberately: >-
+    All four remain cross_cluster_attachments with status "declared". None is drawn.
+    SUB-12 still resolves and realizes them; the verified ids are a hint that should
+    make that cheap, not a substitute for it.
+  note_for_sub12: >-
+    The CL-2 attachment (xc.cl-4.slope-trick-on-trees->cl-2.tree-dp) is STILL a genuine
+    prediction — cl-2-combinatorial.yaml had not merged when this file was written, so
+    "cl-2.tree-dp" is grammar-derived and, on the evidence of the CL-1 miss above,
+    should be assumed wrong. Resolve it on to_name ("Tree DP") + to_cluster + rationale.
 
 # =============================================================================
 # CARRIED CONFLICTS (preserved, not smoothed — NEU-887 discipline, inherited)
