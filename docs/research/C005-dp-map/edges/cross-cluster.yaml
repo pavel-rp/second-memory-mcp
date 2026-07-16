@@ -8,8 +8,13 @@
 #   and serializes the parallel fan-out that the whole layout exists to enable.
 #   SUB-3/4/5/6/13: this file is not yours. Declare in your own node file.
 #
-#   The mapping phase is CLOSED. All five family clusters are merged (179 nodes),
-#   and SUB-12 has run. What follows is its output.
+#   The mapping phase is CLOSED. All five family clusters are merged and SUB-12 has
+#   run. What follows is its output.
+#
+#   Graph size, stated once so every count below is unambiguous:
+#     179 technique nodes (CL-1 46, CL-2 61, CL-3 31, CL-4 mainstream 23, frontier 18)
+#     +  8 frozen roots (in nodes/cl-1-foundational.yaml)
+#     = 187 nodes total. "The graph" below always means all 187.
 #
 # =============================================================================
 # WHAT SUB-12 DID
@@ -705,9 +710,12 @@ unresolvable_declarations:
     reported_to: "NEU-943 (SUB-9, OUT-2)"
     coverage_verdict_owner: "NEU-942 (OUT-7)"
     reason: >-
-      NO NODE NAMED OR RESEMBLING "SOS DP" EXISTS ANYWHERE IN THE GRAPH. Searched all
-      179 nodes across all five files by id, by name, and by summary. This is not a
-      naming miss that `to_name` could rescue — the technique is genuinely unmapped.
+      NO NODE NAMED OR RESEMBLING "SOS DP" EXISTS ANYWHERE IN THE GRAPH. Searched the
+      full 187-node inventory — all 179 technique nodes across all five files AND the 8
+      frozen roots — by id, by name, and by summary. The roots are included in the search
+      deliberately: excluding them would leave the claim "anywhere in the graph"
+      unevidenced for 8 nodes. This is not a naming miss that `to_name` could rescue —
+      the technique is genuinely unmapped.
     root_cause: >-
       SOS DP FELL THROUGH THE CLUSTER PARTITION. Every cluster that could have owned it
       declined, each for its own defensible reason: CL-3 (SUB-5) declined it as
@@ -738,10 +746,12 @@ unresolvable_declarations:
     reported_to: "NEU-943 (SUB-9, OUT-2)"
     coverage_verdict_owner: "NEU-942 (OUT-7)"
     reason: >-
-      NO BITSET / WORD-PARALLEL NODE EXISTS IN CL-4 OR ANYWHERE ELSE. Verified against
-      both CL-4 files by id, name, and summary — neither mainstream's 23 nodes nor
-      frontier's 18 contain it. Same class of gap as SOS DP: the technique is unmapped,
-      not merely renamed.
+      NO BITSET / WORD-PARALLEL NODE EXISTS IN CL-4 OR ANYWHERE ELSE IN THE GRAPH.
+      Verified twice, at both scopes the claim needs: against the declared cluster —
+      neither CL-4-mainstream's 23 nodes nor CL-4-frontier's 18 contain it — and then
+      against the full 187-node inventory by id, name, and summary, which is what
+      licenses the "anywhere else". Same class of gap as SOS DP: the technique is
+      unmapped, not merely renamed.
     root_cause: >-
       SAME PARTITION HOLE, DIFFERENT TECHNIQUE. CL-2's exclusion note E4 pushes it out
       explicitly ("Bitset-accelerated subset sum is NOT here: it fires T1 — same states,
