@@ -9,7 +9,7 @@ number below. **Prose that disagrees with the script is wrong; the script is the
 node docs/research/C005-dp-map-package/generator/package-completeness-gate.mjs
 ```
 
-**Result: `36/36 PASS`** · exit 0.
+**Result: `38/38 PASS`** · exit 0.
 
 ---
 
@@ -75,17 +75,32 @@ copy and a fresh generation diverge.
 | --- | --- | --- |
 | **`PG-7a`** | **All 26 `F-943-1`-affected nodes carry the per-node warning marker** | ✅ **26** |
 | **`PG-7a2`** | All **5** inversion-bearing nodes name their backwards dependency (6 inversions) | ✅ **5** |
-| **`PG-7b`** | `F-943-1` is bound as an explicit **unresolved** element | ✅ |
-| **`PG-7c`** | `F-943-1` names an **owner** | ✅ NEU-940 |
-| **`PG-7d`** | `F-943-1` names a **revision trigger** | ✅ the re-run over the edge-complete graph |
+| **`PG-7b0`** | The register has a **dedicated `F-943-1` section, stated FIRST** | ✅ |
+| **`PG-7b`** | `F-943-1` is bound as an explicit **unresolved** element — asserted **inside that section** | ✅ |
+| **`PG-7c`** | `F-943-1` names an **owner** — inside that section | ✅ NEU-940 |
+| **`PG-7d`** | `F-943-1` names a **revision trigger** — inside that section | ✅ the re-run over the edge-complete graph |
+| **`PG-7e`** | The `F-943-1` **repair is recorded as OUT of SUB-11's scope** | ✅ |
 
-**`PG-7a` caught a real defect in this gate, recorded rather than quietly fixed.** Its first version
-matched a bare `F-943-1` substring and reported **179 flagged** — because most blocks mention the
-finding in passing (`F-943-3` inherits it; the stage caveats cite it). **A check that matches
-everything proves nothing**, and it would have "passed" a package where the marker was on **zero**
-nodes. The check now keys on the **per-node warning marker**, emitted only where the finding actually
-lands, and reports **26**. **The same class of error NEU-943 guarded against with its `isFinite` stage
-check** — a check that silently accepts what it cannot discriminate is worse than no check.
+**`PG-7` caught the same class of defect in this gate TWICE. Both are recorded rather than quietly
+fixed, because the pattern is the point.**
+
+**First (`PG-7a`, caught in authoring).** Its first version matched a bare `F-943-1` substring and
+reported **179 flagged** — because most blocks mention the finding in passing (`F-943-3` inherits it;
+the stage caveats cite it). **A check that matches everything proves nothing**, and it would have
+"passed" a package where the marker was on **zero** nodes. It now keys on the **per-node warning
+marker**, emitted only where the finding lands, and reports **26**.
+
+**Second (`PG-7b`/`c`/`d`, caught in review — Copilot, PR #634).** These searched **the whole
+open-items register** for `unresolved`, `NEU-940` and `revision trigger`. **All three strings appear in
+many other rows**, so **the F-943-1 section could have been deleted outright and the gate would still
+have gone green** — the check guarding *"the defect is not buried"* would have passed **with the defect
+buried**. They now **slice `## 1. F-943-1` and assert inside that section only**, plus `PG-7b0`
+(the section exists and is first) and `PG-7e` (the repair is recorded out-of-scope). **The finding was
+valid and is not waived.**
+
+**This is the same failure mode NEU-943 guarded against with its `isFinite` stage check** — and worth
+stating as a rule: **a check whose passing condition is satisfied by unrelated text is not a check.**
+**Scope every assertion to the thing it claims to be asserting.**
 
 ---
 
@@ -158,7 +173,7 @@ JS-materiality finding, integrity finding, or coverage verdict — there is nowh
 
 ## 8. Verdict
 
-**✅ `36/36 PASS`**
+**✅ `38/38 PASS`**
 
 > **GATE VERDICT: PASS — package complete, one-hop recovery mechanical, every element labelled by the
 > ledger, NEU-943 confirmed by reuse, nothing forbidden built.**

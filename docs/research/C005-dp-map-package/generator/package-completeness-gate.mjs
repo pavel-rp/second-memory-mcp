@@ -167,9 +167,21 @@ const invMarked = [...blocks.entries()].filter(([, b]) => b.includes('Stage inve
 check(invMarked.length === 5, 'PG-7a2 all 5 inversion-bearing nodes name their backwards dependency (6 inversions)', `${invMarked.length} nodes`);
 const OPEN = join(PKG, '03_open-items-and-provisional-register.md');
 const openTxt = existsSync(OPEN) ? readFileSync(OPEN, 'utf8') : '';
-check(/F-943-1/.test(openTxt) && /unresolved/.test(openTxt), 'PG-7b F-943-1 is bound as an explicit UNRESOLVED element');
-check(/NEU-940/.test(openTxt), 'PG-7c F-943-1 names an OWNER');
-check(/[Rr]evision trigger/.test(openTxt) && /edge-complete/.test(openTxt), 'PG-7d F-943-1 names a REVISION TRIGGER');
+
+// Assert INSIDE the F-943-1 section, not across the whole file. Searching the whole
+// register for `unresolved` / `NEU-940` / `revision trigger` false-passes: all three
+// appear in many other rows, so the gate would stay green even if the F-943-1 section
+// were deleted outright — i.e. the check guarding "the defect is not buried" would pass
+// with the defect buried. Same failure mode PG-7a had (matched 179, proved nothing).
+const secStart = openTxt.indexOf('## 1. `F-943-1`');
+const secEnd = secStart < 0 ? -1 : openTxt.indexOf('\n## ', secStart + 1);
+const f943 = secStart < 0 ? '' : openTxt.slice(secStart, secEnd < 0 ? openTxt.length : secEnd);
+check(secStart >= 0, 'PG-7b0 the register has a dedicated F-943-1 section (stated FIRST, before any other open item)');
+check(/\*\*unresolved\*\*/.test(f943), 'PG-7b F-943-1 is bound as an explicit UNRESOLVED element (asserted INSIDE its own section)');
+check(/NEU-940/.test(f943), 'PG-7c F-943-1 names an OWNER (inside its own section)');
+check(/[Rr]evision trigger/.test(f943) && /edge-complete/.test(f943), 'PG-7d F-943-1 names a REVISION TRIGGER (inside its own section)');
+// and the fix is explicitly disclaimed as out of scope, so no future reader "helpfully" does it here
+check(/[Oo]ut of .*scope/.test(f943), 'PG-7e the F-943-1 repair is explicitly recorded as OUT of SUB-11 scope');
 
 // =============================================================================
 // PG-8 — every OPEN ITEM has an owner and a revision trigger

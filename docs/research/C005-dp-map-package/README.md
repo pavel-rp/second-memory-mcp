@@ -2,7 +2,7 @@
 
 **Version `1.0.0`** · **Task:** NEU-944 (SUB-11), charter NEU-889 · **Compiled:** 2026-07-16
 **Covers:** OUT-8 (authoring requirements) + OUT-9 (the bound package)
-**Status:** **prompt-ready** · package gate **36/36 PASS** · NEU-943 integrity validator **28/28 PASS**
+**Status:** **prompt-ready** · package gate **38/38 PASS** · NEU-943 integrity validator **28/28 PASS**
 
 ---
 
@@ -129,7 +129,7 @@ verdict.
 
 ```
 node docs/research/C005-dp-map-package/generator/build-cross-reference.mjs      # regenerate 01
-node docs/research/C005-dp-map-package/generator/package-completeness-gate.mjs  # gate: 36/36
+node docs/research/C005-dp-map-package/generator/package-completeness-gate.mjs  # gate: 38/38
 node docs/research/C005-dp-map-integrity/validator/audit-graph-integrity.mjs    # NEU-943: 28/28
 ```
 
