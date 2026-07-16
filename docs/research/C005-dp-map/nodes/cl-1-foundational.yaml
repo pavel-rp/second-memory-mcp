@@ -436,8 +436,16 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The acquisition is the joint judgment that optimal substructure and
+        overlapping subproblems hold together in a live problem statement. That judgment is
+        about the problem, not about any language: nothing in JavaScript's recursion, number, or
+        container semantics changes whether a problem admits a DP formulation, nor changes what
+        a downstream agent writes to teach the judgment.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2"]
@@ -479,8 +487,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The catalogue is a taxonomy of state shapes. A state shape is a
+        modelling fact about the problem; no JavaScript effect adds a pattern, removes one, or
+        changes what any of them means.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -535,8 +549,16 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Choosing which pattern fits a problem's shape is driven by the
+        problem's shape. The language would have to change which pattern is CORRECT for this to
+        be material, and it does not — it can only change what the chosen pattern costs to
+        realize, which is recorded on the implementation nodes (cl-1.order-2d-table-evaluation)
+        rather than here (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -594,8 +616,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The routine takes a problem statement to a state, a transition, and
+        base cases. It terminates before any code exists. There is nothing for a language
+        semantic to bind on.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2"]
@@ -658,8 +686,13 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The four obligations are properties of the recurrence, discharged on
+        paper. A proof obligation does not acquire a language.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -710,8 +743,16 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The argument is about the recurrence, not its realization. Note the
+        deliberate boundary: JS-E2 can make a CORRECT recurrence produce wrong output in
+        JavaScript, but that is an implementation defect, not a gap in the proof — and treating
+        it as one would be exactly the invented claim the third acceptance scenario forbids. The
+        precision hazard is recorded where it is written: cl-1.counting-dp-over-linear-domain.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -756,13 +797,29 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: the
-        "stack overflow" symptom that a C++-oriented reference attributes to deep
-        top-down recursion presents differently in JavaScript (a RangeError at a
-        non-tunable default depth reached at far smaller n), so the symptom→cause row
-        for that failure mode may not transfer as written. An observation, not a verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1", "JS-E2", "JS-E9"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — this node's content IS the symptom list, and JavaScript's symptom list
+        differs from the C++ one this taxonomy inherits. Three concrete divergences a downstream
+        agent must write: (1) JS-E1 — a too-deep DP dies at ~10^4 frames with 'RangeError:
+        Maximum call stack size exceeded', a named, catchable, immediate failure; the C++
+        counterpart is a segfault an order of magnitude deeper, or silent stack corruption. (2)
+        JS-E2 — arithmetic past 2^53 ROUNDS, producing a plausible near-miss; the C++
+        counterpart WRAPS, often producing an obviously absurd or negative value. A learner
+        debugging in JavaScript therefore gets a weaker signal from a wrong number than a C++
+        learner does. (3) JS-E9 — reading an uncomputed state yields a spreading NaN (plain
+        Array) or a silent, legitimate-looking 0 (typed array), where C++ yields UB. The
+        taxonomy as inherited would under-describe all three.
+      mapper_note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: the "stack
+        overflow" symptom that a C++-oriented reference attributes to deep top-down recursion
+        presents differently in JavaScript (a RangeError at a non-tunable default depth reached
+        at far smaller n), so the symptom→cause row for that failure mode may not transfer as
+        written. An observation, not a verdict.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -817,8 +874,19 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E9"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — the differential diagnosis gains two JavaScript-specific branches that must
+        be excluded BEFORE concluding the state, transition, or base case is wrong. The symptom
+        this node starts from is a wrong answer, and in JavaScript a wrong answer is produced by
+        two language-level causes that cannot produce it in C++: JS-E2 silent rounding past 2^53
+        (a correct recurrence returning a near-miss), and JS-E9 a NaN or a spurious 0 from an
+        uncomputed cell. A learner who does not know to rule these out first will rewrite a
+        correct recurrence. That changes what this node teaches.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -874,8 +942,13 @@ nodes:
       recognition_load: 5
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition operates on the problem's structure beneath its surface.
+        No language effect changes what is recognizable.
     coverage:
       status: "unaudited"
       corpus_refs: ["C4", "C5"]
@@ -939,8 +1012,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The knowledge is that the table retains the information needed to
+        recover a witness, not just the objective value. That is a property of the table's
+        contents, identical in any language.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -993,8 +1072,15 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The backtracking walk is iterative — it steps from cell to
+        predecessor cell — so JS-E1 does not bind. It reads a table it did not build, so the
+        JS-E5 container decision belongs to the node that builds it (JS-D2). Deliberate
+        non-claim: the walk's length is O(n) but its stack depth is O(1).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1038,8 +1124,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Anchoring a state to an element rather than a prefix is a modelling
+        choice about what the state means. No language effect touches it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1087,8 +1178,15 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. A prefix-index state over one dimension is a single flat array in
+        every language. It is the one table shape where JS-E5's array-of-arrays hazard cannot
+        arise, and at 1D sizes the container choice does not decide feasibility. Recording a
+        typed-array claim here would be JS-E6 dilution (JS-D1).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1138,13 +1236,37 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: a 1D
-        DP over n up to 1e5-1e6 is the first place a learner meets JavaScript's
-        recursion-depth ceiling, since the top-down form recurses once per index. The
-        references assume a C++ default where the same formulation survives. An
-        observation about where the issue first BITES in this cluster, not a verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — recorded here on the mapper's evidence, against this audit's own
+        default that a formulation node is pre-code and therefore neutral. NEU-934's observation
+        on this node is that a 1D DP over n up to 1e5-1e6 is THE FIRST PLACE a learner meets
+        JavaScript's recursion ceiling, because the top-down form recurses once per index; the
+        audit checked it and it holds. n = 1e5-1e6 against a cap on the order of 1e4 frames is
+        not marginal, it is one to two orders of magnitude over, and 1D sequence DP is the most
+        common shape in the map — so this is the highest-frequency instance of JS-E1, not the
+        most exotic. The reason it lands on a FORMULATION node rather than an implementation one
+        is a real gap, not a filing convenience: the node that owns the top-down/bottom-up
+        realization choice is cl-1.root.implement-memoization-and-tabulation, which is a FROZEN
+        root (DR-S02) that this audit may not write, and which itself carries a mapper
+        observation foreseeing exactly this finding. CL-1 has no unfrozen 1D-linear
+        implementation node. Leaving this node neutral would therefore strand the map's most
+        common recursion-depth hazard behind a frozen node — a silent C++ assumption of exactly
+        the kind the second acceptance scenario forbids. The effect on what is written: in
+        JavaScript the top-down/bottom-up choice is not the stylistic one the references
+        present, because the bottom-up form is a loop and the top-down form does not run at this
+        cluster's standard n. See JS-U1.
+      uncertainty: "JS-U1"
+      mapper_note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: a 1D DP over
+        n up to 1e5-1e6 is the first place a learner meets JavaScript's recursion-depth ceiling,
+        since the top-down form recurses once per index. The references assume a C++ default
+        where the same formulation survives. An observation about where the issue first BITES in
+        this cluster, not a verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1196,8 +1318,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. A sufficiency argument about a state is language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1243,8 +1369,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An auxiliary mode dimension is a modelling device. The mode count is
+        small and the table stays 1D-by-small-k; no JavaScript effect binds.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1304,8 +1435,12 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1352,8 +1487,15 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as KNOWLEDGE: an index-pair state is a modelling fact. The 2D table's
+        realization is where JavaScript binds, and that verdict is recorded on
+        cl-1.order-2d-table-evaluation, the node that writes the table (JS-D2). This is a
+        cross-reference, not a silent C++ assumption.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1403,8 +1545,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1456,14 +1602,29 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only:
-        allocating a 2D table in JavaScript has no single obvious form (array of arrays
-        vs a flat typed array with manual index arithmetic), and the choice has
-        materially different performance and initialization semantics than the C++
-        `vector<vector<int>>` or raw 2D array the references assume. An observation
-        that a materiality question EXISTS here, not a verdict on it.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — this is the node that writes the 2D table, and JavaScript forces a decision
+        C++ does not. The direct translation of the C++ default is an array-of-arrays, which in
+        JavaScript is a boxed outer array of boxed inner arrays: a pointer chase per row plus
+        per-element overhead. C++'s vector<vector<int>> is also row-indirect but the rows are
+        unboxed contiguous ints, and the flat vector<int> is the reflexive idiom. The JavaScript
+        idiom for a hot 2D table is therefore an explicit FLAT typed array with manual index
+        arithmetic (i * W + j) — a choice a C++ author gets for free and a JavaScript author
+        must make deliberately. JS-E6 is recorded here only in combination with that specific
+        mitigable idiom, per JS-D1. Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: allocating a
+        2D table in JavaScript has no single obvious form (array of arrays vs a flat typed array
+        with manual index arithmetic), and the choice has materially different performance and
+        initialization semantics than the C++ `vector<vector<int>>` or raw 2D array the
+        references assume. An observation that a materiality question EXISTS here, not a verdict
+        on it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2"]
@@ -1508,8 +1669,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An index-plus-count state is a modelling fact.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2", "C4"]
@@ -1558,8 +1723,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2", "C4"]
@@ -1627,8 +1796,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as KNOWLEDGE: that a prefix-aggregate array IS a DP recurrence is the
+        insight, and it is language-independent. The exactness headroom of the accumulator is
+        recorded on cl-1.build-prefix-aggregate, the node that writes it (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1"]
@@ -1688,8 +1863,22 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2"]
+      severity: "correctness-risk"
+      rationale: >-
+        MATERIAL — the accumulator's exact range is three orders of magnitude smaller than the
+        C++ default's, and this is the node that writes the accumulation. A C++ author
+        reflexively declares the prefix array long long, exact to ~9.2e18, and stops thinking.
+        JavaScript's Number is exact only to 2^53 ~ 9.0e15. A prefix sum over 1e6 elements of
+        magnitude 1e9 lands at ~1e15 — INSIDE the bound, but within one order of magnitude of
+        it, so the headroom a C++ author never has to reason about is nearly exhausted before
+        the problem is even large. Past 2^53 the sum silently rounds rather than wrapping, so
+        the array stays plausible while being wrong. Any prefix aggregate whose totals can
+        exceed 2^53 requires BigInt. Recorded as correctness-risk, not blocking: the common case
+        is correct, and a reachable one is not.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1"]
@@ -1732,8 +1921,15 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Subtracting two prefix entries to get a range aggregate is
+        arithmetic on values already constrained by cl-1.build-prefix-aggregate's verdict; the
+        subtraction itself introduces no new JavaScript effect and the identity is
+        language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1"]
@@ -1782,8 +1978,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That the difference array is the prefix recurrence run backwards is
+        a structural insight. No JavaScript effect touches it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1"]
@@ -1837,8 +2038,13 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The grid recurrence is a modelling fact. Boundary handling — where
+        JavaScript does bind — is recorded on cl-1.handle-grid-boundaries-and-obstacles (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1888,8 +2094,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1941,8 +2151,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An exactly-once partition argument is language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2"]
@@ -1994,8 +2208,25 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E9", "JS-E5"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — the guard idiom and the failure signature both differ from the C++ default.
+        In C++ an out-of-range vector read is undefined behaviour, which is WHY the
+        sentinel-padding idiom exists: the pad is not a convenience, it is what keeps the
+        program defined. In JavaScript an out-of-range Array read is defined and returns
+        undefined, which becomes NaN in arithmetic and then propagates through every downstream
+        comparison silently (NaN < x is always false, so a max-fold quietly ignores it). So a
+        JavaScript author CAN lean on the read returning undefined where a C++ author must not —
+        but must then guard the NaN, a failure mode C++ does not have. JS-E5 compounds it: the
+        same out-of-range read on an Int32Array is also undefined, but an uninitialized IN-range
+        cell is 0, which for a path-counting grid is a legitimate value and therefore invisible.
+        The correct JavaScript idiom (explicit bounds test, or sentinel padding chosen
+        deliberately rather than inherited) must be written; it cannot be assumed from the C++
+        default.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2041,14 +2272,30 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only:
-        modular multiplication of two values near a 1e9 prime exceeds JavaScript's
-        exact-integer range for Number, so the C++ `long long` idiom every selected
-        reference writes has no direct equivalent and forces a choice (BigInt, or
-        splitting the multiply). This is an observation that a materiality question
-        exists on this node's anchor edge, NOT a verdict — SUB-8 owns that.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E3"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — the modulus is constitutive of this node (it draws
+        anchor.modular-arithmetic), and the C++ one-liner it inherits is silently wrong in
+        JavaScript. With the standard M = 1e9+7, two residues below M have a product up to
+        ~1e18, which is ~111x past 2^53. So `(a * b) % 1000000007` — exact in C++ long long, and
+        written without a thought — silently ROUNDS in JavaScript and returns a plausible, wrong
+        residue. This is not a performance note: the direct translation of the C++ default
+        produces wrong answers on most inputs. A correct JavaScript counting DP under a modulus
+        requires BigInt for the multiply, or a split multiply keeping every partial product
+        under 2^53 (decomposing one operand around 2^26, folding with Math.imul). Addition is
+        safe (2M < 2^53); multiplication is not. This is the single highest-impact JavaScript
+        effect in the map and it is invisible unless stated.
+      mapper_note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: modular
+        multiplication of two values near a 1e9 prime exceeds JavaScript's exact-integer range
+        for Number, so the C++ `long long` idiom every selected reference writes has no direct
+        equivalent and forces a choice (BigInt, or splitting the multiply). This is an
+        observation that a materiality question exists on this node's anchor edge, NOT a verdict
+        — SUB-8 owns that.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2104,8 +2351,16 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The O(n^2) recurrence compares elements and adds 1; it never
+        multiplies, never approaches 2^53, and iterates rather than recursing. Deliberate
+        non-claim: the O(n log n) LIS — where a JavaScript author would confront JS-E8's absent
+        lower_bound-capable ordered container — is an adjudicated coverage gap (INC-C1), mapped
+        by nobody, so there is no node here to audit. See JS-U3; not invented.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2166,8 +2421,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2214,8 +2473,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. A correctness argument is language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -2267,8 +2530,13 @@ nodes:
       recognition_load: 5
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognizing increasing-subsequence structure under a disguise is a
+        structural act.
     coverage:
       status: "unaudited"
       corpus_refs: ["C4", "C5"]
@@ -2325,8 +2593,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The Levenshtein recurrence adds small costs and takes minima; it
+        never approaches 2^53. Its table is 2D, and that verdict lives on
+        cl-1.order-2d-table-evaluation (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2377,8 +2651,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2426,8 +2704,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An exhaustiveness argument is language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -2470,8 +2752,16 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Same shape as edit distance: small additive costs, a 2D table whose
+        container verdict lives on cl-1.order-2d-table-evaluation. Deliberate non-claim: the
+        bitset/word-parallel LCS speedup — genuinely JavaScript-material, since C++'s
+        std::bitset has no JavaScript equivalent and must be hand-rolled over a Uint32Array — is
+        an adjudicated coverage gap (INC-C1) with no node. See JS-U3; not invented.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2519,8 +2809,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. What each scoring variant does to the state is a modelling fact.
+        Affine-gap scoring adds state dimensions, not JavaScript effects.
     coverage:
       status: "unaudited"
       corpus_refs: ["C4", "C5"]
@@ -2575,8 +2870,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The recurrence is a running max of sums over one pass. The
+        all-negative boundary is where JavaScript does bind, and that verdict is on
+        cl-1.diagnose-empty-subarray-and-all-negative-boundary (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2627,8 +2928,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -2675,8 +2980,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. A correctness argument is language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -2732,8 +3041,25 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E9"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL, and material in the direction that JavaScript REMOVES the C++ hazard —
+        recorded because materiality is symmetric (JS-D5) and because the C++-derived version of
+        this node teaches a bug that does not exist in JavaScript. The C++ idiom seeds the
+        running maximum with INT_MIN or LLONG_MIN, and the classic failure this node exists to
+        diagnose is that INT_MIN + a[i] UNDERFLOWS, so the sentinel is not a safe identity for
+        max-plus. JavaScript's -Infinity is a TOTAL identity: -Infinity + x is -Infinity for any
+        finite x, it compares correctly against every finite value, and it cannot underflow. So
+        the all-negative boundary in JavaScript is handled by seeding -Infinity and nothing else
+        goes wrong. A downstream agent inheriting the C++ failure taxonomy would teach a guard
+        against a bug JavaScript cannot have, and would miss that the JavaScript sentinel is
+        simply correct. The one JavaScript-specific residue: -Infinity is a Number, so an
+        Int32Array cannot hold it — the sentinel forces a plain Array or Float64Array for the
+        accumulator.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1"]
@@ -2777,8 +3103,19 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The acquisition is that one value per state is insufficient and the
+        state must carry both the running minimum and maximum, because a negative flips them.
+        That is a modelling fact about sign, not about width; a downstream agent writes the same
+        two-value state in either language. Deliberate non-claim: subarray products do exceed
+        2^53 quickly, but they exceed C++'s long long just as quickly, so the effect is not
+        DIFFERENTIAL against the C++ default and recording it here would be an invented
+        materiality claim. The problems this node meets bound the product; where they do not,
+        both languages need a bignum.
     coverage:
       status: "unaudited"
       corpus_refs: ["C4"]
@@ -2825,8 +3162,14 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The complement reduction — maximum circular subarray is the total
+        minus the minimum subarray — is an arithmetic identity over the same magnitudes Kadane
+        already handles.
     coverage:
       status: "unaudited"
       corpus_refs: ["C4"]

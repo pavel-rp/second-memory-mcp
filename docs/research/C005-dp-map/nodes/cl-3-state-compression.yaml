@@ -281,13 +281,33 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation only, not a verdict (OUT-5/SUB-8 owns that): JavaScript's
-        bitwise operators coerce to signed 32-bit, so a mask over n > 30 elements
-        silently misbehaves in a way it does not in the C++ competitive default the
-        selected references assume. BigInt or a two-word split is the workaround and
-        both change the cost model. SUB-8 must reach its own verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E4"]
+      severity: "correctness-risk"
+      rationale: >-
+        MATERIAL — this node IS the bit encoding, and JavaScript's bit width is half C++'s with
+        a silent failure at the boundary. C++ encodes a subset in an int (32 bits) or unsigned
+        long long (64), reflexively and without a ceiling worth thinking about. JavaScript's
+        bitwise operators (&, |, ^, ~, <<, >>) coerce BOTH OPERANDS TO INT32 and return int32,
+        so an encoded mask has 31 safely usable bits — 32 only with >>> 0 discipline maintained
+        everywhere, which breaks composition with << and & afterwards. Two specific hazards a
+        downstream agent must write, neither of which announces itself: `1 << 31` is NEGATIVE
+        (-2147483648), so a mask with the top bit set cannot index an array and compares
+        wrongly; and SHIFT COUNTS ARE TAKEN MOD 32, so `1 << 32` silently evaluates to 1 rather
+        than 2^32 — it does not throw, does not saturate, and yields a completely different
+        mask. Recorded as correctness-risk rather than blocking, deliberately: the common
+        bitmask DP has n <= 20 because 2^n MEMORY binds long before the bit width does, so the
+        31-bit ceiling is genuinely NOT reached in the standard case and claiming otherwise
+        would be invented. The risk is real at the boundary and the ceiling is half of C++'s;
+        both facts belong on this node.
+      mapper_note: >-
+        Observation only, not a verdict (OUT-5/SUB-8 owns that): JavaScript's bitwise operators
+        coerce to signed 32-bit, so a mask over n > 30 elements silently misbehaves in a way it
+        does not in the C++ competitive default the selected references assume. BigInt or a
+        two-word split is the workaround and both change the cost model. SUB-8 must reach its
+        own verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:O", "C2:U", "C3:I"]
@@ -354,8 +374,16 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognizing that a problem wants a subset as its state is driven by
+        the problem's structure and by n being small enough for 2^n states — a memory bound
+        identical in both languages. The encoding's 31-bit ceiling is a JavaScript fact but it
+        does not change what is RECOGNIZABLE; it changes what is written, and that verdict is on
+        cl-3.bitmask-state-encoding (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:O", "C2:U"]
@@ -415,11 +443,29 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation, not a verdict: the idiom relies on `&` and `-` over a machine
-        integer. JavaScript's signed-32-bit bitwise coercion bounds it identically to
-        the encoding node's observation. SUB-8 owns the verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E4", "JS-E6"]
+      severity: "correctness-risk"
+      rationale: >-
+        MATERIAL — the canonical idiom is a bitwise loop, and JavaScript's 32-bit signed
+        semantics reach into it. The C++ idiom `for (int sub = mask; sub; sub = (sub - 1) &
+        mask)` transcribes to JavaScript character-for-character and works — up to the boundary.
+        At the boundary it fails in a specific way worth writing: if `mask` has bit 31 set, then
+        `(sub - 1) & mask` produces a NEGATIVE int32, which still passes the loop's truthiness
+        guard (so the loop does not hang or stop early) but cannot index the DP table and
+        compares wrongly against other masks — the enumeration proceeds and the lookups are
+        garbage. The C++ version with an unsigned or long long mask has no such boundary. JS-E6
+        is recorded here only in combination with that specific idiom, per JS-D1: submask
+        enumeration is a 3^n inner loop, so it is a hot path where the boxed-versus-typed table
+        it indexes (JS-E5, recorded on cl-3.implement-bitmask-dp) decides the constant.
+        Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Observation, not a verdict: the idiom relies on `&` and `-` over a machine integer.
+        JavaScript's signed-32-bit bitwise coercion bounds it identically to the encoding node's
+        observation. SUB-8 owns the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:U"]
@@ -490,12 +536,36 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E4", "JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — this node writes both the masks and the table, so it carries both JavaScript
+        effects that bitmask DP meets. JS-E5 is the sharper one and it decides MLE rather than
+        TLE: a bitmask DP's table is 2^n cells (often 2^n * n), and at n = 20 that is 2^20
+        entries — an Int32Array(1 << 20) is exactly 4 MB, while `new Array(1 << 20)` of boxed
+        numbers costs a multiple of that with no guarantee of the packed-SMI representation,
+        which is lost on a single non-SMI write. C++'s vector<int> IS the 4 MB buffer with no
+        decision to make. So the memory ceiling that decides whether a bitmask DP fits is
+        language-dependent, and the typed array is what recovers the C++ default's behaviour.
+        JS-E4 rides along on the masks this node writes, which are subject to the 31-bit ceiling
+        and the mod-32 shift semantics recorded on cl-3.bitmask-state-encoding — and NEU-936's
+        observation on this node adds a specific instance the audit confirms: THERE IS NO NATIVE
+        POPCOUNT. C++ has __builtin_popcount (a single instruction on any modern target), and
+        bitmask DP uses it constantly — to index by subset size, to bound iteration, to test
+        cardinality. JavaScript has Math.clz32 but nothing for population count, so it must be
+        hand-rolled (an SWAR bit-twiddle, or a precomputed 2^16 lookup table) — and the SWAR
+        form is itself written in 32-bit bitwise operators, inheriting JS-E4's ceiling. That is
+        index arithmetic the C++ author never writes. JS-E6 is recorded only in combination with
+        the typed-array idiom, per JS-D1. Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
         Observation, not a verdict: a 2^20-entry typed array is routine in JS, but the
-        signed-32-bit bitwise coercion caps n at 30 and `Math.clz32`/popcount have no
-        native primitive, so the index arithmetic differs materially from the C++
-        default the references assume. SUB-8 owns the verdict.
+        signed-32-bit bitwise coercion caps n at 30 and `Math.clz32`/popcount have no native
+        primitive, so the index arithmetic differs materially from the C++ default the
+        references assume. SUB-8 owns the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:O", "C2:U", "C3:I"]
@@ -545,8 +615,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Arguing that a subset-partition transition covers each subset
+        exactly once is a combinatorial argument, discharged on paper.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:U"]
@@ -597,8 +672,24 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — the node diagnoses a bitmask DP that TLEs or MLEs, and in JavaScript the MLE
+        branch of that diagnosis has a cause C++ does not have. In C++ an MLE means the state
+        space is genuinely too big: vector<int> is 4 bytes a cell and there is no overhead to
+        blame, so the only remedy is to shrink the state. In JavaScript an MLE at the SAME state
+        count may mean nothing more than that the table is a boxed Array rather than an
+        Int32Array (JS-E5) — a container mistake, not a modelling mistake, with a fix that costs
+        one line and does not touch the formulation. So the JavaScript differential diagnosis
+        gains a branch that must be checked FIRST, before concluding the state space needs
+        redesigning: a learner who inherits the C++ taxonomy will start redesigning a state that
+        was fine. The TLE branch shifts the same way for the boxed-array constant factor.
+        Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -646,11 +737,18 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation, not a verdict: digit DP bounds routinely exceed 2^53, so JS
-        number-typed bounds lose precision where C++ `long long` does not; BigInt or
-        string-typed bounds are the realistic carrier. SUB-8 owns the verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The tight/started/position state semantics are a modelling fact
+        about constrained digit enumeration. Reading the bound — where JavaScript binds hard —
+        is written at cl-3.implement-digit-dp (JS-D2).
+      mapper_note: >-
+        Observation, not a verdict: digit DP bounds routinely exceed 2^53, so JS number-typed
+        bounds lose precision where C++ `long long` does not; BigInt or string-typed bounds are
+        the realistic carrier. SUB-8 owns the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:E"]
@@ -720,8 +818,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:E"]
@@ -770,13 +872,33 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation, not a verdict: the natural top-down realization recurses to
-        numeral length, which is shallow, so JS's fixed stack is not the constraint
-        here that it is elsewhere. Recorded because a reader may expect the root's
-        recursion-depth observation to propagate, and here it does not. SUB-8 owns
-        the verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E3"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING, at the INPUT BOUNDARY rather than inside the recurrence — a place
+        a C++-derived version of this node has no reason to mention. Digit DP's whole purpose is
+        counting numbers up to a bound, and the bounds it is posed with are routinely up to
+        1e18, because that is what fits in C++'s long long — the technique's canonical problem
+        sizes are SHAPED BY the C++ integer width. 1e18 is ~111x past 2^53. So in JavaScript the
+        bound CANNOT BE READ INTO A Number at all: parseInt/Number on '1000000000000000000'
+        silently returns the nearest representable double, and the digits the DP then enumerates
+        are the digits of the WRONG NUMBER. C++'s cin >> n into a long long is exact and the C++
+        author never thinks about it. The JavaScript realization must keep the bound as a STRING
+        (which digit DP wants anyway — it iterates the decimal digits, and a string is already a
+        digit array) or as a BigInt. This is blocking and it is invisible: the DP itself is
+        correct, the state semantics are correct, and the answer is wrong because the input was
+        destroyed before the DP started. Deliberate non-claim on JS-E1: digit DP recurses once
+        per digit, so its depth is at most ~19 frames for a 1e18 bound — the recursion cap is
+        nowhere near it, and the memoized top-down form that is the natural realization is
+        entirely safe here.
+      mapper_note: >-
+        Observation, not a verdict: the natural top-down realization recurses to numeral length,
+        which is shallow, so JS's fixed stack is not the constraint here that it is elsewhere.
+        Recorded because a reader may expect the root's recursion-depth observation to
+        propagate, and here it does not. SUB-8 owns the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:E"]
@@ -825,8 +947,17 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Arguing that the tight-bound handling admits exactly the numbers <=
+        N and no others is a combinatorial argument about the transition. Deliberate boundary:
+        JS-E2 can destroy the BOUND before the argument's premise holds
+        (cl-3.implement-digit-dp), but that is an input-handling defect, not a gap in the
+        exactness argument — and folding it in here would blur a real distinction the map should
+        keep.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -877,8 +1008,12 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition is a structural act.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -937,8 +1072,22 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-NEUTRAL, and this is a deliberate, load-bearing non-claim rather than an
+        omission. 'JavaScript numbers are imprecise' is folklore, and it is FALSE at this
+        boundary: JavaScript's Number IS IEEE-754 binary64, bit for bit the same type as C++'s
+        double, with the same rounding, the same epsilon, and the same accumulation behaviour. A
+        probability or expectation DP that is numerically fine in C++ double is numerically fine
+        in JavaScript, and one that is ill-conditioned is ill-conditioned in both. Recording a
+        floating-point hazard here would be exactly the invented materiality claim the third
+        acceptance scenario forbids — and it is the invented claim a reviewer would most expect
+        to find. The ONE real difference (C++'s long double has no JavaScript equivalent) is
+        narrow, bites only where near-equal values must be separated, and is recorded there:
+        cl-3.resolve-expectation-dp-self-loops.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:I", "C2:J", "C3:J"]
@@ -980,8 +1129,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Linearity of expectation is a theorem. It licenses a decomposition
+        regardless of the arithmetic that later evaluates it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:J"]
@@ -1031,8 +1185,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:I", "C2:J", "C3:J"]
@@ -1088,14 +1246,38 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation, not a verdict: competitive expectation problems usually demand
-        the answer as a modular rational (p * q^-1 mod 998244353), so the elimination
-        runs over a finite field, not over floats. JS has no native modular inverse
-        and its numbers cannot hold the intermediate products, so BigInt or a
-        Montgomery-style routine is forced where C++ uses `long long` directly. SUB-8
-        owns the verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E3", "JS-E9"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — on TWO independent paths, and NEU-936's mapper observation on
+        this node corrected this audit's first reading of which one dominates. (1) THE MODULAR
+        PATH, which is the common one: competitive expectation problems overwhelmingly demand
+        the answer as a MODULAR RATIONAL — p * q^-1 mod 998244353 — so the self-loop resolution
+        and the cyclic elimination run OVER A FINITE FIELD, not over floats. Dividing by (1 -
+        p_self) is then a modular inverse, and every elimination step is a modmul of two
+        residues below 998244353, whose product reaches ~1e18: ~111x past 2^53 (JS-E2). C++ does
+        it in long long directly. JavaScript silently rounds, so the elimination is wrong from
+        the first step, and JavaScript additionally has NO NATIVE MODULAR INVERSE where C++
+        solutions inline a fast-power or extended-Euclid over long long — so BigInt or a
+        Montgomery-style routine is forced (JS-E3). This is blocking and it is the dominant
+        case. (2) THE FLOATING-POINT PATH, where the problem does want a real answer: here
+        JavaScript is NOT weaker in the way folklore expects — Number is binary64, bit-identical
+        to C++ double (see cl-3.probability-vs-expectation-dp-semantics). The one real gap is
+        JS-E9a: an elimination that is ill-conditioned as p_self approaches 1 is exactly what
+        competitive C++ answers by switching double to LONG DOUBLE (x87 80-bit) for the extra
+        mantissa bits, and JAVASCRIPT HAS NO WIDER FLOAT. That one-token C++ remedy has no
+        JavaScript counterpart; the author must restructure (pivoting, or reformulating away
+        from the near-singular division). Both paths change what is written, and the modular one
+        blocks.
+      mapper_note: >-
+        Observation, not a verdict: competitive expectation problems usually demand the answer
+        as a modular rational (p * q^-1 mod 998244353), so the elimination runs over a finite
+        field, not over floats. JS has no native modular inverse and its numbers cannot hold the
+        intermediate products, so BigInt or a Montgomery-style routine is forced where C++ uses
+        `long long` directly. SUB-8 owns the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:J"]
@@ -1161,8 +1343,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Arguing that the expectation exists and the system has a unique
+        solution is a mathematical argument, prior to any arithmetic.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1213,8 +1400,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Win/lose position semantics are game-theoretic facts.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:K", "C2:L", "C3:K"]
@@ -1254,8 +1445,13 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The Grundy value and the mex operator are definitions over small
+        non-negative integers.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:K"]
@@ -1298,8 +1494,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The theorem is a theorem.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:K"]
@@ -1351,8 +1551,19 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral, and the XOR question is checked rather than assumed — this is a
+        deliberate non-claim. Sprague-Grundy composition is an XOR fold, and JavaScript's ^ is a
+        32-bit SIGNED operation (JS-E4), which is the kind of thing that looks like a finding.
+        It is not one here: Grundy values are bounded by the branching of the game graph and sit
+        far below 2^31 in every game this technique is posed with, so the XOR is exact and the
+        sign bit is never reached. Asserting a hazard would be inventing one. The mex
+        computation is a small-set scan over the same small values. Recorded as neutral WITH the
+        check stated, so a reader can see the boundary was examined rather than skipped.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:K"]
@@ -1403,8 +1614,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Choosing what a position is is a modelling act.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:K", "C2:L", "C3:K"]
@@ -1461,8 +1676,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The decomposition argument is language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1512,8 +1731,12 @@ nodes:
       recognition_load: 5
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition is a structural act.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1570,8 +1793,21 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E4"]
+      severity: "correctness-risk"
+      rationale: >-
+        MATERIAL — broken-profile encodings are bit-packed and sit closer to JavaScript's 31-bit
+        ceiling than an ordinary subset mask does. The profile carries one bit per column plus
+        the broken-cell marker, so the mask width is the grid's WIDTH + 1 rather than a small
+        item count. Widths up to ~20 fit inside JavaScript's 31 usable bits, so the common case
+        is safe and this is not claimed as blocking. But the C++ default has 64 bits with no
+        ceiling worth reasoning about, whereas the JavaScript author is working at width+1 bits
+        against a hard 31 with a SILENT failure past it: shift counts are taken mod 32, so `1 <<
+        32` yields 1 rather than 2^32, producing a wrong mask with no error. The margin that C++
+        never has to think about is the content of this verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:L", "C5"]
@@ -1623,8 +1859,29 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E4", "JS-E3"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — the sharpest bit-width finding in the map, and the one place
+        where JavaScript's 32-bit bitwise operators make the C++ default OUTRIGHT INFEASIBLE
+        rather than merely tight. Plug DP does not pack one bit per column; it packs a
+        CONNECTIVITY LABEL per column — 2 to 4 bits each, because a plug must record WHICH
+        component it belongs to, not merely that it exists. So the mask width is (bits per plug)
+        x (grid width + 1), not the width itself. At 3 bits per plug a width-10 grid needs 33
+        bits; at 4 bits per plug it needs 44; a width-12 grid at 4 bits needs 52. ALL OF THESE
+        EXCEED JAVASCRIPT'S 31 USABLE BITS, and they do so at widths plug DP is routinely posed
+        at. C++ carries them in an unsigned long long (64 bits) without comment — the
+        technique's canonical encoding is SHAPED BY the availability of a 64-bit integer.
+        JavaScript's bitwise operators cannot represent these masks at all: the operands are
+        coerced to int32 before the operation, so the high bits are gone before the shift
+        happens, silently. The JavaScript realization must abandon the bitwise encoding entirely
+        and move to BigInt masks (correct, and materially slower — JS-E3, in an inner loop), a
+        base-k digit array, or a string key. That is not a translation of the C++ idiom, it is a
+        different encoding, and it interacts with JS-E7 because these masks are hash-map keys
+        (cl-3.implement-plug-dp).
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1702,13 +1959,32 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation, not a verdict: reachable frontier states are sparse and are
-        conventionally held in a hash map keyed by the profile. JS `Map` boxes keys and
-        its iteration order/allocation behaviour differ materially from the
-        `unordered_map` the references assume; a 4-bit-per-cell profile also exceeds
-        the 32-bit bitwise window fast. SUB-8 owns the verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E4", "JS-E7", "JS-E3"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — this node writes both the encoding and the state map, and
+        JavaScript breaks both. The encoding: per cl-3.plug-dp-connectivity-encoding, a
+        multi-bit-per-plug mask exceeds 31 bits at the widths plug DP is posed at, so the
+        bitwise operators cannot hold it (JS-E4) and the realization must move to BigInt or a
+        digit/string encoding (JS-E3). The state map compounds it (JS-E7): plug DP keeps a HASH
+        MAP from live packed state to value, rebuilt per cell, and that map's key type is
+        exactly what JavaScript has no good answer for. C++ uses unordered_map<unsigned long
+        long, T> — keyed by value, 64 bits of key, fast. JavaScript has no value-typed key: a
+        Map keyed on a BigInt works but hashes a heap object per lookup; a Map keyed on a string
+        allocates a string per lookup in the innermost loop; and packing into a Number to key on
+        drops straight back into the 2^53 and int32 ceilings the encoding was trying to escape.
+        Every JavaScript option is materially worse than the C++ default, in the hottest loop of
+        the technique. Both effects land on the same node, which is why this is the most
+        JavaScript-affected implementation node in the map.
+      mapper_note: >-
+        Observation, not a verdict: reachable frontier states are sparse and are conventionally
+        held in a hash map keyed by the profile. JS `Map` boxes keys and its iteration
+        order/allocation behaviour differ materially from the `unordered_map` the references
+        assume; a 4-bit-per-cell profile also exceeds the 32-bit bitwise window fast. SUB-8 owns
+        the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:L", "C5"]
@@ -1756,8 +2032,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That an automaton's states can BE the DP's states is the modelling
+        insight. Language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:N"]
@@ -1834,8 +2115,12 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:N"]
@@ -1926,12 +2211,30 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation, not a verdict: the goto table is conventionally a flat
-        node-count x alphabet array; in JS a typed array is the realistic carrier and
-        an array-of-objects is not, which is a materially different implementation
-        shape from the references' C++ default. SUB-8 owns the verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — the goto table is the artifact, and JavaScript forces a container decision
+        C++ does not. The automaton's transition table is |states| x |alphabet| and it is read
+        once per (position, state) in the DP's innermost loop — a hot, dense, integer-valued
+        table, which is exactly where JS-E5 has its largest lever: a flat Int32Array with state
+        * ALPHA + c addressing, versus the array-of-arrays the C++ vector<array<int, 26>>
+        transcribes to. C++ gets the contiguous unboxed layout for free. Deliberate non-claim on
+        JS-E1, worth stating because it is the expectation: Aho-Corasick's failure links are
+        built by a BFS, which is a QUEUE loop with O(1) stack depth — so the automaton
+        construction, unlike most of this map's tree-shaped work, does NOT meet the recursion
+        cap. This node is provisional pending an AR-1 anchor request; the verdict is on the
+        DP-side realization this cluster owns, and the anchor's own internals are out of scope
+        per DR-S03 (JS-U4). Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Observation, not a verdict: the goto table is conventionally a flat node-count x
+        alphabet array; in JS a typed array is the realistic carrier and an array-of-objects is
+        not, which is a materially different implementation shape from the references' C++
+        default. SUB-8 owns the verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:N"]
@@ -1995,8 +2298,18 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral, with the bit-width boundary checked rather than assumed. The state
+        is (subset of terminals, vertex), so the mask is a plain one-bit-per-terminal subset —
+        and the terminal count k is bounded around 10-12 by the 2^k * n state space itself, far
+        below JavaScript's 31 usable bits (JS-E4). Unlike plug DP, this encoding packs ONE bit
+        per position, so the ceiling is not approached and claiming a hazard would be invented.
+        The table's realization is where JavaScript binds, and that verdict is on
+        cl-3.implement-steiner-tree-dp (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:S"]
@@ -2077,8 +2390,24 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E8", "JS-E5"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — the technique's inner engine is a Dijkstra relaxation over each subset layer,
+        and JavaScript has no priority queue. C++'s priority_queue is stdlib, and the canonical
+        Steiner-tree DP is WRITTEN in terms of it: for each terminal subset, relax the 2^k x n
+        table by running Dijkstra over the vertex dimension. JavaScript ships Array, Map, and
+        Set — Set is insertion-ordered, not sorted — and NO binary heap, no priority queue, no
+        ordered map (JS-E8). So the JavaScript realization must hand-roll a binary heap (over a
+        typed array, to avoid paying JS-E5 in the heap itself) before it can write a line of the
+        actual DP. That is a real prerequisite acquisition the C++ author does not have, and it
+        changes the shape and length of any exercise built on this node. JS-E5 rides along for
+        the 2^k x n table, which wants a flat Int32Array. Recorded as idiom-shift rather than
+        blocking: the technique is entirely feasible in JavaScript, it just is not the same
+        artifact.
     coverage:
       status: "unaudited"
       corpus_refs: ["C3:S"]

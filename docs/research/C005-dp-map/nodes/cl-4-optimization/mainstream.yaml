@@ -79,11 +79,20 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation only: the envelope identity is language-neutral, but its exploitation
-        in JavaScript inherits IEEE-754 doubles for slope/intercept comparisons where C++
-        solutions use 64-bit integers. Recorded as an observation for SUB-8; no verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That a transition of the form dp[j] + a[i]*b[j] is a line evaluated
+        at a query point — and therefore that the family of transitions is a line envelope — is
+        the geometric insight. Language-independent. The arithmetic that evaluates the envelope
+        is where JavaScript binds, and that verdict is on the optimization and implementation
+        nodes (JS-D2).
+      mapper_note: >-
+        Observation only: the envelope identity is language-neutral, but its exploitation in
+        JavaScript inherits IEEE-754 doubles for slope/intercept comparisons where C++ solutions
+        use 64-bit integers. Recorded as an observation for SUB-8; no verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:Z"]
@@ -151,8 +160,13 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognizing envelope structure under an unfamiliar surface is a
+        structural act.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:Z"]
@@ -217,11 +231,31 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation only: the "bad line" test compares cross-products that overflow 64-bit
-        in adversarial cases; JavaScript's Number cannot represent those exactly and BigInt
-        changes the constant factor. Flagged for SUB-8; not a verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — CHT's correctness rests on a cross-multiplication that overflows
+        2^53, and this is invisible unless stated. The hull is maintained by a 'bad' test that
+        asks whether line 2 is ever optimal between lines 1 and 3. The division-free form — the
+        one competitive code uses, precisely to avoid floating-point — is a
+        CROSS-MULTIPLICATION: (b3 - b1) * (m1 - m2) vs (b2 - b1) * (m1 - m3). With slopes and
+        intercepts at the 1e9 scale these problems are posed at, each product reaches ~1e18,
+        which is ~111x past 2^53. C++ evaluates it in long long (exact to ~9.2e18) or reaches
+        for __int128 when even that is tight — the C++ author's whole reason for writing the
+        test this way is that integer arithmetic is EXACT, and in C++ it is. In JavaScript the
+        identical expression silently ROUNDS, so the comparison returns the wrong boolean, so
+        the wrong line is popped, so the hull is silently malformed and the DP returns a wrong
+        answer with no error and no NaN. The irony is exact: the division-free form is chosen to
+        escape floating point, and in JavaScript it lands back in it. A correct JavaScript CHT
+        must do the comparison in BigInt, or split the products, or accept a floating-point test
+        with an epsilon — a decision the C++ author never faces.
+      mapper_note: >-
+        Observation only: the "bad line" test compares cross-products that overflow 64-bit in
+        adversarial cases; JavaScript's Number cannot represent those exactly and BigInt changes
+        the constant factor. Flagged for SUB-8; not a verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:Z", "C6:line_add_get_min"]
@@ -275,8 +309,17 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Proving that slopes are inserted monotonically and queries arrive
+        monotonically is an argument about the DP's structure, discharged before any code
+        exists. Deliberate boundary: the precondition being PROVEN does not stop JS-E2 from
+        breaking the test that exploits it (cl-4.convex-hull-trick-monotonic) — a correct
+        precondition and a correct implementation are different obligations and the map should
+        keep them apart.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -341,8 +384,25 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — the same 2^53 ceiling as CHT, reached through a different door.
+        Li Chao trees exist to drop CHT's monotonicity preconditions, and they do it by
+        COMPARING LINE VALUES at a node's midpoint and endpoints: m * x + b, evaluated directly.
+        With slopes at 1e9 and query coordinates at 1e9 — the scale these problems are posed at,
+        because a Li Chao tree is reached for precisely when the coordinates are large and
+        unsorted — the product m * x reaches ~1e18, ~111x past 2^53. C++ evaluates it in long
+        long, exactly. JavaScript silently rounds, so the comparison at the midpoint returns the
+        wrong answer, so the wrong line is kept in the subtree, so the tree is silently wrong.
+        Note this is WORSE than CHT's case in one respect: Li Chao's whole selling point is that
+        it needs no preconditions and is therefore the 'safe' choice a learner is told to reach
+        for when CHT's assumptions are unclear — so the JavaScript author is steered toward it
+        and then broken by it, silently. Correct JavaScript requires BigInt comparison or a
+        split multiply for the line evaluation.
     coverage:
       status: "unaudited"
       corpus_refs: ["C6:line_add_get_min", "C6:segment_add_get_min"]
@@ -397,8 +457,26 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E8", "JS-E5"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — the node that WRITES both structures, so it carries the full
+        weight of both hazards plus a container one. JS-E2 is the blocking effect and it is
+        described on cl-4.convex-hull-trick-monotonic (the hull's cross-multiplied bad test) and
+        cl-4.li-chao-tree-dp-application (the midpoint line evaluation); both overflow 2^53 at
+        the 1e9 operand scale these techniques are posed at, both silently round rather than
+        wrapping, and both must be written in BigInt or a split multiply. JS-E8 is the second,
+        independent finding and it is specific to this node: CHT's monotonic form is written in
+        terms of a DEQUE — lines pushed at the back, popped from both ends — and JavaScript has
+        no deque. Array.prototype.shift() is a front removal on a structure that is not a deque,
+        so the C++ idiom deque.pop_front() has no faithful one-line translation; the JavaScript
+        realization is a HEAD/TAIL INDEX PAIR over a preallocated typed array, which also
+        collects JS-E5's payoff. C++ gets std::deque from the stdlib and writes the algorithm
+        directly. A downstream agent must write the container before it can write the technique.
+      mapper_note: >-
         Observation only: this is the node where a JavaScript materiality question is most
         likely to be real — the integer-safe comparison has no direct Number equivalent.
         Recorded for SUB-8; this file asserts no verdict.
@@ -444,8 +522,13 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That the optimal split point moves monotonically with the state
+        index is a property of the cost function. Language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -521,8 +604,21 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral, and the recursion question is answered rather than skipped — this is
+        a deliberate non-claim on the map's most conspicuous hazard. The technique IS recursive
+        (solve(lo, hi, optLo, optHi) recursing on the halves of the state range), which makes
+        JS-E1 the expected finding. It does not apply: the recursion halves the range each time,
+        so the depth is O(log n) — about 20 frames at n = 1e6, against a cap on the order of
+        1e4. The stack is not remotely approached. Recording JS-E1 here because the technique
+        'is recursive' would be an invented claim; the cap binds on depth, not on the presence
+        of recursion, and the audit distinguishes them. The table the technique fills is written
+        at cl-4.implement-divide-and-conquer-optimization, which carries the JS-E5 verdict
+        (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -573,8 +669,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Deriving split-point monotonicity from a cost condition is an
+        argument.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -625,8 +726,26 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — this node writes the DP layer table, and the container decision is
+        JavaScript's. The technique reduces an O(k n^2) DP to O(k n log n), which means it is
+        reached for exactly when k * n is large enough that the quadratic form fails — so the
+        layer tables it fills are big and the per-element cost matters. C++'s vector<long long>
+        is contiguous and unboxed with no decision; the direct JavaScript translation is a boxed
+        Array whose packed-SMI representation is an engine optimization rather than a guarantee.
+        The JavaScript idiom is a flat typed array — Float64Array or Int32Array depending on the
+        cost range, and note the choice is itself constrained by JS-E2 (a cost range past 2^53
+        has no exact typed-array home at all). JS-E6 is recorded only in combination with that
+        specific mitigable idiom, per JS-D1. Deliberate non-claim on JS-E1: the recursion is
+        O(log n) deep, per cl-4.divide-and-conquer-optimization. Directional, not quantified
+        (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
         Observation only: the recursion depth is O(log n) and does not stress JavaScript's call
         stack, unlike some CL-3 recursive DP. Recorded for SUB-8; not a verdict.
     coverage:
@@ -671,8 +790,12 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The Monge condition is a property of a cost function.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -733,8 +856,24 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — recorded on this node because Knuth-Yao has no separate implementation node,
+        so this is where the table is written. The optimization takes an interval DP from O(n^3)
+        to O(n^2) by bounding the split search between the two neighbouring optima, which means
+        it is reached for precisely when n is large enough that the cubic form fails — so the
+        n^2 table AND the parallel n^2 opt-index table are both big, both read in the inner
+        loop, and both are where JS-E5's boxed-versus-typed decision lands. C++'s
+        vector<vector<int>> gives unboxed rows for free; the JavaScript idiom is flat
+        Int32Arrays with i * n + j addressing for both tables. The opt-index table is the
+        sharper case: it exists purely to make the inner loop cheap, so paying boxing overhead
+        on it gives back exactly what the optimization bought. JS-E6 is recorded only in
+        combination with that idiom, per JS-D1. Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -782,8 +921,13 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Proving the quadrangle inequality for a cost function is an
+        argument.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -825,8 +969,13 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That a transition ranges over a contiguous window of states is a
+        structural fact about the recurrence.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -872,11 +1021,31 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation only: JavaScript has no native deque; array shift() is O(n) and would silently
-        destroy the amortized bound, so an index-based ring buffer is typically required. Recorded
-        as an observation for SUB-8 — this file asserts no materiality verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E8", "JS-E5"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — the node is named for a container JavaScript does not have. Maintaining a
+        monotonic deque means pushing at the back, popping dominated elements from the back, and
+        evicting expired elements from the FRONT. C++'s std::deque does all three in O(1) and
+        the algorithm is written directly in its terms. JavaScript has no deque:
+        Array.prototype.shift() is a front removal, but on an Array — it is not a deque
+        operation, it is a re-index of the backing store in the general case, and its behaviour
+        is an engine optimization rather than a guaranteed O(1). So the faithful JavaScript
+        realization is a RING BUFFER OR HEAD/TAIL INDEX PAIR over a preallocated typed array:
+        head and tail integers, push/pop as index arithmetic, no allocation in the loop. That is
+        a container the author must write before writing the technique. It is not merely faster
+        than the shift()-based transcription — it is what makes the O(1) amortized bound the
+        technique's whole analysis rests on actually hold. JS-E5 rides along: the buffer wants
+        an Int32Array. Recorded as idiom-shift rather than performance because the ARTIFACT
+        differs, not just its constant.
+      mapper_note: >-
+        Observation only: JavaScript has no native deque; array shift() is O(n) and would
+        silently destroy the amortized bound, so an index-based ring buffer is typically
+        required. Recorded as an observation for SUB-8 — this file asserts no materiality
+        verdict.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -953,8 +1122,18 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as the OPTIMIZATION: that a windowed transition's inner maximum can
+        be maintained in O(1) amortized rather than re-scanned, collapsing O(nk) to O(n), is the
+        technique — and it is language-independent. The container that realizes it is where
+        JavaScript binds, and that verdict is on cl-4.monotonic-deque-maintenance (JS-D2).
+        Cross-referenced, not silent: a reader reaches the JS-E8 deque finding in one hop. Held
+        to the same line as every other optimization/realization pair in this cluster — the node
+        that WRITES the structure owns the finding, so it is recorded once.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1002,8 +1181,13 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognizing a window constraint under an unfamiliar surface is a
+        structural act.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1051,8 +1235,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That a linear recurrence is a matrix-vector product, and therefore
+        that advancing it k steps is a matrix power, is the algebraic insight.
+        Language-independent.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:R"]
@@ -1130,8 +1320,28 @@ nodes:
       recognition_load: 3
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E3"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — matrix exponentiation is essentially always done UNDER A
+        MODULUS, and that is where JavaScript breaks. The technique's whole purpose is advancing
+        a recurrence 1e18 steps in O(d^3 log k) — and a count advanced 1e18 steps is
+        astronomically large, so the answer is ALWAYS requested modulo a prime (typically
+        1e9+7). Every cell of every matrix product is therefore a sum of d modular products, and
+        each product of two residues below 1e9+7 reaches ~1e18: ~111x past 2^53. C++'s long long
+        is exact there and the C++ author writes the triple loop without a thought. JavaScript
+        silently rounds every one of them, so the matrix power is wrong from the first
+        multiplication and stays plausible throughout. Note the compounding that makes this
+        worse than a single modmul: the technique performs O(d^3 log k) multiplications, so
+        there is no input small enough for the bug to hide — it fires on essentially every cell.
+        Correct JavaScript requires BigInt (JS-E3, costly at d^3 log k multiplications) or a
+        split multiply. The realization detail is on cl-4.implement-modular-matrix-power
+        (JS-D2); recorded here too because the modulus is constitutive of THIS node — the
+        technique does not exist in the map without it.
+      mapper_note: >-
         Observation only: entries are multiplied under a modulus and products exceed 2^53, so
         JavaScript Numbers cannot hold intermediate results exactly. Recorded for SUB-8; not a
         verdict.
@@ -1188,8 +1398,14 @@ nodes:
       recognition_load: 2
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Reading a DP's transitions off into a transfer matrix is a modelling
+        act — deciding what the state vector holds and which entries are 1. It terminates before
+        any arithmetic runs. The arithmetic is at cl-4.implement-modular-matrix-power (JS-D2).
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:R"]
@@ -1240,11 +1456,33 @@ nodes:
       recognition_load: 1
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: >-
-        Observation only: the inner multiply-accumulate requires exact products of two values below
-        the modulus, which exceeds JavaScript's safe-integer range for typical 10^9+7 moduli.
-        Recorded for SUB-8; not a verdict.
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E3", "JS-E5"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — this is the node that WRITES the modmul, and it is the densest
+        concentration of JS-E2 in the map. The inner statement is `acc = (acc + a[i][k] *
+        b[k][j]) % M`, executed O(d^3 log k) times. With M = 1e9+7 the product a[i][k] * b[k][j]
+        reaches ~1e18, ~111x past 2^53, so in JavaScript it silently ROUNDS — returning a
+        plausible wrong residue, on essentially every iteration, with no error. C++'s long long
+        is exact and the line is written reflexively. Correct JavaScript needs one of two
+        things, and the choice is a real trade-off a C++ author never makes: BigInt (correct,
+        straightforward, and materially slower at d^3 log k multiplications in the hottest
+        possible loop — JS-E3), or a SPLIT MULTIPLY that decomposes one operand around 2^26 so
+        no partial product leaves the exact range, folding with Math.imul (fast, and easy to get
+        subtly wrong). The addition fold is safe — accumulating d residues below M stays far
+        under 2^53 IF reduced per step — so it is the multiplication alone that must be
+        rewritten, which is exactly why the bug survives casual testing on small moduli. JS-E5
+        also lands here: the matrix wants a flat Int32Array with i * d + j addressing rather
+        than an array-of-arrays, in an O(d^3) loop. Directional on the performance component
+        only (JS-U2); the correctness component is not directional.
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Observation only: the inner multiply-accumulate requires exact products of two values
+        below the modulus, which exceeds JavaScript's safe-integer range for typical 10^9+7
+        moduli. Recorded for SUB-8; not a verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:R"]
@@ -1296,8 +1534,13 @@ nodes:
       recognition_load: 4
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognizing that a DP's transition is linear and its state dimension
+        small — and therefore that it is matrix-exponentiable — is a structural act.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2:R"]
@@ -1371,8 +1614,20 @@ nodes:
       recognition_load: 5
       creator_review: "deferred-provisional"
     javascript_materiality:
-      assessed: false
-      note: ""
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Which optimization a too-slow DP wants is decided by the STRUCTURE
+        of its transition — envelope, monotone split, window, or linear — and that structure is
+        a property of the recurrence, identical in every language. A deliberate non-claim,
+        because a plausible argument runs the other way: several of this cluster's optimizations
+        carry a JavaScript-specific tax (JS-E2's modmul and cross-multiplication rewrites,
+        JS-E8's absent deque), so one could argue the selection calculus shifts. It does not
+        shift enough to be material: the tax applies to the REALIZATION of whichever technique
+        the structure already selected, and does not make a structurally-wrong optimization
+        right or a structurally-right one wrong. Asserting otherwise would be an invented claim.
     coverage:
       status: "unaudited"
       corpus_refs: []
