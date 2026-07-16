@@ -2576,9 +2576,8 @@ nodes:
       note: >-
         Observation only, NOT a verdict — OUT-5 (SUB-8) owns it. Standard SCC
         algorithms (Tarjan, Kosaraju) are recursive, so the recursion-depth
-        exposure recorded on cl-2.debug-tree-dp-recursion-debug's neighbour
-        (cl-2.debug-tree-dp-recursion-depth) applies to the prerequisite step
-        too. Recorded for SUB-8; not a verdict.
+        exposure recorded on cl-2.debug-tree-dp-recursion-depth applies to this
+        node's prerequisite step too. Recorded for SUB-8; not a verdict.
     coverage:
       status: "unaudited"
       corpus_refs: ["C4"]
