@@ -57,6 +57,23 @@
 #   part of D-S1's ratified shape: the schema fixes `nodes`, and a validator
 #   (INC-S2) may reject an unknown key. Flagged for SUB-2/OUT-7 rather than
 #   slipped in silently.
+#   CONVERGENCE: SUB-3 (NEU-934) independently chose the SAME key name for the
+#   same reason. Two mappers converging without coordinating is evidence the
+#   key belongs in D-S1 rather than being two local improvisations — SUB-2's
+#   call, not SUB-4's. Entry-level shape is aligned to SUB-3's where it exists
+#   (`disposition` vocabulary, `subject`/`rationale`); CL-2 keeps the extra
+#   `cascade_test`, `residual_risk`, and `rival_reading` fields, which carry
+#   information SUB-3's shape has no slot for.
+#
+# CROSS-CLUSTER DECLARATIONS — PREDICTED BLIND, THEN VERIFIED POST-HOC.
+#   All four declarations were authored while CL-1 did not exist, per the
+#   declare-don't-draw rule. CL-1 (NEU-934) then merged to develop before this
+#   PR did, so each prediction was checked against the real file and corrected.
+#   Recorded because the provenance matters to SUB-12: two of the four blind
+#   `to_node` ids were WRONG while all four `to_name`s resolved — direct
+#   evidence for schema §4.3's choice of `to_name` as the resolution key.
+#   The declarations remain DECLARATIONS. SUB-12 owns realization; a target
+#   becoming visible late does not license SUB-4 to draw the edge.
 #
 # AR-1 REQUESTS IN FLIGHT (boundary-register.yaml route AR-1):
 #   Two CL-2 nodes have a genuine NON-DP prerequisite with no registered anchor:
@@ -161,7 +178,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:D", "C1"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -203,20 +220,19 @@ nodes:
         - "cl-1.root.recognize-optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-2.formulate-zero-one-knapsack->cl-1.prefix-indexed-linear-dp"
+      - attachment_id: "xc.cl-2.formulate-zero-one-knapsack->cl-1.linear-sequence-dp-1d"
         from: "cl-2.formulate-zero-one-knapsack"
         to_cluster: "CL-1"
-        to_node: "cl-1.prefix-indexed-linear-dp"
-        to_name: "Prefix-indexed linear DP"
+        to_node: "cl-1.linear-sequence-dp-1d"
+        to_name: "1D linear/sequence DP (prefix-index state)"
         relation: "requires"
         rationale: >-
           The knapsack state's item axis IS a prefix index — "having decided the
           first i items". A learner cannot design that axis without already
           holding the plain prefix-indexed linear DP that CL-1 owns; the
           knapsack adds the resource axis on top of it, it does not introduce
-          the prefix idea. Declared, not drawn: CL-1's file is being written
-          concurrently and SUB-4 cannot see its ids.
-        confidence: "conjectured"
+          the prefix idea. Declared, not drawn: SUB-12 owns realization.
+        confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
     javascript_materiality:
@@ -224,18 +240,24 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:E", "C2:D"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
     owner: "NEU-935"
     contested_by: ["CL-1"]
     notes: >-
-      The cross-cluster declaration is `conjectured`, not `named`: SUB-3 is
-      certain to map prefix-indexed linear DP in substance, but SUB-4 cannot
-      know what it will be called. `to_name` is deliberately the plainest
-      description of the thing so SUB-12 can resolve on the name. If it
-      resolves to nothing that is an OUT-7 coverage finding, not a defect here.
+      PREDICTION VERIFIED POST-HOC, and the provenance is stated rather than
+      implied. This declaration was authored blind (predicted id
+      "cl-1.prefix-indexed-linear-dp", to_name "Prefix-indexed linear DP",
+      confidence "conjectured") because CL-1 did not exist when CL-2 was
+      mapped. CL-1 (NEU-934) merged to develop before this PR did, so the
+      prediction was checked against the real file and corrected to the actual
+      id and name, and confidence raised to "named". The blind prediction's id
+      was WRONG and the to_name was close — which is exactly why schema §4.3
+      makes `to_name` SUB-12's resolution key rather than `to_node`. Still
+      DECLARED, not drawn: SUB-12 owns realization regardless of whether the
+      target happens to be visible now.
 
   - id: "cl-2.prove-zero-one-knapsack-correctness"
     name: "Prove the 0/1 knapsack recurrence correct, and prove greedy is not"
@@ -308,7 +330,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:E"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -341,7 +363,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:D", "C1"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -400,7 +422,7 @@ nodes:
         every selected reference assumes does not surface. Recorded for SUB-8.
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:D", "C1"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -479,7 +501,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C1", "C2:M"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -551,7 +573,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C1", "C2:D"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -587,7 +609,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C1", "C2:M"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -630,7 +652,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C1", "C2:D", "C2:E"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -657,11 +679,11 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-2.counting-vs-optimizing-objective->cl-1.grid-path-counting"
+      - attachment_id: "xc.cl-2.counting-vs-optimizing-objective->cl-1.counting-dp-over-linear-domain"
         from: "cl-2.counting-vs-optimizing-objective"
         to_cluster: "CL-1"
-        to_node: "cl-1.grid-path-counting"
-        to_name: "Grid path counting"
+        to_node: "cl-1.counting-dp-over-linear-domain"
+        to_name: "Counting DP over a linear or rectangular domain, modulo a prime"
         relation: "requires"
         rationale: >-
           Counting-by-summing-transitions is not first met over an item set; it
@@ -669,8 +691,8 @@ nodes:
           the state graph is trivial and the only new idea is the aggregate. A
           learner cannot acquire "the aggregate is a parameter of the structure"
           without already having a counting DP to compare the optimizing one
-          against. Declared, not drawn: CL-1's file does not exist yet.
-        confidence: "conjectured"
+          against. Declared, not drawn: SUB-12 owns realization.
+        confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
     javascript_materiality:
@@ -678,18 +700,21 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C1", "C2:H"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
     owner: "NEU-935"
     aliases: ["semiring view of DP", "count-ways vs optimize"]
     notes: >-
-      `conjectured` because SUB-3 will certainly map a counting DP but may not
-      name it "Grid path counting" — the name is the plainest description of the
-      target so SUB-12 can resolve on it. An alternative resolution target with
-      the same content would satisfy the dependency; SUB-12 should treat the
-      rationale as the specification, not the id.
+      PREDICTION VERIFIED POST-HOC. Authored blind as "cl-1.grid-path-counting"
+      / "Grid path counting" / "conjectured"; corrected against merged CL-1
+      (NEU-934) to the real node and raised to "named". Note the blind
+      prediction would have mis-resolved: CL-1 has BOTH `cl-1.grid-path-dp`
+      ("Grid / path DP") and `cl-1.counting-dp-over-linear-domain`. The
+      dependency is on the COUNTING aggregate, not on the grid shape, so the
+      latter is correct — a distinction `to_name` carries and a guessed id would
+      have lost. SUB-12 should treat the rationale as the specification.
 
   - id: "cl-2.combination-vs-permutation-loop-order"
     name: "Loop nesting decides whether a counting DP counts combinations or permutations"
@@ -847,7 +872,7 @@ nodes:
         this note is not one.
     coverage:
       status: "unaudited"
-      corpus_refs: ["C1", "C2:H"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -986,7 +1011,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N", "C3"]
+      corpus_refs: ["C2", "C3"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1017,7 +1042,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1049,7 +1074,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1093,7 +1118,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N", "C3"]
+      corpus_refs: ["C2", "C3"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1125,7 +1150,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1165,7 +1190,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N", "C3"]
+      corpus_refs: ["C2", "C3"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1281,7 +1306,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1350,11 +1375,11 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-2.palindromic-interval-dp->cl-1.longest-common-subsequence"
+      - attachment_id: "xc.cl-2.palindromic-interval-dp->cl-1.lcs-dp"
         from: "cl-2.palindromic-interval-dp"
         to_cluster: "CL-1"
-        to_node: "cl-1.longest-common-subsequence"
-        to_name: "Longest common subsequence"
+        to_node: "cl-1.lcs-dp"
+        to_name: "Longest common subsequence DP"
         relation: "requires"
         rationale: >-
           The standard derivation of longest palindromic subsequence IS the LCS
@@ -1363,7 +1388,7 @@ nodes:
           this family through that identification; the reduction is the content,
           and it cannot be acquired without holding LCS first. CL-1 owns LCS
           (a plain index tuple over a rectangular domain, T4). Declared, not
-          drawn: CL-1's file is being written concurrently.
+          drawn: SUB-12 owns realization.
         confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
@@ -1372,7 +1397,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:F", "C1"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1387,9 +1412,10 @@ nodes:
       end-peeling formulation — the one that generalizes to minimum-insertions
       and to partitioning, neither of which is an LCS — indexes over ranges.
       Carried, not smoothed. Route: D-F4a challenge (U4).
-      `confidence: "named"` on the declaration because D-F4 §3.2's worked
-      examples make CL-1's ownership of plain-index sequence DP explicit, so
-      SUB-3 mapping LCS is close to certain.
+      PREDICTION VERIFIED POST-HOC: authored blind as "cl-1.longest-common-
+      subsequence"; corrected against merged CL-1 (NEU-934) to `cl-1.lcs-dp`
+      / "Longest common subsequence DP". Confidence was already "named" and the
+      target exists, so the claim stands as made — only the id string moved.
 
   - id: "cl-2.interval-state-with-boundary-context"
     name: "Interval state augmented with boundary context"
@@ -1505,7 +1531,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:N"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1593,7 +1619,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:P", "C2:V"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1634,7 +1660,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:V"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1685,7 +1711,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:P", "C3"]
+      corpus_refs: ["C2", "C3"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1716,7 +1742,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:P"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1757,7 +1783,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:P", "C2:V"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1843,7 +1869,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:P"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -1999,7 +2025,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:V"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2044,7 +2070,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:V"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2095,7 +2121,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:V", "C4"]
+      corpus_refs: ["C2", "C4"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2143,7 +2169,7 @@ nodes:
         SUB-8; this note is not a verdict.
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:V"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2319,7 +2345,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:G"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2359,7 +2385,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:G"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2402,7 +2428,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:G"]
+      corpus_refs: ["C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2456,7 +2482,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:G", "C1"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2490,7 +2516,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:H", "C1"]
+      corpus_refs: ["C1", "C2"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2681,11 +2707,11 @@ nodes:
         - "cl-1.root.recognize-overlapping-subproblems"
       boundary_anchors: []
     cross_cluster_attachments:
-      - attachment_id: "xc.cl-2.recognize-an-implicit-dag->cl-1.longest-increasing-subsequence"
+      - attachment_id: "xc.cl-2.recognize-an-implicit-dag->cl-1.longest-increasing-subsequence-quadratic"
         from: "cl-2.recognize-an-implicit-dag"
         to_cluster: "CL-1"
-        to_node: "cl-1.longest-increasing-subsequence"
-        to_name: "Longest increasing subsequence"
+        to_node: "cl-1.longest-increasing-subsequence-quadratic"
+        to_name: "Longest increasing subsequence, O(n^2) recurrence"
         relation: "requires"
         rationale: >-
           The re-reading that this node teaches is worked ON longest increasing
@@ -2694,8 +2720,7 @@ nodes:
           path in an implicit DAG. Without the first reading there is no second
           reading, so the dependency is real and not decorative. D-F4 §3.2
           assigns "Longest increasing subsequence (O(n^2) recurrence)" to CL-1
-          by name. Declared, not drawn: CL-1's file is being written
-          concurrently by SUB-3 and SUB-4 cannot see its ids.
+          by name. Declared, not drawn: SUB-12 owns realization.
         confidence: "named"
         status: "declared"
     difficulty_dimensions: {}
@@ -2704,7 +2729,7 @@ nodes:
       note: ""
     coverage:
       status: "unaudited"
-      corpus_refs: ["C2:G", "C4"]
+      corpus_refs: ["C2", "C4"]
     evidence_class: 1
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
@@ -2717,8 +2742,10 @@ nodes:
       is evidence for that, and this node is the one where the gap bites
       hardest — "see the DAG" is precisely the transfer NEU-887's R1 records as
       unevidenced.
-      `confidence: "named"` because D-F4 §3.2 names LIS O(n^2) as CL-1's, so
-      SUB-3 mapping it is as certain as anything in a concurrent fan-out gets.
+      PREDICTION VERIFIED POST-HOC: authored blind as
+      "cl-1.longest-increasing-subsequence" with confidence "named" (D-F4 §3.2
+      names LIS O(n^2) as CL-1's); corrected against merged CL-1 (NEU-934) to
+      the real id and name. The claim stands as made; only the id string moved.
       C4 cited at survey level only; CAP-2 — no Codeforces id asserted.
 
 # =============================================================================
@@ -2739,9 +2766,35 @@ nodes:
 # =============================================================================
 residual_exclusions:
 
+  - id: "E0"
+    technique: "Problem-level corpus references"
+    disposition: "scoped-out-with-rationale"
+    owner_cluster: "none"
+    owner_subtask: "SUB-9..11 (OUT-7)"
+    cascade_test: "not run — an evidence-discipline decision, not a partition question"
+    rationale: >-
+      `coverage.corpus_refs` asserts CORPUS-level ids ("C1", "C2") rather than
+      the problem-level ids the template illustrates ("C1:1635"). Recorded
+      because SUB-4 initially wrote problem-level refs into the EDPC corpus
+      (e.g. "C2:D" for the 0/1 knapsack, "C2:V" for rerooting) from memory and
+      then withdrew them. The reasoning for the withdrawal: NEU-932 F-C-1
+      verified only the CSES section COUNTS at the 2026-07-16 cutoff, no
+      per-problem id in any corpus was verified by this sub-task, and CAP-2
+      marks C4's ids unverified outright. A remembered problem letter is an
+      invented value wearing a citation's clothes — forbidden by NEU-887's
+      discipline and by the template's own CAP-2 warning — and it is worse than
+      a corpus-level ref because it LOOKS checkable. A corpus-level ref is the
+      strongest claim this sub-task can stand behind. OUT-7 resolves refs to
+      problems when it audits coverage.
+    convergence_note: >-
+      SUB-3 (NEU-934) reached the identical decision independently and recorded
+      it as its EXC-1. Two mappers converging on the same withdrawal without
+      coordinating is evidence the template's "C1:1635" illustration invites a
+      claim the evidence base cannot support, and is worth a D-F2/D-S1 look.
+
   - id: "E1"
     technique: "Knuth / quadrangle-inequality optimization"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937)"
     cascade_test: "T1"
@@ -2759,7 +2812,7 @@ residual_exclusions:
 
   - id: "E2"
     technique: "Divide-and-conquer optimization"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937)"
     cascade_test: "T1"
@@ -2769,7 +2822,7 @@ residual_exclusions:
 
   - id: "E3"
     technique: "Bounded-knapsack acceleration — binary/powers-of-two splitting of the multiplicity, and monotonic-deque sliding-window evaluation"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937)"
     cascade_test: "T1"
@@ -2792,7 +2845,7 @@ residual_exclusions:
 
   - id: "E4"
     technique: "Bitset-accelerated subset sum"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937)"
     cascade_test: "T1"
@@ -2806,7 +2859,7 @@ residual_exclusions:
 
   - id: "E5"
     technique: "Small-to-large merging / DSU on tree"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937)"
     cascade_test: "T1"
@@ -2821,7 +2874,7 @@ residual_exclusions:
 
   - id: "E6"
     technique: "Steiner-tree DP"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-3"
     owner_subtask: "SUB-5 (NEU-936)"
     cascade_test: "T2"
@@ -2834,7 +2887,7 @@ residual_exclusions:
 
   - id: "E7"
     technique: "Bitmask / subset DP (including TSP-over-subsets and subset-partition counting)"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-3"
     owner_subtask: "SUB-5 (NEU-936)"
     cascade_test: "T2"
@@ -2846,7 +2899,7 @@ residual_exclusions:
 
   - id: "E8"
     technique: "SOS DP / subset-sum convolution (zeta-Moebius transform)"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937)"
     cascade_test: "T1"
@@ -2862,7 +2915,7 @@ residual_exclusions:
 
   - id: "E9"
     technique: "Centroid-decomposition path counting"
-    disposition: "not-dp"
+    disposition: "scoped-out-with-rationale"
     owner_cluster: "none"
     owner_subtask: "unowned — flagged for OUT-7"
     cascade_test: "not run — outside the partition's domain"
@@ -2885,7 +2938,7 @@ residual_exclusions:
 
   - id: "E10"
     technique: "Digit DP, automaton DP (incl. Aho-Corasick), plug / broken-profile DP, probability & expectation DP, game DP / Sprague-Grundy"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-3"
     owner_subtask: "SUB-5 (NEU-936)"
     cascade_test: "T2"
@@ -2901,7 +2954,7 @@ residual_exclusions:
 
   - id: "E11"
     technique: "Matrix-exponentiation DP, Convex Hull Trick / Li Chao, slope trick, Lagrangian relaxation (Aliens trick), kinetic-segment-tree DP"
-    disposition: "owned-elsewhere"
+    disposition: "owned-by-sibling-cluster"
     owner_cluster: "CL-4"
     owner_subtask: "SUB-6 (NEU-937) / SUB-13 (NEU-938, frontier)"
     cascade_test: "T1"
@@ -2912,4 +2965,4 @@ residual_exclusions:
       (envelope geometry, Li Chao trees, linear algebra) are registered boundary
       anchors, not CL-2 material.
 
-exclusion_count: 11
+exclusion_count: 12
