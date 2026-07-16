@@ -1,6 +1,6 @@
 {
   "name": "second-memory-learning",
-  "version": "0.1.197",
+  "version": "0.1.198",
   "description": "MCP server for AI-powered spaced repetition learning with Postgres",
   "private": true,
   "type": "module",
