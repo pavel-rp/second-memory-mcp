@@ -40,6 +40,17 @@
 
 **Known request already foreseen** (`INC-S1`): SUB-5 is expected to file **AR-1** for Aho–Corasick / string-matching automata, the non-DP prerequisite of automaton DP (CL-3 by `D-F4` §3.2). Named here in advance so it is a **predicted filing, not a surprise**.
 
+### 3.1 `AR-1` requests filed — open, awaiting adjudication against `D-S3`
+
+**Filed by SUB-5 (NEU-936)** while mapping CL-3. Both are **requests, not decisions**: no anchor is minted by a mapper, and `D-S3`'s owner adjudicates. Both dependent nodes carry `status: "provisional"` and record the dependency in `notes` per the AR-1 interim state, so the prerequisite stays **visible** rather than smoothed.
+
+| Req | Anchor requested | Dependent node(s) | Why genuinely non-DP (why `D-F4` §3's cascade doesn't own it) | Status |
+| --- | --- | --- | --- | --- |
+| **AR-1/a** | **Aho–Corasick automaton construction / string-matching automata** (proposed id `anchor.string-matching-automata`, proposed `kind: "data-structure"`) | `cl-3.formulate-automaton-dp`, `cl-3.implement-aho-corasick-dp` | Automaton construction computes **no recurrence** and makes **no optimal-substructure claim**. Building the trie and wiring suffix links is a structural construction over the pattern set; the DP then **borrows the finished structure** as its state space. Running `D-F4` §3's cascade fires no test — it is general-algorithms machinery above NEU-887's elementary floor, which is exactly the register's admission rule (a)+(b)+(c). | **open** — this is the `INC-S1` filing predicted in §3 above. Not a surprise; not improvised. |
+| **AR-1/b** | **Single-source shortest-path relaxation (Dijkstra / Bellman–Ford)** (proposed id `anchor.shortest-path-relaxation`, proposed `kind: "algorithm"`) | `cl-3.implement-steiner-tree-dp` | The Dreyfus–Wagner *grow* transition relaxes the current terminal-mask layer along graph edges to fixpoint; that relaxation is a graph-algorithms primitive above the elementary floor, not a DP the map owns. **Recorded honestly:** Bellman–Ford is arguably itself a DP over edge count — which is precisely why this is filed for **adjudication** rather than asserted. If `D-S3`'s owner decides the DP reading governs, the correct outcome is a **CL-1 cross-cluster declaration, not an anchor**. SUB-5 does not decide this. | **open** |
+
+**Effect on `D-S3`'s revision trigger:** `D-S3` names "**an AR-1 request is filed**" as its trigger, and two now are. `D-S3` remains **settled** at `register_version 1.0.0` — a filed request is not an amendment, and no mapper drew an unregistered anchor. Adjudicating either request MINOR-bumps the register (adding an anchor); neither changes an existing anchor's scope, so no MAJOR bump is implied.
+
 ## 4. Incomplete-state markers (`INC-S#`)
 
 Namespaced `-S` so they never collide with NEU-887's `INC-1…5`, NEU-888's `INC-I#`, or NEU-932's `INC-D#`. Each names a **missing artifact with an owner** — reported, never invented (NEU-899 rule 4, inherited).
