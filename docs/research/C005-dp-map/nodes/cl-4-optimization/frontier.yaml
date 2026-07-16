@@ -869,7 +869,7 @@ nodes:
     prerequisites:
       intra_cluster:
         - "cl-4.kinetic-segment-tree-amortization"
-        - "cl-4.convex-hull-trick"
+        - "cl-4.convex-hull-trick-monotonic"
       roots:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors:
@@ -919,17 +919,21 @@ nodes:
     owner: "NEU-938"
     aliases: ["kinetic tournament DP", "kinetic segment tree optimization"]
     notes: >-
-      INTRA-CLUSTER, CROSS-FILE PREREQUISITE (header rule 2b). "cl-4.convex-hull-trick"
-      is a PREDICTED id in the SIBLING FILE mainstream.yaml, which NEU-937 (SUB-6) is
-      writing CONCURRENTLY and which SUB-13 cannot see. It is still INTRA-CLUSTER — the
-      two CL-4 files share one cluster id and one id namespace — so it is correctly in
-      prerequisites.intra_cluster and is NOT a cross_cluster_attachment. The dependency
-      is real: the kinetic segment tree is the answer to the question "what do I do when
-      CHT's monotonicity precondition fails?", and a learner who has not acquired CHT
-      has no reason for this structure to exist. Per rule 2b, if the id does not resolve
-      the dependency audit must report it as a GAP with this id, not delete the edge.
-      Predicted from the grammar <cluster>.<kebab-name>; SUB-6 may name it
-      "cl-4.convex-hull-trick-li-chao" or similar.
+      INTRA-CLUSTER, CROSS-FILE PREREQUISITE (header rule 2b), now RESOLVED against a
+      real id: mainstream.yaml merged (NEU-937, PR #614) before this PR. SUB-13's
+      original prediction "cl-4.convex-hull-trick" was a MISS — SUB-6 minted
+      "cl-4.convex-hull-trick-monotonic", qualifying the name by the precondition. The
+      edge now points at the real id. It remains INTRA-CLUSTER — the two CL-4 files share
+      one cluster id and one id namespace — so it is correctly in
+      prerequisites.intra_cluster and is NOT a cross_cluster_attachment.
+      THE MISS IS ITSELF INFORMATIVE AND IS WHY THE NAME MATTERS HERE: SUB-6 qualified the
+      node as "-monotonic" precisely because CHT's monotonicity precondition is load-
+      bearing, and THIS node is the answer to "what do I do when that precondition
+      fails?" — the two files independently identified the same precondition as the
+      hinge. A learner who has not acquired monotonic CHT has no reason for the kinetic
+      structure to exist. Per rule 2b, an unresolved intra-cluster id would have been
+      reported by the dependency audit as a GAP carrying the id, never deleted — that
+      safety net was not needed here, but it is what made predicting safe.
 
   - id: "cl-4.kinetic-segment-tree-amortization-proof"
     name: "Proving the kinetic segment tree's amortized rebuild bound"
@@ -1051,23 +1055,22 @@ nodes:
   # ===========================================================================
 
   - id: "cl-4.total-monotonicity"
-    name: "Total monotonicity and the Monge condition on a DP cost matrix"
+    name: "Total monotonicity of a DP cost matrix"
     node_kind: "knowledge"
     cluster: "CL-4"
     role: "technique"
     summary: >-
-      The fact that a DP whose transition minimises over a cost matrix C often has a C
-      satisfying the Monge (quadrangle) condition C[i][j] + C[i'][j'] <= C[i][j'] +
-      C[i'][j] for i < i', j < j'; that Monge implies total monotonicity; and that total
-      monotonicity implies the row-minimum positions are non-decreasing down the rows —
-      which is the single structural fact every optimization in this neighbourhood
-      exploits, from D&C optimization to Knuth's to SMAWK. A learner acquires the
-      condition, the implication chain, and the fact that these are properties OF THE
-      COST MATRIX, independent of any algorithm that exploits them. Verifying the
-      condition on a given C is cl-4.verify-monge-condition; exploiting it in linear
-      time is cl-4.smawk-application.
+      The fact that a cost matrix can be TOTALLY MONOTONE — every 2x2 submatrix whose top
+      row's minimum lies weakly left of its bottom row's has that ordering preserved — and
+      that total monotonicity implies the ROW-MINIMUM POSITIONS are non-decreasing down
+      the rows. This is the exact hypothesis SMAWK needs, and it is STRICTLY WEAKER than
+      the Monge condition: Monge implies total monotonicity, not conversely. A learner
+      acquires the property, the row-minima consequence, and the implication's DIRECTION —
+      which is what lets them see that establishing Monge is a sufficient route to SMAWK's
+      hypothesis rather than the hypothesis itself.
     prerequisites:
-      intra_cluster: []
+      intra_cluster:
+        - "cl-4.quadrangle-inequality"
       roots:
         - "cl-1.root.state-transition-base-case-formulation"
         - "cl-1.root.optimal-substructure"
@@ -1084,79 +1087,50 @@ nodes:
     status: "provisional"
     adjudicated_at_map_version: "0.1.0"
     owner: "NEU-938"
-    aliases: ["Monge condition", "quadrangle inequality", "totally monotone matrix", "concave/convex Monge"]
+    aliases: ["totally monotone matrix", "total monotonicity", "row-minima monotonicity"]
     notes: >-
-      NO BOUNDARY ANCHOR IS DRAWN AND NO AR-1 IS FILED FOR THIS NODE, deliberately, and
-      the judgment is recorded rather than left implicit. Total monotonicity is a
-      property of a matrix, and one might argue it is therefore non-DP and wants an
-      anchor. Rejected: the register's own rule (boundary-register.yaml §boundary) admits
-      an anchor iff it is (a) NOT DP, (b) a real prerequisite of a DP technique, and (c)
-      above the elementary floor. Here (a) fails in the sense that matters — the object
-      is THIS DP's cost matrix and the property is asserted OF the recurrence's own
-      transition cost, which is DP content, not borrowed general-algorithms content. It
-      is CL-4 knowledge by the same T1 logic that owns the optimizations exploiting it.
-      Recorded because it is a judgment call at exactly the boundary D-S3 polices, and a
-      reviewer should be able to see it was made rather than assume it was.
-      X-D2: "quadrangle inequality" (the Knuth tradition) and "Monge condition" (the
-      operations-research tradition) name the same property; recorded in `aliases` so
-      OUT-7 does not read the naming difference as a gap. NOTE FOR SUB-6/NEU-937: the
-      mainstream half's Knuth-Yao and D&C-optimization nodes rest on this same property.
-      This node is offered as the shared CL-4 knowledge node for it (the two files share
-      one cluster and one namespace); if SUB-6 mints a rival, the dependency audit should
-      report the duplicate rather than either mapper deleting the other's.
+      X-938-2 RESOLVED — THIS NODE WAS NARROWED AFTER mainstream.yaml MERGED. SUB-13
+      originally wrote this node as "Total monotonicity AND the Monge condition", which
+      predicted a duplicate against SUB-6. That prediction landed: NEU-937 merged
+      cl-4.quadrangle-inequality ("The quadrangle inequality (Monge condition)",
+      aliases incl. "Monge condition"). Rather than ship two CL-4 knowledge nodes for the
+      same fact, this node now states ONLY total monotonicity — the strictly weaker
+      property SMAWK actually needs — and DRAWS the Monge condition from SUB-6's node via
+      prerequisites.intra_cluster. That edge is intra-cluster and now RESOLVES against a
+      real merged id (both CL-4 files share one cluster and one namespace, header rule 2b).
+      THIS IS NOT A MERGE OF THE TWO NODES AND NOT A DELETION OF SUB-6's. It is the
+      mathematically honest split, and the split is real rather than diplomatic: Monge
+      implies total monotonicity but NOT conversely, and SUB-6's node states Monge's
+      SPLIT-POINT-SANDWICH consequence (what Knuth-Yao and D&C optimization need) while
+      SMAWK needs the ROW-MINIMA consequence of the weaker property. Two different facts,
+      correctly two nodes, with the implication drawn as the edge it is.
+      NO BOUNDARY ANCHOR IS DRAWN AND NO AR-1 IS FILED, deliberately. Total monotonicity
+      is a property of a matrix, so one might argue it is non-DP and wants an anchor.
+      Rejected: the register's rule (boundary-register.yaml §boundary) admits an anchor
+      iff it is (a) NOT DP, (b) a real prerequisite of a DP technique, (c) above the
+      elementary floor. (a) fails in the sense that matters — the object is THIS DP's
+      cost matrix and the property is asserted OF the recurrence's own transition cost,
+      which is DP content, not borrowed general-algorithms content. SUB-6 reached the
+      same disposition independently for cl-4.quadrangle-inequality (no anchor, roots
+      only), which is corroboration rather than coincidence.
 
-  - id: "cl-4.verify-monge-condition"
-    name: "Proving a DP's cost matrix satisfies the Monge / quadrangle condition"
-    node_kind: "skill"
-    skill_type: "proof"
-    skill_type_rationale: >-
-      Cascade stops at S1, the first and most specific test. The contribution is
-      ARGUING that a property holds of a specific cost matrix — typically by an
-      algebraic rearrangement of the closed-form cost, or by exhibiting C as a sum of
-      terms each individually Monge (Monge is closed under non-negative combination).
-      Nothing downstream is reached. Split from cl-4.total-monotonicity (which is the
-      knowledge that the condition exists and what it implies) and from
-      cl-4.smawk-application (which exploits it) per schema §1.1. THIS SPLIT IS THE
-      LOAD-BEARING ONE IN THIS FAMILY: in practice the algorithm is the easy part and
-      establishing the hypothesis is the entire difficulty, and a learner who cannot do
-      this applies SMAWK to a matrix that is not totally monotone and gets a fast wrong
-      answer.
-    cluster: "CL-4"
-    role: "technique"
-    summary: >-
-      Establish, for the specific cost matrix a problem's DP induces, that the Monge
-      condition holds — by rearrangement, by decomposition into Monge summands, or by
-      an exchange argument — and recognize the cases where it does not, which is where
-      every optimization in this family becomes unsound rather than merely
-      inapplicable. A learner acquires the argument shapes and the negative cases.
-    prerequisites:
-      intra_cluster:
-        - "cl-4.total-monotonicity"
-      roots:
-        - "cl-1.root.optimal-substructure"
-      boundary_anchors: []
-    cross_cluster_attachments: []
-    difficulty_dimensions: {}
-    javascript_materiality:
-      assessed: false
-      note: ""
-    coverage:
-      status: "unaudited"
-      corpus_refs: ["C5"]
-    evidence_class: 1
-    status: "provisional"
-    adjudicated_at_map_version: "0.1.0"
-    owner: "NEU-938"
-    aliases: ["proving the quadrangle inequality", "Monge verification"]
-    notes: >-
-      NOTE FOR SUB-6/NEU-937: the mainstream half's Knuth-Yao node has the same proof
-      obligation, and the per-node-record template's own worked example anticipates a
-      "cl-4.quadrangle-inequality-proof" node in the mainstream file. If SUB-6 mints it,
-      that is a DUPLICATE of this node under a different name, in the SAME cluster
-      namespace — a dependency-audit finding to be reported and merged by adjudication,
-      NOT resolved by either mapper deleting the other's node (NEU-887: gaps and
-      conflicts are recorded, never smoothed). Recorded in advance so it is a predicted
-      collision rather than a surprise. `aliases` carries the rival name.
+  # RETIRED BEFORE MERGE — "cl-4.verify-monge-condition" (skill/proof).
+  #   SUB-13 wrote this node, and X-938-2 predicted it would duplicate a SUB-6 node.
+  #   THE PREDICTION LANDED. NEU-937 merged cl-4.quadrangle-inequality-proof ("Proving
+  #   the quadrangle inequality for a cost function", skill_type "proof") — the same
+  #   obligation, the same cascade stop at S1, the same closure/rearrangement argument
+  #   shapes, in the same cluster and the same id namespace.
+  #   SUB-13 RETIRES ITS OWN NODE and draws SUB-6's instead (see cl-4.smawk-application
+  #   and cl-4.larsch-online-smawk-implementation, whose intra_cluster edges now point at
+  #   cl-4.quadrangle-inequality-proof and RESOLVE against a real merged id).
+  #   WHY THIS IS NOT THE MOVE X-938-2 FORBIDS: that rule forbids a mapper deleting a
+  #   SIBLING's node to resolve a duplicate unilaterally. This deletes SUB-13's OWN node
+  #   in favour of the sibling's ALREADY-MERGED one. Nothing of SUB-6's is touched,
+  #   nothing is smoothed, and the map ends with one node where the technique has one
+  #   obligation. Shipping the duplicate instead would have knowingly handed OUT-2 a
+  #   defect that SUB-13 had already predicted and could see.
+  #   Recorded as a retired node rather than silently dropped, so the audit can see the
+  #   deconfliction happened and on what evidence.
 
   - id: "cl-4.smawk-application"
     name: "SMAWK totally-monotone matrix search"
@@ -1164,9 +1138,10 @@ nodes:
     skill_type: "optimization"
     skill_type_rationale: >-
       Cascade stops at S2. S1 no — establishing total monotonicity is a real and
-      dominant obligation, but it is a SEPARATE node (cl-4.verify-monge-condition,
-      typed "proof"); this node applies the algorithm to a matrix already known to be
-      totally monotone. Split per schema §1.1. S2 YES: it takes an already-correct DP
+      dominant obligation, but it is a SEPARATE node (cl-4.quadrangle-inequality-proof,
+      typed "proof", in the sibling CL-4 file); this node applies the algorithm to a
+      matrix already known to be totally monotone. Split per schema §1.1. S2 YES: it
+      takes an already-correct DP
       row-minima computation — which a learner can already perform correctly in
       O(n^2) naively or O(n log n) with the mainstream D&C optimization — and reduces
       it to O(n) by the REDUCE/INTERPOLATE recursion, with no state changing meaning.
@@ -1186,7 +1161,7 @@ nodes:
     prerequisites:
       intra_cluster:
         - "cl-4.total-monotonicity"
-        - "cl-4.verify-monge-condition"
+        - "cl-4.quadrangle-inequality-proof"
         - "cl-4.divide-and-conquer-optimization"
       roots:
         - "cl-1.root.formulate-state-transition-base-case"
@@ -1231,19 +1206,23 @@ nodes:
     owner: "NEU-938"
     aliases: ["SMAWK algorithm", "totally monotone matrix searching", "linear-time row minima"]
     notes: >-
-      INTRA-CLUSTER, CROSS-FILE PREREQUISITE (header rule 2b) — and this is the case
-      rule 2b describes as SUB-13's most common: a frontier technique generalizes a
-      mainstream one. "cl-4.divide-and-conquer-optimization" is a PREDICTED id in the
-      SIBLING FILE mainstream.yaml, which NEU-937 (SUB-6) is writing CONCURRENTLY and
-      which SUB-13 cannot see. It is still INTRA-CLUSTER — the two CL-4 files share one
-      cluster id and one id namespace — so it belongs in prerequisites.intra_cluster and
-      is NOT a cross_cluster_attachment (declaring it as one would be wrong: SUB-12 has
-      no sibling cluster to resolve it against). The dependency is real and is a
-      prerequisite in the schema's sense: SMAWK and D&C optimization exploit the SAME
-      hypothesis, D&C optimization exploits it in the obvious way, and SMAWK is only
-      intelligible — and only worth its constant factor — as the strengthening of it. Per
-      rule 2b, an unresolved intra-cluster id is reported by the dependency audit as a
-      GAP carrying this id, never deleted.
+      INTRA-CLUSTER, CROSS-FILE PREREQUISITES (header rule 2b) — the case rule 2b
+      describes as SUB-13's most common: a frontier technique generalizes a mainstream
+      one. All three intra_cluster targets now RESOLVE against real ids: mainstream.yaml
+      merged (NEU-937, PR #614) before this PR, so "cl-4.divide-and-conquer-optimization"
+      and "cl-4.quadrangle-inequality-proof" are looked up, not predicted. They remain
+      INTRA-CLUSTER — the two CL-4 files share one cluster id and one id namespace — so
+      they belong in prerequisites.intra_cluster and are NOT cross_cluster_attachments
+      (declaring them so would be wrong: SUB-12 has no sibling cluster to resolve them
+      against).
+      SUB-13's D&C-optimization prediction was a HIT (unlike the CL-1 predictions — see
+      cl1_id_resolution). The dependency is real: SMAWK and D&C optimization exploit the
+      SAME hypothesis, D&C optimization exploits it in the obvious way, and SMAWK is only
+      intelligible — and only worth its constant factor — as the strengthening of it.
+      SUB-6's own cl-4.divide-and-conquer-optimization neighbourhood corroborates the
+      shape from the other side: it models cl-4.opt-split-point-monotonicity once as
+      shared knowledge rather than restating it per skill node, for the same
+      "keeps this a graph and not a list" reason schema §1.1 gives.
       CONVENTION U (D-F4 §4) governs this node's very existence: SMAWK is in no selected
       reference taxonomy. That is explicitly NOT a gap, NOT unowned, and NOT grounds for
       a new cluster — the cascade was run, T1 fired confidently, U1 assigns it here.
@@ -1254,7 +1233,8 @@ nodes:
     skill_type: "implementation"
     skill_type_rationale: >-
       Cascade stops at S6. S1 no — no property is argued here; the hypothesis is
-      cl-4.verify-monge-condition's. S2 no, and this is the interesting rejection: the
+      cl-4.quadrangle-inequality-proof's (SUB-6's node, drawn intra-cluster). S2 no, and
+      this is the interesting rejection: the
       asymptotic class (linear) is ALREADY secured by cl-4.smawk-application. What this
       node adds is not a lower cost but the ability to obtain that cost AT ALL under a
       constraint SMAWK cannot meet — SMAWK requires random access to the matrix, and
@@ -1286,7 +1266,7 @@ nodes:
       intra_cluster:
         - "cl-4.smawk-application"
         - "cl-4.total-monotonicity"
-        - "cl-4.verify-monge-condition"
+        - "cl-4.quadrangle-inequality-proof"
       roots:
         - "cl-1.root.implement-memoization-and-tabulation"
         - "cl-1.root.formulate-state-transition-base-case"
@@ -1312,28 +1292,31 @@ nodes:
       SUB-13's PRIMARY OUT-6 RESEARCH-TIER ENDPOINT (see `out6_endpoints`). Its chain
       reaches the frozen floor through justified prerequisites with no unexplained jump:
       cl-4.larsch-online-smawk-implementation -> cl-4.smawk-application ->
-      cl-4.verify-monge-condition -> cl-4.total-monotonicity ->
-      cl-1.root.state-transition-base-case-formulation / cl-1.root.optimal-substructure
-      (DRAWN root edges), with cl-4.larsch-online-smawk-implementation also drawing
+      cl-4.total-monotonicity -> cl-4.quadrangle-inequality (SUB-6's node, intra-cluster,
+      resolved) -> cl-1.root.optimal-substructure (DRAWN root edge). This node also draws
       cl-1.root.implement-memoization-and-tabulation and
-      cl-1.root.formulate-state-transition-base-case directly. Every step is a real
-      prerequisite, not a name on a list.
+      cl-1.root.formulate-state-transition-base-case directly, so it reaches the floor
+      even if every intra-cluster hop is ignored. Every step is a real prerequisite, not
+      a name on a list.
       CONVENTION U (D-F4 §4) governs: LARSCH is in no selected reference taxonomy. Per
       U1 that is a coverage question for OUT-7, not a partition question.
 
 # =============================================================================
 # NODE COUNT
 # =============================================================================
-node_count: 19
+node_count: 18
 node_kind_breakdown:
   knowledge: 4     # slope-trick representation; Lagrangian relaxation; kinetic
                    # amortization; total monotonicity
-  skill: 15
+  skill: 14
 skill_type_breakdown:
   optimization: 5  # slope trick; slope trick on trees; Aliens trick; kinetic
                    # segment tree DP; SMAWK
-  proof: 4         # slope-trick convexity preservation; Aliens convexity;
-                   # kinetic amortization; Monge verification
+  proof: 3         # slope-trick convexity preservation; Aliens convexity;
+                   # kinetic amortization.
+                   # (The Monge-verification proof obligation is NOT absent — it is
+                   #  SUB-6's cl-4.quadrangle-inequality-proof, drawn intra-cluster.
+                   #  SUB-13 retired its own duplicate. See X-938-2.)
   implementation: 4  # slope-trick heaps; Aliens tie-breaking; kinetic segment
                      # tree; LARSCH online
   transfer: 1      # hidden-convexity recognition
@@ -1345,9 +1328,13 @@ skill_type_breakdown:
   strategic: 0
   procedural: 0
 techniques_mapped: 4
-# 4 technique families -> 19 nodes. Schema §1.1: "a mapper that emits exactly one
+# 4 technique families -> 18 nodes. Schema §1.1: "a mapper that emits exactly one
 # node per technique name has produced a topic list wearing a graph's clothes."
-# The ratio is the evidence that this file is not that.
+# The ratio (4.5) is the evidence that this file is not that.
+# Was 19 before mainstream.yaml merged; one node (cl-4.verify-monge-condition) was
+# RETIRED as a confirmed duplicate of SUB-6's cl-4.quadrangle-inequality-proof, and
+# the obligation is now drawn from SUB-6's node instead of restated. The count went
+# DOWN because a duplicate was removed, not because coverage shrank.
 
 # =============================================================================
 # OUT-6 ENDPOINTS — the maximalist / research-tier paths SUB-9 needs
@@ -1369,14 +1356,19 @@ out6_endpoints:
       it, because the cost matrix is self-referential.
     path_to_floor: >-
       cl-4.larsch-online-smawk-implementation -> cl-4.smawk-application ->
-      cl-4.verify-monge-condition -> cl-4.total-monotonicity ->
+      cl-4.total-monotonicity -> cl-4.quadrangle-inequality (SUB-6's node, intra-cluster)
+      -> cl-1.root.optimal-substructure (DRAWN root edge).
+      Fully-inside-this-file alternative, if the audit prefers a path touching one file:
+      cl-4.larsch-online-smawk-implementation -> cl-4.total-monotonicity ->
       cl-1.root.state-transition-base-case-formulation (DRAWN root edge).
-    declared_attachment_on_path: "xc.cl-4.smawk-application->cl-1.linear-sequence-dp"
+    declared_attachment_on_path: "xc.cl-4.smawk-application->cl-1.sequence-partition-dp"
     caveat: >-
-      cl-4.smawk-application also carries an intra-cluster, cross-file prerequisite on
-      the PREDICTED id "cl-4.divide-and-conquer-optimization" in mainstream.yaml. Per
-      header rule 2b that is intra-cluster and may be unresolved at audit time; the path
-      above does NOT depend on it resolving.
+      EVERY intra-cluster id on this path RESOLVES — mainstream.yaml merged (PR #614)
+      before this PR, so cl-4.quadrangle-inequality, cl-4.quadrangle-inequality-proof and
+      cl-4.divide-and-conquer-optimization are looked up, not predicted. No hop is
+      unresolved. The path crosses the CL-4 FILE boundary, which is NOT a cluster
+      boundary: both files carry cluster "CL-4", so this remains a single-cluster path
+      and OUT-6's per-cluster count still sees four clusters, not five.
 
   - node: "cl-4.slope-trick-on-trees"
     rank: "secondary"
@@ -1406,7 +1398,7 @@ out6_endpoints:
       cl-4.kinetic-segment-tree-dp -> cl-4.kinetic-segment-tree-amortization ->
       cl-1.root.state-transition-base-case-formulation (DRAWN root edge) AND
       anchor.segment-tree@1.0.0 (DRAWN, registered, sanctioned terminal).
-    declared_attachment_on_path: "xc.cl-4.kinetic-segment-tree-dp->cl-1.linear-sequence-dp"
+    declared_attachment_on_path: "xc.cl-4.kinetic-segment-tree-dp->cl-1.sequence-partition-dp"
 
 # =============================================================================
 # AR-1 ANCHOR REQUESTS IN FLIGHT
@@ -2083,20 +2075,40 @@ carried_conflicts:
   - id: "X-938-2"
     conflict: >-
       Predicted DUPLICATE NODES across the two CL-4 files, which share one cluster id
-      and one id namespace. cl-4.total-monotonicity and cl-4.verify-monge-condition are
-      prerequisites of SUB-13's SMAWK family AND of SUB-6's mainstream Knuth-Yao and D&C
-      optimization; the per-node-record template's own worked example anticipates a
-      "cl-4.quadrangle-inequality-proof" node in the mainstream file, which would be
-      cl-4.verify-monge-condition under a different name.
+      and one id namespace. SUB-13's cl-4.total-monotonicity and cl-4.verify-monge-
+      condition were prerequisites of its SMAWK family AND of SUB-6's mainstream
+      Knuth-Yao and D&C optimization; the per-node-record template's own worked example
+      anticipates a "cl-4.quadrangle-inequality-proof" node in the mainstream file.
     disposition: >-
-      CARRIED as a PREDICTED dependency-audit finding, not resolved locally. SUB-13
-      cannot see mainstream.yaml being written, and coordinating by editing it is
-      forbidden (header rule 1). SUB-13 offers both nodes as the shared CL-4 knowledge/
-      proof nodes and records the rival names in `aliases` so OUT-7 does not read a
-      naming difference as a coverage gap (X-D2's mitigation, applied). If SUB-6 mints
-      rivals, the correct outcome is that the dependency audit REPORTS the duplicate and
-      adjudication merges them — NOT that either mapper deletes the other's node.
-    route: "Dependency audit (OUT-2), then adjudication."
+      *** RESOLVED BEFORE MERGE — THE PREDICTION LANDED, AND THE EVIDENCE ARRIVED IN
+      TIME TO ACT ON IT. *** mainstream.yaml merged (NEU-937, PR #614) while this PR was
+      in review, so SUB-13 rebased onto it and could finally SEE the sibling. It had
+      minted exactly the predicted rivals: cl-4.quadrangle-inequality ("The quadrangle
+      inequality (Monge condition)", knowledge) and cl-4.quadrangle-inequality-proof
+      (skill/proof). Two different resolutions, because the two cases are different:
+      (1) THE PROOF NODE WAS A TRUE DUPLICATE. SUB-6's cl-4.quadrangle-inequality-proof
+      is the same obligation, the same S1 cascade stop, and the same argument shapes as
+      SUB-13's cl-4.verify-monge-condition. SUB-13 RETIRED ITS OWN NODE and now draws
+      SUB-6's intra-cluster. Node count 19 -> 18. This does NOT violate the rule below:
+      that rule forbids deleting a SIBLING's node unilaterally; SUB-13 deleted its OWN
+      in favour of the sibling's already-merged one. Nothing of SUB-6's was touched.
+      (2) THE KNOWLEDGE NODE WAS *NOT* A DUPLICATE — it only looked like one because
+      SUB-13 had written it too broadly. Monge and total monotonicity are DIFFERENT
+      facts: Monge implies total monotonicity, not conversely, and SUB-6's node states
+      Monge's SPLIT-POINT-SANDWICH consequence (what Knuth-Yao and D&C optimization
+      need) while SMAWK needs the ROW-MINIMA consequence of the strictly weaker
+      property. SUB-13 NARROWED cl-4.total-monotonicity to state only the weaker
+      property and now DRAWS cl-4.quadrangle-inequality intra-cluster for the Monge
+      condition it no longer restates. The implication became the edge it always was.
+      THE RULE STILL STANDS for anything discovered later: if a duplicate is found that
+      SUB-13 cannot resolve by retiring its own node, the dependency audit REPORTS it and
+      adjudication merges — neither mapper deletes the other's node.
+    route: >-
+      Resolved in this PR; nothing left for OUT-2 on these two nodes. OUT-2 should still
+      confirm the deconfliction rather than trust it — the two CL-4 files now share
+      three intra-cluster edges (cl-4.quadrangle-inequality,
+      cl-4.quadrangle-inequality-proof, cl-4.divide-and-conquer-optimization,
+      cl-4.convex-hull-trick-monotonic) and every one should resolve.
     affected_parties: ["NEU-937 (SUB-6)", "OUT-2 dependency audit", "SUB-12 integration"]
 
   - id: "X-938-3"
@@ -2172,9 +2184,12 @@ self_check:
   - check: "4. No prerequisites.* entry points at a sibling cluster's node."
     result: >-
       Pass — the only non-root, non-anchor prerequisites.* entries are intra_cluster.
-      Two of those ("cl-4.convex-hull-trick", "cl-4.divide-and-conquer-optimization")
-      live in the SIBLING FILE mainstream.yaml, which is the SAME cluster (CL-4), so they
-      are correctly intra_cluster per header rule 2b and are NOT cross-cluster.
+      Four of those ("cl-4.convex-hull-trick-monotonic",
+      "cl-4.divide-and-conquer-optimization", "cl-4.quadrangle-inequality",
+      "cl-4.quadrangle-inequality-proof") live in the SIBLING FILE mainstream.yaml, which
+      is the SAME cluster (CL-4), so they are correctly intra_cluster per header rule 2b
+      and are NOT cross-cluster. All four RESOLVE — mainstream.yaml merged (PR #614)
+      before this PR and the ids were checked mechanically against it.
   - check: "5. No roots or boundary_anchors edge is a disguised cross-cluster or unregistered dependency."
     result: >-
       Pass, and this is the check SUB-13 is most exposed on, so it is spelled out. Every
@@ -2190,16 +2205,18 @@ self_check:
   - check: "7. attachment_id matches xc.<from>-><to_node>; from == the node's own id."
     result: "Pass — 5/5, checked mechanically."
   - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
-    result: "Pass — 19/19 on all three. No dimension invented (INC-S3). Every js note is an observation, explicitly labelled 'not a verdict'."
+    result: "Pass — 18/18 on all three. No dimension invented (INC-S3). Every js note is an observation, explicitly labelled 'not a verdict'."
   - check: "9. No node is settled without a ledger entry; no node carries frozen: true."
-    result: "Pass — 19/19 are \"provisional\". No frozen field anywhere in this file."
+    result: "Pass — 18/18 are \"provisional\". No frozen field anywhere in this file."
   - check: "10. All string enums quoted (D-F3's YAML constraint — the Norway problem)."
     result: "Pass."
   - check: "11. Ids match the grammar and are cluster-namespaced; CL-4's two files share a namespace."
     result: >-
-      Pass — all 19 ids are cl-4.<kebab-name>. Collision risk with mainstream.yaml is
-      real and is PREDICTED rather than assumed away: see carried conflict X-938-2 for
-      cl-4.total-monotonicity / cl-4.verify-monge-condition.
+      Pass — all 18 ids are cl-4.<kebab-name>, and id-collision against mainstream.yaml
+      is now CHECKED rather than predicted: mainstream.yaml merged before this PR and a
+      mechanical cross-file check confirms ZERO id collisions between the two CL-4 files.
+      The predicted SEMANTIC duplicate (X-938-2) was real and is RESOLVED — SUB-13
+      retired its own cl-4.verify-monge-condition and narrowed cl-4.total-monotonicity.
   - check: "12. Wrote only this file."
     result: >-
       Pass — NEU-938 touched only nodes/cl-4-optimization/frontier.yaml. Not
