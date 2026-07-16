@@ -319,3 +319,2247 @@ nodes:
   # Use the template at ../C005-dp-map-schema/03_per-node-record-template.md.
   # Your nodes carry `role: "technique"` and MUST NOT carry `frozen: true`.
   # ===========================================================================
+
+  # ===========================================================================
+  # ▼▼▼ CL-1 FAMILY BLOCK — authored by NEU-934 (SUB-3). ▼▼▼
+  # ===========================================================================
+  # 46 technique nodes. Not 12 — see the note on decomposition below.
+  #
+  # DECOMPOSITION DISCIPLINE (schema §1.1)
+  #   The spec names ~7 technique areas (1D linear, 2D linear, prefix-sum, grid/path,
+  #   LIS, edit-distance/alignment, Kadane-and-kin). Emitting seven nodes would have
+  #   been a topic list wearing a graph's clothes — the charter's #1 High risk. Each
+  #   area is decomposed into the things a learner ACQUIRES SEPARATELY AND FAILS
+  #   SEPARATELY: the knowledge of the shape, the strategic act of choosing it, the
+  #   proof obligation it carries, and (where they genuinely differ from the general
+  #   case) its implementation and debugging demands.
+  #
+  #   The test applied throughout: "can a learner have one of these and not the other,
+  #   and can I tell which one they are missing by watching them fail?" Where the
+  #   answer was no, the node was NOT split — mechanical 4x-per-technique splitting is
+  #   the same failure as a topic list, just more expensive to read.
+  #
+  # NO CROSS-CLUSTER ATTACHMENTS — BY CONSTRUCTION, NOT BY OMISSION
+  #   CL-1 is the base cluster. Every prerequisite here is intra-cluster or a root
+  #   (both DRAWN, schema §4.1). `cross_cluster_attachments: []` on all 46 nodes is a
+  #   POSITIVE ASSERTION, per the NEU-934 spec ("its techniques attach directly to the
+  #   roots and it declares no cross-cluster prerequisites"). One anchor is drawn
+  #   (`anchor.modular-arithmetic@1.0.0`, on the counting node) — a real, registered,
+  #   sanctioned non-DP terminal, not a laundered dependency. No AR-1 request was
+  #   needed: CL-1's non-DP prerequisites are elementary-floor (arrays, indexing) or
+  #   already registered.
+  #
+  # THE SIX SKILL TYPES THIS CLUSTER OWNS (NEU-934 spec / SUB-9 union-completeness)
+  #   conceptual     → cl-1.judge-dp-applicability
+  #   procedural     → cl-1.derive-recurrence-routine (+ build-prefix-aggregate,
+  #                    reconstruct-optimal-solution-by-backtracking)
+  #   strategic      → cl-1.select-linear-dp-pattern (+ 8 per-technique formulators)
+  #   proof          → cl-1.prove-recurrence-correctness (+ 5 per-technique proofs)
+  #   debugging      → cl-1.diagnose-wrong-state-transition-base-case
+  #                    (+ diagnose-empty-subarray-and-all-negative-boundary)
+  #   transfer       → cl-1.recognize-dp-formulation-under-unfamiliar-surface
+  #                    (+ transfer-lis-to-disguised-problems) — both carry explicit
+  #                    transfer-to-DP uncertainty per NEU-887 R1.
+  #   Two further types appear where they are genuinely the contribution:
+  #   implementation → order-2d-table-evaluation, handle-grid-boundaries-and-obstacles.
+  #   (These are not a claim on CL-4's territory: making a DP RUN is not making it run
+  #   FASTER — the exact boundary the frozen root `implement-memoization-and-tabulation`
+  #   already draws inside CL-1. No `optimization` node is emitted here; every
+  #   cost-reduction that touches this cluster's recurrences is CL-4's by D-F4 T1 and
+  #   is recorded in `residual_exclusions` at the foot of this file.)
+  #
+  # ON `coverage.corpus_refs` — WHY CORPUS-LEVEL AND NOT PROBLEM-LEVEL
+  #   The template shows problem-granular refs (`"C1:1635"`). This file asserts refs at
+  #   CORPUS granularity (`"C1"`, `"C2"`) instead, deliberately. NEU-932 F-C-1 verified
+  #   only the CSES section COUNTS at the 2026-07-16 cutoff; no per-problem id in any
+  #   corpus was verified by this sub-task, and CAP-2 marks C4's ids unverified
+  #   outright. Emitting a specific problem id here would be an invented value wearing
+  #   a citation's clothes — precisely what NEU-887's discipline forbids. A corpus-level
+  #   ref is a claim this sub-task can actually stand behind: "this corpus exercises
+  #   this technique" at survey level. `coverage.status` stays "unaudited" on every
+  #   node regardless — OUT-7 owns the verdict and will resolve refs to problems.
+  #   Recorded as EXC-1 in `residual_exclusions`.
+  # ===========================================================================
+
+  # ---------------------------------------------------------------------------
+  # SECTION 0 — Cross-cutting foundational DP skills
+  # ---------------------------------------------------------------------------
+  # These are the six skill types the NEU-934 spec makes this cluster responsible
+  # for, plus the knowledge nodes they stand on. They sit directly on the roots and
+  # are prerequisites of the per-technique nodes below: a learner acquires the
+  # general act first, then meets it again specialized to each shape.
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.judge-dp-applicability"
+    name: "Judge whether a problem admits a DP formulation"
+    node_kind: "skill"
+    skill_type: "conceptual"
+    skill_type_rationale: >-
+      Cascade reaches S8 as a CONFIDENT residual. S1 no — the learner is judging, not
+      arguing; the formal argument that the properties hold is a separate obligation
+      (cl-1.prove-recurrence-correctness). S2 no — no recurrence exists yet to
+      accelerate. S3 no — the trigger is a problem statement, not a symptom. S4 no —
+      this is applied to problems whose shape is readable; the unfamiliar-surface case
+      is cl-1.recognize-dp-formulation-under-unfamiliar-surface. S5 no — this is a
+      yes/no property judgment about DP as a class, not a choice AMONG formulations
+      (that is cl-1.select-linear-dp-pattern). S6/S7 no — no code, no routine.
+      Residual: understanding what the two properties MEAN well enough to see them
+      together in a live problem. That is "conceptual".
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Given a problem statement, judge whether BOTH DP properties hold together — that
+      an optimal solution decomposes into subproblem optima AND that those subproblems
+      recur — and therefore whether DP is the right tool at all. Distinct from the two
+      roots it stands on, which each check ONE property in isolation: the acquisition
+      here is the JOINT judgment, including the two ways it goes wrong (substructure
+      without overlap, which is divide-and-conquer; overlap without substructure, which
+      is a search problem memoization cannot rescue). This is the first thing a learner
+      does with a problem and the first thing that silently fails: a learner who cannot
+      make it writes a correct-looking DP for a problem that does not have one.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.linear-dp-pattern-catalogue"
+    name: "The catalogue of linear/sequence DP state patterns"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The small set of recurring state shapes that covers most linear and rectangular
+      DP, held as a comparable set rather than as isolated facts: prefix-index state
+      ("answer over the first i"), element-anchored state ("best ending exactly at i"),
+      two-sequence index pair ("first i of A against first j of B"), grid coordinate,
+      sequence-plus-mode (a small auxiliary dimension), and index-plus-count (partition
+      into k parts). What makes this a node rather than a list is the CONTRASTS between
+      them — which shapes are interchangeable, which are not, and what question each
+      one answers — because the strategic skill that stands on it is a choice, and a
+      choice needs a compared set of alternatives, not an enumeration.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["DP state archetypes", "linear DP patterns"]
+
+  - id: "cl-1.select-linear-dp-pattern"
+    name: "Choose which linear/sequence DP pattern fits a problem's shape"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. It is CHOOSING — among the compared alternatives in
+      cl-1.linear-dp-pattern-catalogue — under a correctness constraint (the chosen
+      state must be sufficient) and a cost constraint (its state space must be
+      affordable). S1 no — the proof that the chosen state IS sufficient is the
+      separate obligation cl-1.prove-prefix-state-sufficiency; this node picks, that
+      one licenses. S2 no — nothing correct exists yet to accelerate; this is the
+      boundary that keeps CL-4 distinct. S3 no — driven by a statement, not a symptom.
+      S4 no — the pattern is recoverable from the statement's shape; the disguised case
+      belongs to the transfer node.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Read a problem's shape and pick the state pattern that fits it: recognize that
+      "count the ways to reach the end" wants a prefix-index state while "longest run
+      ending somewhere" wants an element-anchored one, that two independent sequences
+      want an index pair, and that a constraint the prefix index cannot remember wants
+      an extra mode dimension rather than a cleverer transition. The specific,
+      pattern-level instance of the root formulation skill: the root says "design a
+      state", this says "and here is the compared menu you are choosing from, and the
+      shape-features in the statement that discriminate between them".
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-dp-pattern-catalogue"
+        - "cl-1.judge-dp-applicability"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.derive-recurrence-routine"
+    name: "Derive a state / transition / base case from a problem statement by routine"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7, and this is the file's closest call — the rationale states
+      the rival explicitly rather than hiding the tension (schema §3.1, Convention S).
+      S1/S2/S3/S4 reject cleanly (no argument, no existing recurrence, no symptom, no
+      unfamiliar surface). S5 "strategic" is the RIVAL and has a real claim: deriving a
+      recurrence obviously involves judgment. The line drawn: the ROUTINE'S STEPS do
+      not vary with the problem — always "name the last decision, ask what the answer
+      depends on after that decision is fixed, promote exactly that into the state,
+      write the transition as a case per decision option, read the base cases off the
+      decisions that no longer exist, name the answer state" — which is S7's literal
+      test. What varies is the routine's OUTPUT, not its steps. The JUDGMENT inside
+      step three is real and is carried by a separate node (cl-1.select-linear-dp-
+      pattern, S5), so this node is the drill and that node is the choice. S6 rejected:
+      no code. Typed S7 with the rival named; see `notes` for the re-adjudication route.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Execute the fixed derivation drill that turns a problem statement into a
+      candidate recurrence, reliably and without inspiration: identify the last
+      decision, determine what must be remembered once it is fixed, promote exactly
+      that into the state, enumerate the transition as one case per decision option,
+      identify the base cases, and name the state that holds the answer. What a learner
+      acquires is REPEATABILITY — the ability to get a candidate recurrence out of any
+      tractable statement without waiting for insight. The candidate may be wrong; that
+      is what the proof and debugging nodes are for.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.judge-dp-applicability"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    contested_by: []
+    notes: >-
+      SKILL-TYPE BOUNDARY, CARRIED NOT SMOOTHED. The S7/S5 line here is genuinely thin:
+      the NEU-934 spec names this skill "procedural" and the cascade's S7 test (steps
+      do not vary) supports that, but S5 fires on any reading where "promote exactly
+      what must be remembered" is treated as a judgment about THIS problem rather than
+      a step of a fixed drill. Typed S7 per the spec and the steps-do-not-vary test,
+      with the judgment factored out into cl-1.select-linear-dp-pattern so the split is
+      structural rather than asserted. A Convention S `D-S1a` ledger entry is WARRANTED
+      but NOT FILED BY THIS SUB-TASK: the ledger lives in the NEU-933 package
+      (../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md) and NEU-934 is
+      sole writer of THIS FILE ONLY — writing another sub-task's file is prohibited by
+      the schema's own rule 3. Recorded here instead, with the trigger named so the
+      audit can act on it. RE-ADJUDICATION TRIGGER: if SUB-9's eight-skill-type audit
+      finds this file's only `procedural` instances are this node, build-prefix-
+      aggregate, and reconstruct-optimal-solution-by-backtracking, and judges the drill
+      to be S5, re-type it and the type stays instantiated via the other two — the
+      union-completeness check does not depend on this node's disposition. Node stays
+      `provisional` meanwhile.
+
+  - id: "cl-1.dp-correctness-proof-obligations"
+    name: "What a DP recurrence must prove: the four obligations"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      A DP is correct only if four separable things hold, and knowing they are four
+      rather than one vague "it works" is the content of this node: (1) STATE
+      SUFFICIENCY — the state captures everything the future depends on, so two
+      histories reaching the same state are genuinely interchangeable; (2) TRANSITION
+      EXHAUSTIVENESS — every way of reaching a state is covered by some case; (3)
+      TRANSITION DISJOINTNESS — for counting DP, no way is covered twice (for
+      optimization DP this weakens to "no case is invalid"); (4) BASE-CASE CORRECTNESS
+      — the given values are right and the derived values never depend on an undefined
+      one. Knowledge, not skill: these are the obligations, stated. Discharging them is
+      cl-1.prove-recurrence-correctness.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-recurrence-correctness"
+    name: "Prove a DP recurrence correct and its optimal substructure sound"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1 immediately: the whole contribution is ESTABLISHING BY
+      ARGUMENT that a recurrence computes what it claims. The two standard instruments
+      are induction over the state's dependency order and the cut-and-paste exchange
+      argument for optimal substructure. Contrast cl-1.judge-dp-applicability, which
+      is typed S8 precisely because it JUDGES the same properties rather than arguing
+      them — that pair is the schema's S1/S8 boundary made concrete in this cluster.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Discharge the four obligations for a specific recurrence: argue state sufficiency
+      (typically by cut-and-paste — assume a better solution through this state, splice
+      it in, contradict optimality), argue the transition's cases are exhaustive and
+      non-overlapping, argue the base cases, and argue the state dependency order is
+      acyclic so the induction is well-founded. The general act; the per-technique
+      proof nodes below are this skill met again where a specific recurrence makes one
+      obligation hard.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.dp-correctness-proof-obligations"
+        - "cl-1.derive-recurrence-routine"
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["cut-and-paste argument", "exchange argument for DP"]
+
+  - id: "cl-1.dp-failure-modes"
+    name: "The taxonomy of DP failure modes and their symptoms"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The mapping from what a broken DP DOES to what is wrong with it, held as a
+      taxonomy: an insufficient state (wrong answer on a case where two histories
+      reaching the same state were not actually interchangeable); a non-exhaustive
+      transition (answer too small on optimization, too low on counting); an
+      overlapping transition (double-counted answer, exact-multiple-of-something in the
+      classic case); a wrong or missing base case (wrong answer at the smallest input,
+      often only there); an evaluation order that reads a not-yet-computed state (order-
+      dependent garbage, frequently zero); an off-by-one at the domain boundary. The
+      knowledge is the CORRESPONDENCE, not the list — the reason a symptom narrows the
+      search is that different causes produce different symptoms.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.dp-correctness-proof-obligations"
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: the
+        "stack overflow" symptom that a C++-oriented reference attributes to deep
+        top-down recursion presents differently in JavaScript (a RangeError at a
+        non-tunable default depth reached at far smaller n), so the symptom→cause row
+        for that failure mode may not transfer as written. An observation, not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.diagnose-wrong-state-transition-base-case"
+    name: "Diagnose a wrong state, transition, or base case from a failing DP"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3: the trigger is a SYMPTOM of an existing, broken DP — a wrong
+      answer on a case, an answer that is a suspicious multiple of the truth, a value
+      that is right for n=5 and wrong for n=1 — and the contribution is reasoning back
+      from it to the defect. S1 no — the learner is localizing a fault, not arguing
+      correctness (though the proof obligations are what make the search finite, which
+      is why this node requires them). S2 no — the DP is wrong, not slow; a TLE-driven
+      diagnosis on a correct DP is CL-4's territory by D-F4 T1. S4/S5 no — nothing is
+      being recognized or chosen.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Take a DP that produces a wrong answer and find which of the four obligations it
+      violates, without rewriting it from scratch: shrink to the smallest failing case,
+      compare the table against a brute force to find the FIRST divergent state (the
+      one whose inputs are all correct — the defect is in that transition, not
+      downstream of it), and read the defect class off the symptom. What a learner
+      acquires is that a wrong DP is LOCALIZABLE rather than something to be stared at
+      or replaced. The single highest-value skill in the cluster for a competitor,
+      because the failure is common and the naive response — rewrite and hope — is
+      unbounded.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.dp-failure-modes"
+        - "cl-1.dp-correctness-proof-obligations"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["DP fault localization", "stress-testing a DP"]
+
+  - id: "cl-1.recognize-dp-formulation-under-unfamiliar-surface"
+    name: "Recognize that an unfamiliar problem admits a known DP formulation"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4: the defining trigger is an UNFAMILIAR SURFACE — the problem
+      does not mention sequences, subsequences, edits, or grids, and the contribution
+      is seeing one of those underneath anyway. S1/S2/S3 reject cleanly (no argument,
+      no existing recurrence, no symptom). S5 is the near miss and the schema's own
+      test separates them: strategic choice operates when the mapping is READABLE from
+      the statement, transfer when it is HIDDEN. That is why this node and
+      cl-1.select-linear-dp-pattern are two nodes and not one — same destination,
+      different trigger, and a learner routinely has the second without the first.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Strip a problem's surface story and see whether what remains is a shape this
+      cluster already owns: that "minimum cost to make two configurations identical
+      with insert/delete/replace-like operations" is an alignment DP however it is
+      dressed, that a scheduling or chain-building constraint is an increasing-
+      subsequence in disguise, that a linear scan with a reset condition is Kadane. The
+      skill is the STRIPPING — reducing a statement to its state-and-decision skeleton
+      and matching the skeleton, not the vocabulary. This is the cluster's transfer
+      node and the graph's instantiation of the transfer skill type.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-dp-pattern-catalogue"
+        - "cl-1.judge-dp-applicability"
+        - "cl-1.derive-recurrence-routine"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY — CARRIED EXPLICITLY (NEU-887 R1; NEU-934 spec
+      requires this node to carry it). This node asserts the skill EXISTS and belongs in
+      the map. It does NOT assert that the skill is reliably teachable, that practising
+      the cluster's other nodes produces it, or that it transfers from mapped
+      techniques to unmapped surfaces. NEU-887 R1 (the DP-transfer gap) says the
+      opposite is a live possibility: transfer is the DP skill most often assumed and
+      least often evidenced. NEU-932 F-C-5 sharpens the point — no selected corpus is
+      ordered by LEARNING dependency, and C2's authored ramp is one expert's design
+      (class-1 evidence about a design, not about learning), so the prerequisite edges
+      drawn into this node are a STRUCTURAL claim about what the skill presupposes, NOT
+      an empirical claim that acquiring them yields it. Consequence for downstream
+      consumers, stated so it is not rediscovered: a curriculum that teaches this
+      cluster's nodes and expects transfer to follow is relying on an unevidenced step.
+      The uncertainty is not resolvable inside NEU-889 — no evidence class available to
+      this charter could settle it (it would need learner-outcome data, class 5/6, which
+      NEU-887 records as absent). Recorded, owned, and left open rather than smoothed.
+      Node stays `provisional`; `evidence_class: 1` describes the node's EXISTENCE claim
+      (the references name the skill), not its acquisition claim, which has none.
+      Same uncertainty applies undiminished to cl-1.transfer-lis-to-disguised-problems.
+
+  - id: "cl-1.solution-reconstruction"
+    name: "Solution reconstruction: the table holds more than the answer"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      A completed DP table does not merely hold the optimal VALUE — it holds enough
+      information to recover an optimal SOLUTION, because the value at each state was
+      achieved by some predecessor and that predecessor is identifiable after the fact.
+      The two ways to exploit this and what each costs: store a parent pointer per state
+      during evaluation (memory proportional to the state space, trivial recovery), or
+      store nothing and recompute at recovery time which predecessor achieves the value
+      (no extra memory, a second pass). Also the fact that makes reconstruction
+      non-obvious: the answer is a PATH through the state space, not a state, so "the
+      DP is correct" and "I can produce the thing it is optimal over" are different
+      claims.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["path recovery", "traceback", "argmax recovery"]
+
+  - id: "cl-1.reconstruct-optimal-solution-by-backtracking"
+    name: "Reconstruct an optimal solution by backtracking the table"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7. The routine's steps do not vary with the problem: start at
+      the answer state, find the predecessor whose value plus this transition's cost
+      equals this state's value, emit that transition's decision, move to the
+      predecessor, stop at a base case, reverse the emitted list. That sequence is
+      identical for edit distance, grid paths, LIS, and partition DP — only the
+      transition set substituted into step two changes, and substituting a known
+      transition set is not a judgment about the problem. S6 rejected on the schema's
+      §2.1 test: no evaluation-order judgment arises, because the order is dictated by
+      the table that already exists. S5 rejected: nothing is chosen. S1/S2/S3/S4 reject
+      cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Walk a completed table backwards from the answer state to a base case, emitting
+      the decision taken at each step, to produce the actual alignment / path /
+      subsequence / partition rather than just its score. Includes the two boundary
+      cases that break naive traceback: ties (several predecessors achieve the value —
+      any one is a valid optimum, and picking deterministically matters when the judge
+      demands a specific one) and the base-case stop condition.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.solution-reconstruction"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.best-ending-at-index-state-pattern"
+    name: "Element-anchored state: \"best ending exactly at i\""
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The state pattern that fixes the last element rather than ranging over a prefix —
+      dp[i] means "the best structure that ENDS EXACTLY AT i", and the global answer is
+      a max over all i rather than dp[n]. Why it is a distinct pattern and not a variant
+      of the prefix-index state: anchoring the endpoint is what makes the transition
+      LOCAL, because the anchored element is available to compare against candidate
+      predecessors, which a prefix-optimum state has forgotten. This is the single
+      insight shared by LIS and Kadane and the reason both are in this cluster; it is
+      factored out as one node so the two techniques below share a prerequisite instead
+      of each re-teaching it. The cost of the pattern, which is the thing learners miss:
+      dp[n] is NOT the answer, and forgetting the final max is a distinct bug class.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["best ending here", "endpoint-anchored state", "suffix-anchored DP state"]
+
+  # ---------------------------------------------------------------------------
+  # SECTION 1 — 1D linear/sequence DP
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.linear-sequence-dp-1d"
+    name: "1D linear/sequence DP (prefix-index state)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The base shape of the whole cluster: a state indexed by a single position in a
+      sequence, dp[i], whose value answers the problem restricted to the first i
+      elements, and whose transition looks back a bounded distance. What makes it the
+      simplest useful DP — the state space is linear, the dependency order is the index
+      order itself (so evaluation order is free rather than a decision), and the
+      transition is a small case analysis over what happens at position i. D-F4 assigns
+      it here by T4, a confident residual: a plain index tuple over a linear domain,
+      with no exotic encoding and no combinatorial structure to respect.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["1D DP", "prefix DP", "linear DP"]
+
+  - id: "cl-1.formulate-1d-sequence-dp"
+    name: "Formulate a 1D sequence DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing what dp[i] MEANS is a choice among candidate
+      formulations under a correctness constraint, specialized to the 1D shape. S1 no —
+      proving the chosen meaning sufficient is cl-1.prove-prefix-state-sufficiency. S2
+      no — nothing exists yet to accelerate. S3 no — statement-driven, not symptom-
+      driven. S4 no — the 1D shape is readable from the statement here.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Turn a sequence problem into a concrete dp[i]: decide what the index ranges over
+      (elements consumed? position reached?), decide what the value means (the optimum
+      over the prefix? the optimum ending at i?), write the transition as a case
+      analysis on the decision at position i, and fix dp at the empty prefix. The
+      recurring judgment this node carries: whether looking back ONE position suffices
+      or the transition must look back further, and what that costs.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.select-linear-dp-pattern"
+        - "cl-1.derive-recurrence-routine"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: a 1D
+        DP over n up to 1e5-1e6 is the first place a learner meets JavaScript's
+        recursion-depth ceiling, since the top-down form recurses once per index. The
+        references assume a C++ default where the same formulation survives. An
+        observation about where the issue first BITES in this cluster, not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-prefix-state-sufficiency"
+    name: "Prove a prefix-index state is sufficient"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is ARGUING that the state forgets nothing
+      the future needs — that any two histories arriving at the same index are
+      interchangeable for everything that follows. Typically a cut-and-paste exchange:
+      assume a better completion exists for one history, splice it onto the other,
+      contradict optimality. S2/S3 no (nothing to accelerate, no symptom). S8 rejected
+      deliberately: judging that a state "feels sufficient" is the conceptual node;
+      this is the argument that settles it.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Establish the sufficiency obligation for a specific 1D formulation, which is the
+      one that fails silently: a state that has forgotten something relevant still
+      produces a table, still terminates, and still returns a plausible number. The
+      skill is producing the interchangeability argument — and, when it cannot be
+      produced, reading the failure as the signal that the state needs an extra
+      dimension. That diagnostic direction is why this node is a prerequisite of the
+      state-machine formulation below: a learner arrives at "this needs a mode
+      dimension" by failing to prove sufficiency without one.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.prove-recurrence-correctness"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["state sufficiency argument", "Markov property of a DP state"]
+
+  - id: "cl-1.state-machine-over-sequence"
+    name: "Sequence DP with an auxiliary mode dimension (state-machine DP)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The shape that appears when a prefix index alone is not a sufficient state: dp[i]
+      becomes dp[i][m] where m ranges over a SMALL, FIXED set of modes the process can
+      be in — holding or not holding an asset, in a cooldown, having used k of a
+      resource, having taken or skipped element i-1. The transition becomes a small
+      transition matrix between modes. Why it stays in CL-1 rather than moving to CL-3:
+      the mode is a plain index in a tuple, not an encoding — nothing is packed,
+      compressed, or reinterpreted (D-F4 T2 answers no), and the domain is still linear
+      (T3 no), so T4 catches it. The family covers the non-adjacent-selection and
+      buy/sell-with-constraints problems that are the cluster's most common exam
+      material.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["state-machine DP", "DP with a mode dimension", "automaton-free multi-state DP"]
+    contested_by: []
+    notes: >-
+      NAMING HAZARD, recorded for OUT-7 (X-D2 discipline). "State-machine DP" is a
+      community name, not a taxonomy term, and it collides conceptually with CL-3's
+      AUTOMATON DP, which is a different thing (there the state IS an automaton node
+      built from the input — an encoding, D-F4 T2; here the mode set is small, fixed,
+      and read straight off the problem statement). The two are not the same technique
+      and this node makes no claim on CL-3's. Aliases carried so the audit does not read
+      the name overlap either as a duplicate or as a coverage gap.
+
+  - id: "cl-1.formulate-state-machine-over-sequence"
+    name: "Formulate a sequence DP with an auxiliary mode dimension"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: the choice is WHICH modes to carry and, critically, how few
+      — a decision under a correctness constraint (too few modes and the state is
+      insufficient) and a cost constraint (modes multiply the state space). S1 no —
+      that is the sufficiency proof. S2 no — the recurrence does not exist yet;
+      note this is exactly the boundary the schema §2.1 names, since collapsing modes
+      to shrink an EXISTING correct DP would be CL-4's S2 optimization instead.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Recognize that a constraint cannot be remembered by the index alone and promote
+      exactly it into a mode dimension — no more, no less. The two failures the skill
+      exists to prevent: too few modes (an insufficient state that silently returns
+      wrong answers) and too many (modes that encode information the transition never
+      reads, multiplying the state space for nothing). Includes writing the mode
+      transitions as a complete, disjoint case analysis.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.state-machine-over-sequence"
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.prove-prefix-state-sufficiency"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  # ---------------------------------------------------------------------------
+  # SECTION 2 — 2D linear/sequence DP
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.linear-sequence-dp-2d"
+    name: "2D linear/sequence DP (index-pair state)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      A state indexed by a PAIR of positions, dp[i][j], where the two indices range
+      over two independent linear domains — most often the prefixes of two sequences,
+      sometimes a position paired with a resource count. What changes relative to 1D
+      and why it is a separate node: the dependency order is no longer given for free
+      by "increasing index", because a state can depend on neighbours in either
+      dimension, so a valid evaluation order becomes something that must be ESTABLISHED
+      rather than assumed. Still CL-1 by D-F4 T4: a plain index tuple over a
+      rectangular domain, difficulty in the recurrence itself.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["2D DP", "index-pair DP", "two-sequence DP"]
+
+  - id: "cl-1.formulate-2d-sequence-dp"
+    name: "Formulate a 2D sequence DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing what the index PAIR ranges over and what dp[i][j]
+      means, under correctness and state-space cost constraints. S1 no — sufficiency
+      is proved elsewhere. S2 no — nothing correct exists yet; shrinking a correct 2D
+      table's memory is CL-4's by T1 and is excluded here (see EXC-3). S3/S4 no.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Decide that a problem needs two indices and what each one ranges over — most
+      commonly "the first i of A against the first j of B" — then write the transition
+      as a case analysis over what happens to the two elements at the frontier
+      (consume both, consume one, consume neither) and fix the base cases along both
+      empty-prefix edges. The judgment carried: recognizing that a SECOND index is
+      required at all, which is the same insufficiency signal the 1D sufficiency proof
+      produces, met here in the shape that resolves it.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.select-linear-dp-pattern"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.order-2d-table-evaluation"
+    name: "Establish a valid evaluation order for a 2D table"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. It is realizing an ALREADY-CHOSEN formulation as code, and
+      the schema §2.1 test decides S6 over S7 explicitly: choosing a loop order that
+      respects THIS recurrence's dependency pattern is a judgment about this specific
+      problem, so it is not a fixed routine. S2 rejected on the boundary the frozen
+      root `implement-memoization-and-tabulation` already draws inside CL-1: making the
+      DP RUN CORRECTLY is not making it run FASTER — a wrong order yields a wrong
+      answer, not a slow one. That keeps this node clear of D-F4 T1 and therefore of
+      CL-4. S1/S3/S4/S5 reject cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Determine an iteration order in which every state's dependencies are already
+      computed when it is reached, and write the loops that realize it: row-major when
+      the transition looks up and left, reverse order when it looks forward, and the
+      recognition that some recurrences admit no simple nested-loop order and want the
+      top-down form instead. What a learner acquires is that evaluation order is a
+      CORRECTNESS obligation in 2D rather than a stylistic choice — the 1D case gave it
+      away for free and thereby hid the lesson.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-2d-sequence-dp"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only:
+        allocating a 2D table in JavaScript has no single obvious form (array of arrays
+        vs a flat typed array with manual index arithmetic), and the choice has
+        materially different performance and initialization semantics than the C++
+        `vector<vector<int>>` or raw 2D array the references assume. An observation
+        that a materiality question EXISTS here, not a verdict on it.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.sequence-partition-dp"
+    name: "Sequence partition DP (index-plus-count state)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The shape for "split a sequence into k contiguous pieces, optimally": dp[i][j] =
+      the best way to split the first i elements into j pieces, with a transition that
+      ranges over where the last piece starts. Its two distinguishing properties: the
+      second index is a COUNT rather than a position, and the transition is a
+      linear scan rather than a bounded look-back — which makes the naive evaluation
+      O(n^2 k) and makes this family the standard base for the divide-and-conquer and
+      Knuth optimizations. Those optimizations are NOT this node and NOT this cluster
+      (D-F4 T1 → CL-4; recorded as EXC-4). The base recurrence is CL-1 by T4: the
+      domain is linear, the state is a plain tuple, and the difficulty is the
+      recurrence itself.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+        - "cl-1.prefix-aggregate-recurrence"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["array partition DP", "split into k segments", "segmented least squares shape"]
+
+  - id: "cl-1.formulate-sequence-partition-dp"
+    name: "Formulate a sequence partition DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing the (prefix, pieces-used) state and the
+      last-piece-start transition over rival formulations. S2 is the near miss and is
+      rejected on the schema §2.1 test — accelerating this recurrence's inner scan is
+      the textbook D&C-optimization case and presupposes the recurrence this node is
+      still choosing. S1/S3/S4 reject cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Turn a "divide this sequence into k parts" problem into the index-plus-count
+      recurrence: recognize that the last piece's start is the decision, that the state
+      must count pieces used, and that the piece-cost function must be O(1)-queryable
+      for the formulation to be workable at all — which is where prefix aggregates
+      enter as a genuine prerequisite rather than an optimization.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.sequence-partition-dp"
+        - "cl-1.formulate-2d-sequence-dp"
+        - "cl-1.range-aggregate-by-difference"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  # ---------------------------------------------------------------------------
+  # SECTION 3 — Prefix-sum DP
+  # ---------------------------------------------------------------------------
+  # 🔴 A BOUNDARY THIS SUB-TASK HAD TO ADJUDICATE, RECORDED RATHER THAN SMOOTHED.
+  #   The NEU-934 spec assigns "prefix-sum DP" to CL-1. But D-F4's T1 test fires on the
+  #   most famous thing wearing that name: using a prefix-sum array to collapse a
+  #   transition that sums over a range from O(n) to O(1) takes an ALREADY-CORRECT
+  #   recurrence and reduces its cost without changing what its states mean — that is
+  #   T1, and T1 is CL-4's.
+  #
+  #   The resolution is that "prefix-sum DP" names TWO different things, and only one
+  #   of them is contested:
+  #     (a) The prefix-aggregate array AS a DP — S[i] = S[i-1] + a[i] is a 1D linear
+  #         recurrence with a base case, and range aggregation by difference is what its
+  #         table is FOR. Confident T4 residual → CL-1. THIS is what this section maps.
+  #     (b) Prefix-sum ACCELERATION of another DP's transition — T1 → CL-4. NOT mapped
+  #         here; recorded as EXC-2 in `residual_exclusions` with its rationale.
+  #
+  #   Mapping (a) and (b) as one node would have been the smoothing the charter
+  #   forbids: it would put a CL-4-owned contribution inside CL-1 under cover of a
+  #   shared name. The split is honest and it costs nothing — (a) is a real prerequisite
+  #   of (b), so the chain is intact either way.
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.prefix-aggregate-recurrence"
+    name: "The prefix-aggregate array as a DP recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      S[i] = S[i-1] (+) a[i], with S[0] the identity — the smallest non-trivial DP in
+      the map, and worth a node precisely because it is usually taught as an array
+      trick rather than as what it is. Seeing it as a DP is load-bearing: it has a
+      state (the prefix index), a transition (combine the previous prefix with the
+      current element), a base case (the empty prefix maps to the operator's identity),
+      and it earns its keep through overlapping subproblems exactly like every other
+      DP here. It generalizes past sums to any associative operator with an identity —
+      which is what makes prefix-xor, prefix-max-with-caveats, and prefix-count the
+      same node rather than four tricks.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["prefix sums", "cumulative sums", "partial sums", "scan"]
+    contested_by: []
+    notes: >-
+      SCOPE, stated because the name invites a wider reading. This node is the prefix
+      array AS a recurrence (D-F4 T4, confident residual). It is NOT prefix-sum
+      acceleration of another DP's transition, which answers T1 and is CL-4's —
+      excluded here as EXC-2 rather than absorbed. Also NOT claimed: that prefix sums
+      are novel to a mastery-plus-competitive learner. The node's contribution is the
+      REFRAME (array trick → DP), which is what the downstream nodes actually depend
+      on, plus the associative-operator generalization. If SUB-9's audit judges the
+      reframe to sit below NEU-887's elementary floor, the correct disposition is a
+      ledger challenge, not deletion — the partition-DP nodes draw on it.
+
+  - id: "cl-1.build-prefix-aggregate"
+    name: "Build a prefix-aggregate array"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7, and this is the cluster's cleanest S7 — the reason it is
+      worth having as a node is that it CALIBRATES the type against the harder S7 call
+      at cl-1.derive-recurrence-routine. The steps genuinely do not vary with the
+      problem: allocate n+1, seed index 0 with the operator's identity, sweep forward
+      combining. Nothing in that sequence asks a question about the problem. Contrast
+      the schema §2.1 exemplar (submask iteration) — identical character. S6 rejected:
+      no evaluation-order judgment arises, the order is forced. S1-S5 reject cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Execute the fixed construction: size n+1 rather than n, seed the identity at
+      index 0, sweep forward. The off-by-one discipline is the entire content — the
+      1-based-with-empty-prefix convention exists so that range queries need no special
+      case at the left edge, and a learner who builds the n-sized version meets a
+      boundary bug on every subsequent query rather than once.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.prefix-aggregate-recurrence"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.range-aggregate-by-difference"
+    name: "Range aggregation by prefix difference (1D and 2D)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      What the prefix table is for: any range's aggregate is recoverable in O(1) from
+      prefix values alone — S[r] - S[l-1] in one dimension, and the four-term
+      inclusion-exclusion S[r][c] - S[r][c'-1] - S[r'-1][c] + S[r'-1][c'-1] in two.
+      The requirement the identity rests on and that learners skip: the operator must be
+      INVERTIBLE, which sums and xor are and max is not — the reason prefix-max does not
+      answer range-max queries and why that question routes to a different structure
+      entirely (anchor.segment-tree's territory, not this cluster's). Held as knowledge
+      because the identity is a fact; applying it is folded into the formulators that
+      depend on it rather than split into a node that would fail with them.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.prefix-aggregate-recurrence"
+        - "cl-1.build-prefix-aggregate"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["range sum query", "2D prefix sums", "summed-area table", "inclusion-exclusion on prefixes"]
+    notes: >-
+      `prerequisites.roots: []` is deliberate and is NOT an unexplained jump. This node
+      is a consequence of cl-1.prefix-aggregate-recurrence, which is itself rooted; the
+      chain to the floor runs through it. Adding a root edge here would be decorative —
+      the schema §4 semantics ask what a learner cannot acquire this WITHOUT, and the
+      answer is the prefix recurrence, not a second direct path to the same roots.
+
+  - id: "cl-1.difference-array-and-range-update"
+    name: "The difference array: the prefix recurrence run backwards"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The dual of the prefix array: store D[i] = a[i] - a[i-1], and a range update
+      ("add v to every element of [l, r]") becomes two point writes, with the original
+      array recovered by a prefix sweep. Why it belongs next to the prefix node rather
+      than somewhere else: it is the SAME recurrence read in the other direction, and
+      the pairing is the point — prefix turns point-updates plus range-queries into
+      O(1) queries, difference turns range-updates plus a final read into O(1) updates.
+      A learner who has one and not the other reaches for a segment tree on problems
+      that do not need one.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.prefix-aggregate-recurrence"
+        - "cl-1.range-aggregate-by-difference"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["difference array", "imos method", "range update trick"]
+    notes: >-
+      Root edges omitted for the same reason as cl-1.range-aggregate-by-difference: the
+      chain bottoms out through cl-1.prefix-aggregate-recurrence. Deliberate, not a gap.
+
+  # ---------------------------------------------------------------------------
+  # SECTION 4 — Grid / path DP
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.grid-path-dp"
+    name: "Grid / path DP"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      DP whose state is a cell coordinate on a rectangular grid and whose transition
+      follows the permitted moves into that cell — counting paths, finding the
+      cheapest path, or finding the best sub-rectangle anchored at a cell. What makes
+      it distinct from a generic 2D sequence DP despite sharing the index-pair shape:
+      the two indices are COUPLED by the movement rule rather than independent, so the
+      transition is dictated by the geometry rather than chosen, and the dependency
+      order follows the move directions. D-F4 places it in CL-1 by T4 — a plain index
+      tuple over a rectangular domain. The restriction that keeps it here and out of
+      CL-2: monotone moves only. A grid with unrestricted movement is a shortest-path
+      problem on a graph, not a DP, because the state dependency stops being acyclic —
+      that is the boundary, and it is the thing worth knowing about this family.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["grid DP", "path counting DP", "lattice path DP"]
+
+  - id: "cl-1.formulate-grid-path-dp"
+    name: "Formulate a grid/path DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing what dp[r][c] means — paths INTO this cell versus
+      paths FROM it, cost including this cell or excluding it — and which decisions the
+      transition enumerates. The choice is real and consequential: the two directions
+      give different base cases and different answer states, and picking the one that
+      matches the question is the skill. S1 no (the no-double-count argument is its own
+      node). S2 no — nothing correct exists yet. S3/S4 no.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Turn a grid movement problem into a concrete recurrence: fix the direction of the
+      state's meaning, enumerate the transition over the legal incoming moves, place
+      the base case at the source cell, and confirm the move rule keeps the dependency
+      acyclic — the check that decides whether this is a DP at all or a shortest-path
+      problem wearing a grid.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.grid-path-dp"
+        - "cl-1.formulate-2d-sequence-dp"
+        - "cl-1.select-linear-dp-pattern"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-path-transition-partition"
+    name: "Prove a path transition partitions the solution set exactly once"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is the ARGUMENT that the transition's cases
+      are exhaustive and pairwise disjoint — that every path into a cell is counted by
+      exactly one case. S3 rejected although double-counting is a famous SYMPTOM: this
+      node is the argument made in advance, cl-1.diagnose-wrong-state-transition-base-
+      case is the one that starts from the wrong number. Same subject matter, opposite
+      direction, two nodes — a learner can routinely detect a doubled count and still
+      not be able to argue a transition sound.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Discharge the exhaustiveness and disjointness obligations for a counting DP over
+      paths: argue that classifying paths by their LAST MOVE covers every path (there
+      is always a last move, except at the base case) and covers none twice (a path has
+      exactly one last move). The last-move classification is the standard instrument
+      and the reason it works is worth acquiring explicitly — it is a partition of the
+      solution set induced by a function on it, which is the general move that makes
+      counting DP sound and that recurs in every counting family in the map.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-grid-path-dp"
+        - "cl-1.prove-recurrence-correctness"
+        - "cl-1.dp-correctness-proof-obligations"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["last-move argument", "no-double-count proof"]
+
+  - id: "cl-1.handle-grid-boundaries-and-obstacles"
+    name: "Handle grid boundaries and obstacles"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the formulation is already chosen and the work is realizing
+      it without the edges breaking it. S7 rejected on the schema §2.1 test — the
+      sentinel value is a judgment about THIS recurrence (0 is the right absorbing
+      value for a counting DP, infinity for a minimization, and getting it backwards
+      produces a plausible wrong answer), so the step varies with the problem. S3
+      rejected: this is building it right, not diagnosing it wrong. S2 rejected: no
+      cost is being reduced.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Make a grid DP correct at its edges: choose the sentinel that makes an
+      out-of-bounds or blocked cell absorb correctly under THIS recurrence's operator,
+      decide between a padded border and explicit bounds checks, and place the base
+      case so it is not itself overwritten by the transition. Worth a node because the
+      failure is universal and specific — a grid DP with a wrong boundary produces
+      correct-looking output on the interior and is wrong only at the margin, which is
+      the hardest kind of wrong to see.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-grid-path-dp"
+        - "cl-1.order-2d-table-evaluation"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.counting-dp-over-linear-domain"
+    name: "Counting DP over a linear or rectangular domain, modulo a prime"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      What changes when a linear or grid DP counts rather than optimizes: the
+      transition becomes a SUM over cases instead of a min/max, which is why
+      disjointness stops being free and becomes a real obligation (a min over
+      overlapping cases is harmless; a sum over them is wrong). And because the counts
+      are astronomically large, the answers are reported modulo a prime, so every
+      combine is modular — which is a genuine non-DP prerequisite and is drawn onto the
+      registered anchor rather than assumed away. The node exists to make the
+      optimization/counting distinction explicit rather than leaving it implicit in
+      each family: it changes the proof obligation, not just the operator.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.grid-path-dp"
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.dp-correctness-proof-obligations"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors:
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only:
+        modular multiplication of two values near a 1e9 prime exceeds JavaScript's
+        exact-integer range for Number, so the C++ `long long` idiom every selected
+        reference writes has no direct equivalent and forces a choice (BigInt, or
+        splitting the multiply). This is an observation that a materiality question
+        exists on this node's anchor edge, NOT a verdict — SUB-8 owns that.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["counting DP", "path counting mod p"]
+    notes: >-
+      The `anchor.modular-arithmetic@1.0.0` edge is this cluster's ONLY boundary-anchor
+      draw, and it is a genuine one: modular arithmetic is not DP (it computes no
+      recurrence), it is a real prerequisite of this node, and it sits above NEU-887's
+      elementary floor — the register's own three-part test, satisfied. Drawn directly
+      per schema §4.1 (anchors are a shared frozen floor); no AR-1 request was needed.
+
+  # ---------------------------------------------------------------------------
+  # SECTION 5 — Longest increasing subsequence (quadratic)
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.longest-increasing-subsequence-quadratic"
+    name: "Longest increasing subsequence, O(n^2) recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The canonical element-anchored DP: dp[i] is the length of the longest increasing
+      subsequence ENDING EXACTLY at i, computed by scanning every earlier j with
+      a[j] < a[i] and taking the best, with the answer the maximum over all i. Its
+      importance to the cluster is out of proportion to the problem itself, because it
+      is where the prefix-index state VISIBLY fails: "the LIS of the first i elements"
+      is not a sufficient state, since extending a subsequence requires knowing what it
+      ends with, and the prefix-optimum has forgotten. LIS is the standard worked
+      example of the sufficiency obligation, which is why it sits on the shared
+      element-anchored pattern node rather than owning that insight privately.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.best-ending-at-index-state-pattern"
+        - "cl-1.linear-sequence-dp-1d"
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["LIS", "longest increasing subsequence"]
+    contested_by: []
+    notes: >-
+      SCOPE — THE CLUSTER LINE RUNS THROUGH THIS PROBLEM, BY DESIGN. This node is the
+      O(n^2) RECURRENCE only. LIS in O(n log n) via a monotone structure is a DIFFERENT
+      NODE IN A DIFFERENT CLUSTER (CL-4), and D-F4 §3.2 names this exact pair as its
+      worked demonstration that same-problem/different-contribution splits across
+      clusters: "LIS in O(n²) is CL-1; LIS in O(n log n) is CL-4. Same problem,
+      different node." Recorded as EXC-5. Not a gap and not a contested assignment —
+      the split is the partition working as specified, and `contested_by` is
+      deliberately empty because CL-4 has no claim on the recurrence itself.
+
+  - id: "cl-1.formulate-lis-best-ending-here"
+    name: "Formulate LIS with an element-anchored state"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: it is the CHOICE between two candidate states — prefix
+      optimum versus element-anchored — under a correctness constraint, and it is the
+      cluster's sharpest instance of that choice because the intuitive candidate is the
+      wrong one. S1 no: proving the survivor correct is the adjacent proof node. S2 no:
+      the O(n log n) acceleration presupposes this recurrence and is CL-4's. S4 no: LIS
+      presented as LIS has no unfamiliar surface; the disguised case is its own node.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Reject the prefix-optimum state for LIS and choose the element-anchored one, for
+      the right reason: the transition needs to compare the candidate's last element
+      against a[i], so the state must remember it, and anchoring the endpoint is what
+      makes it available. What a learner acquires is not "the LIS recurrence" but the
+      DISCRIMINATION — the ability to notice that a state has forgotten something the
+      transition needs, before writing code that silently returns wrong answers.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.longest-increasing-subsequence-quadratic"
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.prove-prefix-state-sufficiency"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-lis-quadratic-recurrence"
+    name: "Prove the O(n^2) LIS recurrence correct"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is the induction — every increasing
+      subsequence ending at i has a well-defined previous element j (or is the
+      singleton), so the maximum over valid j plus one is exhaustive over the
+      candidates and each is legal by the a[j] < a[i] guard. S8 rejected: this is the
+      argument, not the judgment.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Argue the LIS recurrence sound by induction over the index order, and argue the
+      part learners skip: that the ANSWER is the max over all dp[i] rather than dp[n],
+      which is a direct consequence of the element-anchored state and is the standard
+      bug when it is not understood. A worked instance of the general proof skill on
+      the recurrence where the state choice was itself contested.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-lis-best-ending-here"
+        - "cl-1.prove-recurrence-correctness"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.transfer-lis-to-disguised-problems"
+    name: "Recognize an increasing-subsequence structure under a disguise"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4: the trigger is a problem that does not mention subsequences
+      at all — nesting boxes, stacking envelopes, chaining pairs, scheduling under a
+      precedence — and the contribution is seeing the increasing-subsequence structure
+      underneath. S5 rejected on the schema's own test: the mapping is HIDDEN, not
+      readable from the statement. This is the LIS-specialized instance of the
+      cluster's general transfer node, and it is separate because a learner can have
+      the general stripping habit and still miss this specific structure, which is the
+      most commonly disguised shape in the family.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      See the LIS under the costume: recognize that "how many boxes can nest", "the
+      longest chain of pairs", and "the largest set of mutually compatible items under
+      a two-dimensional order" are the same problem, and — the harder half — recognize
+      what the disguise ADDS, since two-dimensional variants require a sort that
+      reduces one dimension away before the LIS applies, and the tie-breaking rule in
+      that sort is where the reduction is usually got wrong.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.longest-increasing-subsequence-quadratic"
+        - "cl-1.formulate-lis-best-ending-here"
+        - "cl-1.recognize-dp-formulation-under-unfamiliar-surface"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["box stacking", "chain of pairs", "nesting problems"]
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY — CARRIED EXPLICITLY (NEU-887 R1). Inherits the full
+      uncertainty recorded on cl-1.recognize-dp-formulation-under-unfamiliar-surface,
+      undiminished: this node asserts the skill exists, not that it is reliably
+      acquired by practising the LIS nodes it depends on. The prerequisite edges are a
+      structural claim about what the skill presupposes, NOT an empirical claim that
+      they produce it. NEU-932 F-C-5 applies — no corpus is ordered by learning
+      dependency, so no available evidence class could settle it inside this charter.
+      Node stays `provisional`.
+
+  # ---------------------------------------------------------------------------
+  # SECTION 6 — Edit distance / string-alignment DP
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.edit-distance-dp"
+    name: "Edit distance DP (Levenshtein)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The canonical index-pair DP: dp[i][j] is the minimum number of insert / delete /
+      replace operations converting the first i characters of A into the first j of B,
+      with a transition that is a case analysis over the last operation and base cases
+      along both empty-prefix edges. Its structural lesson, which outlives the problem:
+      the state is a pair of INDEPENDENT prefixes and the transition moves the frontier
+      by consuming from one string, the other, or both — the shape every alignment
+      problem instantiates. CL-1 by D-F4 T4: a plain index tuple over a rectangular
+      domain, difficulty in the recurrence.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["Levenshtein distance", "edit distance", "string edit DP"]
+
+  - id: "cl-1.formulate-edit-distance-recurrence"
+    name: "Formulate the edit-distance recurrence"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing the index-pair state and the last-operation case
+      split, including the decision of which operations the cost model admits and what
+      each costs. S1 no — the exhaustiveness argument is the adjacent proof node. S2 no
+      — the linear-space and bit-parallel accelerations presuppose this recurrence and
+      are CL-4's by T1 (EXC-6). S3/S4 no.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Derive the recurrence from the operation set: enumerate the last operation that
+      could produce the (i, j) frontier, map each to the state it came from, and take
+      the minimum, with the match case as the free transition. The judgment carried is
+      that the operation set DEFINES the recurrence — drop replace and it becomes the
+      LCS-complement, make the costs asymmetric and the case weights change — so the
+      skill is deriving the recurrence FROM a cost model rather than recalling one
+      recurrence.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.edit-distance-dp"
+        - "cl-1.formulate-2d-sequence-dp"
+        - "cl-1.derive-recurrence-routine"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-edit-distance-case-exhaustiveness"
+    name: "Prove the edit-distance case analysis exhaustive"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is arguing that the three-or-four case
+      transition covers EVERY optimal edit script — that any script transforming the
+      prefixes must end in one of the enumerated operations, and that assuming
+      otherwise contradicts optimality via cut-and-paste. S8 rejected: this is the
+      argument, not a judgment that it looks right.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Establish that the last-operation case split is exhaustive over optimal scripts,
+      and that the match case's zero cost does not need its own justification beyond
+      the case analysis. The reason this is a node and not a footnote: the argument
+      generalizes to every alignment variant a learner will meet — change the operation
+      set and the SAME argument shape re-runs — so what is acquired is the argument
+      pattern, not a fact about Levenshtein.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-edit-distance-recurrence"
+        - "cl-1.prove-recurrence-correctness"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.lcs-dp"
+    name: "Longest common subsequence DP"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The alignment DP with a restricted operation set: dp[i][j] is the length of the
+      longest subsequence common to the two prefixes, with a match extending the
+      diagonal and a mismatch taking the better of dropping from either string. Mapped
+      as its own node rather than folded into edit distance because it is the OTHER
+      pole of the same shape — a maximization over matches rather than a minimization
+      over operations — and because the pair is what teaches that the shape is
+      independent of the objective. Also the bridge to LIS: the LCS of a sequence and
+      its sorted deduplicated self is its LIS, a relationship worth holding.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.edit-distance-dp"
+        - "cl-1.linear-sequence-dp-2d"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["LCS", "longest common subsequence"]
+
+  - id: "cl-1.alignment-scoring-variants"
+    name: "Alignment scoring variants and what each does to the state"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      How the alignment shape deforms under different scoring rules, held as a compared
+      set: arbitrary per-operation costs (weights change, state unchanged); local
+      alignment, where a zero floor lets the alignment start anywhere and the answer
+      becomes a max over all cells rather than a corner — the element-anchored pattern
+      resurfacing in two dimensions; longest common SUBSTRING, where contiguity forces
+      the same move; and affine gap costs, where a run of gaps costs less than its
+      length and the state must therefore gain a small mode dimension recording which
+      gap state the alignment is in. The last is the payoff: it is the state-machine
+      pattern from Section 1 appearing inside an alignment, which is why the two
+      sections are linked rather than parallel.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.edit-distance-dp"
+        - "cl-1.lcs-dp"
+        - "cl-1.state-machine-over-sequence"
+        - "cl-1.best-ending-at-index-state-pattern"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["local alignment", "Smith-Waterman shape", "affine gap penalty", "longest common substring"]
+    notes: >-
+      Named for what they ARE (scoring variants of the alignment shape), not claimed as
+      bioinformatics algorithms — the Smith-Waterman/Needleman-Wunsch names are carried
+      in `aliases` because the competitive references and the biological literature name
+      the same recurrences differently, and X-D2 asks that naming instability be
+      recorded so OUT-7 does not read a synonym as a coverage gap.
+
+  # ---------------------------------------------------------------------------
+  # SECTION 7 — Maximum subarray (Kadane) and kin
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.maximum-subarray-kadane"
+    name: "Maximum subarray (Kadane's algorithm)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      dp[i] is the maximum sum of a subarray ENDING EXACTLY at i, which is either a[i]
+      alone or a[i] extending the best subarray ending at i-1 — whichever is larger —
+      and the answer is the max over all i. Presented as a linear scan with a running
+      variable, which is why it is usually taught as a trick and misfiled as greedy;
+      mapped here as what it is, the minimal element-anchored DP, with the running
+      variable a rolling window over a dp array that is never fully materialized.
+      Understanding it AS a DP is the acquisition — a learner who has it as a trick
+      cannot adapt it, and every one of its kin below is an adaptation.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.best-ending-at-index-state-pattern"
+        - "cl-1.linear-sequence-dp-1d"
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["Kadane's algorithm", "maximum subarray sum", "max sum contiguous subarray"]
+
+  - id: "cl-1.formulate-kadane-best-ending-here"
+    name: "Formulate the maximum-subarray recurrence"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing the element-anchored state over the prefix-optimum
+      state, exactly as in LIS, and choosing the two-case transition (start fresh or
+      extend). S1 no — the exchange argument is the adjacent proof node. S2 no — the
+      O(1)-space realization is not a cost reduction of a DIFFERENT correct DP, it is
+      how this recurrence is written; and in any case nothing correct exists at the
+      moment of choosing. S3/S4 no.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Derive Kadane from the element-anchored pattern rather than recalling it:
+      recognize that "the best subarray in the first i" cannot transition (it has
+      forgotten whether it reaches i), anchor the endpoint instead, and read off the
+      two-case transition. Paired deliberately with the LIS formulator — the same
+      insufficiency, the same repair, two problems that look unrelated — because the
+      pairing is what turns a trick into a transferable pattern.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.maximum-subarray-kadane"
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.prove-prefix-state-sufficiency"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-kadane-recurrence"
+    name: "Prove the maximum-subarray recurrence correct"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is the exchange argument — an optimal
+      subarray ending at i either has length one or its prefix is itself an optimal
+      subarray ending at i-1, since replacing that prefix with a better one would
+      improve the whole, contradicting optimality. The cleanest cut-and-paste in the
+      cluster, which is why it is worth proving explicitly rather than asserting.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Discharge optimal substructure for Kadane by exchange, and discharge the two
+      obligations the exchange does not cover: that the answer is the max over all
+      endpoints rather than the last one, and that the base case is a[0] rather than 0
+      — which is the same fact as the all-negative boundary case below, met as a proof
+      obligation instead of as a bug.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-kadane-best-ending-here"
+        - "cl-1.prove-recurrence-correctness"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["exchange argument for Kadane"]
+
+  - id: "cl-1.diagnose-empty-subarray-and-all-negative-boundary"
+    name: "Diagnose the all-negative / empty-subarray boundary failure"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3: the trigger is a SYMPTOM — a Kadane that returns 0 on an
+      all-negative array, or a variant that disagrees with brute force only on inputs
+      with no positive element — and the contribution is reasoning back to the cause (a
+      base case initialized to 0, which silently asserts the empty subarray is
+      admissible). S1 no: this is localization, not argument. S2 no: it is wrong, not
+      slow. Kept SEPARATE from the general debugging node deliberately: it is the
+      cluster's most-instantiated single bug, it is invisible on the random tests a
+      learner writes (which almost surely contain a positive number), and a learner can
+      have the general fault-localization skill and still never generate the input that
+      exposes it — which is a distinct failure worth a distinct node.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Recognize the family of boundary failures created by an implicit empty-solution
+      assumption: a max-subarray seeded at 0 returns 0 for an all-negative input, and
+      the same defect recurs wherever a base case encodes "nothing selected" as an
+      admissible answer that the problem does not admit. Includes the diagnostic habit
+      that finds it — testing the degenerate input class (all-negative, single element,
+      empty) rather than only the random one — and the fix (seed from the first element
+      and let the recurrence, not the initializer, decide).
+    prerequisites:
+      intra_cluster:
+        - "cl-1.maximum-subarray-kadane"
+        - "cl-1.diagnose-wrong-state-transition-base-case"
+        - "cl-1.dp-failure-modes"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.max-product-subarray-two-value-state"
+    name: "Maximum product subarray: when one value per state is not enough"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Kadane's shape with multiplication instead of addition, and the reason it is a
+      separate node rather than a footnote: the substitution BREAKS the state. A
+      negative element turns the smallest product ending at i-1 into the largest ending
+      at i, so the maximum alone is not a sufficient state and the DP must carry the
+      running minimum ALONGSIDE the maximum. This is the cluster's clearest
+      demonstration that state sufficiency depends on the OPERATOR and not only on the
+      problem's shape — the same recurrence skeleton, one operator changed, and the
+      state must grow. Worth its node for that lesson more than for the problem.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.maximum-subarray-kadane"
+        - "cl-1.prove-prefix-state-sufficiency"
+        - "cl-1.best-ending-at-index-state-pattern"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["maximum product subarray", "min-max paired state"]
+
+  - id: "cl-1.circular-maximum-subarray"
+    name: "Circular maximum subarray: the complement reduction"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Maximum subarray on a circular array, solved not by a new recurrence but by a
+      case split: the optimal subarray either does not wrap (plain Kadane) or does, in
+      which case its COMPLEMENT is a non-wrapping subarray and is minimal, so the
+      answer is total-minus-minimum-subarray. Mapped because the technique on display
+      is REDUCTION rather than formulation — turning a new problem into two runs of a
+      solved one — and because it carries a real degenerate trap: when every element is
+      negative the wrap case's complement is the whole array, leaving an empty
+      subarray, so that branch must be excluded rather than trusted. The same
+      empty-solution defect as the Kadane boundary node, met in a place where it is
+      much harder to see.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.maximum-subarray-kadane"
+        - "cl-1.prefix-aggregate-recurrence"
+        - "cl-1.diagnose-empty-subarray-and-all-negative-boundary"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["circular maximum subarray", "wrap-around Kadane"]
+
+  # ===========================================================================
+  # ▲▲▲ END CL-1 FAMILY BLOCK — 46 technique nodes (NEU-934 / SUB-3) ▲▲▲
+  # ===========================================================================
+
+# =============================================================================
+# RESIDUAL EXCLUSIONS
+# =============================================================================
+# NEU-934 acceptance scenario 3: "Given a technique the selected references disagree
+# about or that this cluster excludes, when the node set is reviewed, then the
+# exclusion is recorded with a rationale rather than silently dropped."
+#
+# Every entry below is a technique a reader might reasonably expect to find in a
+# cluster called "foundational / linear-sequence" and does not. None is a gap: each
+# is either owned by a named sibling cluster under D-F4's cascade, or is a scoping
+# decision recorded with its reasoning. This block is the audit's evidence that the
+# omissions are decisions.
+#
+# NOT a coverage claim. OUT-7 (SUB-9..11) owns coverage verdicts; this records what
+# this sub-task decided and why, which is the input that audit needs.
+# =============================================================================
+residual_exclusions:
+
+  - id: "EXC-1"
+    subject: "Problem-level corpus references"
+    disposition: "scoped-out-with-rationale"
+    owner_if_reassigned: "SUB-9..11 (OUT-7)"
+    rationale: >-
+      `coverage.corpus_refs` asserts corpus-level ids ("C1", "C2") rather than the
+      problem-level ids the template illustrates ("C1:1635"). NEU-932 F-C-1 verified
+      only the CSES section counts at the 2026-07-16 cutoff; no per-problem id in any
+      corpus was verified by this sub-task, and CAP-2 marks C4's ids unverified
+      outright. Asserting a specific problem id would be an invented value wearing a
+      citation's clothes — forbidden by NEU-887's discipline and by the template's own
+      CAP-2 warning. A corpus-level ref is the strongest claim this sub-task can stand
+      behind. OUT-7 resolves refs to problems when it audits coverage.
+
+  - id: "EXC-2"
+    subject: "Prefix-sum ACCELERATION of a DP transition"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-4 (SUB-6, NEU-937)"
+    rationale: >-
+      Collapsing a transition that sums over a range from O(n) to O(1) by precomputing
+      prefix sums takes an ALREADY-CORRECT recurrence and reduces its evaluation cost
+      without changing what any state means. That is D-F4 T1, and T1 stops at CL-4.
+      This cluster maps the prefix-aggregate array AS a recurrence
+      (cl-1.prefix-aggregate-recurrence, confident T4 residual) and the range-difference
+      identity it licenses — the prerequisite the acceleration stands on. Mapping both
+      under the shared name "prefix-sum DP" would have imported a CL-4 contribution into
+      CL-1, which is the smoothing the charter forbids. The NEU-934 spec assigns
+      "prefix-sum DP" to this cluster; this sub-task reads that as (a) and not (b), and
+      records the reading here rather than deciding it silently. If SUB-6 does not map
+      the acceleration, that is a coverage finding for OUT-7 — not a reason for CL-1 to
+      absorb it. If CL-4's mapper disagrees with this split the route is a ledger
+      challenge against D-F4, per U4; the base node stays mapped meanwhile.
+
+  - id: "EXC-3"
+    subject: "Rolling-array / memory compression of a linear or 2D DP"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-4 (SUB-6, NEU-937)"
+    rationale: >-
+      Keeping two rows instead of n, or one row updated in place, reduces the MEMORY
+      cost of an already-correct recurrence without changing what its states mean —
+      D-F4 T1 → CL-4. The temptation to keep it here is real, because the technique is
+      taught alongside the 2D recurrences it compresses and feels foundational. It is
+      not: the recurrence is correct before the compression and correct after it, which
+      is exactly T1's test. Note the deliberate contrast with
+      cl-1.order-2d-table-evaluation, which IS in this cluster: a wrong evaluation order
+      makes the DP WRONG, not slow, so it fails T1 and lands at T4 — the same boundary
+      the frozen root `implement-memoization-and-tabulation` already draws.
+
+  - id: "EXC-4"
+    subject: "Divide-and-conquer optimization and Knuth optimization of the partition recurrence"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-4 (SUB-6, NEU-937)"
+    rationale: >-
+      D-F4 §3.2 names both explicitly as CL-4 (T1). cl-1.sequence-partition-dp maps the
+      base recurrence they accelerate and stops there. No cross-cluster attachment is
+      declared from this side: per schema §4.3 a mapper declares from its OWN side only,
+      and the dependency runs optimization→base (CL-4 requires CL-1), so it is CL-4's to
+      declare and SUB-12's to resolve. Declaring it here would be declaring on a
+      sibling's behalf — prohibited — and would fabricate a cycle for the audit to trip
+      over. Recorded so the absence reads as a decision, not an oversight.
+
+  - id: "EXC-5"
+    subject: "LIS in O(n log n) via a monotone structure"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-4 (SUB-6, NEU-937)"
+    rationale: >-
+      D-F4 §3.2 uses this exact pair as its worked demonstration of the partition rule:
+      "LIS in O(n²) is CL-1; LIS in O(n log n) is CL-4. Same problem, different node."
+      cl-1.longest-increasing-subsequence-quadratic maps the recurrence; the patience/
+      tails acceleration is a different node in a different cluster. Not a gap and not a
+      contested assignment — the split is the partition working as specified.
+
+  - id: "EXC-6"
+    subject: "Hirschberg linear-space alignment; bit-parallel edit distance"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-4 (SUB-6, NEU-937)"
+    rationale: >-
+      Both take the already-correct edit-distance recurrence and reduce its cost —
+      Hirschberg trades time for O(min(n,m)) memory via divide-and-conquer over the
+      alignment; bit-parallel methods pack the DP row into machine words. D-F4 T1 → CL-4
+      in both cases. Neither is enumerated in D-F4 §3.2's worked examples, so this is an
+      application of the rule rather than a citation of it — recorded here explicitly so
+      the reasoning is auditable and so SUB-6 can see the claim being made on its
+      cluster. If SUB-6 judges bit-parallel edit distance to be out of the technique
+      space entirely, that is a coverage question for OUT-7, not a reason for CL-1 to
+      absorb it.
+
+  - id: "EXC-7"
+    subject: "Knapsack and its family (0/1, unbounded, bounded, subset-sum, coin change)"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-2 (SUB-4, NEU-935)"
+    rationale: >-
+      Named out of scope by the NEU-934 spec ("Combinatorial/structural families —
+      knapsack, interval, tree, DAG DP") and assigned to CL-2 by D-F4. Recorded because
+      the exclusion is genuinely surprising: knapsack's state is an index-plus-capacity
+      tuple over what looks like a linear domain, which reads like a T4 residual and
+      therefore like CL-1's. The spec's assignment governs, and the substantive reason
+      it is right: the capacity index is not a position in a sequence but a coordinate
+      over the combinatorial structure of achievable subset sums — the structure is what
+      the DP must respect, which is T3. This sub-task does not re-decide it; recorded so
+      the boundary is visible to the audit rather than looking like an oversight, and so
+      that a reader who expects knapsack here finds the reason instead of a hole.
+
+  - id: "EXC-8"
+    subject: "Interval DP, tree DP, DAG DP"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-2 (SUB-4, NEU-935)"
+    rationale: >-
+      Named out of scope by the NEU-934 spec and assigned to CL-2 by D-F4 §3.2 (T3 —
+      the state is indexed over a nontrivial combinatorial structure). Interval DP in
+      particular is adjacent to this cluster's 2D index-pair shape and a reader may
+      expect it here; the discriminator is that an interval's [l, r] indices are coupled
+      as a SUBSTRUCTURE of the sequence rather than as two independent prefixes, and the
+      transition ranges over split points inside it. Recorded, not re-decided.
+
+  - id: "EXC-9"
+    subject: "Bitmask/subset DP, digit DP, probability/expectation DP, automaton DP"
+    disposition: "owned-by-sibling-cluster"
+    owner_if_reassigned: "CL-3 (SUB-5, NEU-936)"
+    rationale: >-
+      Named out of scope by the NEU-934 spec and assigned to CL-3 by D-F4 §3.2 (T2 —
+      the state ENCODING or a specialized domain's semantics is the contribution). Noted
+      specifically because cl-1.state-machine-over-sequence carries the community alias
+      "state-machine DP", which collides conceptually with CL-3's automaton DP: they are
+      different techniques (a small fixed mode set read off the statement, versus a state
+      space built from the input by an automaton construction), and this cluster makes no
+      claim on CL-3's. The alias is carried on that node per X-D2 so OUT-7 reads the name
+      overlap as naming instability rather than as a duplicate or a gap.
+
+  - id: "EXC-10"
+    subject: "An `optimization`-typed skill node in CL-1"
+    disposition: "scoped-out-with-rationale"
+    owner_if_reassigned: "CL-4 (SUB-6, NEU-937; SUB-13, NEU-938)"
+    rationale: >-
+      This cluster emits no node typed `optimization` (S2), by construction rather than
+      by omission. S2 presupposes a correct recurrence and reduces its cost — which is
+      D-F4 T1, which is CL-4's cluster. A CL-1 node typed S2 would be a node whose skill
+      type and whose cluster assignment contradict each other, and schema §2.1 states
+      that the two tests are deliberately the same test so that they agree by
+      construction. The NEU-934 spec confirms the disposition: implementation and
+      optimization are "the types the optimization clusters note feature heavily in
+      their own nodes". Two `implementation` (S6) nodes ARE emitted here
+      (cl-1.order-2d-table-evaluation, cl-1.handle-grid-boundaries-and-obstacles)
+      because making a DP RUN CORRECTLY is not making it run FASTER — the boundary the
+      frozen root `implement-memoization-and-tabulation` already draws inside CL-1.
+      SUB-9's union-completeness check finds `optimization` in CL-4, as designed.
+
+  - id: "EXC-11"
+    subject: "A ledger entry for the S7/S5 skill-type boundary at cl-1.derive-recurrence-routine"
+    disposition: "blocked-by-file-ownership"
+    owner_if_reassigned: "SUB-9 (OUT-7 audit) or the D-S1 owner (NEU-933)"
+    rationale: >-
+      Schema Convention S asks that an indeterminate skill type be carried as
+      `provisional` PLUS a `D-S1a` ledger entry with a named re-adjudication trigger.
+      The first two are done on that node. The ledger entry is NOT filed: the ledger
+      lives in the NEU-933 package and NEU-934 is sole writer of this file only —
+      writing another sub-task's file is prohibited by the schema's own rule 3, and four
+      sibling mappers are writing concurrently. Recording the omission here rather than
+      breaking file ownership or letting the requirement lapse silently. The rationale
+      and the trigger are carried in that node's `notes` in full, so the audit has
+      everything the ledger entry would have contained. Consequence, stated plainly: if
+      SUB-9 counts `D-S1a` entries against D-S1's ">10 triggers cascade revision"
+      threshold by reading the ledger alone, this one will not be counted. Recorded as
+      an EXCLUSION rather than a note precisely so that undercount is visible.
+
