@@ -1,0 +1,215 @@
+# =============================================================================
+# C005 DP Knowledge-and-Skill Map — Manifest
+# =============================================================================
+# Charter:  NEU-889 · Authored by: NEU-933 (SUB-2) · Format fixed by: NEU-932 (D-F3)
+#
+# THIS FILE IS NOT WRITTEN DURING THE MAPPING PHASE.
+# Per NEU-932 `03_representation-format.md` §4 rule 3, nobody amends this file
+# while SUB-3/4/5/6/13 are mapping. It is set here and amended only through
+# `../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md`.
+# If it becomes a shared write target, the layout's entire reason for existing
+# is defeated and the five mappers can no longer run in parallel.
+#
+# YAML DISCIPLINE (NEU-932 D-F3's live constraint on this schema):
+#   - ALL string-typed enum values are quoted. The Norway problem (`no` -> false)
+#     and version-dependent type coercion are real; quoting is not optional.
+#   - Expected YAML version: 1.2 (core schema). Parsers pinned to 1.1 coerce
+#     differently; this file assumes 1.2.
+# =============================================================================
+
+schema_version: "1.0.0"     # The node/edge schema in ../C005-dp-map-schema/01_node-and-edge-schema.md
+map_version: "0.1.0"        # Semver. Deliberately < 1.0.0 until the graph is adjudicated (D-F3 §6).
+compiled: "2026-07-16"
+status: "scaffold"          # No DP family node exists yet. Roots + anchors only.
+
+# -----------------------------------------------------------------------------
+# Versioning discipline (inherited from NEU-932 D-F3 §6 — referenced, not re-derived)
+# -----------------------------------------------------------------------------
+versioning:
+  scheme: "semver"
+  major: "A node's meaning or the schema changes incompatibly."
+  minor: "Nodes or edges added."
+  patch: "Rationale, prose, or provenance corrected with no graph change."
+  node_rule: >-
+    Every node records `adjudicated_at_map_version` — the map_version at which its
+    status was last adjudicated. A reader can therefore tell a settled-and-current
+    node from one settled long ago under an older schema.
+  status_rule: >-
+    Status flips ONLY in the adjudication ledger. A mapper may not promote its own
+    node from "provisional" to "settled" by editing YAML. This is NEU-887's status
+    discipline, inherited — not re-derived.
+
+# -----------------------------------------------------------------------------
+# Status legend (NEU-887's values, referenced — this file defines no new taxonomy)
+# -----------------------------------------------------------------------------
+status_legend:
+  settled: "Binding. Adjudicated on correctly-classed evidence. Consume it; do not re-derive it."
+  provisional: "Recorded and usable but NOT binding. Carries a named revision trigger."
+  unresolved: "Known open, with a named owner. A consumer MUST NOT invent a value."
+
+# =============================================================================
+# CLUSTER REGISTRY
+# =============================================================================
+# *** LOAD-BEARING — READ BEFORE EDITING ***
+#
+# THE PARTITION HAS EXACTLY FOUR CLUSTERS (NEU-932 D-F4).
+#
+# CL-4 is ONE cluster carried across TWO disjoint files. SUB-6 (mainstream) and
+# SUB-13 (research-tier frontier) split CL-4's WORK for one-PR sizing only. This
+# is a work split, NOT a partition split.
+#
+# The shape below — one cluster id, a LIST of files — exists precisely so that
+# CL-4's two files cannot be miscounted as a fifth cluster. NEU-932's dry-run
+# caught exactly this failure: a manifest registering each file as its own cluster
+# would silently break OUT-6's per-cluster path count, which MUST count 4.
+#
+# ==> ANY AUDIT COUNTING CLUSTERS COUNTS `len(clusters)`. IT MUST BE 4.
+# ==> NEVER COUNT NODE FILES. THAT NUMBER IS 5 AND IT IS NOT THE CLUSTER COUNT.
+# =============================================================================
+clusters:
+  - id: "CL-1"
+    name: "Foundational / linear-sequence"
+    defining_contribution: >-
+      DP first principles, and DP whose state is a plain index tuple over a
+      linear/rectangular domain and whose difficulty is the recurrence itself.
+      The CONFIDENT RESIDUAL of the partition cascade — never the indeterminate sink.
+    files:
+      - path: "nodes/cl-1-foundational.yaml"
+        sole_writer: "NEU-934 (SUB-3)"
+        note: >-
+          Contains the FROZEN root block authored by NEU-933 (SUB-2). SUB-3 appends
+          its family nodes below the frozen marker and MUST NOT edit or remove a root.
+          Roots are CL-1 members per D-F4 §1, which is why they live here.
+
+  - id: "CL-2"
+    name: "Combinatorial / structural"
+    defining_contribution: >-
+      DP whose state is indexed over a nontrivial combinatorial structure — the
+      structure, not the encoding, is what makes it hard.
+    files:
+      - path: "nodes/cl-2-combinatorial.yaml"
+        sole_writer: "NEU-935 (SUB-4)"
+
+  - id: "CL-3"
+    name: "State-compression / specialized-domain"
+    defining_contribution: >-
+      DP whose defining contribution is a non-tuple state encoding, or which is
+      bound to a specialized problem domain with its own semantics.
+      The INDETERMINATE SINK of Convention U2 (D-F4 §4).
+    files:
+      - path: "nodes/cl-3-state-compression.yaml"
+        sole_writer: "NEU-936 (SUB-5)"
+
+  - id: "CL-4"
+    name: "DP-optimization (mainstream + research-tier frontier, jointly)"
+    defining_contribution: >-
+      Techniques whose defining contribution is reducing the cost of evaluating an
+      ALREADY-CORRECT recurrence — the recurrence is given; the contribution is
+      making it affordable.
+    # TWO FILES, ONE CLUSTER. See the registry banner above. This is the exact
+    # shape NEU-932's dry-run required. Do not flatten it into two cluster entries.
+    files:
+      - path: "nodes/cl-4-optimization/mainstream.yaml"
+        sole_writer: "NEU-937 (SUB-6)"
+        work_split: "mainstream"
+      - path: "nodes/cl-4-optimization/frontier.yaml"
+        sole_writer: "NEU-938 (SUB-13)"
+        work_split: "research-tier frontier"
+
+cluster_count: 4    # Asserted redundantly and deliberately. If this ever disagrees
+                    # with `len(clusters)`, the manifest is corrupt — fail the audit,
+                    # do not reconcile silently.
+
+# =============================================================================
+# NON-CLUSTER ARTIFACTS
+# =============================================================================
+artifacts:
+  - path: "README.md"
+    role: "prompt entry point — the one hop a cold agent starts from"
+    sole_writer: "NEU-933 (SUB-2)"
+
+  - path: "boundary-register.yaml"
+    role: >-
+      The versioned assumed-knowledge boundary register. Names the sanctioned
+      NON-DP prerequisite anchors on which a family prerequisite edge may
+      legitimately terminate. Outside the DP partition by construction; sits at or
+      above NEU-887's elementary-data-structures floor. Anchors are NAMED and
+      VERSIONED, never decomposed.
+    sole_writer: "NEU-933 (SUB-2)"
+    frozen_during_mapping: true
+    note: >-
+      Mappers DRAW onto these directly. A mapper needing an unregistered anchor
+      files a ledger request (route AR-1); it never invents an anchor and never
+      fakes the dependency as a root edge.
+
+  - path: "edges/cross-cluster.yaml"
+    role: >-
+      Cross-cluster prerequisite edges, REALIZED from the attachment points that
+      mappers DECLARE in their own node files.
+    sole_writer: "NEU-939 (SUB-12)"
+    written_during_mapping: false
+    note: >-
+      Empty during the mapping phase. A mapper that writes here breaks per-cluster
+      file ownership and serializes the parallel fan-out.
+
+  - path: "index/00_technique-index.md"
+    role: "generated one-hop view"
+    sole_writer: "generator only"
+    hand_edited: false
+    note: >-
+      NEVER hand-edited. NEU-932 D-F3 §3 records index-drift as an open cost on
+      D-F3; the coverage-audit sub-task (OUT-7) asserts regeneration-freshness.
+
+# =============================================================================
+# THE TERMINAL FLOOR — where a prerequisite chain is allowed to bottom out
+# =============================================================================
+# A legitimate prerequisite chain terminates on EXACTLY ONE OF:
+#   1. A DP first-principle ROOT node   (role: "root", in nodes/cl-1-foundational.yaml)
+#   2. A registered BOUNDARY ANCHOR     (in boundary-register.yaml)
+# Anything else that bottoms out is an UNEXPLAINED JUMP and fails the floor audit.
+# =============================================================================
+terminal_floor:
+  roots:
+    location: "nodes/cl-1-foundational.yaml"
+    marker: "role: \"root\""
+    count: 8
+    authored_by: "NEU-933 (SUB-2)"
+    frozen_during_mapping: true
+    drawn_directly_by: "any mapper, from its own file, via `prerequisites.roots`"
+  boundary_anchors:
+    location: "boundary-register.yaml"
+    register_version: "1.0.0"
+    count: 5
+    authored_by: "NEU-933 (SUB-2)"
+    frozen_during_mapping: true
+    drawn_directly_by: "any mapper, from its own file, via `prerequisites.boundary_anchors`"
+  below_the_floor: >-
+    NEU-887's elementary-data-structures floor. Out of scope for this map and for
+    this charter. The boundary register sits AT OR ABOVE it and decomposes nothing.
+
+# =============================================================================
+# THE ONE DISTINCTION THREE DOWNSTREAM CLUSTERS DEPEND ON
+# =============================================================================
+edge_disposition:
+  drawn_directly:
+    - field: "prerequisites.intra_cluster"
+      target: "a node in the mapper's OWN cluster file"
+    - field: "prerequisites.roots"
+      target: "a frozen root node — the shared DP floor, stable before any mapper starts"
+    - field: "prerequisites.boundary_anchors"
+      target: >-
+        a registered non-DP anchor — the shared assumed-knowledge floor, present
+        from the start. A SANCTIONED TERMINAL, not an unexplained jump.
+  declared_only:
+    - field: "cross_cluster_attachments"
+      target: "a node in a SIBLING cluster"
+      realized_by: "NEU-939 (SUB-12)"
+      why: >-
+        Mappers run in parallel and CANNOT see sibling clusters' node ids — those
+        files do not exist yet. So a cross-cluster target is a NAMED ATTACHMENT
+        POINT, not an edge. Mappers DECLARE; SUB-12 RESOLVES and draws.
+  never:
+    - >-
+      Faking a cross-cluster prerequisite as a root edge or an anchor edge to make
+      a chain bottom out. This launders a real dependency into a fake terminal and
+      is the single failure the floor audit exists to catch.

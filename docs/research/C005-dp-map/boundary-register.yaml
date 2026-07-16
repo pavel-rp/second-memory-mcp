@@ -1,0 +1,192 @@
+# =============================================================================
+# ASSUMED-KNOWLEDGE BOUNDARY REGISTER
+# =============================================================================
+# Charter: NEU-889 (Assumption #14) · Authored by: NEU-933 (SUB-2) · Decision: D-S3
+#
+# WHAT THIS IS
+#   The versioned register of SANCTIONED NON-DP PREREQUISITE ANCHORS. These are
+#   the named things a DP family prerequisite edge is ALLOWED to terminate on.
+#
+#   An anchor sits OUTSIDE the DP technique-space partition (NEU-932 D-F4 §1) and
+#   AT OR ABOVE NEU-887's elementary-data-structures floor. It is not a cluster
+#   member. A mapper wanting to assign a cluster to "segment tree" has crossed the
+#   boundary and should draw onto the anchor instead.
+#
+# THE POINT OF THE REGISTER
+#   A prerequisite edge ending on a registered anchor is a CLEAN SANCTIONED
+#   TERMINAL — not an unexplained jump. Registration is what converts "this chain
+#   just stops" into "this chain bottoms out somewhere we deliberately don't go."
+#
+# *** ANCHORS ARE NAMED AND VERSIONED. THEY ARE NEVER DECOMPOSED. ***
+#   Decomposing an anchor's internal prerequisite structure is a general-algorithms
+#   concern OUTSIDE this charter's audience line. There is no `prerequisites` field
+#   on an anchor and adding one is out of scope. `decomposed: false` is asserted on
+#   every anchor so an audit can check the boundary held rather than trust it.
+#
+# HOW A MAPPER USES THIS
+#   Draw DIRECTLY, from your own node file:
+#       prerequisites:
+#         boundary_anchors: ["anchor.modular-arithmetic@1.0.0"]
+#   This is NOT a cross-cluster declaration. Anchors exist in the shared floor from
+#   the start, so there is nothing for SUB-12 to resolve. Do not declare an anchor
+#   as an attachment point.
+#
+# YAML: 1.2 core schema. All string enums quoted (NEU-932 D-F3 §3).
+# =============================================================================
+
+schema_version: "1.0.0"
+register_version: "1.0.0"     # Versioned independently of map_version. Adding an
+                              # anchor is a MINOR bump; changing an anchor's scope
+                              # is a MAJOR bump (dependents' terminals shift meaning).
+compiled: "2026-07-16"
+authored_by: "NEU-933 (SUB-2)"
+frozen_during_mapping: true   # Amended only via the ledger (route AR-1 below).
+
+boundary:
+  above: "NEU-887 elementary-data-structures floor (out of scope for this charter)"
+  below: "the DP technique-space partition (NEU-932 D-F4: CL-1..CL-4)"
+  rule: >-
+    An anchor is in this register if and only if it is (a) NOT DP, (b) a real
+    prerequisite of at least one DP technique in the partition, and (c) above the
+    elementary floor — i.e. not something NEU-887 already assumes.
+
+# =============================================================================
+# THE ANCHORS
+# =============================================================================
+# Exactly the anchors the NEU-933 spec sanctions. This register does NOT invent
+# anchors — see `anchor_request_route` below for what a mapper does when it needs
+# one that is not here. That route exists because inventing an anchor and faking a
+# root edge are the two ways the boundary silently rots.
+# =============================================================================
+anchors:
+
+  - id: "anchor.segment-tree"
+    name: "Segment tree"
+    version: "1.0.0"
+    kind: "data-structure"
+    status: "settled"
+    decomposed: false
+    scope: >-
+      Range-query / point-and-range-update segment trees, including lazy propagation.
+      The anchor is the structure and its query/update contract — NOT its internals,
+      NOT its variants' derivations.
+    why_an_anchor: >-
+      A real prerequisite of several DP-optimization techniques (a DP transition
+      evaluated by range query), but not itself DP: it computes no recurrence and
+      has no optimal-substructure claim. It is a general-algorithms structure the
+      DP borrows.
+    terminates_chains_from: ["CL-4"]   # Informative only. NOT ownership, NOT a
+                                       # coverage claim, NOT an edge. Mappers draw
+                                       # the actual edges; this is a reader's hint.
+
+  - id: "anchor.li-chao-tree"
+    name: "Li Chao tree"
+    version: "1.0.0"
+    kind: "data-structure"
+    status: "settled"
+    decomposed: false
+    scope: >-
+      The Li Chao segment-tree variant for maintaining a set of lines/segments under
+      minimum/maximum queries at a point. The anchor is the structure and its
+      contract.
+    why_an_anchor: >-
+      Registered SEPARATELY from `anchor.segment-tree` rather than folded into it.
+      Recorded reasoning: folding it in would make a dependent's terminal ambiguous
+      (a CHT node depending on "segment tree" says materially less than one
+      depending on "Li Chao tree"), and the spec names it distinctly. The cost of
+      the split is two anchors where one might do; the cost of folding is a lost
+      distinction in every dependent. The distinction was kept.
+    terminates_chains_from: ["CL-4"]
+
+  - id: "anchor.convex-hull-envelope-geometry"
+    name: "Convex-hull / envelope geometry"
+    version: "1.0.0"
+    kind: "mathematics"
+    status: "settled"
+    decomposed: false
+    scope: >-
+      Lower/upper envelopes of families of lines, convex-hull construction and its
+      monotonicity properties, and the geometric facts that make an envelope
+      queryable. The anchor is the geometry — NOT the DP that exploits it.
+    why_an_anchor: >-
+      Convex Hull Trick's non-DP prerequisite. NEU-932 D-F4 §3.2 explicitly routes
+      it here: "Envelope geometry / Li Chao trees are boundary anchors, not cluster
+      members." CHT itself IS a cluster member (CL-4, by T1); the geometry it stands
+      on is not.
+    terminates_chains_from: ["CL-4"]
+
+  - id: "anchor.modular-arithmetic"
+    name: "Modular arithmetic"
+    version: "1.0.0"
+    kind: "mathematics"
+    status: "settled"
+    decomposed: false
+    scope: >-
+      Arithmetic in Z/nZ: modular addition/multiplication, inverses, exponentiation,
+      and the counting-under-a-modulus conventions competitive DP answers are stated
+      in. The anchor is the arithmetic — NOT number theory at large.
+    why_an_anchor: >-
+      A prerequisite of essentially every counting DP that reports answers mod a
+      prime, and of the zeta/Moebius machinery in the SOS DP neighbourhood. Not DP.
+    terminates_chains_from: ["CL-2", "CL-3", "CL-4"]
+
+  - id: "anchor.linear-algebra"
+    name: "Linear algebra"
+    version: "1.0.0"
+    kind: "mathematics"
+    status: "settled"
+    decomposed: false
+    scope: >-
+      Matrices, matrix multiplication and its associativity, linear recurrences and
+      their matrix form, and the vector-space facts those rest on. The anchor is the
+      algebra — NOT its numerical or algorithmic treatment.
+    why_an_anchor: >-
+      Matrix-exponentiation DP's non-DP prerequisite. NEU-932 D-F4 §3.2: "Its non-DP
+      prerequisite (linear algebra) terminates on a boundary anchor, not a cluster."
+    terminates_chains_from: ["CL-4"]
+
+anchor_count: 5
+
+# =============================================================================
+# WHEN THE ANCHOR YOU NEED IS NOT HERE  (route AR-1)
+# =============================================================================
+# This register is EXACTLY the set the NEU-933 spec sanctions. It is NOT asserted
+# to be complete over the technique space — that space does not exist yet (NEU-932
+# INC-D3). Recorded as INC-S1 rather than papered over.
+#
+# A mapper that hits a real non-DP prerequisite with no anchor here:
+#
+#   AR-1. File a ledger request in
+#         ../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md
+#         against D-S3, naming: the anchor, the dependent node, and why the
+#         prerequisite is genuinely non-DP (i.e. why the cascade in NEU-932 D-F4 §3
+#         does not own it).
+#
+#   Until the request is adjudicated:
+#     - Record the dependency in the node's `notes` field, and
+#     - Set the node's `status: "provisional"`.
+#
+#   *** DO NOT: ***
+#     - invent an anchor locally (the register is versioned; a local anchor is
+#       invisible to every other mapper and to the floor audit);
+#     - fake the dependency as a `prerequisites.roots` edge (this launders a non-DP
+#       dependency into the DP floor and is exactly what the floor audit hunts);
+#     - declare it as a `cross_cluster_attachments` entry (anchors are not sibling
+#       cluster nodes; SUB-12 has nothing to resolve and will report it unresolvable);
+#     - silently drop the prerequisite (a smoothed gap; forbidden by NEU-887's
+#       status discipline, inherited).
+#
+# KNOWN FORESEEN CASE, recorded so SUB-5 is not surprised (INC-S1):
+#   Automaton DP (incl. Aho-Corasick DP) is assigned to CL-3 by NEU-932 D-F4 §3.2.
+#   Its non-DP prerequisite — Aho-Corasick automaton construction / string-matching
+#   automata — is NOT in this register, because the NEU-933 spec does not name it
+#   and this register does not invent anchors. SUB-5 is expected to hit this and
+#   should run AR-1 rather than improvise. This is a NAMED GAP with an owner, not a
+#   defect discovered later.
+# =============================================================================
+anchor_request_route:
+  id: "AR-1"
+  files_against: "D-S3"
+  ledger: "../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+  interim_node_status: "provisional"
+  forbidden: ["invent-locally", "fake-as-root-edge", "declare-as-cross-cluster", "drop-silently"]
