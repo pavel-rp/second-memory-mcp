@@ -25,49 +25,13 @@
 #      DECLARATION, not one contested node. Knuth optimization is yours; the interval
 #      DP it accelerates is CL-2's.
 #
-#   Your worked examples from D-F4 §3.2: LIS in O(n log n), Knuth / quadrangle
-#   inequality, divide-and-conquer optimization, SOS DP (contested — see below),
-#   matrix-exponentiation DP, Convex Hull Trick / Li Chao, slope trick,
-#   Lagrangian relaxation ("Aliens trick").
-#
-# YOUR LIVE DISPUTE (carried, not smoothed — NEU-932 X-D1):
-#   SOS DP is assigned to YOU by cascade order, logged D-F4a PROVISIONAL. CL-3's
-#   counter-claim (the mask encoding is the real contribution) is recorded as LIVE
-#   and may be challenged by SUB-5 via U4. Map it; do not smooth the dispute away.
-#
-# YOUR ANCHORS ARE ALREADY IN THE FLOOR — draw straight onto them:
-#   anchor.convex-hull-envelope-geometry, anchor.li-chao-tree, anchor.segment-tree,
-#   anchor.linear-algebra, anchor.modular-arithmetic  (boundary-register.yaml)
-#   These are SANCTIONED TERMINALS. An edge ending on one is clean, not a jump.
-#   They are NOT cross-cluster declarations — draw them directly.
-#
-# BEFORE YOU WRITE A NODE, READ:
-#   ../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
-#   ../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
-#
-# THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
-#   1. Write ONLY this file. Four other mappers are writing concurrently — including
-#      SUB-13 in the file next to this one.
-#   2. Prerequisites in YOUR cluster (either CL-4 file) -> see rule 2b
-#      Prerequisites on a DP root       -> prerequisites.roots           (DRAW)
-#      Prerequisites on a non-DP anchor -> prerequisites.boundary_anchors (DRAW)
-#      Prerequisites in a SIBLING cluster -> cross_cluster_attachments   (DECLARE ONLY)
-#   2b. CL-4-INTERNAL, CROSS-FILE: a prerequisite of yours that lives in
-#      frontier.yaml is still INTRA-CLUSTER (same cluster id) but you cannot see it
-#      being written. Use `prerequisites.intra_cluster` and note the target may not
-#      exist yet; the dependency audit reports unresolved intra-cluster ids as gaps
-#      rather than deleting them. Do NOT declare it as cross-cluster — it is not.
-#   3. NEVER draw an edge into a sibling cluster and NEVER edit edges/cross-cluster.yaml.
-#   4. NEVER fake a cross-cluster or non-DP prerequisite as a root edge.
-#
-# Node ids are namespaced by CLUSTER (not by file) so the two CL-4 files share one
-# namespace and must not collide:
-#   cl-4.<kebab-case-name>          e.g. "cl-4.knuth-optimization"
-#   Convention to keep you and SUB-13 apart within that shared namespace: SUB-13's
-#   frontier nodes carry no separate prefix, so coordinate ONLY by staying inside
-#   your own worked-example set above. A collision is a dependency-audit finding.
-#
 # YAML: 1.2 core schema. All string enums quoted.
+#
+# -----------------------------------------------------------------------------
+# SUB-6 AUTHORING RECORD (NEU-937) — read `authoring_record` at the foot of this
+# file for: the scope split against SUB-13, the SOS DP (D-F4a) disposition, the
+# residual-exclusion register, and the drawn-vs-declared self-check.
+# -----------------------------------------------------------------------------
 # =============================================================================
 
 schema_version: "1.0.0"
@@ -75,4 +39,1374 @@ cluster: "CL-4"
 work_split: "mainstream"
 map_version: "0.1.0"
 
-nodes: []   # SUB-6: append your nodes here.
+nodes:
+
+  # ===========================================================================
+  # 1. CONVEX HULL TRICK / LI CHAO TREE
+  #    Sanctioned non-DP prerequisites (DRAWN): convex-hull-envelope-geometry,
+  #    li-chao-tree, segment-tree.
+  #    Defining prerequisite (DECLARED): the linear-sequence DP it accelerates.
+  # ===========================================================================
+
+  - id: "cl-4.linear-transition-envelope-form"
+    name: "Linear transitions as a line envelope"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The structural fact that a transition of the form dp[i] = min_j (m_j * x_i + c_j)
+      is a pointwise minimum over a family of lines, and is therefore the value of that
+      family's lower envelope evaluated at x_i. What a learner acquires is the identity
+      between an algebraic transition shape and a geometric object — the recurrence is
+      unchanged and still means exactly what it meant; only its readability as geometry
+      is new. This is the fact every Convex Hull Trick and Li Chao node stands on.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors:
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: the envelope identity is language-neutral, but its exploitation
+        in JavaScript inherits IEEE-754 doubles for slope/intercept comparisons where C++
+        solutions use 64-bit integers. Recorded as an observation for SUB-8; no verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:Z"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["line-envelope form of a DP transition"]
+    notes: >-
+      Knowledge node, so no skill_type — per schema §1, absent rather than null.
+      This node exists separately from cl-4.convex-hull-trick-monotonic because the
+      fact is acquirable and testable without any ability to exploit it (schema §1.1).
+
+  - id: "cl-4.recognize-envelope-structured-transition"
+    name: "Recognizing an envelope-structured transition"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no — nothing is being argued correct or optimal. S2 no —
+      recognition reduces no cost by itself; it identifies an opportunity that
+      cl-4.convex-hull-trick-monotonic then exploits, and typing both S2 would collapse
+      two separately-failed abilities into one node (schema §1.1). S3 no — the trigger is
+      a transition's algebraic shape, not a symptom of a broken or slow run. S4 yes — the
+      canonical instance is a cost function stated as "a * b" or "(x_i - x_j)^2 + w_j",
+      which does not look like a line family at all until it is expanded; the technique is
+      recognized under an unfamiliar surface, which is exactly S4's defining trigger.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Recognizing that a given correct transition is secretly a query against a family of
+      lines — expanding a squared or product cost until the j-dependent terms separate into
+      a slope and an intercept and the i-dependent term becomes the query point. What a
+      learner acquires is the ability to see the envelope under a surface that does not
+      mention geometry.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-transition-envelope-form"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.recognize-envelope-structured-transition->cl-1.formulate-1d-sequence-dp"
+        from: "cl-4.recognize-envelope-structured-transition"
+        to_cluster: "CL-1"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
+        relation: "requires"
+        rationale: >-
+          The recognition is performed ON an already-correct linear-sequence DP; there is
+          nothing to recognize an envelope in until that recurrence has been formulated.
+          Per D-F4 §3.1 the base DP is CL-1's node and this recognition is CL-4's — two
+          nodes, not one contested node. Declared, never drawn: SUB-3 has not written
+          cl-1-foundational.yaml's technique nodes at the time this file is authored.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:Z"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      Carries the charter's transfer-to-DP uncertainty explicitly: this node asserts an
+      ability to see a known technique under an unfamiliar surface, which is the hardest
+      claim in this file to assess and the one most likely to be revised by SUB-7/OUT-7.
+
+  - id: "cl-4.convex-hull-trick-monotonic"
+    name: "Convex Hull Trick (monotonic slopes and queries)"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — the monotonicity argument that licenses the deque pops
+      is a real obligation but is a SEPARATE node (cl-4.cht-monotonicity-precondition-proof,
+      typed "proof"); this node is the application, not the argument. S2 yes — it takes an
+      already-correct O(n^2) linear-sequence recurrence and reduces evaluation to amortized
+      O(n) by maintaining only the lower envelope, without changing what any dp state means.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Maintain the lower envelope of the line family incrementally in a deque, discarding
+      lines that can never again be optimal, so each transition is answered in amortized
+      constant time when both the inserted slopes and the query points are monotone. What a
+      learner acquires is the cost reduction itself — the recurrence, its states, and its
+      answers are identical to the quadratic version.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-transition-envelope-form"
+        - "cl-4.recognize-envelope-structured-transition"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors:
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.convex-hull-trick-monotonic->cl-1.formulate-1d-sequence-dp"
+        from: "cl-4.convex-hull-trick-monotonic"
+        to_cluster: "CL-1"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
+        relation: "requires"
+        rationale: >-
+          The optimization is parasitic on a linear-sequence DP that must already be
+          correct; a learner cannot acquire it without first being able to formulate that
+          recurrence. Per D-F4 §3.1 the base DP is CL-1's and the optimization is CL-4's.
+          Declared, not drawn — SUB-3's technique nodes do not exist yet.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: the "bad line" test compares cross-products that overflow 64-bit
+        in adversarial cases; JavaScript's Number cannot represent those exactly and BigInt
+        changes the constant factor. Flagged for SUB-8; not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:Z", "C6:line_add_get_min"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["CHT", "convex hull optimization", "monotone CHT"]
+    notes: >-
+      Its envelope-geometry prerequisite is DRAWN onto the registered anchor
+      (anchor.convex-hull-envelope-geometry), while its optimized-family prerequisite is
+      DECLARED. Neither is faked as a root edge. This node is therefore
+      complete-but-pending-integration before SUB-12 runs, not broken.
+
+  - id: "cl-4.cht-monotonicity-precondition-proof"
+    name: "Proving the Convex Hull Trick's monotonicity preconditions"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1. S1 yes — the contribution is establishing by argument that a line
+      popped from the envelope can never again be optimal, and that monotone slopes plus
+      monotone queries make the pointer sweep amortized O(1). This is a correctness/optimality
+      obligation discharged by argument, which is S1's defining contribution, and the cascade
+      stops at the first match, so S2 is never reached even though the surrounding technique
+      is an optimization.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Argue that the deque maintenance is sound: that the discarded line is dominated on the
+      whole remaining query range, that the envelope stays convex under insertion, and that
+      monotonicity of the query sequence licenses a non-decreasing pointer rather than a
+      binary search. What a learner acquires is the ability to justify the speedup, not to
+      perform it — and to notice when the preconditions fail and Li Chao is required instead.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-transition-envelope-form"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors:
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      Split from cl-4.convex-hull-trick-monotonic per schema §1.1: a learner who can run the
+      deque and a learner who can prove the pops sound are demonstrably different, and they
+      fail separately. Typing one node both "optimization" and "proof" is prohibited.
+
+  - id: "cl-4.li-chao-tree-dp-application"
+    name: "Li Chao tree for non-monotone envelope DP"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — the tree's correctness argument is standard and is carried
+      by the anchor's contract, not re-argued here. S2 yes — it takes the same already-correct
+      recurrence cl-4.convex-hull-trick-monotonic accelerates and reduces its cost to
+      O(n log C) in the case where the monotonicity preconditions fail, without changing what
+      any state means. Distinct node rather than a variant field, because it is acquired and
+      failed separately from the deque form and rests on a different registered anchor.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Answer envelope queries with a Li Chao segment tree when slopes arrive in arbitrary order
+      or query points are not monotone — the case that defeats the deque. What a learner acquires
+      is the ability to keep the cost reduction when the CHT's preconditions do not hold, paying
+      a log factor to drop the monotonicity requirement.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-transition-envelope-form"
+        - "cl-4.cht-monotonicity-precondition-proof"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors:
+        - "anchor.li-chao-tree@1.0.0"
+        - "anchor.segment-tree@1.0.0"
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.li-chao-tree-dp-application->cl-1.formulate-1d-sequence-dp"
+        from: "cl-4.li-chao-tree-dp-application"
+        to_cluster: "CL-1"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
+        relation: "requires"
+        rationale: >-
+          Same parasitism as the deque form: the Li Chao tree accelerates an already-correct
+          linear-sequence recurrence, which is CL-1's node. Declared, not drawn.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C6:line_add_get_min", "C6:segment_add_get_min"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["Li Chao segment tree", "LiChao tree"]
+    notes: >-
+      Draws onto THREE registered anchors. anchor.li-chao-tree is registered separately from
+      anchor.segment-tree deliberately (boundary-register.yaml), and both are drawn because
+      the structure's contract and its segment-tree substrate are distinct sanctioned
+      terminals. None of the three is a cross-cluster declaration.
+
+  - id: "cl-4.implement-cht-deque-and-li-chao"
+    name: "Implementing CHT and Li Chao correctly"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no — nothing is argued. S2 no — the cost reduction is already
+      established by cl-4.convex-hull-trick-monotonic; this node makes the chosen form actually
+      run, which schema §2's S2 exclusion ("making it run rather than run faster") routes away
+      from S2. S3 no — it is not triggered by a symptom. S4 no, S5 no — the form is already
+      chosen. S6 yes — and not S7, because the steps genuinely vary with the problem: whether
+      the comparison can stay in integers, whether the query is min or max, and whether the
+      envelope is upper or lower are judgments about THIS recurrence (schema §2.1).
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Turn a chosen envelope method into working code: the integer-safe "is this line
+      unnecessary" comparison, min-vs-max and lower-vs-upper envelope orientation, deque
+      boundary conditions at size 0/1, and Li Chao's coordinate range and recursion. What a
+      learner acquires is the facility to realize the method without the off-by-one and
+      precision defects that make it silently wrong on a subset of cases.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.convex-hull-trick-monotonic"
+        - "cl-4.li-chao-tree-dp-application"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: this is the node where a JavaScript materiality question is most
+        likely to be real — the integer-safe comparison has no direct Number equivalent.
+        Recorded for SUB-8; this file asserts no verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C6:line_add_get_min"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+
+  # ===========================================================================
+  # 2. DIVIDE-AND-CONQUER OPTIMIZATION
+  # ===========================================================================
+
+  - id: "cl-4.opt-split-point-monotonicity"
+    name: "Monotonicity of the optimal split point"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The property that the argmin of a transition, opt(i, j), is non-decreasing in j for a
+      fixed layer i. What a learner acquires is the fact itself and what it licenses: that the
+      search for the optimal split of one state constrains the search range of its neighbours,
+      so the total work over a layer telescopes. The recurrence's meaning is untouched; this is
+      a fact about where its optima sit.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["argmin monotonicity", "opt monotonicity"]
+    notes: >-
+      Shared upstream of both cl-4.divide-and-conquer-optimization and
+      cl-4.knuth-yao-optimization: the two techniques exploit the same underlying
+      monotonicity with different search strategies. Modelling it once as knowledge, rather
+      than restating it inside each skill node, is what keeps this a graph and not a list.
+
+  - id: "cl-4.divide-and-conquer-optimization"
+    name: "Divide-and-conquer optimization"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — proving the monotonicity precondition is a separate node
+      (cl-4.split-point-monotonicity-proof, typed "proof"). S2 yes — it takes an already-correct
+      layered partition recurrence and reduces one layer's evaluation from O(n^2) to O(n log n)
+      by recursing on the split-point range, changing no state's meaning and no answer.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Evaluate a layer of a partition DP by solving the middle state first, then recursing left
+      and right with the optimal-split-point range narrowed to [optl, opt(mid)] and
+      [opt(mid), optr]. What a learner acquires is the cost reduction that monotone argmin buys
+      when the cost function can be queried but not incrementally maintained.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.opt-split-point-monotonicity"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.divide-and-conquer-optimization->cl-2.partition-dp"
+        from: "cl-4.divide-and-conquer-optimization"
+        to_cluster: "CL-2"
+        to_node: "cl-2.partition-dp"
+        to_name: "Partition DP (splitting a sequence into k parts)"
+        relation: "requires"
+        rationale: >-
+          The optimization is parasitic on a layered partition recurrence — dp[i][j] = min over
+          k of dp[i-1][k] + C(k, j) — that must already be correct. A learner cannot acquire the
+          speedup without first being able to formulate that recurrence. Per D-F4 §3.1 the base
+          DP is CL-2's node and the optimization is CL-4's.
+        confidence: "conjectured"
+        status: "declared"
+      - attachment_id: "xc.cl-4.divide-and-conquer-optimization->cl-2.interval-dp"
+        from: "cl-4.divide-and-conquer-optimization"
+        to_cluster: "CL-2"
+        to_node: "cl-2.interval-dp"
+        to_name: "Interval DP"
+        relation: "requires"
+        rationale: >-
+          The technique's second standard base is an interval DP whose cost function satisfies
+          the same monotonicity. Declared separately from the partition-DP attachment because
+          SUB-4 may map these as two nodes and SUB-12 must be able to resolve each.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["D&C optimization", "divide and conquer DP optimization"]
+    notes: >-
+      `confidence: "conjectured"` on the partition-DP attachment is deliberate: this file is
+      confident the base recurrence is CL-2's, but not that SUB-4 will mint a node under that
+      name. Per schema §4.3 a conjectured attachment that resolves to nothing is a coverage
+      finding for OUT-7, not a mapper's error — so it is declared rather than withheld.
+
+  - id: "cl-4.split-point-monotonicity-proof"
+    name: "Proving split-point monotonicity from a cost condition"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1. S1 yes — the contribution is establishing by argument, typically an
+      exchange argument over the Monge/quadrangle condition, that opt(i, j) is non-decreasing.
+      That is a correctness obligation discharged by proof, and the cascade stops at the first
+      match, so S2 is not reached despite the optimization context.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Argue that a given cost function's structure forces the optimal split point to move
+      monotonically — the exchange argument that crossing split points can be uncrossed without
+      increasing cost. What a learner acquires is the ability to establish that D&C optimization
+      is applicable at all, which is the difference between a correct speedup and a fast wrong
+      answer.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.opt-split-point-monotonicity"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      The competitive-programming folklore that one "just tries D&C opt and sees if it passes"
+      is precisely the practice this node names as a distinct, assessable ability. Recorded so
+      OUT-7 can audit whether the map teaches the justification or only the trick.
+
+  - id: "cl-4.implement-divide-and-conquer-optimization"
+    name: "Implementing divide-and-conquer optimization"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S2 no — the cost reduction is established by
+      cl-4.divide-and-conquer-optimization; this node makes it run. S5 no — the method is already
+      chosen. S6 rather than S7 because the steps vary with the problem: the recursion's
+      [optl, optr] bounds interact with THIS recurrence's layer order, and whether the cost
+      function is answered by prefix sums, a pointer sweep, or a rollback structure is a
+      judgment about this problem, not a fixed idiom (schema §2.1).
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Realize the recursion: thread the [optl, optr] bounds correctly, order the layers so each
+      reads a completed previous layer, and supply the cost-function query the recursion assumes
+      is cheap. What a learner acquires is the facility to get the log factor in practice rather
+      than in principle.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.divide-and-conquer-optimization"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: the recursion depth is O(log n) and does not stress JavaScript's call
+        stack, unlike some CL-3 recursive DP. Recorded for SUB-8; not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+
+  # ===========================================================================
+  # 3. KNUTH-YAO OPTIMIZATION
+  # ===========================================================================
+
+  - id: "cl-4.quadrangle-inequality"
+    name: "The quadrangle inequality (Monge condition)"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The condition C(a, c) + C(b, d) <= C(a, d) + C(b, c) for a <= b <= c <= d, together with
+      what it implies: that a cost function satisfying it forces the DP's optimal split points
+      into the sandwich opt(i, j-1) <= opt(i, j) <= opt(i+1, j). What a learner acquires is the
+      inequality and its consequence — a fact about cost functions, true or false independently
+      of anyone's ability to exploit it.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.opt-split-point-monotonicity"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["QI", "Monge condition", "concave quadrangle inequality"]
+
+  - id: "cl-4.knuth-yao-optimization"
+    name: "Knuth-Yao optimization"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — proving the quadrangle inequality holds for a given cost is a
+      real obligation but is a SEPARATE node (cl-4.quadrangle-inequality-proof, typed "proof");
+      this node is the application, not the argument, split per schema §1.1 rather than typing one
+      node twice. S2 yes — it takes an already-correct interval DP and reduces evaluation from
+      O(n^3) to O(n^2) by restricting each state's split search to the sandwich, without changing
+      what any state means.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Exploit the quadrangle inequality to bound each state's optimal split point between its two
+      neighbours' optima, collapsing an interval DP's inner search from linear to amortized
+      constant across a diagonal. What a learner acquires is the cost reduction; the recurrence
+      and its answers are identical to the cubic version.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.quadrangle-inequality"
+        - "cl-4.opt-split-point-monotonicity"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.knuth-yao-optimization->cl-2.interval-dp"
+        from: "cl-4.knuth-yao-optimization"
+        to_cluster: "CL-2"
+        to_node: "cl-2.interval-dp"
+        to_name: "Interval DP"
+        relation: "requires"
+        rationale: >-
+          The optimization is parasitic on an interval DP that must already be correct. A learner
+          cannot acquire it without first being able to formulate that recurrence. Per D-F4 §3.1
+          the base DP is CL-2's node and the optimization is CL-4's — two nodes, not one contested
+          node. Declared, not drawn: SUB-4 has not written cl-2-combinatorial.yaml.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["Knuth optimization", "Knuth-Yao speedup", "quadrangle inequality optimization"]
+    notes: >-
+      Optimal binary search tree construction is the canonical instance. Its base recurrence is
+      CL-2's interval DP; only the speedup is mapped here.
+
+  - id: "cl-4.quadrangle-inequality-proof"
+    name: "Proving the quadrangle inequality for a cost function"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1. S1 yes — the contribution is verifying by argument that a concrete cost
+      function satisfies the quadrangle inequality (and, where required, monotonicity on the
+      lattice of intervals), which is what licenses Knuth-Yao at all. Correctness by argument is
+      S1's defining contribution and the cascade stops at the first match.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Establish that a specific cost function is Monge — typically by the "sum of a prefix-sum-like
+      weight" closure argument, or by direct algebraic manipulation. What a learner acquires is the
+      ability to know before implementing whether Knuth-Yao is licensed, rather than discovering it
+      from a wrong answer.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.quadrangle-inequality"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+
+  # ===========================================================================
+  # 4. MONOTONIC-QUEUE / SLIDING-WINDOW OPTIMIZATION
+  # ===========================================================================
+
+  - id: "cl-4.sliding-window-transition-form"
+    name: "Transitions over a sliding window of states"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The structural fact that a transition of the form dp[i] = w_i + min over j in [i-k, i-1] of
+      dp[j] reads a contiguous, forward-moving window of already-computed states, and that
+      consecutive windows overlap in all but their two endpoints. What a learner acquires is the
+      fact that makes incremental extremum maintenance possible at all.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["windowed transition", "bounded-range transition"]
+
+  - id: "cl-4.monotonic-deque-maintenance"
+    name: "Maintaining a monotonic deque"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7. S1 no. S2 no — the deque routine reduces no DP's cost by itself; it is a
+      subroutine that cl-4.monotonic-queue-optimization exploits, and typing it S2 would conflate
+      the idiom with the acceleration it enables. S3-S5 no. S6 vs S7 is the live question and it
+      resolves to S7: the routine — pop the back while it is dominated, push, pop the front while it
+      is out of window — does not vary with the problem. Only the comparison direction changes, and
+      that is a parameter of the idiom, not a judgment about this recurrence (schema §2.1).
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Execute the fixed routine that keeps a deque's contents monotone so its front is always the
+      window's extremum: evict dominated elements from the back on insert, evict expired elements
+      from the front on advance. What a learner acquires is a mechanical routine, executed the same
+      way every time, whose amortized O(1) cost is what the surrounding optimization spends.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.sliding-window-transition-form"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: JavaScript has no native deque; array shift() is O(n) and would silently
+        destroy the amortized bound, so an index-based ring buffer is typically required. Recorded
+        as an observation for SUB-8 — this file asserts no materiality verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["monotonic queue", "sliding-window maximum deque"]
+    notes: >-
+      This node's `roots` list is legitimately empty: it is a data-structure routine whose DP
+      grounding is inherited through its intra-cluster prerequisite
+      cl-4.sliding-window-transition-form, which draws onto the roots. The chain bottoms out on the
+      frozen floor; it does not stop here. Recorded explicitly so the floor audit does not read the
+      empty list as an unexplained jump.
+
+  - id: "cl-4.monotonic-queue-optimization"
+    name: "Monotonic-queue / sliding-window optimization"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — the amortization argument is standard and inherited from the
+      routine's contract. S2 yes — it takes an already-correct windowed recurrence and reduces
+      evaluation from O(n*k) to O(n) by replacing the inner scan with a maintained extremum, without
+      changing what any state means or what the DP answers.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Replace a windowed transition's inner minimum scan with the front of a monotonic deque, so
+      each state costs amortized constant time regardless of window width. What a learner acquires
+      is the cost reduction — the same recurrence, the same answers, without the k factor.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.sliding-window-transition-form"
+        - "cl-4.monotonic-deque-maintenance"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.monotonic-queue-optimization->cl-1.formulate-1d-sequence-dp"
+        from: "cl-4.monotonic-queue-optimization"
+        to_cluster: "CL-1"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
+        relation: "requires"
+        rationale: >-
+          The optimization is parasitic on an already-correct linear-sequence recurrence with a
+          bounded-range transition; a learner cannot acquire it without first being able to
+          formulate that recurrence. Per D-F4 §3.1 the base DP is CL-1's and the speedup is CL-4's.
+          Declared, not drawn.
+        confidence: "named"
+        status: "declared"
+      - attachment_id: "xc.cl-4.monotonic-queue-optimization->cl-2.bounded-knapsack"
+        from: "cl-4.monotonic-queue-optimization"
+        to_cluster: "CL-2"
+        to_node: "cl-2.bounded-knapsack"
+        to_name: "Bounded knapsack DP"
+        relation: "requires"
+        rationale: >-
+          The technique's second standard base: bounded knapsack decomposes by residue class into
+          independent sliding-window minima, which is how the monotonic queue removes the count
+          factor. Declared separately because it is a different base DP in a different cluster and
+          SUB-12 must resolve it independently of the CL-1 attachment.
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["sliding window optimization", "deque optimization", "monotone queue DP"]
+
+  - id: "cl-4.recognize-window-constrained-transition"
+    name: "Recognizing a window-constrained transition under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no. S2 no — recognition reduces no cost by itself; the acceleration is
+      cl-4.monotonic-queue-optimization's contribution. S3 no — the trigger is a problem's structure,
+      not a symptom. S4 yes — the canonical instances do not look like windows: bounded knapsack
+      becomes a sliding window only after decomposing by residue class, and a "jump at most k steps"
+      constraint becomes one only after the recurrence is written down. The technique is recognized
+      under a surface that does not mention windows, which is S4's defining trigger.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      See a window under a surface that hides it — residue-class decomposition of a bounded knapsack,
+      a reachability constraint that is really a range bound, a "last k" condition buried in a
+      statement. What a learner acquires is the ability to reach for the monotonic queue on problems
+      that never say "window".
+    prerequisites:
+      intra_cluster:
+        - "cl-4.sliding-window-transition-form"
+        - "cl-4.monotonic-queue-optimization"
+      roots:
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      Carries transfer-to-DP as explicit per-node uncertainty per the NEU-937 spec: whether this
+      recognition transfers from the taught instances to unseen surfaces is genuinely unknown and is
+      the weakest claim in this technique's node set.
+
+  # ===========================================================================
+  # 5. MATRIX-EXPONENTIATION DP
+  #    Sanctioned non-DP prerequisites (DRAWN): linear-algebra, modular-arithmetic.
+  # ===========================================================================
+
+  - id: "cl-4.linear-recurrence-matrix-form"
+    name: "Linear recurrences in transfer-matrix form"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The fact that a DP whose transition is a fixed linear combination of a bounded number of
+      previous states can be written as repeated multiplication of a state vector by a constant
+      transfer matrix, so the state after n steps is M^n applied to the initial vector. What a
+      learner acquires is the identity between a recurrence and a matrix power — a true statement
+      about the recurrence's algebraic shape, independent of any ability to exploit it.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors:
+        - "anchor.linear-algebra@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:R"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["transfer matrix", "companion matrix form"]
+    notes: >-
+      Its non-DP prerequisite is DRAWN onto anchor.linear-algebra, the registered sanctioned
+      terminal — never faked as a root edge, never declared as a cross-cluster attachment
+      (boundary-register.yaml is explicit that anchors are not sibling nodes).
+
+  - id: "cl-4.matrix-exponentiation-dp"
+    name: "Matrix-exponentiation DP"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — associativity of matrix multiplication licenses the halving and is
+      carried by anchor.linear-algebra's contract, not re-argued here. S2 yes — it takes an
+      already-correct linear recurrence and reduces evaluation from O(n * k) to O(k^3 log n) by
+      binary-exponentiating the transfer matrix, without changing what any state means. This is the
+      defining CL-4 case where n is too large to iterate but the state is small.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Collapse n sequential DP steps into log n matrix multiplications by exponentiating the transfer
+      matrix, making a recurrence with n up to 10^18 affordable. What a learner acquires is the cost
+      reduction: the recurrence, its states, and its answers are unchanged; only the number of times
+      it must be stepped through moves from linear to logarithmic.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-recurrence-matrix-form"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors:
+        - "anchor.linear-algebra@1.0.0"
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.matrix-exponentiation-dp->cl-1.formulate-1d-sequence-dp"
+        from: "cl-4.matrix-exponentiation-dp"
+        to_cluster: "CL-1"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
+        relation: "requires"
+        rationale: >-
+          The optimization is parasitic on an already-correct linear-sequence recurrence with a fixed
+          transition; a learner cannot acquire it without first being able to formulate that
+          recurrence. Per D-F4 §3.2 the base DP is CL-1's node and the acceleration is CL-4's, while
+          its non-DP prerequisite terminates on a boundary anchor rather than a cluster.
+        confidence: "named"
+        status: "declared"
+      - attachment_id: "xc.cl-4.matrix-exponentiation-dp->cl-3.automaton-dp"
+        from: "cl-4.matrix-exponentiation-dp"
+        to_cluster: "CL-3"
+        to_node: "cl-3.automaton-dp"
+        to_name: "Automaton DP (including Aho-Corasick DP)"
+        relation: "requires"
+        rationale: >-
+          A second standard base, declared because it is materially different from the CL-1 case:
+          counting length-n strings avoiding a pattern set is an automaton DP (CL-3 per D-F4 §3.2)
+          whose transition matrix is the automaton's adjacency matrix, exponentiated to reach large n.
+          Conjectured because this file cannot see whether SUB-5 mints the node under this name.
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: entries are multiplied under a modulus and products exceed 2^53, so
+        JavaScript Numbers cannot hold intermediate results exactly. Recorded for SUB-8; not a
+        verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:R"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["matrix power DP", "linear recurrence acceleration", "transfer-matrix DP"]
+    notes: >-
+      BOTH sanctioned non-DP prerequisites are DRAWN directly onto registered anchors
+      (anchor.linear-algebra, anchor.modular-arithmetic), while BOTH optimized-family
+      prerequisites are DECLARED. This is the node the NEU-937 acceptance scenario names: before
+      SUB-12 runs it reads complete-but-pending-integration, not broken.
+
+  - id: "cl-4.construct-transfer-matrix"
+    name: "Constructing the transfer matrix from a DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no. S2 no — the cost reduction is cl-4.matrix-exponentiation-dp's
+      contribution; this node realizes the chosen formulation. S3 no, S4 no, S5 no — the decision to
+      use matrix exponentiation is already made. S6 rather than S7 because every step is a judgment
+      about THIS recurrence: which quantities must enter the state vector, how to append a constant-1
+      component to model an additive term, and how to order the basis. Nothing here is a fixed
+      routine (schema §2.1).
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Turn a specific recurrence into a concrete matrix: choose the state vector's components,
+      encode each transition as a row, and handle inhomogeneous terms by augmenting the vector with a
+      constant. What a learner acquires is the facility to get from "this is matrix-exponentiable" to
+      a matrix that is actually correct — the step where most attempts fail.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-recurrence-matrix-form"
+        - "cl-4.matrix-exponentiation-dp"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors:
+        - "anchor.linear-algebra@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:R"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      Split from cl-4.matrix-exponentiation-dp per schema §1.1: knowing that a DP is
+      matrix-exponentiable and being able to write its matrix are separately acquired and
+      separately failed.
+
+  - id: "cl-4.implement-modular-matrix-power"
+    name: "Implementing modular matrix exponentiation"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7. S1 no. S2 no — the asymptotic win is established by
+      cl-4.matrix-exponentiation-dp; this executes it. S3-S5 no. S6 vs S7 resolves to S7: binary
+      exponentiation over a monoid — initialize to the identity, square the base, multiply when the
+      bit is set — is a fixed routine whose steps do not vary with the problem. The matrix's contents
+      vary; the exponentiation procedure does not, and it is the procedure this node names.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Execute the standard binary-exponentiation routine over matrices under a modulus: identity
+      initialization, square-and-multiply on the exponent's bits, and modular reduction inside the
+      triple loop. What a learner acquires is a mechanical routine, performed identically every time,
+      that turns a transfer matrix and an exponent into an answer.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.construct-transfer-matrix"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors:
+        - "anchor.modular-arithmetic@1.0.0"
+        - "anchor.linear-algebra@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only: the inner multiply-accumulate requires exact products of two values below
+        the modulus, which exceeds JavaScript's safe-integer range for typical 10^9+7 moduli.
+        Recorded for SUB-8; not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:R"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    aliases: ["binary exponentiation of matrices", "fast matrix power"]
+    notes: >-
+      Draws both of its sanctioned non-DP prerequisites onto registered anchors. Its DP grounding
+      reaches the frozen floor directly via cl-1.root.implement-memoization-and-tabulation and
+      transitively via cl-4.construct-transfer-matrix.
+
+  - id: "cl-4.recognize-matrix-exponentiable-dp"
+    name: "Recognizing a matrix-exponentiable DP under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no. S2 no — recognition performs no acceleration; it identifies the
+      opportunity that cl-4.matrix-exponentiation-dp exploits. S3 no — the trigger is a constraint
+      pattern, not a symptom. S4 yes — the surface is a huge n with a small state, and the instances
+      that matter (counting walks of length n in a graph, counting strings avoiding a pattern,
+      tiling a 2-by-n board) do not look like linear recurrences until the state is identified. The
+      technique is recognized under an unfamiliar surface.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Read "n up to 10^18" together with a bounded state and a transition that never changes, and see
+      a matrix power. What a learner acquires is the trigger — the ability to reach for the technique
+      on problems that present as graph walks, string counting, or tilings rather than as recurrences.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.linear-recurrence-matrix-form"
+        - "cl-4.matrix-exponentiation-dp"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:R"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      Carries transfer-to-DP as explicit per-node uncertainty per the NEU-937 spec.
+
+  # ===========================================================================
+  # 6. CROSS-CUTTING: CHOOSING AMONG THE MAINSTREAM OPTIMIZATIONS
+  # ===========================================================================
+
+  - id: "cl-4.select-mainstream-optimization"
+    name: "Selecting a mainstream optimization for a too-slow DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. S1 no — nothing is argued. S2 no, and this is the file's most delicate
+      typing call: per schema §2.1 the S2/S5 boundary asks whether a correct recurrence already
+      exists, and here it does — which pulls toward S2. It is nonetheless S5, because S2's defining
+      contribution is REDUCING the cost, and this node reduces nothing: it selects which of five
+      sibling nodes will do the reducing. Typing it S2 would make it indistinguishable from the five
+      techniques it chooses between. S3 no — a TLE symptom is a common trigger, but the contribution
+      is the choice under a cost constraint, not the diagnosis from symptom to cause. S4 no — the
+      candidate techniques are known, not hidden under an unfamiliar surface. S5 yes: choosing which
+      technique to apply under a cost constraint is S5's defining contribution.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Given a correct DP that is too slow, read the recurrence's structural signature and pick the
+      optimization it admits — a line-shaped cost implies an envelope method, monotone argmin implies
+      D&C or Knuth-Yao depending on whether the layers are partitions or intervals, a bounded window
+      implies a monotonic queue, and a huge step count with a small fixed state implies matrix
+      exponentiation. What a learner acquires is the decision itself, which is the ability that makes
+      the other nodes reachable in a contest rather than in hindsight.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.convex-hull-trick-monotonic"
+        - "cl-4.li-chao-tree-dp-application"
+        - "cl-4.divide-and-conquer-optimization"
+        - "cl-4.knuth-yao-optimization"
+        - "cl-4.monotonic-queue-optimization"
+        - "cl-4.matrix-exponentiation-dp"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.select-mainstream-optimization->cl-1.formulate-1d-sequence-dp"
+        from: "cl-4.select-mainstream-optimization"
+        to_cluster: "CL-1"
+        to_node: "cl-1.formulate-1d-sequence-dp"
+        to_name: "Formulate a 1D sequence DP"
+        relation: "requires"
+        rationale: >-
+          The choice is made about an already-correct DP; without the ability to formulate one there
+          is nothing to select an optimization for. Declared against the base family rather than
+          drawn, per D-F4 §3.1.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-937"
+    notes: >-
+      Deliberately does NOT list frontier.yaml's nodes (slope trick, Lagrangian/Aliens trick) among
+      its intra_cluster prerequisites even though a complete selection skill would consider them.
+      Reason: those nodes are SUB-13's and are being written concurrently; adding predicted ids would
+      risk collision in the shared CL-4 namespace. Per the mainstream.yaml header rule 2b, a
+      CL-4-internal cross-file prerequisite is still intra_cluster and NOT a cross-cluster
+      declaration. Recorded as residual exclusion RX-6 with an owner (SUB-12 / OUT-2 dependency
+      audit) rather than guessed at.
+
+# =============================================================================
+# SUB-6 AUTHORING RECORD  (NEU-937)
+# =============================================================================
+# Informative metadata. Sets no status, decides no partition, and makes no
+# coverage verdict — OUT-7 owns coverage, the ledger owns status.
+# =============================================================================
+authoring_record:
+  task: "NEU-937"
+  sub_task: "SUB-6"
+  work_split: "mainstream"
+  compiled: "2026-07-16"
+  node_count: 23
+
+  scope:
+    in_scope_technique_areas:
+      - "Convex Hull Trick and Li Chao tree"
+      - "Divide-and-conquer optimization"
+      - "Knuth-Yao optimization"
+      - "Monotonic-queue / sliding-window optimization"
+      - "Matrix-exponentiation DP"
+    out_of_scope_owned_by_sub_13:
+      - "Slope trick and its variants"
+      - "Lagrangian relaxation / Aliens trick"
+      - "Kinetic segment tree <-> DP interplay"
+      - "Broken-profile / connection-profile DP"
+      - "The exotic-optimization tail"
+    note: >-
+      CL-4 is ONE cluster. This split is a work split for one-PR sizing, per D-F4 §2.1 and the
+      header of this file. manifest.yaml registers both files under the single CL-4 id and OUT-6
+      counts four clusters, not five. Nothing in this file describes frontier.yaml as a cluster.
+
+  # ---------------------------------------------------------------------------
+  # The two prerequisite kinds, kept distinct — the NEU-937 defining requirement
+  # ---------------------------------------------------------------------------
+  prerequisite_disposition:
+    drawn_onto_registered_boundary_anchors:
+      - anchor: "anchor.convex-hull-envelope-geometry@1.0.0"
+        drawn_from:
+          - "cl-4.linear-transition-envelope-form"
+          - "cl-4.convex-hull-trick-monotonic"
+          - "cl-4.cht-monotonicity-precondition-proof"
+          - "cl-4.li-chao-tree-dp-application"
+      - anchor: "anchor.li-chao-tree@1.0.0"
+        drawn_from:
+          - "cl-4.li-chao-tree-dp-application"
+      - anchor: "anchor.segment-tree@1.0.0"
+        drawn_from:
+          - "cl-4.li-chao-tree-dp-application"
+      - anchor: "anchor.linear-algebra@1.0.0"
+        drawn_from:
+          - "cl-4.linear-recurrence-matrix-form"
+          - "cl-4.matrix-exponentiation-dp"
+          - "cl-4.construct-transfer-matrix"
+          - "cl-4.implement-modular-matrix-power"
+      - anchor: "anchor.modular-arithmetic@1.0.0"
+        drawn_from:
+          - "cl-4.matrix-exponentiation-dp"
+          - "cl-4.implement-modular-matrix-power"
+    declared_optimized_family_attachments:
+      - to_name: "Formulate a 1D sequence DP"
+        to_cluster: "CL-1"
+        target_verified_present: true
+        note: >-
+          CL-1 (NEU-934) merged while this PR was open, so this target's id was checked against
+          the real file rather than left as a prediction: CL-1 mints no single "Linear-sequence DP"
+          node — it splits the shape into cl-1.linear-sequence-dp-1d (knowledge) and
+          cl-1.formulate-1d-sequence-dp (skill), plus 2D counterparts. The skill node is the correct
+          target: every rationale below asserts the learner must be ABLE TO FORMULATE the recurrence,
+          which is that node exactly. STILL DECLARED, NOT DRAWN — a sibling cluster's node is a
+          cross_cluster_attachment regardless of whether its file happens to exist yet (schema V-7
+          prohibits any prerequisites.* target in a different non-root cluster, and edges are
+          SUB-12's to realize in edges/cross-cluster.yaml). Verifying the id only makes SUB-12's
+          resolution exact instead of fuzzy; it does not license drawing the edge.
+        declared_by:
+          - "cl-4.recognize-envelope-structured-transition"
+          - "cl-4.convex-hull-trick-monotonic"
+          - "cl-4.li-chao-tree-dp-application"
+          - "cl-4.monotonic-queue-optimization"
+          - "cl-4.matrix-exponentiation-dp"
+          - "cl-4.select-mainstream-optimization"
+      - to_name: "Interval DP"
+        to_cluster: "CL-2"
+        declared_by:
+          - "cl-4.knuth-yao-optimization"
+          - "cl-4.divide-and-conquer-optimization"
+      - to_name: "Partition DP (splitting a sequence into k parts)"
+        to_cluster: "CL-2"
+        declared_by:
+          - "cl-4.divide-and-conquer-optimization"
+      - to_name: "Bounded knapsack DP"
+        to_cluster: "CL-2"
+        declared_by:
+          - "cl-4.monotonic-queue-optimization"
+      - to_name: "Automaton DP (including Aho-Corasick DP)"
+        to_cluster: "CL-3"
+        declared_by:
+          - "cl-4.matrix-exponentiation-dp"
+    assertion: >-
+      Every sanctioned non-DP prerequisite above is DRAWN directly onto a registered anchor at its
+      pinned version. Every optimized-family prerequisite is DECLARED as a cross-cluster attachment
+      with status "declared". NO cross-cluster prerequisite and NO non-DP prerequisite is faked as a
+      prerequisites.roots edge anywhere in this file. Root edges in this file are drawn only onto the
+      eight frozen cl-1.root.* nodes, per D-S4.
+    no_ar_1_requests_filed: >-
+      Every non-DP prerequisite this file needed was already registered. Route AR-1 was not required
+      and no anchor was invented locally.
+
+  # ---------------------------------------------------------------------------
+  # Coverage status (OUT-7 owns the verdict; this records the mapper's position)
+  # ---------------------------------------------------------------------------
+  coverage_status:
+    per_node: "unaudited on every node — OUT-7 (SUB-9..11) owns the verdict."
+    mapper_position: >-
+      The five technique areas the NEU-937 spec enumerates are each mapped as MULTIPLE typed nodes
+      rather than one node per technique name, per schema §1.1 — 23 nodes over 5 technique areas.
+      Topic volume is not claimed as coverage: the claim this file makes is that each area's
+      separately-acquired and separately-failed abilities are separate nodes, and that every chain
+      bottoms out on the frozen floor or a registered anchor.
+    skill_types_instantiated:
+      - "optimization (S2) — 6 nodes: the cluster's defining type"
+      - "implementation (S6) — 3 nodes"
+      - "proof (S1) — 3 nodes"
+      - "transfer (S4) — 3 nodes"
+      - "procedural (S7) — 2 nodes"
+      - "strategic (S5) — 1 node"
+    knowledge_nodes: 5
+    skill_types_not_instantiated_here:
+      - "debugging (S3)"
+      - "conceptual (S8)"
+    skill_type_note: >-
+      Recorded for SUB-9's eight-skill-type union-completeness check: this file does not instantiate
+      S3 or S8, and does not claim to. Per the NEU-937 brief the union is completed across the map,
+      with CL-1 (NEU-934) covering the types this cluster does not exercise. No node was retyped to
+      manufacture a union — a forced type would be a worse defect than a recorded absence.
+
+  # ---------------------------------------------------------------------------
+  # Residual exclusions — every material one carries a rationale
+  # ---------------------------------------------------------------------------
+  residual_exclusions:
+
+    - id: "RX-1"
+      excluded: "SOS DP (sum-over-subsets / zeta-Moebius transform)"
+      status: "contested — carried, not smoothed"
+      contested_by: ["CL-3"]
+      ledger_ref: "D-F4a (NEU-932), live per 04_family-cluster-partition.md §4.2"
+      rationale: >-
+        NOT mapped in this file, and NOT claimed. Two facts are in tension and both are recorded
+        rather than reconciled locally. (a) D-F4 §3.2 row 79 and §4.2 adjudicate SOS DP to CL-4 by
+        cascade order, logging it D-F4a PROVISIONAL with CL-3's counter-claim (the mask encoding is
+        the real contribution) LIVE and challengeable by SUB-5 via U4. (b) The NEU-937 spec-of-record
+        enumerates this sub-task's desired outcome as exactly five technique areas, and SOS DP is not
+        among them; the current working assignment places it with CL-3 (NEU-936). This file therefore
+        neither maps SOS DP nor asserts it is out of CL-4: mapping it would be a silent claim over a
+        live dispute and a scope expansion beyond the spec, while asserting it away would smooth the
+        dispute the charter forbids smoothing. The D-F4a dispute stands exactly as logged.
+      owner: "D-F4a adjudication (NEU-932) — resolvable by SUB-5's U4 challenge or by SUB-12/OUT-7"
+      action_if_unresolved: >-
+        A coverage finding for OUT-7 if no cluster mapped it. Reported, never deleted.
+
+    - id: "RX-2"
+      excluded: "LIS in O(n log n) via a monotone structure"
+      status: "excluded — assigned to CL-4 but not enumerated for SUB-6"
+      rationale: >-
+        D-F4 §3.2 row 70 assigns it to CL-4 and the file header lists it among this cluster's worked
+        examples, but the NEU-937 spec-of-record does not enumerate it among SUB-6's five technique
+        areas, and it is equally absent from SUB-13's frontier list. It is therefore a material
+        residual exclusion of the CL-4 work split rather than of the cluster: the technique is
+        CL-4's, but neither half's enumerated scope names it. Recorded with an owner rather than
+        quietly absorbed into this file, because absorbing it would risk an id collision with
+        SUB-13 in the shared CL-4 namespace and would exceed the spec's enumeration.
+      owner: "SUB-12 / OUT-7 coverage audit — to assign to a CL-4 half or record as a gap"
+
+    - id: "RX-3"
+      excluded: "The family techniques these optimizations accelerate (CL-1/CL-2/CL-3 nodes)"
+      status: "excluded by design — out of scope per the NEU-937 spec"
+      rationale: >-
+        Explicitly out of scope: the base DPs belong to sibling clusters by D-F4 §3.1's T1-first
+        ordering. They are not excluded from the MAP — they are declared as cross-cluster attachment
+        points (see prerequisite_disposition above) for SUB-12 to realize. Nothing is lost; the
+        dependency is recorded as evidence, not dropped.
+
+    - id: "RX-4"
+      excluded: "The research-tier optimization frontier"
+      status: "excluded by design — SUB-13 (NEU-938) owns it in frontier.yaml"
+      rationale: >-
+        Slope trick and variants, Lagrangian/Aliens trick, kinetic-segment-tree interplay,
+        broken-profile / connection-profile DP, and the exotic tail are SUB-13's within the SAME
+        cluster. Not a coverage gap and not a second cluster — a work split.
+
+    - id: "RX-5"
+      excluded: "Progression stages, difficulty values, JavaScript-materiality verdicts"
+      status: "excluded by design — other sub-tasks own the values"
+      rationale: >-
+        difficulty_dimensions is {} on every node (the dimension SET itself is unresolved, INC-S3,
+        owner SUB-7). javascript_materiality.assessed is false on every node; where this file has an
+        observation it is recorded in `note` as an OBSERVATION and never as a verdict (owner SUB-8).
+        coverage.status is "unaudited" on every node (owner OUT-7). Per schema §5.2 a consumer must
+        not invent a value.
+
+    - id: "RX-6"
+      excluded: "Intra-cluster prerequisite edges from cl-4.select-mainstream-optimization into frontier.yaml's nodes"
+      status: "excluded — unresolvable at map time, recorded as a gap"
+      rationale: >-
+        A complete selection skill would weigh slope trick and the Aliens trick alongside the five
+        mainstream techniques. Those nodes are SUB-13's, being written concurrently, and per this
+        file's header rule 2b they are INTRA-cluster (same CL-4 id) — so they may NOT be declared as
+        cross-cluster attachments, and predicting their ids risks a namespace collision that the
+        dependency audit would report. The edges are therefore omitted and recorded here rather than
+        guessed. This is a named gap with an owner, not a defect to be discovered later.
+      owner: "OUT-2 dependency audit / SUB-12 — to add the intra-cluster edges once both CL-4 files exist"
+
+    - id: "RX-7"
+      excluded: "Targeted prototypes of this cluster's graph structure"
+      status: "excluded by design — charter Assumption #12"
+      rationale: >-
+        Prototypes run only where graph structure is genuinely uncertain, never on settled structure.
+        The five mainstream optimizations are the Div1 canon: their prerequisite structure is
+        well-attested across the D-F1 taxonomies and stable across references, and their cluster
+        assignment is settled by D-F4's cascade with the single exception logged as RX-1. Prototyping
+        settled structure is prohibited, so none was run. The genuinely uncertain claims in this file
+        are the transfer nodes, and they carry that uncertainty per-node in `notes` rather than
+        through a prototype that could not falsify them.
+
+  # ---------------------------------------------------------------------------
+  # Self-check against 03_per-node-record-template.md §7
+  # ---------------------------------------------------------------------------
+  self_check:
+    - check: "1. node_kind on every node; skill_type + skill_type_rationale on every skill node; no skill_type on knowledge nodes."
+      result: "pass — 18 skill nodes each typed once with a cascade path; 5 knowledge nodes with skill_type absent, not null."
+    - check: "2. Not one node per technique name."
+      result: "pass — 23 nodes over 5 technique areas; every area is split into its separately-failed abilities."
+    - check: "3. Every prerequisite chain bottoms out on a root or a registered anchor."
+      result: "pass — the one node with an empty roots list (cl-4.monotonic-deque-maintenance) reaches the floor through its intra_cluster prerequisite; recorded in its notes."
+    - check: "4. No prerequisites.* entry points at a sibling cluster's node."
+      result: "pass — every sibling-cluster prerequisite is in cross_cluster_attachments."
+    - check: "5. No roots or boundary_anchors edge is a disguised cross-cluster or unregistered dependency."
+      result: "pass — roots edges target only the eight frozen cl-1.root.* ids; anchor edges target only the five registered anchors at their pinned versions."
+    - check: "6. Every cross_cluster_attachments entry has to_name, to_cluster, rationale, status declared."
+      result: "pass — 11 attachments, all complete."
+    - check: "7. attachment_id matches xc.<from>-><to_node>; from is the node's own id."
+      result: "pass"
+    - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
+      result: "pass on all 23 nodes"
+    - check: "9. No node settled without a ledger entry; no node carries frozen: true."
+      result: "pass — every node is provisional"
+    - check: "10. All string enums quoted."
+      result: "pass"
+    - check: "11. Ids match the grammar and are cluster-namespaced; CL-4 shares a namespace with frontier.yaml."
+      result: "pass — all 23 ids are cl-4.<kebab-name> and are drawn from this file's enumerated scope only, so they cannot collide with SUB-13's frontier set."
+    - check: "12. Wrote only my own file."
+      result: "pass — NEU-937 modified mainstream.yaml only."
