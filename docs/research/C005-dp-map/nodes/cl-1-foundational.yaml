@@ -424,7 +424,17 @@ nodes:
         - "cl-1.root.recognize-overlapping-subproblems"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 2
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -457,7 +467,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -503,7 +523,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -552,7 +582,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 0
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -606,7 +646,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -648,7 +698,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -684,7 +744,17 @@ nodes:
         - "cl-1.root.memoization-vs-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -735,7 +805,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 3
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -782,7 +862,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 5
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -837,7 +927,17 @@ nodes:
         - "cl-1.root.memoization-vs-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -881,7 +981,17 @@ nodes:
         - "cl-1.root.implement-memoization-and-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 2
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -916,7 +1026,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -955,7 +1075,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -996,7 +1126,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -1044,7 +1184,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1081,7 +1231,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1132,7 +1292,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1170,7 +1340,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1211,7 +1391,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1254,7 +1444,17 @@ nodes:
         - "cl-1.root.memoization-vs-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -1296,7 +1496,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1336,7 +1546,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1395,7 +1615,17 @@ nodes:
         - "cl-1.root.overlapping-subproblems"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1446,7 +1676,17 @@ nodes:
         - "cl-1.root.implement-memoization-and-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 2
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1480,7 +1720,17 @@ nodes:
       roots: []
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1520,7 +1770,17 @@ nodes:
       roots: []
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1565,7 +1825,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1606,7 +1876,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1649,7 +1929,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1692,7 +1982,17 @@ nodes:
         - "cl-1.root.implement-memoization-and-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1729,7 +2029,17 @@ nodes:
       boundary_anchors:
         - "anchor.modular-arithmetic@1.0.0"
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -1782,7 +2092,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1834,7 +2154,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1872,7 +2202,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1915,7 +2255,17 @@ nodes:
         - "cl-1.root.recognize-optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 5
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1963,7 +2313,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2005,7 +2365,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2044,7 +2414,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2078,7 +2458,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2117,7 +2507,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2163,7 +2563,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2205,7 +2615,17 @@ nodes:
         - "cl-1.root.formulate-state-transition-base-case"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2243,7 +2663,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2290,7 +2720,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2325,7 +2765,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -2363,7 +2813,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""

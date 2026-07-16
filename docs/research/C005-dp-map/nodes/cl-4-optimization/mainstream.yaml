@@ -67,7 +67,17 @@ nodes:
       boundary_anchors:
         - "anchor.convex-hull-envelope-geometry@1.0.0"
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 1
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -129,7 +139,17 @@ nodes:
           cl-1-foundational.yaml's technique nodes at the time this file is authored.
         confidence: "named"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -185,7 +205,17 @@ nodes:
           Declared, not drawn — SUB-3's technique nodes do not exist yet.
         confidence: "named"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 5
+      proof_obligation_load: 1
+      implementation_load: 3
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -233,7 +263,17 @@ nodes:
       boundary_anchors:
         - "anchor.convex-hull-envelope-geometry@1.0.0"
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -289,7 +329,17 @@ nodes:
           linear-sequence recurrence, which is CL-1's node. Declared, not drawn.
         confidence: "named"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 4
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -335,7 +385,17 @@ nodes:
         - "cl-1.root.implement-memoization-and-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 5
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -372,7 +432,17 @@ nodes:
         - "cl-1.root.state-transition-base-case-formulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -439,7 +509,17 @@ nodes:
           SUB-4 may map these as two nodes and SUB-12 must be able to resolve each.
         confidence: "named"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 3
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -481,7 +561,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 4
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -523,7 +613,17 @@ nodes:
         - "cl-1.root.memoization-vs-tabulation"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -559,7 +659,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -611,7 +721,17 @@ nodes:
           node. Declared, not drawn: SUB-4 has not written cl-2-combinatorial.yaml.
         confidence: "named"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 1
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -650,7 +770,17 @@ nodes:
         - "cl-1.root.optimal-substructure"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 4
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -683,7 +813,17 @@ nodes:
         - "cl-1.root.overlapping-subproblems"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -720,7 +860,17 @@ nodes:
       roots: []
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -791,7 +941,17 @@ nodes:
           SUB-12 must resolve it independently of the CL-1 attachment.
         confidence: "conjectured"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 3
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -830,7 +990,17 @@ nodes:
         - "cl-1.root.recognize-overlapping-subproblems"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -869,7 +1039,17 @@ nodes:
       boundary_anchors:
         - "anchor.linear-algebra@1.0.0"
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 1
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -938,7 +1118,17 @@ nodes:
           Conjectured because this file cannot see whether SUB-5 mints the node under this name.
         confidence: "conjectured"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 5
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -986,7 +1176,17 @@ nodes:
       boundary_anchors:
         - "anchor.linear-algebra@1.0.0"
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 0
+      implementation_load: 4
+      recognition_load: 2
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1028,7 +1228,17 @@ nodes:
         - "anchor.modular-arithmetic@1.0.0"
         - "anchor.linear-algebra@1.0.0"
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 2
+      recognition_load: 1
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: >-
@@ -1074,7 +1284,17 @@ nodes:
         - "cl-1.root.recognize-overlapping-subproblems"
       boundary_anchors: []
     cross_cluster_attachments: []
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
@@ -1139,7 +1359,17 @@ nodes:
           drawn, per D-F4 §3.1.
         confidence: "named"
         status: "declared"
-    difficulty_dimensions: {}
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 5
+      creator_review: "deferred-provisional"
     javascript_materiality:
       assessed: false
       note: ""
