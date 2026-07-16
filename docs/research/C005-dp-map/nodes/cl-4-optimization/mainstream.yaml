@@ -1170,7 +1170,7 @@ authoring_record:
   sub_task: "SUB-6"
   work_split: "mainstream"
   compiled: "2026-07-16"
-  node_count: 20
+  node_count: 23
 
   scope:
     in_scope_technique_areas:
@@ -1261,7 +1261,7 @@ authoring_record:
     per_node: "unaudited on every node — OUT-7 (SUB-9..11) owns the verdict."
     mapper_position: >-
       The five technique areas the NEU-937 spec enumerates are each mapped as MULTIPLE typed nodes
-      rather than one node per technique name, per schema §1.1 — 20 nodes over 5 technique areas.
+      rather than one node per technique name, per schema §1.1 — 23 nodes over 5 technique areas.
       Topic volume is not claimed as coverage: the claim this file makes is that each area's
       separately-acquired and separately-failed abilities are separate nodes, and that every chain
       bottoms out on the frozen floor or a registered anchor.
@@ -1375,9 +1375,9 @@ authoring_record:
   # ---------------------------------------------------------------------------
   self_check:
     - check: "1. node_kind on every node; skill_type + skill_type_rationale on every skill node; no skill_type on knowledge nodes."
-      result: "pass — 15 skill nodes each typed once with a cascade path; 5 knowledge nodes with skill_type absent, not null."
+      result: "pass — 18 skill nodes each typed once with a cascade path; 5 knowledge nodes with skill_type absent, not null."
     - check: "2. Not one node per technique name."
-      result: "pass — 20 nodes over 5 technique areas; every area is split into its separately-failed abilities."
+      result: "pass — 23 nodes over 5 technique areas; every area is split into its separately-failed abilities."
     - check: "3. Every prerequisite chain bottoms out on a root or a registered anchor."
       result: "pass — the one node with an empty roots list (cl-4.monotonic-deque-maintenance) reaches the floor through its intra_cluster prerequisite; recorded in its notes."
     - check: "4. No prerequisites.* entry points at a sibling cluster's node."
@@ -1389,12 +1389,12 @@ authoring_record:
     - check: "7. attachment_id matches xc.<from>-><to_node>; from is the node's own id."
       result: "pass"
     - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
-      result: "pass on all 20 nodes"
+      result: "pass on all 23 nodes"
     - check: "9. No node settled without a ledger entry; no node carries frozen: true."
       result: "pass — every node is provisional"
     - check: "10. All string enums quoted."
       result: "pass"
     - check: "11. Ids match the grammar and are cluster-namespaced; CL-4 shares a namespace with frontier.yaml."
-      result: "pass — all 20 ids are cl-4.<kebab-name> and are drawn from this file's enumerated scope only, so they cannot collide with SUB-13's frontier set."
+      result: "pass — all 23 ids are cl-4.<kebab-name> and are drawn from this file's enumerated scope only, so they cannot collide with SUB-13's frontier set."
     - check: "12. Wrote only my own file."
       result: "pass — NEU-937 modified mainstream.yaml only."
