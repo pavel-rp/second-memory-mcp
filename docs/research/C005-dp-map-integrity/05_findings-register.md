@@ -40,7 +40,7 @@ Recorded because a clean negative on a laundering probe is evidence, not filler.
 | OUT-6 path criterion (4 clusters + research-tier) | ✅ **5/5** |
 | Roots frozen (`{}` dimensions, unedited) | ✅ 8/8 |
 
-**27/27 structural checks pass.**
+**28/28 structural checks pass.**
 
 ## 4. Ledger discipline
 

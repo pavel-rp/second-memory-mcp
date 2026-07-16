@@ -19,7 +19,7 @@
 //   and failing the build on them would block a merge on someone else's defect.
 // =============================================================================
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 
@@ -28,11 +28,15 @@ const REPO = resolve(HERE, '../../../..');
 const MAP = join(REPO, 'docs/research/C005-dp-map');
 
 // --- resolve `yaml` out of the pnpm store (not hoisted) ----------------------
+// Version is DISCOVERED, never pinned: a hard-coded `yaml@2.8.1` would break the
+// moment the transitive dep bumps, even with a perfectly usable copy on disk.
 function loadYamlLib() {
-  const candidates = [
-    join(REPO, 'node_modules/.pnpm/yaml@2.8.1/node_modules/yaml/dist/index.js'),
-    join(REPO, 'node_modules/yaml/dist/index.js'),
-  ];
+  const candidates = [join(REPO, 'node_modules/yaml/dist/index.js')];
+  const store = join(REPO, 'node_modules/.pnpm');
+  if (existsSync(store)) {
+    for (const entry of readdirSync(store).filter((d) => /^yaml@/.test(d)).sort().reverse())
+      candidates.push(join(store, entry, 'node_modules/yaml/dist/index.js'));
+  }
   for (const c of candidates) if (existsSync(c)) return import(pathToFileURL(c).href);
   throw new Error('cannot locate the `yaml` package; looked in:\n  ' + candidates.join('\n  '));
 }
@@ -204,7 +208,9 @@ const nonRoot = nodes.filter((n) => n.role !== 'root');
 const dd = (id) => N.get(id)?.difficulty_dimensions || {};
 check(nodes.filter((n) => n.role === 'root').every((n) => Object.keys(n.difficulty_dimensions || {}).length === 0), 'roots carry {} (frozen, DR-S02)');
 check(nonRoot.every((n) => Object.keys(n.difficulty_dimensions || {}).length > 0), 'all 179 non-root nodes carry dimensions');
-const keysets = new Set(nonRoot.map((n) => Object.keys(n.difficulty_dimensions).sort().join('|')));
+// `|| {}` matters: a node missing the field must reach the check() above as a clean
+// FAIL, not crash the run here before anything is reported.
+const keysets = new Set(nonRoot.map((n) => Object.keys(n.difficulty_dimensions || {}).sort().join('|')));
 check(keysets.size === 1, 'all 179 nodes share ONE dimension key-set (no key drift)', `${keysets.size} distinct key-sets`);
 
 // H1 — declared prerequisite_depth vs the rubric's own definition:
@@ -247,7 +253,19 @@ console.log(`     ${explained.length}/${depthMismatch.length} exactly equal the 
 for (const r of depthMismatch) console.log(`       ${r.id.padEnd(52)} declared ${r.declared} | rubric ${r.computed} | pre-939 ${r.noXc}${r.declared === r.noXc ? '  <= matches pre-939 graph' : ''}`);
 
 // H2 — progression_stage monotonicity, ISOLATED BY EDGE CLASS (the root-cause probe)
-const psn = (id) => { const s = dd(id).progression_stage; return s ? parseInt(String(s).replace('PS-', ''), 10) : null; };
+// Returns null on ANY unparseable stage. Without the isFinite guard a malformed
+// stage yields NaN, `NaN == null` is false so it survives the skip, and every
+// `NaN > x` comparison is false — the edge would be silently dropped from the
+// inversion check instead of counted. A check that quietly skips what it cannot
+// read is worse than no check.
+const psn = (id) => {
+  const s = dd(id).progression_stage;
+  if (!s) return null;
+  const n = parseInt(String(s).replace('PS-', ''), 10);
+  return Number.isFinite(n) ? n : null;
+};
+const unparseableStages = nonRoot.filter((n) => dd(n.id).progression_stage && psn(n.id) === null);
+check(unparseableStages.length === 0, 'every progression_stage parses (none silently skipped)', unparseableStages.map((n) => n.id).join(','));
 console.log('  H2 progression_stage monotonicity, by edge class:');
 const inversions = [];
 for (const [k, list] of Object.entries(classified)) {
@@ -284,6 +302,8 @@ const walk = (id) => {
 let pathsOk = 0;
 for (const c of manifest.clusters) {
   const members = nodes.filter((n) => n.cluster === c.id && n.role !== 'root').sort((a, b) => depth(b.id) - depth(a.id));
+  // An empty cluster is a reportable FAIL of OUT-6, not a crash.
+  if (!members.length) { check(false, `OUT-6: cluster ${c.id} has at least one non-root node to walk from`); continue; }
   const r = walk(members[0].id);
   const grounded = r.terminal.startsWith('ROOT') || r.terminal.startsWith('ANCHOR');
   if (grounded) pathsOk++;

@@ -86,7 +86,7 @@ Deliberately not re-derived.** Where this audit touches a gap (F-939-A/B) it rec
 
 **`INC-C6`** — NEU-942 explicitly re-routed a validator to SUB-9. Discharged:
 `validator/audit-graph-integrity.mjs` is checked in, re-runnable from source, and
-produces every number in this package. **27/27 structural checks pass.**
+produces every number in this package. **28/28 structural checks pass.**
 
 ## INC-9.8 — The map is `map_version: 0.1.0` and this audit does not promote it
 

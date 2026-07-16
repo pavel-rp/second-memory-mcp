@@ -27,7 +27,7 @@ Counts are re-derived by the validator, not copied from the files' own prose. Al
 Coverage is proven **by the audits, not by taxonomy size** — the charter's #1 High risk.
 Topic volume is never coverage. Accordingly every claim in this package is produced by
 `validator/audit-graph-integrity.mjs`, which parses the YAML and re-derives the result.
-**27/27 structural checks pass.** Where this prose and the script disagree, the script wins.
+**28/28 structural checks pass.** Where this prose and the script disagree, the script wins.
 
 Three method rules did real work:
 
