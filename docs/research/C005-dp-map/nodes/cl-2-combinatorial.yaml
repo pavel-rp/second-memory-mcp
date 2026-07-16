@@ -1,0 +1,38 @@
+# =============================================================================
+# CL-2 — Combinatorial / structural
+# =============================================================================
+# Cluster:     CL-2 (NEU-932 D-F4)
+# Sole writer: NEU-935 (SUB-4)  <-- you are the ONLY sub-task that writes this file
+#
+# DEFINING CONTRIBUTION (what lands a technique here):
+#   DP whose state is indexed over a NONTRIVIAL COMBINATORIAL STRUCTURE — the
+#   structure, not the encoding, is what makes it hard. Reached at T3 of the
+#   ordered cascade, i.e. only after T1 (CL-4) and T2 (CL-3) have both said no.
+#   Worked examples from D-F4 §3.2: tree DP / rerooting, interval DP.
+#
+# BEFORE YOU WRITE A NODE, READ:
+#   ../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
+#   ../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
+#
+# THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
+#   1. Write ONLY this file. Four other mappers are writing concurrently.
+#   2. Prerequisites in YOUR cluster  -> prerequisites.intra_cluster   (DRAW)
+#      Prerequisites on a DP root     -> prerequisites.roots           (DRAW)
+#      Prerequisites on a non-DP anchor -> prerequisites.boundary_anchors (DRAW)
+#      Prerequisites in a SIBLING cluster -> cross_cluster_attachments (DECLARE ONLY)
+#   3. NEVER draw an edge into a sibling cluster and NEVER edit edges/cross-cluster.yaml.
+#      You cannot see sibling ids — those files do not exist yet. DECLARE; SUB-12 resolves.
+#   4. NEVER fake a cross-cluster or non-DP prerequisite as a root edge to make a
+#      chain bottom out. The floor audit exists to catch exactly that.
+#
+# Node ids are namespaced by cluster so two mappers cannot mint colliding ids:
+#   cl-2.<kebab-case-name>          e.g. "cl-2.interval-dp"
+#
+# YAML: 1.2 core schema. All string enums quoted.
+# =============================================================================
+
+schema_version: "1.0.0"
+cluster: "CL-2"
+map_version: "0.1.0"
+
+nodes: []   # SUB-4: append your nodes here.

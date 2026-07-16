@@ -1,0 +1,61 @@
+# =============================================================================
+# CL-3 — State-compression / specialized-domain
+# =============================================================================
+# Cluster:     CL-3 (NEU-932 D-F4)
+# Sole writer: NEU-936 (SUB-5)  <-- you are the ONLY sub-task that writes this file
+#
+# DEFINING CONTRIBUTION (what lands a technique here):
+#   DP whose defining contribution is a NON-TUPLE STATE ENCODING, or which is bound
+#   to a SPECIALIZED PROBLEM DOMAIN whose semantics are the difficulty. Reached at
+#   T2 of the ordered cascade — before T3, because an exotic encoding is a stronger
+#   signal than the structure it happens to encode.
+#   Worked examples from D-F4 §3.2: bitmask/subset DP, digit DP, probability/
+#   expectation DP, game DP / Sprague-Grundy, plug/broken-profile DP, automaton DP,
+#   Steiner-tree DP.
+#
+# YOU ARE ALSO THE INDETERMINATE SINK (Convention U2, D-F4 §4):
+#   A technique whose defining contribution CANNOT be confidently identified lands
+#   here PROVISIONALLY, logged as a D-F4a ledger entry with a named re-adjudication
+#   trigger. It is never silent. If U2 entries exceed 10, that is the cascade
+#   failing at scale, not individual mis-assignments — see D-F4's revision trigger.
+#
+# YOUR LIVE DISPUTE (carried, not smoothed — NEU-932 X-D1):
+#   SOS DP is currently assigned to CL-4 by cascade order (T1 before T2), logged
+#   D-F4a PROVISIONAL. Your claim — that the mask encoding, not the speedup, is its
+#   defining contribution — is recorded as LIVE. Route: file a U4 challenge against
+#   D-F4a. Until adjudicated the assignment stands; you may LINK, not own. Do not
+#   resolve this locally.
+#
+# FORESEEN ANCHOR GAP (INC-S1) — recorded so you are not surprised:
+#   Automaton DP's non-DP prerequisite (Aho-Corasick construction / string-matching
+#   automata) is NOT in boundary-register.yaml — the NEU-933 spec does not name it
+#   and the register does not invent anchors. Run route AR-1 (file a ledger request
+#   against D-S3); set the node `status: "provisional"` meanwhile. Do NOT invent an
+#   anchor and do NOT fake it as a root edge.
+#
+# BEFORE YOU WRITE A NODE, READ:
+#   ../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
+#   ../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
+#
+# THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
+#   1. Write ONLY this file. Four other mappers are writing concurrently.
+#   2. Prerequisites in YOUR cluster  -> prerequisites.intra_cluster   (DRAW)
+#      Prerequisites on a DP root     -> prerequisites.roots           (DRAW)
+#      Prerequisites on a non-DP anchor -> prerequisites.boundary_anchors (DRAW)
+#      Prerequisites in a SIBLING cluster -> cross_cluster_attachments (DECLARE ONLY)
+#   3. NEVER draw an edge into a sibling cluster and NEVER edit edges/cross-cluster.yaml.
+#      You cannot see sibling ids — those files do not exist yet. DECLARE; SUB-12 resolves.
+#   4. NEVER fake a cross-cluster or non-DP prerequisite as a root edge to make a
+#      chain bottom out. The floor audit exists to catch exactly that.
+#
+# Node ids are namespaced by cluster so two mappers cannot mint colliding ids:
+#   cl-3.<kebab-case-name>          e.g. "cl-3.plug-dp"
+#
+# YAML: 1.2 core schema. All string enums quoted.
+# =============================================================================
+
+schema_version: "1.0.0"
+cluster: "CL-3"
+map_version: "0.1.0"
+
+nodes: []   # SUB-5: append your nodes here.

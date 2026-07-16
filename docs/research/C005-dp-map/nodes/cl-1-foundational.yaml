@@ -1,0 +1,321 @@
+# =============================================================================
+# CL-1 — Foundational / linear-sequence
+# =============================================================================
+# Cluster:      CL-1 (NEU-932 D-F4)
+# Sole writer:  NEU-934 (SUB-3) — for the FAMILY block only
+# Root block:   NEU-933 (SUB-2) — FROZEN, see the marker below
+#
+# WHY THE ROOTS LIVE HERE
+#   NEU-932 D-F4 §1 makes the DP first principles CL-1 members ("These are cluster
+#   members (CL-1 owns them) but are roots, not techniques"). So this is where they
+#   belong. They were authored by SUB-2 and landed BEFORE SUB-3 starts, so there is
+#   no concurrent write: SUB-2 wrote, then SUB-3 is sole writer for the rest of the
+#   mapping phase. Sequential, not shared.
+#
+# SUB-3: append your family nodes BELOW the frozen marker. Do not edit, reorder,
+#        renumber, or remove a root. A root is changed only via a ledger challenge
+#        against D-S2.
+#
+# SCHEMA:  ../C005-dp-map-schema/01_node-and-edge-schema.md
+# TEMPLATE: ../C005-dp-map-schema/03_per-node-record-template.md
+# YAML: 1.2 core schema. All string enums quoted.
+# =============================================================================
+
+schema_version: "1.0.0"
+cluster: "CL-1"
+map_version: "0.1.0"
+
+nodes:
+
+  # ===========================================================================
+  # ▼▼▼ FROZEN ROOT BLOCK — authored by NEU-933 (SUB-2). DO NOT EDIT. ▼▼▼
+  # ===========================================================================
+  # These 8 nodes are the DP first-principle floor: one limb of the terminal floor
+  # (the other is boundary-register.yaml). Every cluster's prerequisite chains
+  # bottom out here or on an anchor.
+  #
+  # ANY MAPPER — CL-1, CL-2, CL-3, CL-4 — DRAWS ONTO THESE DIRECTLY, from its own
+  # file, via `prerequisites.roots`. This is NOT a cross-cluster declaration even
+  # though roots carry CL-1 ids: roots are a SHARED FROZEN FLOOR that exists and is
+  # stable before any mapper starts, so there is nothing for SUB-12 to resolve.
+  # See ../C005-dp-map-schema/01_node-and-edge-schema.md §4 (D-S4) for the full
+  # argument and the duplicate-edge warning issued to SUB-12.
+  #
+  # The four first principles the NEU-933 spec names are each represented TWICE:
+  # once as the KNOWLEDGE node (the thing that is true) and once as the SKILL node
+  # (the thing a learner can do with it). This is the knowledge/skill distinction
+  # the schema forces, demonstrated at the floor rather than merely asserted.
+  # Rationale: D-S2 in ../C005-dp-map-schema/decision-records/DR-S02_foundational-roots.md
+  # ===========================================================================
+
+  # --- Principle 1: Optimal substructure ------------------------------------
+
+  - id: "cl-1.root.optimal-substructure"
+    name: "Optimal substructure"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      An optimal solution to the problem is composed of optimal solutions to its
+      subproblems. The property that licenses solving a problem by combining
+      subproblem optima rather than searching the whole solution space.
+    prerequisites:
+      intra_cluster: []
+      roots: []                 # A floor node. Bottoms out by construction.
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}   # Dimension SET is unresolved — owner SUB-7 (OUT-3). Do not invent.
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  - id: "cl-1.root.recognize-optimal-substructure"
+    name: "Recognize optimal substructure in a problem"
+    node_kind: "skill"
+    skill_type: "conceptual"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      Given a problem statement, judge whether optimal substructure holds — and,
+      just as importantly, recognize when it does NOT and DP is therefore the wrong
+      tool.
+    skill_type_rationale: >-
+      Cascade (schema §3) reaches S8 as a CONFIDENT residual: no proof obligation
+      (S1 — this is a judgment, not a formal argument), no cost reduction (S2), no
+      symptom diagnosis (S3), no cross-domain recognition (S4), no choice among
+      alternatives (S5 — it is a property check, not a selection), no code (S6), no
+      fixed routine to execute (S7). What remains is understanding what the property
+      MEANS well enough to see it. That is "conceptual".
+    prerequisites:
+      intra_cluster: []
+      roots: ["cl-1.root.optimal-substructure"]
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  # --- Principle 2: Overlapping subproblems ---------------------------------
+
+  - id: "cl-1.root.overlapping-subproblems"
+    name: "Overlapping subproblems"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      The recursive decomposition revisits the same subproblems many times, so the
+      subproblem count is far smaller than the recursion-tree size. The property
+      that makes reuse pay — and that separates DP from plain divide-and-conquer.
+    prerequisites:
+      intra_cluster: []
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  - id: "cl-1.root.recognize-overlapping-subproblems"
+    name: "Recognize overlapping subproblems and distinguish DP from divide-and-conquer"
+    node_kind: "skill"
+    skill_type: "conceptual"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      Given a recursive decomposition, judge whether subproblems recur — and
+      therefore whether memoizing buys anything. The judgment that separates DP
+      from divide-and-conquer, where subproblems are disjoint and reuse buys nothing.
+    skill_type_rationale: >-
+      Same cascade path as `recognize-optimal-substructure`: a confident residual at
+      S8. It is a property judgment, not a selection among techniques (S5).
+    prerequisites:
+      intra_cluster: []
+      roots: ["cl-1.root.overlapping-subproblems"]
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  # --- Principle 3: State / transition / base-case formulation ---------------
+
+  - id: "cl-1.root.state-transition-base-case-formulation"
+    name: "State, transition, and base-case formulation"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      What a DP formulation IS: a state space (what a subproblem is identified by),
+      a transition relation (how a state's value derives from other states'), and
+      base cases (the states whose values are given, not derived). The vocabulary
+      every DP technique in every cluster is expressed in.
+    prerequisites:
+      intra_cluster: []
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  - id: "cl-1.root.formulate-state-transition-base-case"
+    name: "Formulate a DP: design the state, derive the transition, fix the base cases"
+    node_kind: "skill"
+    skill_type: "strategic"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      Turn a problem statement into a concrete correct DP formulation: choose what
+      the state must capture (and what it may safely forget), derive the transition,
+      and identify the base cases. The single highest-leverage skill in the map.
+    skill_type_rationale: >-
+      Cascade stops at S5 "strategic": designing a state IS choosing among candidate
+      formulations under a correctness constraint — the defining act of selection.
+      Earlier tests reject cleanly: no proof obligation (S1), no cost reduction (S2 —
+      the recurrence does not yet exist, so there is nothing to accelerate; this is
+      the exact boundary that keeps CL-4's optimizations distinct from formulation),
+      no symptom (S3), no cross-domain recognition (S4).
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.recognize-optimal-substructure"
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  # --- Principle 4: Memoization vs tabulation -------------------------------
+
+  - id: "cl-1.root.memoization-vs-tabulation"
+    name: "Memoization vs tabulation"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      The two ways to evaluate a DP formulation — top-down with a cache, or
+      bottom-up over an explicit order — and what actually differs between them:
+      evaluation order, which states get computed, stack behaviour, and what each
+      makes easy or hard. The same recurrence, two evaluation strategies.
+    prerequisites:
+      intra_cluster: []
+      roots: ["cl-1.root.state-transition-base-case-formulation"]
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  - id: "cl-1.root.implement-memoization-and-tabulation"
+    name: "Implement a DP both top-down and bottom-up"
+    node_kind: "skill"
+    skill_type: "implementation"
+    cluster: "CL-1"
+    role: "root"
+    summary: >-
+      Turn a correct formulation into working code either way: build the cache and
+      recursion for memoization, or establish a valid evaluation order and iterate
+      for tabulation.
+    skill_type_rationale: >-
+      Cascade stops at S6 "implementation": the formulation is given and the work is
+      realizing it as code. Deliberately NOT S7 "procedural" — the order test in the
+      cascade separates them, and this is the harder side of that line: choosing an
+      evaluation order is a judgment about the specific recurrence, not the
+      execution of a fixed routine. Not S2 "optimization": making it RUN is not
+      making it FASTER; that boundary is what keeps CL-4 a separate cluster.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Foreseen but NOT assessed here — OUT-5 (SUB-8) owns the verdict. Recorded as
+        an observation only: recursion-depth limits and the absence of a tunable
+        stack make the top-down side language-material in JavaScript in a way it is
+        not in the C++ competitive default that every selected reference assumes
+        (NEU-932 06_caps §2). SUB-8 must reach its own verdict; this note is not one.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "settled"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-933"
+    frozen: true
+
+  # ===========================================================================
+  # ▲▲▲ END FROZEN ROOT BLOCK — 8 roots (4 knowledge + 4 skill) ▲▲▲
+  # ===========================================================================
+  # SUB-3 (NEU-934): append CL-1 family nodes below this line.
+  # Use the template at ../C005-dp-map-schema/03_per-node-record-template.md.
+  # Your nodes carry `role: "technique"` and MUST NOT carry `frozen: true`.
+  # ===========================================================================
