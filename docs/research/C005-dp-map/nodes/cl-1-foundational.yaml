@@ -88,7 +88,7 @@ nodes:
       just as importantly, recognize when it does NOT and DP is therefore the wrong
       tool.
     skill_type_rationale: >-
-      Cascade (schema §3.2) reaches S8 as a CONFIDENT residual: no proof obligation
+      Cascade (schema §3) reaches S8 as a CONFIDENT residual: no proof obligation
       (S1 — this is a judgment, not a formal argument), no cost reduction (S2), no
       symptom diagnosis (S3), no cross-domain recognition (S4), no choice among
       alternatives (S5 — it is a property check, not a selection), no code (S6), no
