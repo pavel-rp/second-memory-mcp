@@ -1,0 +1,91 @@
+# =============================================================================
+# CL-4 — DP-optimization  ·  RESEARCH-TIER FRONTIER half
+# =============================================================================
+# Cluster:     CL-4 (NEU-932 D-F4)  <-- ONE cluster, TWO files. See below.
+# Sole writer: NEU-938 (SUB-13)  <-- you are the ONLY sub-task that writes this file
+# Sibling file: mainstream.yaml — NEU-937 (SUB-6). DO NOT WRITE IT. It is being
+#               written concurrently with this one.
+#
+# *** YOU ARE NOT A FIFTH CLUSTER. ***
+#   This is the single easiest thing in the whole map to get wrong, so it is stated
+#   plainly: "research-tier frontier" is a WORK SPLIT of CL-4, not a cluster.
+#   The partition has exactly FOUR clusters. manifest.yaml registers this file and
+#   mainstream.yaml under the ONE "CL-4" cluster id, precisely so OUT-6's
+#   per-cluster path count counts 4 and not 5.
+#
+#   NEU-932 D-F4 §2.1 records WHY a fifth cluster was rejected: splitting mainstream
+#   from frontier as a PARTITION would require a principled boundary between them,
+#   and none exists — the distinction is popularity and recency, which drift, not
+#   structure, which doesn't. A partition whose boundary drifts is not a partition.
+#   Knuth's optimization and the kinetic-segment-tree frontier answer CL-4's
+#   defining test IDENTICALLY. That is why you are one cluster.
+#
+#   => Never add a cluster entry for this file. Never describe frontier material as
+#      its own cluster. If you believe the frontier needs its own cluster, the route
+#      is a ledger challenge against D-F4 (Convention U4) — never a local redesign.
+#
+# DEFINING CONTRIBUTION (identical to mainstream — that is the point):
+#   Techniques whose defining contribution is REDUCING THE COST of evaluating an
+#   ALREADY-CORRECT recurrence — the recurrence is given; the contribution is making
+#   it affordable, without changing what the states MEAN. T1 of the cascade.
+#
+#   => THE OPTIMIZATION IS YOURS. THE BASE DP IT ACCELERATES IS NOT.
+#      A cross-cluster DECLARATION, not one contested node.
+#
+#   Your worked example from D-F4 §3.2: kinetic segment tree <-> DP interplay.
+#   Your scope is the rare and research-tier end of CL-4 — the maximalist reach the
+#   charter's technique space demands (NEU-889 Assumption #4), including techniques
+#   in no selected reference taxonomy.
+#
+# UN-ENUMERATED TECHNIQUES ARE YOUR NORMAL CASE (Convention U, D-F4 §4):
+#   A technique in no reference taxonomy — including one invented after the
+#   2026-07-16 cutoff — is NEVER a gap, NEVER unowned, and NEVER grounds for a new
+#   cluster. Run the cascade on it. If T1 fires confidently, it is YOURS; its
+#   absence from the references is a COVERAGE question for OUT-7, not a partition
+#   question. If its defining contribution is genuinely INDETERMINATE — you cannot
+#   confidently separate "the recurrence" from "the acceleration" — it goes to CL-3
+#   by U2 (provisionally, logged), NOT to you and NOT to CL-1.
+#
+# YOUR ANCHORS ARE ALREADY IN THE FLOOR — draw straight onto them:
+#   anchor.segment-tree, anchor.li-chao-tree, anchor.convex-hull-envelope-geometry,
+#   anchor.linear-algebra, anchor.modular-arithmetic  (boundary-register.yaml)
+#   SANCTIONED TERMINALS — draw directly, not as cross-cluster declarations.
+#   Frontier techniques are the most likely to need an UNREGISTERED anchor: run
+#   route AR-1 (ledger request against D-S3), set `status: "provisional"` meanwhile.
+#   Do NOT invent an anchor and do NOT fake it as a root edge.
+#
+# BEFORE YOU WRITE A NODE, READ:
+#   ../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
+#   ../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
+#
+# THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
+#   1. Write ONLY this file. Four other mappers are writing concurrently — including
+#      SUB-6 in the file next to this one.
+#   2. Prerequisites on a DP root       -> prerequisites.roots           (DRAW)
+#      Prerequisites on a non-DP anchor -> prerequisites.boundary_anchors (DRAW)
+#      Prerequisites in a SIBLING cluster -> cross_cluster_attachments   (DECLARE ONLY)
+#   2b. CL-4-INTERNAL, CROSS-FILE: a prerequisite of yours that lives in
+#      mainstream.yaml is still INTRA-CLUSTER (same cluster id) but you cannot see it
+#      being written. Use `prerequisites.intra_cluster` and note the target may not
+#      exist yet; the dependency audit reports unresolved intra-cluster ids as gaps
+#      rather than deleting them. Do NOT declare it as cross-cluster — it is not.
+#      This is your most common case: a frontier technique usually generalizes a
+#      mainstream one.
+#   3. NEVER draw an edge into a sibling cluster and NEVER edit edges/cross-cluster.yaml.
+#   4. NEVER fake a cross-cluster or non-DP prerequisite as a root edge.
+#
+# Node ids are namespaced by CLUSTER (not by file) so the two CL-4 files share one
+# namespace and must not collide:
+#   cl-4.<kebab-case-name>          e.g. "cl-4.kinetic-segment-tree-dp"
+#   Coordinate with SUB-6 ONLY by staying inside your own frontier scope above.
+#   A collision is a dependency-audit finding.
+#
+# YAML: 1.2 core schema. All string enums quoted.
+# =============================================================================
+
+schema_version: "1.0.0"
+cluster: "CL-4"
+work_split: "research-tier frontier"
+map_version: "0.1.0"
+
+nodes: []   # SUB-13: append your nodes here.

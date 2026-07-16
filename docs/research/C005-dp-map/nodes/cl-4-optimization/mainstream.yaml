@@ -1,0 +1,78 @@
+# =============================================================================
+# CL-4 — DP-optimization  ·  MAINSTREAM half
+# =============================================================================
+# Cluster:     CL-4 (NEU-932 D-F4)  <-- ONE cluster, TWO files. See below.
+# Sole writer: NEU-937 (SUB-6)  <-- you are the ONLY sub-task that writes this file
+# Sibling file: frontier.yaml — NEU-938 (SUB-13). DO NOT WRITE IT. It is being
+#               written concurrently with this one.
+#
+# *** CL-4 IS ONE CLUSTER, NOT TWO. ***
+#   You and SUB-13 split CL-4's WORK for one-PR sizing only. This is a work split,
+#   NOT a partition split. The partition has exactly FOUR clusters. manifest.yaml
+#   registers BOTH files under the single "CL-4" cluster id precisely so OUT-6's
+#   per-cluster path count still counts 4, not 5. Never describe frontier.yaml as
+#   a fifth cluster, and never add a cluster entry for it.
+#
+# DEFINING CONTRIBUTION (what lands a technique here):
+#   Techniques whose defining contribution is REDUCING THE COST of evaluating an
+#   ALREADY-CORRECT recurrence — the recurrence is given; the contribution is making
+#   it affordable, without changing what the states MEAN. This is T1, the FIRST test
+#   of the cascade, because it is the most specific claim available: an optimization
+#   is parasitic on a base DP that lives in another cluster.
+#
+#   => THE OPTIMIZATION IS YOURS. THE BASE DP IT ACCELERATES IS NOT.
+#      Those are two different nodes in two different clusters — a cross-cluster
+#      DECLARATION, not one contested node. Knuth optimization is yours; the interval
+#      DP it accelerates is CL-2's.
+#
+#   Your worked examples from D-F4 §3.2: LIS in O(n log n), Knuth / quadrangle
+#   inequality, divide-and-conquer optimization, SOS DP (contested — see below),
+#   matrix-exponentiation DP, Convex Hull Trick / Li Chao, slope trick,
+#   Lagrangian relaxation ("Aliens trick").
+#
+# YOUR LIVE DISPUTE (carried, not smoothed — NEU-932 X-D1):
+#   SOS DP is assigned to YOU by cascade order, logged D-F4a PROVISIONAL. CL-3's
+#   counter-claim (the mask encoding is the real contribution) is recorded as LIVE
+#   and may be challenged by SUB-5 via U4. Map it; do not smooth the dispute away.
+#
+# YOUR ANCHORS ARE ALREADY IN THE FLOOR — draw straight onto them:
+#   anchor.convex-hull-envelope-geometry, anchor.li-chao-tree, anchor.segment-tree,
+#   anchor.linear-algebra, anchor.modular-arithmetic  (boundary-register.yaml)
+#   These are SANCTIONED TERMINALS. An edge ending on one is clean, not a jump.
+#   They are NOT cross-cluster declarations — draw them directly.
+#
+# BEFORE YOU WRITE A NODE, READ:
+#   ../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
+#   ../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
+#
+# THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
+#   1. Write ONLY this file. Four other mappers are writing concurrently — including
+#      SUB-13 in the file next to this one.
+#   2. Prerequisites in YOUR cluster (either CL-4 file) -> see rule 2b
+#      Prerequisites on a DP root       -> prerequisites.roots           (DRAW)
+#      Prerequisites on a non-DP anchor -> prerequisites.boundary_anchors (DRAW)
+#      Prerequisites in a SIBLING cluster -> cross_cluster_attachments   (DECLARE ONLY)
+#   2b. CL-4-INTERNAL, CROSS-FILE: a prerequisite of yours that lives in
+#      frontier.yaml is still INTRA-CLUSTER (same cluster id) but you cannot see it
+#      being written. Use `prerequisites.intra_cluster` and note the target may not
+#      exist yet; the dependency audit reports unresolved intra-cluster ids as gaps
+#      rather than deleting them. Do NOT declare it as cross-cluster — it is not.
+#   3. NEVER draw an edge into a sibling cluster and NEVER edit edges/cross-cluster.yaml.
+#   4. NEVER fake a cross-cluster or non-DP prerequisite as a root edge.
+#
+# Node ids are namespaced by CLUSTER (not by file) so the two CL-4 files share one
+# namespace and must not collide:
+#   cl-4.<kebab-case-name>          e.g. "cl-4.knuth-optimization"
+#   Convention to keep you and SUB-13 apart within that shared namespace: SUB-13's
+#   frontier nodes carry no separate prefix, so coordinate ONLY by staying inside
+#   your own worked-example set above. A collision is a dependency-audit finding.
+#
+# YAML: 1.2 core schema. All string enums quoted.
+# =============================================================================
+
+schema_version: "1.0.0"
+cluster: "CL-4"
+work_split: "mainstream"
+map_version: "0.1.0"
+
+nodes: []   # SUB-6: append your nodes here.

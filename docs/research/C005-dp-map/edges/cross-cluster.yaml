@@ -1,0 +1,74 @@
+# =============================================================================
+# CROSS-CLUSTER PREREQUISITE EDGES
+# =============================================================================
+# Sole writer: NEU-939 (SUB-12) — the cross-cluster integration pass
+#
+# *** THIS FILE IS EMPTY DURING THE MAPPING PHASE AND THAT IS CORRECT. ***
+#   NEU-932 D-F3 §4 rule 4: a mapper writing here breaks per-cluster file ownership
+#   and serializes the parallel fan-out that the whole layout exists to enable.
+#   SUB-3/4/5/6/13: this file is not yours. Declare in your own node file.
+#
+# =============================================================================
+# WHAT SUB-12 DOES
+# =============================================================================
+# Mappers DECLARE attachment points; you RESOLVE them into edges. Every mapper's
+# node file carries `cross_cluster_attachments` entries shaped like:
+#
+#   cross_cluster_attachments:
+#     - attachment_id: "xc.cl-4.knuth-optimization->cl-2.interval-dp"
+#       from: "cl-4.knuth-optimization"
+#       to_cluster: "CL-2"
+#       to_node: "cl-2.interval-dp"      # A GUESS. See the warning below.
+#       to_name: "Interval DP"           # The mapper's human name for the target.
+#       relation: "requires"
+#       rationale: "..."
+#       confidence: "named"              # "named" | "conjectured"
+#       status: "declared"
+#
+# *** THE WARNING THAT MATTERS MOST ***
+#   `to_node` IS A GUESS AND YOU MUST TREAT IT AS ONE.
+#   The five mappers ran in PARALLEL. When SUB-6 declared an attachment onto
+#   "cl-2.interval-dp", the CL-2 file did not exist yet — SUB-4 had not written it.
+#   The mapper could not look the id up, so it predicted one from the naming grammar.
+#   => Resolve on `to_name` + `rationale` + `to_cluster` FIRST. Use `to_node` as a
+#      hint that is often right and sometimes wrong. An exact-id-match-only resolver
+#      will silently drop real dependencies.
+#
+# RESOLUTION RULES
+#   R1. One declaration -> one edge. Mappers declare from ONE side, so a genuine
+#       mutual dependency shows up as two declarations; do not silently merge them
+#       into one edge — a real bidirectional prerequisite is a CYCLE and the
+#       dependency audit must see it.
+#   R2. An UNRESOLVABLE declaration (no plausible target exists in the named
+#       cluster) is reported as a GAP with its `attachment_id`. NEVER delete it.
+#       A mapper's declaration is evidence that a dependency exists; failure to find
+#       the target is a finding about the MAP, not about the declaration.
+#   R3. `confidence: "conjectured"` means the mapper believed a target SHOULD exist
+#       but was not sure it would. If no target exists, that is a COVERAGE finding
+#       for OUT-7, not a silent drop.
+#   R4. Edges you draw here set `status: "realized"` and carry `realized_from`
+#       (the attachment_id). Traceability runs backwards from every edge to the
+#       declaration that produced it.
+#
+#   R5. *** DO NOT RE-DRAW ROOT OR ANCHOR EDGES. ***
+#       `prerequisites.roots` and `prerequisites.boundary_anchors` are ALREADY DRAWN
+#       by the mappers, directly, in their own files. Root edges point into CL-1 and
+#       therefore LOOK cross-cluster by a naive endpoint-span test — they are not
+#       your job. Roots and anchors are a SHARED FROZEN FLOOR that existed before any
+#       mapper started, so there was nothing to resolve and the mapper drew straight
+#       onto it. Re-drawing them here DUPLICATES every floor edge in the graph and
+#       will corrupt the dependency and path audits.
+#       => Your input is `cross_cluster_attachments` ONLY. Nothing else.
+#       Full argument: ../../C005-dp-map-schema/01_node-and-edge-schema.md §4 (D-S4).
+#
+# YAML: 1.2 core schema. All string enums quoted.
+# =============================================================================
+
+schema_version: "1.0.0"
+map_version: "0.1.0"
+sole_writer: "NEU-939 (SUB-12)"
+written_during_mapping: false
+
+edges: []   # SUB-12: realized cross-cluster edges go here. Empty until integration runs.
+
+unresolvable_declarations: []   # SUB-12: per R2, report — never delete.
