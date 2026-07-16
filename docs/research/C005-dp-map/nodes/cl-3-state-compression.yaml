@@ -53,9 +53,1755 @@
 #
 # YAML: 1.2 core schema. All string enums quoted.
 # =============================================================================
+#
+# =============================================================================
+# SUB-5 (NEU-936) MAPPING RECORD — read this before reading the nodes
+# =============================================================================
+#
+# NODE COUNT: 31 technique nodes across 7 owned families.
+#   Bitmask / subset DP ......... 6   (cl-3.bitmask-*, submask, subset-cover)
+#   Digit DP .................... 5
+#   Probability / expectation DP  5
+#   Game / Grundy DP ............ 7
+#   Plug / broken-profile DP .... 3
+#   Automaton DP ................ 3
+#   Steiner-tree DP ............. 2
+#
+# ONE TECHNIQUE IS SEVERAL NODES (schema §1.1). Every family below is split into
+# the knowledge it rests on and the separately-acquired, separately-failed skills
+# it licenses. "Bitmask DP" is 6 nodes, not 1: knowing what a mask means, choosing
+# to encode with one, executing the submask idiom, writing the loop, arguing each
+# subset is covered once, and diagnosing the blowup are six different acquisitions.
+# A one-node-per-technique-name file would be a topic list (charter's #1 High risk).
+#
+# --- DRAWN BOUNDARY ANCHORS (sanctioned terminals, never gaps) ----------------
+#   anchor.modular-arithmetic@1.0.0  <- cl-3.implement-bitmask-dp,
+#                                       cl-3.implement-digit-dp,
+#                                       cl-3.resolve-expectation-dp-self-loops
+#   anchor.linear-algebra@1.0.0      <- cl-3.resolve-expectation-dp-self-loops,
+#                                       cl-3.expectation-dp-well-definedness
+#   These are DRAWN per template §4 ("SOS DP -> modular/linear algebra ... DRAW").
+#   A chain ending here BOTTOMS OUT cleanly. It is not a jump and not an
+#   attachment.
+#
+# --- AR-1 ANCHOR REQUESTS IN FLIGHT (INC-S1 and its siblings) ----------------
+#   The register does not invent anchors and neither does this file. Each request
+#   below is filed against D-S3 in ../../C005-dp-map-schema/adjudication/
+#   01_schema-decision-ledger.md; the dependent node carries status "provisional"
+#   and records the dependency in `notes` so it stays VISIBLE while unadjudicated.
+#
+#   AR-1/a  "Aho-Corasick automaton construction / string-matching automata"
+#           Dependents: cl-3.formulate-automaton-dp, cl-3.implement-aho-corasick-dp
+#           THIS IS INC-S1 — the gap boundary-register.yaml predicted SUB-5 would
+#           hit. Not invented locally, not faked as a root edge, not declared as a
+#           cross-cluster attachment (an anchor is not a sibling node — SUB-12 would
+#           report it unresolvable). Routed exactly as the register instructs.
+#           Why genuinely non-DP: automaton construction computes no recurrence and
+#           makes no optimal-substructure claim; the DP borrows the finished
+#           structure as its state space. D-F4 §3's cascade does not own it.
+#
+#   AR-1/b  "Single-source shortest-path relaxation (Dijkstra/Bellman-Ford)"
+#           Dependent: cl-3.implement-steiner-tree-dp
+#           The Dreyfus-Wagner merge/grow loop relaxes over the graph between mask
+#           expansions. Above NEU-887's elementary floor, not DP, not registered.
+#           Same route, same discipline.
+#
+# --- DECLARED CROSS-CLUSTER ATTACHMENTS (never drawn) ------------------------
+#   7 declarations, all status "declared", all with to_name (SUB-12's real key):
+#     -> CL-4  "SOS DP"                    (required-by)  X-D1 link, see below
+#     -> CL-2  "Tree DP"                   (requires)     Steiner-tree DP
+#     -> CL-2  "Grid DP"                   (requires)     plug / broken-profile DP
+#     -> CL-1  "Counting DP"               (requires)     digit DP
+#     -> CL-1  "String / sequence DP"      (requires)     automaton DP
+#     -> CL-4  "Bitset / word-parallel optimization"  (required-by)  bitmask DP
+#     -> CL-2  "Subset-sum / knapsack counting"       (requires)     bitmask DP
+#
+# --- THE X-D1 SOS DP DISPUTE — CARRIED, NOT RESOLVED -------------------------
+#   *** SOS DP IS DELIBERATELY NOT OWNED HERE. THIS IS NOT AN OVERSIGHT. ***
+#   D-F4 §4.2 adjudicates SOS DP to CL-4 by cascade order (T1 fires before T2).
+#   The D-F4a ledger row records CL-3's counter-claim as LIVE and names the route:
+#   SUB-5 files a U4 challenge arguing the mask encoding, not the speedup, is SOS
+#   DP's defining contribution. This file's own header states the standing
+#   instruction unambiguously: "Until adjudicated the assignment stands; you may
+#   LINK, not own. Do not resolve this locally."
+#
+#   So SUB-5 does three things and not a fourth:
+#     1. DOES NOT mint a cl-3.sos-dp node. Owning it here would resolve a live
+#        dispute unilaterally — exactly what U4 forbids — and would double-claim a
+#        node CL-4's mapper is writing concurrently under the standing assignment.
+#     2. LINKS to it, as permitted: cl-3.bitmask-state-encoding declares
+#        xc.cl-3.bitmask-state-encoding->cl-4.sos-dp with relation "required-by".
+#        Declared from CL-3's own side only, never on CL-4's behalf.
+#     3. CARRIES the dispute in-band: `contested_by: ["CL-4"]` on
+#        cl-3.bitmask-state-encoding with the U4 challenge recorded in `notes`,
+#        so a reader meets the disagreement at the point of use rather than only
+#        in a ledger. The dry-run's Q5 ("Does anyone disagree about SOS DP?") is
+#        answerable from this artifact.
+#     4. DOES NOT smooth it, and does NOT declare the challenge won.
+#
+#   NOTE ON A CONFLICTING BRIEF: SUB-5's task brief asserted SOS DP "currently sits
+#   in your cluster". Every primary source says otherwise — D-F4 §3.2 (the SOS row
+#   reads CL-4), §4.2, the D-F4a ledger row, X-D1, CL-4's mainstream.yaml header
+#   ("SOS DP is assigned to YOU"), and this file's own header. The primary sources
+#   govern. Recorded here rather than silently reconciled.
+#
+# --- RESIDUAL EXCLUSIONS, EACH WITH A RATIONALE (acceptance scenario 3) -------
+#   E1. SOS DP / subset-sum convolution / zeta-Moebius transform — EXCLUDED as an
+#       owned node. Rationale: adjudicated to CL-4 by D-F4 §4.2 cascade order;
+#       CL-3's claim is live but U4 says the existing assignment stands until
+#       adjudicated. Linked (see above), not owned. NOT a coverage gap — a
+#       deliberate deferral to a named adjudication.
+#   E2. Slope trick — EXCLUDED. Rationale: T1 fires. CL-4 (SUB-13), explicitly out
+#       of scope per this task's spec "even when they optimize a family mapped
+#       here". Slope trick optimizes convex sequence DP, not a CL-3 family, so the
+#       exclusion is doubly clean.
+#   E3. Kinetic segment tree <-> DP interplay — EXCLUDED. Rationale: T1, CL-4
+#       research-tier frontier (SUB-13). Named out of scope by the spec.
+#   E4. Bitset / word-parallel acceleration of a bitmask DP — EXCLUDED as an owned
+#       node. Rationale: T1 fires — it reduces the cost of an already-correct
+#       bitmask recurrence without changing what a state means. CL-4's, even though
+#       it accelerates CL-3's family. This is the spec's out-of-scope rule working
+#       exactly as written. Declared as an attachment so the link is not lost.
+#   E5. Matrix-exponentiation acceleration of an expectation/probability DP —
+#       EXCLUDED. Rationale: T1, CL-4 (D-F4 §3.2 assigns matrix-exponentiation DP
+#       to CL-4 explicitly). The expectation DP it accelerates is CL-3's and is
+#       mapped here; the acceleration is not.
+#   E6. Segment-tree-accelerated digit/automaton transitions — EXCLUDED. T1, CL-4.
+#   E7. Profile DP over a broken profile ACCELERATED by hashing the profile —
+#       EXCLUDED as a separate node. Rationale: T1 on the acceleration; the
+#       encoding itself is mapped here (cl-3.broken-profile-state-encoding).
+#       Recorded because a reader will expect to find it in CL-3.
+#   E8. Aho-Corasick automaton CONSTRUCTION itself — EXCLUDED as a node. Rationale:
+#       not DP at all; it is a non-DP prerequisite and therefore anchor material,
+#       not cluster material (D-F4 §1: "a mapper that finds itself wanting to
+#       assign a cluster to 'segment tree' has crossed the boundary"). Routed via
+#       AR-1/a rather than mapped. Same for Dijkstra (AR-1/b).
+#   E9. Partizan / Surreal-number combinatorial game theory (non-impartial games
+#       beyond minimax) — EXCLUDED. Rationale: the selected references (T1-T5,
+#       corpora C1-C6) reach impartial games and Sprague-Grundy; partizan game
+#       values sit outside the competitive DP canon the charter's audience line
+#       fixes. Material residual exclusion, so it carries this rationale rather
+#       than being silent. If OUT-7 finds a corpus instance, this is the entry to
+#       revisit.
+#
+# --- TRANSFER-TO-DP UNCERTAINTY (X-D3, carried per this task's spec) ----------
+#   Three nodes are typed "transfer" (S4) and each carries an explicit uncertainty
+#   note rather than an implied confidence: cl-3.recognize-digit-dp-under-
+#   unfamiliar-surface, cl-3.recognize-impartial-game-under-unfamiliar-surface,
+#   and cl-3.recognize-bitmask-state-applicability (S5, but transfer-adjacent).
+#   X-D3 is NEU-932's carried gap: no selected reference offers evidence that
+#   transfer-to-DP is a separately-acquirable skill rather than an epiphenomenon of
+#   the underlying technique knowledge. These nodes assert the DISTINCTION exists;
+#   they do not assert it is evidenced. evidence_class 1 throughout.
+#
+# --- COVERAGE ----------------------------------------------------------------
+#   Every node: coverage.status "unaudited" (OUT-7 owns the verdict — SUB-9..11).
+#   corpus_refs cite C1-C3/C5 where a corpus instance is known to this mapper.
+#   CAP-2 respected: NO C4 (Codeforces) id is asserted anywhere in this file, since
+#   those ids are unverified and CAP-2 forbids asserting one as verified.
+# =============================================================================
 
 schema_version: "1.0.0"
 cluster: "CL-3"
 map_version: "0.1.0"
 
-nodes: []   # SUB-5: append your nodes here.
+nodes:
+
+  # ===========================================================================
+  # FAMILY 1 — BITMASK / SUBSET DP        (D-F4 §3.2: T2 fires before T3)
+  # ===========================================================================
+  # Six nodes. The mask IS the contribution; that masks describe subsets is
+  # incidental to what a learner acquires (D-F4 §3.1).
+  # ===========================================================================
+
+  - id: "cl-3.bitmask-state-encoding"
+    name: "Bitmask state encoding"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      A subset of a small ground set is representable as the bits of a single
+      integer, and that integer is usable as a DP state index. What the encoding
+      asserts: set membership is bit position, set union is bitwise OR, the state
+      space is exactly 2^n, and the whole subset lattice is addressable by ordinary
+      integer arithmetic. The exponential state count is not a defect of the
+      encoding — it is the honest size of the subset lattice, and it is why the
+      technique is bounded to roughly n <= 20-22 in practice.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-3.bitmask-state-encoding->cl-4.sos-dp"
+        from: "cl-3.bitmask-state-encoding"
+        to_cluster: "CL-4"
+        to_node: "cl-4.sos-dp"
+        to_name: "SOS DP (sum-over-subsets / zeta-Moebius transform)"
+        relation: "required-by"
+        rationale: >-
+          SOS DP is inseparable from the subset-mask encoding — it transforms a
+          function over the subset lattice and its every step is stated in mask
+          terms. A learner cannot acquire SOS DP without first knowing what a mask
+          state means. Declared "required-by" from CL-3's own side only: this node
+          is the prerequisite, CL-4's SOS DP node is the dependent. THIS IS THE
+          PERMITTED LINK IN THE LIVE X-D1 DISPUTE — D-F4 §4.2 adjudicates SOS DP to
+          CL-4 by cascade order and states CL-3 "may link to it". CL-3's claim (that
+          this encoding, not the 3^n -> 2^n*n speedup, is SOS DP's defining
+          contribution) remains live via the U4 route against D-F4a. This
+          declaration does not assert the claim is won; it records the dependency
+          that is true under EITHER assignment.
+        confidence: "named"
+        status: "declared"
+      - attachment_id: "xc.cl-3.bitmask-state-encoding->cl-2.subset-sum-knapsack-counting"
+        from: "cl-3.bitmask-state-encoding"
+        to_cluster: "CL-2"
+        to_node: "cl-2.subset-sum-knapsack-counting"
+        to_name: "Subset-sum / knapsack counting DP"
+        relation: "requires"
+        rationale: >-
+          Before a learner can see why a subset must be addressed by an explicit
+          mask, they need the experience of a subset-indexed DP that does NOT need
+          one — knapsack, where the subset is summarized by a scalar capacity. The
+          mask encoding is motivated by the failure of that summary: when the
+          subset's identity, not just its aggregate, drives the transition, no
+          scalar suffices. Conjectured because CL-2's partition of counting DP is
+          not visible from here and the target may be named or split differently.
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation only, not a verdict (OUT-5/SUB-8 owns that): JavaScript's
+        bitwise operators coerce to signed 32-bit, so a mask over n > 30 elements
+        silently misbehaves in a way it does not in the C++ competitive default the
+        selected references assume. BigInt or a two-word split is the workaround and
+        both change the cost model. SUB-8 must reach its own verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:O", "C2:U", "C3:I"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["subset DP state", "mask DP", "state compression"]
+    contested_by: ["CL-4"]
+    notes: >-
+      X-D1 CARRIED IN-BAND. contested_by CL-4 records the live SOS DP dispute at the
+      point a reader meets it. The disputed object is SOS DP's cluster assignment,
+      which touches this node because CL-3's whole U4 argument is that SOS DP's
+      defining contribution IS this encoding. Standing state: SOS DP -> CL-4 by
+      D-F4 §4.2 cascade order (T1 before T2), logged D-F4a PROVISIONAL. CL-3's U4
+      challenge — that the mask encoding, not the speedup, is the defining
+      contribution — is LIVE and NOT adjudicated by this file. Per U4 the existing
+      assignment stands and the technique stays mapped (by CL-4), so the map has no
+      hole while the argument runs. NOT resolved locally. Re-adjudication trigger
+      per the D-F4a row: SUB-5 files the U4 challenge; owners SUB-5 / SUB-6.
+  - id: "cl-3.recognize-bitmask-state-applicability"
+    name: "Recognize that a problem wants a bitmask state"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: it is CHOOSING the state representation under a joint
+      correctness-and-cost constraint — the learner must see that the subset's
+      identity (not merely its size or sum) drives the transition, and simultaneously
+      that n is small enough for 2^n to fit. S1 no (no proof obligation — this is a
+      selection, not an argument). S2 no (no recurrence exists yet to accelerate;
+      this is the exact boundary that keeps CL-4 distinct — see schema §2.1). S3 no
+      (no symptom; nothing is broken yet). S4 no — and this is the close call: the
+      n <= 20 constraint is a LOUD, conventional signal that the references state
+      openly, so the mapping is stated rather than hidden. Where the surface really
+      is unfamiliar the recognition is a different acquisition; see the transfer
+      nodes in the digit and game families.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Given a problem statement, judge that a subset must be carried in the state and
+      that a mask is the right carrier — and, equally, judge when it is NOT: when a
+      scalar summary suffices, when n is too large and the subset lattice is the wrong
+      lattice, or when the problem's structure admits a polynomial formulation the
+      mask would obscure. Includes reading the n <= 20-22 constraint as the signal it
+      conventionally is, without treating that heuristic as a substitute for seeing
+      why the subset's identity matters.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.bitmask-state-encoding"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:O", "C2:U"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY (X-D3, carried undiminished from NEU-932). This node
+      is typed S5 rather than S4, but it sits on the transfer boundary and the
+      distinction is not evidenced: no selected reference (T1-T5) offers evidence that
+      recognizing bitmask applicability is separately acquirable from knowing the
+      encoding, rather than an epiphenomenon of it. The node asserts the distinction
+      is real; it does NOT assert the distinction is evidenced. If OUT-7 or SUB-7 finds
+      the two are never separately assessed, merging this node into
+      cl-3.bitmask-state-encoding is the correct response.
+  - id: "cl-3.submask-enumeration"
+    name: "Submask enumeration"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7: `for (s = m; s; s = (s - 1) & m)` is a FIXED idiom whose
+      steps do not vary with the problem — the schema names this exact loop as its
+      worked example of the S6/S7 boundary (§2.1). S1 no (executing it proves
+      nothing; that each submask is visited exactly once is a real claim, but it is
+      the SEPARATE node cl-3.subset-cover-transition-correctness, per §1.1 —
+      splitting rather than typing one node twice). S2 no (the idiom is how the
+      3^n sum is computed, not an acceleration of an existing correct recurrence —
+      the acceleration of THAT is SOS DP, which is CL-4's; see E1/E4). S3 no. S4 no.
+      S5 no (nothing is chosen). S6 no — and this is the deliberate call: no step
+      requires a judgment about the specific problem. The mask is given, the loop is
+      verbatim. S7 is the stronger, more falsifiable claim and it holds here.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Execute the standard idiom that enumerates every submask of a given mask in
+      descending order, and the paired idiom for iterating supersets. What a learner
+      acquires is the routine itself plus its termination behaviour (why the empty
+      submask needs separate handling, why the loop cannot be written with a naive
+      decrement) — not the argument for why it is exhaustive, which is a separate
+      node.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.bitmask-state-encoding"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: the idiom relies on `&` and `-` over a machine
+        integer. JavaScript's signed-32-bit bitwise coercion bounds it identically to
+        the encoding node's observation. SUB-8 owns the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:U"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["submask iteration", "subset-of-subset enumeration", "3^n enumeration"]
+
+  - id: "cl-3.implement-bitmask-dp"
+    name: "Implement a bitmask DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the formulation is chosen and the work is realizing it as
+      code. S1 no. S2 no (making it RUN is not making it FASTER — the root
+      cl-1.root.implement-memoization-and-tabulation draws this same boundary, and it
+      is what keeps CL-4 a separate cluster). S3 no (no symptom yet). S4 no. S5 no
+      (the state is already chosen — that is
+      cl-3.recognize-bitmask-state-applicability). Not S7: the evaluation order is a
+      judgment about THIS recurrence — masks must be visited in an order where every
+      transition's source is already final, which is popcount order for some
+      formulations and plain ascending integer order for others precisely because
+      submask < mask numerically. Choosing between them is not a fixed routine.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Turn a chosen bitmask formulation into working code: lay the 2^n table out,
+      establish an evaluation order that respects the transition's dependencies,
+      handle the popcount-driven index arithmetic, and keep the answer under the
+      problem's modulus. What a learner acquires is the realization, including the
+      memory layout decisions that make 2^n * n fit at all.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.recognize-bitmask-state-applicability"
+        - "cl-3.submask-enumeration"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors:
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-3.implement-bitmask-dp->cl-4.bitset-word-parallel-optimization"
+        from: "cl-3.implement-bitmask-dp"
+        to_cluster: "CL-4"
+        to_node: "cl-4.bitset-word-parallel-optimization"
+        to_name: "Bitset / word-parallel optimization"
+        relation: "required-by"
+        rationale: >-
+          Word-parallel acceleration takes an already-correct bitmask DP and reduces
+          its cost by a constant factor without changing what any state means — T1,
+          so CL-4 owns it (residual exclusion E4 in this file's header). It cannot be
+          acquired without first being able to implement the unaccelerated DP.
+          Declared "required-by" from CL-3's own side. Conjectured: CL-4's mappers may
+          not carve this out as its own node, and if they do not, that is a coverage
+          finding for OUT-7 rather than an error here (template §3).
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: a 2^20-entry typed array is routine in JS, but the
+        signed-32-bit bitwise coercion caps n at 30 and `Math.clz32`/popcount have no
+        native primitive, so the index arithmetic differs materially from the C++
+        default the references assume. SUB-8 owns the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:O", "C2:U", "C3:I"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.subset-cover-transition-correctness"
+    name: "Argue a subset-partition transition covers each subset exactly once"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1 — the FIRST test, and it fires cleanly: the contribution is
+      ESTABLISHING BY ARGUMENT that the transition partitions the subset lattice
+      without double-counting and without omission. This is the classic
+      fix-the-lowest-set-bit argument that makes a set-partition DP correct rather
+      than merely plausible. It is separated from cl-3.submask-enumeration (which
+      EXECUTES the loop) per schema §1.1: enumerating and arguing exhaustiveness are
+      different acquisitions that fail differently — a learner who can write the loop
+      and still double-counts every partition is the common case, not a hypothetical.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Establish that a subset-indexed transition is a genuine partition: that every
+      subset is reached exactly once, that the canonical-representative trick (fix the
+      lowest set bit into one part) is what removes the overcount, and that omitting
+      it counts each partition k! times. What a learner acquires is the argument, not
+      the loop.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.submask-enumeration"
+        - "cl-3.bitmask-state-encoding"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:U"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["set-partition DP correctness", "lowest-set-bit canonicalization"]
+
+  - id: "cl-3.diagnose-bitmask-state-blowup"
+    name: "Diagnose a bitmask DP that TLEs or MLEs"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3: it starts from a SYMPTOM — TLE, MLE, or a wrong answer
+      that appears only at large n — and works back to a cause (a redundant state
+      dimension, a 3^n loop where 2^n*n was intended, an unnecessary popcount
+      recomputation, a mask carried that the transition never reads). S1 no (no proof
+      obligation). S2 no — the close call, and the cascade order settles it: S2
+      presupposes a correct DP and asks for less cost; this node presupposes a
+      SYMPTOM and asks for its cause. Diagnosis precedes any optimization decision,
+      and the optimization that follows may well be CL-4's node, not this one.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Work back from the characteristic failure signatures of a bitmask DP to their
+      causes: distinguish a state space genuinely too large from one carrying a
+      dimension the transition never reads; recognize 3^n submask enumeration where
+      the intended complexity was 2^n * n; spot the redundant popcount in the inner
+      loop. What a learner acquires is the symptom-to-cause map, which is separately
+      acquired from — and separately failed from — the ability to write the DP.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.implement-bitmask-dp"
+        - "cl-3.bitmask-state-encoding"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  # ===========================================================================
+  # FAMILY 2 — DIGIT DP    (D-F4 §3.2: T2 — specialized domain, numeral
+  #                         representation, with its own state semantics)
+  # ===========================================================================
+
+  - id: "cl-3.digit-dp-state-semantics"
+    name: "Digit DP state semantics"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      What a digit-DP state means: a prefix of the numeral is fixed, and the rest of
+      the number is free subject to flags that summarize the prefix's relationship to
+      the bound. The three canonical flags and what each asserts — `tight` (the prefix
+      equals the bound's prefix, so the next digit is capped), `started` (a nonzero
+      digit has appeared, distinguishing a leading zero from a real zero), and the
+      problem-specific carry of whatever property is being counted. The insight the
+      encoding rests on: the set of numbers <= N is not an interval the DP can iterate,
+      but it IS a prefix tree the DP can walk, and the flags are exactly the finite
+      summary that makes the walk's states collide.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: digit DP bounds routinely exceed 2^53, so JS
+        number-typed bounds lose precision where C++ `long long` does not; BigInt or
+        string-typed bounds are the realistic carrier. SUB-8 owns the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:E"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["digit DP", "numeral-prefix DP", "counting-with-bound DP"]
+
+  - id: "cl-3.formulate-digit-dp"
+    name: "Formulate a digit DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: it is CHOOSING what the state must carry — which flags are
+      needed, what the property-specific dimension must remember, and (critically)
+      what may safely be FORGOTten so states collide at all. S1 no (correctness of the
+      bound handling is a real obligation but it is the separate node
+      cl-3.digit-dp-bound-correctness, per §1.1). S2 no (nothing to accelerate yet).
+      S3 no (no symptom). S4 no (given a stated "count numbers in [L, R] with property
+      P", the mapping to digit DP is stated, not hidden — the hidden case is the
+      separate transfer node).
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Turn a "count the numbers in a range satisfying P" statement into a concrete
+      digit-DP formulation: decide the digit order, decide which flags the state
+      carries, decide the finite summary of P that the state must remember, fix the
+      base case at the numeral's end, and reduce a two-sided range to two one-sided
+      counts by f(R) - f(L-1). The choice that matters is what to forget.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.digit-dp-state-semantics"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-3.formulate-digit-dp->cl-1.counting-dp"
+        from: "cl-3.formulate-digit-dp"
+        to_cluster: "CL-1"
+        to_node: "cl-1.counting-dp"
+        to_name: "Counting DP (summing over transitions rather than optimizing)"
+        relation: "requires"
+        rationale: >-
+          A digit DP is a counting DP wearing a numeral's clothes: its value is a
+          count and its transition SUMS over successors rather than taking a min or
+          max. A learner cannot acquire it without first having the counting-DP
+          formulation — the shift from "best" to "how many", which is where the
+          additive base case and the sum-over-transitions habit come from. Declared,
+          not drawn: CL-1's family block is being written concurrently by SUB-3 and
+          its ids are not visible from here. Named rather than conjectured: counting
+          DP is squarely CL-1's plain-index-tuple residual (T4) and every selected
+          reference's ordered corpus reaches it early (C2 ramps through it before any
+          CL-3 material).
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:E"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.implement-digit-dp"
+    name: "Implement a digit DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the formulation is chosen; the work is realizing it. S1 no.
+      S2 no (making it run, not faster). S3 no. S4 no. S5 no (the flags are already
+      chosen). Not S7: the memo table must be keyed only on the dimensions that are
+      genuinely free — memoizing across the `tight` flag is the canonical bug, and
+      deciding which states are safe to share is a judgment about THIS problem, not a
+      fixed routine.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Realize a chosen digit-DP formulation: convert the bound to a digit array,
+      write the recursion over position with the flags, key the memo table on exactly
+      the free dimensions (and NOT on `tight`, whose states are visited once each),
+      and keep the count under the modulus. What a learner acquires is the realization
+      and the memo-keying judgment that makes it correct and fast at once.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.formulate-digit-dp"
+        - "cl-3.digit-dp-state-semantics"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors:
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: the natural top-down realization recurses to
+        numeral length, which is shallow, so JS's fixed stack is not the constraint
+        here that it is elsewhere. Recorded because a reader may expect the root's
+        recursion-depth observation to propagate, and here it does not. SUB-8 owns
+        the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:E"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.digit-dp-bound-correctness"
+    name: "Argue a digit DP's bound handling is exact"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is ESTABLISHING BY ARGUMENT that the
+      walk enumerates exactly the numbers in [0, N] — no more, no fewer. The argument
+      is a case split on the `tight` flag (the tight branch is a single path tracking
+      the bound; the free branch is a full subtree) plus an induction on position.
+      Separated from cl-3.implement-digit-dp per §1.1: a learner who writes a
+      plausible digit DP that is off by exactly one at the bound is the standard
+      failure, and it is a failure of the argument, not of the code.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Establish that the flag machinery is exact: that `tight` correctly caps the
+      next digit and releases forever once released, that `started` distinguishes
+      leading zeros from real zeros without double-counting the number zero, that the
+      inclusive/exclusive boundary at N is what the problem asked for, and that
+      f(R) - f(L-1) is the correct reduction of a two-sided range.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.digit-dp-state-semantics"
+        - "cl-3.formulate-digit-dp"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.recognize-digit-dp-under-unfamiliar-surface"
+    name: "Recognize a digit DP under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4: the contribution is recognizing a KNOWN technique under a
+      surface that does not announce it — a problem about lucky tickets, about sums
+      of digit functions, about counting binary strings avoiding a pattern, or about
+      base-k representations, none of which say "count numbers <= N with property P".
+      S1 no (no argument). S2 no (nothing correct exists yet). S3 no (no symptom).
+      S4 YES, and this is exactly the "obvious from the statement" test failing: when
+      the statement DOES say "count numbers in [L, R] with property P", the mapping is
+      stated and the skill is cl-3.formulate-digit-dp (S5). This node is the case where
+      the numeral is hidden inside the problem's own vocabulary.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      See the numeral walk under a surface that never mentions one: recognize that a
+      constraint over a base-k representation, a digit-sum property, or a
+      pattern-avoidance count over strings-as-numbers is the same prefix-tree walk
+      with the same flags. What a learner acquires is the recognition, which is what
+      the technique's real difficulty consists of once the mechanics are known.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.formulate-digit-dp"
+        - "cl-3.digit-dp-state-semantics"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY — X-D3, carried undiminished from NEU-932 and made
+      explicit per this task's spec. This node asserts that recognizing a digit DP
+      under an unfamiliar surface is SEPARATELY ACQUIRABLE from being able to
+      formulate one when told. No selected reference (T1-T5) offers evidence for that
+      separation: the taxonomies describe the technique, not its transfer, and the
+      corpora (C1-C3, C5) are not instrumented to distinguish a solver who failed to
+      RECOGNIZE from one who failed to FORMULATE. evidence_class 1 accordingly. The
+      distinction is asserted on pedagogical grounds, not demonstrated. If SUB-7's
+      progression work or OUT-7's audit finds no assessable difference, merging this
+      node into cl-3.formulate-digit-dp is the correct response — not a defect
+      discovered late.
+
+  # ===========================================================================
+  # FAMILY 3 — PROBABILITY / EXPECTATION DP
+  #            (D-F4 §3.2: T2 — "the semantics of the VALUE, not the shape of
+  #             the state" is the specialized domain)
+  # ===========================================================================
+
+  - id: "cl-3.probability-vs-expectation-dp-semantics"
+    name: "Probability DP vs expectation DP"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      What the VALUE in the table means, and why the two readings are different
+      techniques wearing one name. A probability DP's value is P(state is reached),
+      accumulates FORWARD from a base case of 1 at the start, and its transitions
+      push mass outward. An expectation DP's value is E[future cost | in this state],
+      accumulates BACKWARD from a base case of 0 at the terminal, and its transitions
+      pull mass inward. The direction reversal is not a stylistic choice — it follows
+      from what the value asserts, and mixing the two is the family's defining
+      confusion.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:I", "C2:J", "C3:J"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["probability DP", "expected-value DP", "randomized-process DP"]
+
+  - id: "cl-3.linearity-of-expectation-in-dp"
+    name: "Linearity of expectation as a DP-licensing property"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      E[X + Y] = E[X] + E[Y] holds WITHOUT independence, and this is precisely what
+      licenses an expectation DP to sum over transitions the way an optimizing DP
+      sums over subproblems. This is the family's analogue of optimal substructure:
+      it is the property that makes the decomposition valid at all. Its most
+      consequential corollary is negative — because linearity needs no independence,
+      a learner may correctly decompose dependent events, which is exactly the step
+      that looks illegal and is not.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.probability-vs-expectation-dp-semantics"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:J"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.formulate-expectation-dp"
+    name: "Formulate an expectation DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: it is CHOOSING the state and the direction — what the
+      random process's state must capture, whether the value is a probability pushed
+      forward or an expectation pulled backward, and what the base case asserts. S1
+      no (well-definedness is a real obligation but is the separate node
+      cl-3.expectation-dp-well-definedness, per §1.1). S2 no (nothing exists to
+      accelerate). S3 no (no symptom). S4 no (a problem that says "find the expected
+      number of steps" states its own mapping).
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Turn a random process into a concrete correct expectation recurrence: identify
+      the state the process is memoryless over, choose the direction the value
+      accumulates in, write E[state] as the probability-weighted sum over successors
+      plus the step cost, and fix the terminal base case at zero. The choice that
+      matters is the direction — and it is forced by what the value means, not free.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.linearity-of-expectation-in-dp"
+        - "cl-3.probability-vs-expectation-dp-semantics"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:I", "C2:J", "C3:J"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.resolve-expectation-dp-self-loops"
+    name: "Resolve self-loops and cyclic dependencies in an expectation DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the recurrence is chosen and the work is making it
+      EVALUABLE — a DP whose state depends on itself has no evaluation order, and
+      this node supplies the realization that repairs that. S1 no (that the resulting
+      system has a unique solution is a real claim, but it is the separate node
+      cl-3.expectation-dp-well-definedness). S2 no — the close call: rearranging
+      E = p*E + r into E = r / (1 - p) LOOKS like a speedup but it is not; without
+      it the DP does not terminate at all, so this makes it RUN, not run faster. The
+      root cl-1.root.implement-memoization-and-tabulation draws exactly this line.
+      S3 no (this is anticipated at formulation time, not diagnosed from a symptom).
+      S4 no. S5 no (the formulation is given). Not S7: whether a self-loop yields to
+      one line of algebra or requires assembling and solving a linear system is a
+      judgment about THIS recurrence's cycle structure.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Make a cyclic expectation recurrence evaluable. The two realizations a learner
+      acquires: algebraic rearrangement when a state's only cycle is a self-loop
+      (E = p*E + r becomes E = r / (1 - p), and 1 - p != 0 is the condition to check),
+      and assembling the states into a linear system solved by Gaussian elimination
+      when the cycles are genuine and multi-state. Recognizing which case is in front
+      of you, and what each costs, is the substance.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.formulate-expectation-dp"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors:
+        - "anchor.linear-algebra@1.0.0"
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: competitive expectation problems usually demand
+        the answer as a modular rational (p * q^-1 mod 998244353), so the elimination
+        runs over a finite field, not over floats. JS has no native modular inverse
+        and its numbers cannot hold the intermediate products, so BigInt or a
+        Montgomery-style routine is forced where C++ uses `long long` directly. SUB-8
+        owns the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:J"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["self-loop elimination", "Gaussian elimination on DP states", "cyclic expectation DP"]
+    notes: >-
+      DRAWN ANCHOR, NOT A JUMP. Two boundary anchors terminate this node's non-DP
+      prerequisites: anchor.linear-algebra@1.0.0 (the linear system, its matrix form,
+      and the vector-space facts that make elimination valid) and
+      anchor.modular-arithmetic@1.0.0 (the modular-rational answer convention, whose
+      inverses the elimination runs over). Both are registered at 1.0.0 and version-
+      pinned. Per boundary-register.yaml and template §4 these are SANCTIONED
+      TERMINALS drawn directly from this file — not cross-cluster attachments (an
+      anchor is not a sibling node), not faked root edges, and not unexplained jumps.
+      The register's own why_an_anchor for linear-algebra ("matrices, matrix
+      multiplication and its associativity, linear recurrences and their matrix form")
+      covers this use, and its terminates_chains_from lists CL-4 only — informative
+      only, explicitly "NOT ownership, NOT a coverage claim", so a CL-3 chain
+      terminating here is in scope and needs no register amendment. Recorded because a
+      reader checking terminates_chains_from may expect otherwise.
+
+  - id: "cl-3.expectation-dp-well-definedness"
+    name: "Argue an expectation DP is well-defined"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1 — the first test, firing cleanly: the contribution is
+      ESTABLISHING BY ARGUMENT that the expectation exists and the recurrence has a
+      unique solution. An infinite process CAN have a finite expectation, and it can
+      also fail to (an absorbing state unreachable with probability 1 gives an
+      infinite answer, and the DP will happily return a finite number anyway). This
+      is an argument obligation, not a judgment, which is why it is S1 and not S8.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Establish that the answer the DP computes is the answer that exists: that the
+      process reaches an absorbing state with probability 1, that the expectation is
+      therefore finite, and that the linear system the states induce is nonsingular
+      so its solution is unique. What a learner acquires is the obligation itself —
+      knowing that a finite number coming out of the table is not evidence the
+      expectation was finite.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.formulate-expectation-dp"
+        - "cl-3.linearity-of-expectation-in-dp"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors:
+        - "anchor.linear-algebra@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    notes: >-
+      DRAWN ANCHOR, NOT A JUMP. anchor.linear-algebra@1.0.0 terminates the
+      nonsingularity half of the argument (the vector-space facts that make a unique
+      solution a meaningful claim). Sanctioned terminal per template §4; version-
+      pinned; not a cross-cluster attachment and not a faked root.
+
+  # ===========================================================================
+  # FAMILY 4 — GAME / GRUNDY / COMBINATORIAL-GAME DP
+  #            (D-F4 §3.2: T2 — specialized domain semantics)
+  # ===========================================================================
+
+  - id: "cl-3.win-lose-position-semantics"
+    name: "Winning and losing position semantics"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      What it means for a position to be losing under optimal play, stated as the
+      mutual recursion it actually is: a position is losing (P-position) iff EVERY
+      move leads to a winning position, and winning (N-position) iff SOME move leads
+      to a losing one. This is a DP over the game graph whose value is a boolean and
+      whose base case is the terminal position — losing, because the player to move
+      cannot move. The quantifier alternation is the whole content, and it is where
+      the technique's difficulty lives.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:K", "C2:L", "C3:K"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["P-position / N-position", "win-lose DP", "game-state DP"]
+
+  - id: "cl-3.grundy-number-and-mex"
+    name: "Grundy number and the mex operator"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      The Grundy value of a position is the minimum excludant (mex) of its successors'
+      Grundy values — the smallest non-negative integer not among them. What this
+      buys over a boolean: Grundy 0 is exactly a losing position, so the Grundy value
+      strictly refines win/lose, and the refinement is what makes games COMPOSABLE.
+      The mex is not an arbitrary choice of aggregator; it is forced by the
+      requirement that a position's value behave like a Nim-heap size.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.win-lose-position-semantics"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:K"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["Grundy value", "nimber", "minimum excludant"]
+
+  - id: "cl-3.sprague-grundy-theorem"
+    name: "The Sprague-Grundy theorem"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Every impartial game under normal play is equivalent to a single Nim heap whose
+      size is the position's Grundy value, and the Grundy value of a SUM of
+      independent games is the XOR of their Grundy values. This is the theorem that
+      converts an intractable product state space into a tractable one: k independent
+      subgames need not be a k-dimensional state, because XOR composes them. What a
+      learner acquires is the equivalence and its two preconditions — impartial (both
+      players have the same moves) and normal play (last to move wins) — each of which
+      is routinely violated by problems that look like they qualify.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.grundy-number-and-mex"
+        - "cl-3.win-lose-position-semantics"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:K"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["Sprague-Grundy", "Nim equivalence", "game sum theorem"]
+
+  - id: "cl-3.compute-grundy-values"
+    name: "Compute Grundy values over a game graph"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7: given a game graph, computing Grundy values is a FIXED
+      routine whose steps do not vary — enumerate successors, collect their values,
+      take the mex, memoize, recurse. S1 no (executing it argues nothing — the
+      theorem that licenses it is the separate node
+      cl-3.prove-game-decomposition-via-grundy). S2 no. S3 no. S4 no. S5 no (nothing
+      is chosen; the graph is given). S6 no — the deliberate call: once the game graph
+      is fixed, no step requires a judgment about the specific problem. The judgment
+      lives upstream in cl-3.formulate-game-dp, which decides what a position IS. That
+      split is what makes S7 defensible here rather than a default.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Execute the mex-and-memoize routine over a given game graph: compute each
+      position's Grundy value from its successors', handle the terminal base case at
+      0, and XOR independent components to get a compound position's value. What a
+      learner acquires is the routine, including the small-case tabulation habit that
+      exposes a periodic pattern.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.grundy-number-and-mex"
+        - "cl-3.sprague-grundy-theorem"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:K"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  - id: "cl-3.formulate-game-dp"
+    name: "Formulate a game DP: choose what a position is"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: it is CHOOSING the state — what a "position" is, what the
+      legal-move relation is over it, whether the game decomposes into independent
+      subgames, and whether the value should be a boolean, a Grundy number, or a
+      score. S1 no (the decomposition's validity is the separate proof node). S2 no
+      (nothing to accelerate). S3 no (no symptom). S4 no (a problem that says "two
+      players alternate, who wins?" states its own mapping; the hidden case is the
+      separate transfer node).
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Turn a two-player game statement into a concrete DP: decide what a position is,
+      derive the move relation, check impartiality and normal play, decide whether the
+      value is boolean, Grundy, or a score under minimax, and identify the terminal
+      base cases. The decisive choice is whether the game is a SUM of independent
+      games — because if it is, Sprague-Grundy collapses the state space, and if it is
+      not, the k-dimensional state is unavoidable.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.win-lose-position-semantics"
+        - "cl-3.sprague-grundy-theorem"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2:K", "C2:L", "C3:K"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    notes: >-
+      Scoring / partizan games (minimax over a value rather than win-lose over a
+      boolean — C2:L is the corpus instance) are formulated by THIS node, and
+      deliberately so: the choice "boolean, Grundy, or score" is one act of state
+      design, not three. What is excluded is partizan game THEORY beyond minimax
+      (surreal values, temperature) — residual exclusion E9 in this file's header,
+      with rationale.
+
+  - id: "cl-3.prove-game-decomposition-via-grundy"
+    name: "Argue a game decomposes and its Grundy composition is valid"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1, the first test: the contribution is ESTABLISHING BY
+      ARGUMENT that Sprague-Grundy's preconditions hold for THIS game and that the
+      subgames are genuinely independent — that no move in one component constrains
+      another. The mex/XOR machinery is licensed by that argument and is invalid
+      without it, which is why a learner who can compute Grundy values (S7, the
+      separate node) may still apply them to a game that does not decompose. Two
+      nodes, per §1.1.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Establish that the Grundy machinery applies: argue the game is impartial (the
+      move set depends on the position, not on whose turn it is), that normal play
+      holds (or that misere changes the answer and how), and that the components are
+      independent so their XOR is meaningful. What a learner acquires is the
+      obligation — including recognizing misere Nim as the standard case where the
+      preconditions fail and the naive XOR answer is wrong.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.sprague-grundy-theorem"
+        - "cl-3.formulate-game-dp"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["misere play analysis", "game independence argument"]
+
+  - id: "cl-3.recognize-impartial-game-under-unfamiliar-surface"
+    name: "Recognize an impartial game under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4: the contribution is recognizing Nim under a surface that
+      never mentions a game — a token-sliding problem, a coin-turning problem, a
+      subtraction game disguised as arithmetic, a graph process with alternating
+      agents. S1 no. S2 no. S3 no. S4 YES: the mapping is hidden, not stated. When the
+      statement says "two players alternate, who wins?", the mapping IS stated and the
+      skill is cl-3.formulate-game-dp (S5). The boundary between these two nodes is
+      exactly the schema's S4/S5 test.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      See the impartial game under a surface that conceals it: recognize that a
+      coin-turning process, a token-sliding puzzle, or an arithmetic subtraction
+      process is a game sum whose components have Grundy values. What a learner
+      acquires is the recognition — the technique's real difficulty once the mechanics
+      are known, because the mechanics are mechanical and the seeing is not.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.formulate-game-dp"
+        - "cl-3.sprague-grundy-theorem"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY — X-D3, carried undiminished and made explicit per
+      this task's spec. This node asserts that recognizing a disguised impartial game
+      is SEPARATELY ACQUIRABLE from formulating a stated one. No selected reference
+      (T1-T5) evidences that separation, and the corpora (C1-C3, C5) are not
+      instrumented to distinguish a solver who failed to RECOGNIZE the game from one
+      who failed to FORMULATE it. evidence_class 1. The distinction is asserted on
+      pedagogical grounds, not demonstrated. If SUB-7 or OUT-7 finds no assessable
+      difference, merging into cl-3.formulate-game-dp is the correct response.
+
+  # ===========================================================================
+  # FAMILY 5 — PLUG DP / BROKEN-PROFILE DP
+  #            (D-F4 §3.2: "T2 fires: the plug/profile encoding is the
+  #             contribution. Lands cleanly without invoking U2.")
+  # ===========================================================================
+
+  - id: "cl-3.broken-profile-state-encoding"
+    name: "Broken-profile state encoding"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      A DP over a grid can advance CELL BY CELL rather than row by row, carrying a
+      "broken" profile — a mask describing the frontier between decided and undecided
+      cells, which mid-row is a boundary that steps down one column. What the encoding
+      asserts: the frontier is a complete separator, so everything behind it is
+      forgettable and everything ahead depends on the grid only through it. This is
+      what cuts a row-by-row profile DP's transition cost from enumerating all
+      compatible row pairs to a constant per cell.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.bitmask-state-encoding"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:L", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["broken profile DP", "profile DP", "frontier DP", "contour DP"]
+    notes: >-
+      The frontier-as-separator insight is the load-bearing knowledge; the cost
+      reduction it produces is a CONSEQUENCE of the encoding, not an acceleration of
+      an existing correct recurrence, so T1 does not fire and the node stays CL-3.
+      Contrast E7 in this file's header: hashing the profile to shrink the table IS
+      a T1 acceleration and is excluded to CL-4. The line is whether the state's
+      MEANING changes — here it does.
+
+  - id: "cl-3.plug-dp-connectivity-encoding"
+    name: "Plug DP connectivity encoding"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      When a grid DP must maintain CONNECTIVITY — closed loops, Hamiltonian paths,
+      spanning structures — the frontier mask is not enough, because two cells being
+      occupied says nothing about whether they belong to the same component. The plug
+      encoding carries, per frontier cell, which component its dangling edge belongs
+      to: as a bracket sequence when the components are planar and cannot interleave,
+      or as a minimal representation under a canonical relabeling in general. What a
+      learner acquires is why a plain mask FAILS here — the specific failure that
+      motivates the whole encoding — and what the bracket sequence's non-crossing
+      property buys.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.broken-profile-state-encoding"
+        - "cl-3.bitmask-state-encoding"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["plug DP", "connection profile DP", "bracket-sequence profile", "Chinese: cha-tou DP"]
+    notes: >-
+      X-D2 (naming instability across references) is why `aliases` is unusually long
+      here: this technique entered the canon through the Chinese olympiad tradition
+      (corpus C5 is the only selected corpus reaching it) and the selected taxonomies
+      name it inconsistently. Recorded so OUT-7 does not read a naming difference as
+      a coverage gap.
+
+  - id: "cl-3.implement-plug-dp"
+    name: "Implement a plug / broken-profile DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the encoding is chosen and the work is realizing it —
+      hashing the frontier states that actually occur, handling the end-of-row shift,
+      writing the case analysis per cell, and canonicalizing component labels. S1 no
+      (the case analysis's exhaustiveness is arguable but the DEFINING contribution
+      here is getting it to run). S2 no (making it run, not faster — E7 excludes the
+      acceleration). S3 no. S4 no. S5 no (the encoding is chosen upstream). Not S7:
+      the per-cell case analysis is a judgment about THIS problem's connectivity rules
+      — how many cases exist depends on what is being counted.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Realize a chosen plug/profile formulation: enumerate the reachable frontier
+      states rather than all 4^n of them, write the per-cell case analysis over the
+      incoming plugs, merge component labels and canonicalize them so equivalent
+      frontiers collide, and perform the end-of-row shift correctly. What a learner
+      acquires is the realization — this is the family where implementation, not
+      formulation, is the wall.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.plug-dp-connectivity-encoding"
+        - "cl-3.broken-profile-state-encoding"
+        - "cl-3.implement-bitmask-dp"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-3.implement-plug-dp->cl-2.grid-dp"
+        from: "cl-3.implement-plug-dp"
+        to_cluster: "CL-2"
+        to_node: "cl-2.grid-dp"
+        to_name: "Grid DP (DP over a two-dimensional cell lattice)"
+        relation: "requires"
+        rationale: >-
+          A plug DP is a grid DP whose frontier has been re-encoded; a learner cannot
+          acquire it without first being able to formulate an ordinary DP over a grid
+          with a row-major evaluation order. The plug encoding is motivated entirely
+          by the ordinary grid DP's failure to carry connectivity. Conjectured rather
+          than named: grid DP may land in CL-1 as a plain index tuple over a
+          rectangular domain (T4) rather than in CL-2 as a nontrivial combinatorial
+          structure (T3) — the cascade is genuinely close here and the target's cluster
+          is not visible from this file. If it resolves to nothing in CL-2, SUB-12
+          should retry against CL-1 before reporting a gap; an unresolvable
+          declaration is a coverage finding for OUT-7, never a deletion (template §3).
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: reachable frontier states are sparse and are
+        conventionally held in a hash map keyed by the profile. JS `Map` boxes keys and
+        its iteration order/allocation behaviour differ materially from the
+        `unordered_map` the references assume; a 4-bit-per-cell profile also exceeds
+        the 32-bit bitwise window fast. SUB-8 owns the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:L", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+
+  # ===========================================================================
+  # FAMILY 6 — AUTOMATON DP        (D-F4 §3.2: "T2 fires: the state is an
+  #                                 automaton node, not an index tuple.")
+  # ===========================================================================
+  # *** THIS FAMILY CARRIES INC-S1 — the anchor gap the register predicted. ***
+  # ===========================================================================
+
+  - id: "cl-3.automaton-state-dp-semantics"
+    name: "Automaton-state DP semantics"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      A DP's state can be a NODE OF AN AUTOMATON rather than an index into the input.
+      What the encoding asserts: the automaton's state is a complete summary of
+      everything the prefix consumed so far that can still affect the future, so the
+      DP indexes over "where the recognizer currently is" and the automaton's
+      transition function IS the DP's transition. This is the encoding insight —
+      counting strings that avoid a pattern becomes a walk over the pattern's
+      recognizer, and the pattern's structure disappears into the automaton.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:N"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["automaton DP", "DP on a recognizer", "DP over KMP/Aho-Corasick states"]
+    notes: >-
+      This node is deliberately anchor-free: it is the SEMANTIC claim (a DP state may
+      be an automaton node), which stands on the DP roots alone and needs no
+      string-matching machinery. The dependency on an actual automaton construction
+      appears one level up, at cl-3.formulate-automaton-dp, and is routed via AR-1/a.
+      Splitting it this way keeps the unregistered dependency confined to the two
+      nodes that genuinely have it, rather than smearing a provisional status across
+      the family.
+
+  - id: "cl-3.formulate-automaton-dp"
+    name: "Formulate a DP over an automaton's states"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: it is CHOOSING the state space — deciding that the right
+      state is a node of a recognizer built from the pattern set, and deciding which
+      recognizer (KMP automaton for one pattern, Aho-Corasick for many, a subsequence
+      automaton for subsequence constraints). S1 no (no argument). S2 no (nothing to
+      accelerate — the automaton IS the formulation, not a speedup of a naive
+      recurrence; if it were, T1 would fire and this would be CL-4's node, which is
+      exactly the boundary D-F4 §3.2 adjudicates by putting automaton DP in CL-3).
+      S3 no. S4 no (a problem naming its forbidden substrings states the mapping).
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Turn a pattern-constrained counting or optimization problem into a DP over a
+      recognizer: choose the automaton that summarizes the constraint, take its node
+      set as the state space (usually crossed with a length and the problem's own
+      dimensions), mark the accepting/forbidden nodes as absorbing or excluded, and
+      fix the base case at the automaton's root. The choice that matters is WHICH
+      recognizer — and that choice is forced by the constraint's shape.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.automaton-state-dp-semantics"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-3.formulate-automaton-dp->cl-1.string-sequence-dp"
+        from: "cl-3.formulate-automaton-dp"
+        to_cluster: "CL-1"
+        to_node: "cl-1.string-sequence-dp"
+        to_name: "String / sequence DP (DP indexed by a position in a string)"
+        relation: "requires"
+        rationale: >-
+          Before a learner can see why a state must be an automaton node, they need
+          the ordinary string DP indexed by position — edit distance, LCS — and the
+          experience of its failure when the constraint is a pattern SET rather than
+          a second string. The automaton state is motivated as the replacement for a
+          position index that cannot summarize enough. Conjectured: CL-1 may split
+          string DP by problem rather than as one node, or name it differently. If it
+          resolves to nothing, that is a coverage finding for OUT-7 (template §3),
+          not an error here.
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:N"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    notes: >-
+      *** AR-1/a ANCHOR REQUEST IN FLIGHT — THIS IS INC-S1. ***
+      This node has a REAL, UNSATISFIED non-DP prerequisite: the construction of the
+      recognizer itself (Aho-Corasick automaton construction, KMP failure-function
+      construction, and string-matching automata generally). It is NOT in
+      boundary-register.yaml — the register does not invent anchors and neither does
+      this file — so `prerequisites.boundary_anchors` is EMPTY here and the dependency
+      is recorded in this note instead, where it stays visible.
+      ROUTE TAKEN — AR-1, exactly as boundary-register.yaml instructs and as its
+      INC-S1 note predicted SUB-5 would need ("SUB-5 is expected to hit this and
+      should run AR-1 rather than improvise. This is a NAMED GAP with an owner, not a
+      defect discovered later."):
+        - Ledger request filed against D-S3 in
+          ../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md
+        - Anchor requested: "Aho-Corasick automaton construction / string-matching
+          automata" (proposed id anchor.string-matching-automata, proposed kind
+          "data-structure"). PROPOSED ONLY — not minted here.
+        - Dependent nodes named: cl-3.formulate-automaton-dp (this node),
+          cl-3.implement-aho-corasick-dp.
+        - Why it is genuinely non-DP (the register requires this argument): automaton
+          construction computes no recurrence and makes no optimal-substructure claim.
+          Building the trie and wiring suffix links is a structural construction over
+          the pattern set; the DP then BORROWS the finished structure as its state
+          space. Run D-F4 §3's cascade on it and no test fires, because it is not a DP
+          technique at all — it is general-algorithms machinery above NEU-887's
+          elementary floor, which is precisely the register's admission rule (a)+(b)+(c).
+        - Interim status: "provisional" per the register's interim_node_status.
+      NOT DONE, per the register's `forbidden` list — recorded explicitly so the audit
+      can confirm the boundary held rather than trust it:
+        - NOT invented locally (a local anchor is invisible to every other mapper and
+          to the floor audit);
+        - NOT faked as a prerequisites.roots edge (that would launder a non-DP
+          dependency into the DP floor — "exactly what the floor audit hunts");
+        - NOT declared as a cross_cluster_attachment (an anchor is not a sibling
+          cluster's node; SUB-12 would correctly report it unresolvable);
+        - NOT silently dropped (a smoothed gap; forbidden by NEU-887's status
+          discipline, inherited).
+      The DP-side prerequisites ARE drawn normally — this node's chain reaches
+      cl-1.root.* — so the node is not floating. What is missing is the non-DP limb,
+      and it is missing VISIBLY.
+
+  - id: "cl-3.implement-aho-corasick-dp"
+    name: "Implement a DP over an Aho-Corasick automaton"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the formulation is chosen and the work is realizing it —
+      laying out the (automaton node x length x problem dimension) table, propagating
+      the "contains a forbidden pattern" mark down the suffix links before the DP
+      runs, and iterating so each state's sources are final. S1 no. S2 no (making it
+      run, not faster). S3 no. S4 no. S5 no (the recognizer is already chosen). Not
+      S7: the mark propagation and the table's dimension order are judgments about
+      THIS problem's pattern set and constraints, not a fixed routine.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Realize a chosen automaton DP: build the table over automaton nodes crossed with
+      the problem's dimensions, ensure the terminal-mark is propagated along suffix
+      links so that a node inheriting a forbidden suffix is itself forbidden (the
+      canonical bug is marking only exact pattern ends), drive the transition by the
+      automaton's goto function, and keep counts under the modulus. What a learner
+      acquires is the realization plus the suffix-link inheritance subtlety.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.formulate-automaton-dp"
+        - "cl-3.automaton-state-dp-semantics"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors:
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: >-
+        Observation, not a verdict: the goto table is conventionally a flat
+        node-count x alphabet array; in JS a typed array is the realistic carrier and
+        an array-of-objects is not, which is a materially different implementation
+        shape from the references' C++ default. SUB-8 owns the verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:N"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["Aho-Corasick DP", "forbidden-substring counting DP"]
+    notes: >-
+      *** AR-1/a ANCHOR REQUEST IN FLIGHT — INC-S1 (shared with
+      cl-3.formulate-automaton-dp; see that node's notes for the full filing). ***
+      This node's unsatisfied non-DP prerequisite is Aho-Corasick automaton
+      CONSTRUCTION — the trie, the suffix (failure) links, and the goto automaton.
+      Not in boundary-register.yaml, so boundary_anchors carries only the registered
+      anchor.modular-arithmetic@1.0.0 (which IS registered and IS drawn, for the
+      counting modulus) and the string-matching dependency is recorded here instead of
+      being invented, faked as a root, declared cross-cluster, or dropped. Status
+      "provisional" per the register's interim_node_status until D-S3 adjudicates.
+      NOTE the deliberate asymmetry inside `boundary_anchors` on this node: a
+      REGISTERED anchor is drawn, an UNREGISTERED one is not — which is the whole
+      discipline the register exists to enforce, visible in a single field.
+
+  # ===========================================================================
+  # FAMILY 7 — STEINER-TREE DP
+  #            (D-F4 §3.2: "T2 fires on the subset-of-terminals mask encoding.
+  #             Its tree structure (T3) loses to T2 by order — CL-2 may link,
+  #             not own." Logged D-F4a alongside SOS DP.)
+  # ===========================================================================
+
+  - id: "cl-3.steiner-tree-dp-state-encoding"
+    name: "Steiner-tree DP state encoding"
+    node_kind: "knowledge"
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      The minimum Steiner tree over a small terminal set is computable by a DP whose
+      state is (subset of terminals connected, current root vertex) — a mask crossed
+      with a vertex. What the encoding asserts: a partial Steiner tree is fully
+      summarized by WHICH terminals it spans and WHERE it is currently anchored, and
+      the two ways to extend it are the two transitions — merge two disjoint terminal
+      subsets at a shared root, or grow the current tree along a graph edge. The mask
+      over terminals, not the tree structure, is what makes the state space finite.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.bitmask-state-encoding"
+        - "cl-3.subset-cover-transition-correctness"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:S"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    aliases: ["Dreyfus-Wagner", "Steiner tree DP", "minimum Steiner tree"]
+    contested_by: ["CL-2"]
+    notes: >-
+      D-F4a ADJUDICATED ASSIGNMENT, CARRIED IN-BAND. This node answers BOTH T2 (the
+      terminal-subset mask encoding) and T3 (it is a DP over a graph/tree structure).
+      D-F4 §3.2 adjudicates it to CL-3 because T2 fires first in the cascade, and
+      states plainly that "its tree structure (T3) loses to T2 by order — CL-2 may
+      link, not own." The D-F4a ledger row records it alongside SOS DP as a
+      provisional placement. contested_by CL-2 records that competing claim at the
+      point of use so a reader meets it here rather than only in the ledger, per the
+      charter's carry-don't-smooth discipline. NOT resolved locally. If CL-2's mapper
+      disagrees the route is a U4 challenge against D-F4a, not a local re-decision;
+      until adjudicated this assignment stands and the technique stays mapped here, so
+      the map has no hole while the argument runs.
+
+  - id: "cl-3.implement-steiner-tree-dp"
+    name: "Implement a Steiner-tree DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the formulation is chosen and the work is realizing the
+      two-phase loop — for each terminal mask, first merge over submask pairs, then
+      relax over graph edges until the layer is stable. S1 no. S2 no (making it run,
+      not faster; the relaxation is part of the recurrence's definition, not an
+      acceleration bolted onto a correct one). S3 no. S4 no. S5 no (the state is
+      chosen upstream). Not S7: interleaving the merge phase and the relaxation phase
+      correctly — and knowing the relaxation must run to fixpoint WITHIN a mask layer
+      before the next layer reads it — is a judgment about this recurrence's
+      dependency structure, not a fixed routine.
+    cluster: "CL-3"
+    role: "technique"
+    summary: >-
+      Realize the Dreyfus-Wagner recurrence: iterate terminal masks in increasing
+      order, perform the submask-pair merge for each root vertex, then relax the whole
+      layer along graph edges to fixpoint before advancing. What a learner acquires is
+      the two-phase realization and the layer-ordering judgment that makes it correct.
+    prerequisites:
+      intra_cluster:
+        - "cl-3.steiner-tree-dp-state-encoding"
+        - "cl-3.implement-bitmask-dp"
+        - "cl-3.submask-enumeration"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-3.implement-steiner-tree-dp->cl-2.tree-dp"
+        from: "cl-3.implement-steiner-tree-dp"
+        to_cluster: "CL-2"
+        to_node: "cl-2.tree-dp"
+        to_name: "Tree DP"
+        relation: "requires"
+        rationale: >-
+          The merge transition composes two partial trees at a shared root — the
+          same subtree-combination reasoning tree DP is built on. A learner cannot
+          acquire the Steiner recurrence without first being able to formulate a DP
+          over a tree's subtrees. Named rather than conjectured: D-F4 §3.2 lists
+          "Tree DP / rerooting" as a worked CL-2 example, so the target's existence
+          and cluster are both known even though its id is not visible from here.
+          Declared, not drawn — CL-2's file is being written concurrently by SUB-4.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions: {}
+    javascript_materiality:
+      assessed: false
+      note: ""
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3:S"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-936"
+    contested_by: ["CL-2"]
+    notes: >-
+      *** AR-1/b ANCHOR REQUEST IN FLIGHT (sibling of INC-S1). ***
+      This node has a REAL, UNSATISFIED non-DP prerequisite: single-source
+      shortest-path relaxation (Dijkstra / Bellman-Ford). The grow transition relaxes
+      the current layer along graph edges to fixpoint, and that relaxation is the
+      shortest-path primitive, not a DP the map owns. It is NOT in
+      boundary-register.yaml, so `boundary_anchors` is EMPTY here rather than
+      containing an invented anchor.
+      ROUTE TAKEN — AR-1, same discipline as INC-S1:
+        - Ledger request filed against D-S3 in
+          ../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md
+        - Anchor requested: "Single-source shortest-path relaxation
+          (Dijkstra / Bellman-Ford)" (proposed id anchor.shortest-path-relaxation,
+          proposed kind "algorithm"). PROPOSED ONLY — not minted here.
+        - Dependent node named: cl-3.implement-steiner-tree-dp.
+        - Why it is genuinely non-DP: a shortest-path relaxation to fixpoint is a
+          graph-algorithms primitive above NEU-887's elementary floor. Running D-F4
+          §3's cascade on it fires no test. (Recorded honestly: Bellman-Ford is
+          arguably itself a DP over edge count, which is why this request is filed for
+          ADJUDICATION rather than asserted — if D-S3's owner decides the DP reading
+          governs, the correct outcome is a CL-1 cross-cluster declaration, not an
+          anchor. This mapper does not decide that.)
+        - Interim status: "provisional" per the register's interim_node_status.
+      NOT invented locally, NOT faked as a root edge, NOT declared as a cross-cluster
+      attachment, NOT silently dropped — the register's four forbidden moves, avoided
+      explicitly.
+      D-F4a: contested_by CL-2 inherited from this family's encoding node; see
+      cl-3.steiner-tree-dp-state-encoding's notes for the full carry.
