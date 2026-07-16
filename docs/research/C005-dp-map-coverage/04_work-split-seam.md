@@ -107,6 +107,16 @@ The other nine have **settled, uncontested** cluster assignments; only the work 
 
 **A cheap structural mitigation, recommended alongside A and independent of it:** whenever a single partition cluster is split across sub-tasks for sizing, **one half must be designated the cluster's residual owner** — scoped "everything the cascade assigns to this cluster that the other half does not enumerate." That is the work-split analogue of `D-F4`'s T4 residual and `U2` sink, and it is precisely the property the CL-4 split lacked. **The partition's own design already contains the fix; the work split just never inherited it.** Routed to SUB-11 (NEU-944) as a charter-level lesson.
 
+## 7a. Independent corroboration from SUB-12 (NEU-939), post-hoc
+
+**NEU-939 merged while this audit was open, and independently reached two of the same findings from the opposite direction.** Its integration pass resolved all 27 declared cross-cluster attachments against the 179-node graph: **25 realized as edges, 2 reported as coverage findings — SOS DP and bitset/word-parallel, "mapped by no cluster."**
+
+Those are `CV-1` and `CV-5`. **Two sub-tasks, working concurrently and unable to see each other's output, converged on the same two gaps by different methods** — this audit by sweeping the exclusion registers and the reference matrix, SUB-12 by finding declared attachments with no resolvable target. Neither could have copied the other.
+
+**Why this matters beyond agreement.** It confirms the causal claim in `CV-1`/`CV-5`: the unresolvable attachments SUB-12 found are **symptoms of this gap class, not independent edge defects**. SUB-12 correctly reported them as *coverage* findings rather than deleting the declarations to make its edge set resolve — which is the smoothing that would have hidden the cause. **The two findings are one finding, and the fix is `INC-C1`, not an edge repair.**
+
+It also raises the evidence for `CV-5` specifically: this audit inferred it from `E4`×2 and a declared attachment; SUB-12 confirmed the target genuinely does not exist in the merged graph. Recorded here because a convergence between independent methods is stronger evidence than either alone — and because the eight remaining instances of the class rest on the *same* reasoning that these two now have external confirmation for.
+
 ## 8. Bottom line
 
 - **10 genuine gaps, 1 class, 0 unexplained.** Every instance has a named owner: `INC-C1` (creator) for all ten, gated on `CV-1a` (NEU-932's `D-F4a` owner) for SOS DP alone.

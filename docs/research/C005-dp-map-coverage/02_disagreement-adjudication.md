@@ -40,6 +40,8 @@ The full argument is `04_work-split-seam.md`. The verdicts:
 
 **Named owner:** blocked on `CV-1a`. Once `D-F4a` is adjudicated: **NEU-937's cluster half (CL-4 mainstream) if CL-4 holds; NEU-936 (CL-3) if CL-3's U4 claim succeeds.** Because both mapping sub-tasks are merged, discharging it requires a **new follow-up task in the winning cluster** — a creator decision. See `INC-C1`.
 
+**Independently corroborated by SUB-12 (NEU-939), which merged while this audit was open.** Its integration pass resolved 27 declared attachments and reported exactly two as coverage findings *"mapped by no cluster"*: **SOS DP** and **bitset/word-parallel** — `CV-1` and `CV-5`. Two sub-tasks, concurrent and unable to see each other's output, converged on the same gaps by opposite methods (this audit from the exclusion registers and the reference matrix; SUB-12 from attachments with no resolvable target). **SUB-12 reported them as coverage findings rather than deleting the declarations to make its edge set resolve — the smoothing that would have buried the cause.** See `04_…` §7a.
+
 ### `CV-1a` — The `D-F4a` cluster assignment of SOS DP · **UU**
 
 **The disagreement.** `D-F4` §4.2 adjudicates SOS DP to CL-4 by cascade order (T1 before T2), logged `D-F4a` **provisional** with CL-3's counter-claim **live**: the mask encoding, not the speedup, is its defining contribution. Carried as `X-D1`. Both readings are genuinely strong — T1 fires (it accelerates an already-correct subset-indexed transition from 3ⁿ to 2ⁿ·n) *and* T2 fires (it is inseparable from the subset-mask encoding).
