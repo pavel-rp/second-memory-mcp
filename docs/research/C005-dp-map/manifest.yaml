@@ -156,9 +156,34 @@ artifacts:
     role: "generated one-hop view"
     sole_writer: "generator only"
     hand_edited: false
+    hand_edit_exception:
+      marker: "INC-S2"
+      status: "live"
+      holder: "NEU-933 (NEU-889's SUB-2)"
+      ends_when: >-
+        The technique-index generator lands. On that day this file becomes
+        generated output, the exception ENDS, and `hand_edited: false` reads
+        without qualification. The generator does not exist yet; the scripts
+        shipped by NEU-944 under `../C005-dp-map-package/generator/` are a
+        cross-reference builder and a completeness gate, NEITHER of which
+        generates this file.
+      authority: "../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+      recorded_by: "NEU-947 (C008 SUB-2), ledger row `D-R1`"
+      note: >-
+        A deliberate, temporary and LOGGED exception to `hand_edited: false` —
+        NOT a licence for mappers to edit this file. Only the holder above may
+        hand-maintain it. Recorded here so a reader of THIS MANIFEST ALONE learns
+        the rule has a logged, owned, live exception; `index/00_technique-index.md`
+        lines 51-62 log the same exception from the other side, and the two now
+        agree. `INC-S2` itself stays OPEN and is owned by NEU-889's coverage-audit
+        sub-task (OUT-7) — not by this manifest and not by the task that recorded
+        this block.
     note: >-
       NEVER hand-edited. NEU-932 D-F3 §3 records index-drift as an open cost on
       D-F3; the coverage-audit sub-task (OUT-7) asserts regeneration-freshness.
+      The `hand_edit_exception` block above records the one logged, live exception
+      to this rule (`INC-S2`) — read it before treating a hand edit here as
+      unlicensed drift.
 
 # =============================================================================
 # THE TERMINAL FLOOR — where a prerequisite chain is allowed to bottom out
