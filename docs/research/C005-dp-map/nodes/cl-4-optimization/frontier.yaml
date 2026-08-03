@@ -191,9 +191,13 @@ nodes:
         JavaScript binds hard, and that verdict is on cl-4.slope-trick-heap-implementation
         (JS-D2).
       mapper_note: >-
-        Observation only, not a verdict: the representation is a multiset of integers;
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:the representation is a multiset of integers;
         JavaScript has no built-in multiset or heap, so a realization must supply one. Recorded
-        for SUB-8; no materiality claim made here.
+        for SUB-8, whose verdict — recorded above as material: false, JavaScript-neutral —
+        has since landed. The note claimed no materiality of its own; it does not withhold
+        the assessment that now sits beside it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -365,7 +369,9 @@ nodes:
         that verdict is on cl-4.slope-trick-heap-implementation (JS-D2) — a one-hop
         cross-reference, not a silent C++ assumption.
       mapper_note: >-
-        Observation only, not a verdict: the operation repertoire needs two heaps with lazy
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:the operation repertoire needs two heaps with lazy
         offsets; JavaScript ships neither a heap nor a priority queue in its standard library.
         Recorded for SUB-8.
     coverage:
@@ -539,10 +545,12 @@ nodes:
         earlier idiom-shift verdict scored the container gap alone and left the accumulator's
         2^53 hazard out of the severity even though this rationale already stated it.
       mapper_note: >-
-        Observation only, not a verdict: two heaps with lazy offsets and an accumulator;
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:two heaps with lazy offsets and an accumulator;
         JavaScript has no standard-library heap, and the accumulator can exceed
-        Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which owns
-        any verdict.
+        Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which
+        owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5", "C4"]
@@ -664,7 +672,9 @@ nodes:
         — that remains true, and it is why this is a large acquisition rather than a dead end —
         but it does not lower the score.
       mapper_note: >-
-        Observation only, not a verdict: a mergeable heap (leftist/skew/pairing) has no
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:a mergeable heap (leftist/skew/pairing) has no
         JavaScript standard-library equivalent, and the recursion is over a tree that may be
         deep. Recorded for SUB-8.
     coverage:
@@ -840,7 +850,9 @@ nodes:
         problem overflows.
       uncertainty: "JS-U2"
       mapper_note: >-
-        Observation only, not a verdict: the penalised objective mixes lambda-scaled counts with
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:the penalised objective mixes lambda-scaled counts with
         costs and routinely exceeds Number.MAX_SAFE_INTEGER; a real-valued lambda search
         compounds it. Recorded for SUB-8.
     coverage:
@@ -991,10 +1003,12 @@ nodes:
         lexicographically. A downstream agent inheriting the C++ default would present a
         one-token remedy JavaScript does not have.
       mapper_note: >-
-        Observation only, not a verdict: keeping lambda integral is the standard mitigation for
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:keeping lambda integral is the standard mitigation for
         the floating-point form, and JavaScript's single numeric type makes the integral
-        discipline load-bearing rather than optional. Recorded for SUB-8, which owns any
-        verdict.
+        discipline load-bearing rather than optional. Recorded for SUB-8, which owned the
+        verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1242,10 +1256,12 @@ nodes:
         insight, and it is language-independent. Its realization is where JavaScript binds, and
         that verdict is on cl-4.kinetic-segment-tree-implementation (JS-D2).
       mapper_note: >-
-        Observation only, not a verdict: certificate values are ratios of line coefficients; the
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:certificate values are ratios of line coefficients; the
         standard mitigation is to compare cross-multiplied products, which overflow
-        Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which owns
-        any verdict.
+        Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which
+        owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5", "C4"]
@@ -1395,10 +1411,12 @@ nodes:
         tree is a flat array of nodes and wants typed arrays. Deliberate non-claim on JS-E1:
         segment-tree recursion is O(log n) deep — about 20 frames — nowhere near the cap.
       mapper_note: >-
-        Observation only, not a verdict: the expiry predicate is a cross-multiplied comparison
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:the expiry predicate is a cross-multiplied comparison
         of line coefficients whose products exceed Number.MAX_SAFE_INTEGER at competitive
         ranges; BigInt is the obvious mitigation and is slow in an amortized inner loop.
-        Recorded for SUB-8, which owns any verdict.
+        Recorded for SUB-8, which owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1626,9 +1644,11 @@ nodes:
         JS-D1. Directional, not quantified (JS-U2).
       uncertainty: "JS-U2"
       mapper_note: >-
-        Observation only, not a verdict: SMAWK's constant factor is its whole selling point over
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:SMAWK's constant factor is its whole selling point over
         D&C optimization, and its access pattern is a stack of shrinking column-index arrays —
-        typed arrays are the obvious mitigation. Recorded for SUB-8, which owns any verdict.
+        typed arrays are the obvious mitigation. Recorded for SUB-8, which owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1754,10 +1774,12 @@ nodes:
         either an assertion or a silence.
       uncertainty: "JS-U2"
       mapper_note: >-
-        Observation only, not a verdict: the online interleaving is a deep recursion with a
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one:the online interleaving is a deep recursion with a
         per-level stack of column arrays and a strict evaluation order; both the recursion depth
-        and the allocation churn are realization concerns. Recorded for SUB-8, which owns any
-        verdict.
+        and the allocation churn are realization concerns. Recorded for SUB-8, which owned the
+        verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -2712,7 +2734,17 @@ self_check:
   - check: "7. attachment_id matches xc.<from>-><to_node>; from == the node's own id."
     result: "Pass — 5/5, checked mechanically."
   - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
-    result: "Pass — 18/18 on all three. No dimension invented (INC-S3). Every js note is an observation, explicitly labelled 'not a verdict'."
+    result: >-
+      Pass AS AT NEU-938's authoring, and SUPERSEDED SINCE — recorded rather than
+      silently left standing. At the time: 18/18 on all three, no dimension invented
+      (INC-S3), and every js note an observation explicitly labelled "not a verdict".
+      What changed afterwards, by owners this file does not speak for: SUB-8 (OUT-5,
+      NEU-941) delivered the javascript_materiality verdicts, so assessed is now true
+      on 18/18 and each mapper_note reads as a retained pre-verdict observation rather
+      than a withheld one; NEU-940 discharged INC-S3, so difficulty_dimensions carries
+      values. coverage.status is still "unaudited" on 18/18. This check's ORIGINAL
+      verdict is preserved above because it was true when made; the dimension values
+      themselves are NEU-954's (F-943-1) and are not touched here.
   - check: "9. No node is settled without a ledger entry; no node carries frozen: true."
     result: "Pass — 18/18 are \"provisional\". No frozen field anywhere in this file."
   - check: "10. All string enums quoted (D-F3's YAML constraint — the Norway problem)."
