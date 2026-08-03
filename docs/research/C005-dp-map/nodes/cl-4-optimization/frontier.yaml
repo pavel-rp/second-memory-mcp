@@ -504,7 +504,7 @@ nodes:
       rule_version: "1.0.0"
       material: true
       effects: ["JS-E8", "JS-E2"]
-      severity: "idiom-shift"
+      severity: "correctness-risk"
       rationale: >-
         MATERIAL on two counts. SECOND COUNT FIRST, recorded on NEU-938's evidence and missed by
         this audit's first pass (JS-E2): the lazy-offset ACCUMULATOR can exceed
@@ -526,9 +526,18 @@ nodes:
         materially changes what a downstream agent authors on this node: the exercise is
         'implement a heap, then implement slope trick', not 'implement slope trick'. The
         lazy-offset discipline compounds it slightly — the offset must be applied on push and
-        pop of a heap the author wrote, rather than of one they trust. Recorded as idiom-shift,
-        not blocking: a hand-rolled binary heap over a typed array is entirely feasible and the
-        asymptotics are unchanged.
+        pop of a heap the author wrote, rather than of one they trust. SEVERITY, under the
+        aggregation rule recorded as D-R2 in the adjudication ledger — a node's severity is the
+        most severe of the severities its individual effects earn under the written tests — is
+        the maximum of two per-effect scores. JS-E8 earns IDIOM-SHIFT on its own test: a
+        hand-rolled binary heap over a typed array is entirely feasible and the asymptotics are
+        unchanged, so that gap is one of container idiom. JS-E2 earns CORRECTNESS-RISK on its
+        own test: the accumulator is correct at the sizes slope trick usually meets, but a
+        reachable large-coordinate range carries it past 2^53, and past that the offset rounds
+        silently. The maximum is CORRECTNESS-RISK, which is what this node now carries —
+        consistent with the single-effect JS-E2 precedent on cl-4.aliens-trick-application. The
+        earlier idiom-shift verdict scored the container gap alone and left the accumulator's
+        2^53 hazard out of the severity even though this rationale already stated it.
       mapper_note: >-
         Observation only, not a verdict: two heaps with lazy offsets and an accumulator;
         JavaScript has no standard-library heap, and the accumulator can exceed
@@ -617,7 +626,7 @@ nodes:
       rule_version: "1.0.0"
       material: true
       effects: ["JS-E8", "JS-E1"]
-      severity: "idiom-shift"
+      severity: "blocking"
       rationale: >-
         MATERIAL — the most severe container gap in the map, and it meets a second effect on the
         way. The technique merges children's breakpoint multisets up a tree, and its efficiency
@@ -632,9 +641,27 @@ nodes:
         second effect: the merge is driven by a post-order tree traversal, which at competitive
         tree sizes exceeds JavaScript's ~1e4 frame cap on a path-shaped tree and must be an
         explicit stack (cl-2.implement-tree-dp-post-order-dfs) — and the explicit-stack rewrite
-        is harder here than usual, because each frame must carry a heap handle. Recorded as
-        idiom-shift rather than blocking because both obstacles are surmountable, but the gap
-        between the C++ exposition and the JavaScript artifact is the widest in the map.
+        is harder here than usual, because each frame must carry a heap handle. SEVERITY, under
+        the aggregation rule recorded as D-R2 in the adjudication ledger — a node's severity is
+        the most severe of the severities its individual effects earn under the written tests —
+        is the maximum of two per-effect scores. JS-E8 earns IDIOM-SHIFT on its own test: the
+        mergeable structure is hand-rollable and correct, so that gap is one of container idiom,
+        and it is the widest such gap in the map. JS-E1 earns BLOCKING on its own test: the
+        direct transcription of the recursive post-order crashes with RangeError at competitive
+        tree sizes, and an explicit stack is REQUIRED, NOT PREFERRED. The maximum is BLOCKING,
+        which is what this node now carries — consistent with the single-effect JS-E1 precedent
+        on cl-2.implement-tree-dp-post-order-dfs, the very node this rationale cross-references.
+        RULING ON THE EARLIER SURMOUNTABILITY CRITERION, recorded rather than dropped: this node
+        previously read idiom-shift rather than blocking BECAUSE BOTH OBSTACLES ARE SURMOUNTABLE.
+        That criterion is OVERRIDDEN, and the ruling is made where it belongs — at JS-E1's own
+        per-effect score, never as a downgrade applied after aggregation, because the rule has no
+        downgrade step and a post-hoc downgrade would subtract from a maximum the rule itself
+        fixed. Surmountability is a claim about DIFFICULTY, while the blocking test
+        asks about NECESSITY (required, not preferred); and since the effect catalogue names a
+        JavaScript technique that recovers every effect, letting surmountability lower a score
+        would leave blocking with no node it could ever apply to. The obstacles ARE surmountable
+        — that remains true, and it is why this is a large acquisition rather than a dead end —
+        but it does not lower the score.
       mapper_note: >-
         Observation only, not a verdict: a mergeable heap (leftist/skew/pairing) has no
         JavaScript standard-library equivalent, and the recursion is over a tree that may be
