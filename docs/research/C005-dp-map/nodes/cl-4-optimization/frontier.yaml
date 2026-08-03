@@ -2372,3 +2372,361 @@ residual_exclusions:
 
 residual_exclusion_count: 13
 
+# =============================================================================
+# SCOPE BOUNDARY — VERSIONED
+# =============================================================================
+# The charter's High risk is that maximalist breadth expands the graph indefinitely.
+# A bound that is not versioned is not a bound — it drifts, and drift is invisible.
+# This block makes the frontier's edge a dated, versioned, citable object so that
+# widening it is an EVENT rather than an accident.
+# =============================================================================
+scope_boundary:
+  version: "1.0.0"
+  set_at_map_version: "0.1.0"
+  set_by: "NEU-938 (SUB-13)"
+  compiled: "2026-07-16"
+  rule: >-
+    A frontier technique is MAPPED node-by-node iff (a) the D-F4 §3 cascade assigns it
+    to CL-4 (T1 fires), AND (b) it is in NEU-938's named in-scope list OR is the direct
+    structural extension of a mapped CL-4 technique, AND (c) it is material under
+    NEU-887's materiality rule to the charter's competitive-DP audience line — in
+    practice, it has a real instance in a D-F2 corpus (C1..C6) or is the immediate
+    strengthening of one that does. Otherwise it is recorded in `residual_exclusions`
+    with a rationale, a revision trigger, and an owner. It is NEVER silently omitted.
+  bump_policy: >-
+    MINOR bump when a residual exclusion is promoted to a mapped node (the boundary
+    widens). MAJOR bump when the rule itself changes — e.g. if NEU-887's audience line
+    moves, or if a U4 challenge alters which techniques the cascade assigns to CL-4.
+  what_this_bound_deliberately_excludes: >-
+    Literature-real but learner-unreal material: results that exist in the algorithms
+    literature and would satisfy T1, but that no competitive instance exercises. RX-7
+    (discrete convex analysis beyond 1-D), RX-8 (multi-parameter relaxation), RX-9
+    (general (min,+) fine-grained complexity), RX-10 (ranked zeta) are all of this
+    kind. The bound is drawn one step past each mapped family's competitive instance —
+    far enough to be maximalist, near enough to be auditable.
+  honest_cost: >-
+    RECORDED RATHER THAN HIDDEN. This bound is a JUDGMENT, made by one sub-task, on
+    class-1 [literature] evidence, and it is the load-bearing judgment of NEU-938.
+    Criterion (c) leans on "has a real instance in a D-F2 corpus", and SUB-13 CANNOT
+    VERIFY that: CAP-2 makes Codeforces (C4) ids unverified, F-C-4 records that frontier
+    techniques appear in corpora as compositions rather than clean instances, and no
+    corpus in D-F2 is indexed by technique in a way that would let this file assert an
+    instance exists. So criterion (c) is applied on SURVEY-LEVEL JUDGMENT, not on a
+    checked instance. Consequence, stated plainly: every RX-7..RX-12 exclusion is
+    falsifiable by OUT-7 finding one instance, and each one names that as its revision
+    trigger. This is the weakest link in NEU-938's chain and it is named here rather
+    than left for an audit to discover.
+
+# =============================================================================
+# CL-1 ATTACHMENT-ID RESOLUTION — verified against the merged CL-1 file
+# =============================================================================
+# NEU-934 (SUB-3) merged nodes/cl-1-foundational.yaml (PR #615) while this file was
+# being written. That is a coordination WINDFALL, not a licence, and this block
+# records exactly what SUB-13 did and did not do with it.
+#
+# WHAT CHANGED: the four CL-1 attachment targets carry looked-up ids and verbatim
+#   to_names instead of grammar-predicted guesses. SUB-13's ORIGINAL prediction was
+#   "cl-1.linear-sequence-dp" for all four — AND IT WAS WRONG. No such node exists.
+#   This is the schema's own warning landing exactly as written
+#   (03_per-node-record-template.md §3: "to_node is a PREDICTION... SUB-4 may name it
+#   something else entirely. So SUB-12 resolves on to_name + to_cluster + rationale").
+#   Recorded rather than quietly corrected, because it is live evidence FOR the
+#   convention: had CL-1 not landed early, SUB-12 would have resolved these four on
+#   to_name and rationale, and the id hint would have been a miss. That is the design
+#   working, not failing.
+#
+# WHAT DID *NOT* CHANGE — the important half:
+#   The four attachments are STILL `cross_cluster_attachments`, STILL
+#   `status: "declared"`, and are NOT drawn as edges. The disposition table
+#   (01_node-and-edge-schema.md §4.1) keys on WHAT THE TARGET IS — a sibling cluster's
+#   node — not on whether the mapper could see it. V-7 forbids a drawn cross-cluster
+#   edge with no visibility exception, and SUB-12 owns realization in
+#   edges/cross-cluster.yaml. The one-line rule ("draw an edge to anything that
+#   already exists; declare an attachment to anything that doesn't") is the RATIONALE
+#   for the table, not an override of it — reading it as an override would have SUB-13
+#   drawing CL-1 edges from a file it does not own, racing SUB-12, and producing
+#   exactly the duplicate-edge corruption D-S4's X-S1 note warns about for root edges.
+#   The conservative reading is taken deliberately.
+# =============================================================================
+cl1_id_resolution:
+  cl1_merged_at: "PR #615 (NEU-934), merged to develop before this PR"
+  original_prediction: "cl-1.linear-sequence-dp"
+  prediction_outcome: "MISS — no such id exists in the merged CL-1 file."
+  resolved:
+    - from: "cl-4.slope-trick-application"
+      to_node: "cl-1.linear-sequence-dp-2d"
+      to_name: "2D linear/sequence DP (index-pair state)"
+      confidence: "named"
+      basis: >-
+        The target's own summary names the shape slope trick optimizes: "a position
+        paired with a resource count". Slope trick's base is the O(n * V) DP over
+        (index, value) — precisely that.
+    - from: "cl-4.aliens-trick-application"
+      to_node: "cl-1.sequence-partition-dp"
+      to_name: "Sequence partition DP (index-plus-count state)"
+      confidence: "named"
+      basis: >-
+        Exact match. The target's defining second index IS the count the Aliens trick
+        deletes.
+    - from: "cl-4.smawk-application"
+      to_node: "cl-1.sequence-partition-dp"
+      to_name: "Sequence partition DP (index-plus-count state)"
+      confidence: "named"
+      basis: >-
+        Corroborated FROM THE TARGET'S SIDE: cl-1.sequence-partition-dp's summary says
+        it "makes this family the standard base for the divide-and-conquer and Knuth
+        optimizations. Those optimizations are NOT this node and NOT this cluster (D-F4
+        T1 -> CL-4; recorded as EXC-4)." SUB-3 anticipated CL-4's attachment and routed
+        it out of CL-1 explicitly. SMAWK is the linear-time strengthening of the same
+        exploitation.
+    - from: "cl-4.kinetic-segment-tree-dp"
+      to_node: "cl-1.sequence-partition-dp"
+      to_name: "Sequence partition DP (index-plus-count state)"
+      confidence: "conjectured"
+      basis: >-
+        DELIBERATELY DOWNGRADED to "conjectured" rather than asserted. The base this
+        technique optimizes is the COUNT-FREE variant of the partition shape
+        (dp[i] = min over j of dp[j] + cost(j,i)); the named target is the closest CL-1
+        node but carries a count index the kinetic base does not have. Per
+        03_…-template.md §3, "conjectured" means the target SHOULD exist but the mapper
+        is unsure it is mapped — and a conjecture that resolves to nothing is a coverage
+        finding for OUT-7, not a mapper's error. Flagging it is the honest move; naming
+        it "named" would launder a real uncertainty into false precision.
+  unchanged_deliberately: >-
+    All four remain cross_cluster_attachments with status "declared". None is drawn.
+    SUB-12 still resolves and realizes them; the verified ids are a hint that should
+    make that cheap, not a substitute for it.
+  cl2_resolution:
+    cl2_merged_at: "PR #617 (NEU-935), merged to develop before this PR"
+    original_prediction: "cl-2.tree-dp"
+    prediction_outcome: "MISS — no such id exists in the merged CL-2 file."
+    resolved:
+      - from: "cl-4.slope-trick-on-trees"
+        to_node: "cl-2.formulate-subtree-recurrence"
+        to_name: "Formulate a subtree recurrence: decide what a subtree must summarize"
+        confidence: "named"
+        basis: >-
+          Exact. SUB-4 mapped the tree family as a set of shapes rather than one "Tree
+          DP" node, so the prediction had nothing to hit. The right target is the node
+          this optimization's own rationale already named in prose — the ability to
+          formulate the subtree recurrence. Its summary ("what a child must report so
+          that the parent can decide without looking inside it") IS the contract whose
+          representation slope trick makes cheap.
+  prediction_scorecard: >-
+    RECORDED BECAUSE IT IS EVIDENCE ABOUT THE CONVENTION, NOT ABOUT SUB-13. Five
+    cross-cluster attachments, five grammar-derived predictions, all made blind:
+    4 MISSES (cl-1.linear-sequence-dp x4 — no such node) and, counting the sibling CL-4
+    file's intra-cluster ids, 1 HIT (cl-4.divide-and-conquer-optimization) and 1 MISS
+    (cl-4.convex-hull-trick -> cl-4.convex-hull-trick-monotonic), plus this CL-2 MISS.
+    THE ID PREDICTIONS WERE MOSTLY WRONG AND THE `to_name` + `rationale` WERE RIGHT
+    EVERY TIME — which is exactly why 01_node-and-edge-schema.md §4.3 makes `to_name`
+    required and `to_node` a hint, and why an exact-id-match-only resolver "would
+    silently drop real dependencies". This file is a live confirmation of that design
+    decision rather than a counterexample to it. SUB-12 should keep resolving on
+    to_name + to_cluster + rationale even where an id now looks authoritative.
+  note_for_sub12: >-
+    ALL FIVE attachments now carry looked-up ids: CL-1 (#615), CL-2 (#617) and the
+    sibling CL-4 file (#614) all merged before this PR. None is a blind prediction any
+    more. They nevertheless remain DECLARED, status "declared", not drawn — SUB-12 still
+    owns realization in edges/cross-cluster.yaml. Do not read a verified id as a licence
+    to skip resolution; read it as a resolution that should now be cheap.
+
+# =============================================================================
+# CARRIED CONFLICTS (preserved, not smoothed — NEU-887 discipline, inherited)
+# =============================================================================
+carried_conflicts:
+
+  - id: "X-938-1"
+    conflict: >-
+      NEU-938's issue description names "broken-profile / connection-profile DP" in
+      SUB-13's desired outcome and in-scope list. NEU-932 D-F4 §3.2 (SETTLED) assigns
+      plug / broken-profile DP to CL-3 on T2. The two texts disagree about who maps it.
+    disposition: >-
+      CARRIED, NOT SMOOTHED, AND NOT RESOLVED BY SUB-13 — because it is not SUB-13's to
+      resolve. Convention U4 binds: the existing assignment stands until adjudicated and
+      a mapper may not re-decide locally. SUB-13 therefore does NOT map it, and records
+      it as RX-1 with CL-3/SUB-5 named as owner, so the map has no hole while the
+      disagreement stands.
+      SUB-13's position, on the record for whoever adjudicates: D-F4 is right on the
+      merits. Broken-profile DP's defining contribution is the profile ENCODING, not a
+      cost reduction over an already-correct recurrence — without the encoding there is
+      no tractable recurrence to accelerate, so T1 does not fire and T2 does. The
+      NEU-938 wording appears to inherit the charter's grouping of "broken-profile DP"
+      with the research-tier frontier by RARITY (it is certainly rare and research-tier)
+      rather than by DEFINING CONTRIBUTION — and D-F4 §2.1's whole argument is that
+      rarity is not a partition criterion, because it drifts.
+    route: >-
+      A U4 ledger challenge against D-F4, filed in NEU-932's ledger
+      (../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md), NOT
+      the schema ledger. SUB-13 does not file it and does not believe it should succeed.
+    affected_parties: ["SUB-5 (NEU-936, CL-3)", "OUT-7 coverage audit", "NEU-889 charter author"]
+    visible_to: >-
+      Named in this file's header note, in RX-1, and here — the three places a reader
+      looking for broken-profile DP in the frontier file will actually look.
+
+  - id: "X-938-2"
+    conflict: >-
+      Predicted DUPLICATE NODES across the two CL-4 files, which share one cluster id
+      and one id namespace. SUB-13's cl-4.total-monotonicity and cl-4.verify-monge-
+      condition were prerequisites of its SMAWK family AND of SUB-6's mainstream
+      Knuth-Yao and D&C optimization; the per-node-record template's own worked example
+      anticipates a "cl-4.quadrangle-inequality-proof" node in the mainstream file.
+    disposition: >-
+      *** RESOLVED BEFORE MERGE — THE PREDICTION LANDED, AND THE EVIDENCE ARRIVED IN
+      TIME TO ACT ON IT. *** mainstream.yaml merged (NEU-937, PR #614) while this PR was
+      in review, so SUB-13 rebased onto it and could finally SEE the sibling. It had
+      minted exactly the predicted rivals: cl-4.quadrangle-inequality ("The quadrangle
+      inequality (Monge condition)", knowledge) and cl-4.quadrangle-inequality-proof
+      (skill/proof). Two different resolutions, because the two cases are different:
+      (1) THE PROOF NODE WAS A TRUE DUPLICATE. SUB-6's cl-4.quadrangle-inequality-proof
+      is the same obligation, the same S1 cascade stop, and the same argument shapes as
+      SUB-13's cl-4.verify-monge-condition. SUB-13 RETIRED ITS OWN NODE and now draws
+      SUB-6's intra-cluster. Node count 19 -> 18. This does NOT violate the rule below:
+      that rule forbids deleting a SIBLING's node unilaterally; SUB-13 deleted its OWN
+      in favour of the sibling's already-merged one. Nothing of SUB-6's was touched.
+      (2) THE KNOWLEDGE NODE WAS *NOT* A DUPLICATE — it only looked like one because
+      SUB-13 had written it too broadly. Monge and total monotonicity are DIFFERENT
+      facts: Monge implies total monotonicity, not conversely, and SUB-6's node states
+      Monge's SPLIT-POINT-SANDWICH consequence (what Knuth-Yao and D&C optimization
+      need) while SMAWK needs the ROW-MINIMA consequence of the strictly weaker
+      property. SUB-13 NARROWED cl-4.total-monotonicity to state only the weaker
+      property and now DRAWS cl-4.quadrangle-inequality intra-cluster for the Monge
+      condition it no longer restates. The implication became the edge it always was.
+      THE RULE STILL STANDS for anything discovered later: if a duplicate is found that
+      SUB-13 cannot resolve by retiring its own node, the dependency audit REPORTS it and
+      adjudication merges — neither mapper deletes the other's node.
+    route: >-
+      Resolved in this PR; nothing left for OUT-2 on these two nodes. OUT-2 should still
+      confirm the deconfliction rather than trust it — the two CL-4 files now share
+      three intra-cluster edges (cl-4.quadrangle-inequality,
+      cl-4.quadrangle-inequality-proof, cl-4.divide-and-conquer-optimization,
+      cl-4.convex-hull-trick-monotonic) and every one should resolve.
+    affected_parties: ["NEU-937 (SUB-6)", "OUT-2 dependency audit", "SUB-12 integration"]
+
+  - id: "X-938-3"
+    conflict: >-
+      AR-1 nominates the NEU-933 schema ledger as the filing location for an anchor
+      request, but that file is not SUB-13's to write (header rule 1; template §4 rule
+      3), and four mappers are writing concurrently.
+    disposition: >-
+      CARRIED and declared rather than disguised. AR-1's SUBSTANCE is fully discharged in
+      `ar1_requests` above — anchor named, dependents named, non-DP argument made against
+      the D-F4 cascade test by test, existing anchors checked, dependents set
+      `status: "provisional"`, dependency recorded in each dependent's `notes`, none of
+      the four forbidden moves made. Only the physical LOCATION of the ledger row
+      differs. The row is a mechanical transcription for D-S3's owner (NEU-933) or SUB-11,
+      who drives the filing routes.
+    route: >-
+      NEU-933 or SUB-11 transcribes AR-1-a and AR-1-b into
+      ../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md and adjudicates
+      against D-S3. Note that D-S3's own recorded revision trigger is "An AR-1 request is
+      filed" — so these two requests fire it.
+    affected_parties: ["NEU-933 (D-S3 owner)", "SUB-11", "OUT-7"]
+
+# =============================================================================
+# PROTOTYPE DISPOSITION
+# =============================================================================
+# NEU-889 Assumption #12 / NEU-938 in-scope: "running a targeted prototype only where
+# graph structure at the frontier is genuinely uncertain". NEU-938's constraints and
+# verification evidence both add the converse, which is the binding half: "targeted
+# prototypes run only where graph structure is genuinely uncertain, NEVER ON SETTLED
+# STRUCTURE", and "confirmation that any in-charter prototype ran only against
+# genuinely uncertain structure."
+# =============================================================================
+prototype_disposition:
+  prototypes_run: 0
+  rationale: >-
+    NONE WAS RUN, AND THAT IS THE POSITIVE FINDING RATHER THAN AN OMISSION. The permission
+    is conditional on genuine structural uncertainty, and SUB-13 did not find any in the
+    graph structure it mapped. For all four families the D-F4 §3 cascade answered T1
+    confidently and immediately — three of them (slope trick, Lagrangian/Aliens, kinetic
+    segment tree) are pre-adjudicated by name in D-F4 §3.2's own worked table, so their
+    structure is SETTLED and prototyping them is explicitly forbidden, not merely
+    unnecessary. The fourth (SMAWK/LARSCH) is un-enumerated, but Convention U1 disposes of
+    it without uncertainty: T1 fires confidently, so it is CL-4's, and its absence from the
+    reference taxonomies is a coverage question for OUT-7, not a structural one. No node in
+    this file invoked Convention S (indeterminate skill type) and no D-S1a entry is filed —
+    every cascade in this file terminated on a confident match, and each rationale records
+    the rejected rivals.
+  the_uncertainty_that_did_arise: >-
+    The real uncertainty SUB-13 hit was NOT graph structure. It was (a) ANCHOR
+    REGISTRATION — two genuine non-DP prerequisites the register does not name — and (b)
+    a SPEC-vs-PARTITION disagreement over broken-profile DP. Neither is a question a
+    prototype could answer: (a) is owned by route AR-1 and is discharged as AR-1-a/AR-1-b,
+    and (b) is owned by Convention U4 and is carried as X-938-1. Reaching for a prototype
+    on either would have been running one against structure that is settled — the thing
+    NEU-938 forbids — while the actual open question sat in a route that already exists.
+  recorded_because: >-
+    NEU-938's verification evidence asks for "confirmation that any in-charter prototype
+    ran only against genuinely uncertain structure". Zero prototypes satisfies that
+    vacuously, which is exactly why the reasoning is written down: an auditor should be
+    able to see the permission was CONSIDERED AND DECLINED ON ITS OWN CONDITION, not
+    forgotten.
+
+# =============================================================================
+# SELF-CHECK — against 03_per-node-record-template.md §7
+# =============================================================================
+self_check:
+  - check: "1. node_kind on every node; skill_type + skill_type_rationale on every skill; no skill_type on any knowledge node."
+    result: "Pass — 19/19 have node_kind; 15/15 skills have both; 4/4 knowledge nodes omit skill_type entirely (absent, not null)."
+  - check: "2. Not one node per technique name (schema §1.1)."
+    result: "Pass — 4 technique families -> 19 nodes (ratio 4.75). Every family splits application / proof / implementation at minimum; no family is a single node."
+  - check: "3. Every prerequisite chain bottoms out on a root or a registered anchor."
+    result: "Pass — every node draws at least one prerequisites.roots edge, directly or through an intra-cluster chain that does. No chain just stops."
+  - check: "4. No prerequisites.* entry points at a sibling cluster's node."
+    result: >-
+      Pass — the only non-root, non-anchor prerequisites.* entries are intra_cluster.
+      Four of those ("cl-4.convex-hull-trick-monotonic",
+      "cl-4.divide-and-conquer-optimization", "cl-4.quadrangle-inequality",
+      "cl-4.quadrangle-inequality-proof") live in the SIBLING FILE mainstream.yaml, which
+      is the SAME cluster (CL-4), so they are correctly intra_cluster per header rule 2b
+      and are NOT cross-cluster. All four RESOLVE — mainstream.yaml merged (PR #614)
+      before this PR and the ids were checked mechanically against it.
+  - check: "5. No roots or boundary_anchors edge is a disguised cross-cluster or unregistered dependency."
+    result: >-
+      Pass, and this is the check SUB-13 is most exposed on, so it is spelled out. Every
+      optimized-family prerequisite (5 of them) is a cross_cluster_attachment, never a
+      roots edge. Both unregistered non-DP prerequisites are AR-1 requests recorded in
+      `notes` with provisional dependents, never roots edges. Every boundary_anchors
+      target is registered in boundary-register.yaml at version 1.0.0: anchor.segment-tree
+      and anchor.convex-hull-envelope-geometry are the only two used.
+  - check: "6. Every cross_cluster_attachments entry has to_name, to_cluster, rationale, status: declared."
+    result: >-
+      Pass — 5 attachments (slope trick, slope trick on trees, Aliens trick, kinetic
+      segment tree DP, SMAWK), all four fields present on each, all status "declared".
+  - check: "7. attachment_id matches xc.<from>-><to_node>; from == the node's own id."
+    result: "Pass — 5/5, checked mechanically."
+  - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
+    result: "Pass — 18/18 on all three. No dimension invented (INC-S3). Every js note is an observation, explicitly labelled 'not a verdict'."
+  - check: "9. No node is settled without a ledger entry; no node carries frozen: true."
+    result: "Pass — 18/18 are \"provisional\". No frozen field anywhere in this file."
+  - check: "10. All string enums quoted (D-F3's YAML constraint — the Norway problem)."
+    result: "Pass."
+  - check: "11. Ids match the grammar and are cluster-namespaced; CL-4's two files share a namespace."
+    result: >-
+      Pass — all 18 ids are cl-4.<kebab-name>, and id-collision against mainstream.yaml
+      is now CHECKED rather than predicted: mainstream.yaml merged before this PR and a
+      mechanical cross-file check confirms ZERO id collisions between the two CL-4 files.
+      The predicted SEMANTIC duplicate (X-938-2) was real and is RESOLVED — SUB-13
+      retired its own cl-4.verify-monge-condition and narrowed cl-4.total-monotonicity.
+  - check: "12. Wrote only this file."
+    result: >-
+      Pass — NEU-938 touched only nodes/cl-4-optimization/frontier.yaml. Not
+      mainstream.yaml, not manifest.yaml, not edges/cross-cluster.yaml, not
+      boundary-register.yaml (read only), not index/00_technique-index.md, not any
+      sibling nodes/* file.
+  - check: "NEU-938-specific: CL-4 still reads as ONE cluster."
+    result: >-
+      Pass — cluster: \"CL-4\" and work_split: \"research-tier frontier\". No cluster
+      entry added, no manifest touched, frontier material never described as its own
+      cluster. OUT-6's per-cluster path criterion still counts 4.
+  - check: "NEU-938-specific: every residual exclusion carries a rationale."
+    result: "Pass — 13 entries, each with rationale + revision_trigger + owner. Plus RX-13, which bounds the exclusion list's own completeness claim rather than overstating it."
+  - check: "NEU-938-specific: OUT-6 has at least one research-tier endpoint from this frontier."
+    result: "Pass — 3 offered; primary is cl-4.larsch-online-smawk-implementation, whose full path to the frozen floor is written out in out6_endpoints."
+  - check: "NEU-938-specific: transfer-to-DP carried as explicit per-node uncertainty."
+    result: >-
+      Pass — cl-4.recognize-hidden-convexity-for-slope-trick carries it in `notes` with a
+      named re-adjudication trigger, and states plainly that its prerequisite split is a
+      structural claim and not a validated learning claim (X-D3 / NEU-887 R1, inherited
+      undiminished).
