@@ -44,11 +44,13 @@ The whole current file was re-presented in **three chunks**, each well under the
 
 | Part | PR | File lines re-presented | Added lines | Registration API-confirmed | Files resolved? |
 | ---- | -- | ----------------------- | ----------- | -------------------------- | --------------- |
-| 1 of 3 | [664](https://github.com/pavel-rp/second-memory-mcp/pull/664) | 1–1074 (header, `nodes:` → `cl-4.debug-aliens-trick-failure`) | **1074** | yes | _pending_ |
-| 2 of 3 | [665](https://github.com/pavel-rp/second-memory-mcp/pull/665) | 1075–1865 (`FAMILY 3` banner → coverage/`techniques_mapped` block) | **791** | yes | _pending_ |
+| 1 of 3 | [664](https://github.com/pavel-rp/second-memory-mcp/pull/664) | 1–1074 (header, `nodes:` → `cl-4.debug-aliens-trick-failure`) | **1074** | yes | **NOT PROVEN — bisected** (see below) |
+| 1a (bisect) | [667](https://github.com/pavel-rp/second-memory-mcp/pull/667) | 1–554 (header → `cl-4.slope-trick-heap-implementation`) | **554** | yes | _pending_ |
+| 1b (bisect) | [668](https://github.com/pavel-rp/second-memory-mcp/pull/668) | 555–1074 (`cl-4.slope-trick-on-trees` → `cl-4.debug-aliens-trick-failure`) | **520** | yes | _pending_ |
+| 2 of 3 | [665](https://github.com/pavel-rp/second-memory-mcp/pull/665) | 1075–1865 (`FAMILY 3` banner → coverage/`techniques_mapped` block) | **791** | yes | **YES** |
 | 3 of 3 | [666](https://github.com/pavel-rp/second-memory-mcp/pull/666) | 1866–2732 (`ar1_requests` → `self_check` → EOF) | **867** | yes | _pending_ |
 
-1074 + 791 + 867 = **2732** — the whole file, with no gap and no overlap.
+1074 + 791 + 867 = **2732** — the whole file, with no gap and no overlap. The 1a/1b bisect re-covers part 1 only: 554 + 520 = 1074.
 
 Each pull request's `gh pr view --json` confirms **exactly one changed file, zero deletions**, at `docs/research/C005-dp-map/nodes/cl-4-optimization/frontier.yaml`.
 
