@@ -83,7 +83,7 @@ Chunk→merged offsets: part1 `N`, part2 `N`+1215, part3 `N`+2436, part4 `N`+359
 
 **F-952-7 — REJECTED, with the reproduction as the reason.** The finding said the chunk file "is not valid YAML: it starts with an indented sequence item ... add the missing top-level `nodes:` key." This is an **artifact of the instrument, not a defect in the reviewed content**. `review/neu-952/cl-2-combinatorial.part4.yaml` is a verbatim excerpt of source lines 3592–4068, cut at a node boundary. In the merged file `nodes:` is present at **line 99**, and the top-level keys are `schema_version`, `cluster`, `map_version`, `nodes`, `residual_exclusions`, `exclusion_count`. Adding `nodes:` to the excerpt would make the instrument diverge from the content it exists to present. No edit.
 
-**F-952-8 — UPHELD.** The `residual_exclusions` header comment documented `disposition` as `"owned-elsewhere" | "not-dp"` — and **neither value appears anywhere in the file**. The 12 entries use exactly two values: `"owned-by-sibling-cluster"` (3897, 3915, 3925, 3948, 3962, 3977, 3990, 4002, 4041, 4057) and `"scoped-out-with-rationale"` (3871, 4018). The finding's own disjunction ("either the comment is outdated or the enum values are") resolves to the comment: the values are adjudicated data, and changing them would be a content change rather than a documentation fix. Comment corrected; the `disposition` values are byte-identical.
+**F-952-8 — UPHELD.** The `residual_exclusions` header comment documented `disposition` as `"owned-elsewhere" | "not-dp"` — and **neither value appears anywhere in the file**. The 12 entries use exactly two values: `"owned-by-sibling-cluster"` (10 entries) and `"scoped-out-with-rationale"` (2). In the **reviewed** tree they sat at 3897, 3915, 3925, 3948, 3962, 3977, 3990, 4002, 4041, 4057 and 3871, 4018; the comment fix added one line at 3864, so in the **shipped** tree each is one line lower (3898 … 4058, and 3872, 4019). The values themselves are byte-identical — only the comment above them changed. The finding's own disjunction ("either the comment is outdated or the enum values are") resolves to the comment: the values are adjudicated data, and changing them would be a content change rather than a documentation fix. Comment corrected; the `disposition` values are byte-identical.
 
 ---
 
@@ -158,6 +158,8 @@ $ gh pr view 655 --json number,state,mergedAt,changedFiles,additions
 Branches `neu-952/review-chunk-1` … `neu-952/review-chunk-4` were deleted with `gh pr close --delete-branch`, confirmed in each command's output.
 
 ---
+
+**Known erratum, not amended:** commit `42e0bef`'s message body opens "Six findings upheld" while its own bullets enumerate seven. The count in this record — **seven upheld, one rejected** — is the correct one. The commit is deliberately not amended: its sha is cited on seven live review threads and in this record, and rewriting it to fix a word would invalidate every one of those citations.
 
 **Recorded by:** claude-opus-5[1m]
 **Date:** 2026-08-03
