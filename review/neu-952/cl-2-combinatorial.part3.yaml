@@ -1,0 +1,1155 @@
+  - id: "cl-2.implement-tree-dp-post-order-dfs"
+    name: "Implement a tree DP as a post-order DFS"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no, S2 no (making it run, not faster), S3 no, S4
+      no, S5 no (the contract is chosen). S6 rather than S7: the accumulator's
+      initial value must be the fold's identity for THIS aggregation (zero for a
+      sum, negative infinity for a max, one for a product) and the parent must
+      be excluded from the child list in a way that depends on the chosen
+      representation — judgments about this recurrence. Contrast
+      cl-2.root-an-unrooted-tree, which really is invariant and is typed S7.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Realize the recurrence: recurse into each child, fold the returned values
+      into the accumulator, apply the vertex's own contribution, return. The
+      base case is not written separately — it is what the fold produces on the
+      empty child list, and seeing that is part of the acquisition.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.formulate-subtree-recurrence"
+        - "cl-2.root-an-unrooted-tree"
+        - "cl-2.child-aggregation"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — the flagship recursion finding of this audit. This node writes
+        the post-order DFS, and the post-order DFS is exactly the shape JavaScript cannot run at
+        competitive sizes. C++'s recursive post-order on a tree of n = 2e5 reaches depth 2e5 on
+        a path-shaped tree; the default 8 MB stack absorbs it, and judges raise the limit for
+        the cases that need more. JavaScript throws RangeError: Maximum call stack size exceeded
+        at a depth on the order of 1e4 — an order of magnitude BELOW the input sizes this
+        technique routinely meets — and a submitted program cannot raise the limit. So the
+        recursive realization is not slow in JavaScript, it does not run at all on the standard
+        adversarial input. The JavaScript realization must convert to an EXPLICIT STACK, which
+        is materially harder than the recursion it replaces: post-order specifically requires
+        either a two-phase visit marker or an iterator-position-per-node scheme, because a
+        child's value must be folded into the parent AFTER all children are done. That
+        conversion is a real acquisition a C++ learner never makes. A downstream agent that
+        inherits the C++ default here ships an exercise that crashes.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.debug-tree-dp-recursion-depth"
+    name: "Diagnose a tree DP that dies on a path-shaped tree"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3. S1 no, S2 no — the program CRASHES, which is neither
+      a correctness argument nor a cost reduction. S3 yes: the work starts from
+      a symptom that carries almost no information (a stack overflow, a
+      segmentation fault, a silent non-zero exit on the largest test and nothing
+      on the samples) and reasons back to a cause — the tree is a path, so the
+      recursion is n deep. Later tests unreached.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Recognize the shape of the failure — passes every sample, dies only at
+      full n, and the failing tree is degenerate — and repair it by converting
+      the traversal to an explicit stack or by processing vertices in a
+      precomputed reverse-BFS order, which needs no recursion at all. What a
+      learner acquires is that the worst case of a tree is a path, and that
+      "trees are shallow" is an assumption their code makes silently.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.implement-tree-dp-post-order-dfs"
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — this node IS the recursion-depth node, and both its threshold
+        and its signature are language-specific. It diagnoses a tree DP that dies on a
+        path-shaped tree. In C++ that death is a SEGFAULT (or a silent stack smash) at a depth
+        on the order of 1e5-1e6, and the standard fix is to raise the stack limit — an option
+        that exists. In JavaScript it is a NAMED, CATCHABLE RangeError: Maximum call stack size
+        exceeded at a depth on the order of 1e4, and raising the limit IS NOT AN OPTION for a
+        submitted program, so the only fix is the explicit-stack rewrite
+        (cl-2.implement-tree-dp-post-order-dfs). Three things a downstream agent must therefore
+        write differently: the threshold is ~10x lower, the diagnosis is easier (a named error
+        naming its own cause, versus a segfault that names nothing), and the remedy set is
+        strictly smaller (one option, not two). The node's C++-derived form would teach a fix
+        JavaScript does not have.
+      mapper_note: >-
+        Observation only, NOT a verdict — OUT-5 (SUB-8) owns it. Recorded because this node is
+        where the root-level observation on cl-1.root.implement-memoization-and-tabulation
+        (recursion depth is language-material in JavaScript) becomes acute rather than
+        theoretical: a path-shaped tree of 2*10^5 vertices is a routine constraint and is far
+        beyond JavaScript's default stack, which — unlike the C++ that every selected reference
+        assumes — has no standard tunable equivalent. The explicit-stack rewrite may therefore
+        be mandatory in JavaScript where it is optional in the references. SUB-8 must reach its
+        own verdict; this note is not one.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      Empty corpus_refs: systematic for `debugging` nodes. See
+      cl-2.debug-item-reuse-from-loop-direction's note. D-F2 limitation.
+
+  - id: "cl-2.per-node-state-dimension"
+    name: "Per-vertex state dimension"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That the subtree index is often not a sufficient state and must be crossed
+      with a small per-vertex condition — "the best in v's subtree GIVEN v is
+      taken / not taken", given v's colour, given v is matched. The reason is
+      structural rather than incidental: a constraint that couples a vertex to
+      its parent (adjacent vertices may not both be chosen) is invisible inside
+      the subtree, so the subtree must report an answer for each of the parent's
+      possible decisions rather than one answer. Maximum independent set on a
+      tree is the canonical instance.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+        - "cl-2.child-aggregation"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An extra per-vertex dimension multiplies the state count. A
+        complexity fact.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["dp[v][0/1]", "tree DP with vertex states", "independent set on a tree"]
+
+  - id: "cl-2.tree-knapsack-merge"
+    name: "Tree knapsack: merging children's size-indexed vectors"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The composite family in which a subtree reports not one value but a VECTOR
+      indexed by a resource — "the best achievable in v's subtree using exactly k
+      of it" — and children are combined by the knapsack merge. It is genuinely
+      the intersection of this file's two families, and it is where a learner
+      first meets a DP whose state is a function rather than a number.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+        - "cl-2.child-aggregation"
+        - "cl-2.zero-one-knapsack-recurrence"
+        - "cl-2.item-selection-state-space"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 4
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Merging children's size-indexed vectors is the technique; the
+        merge's arithmetic is small additions and maxima. The traversal that drives it carries
+        the JS-E1 verdict (cl-2.implement-tree-dp-post-order-dfs, JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["tree knapsack", "DP on tree with capacity", "subtree-size DP"]
+
+  - id: "cl-2.prove-tree-knapsack-quadratic-bound"
+    name: "Prove the subtree-size-bounded merge runs in quadratic time"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1. The contribution is an ARGUMENT — the double counting
+      that shows the merge loops, bounded by the two subtrees' sizes, total to
+      the number of vertex pairs whose lowest common ancestor is the merge
+      point, hence n choose 2 overall. S1 is asked first and answers yes; no
+      later test is reached. Note the near-miss deliberately: S2 would fire if
+      this node CHANGED the recurrence to make it cheaper, but it does not — it
+      argues the bound of the natural recurrence, which is the difference
+      between proving and optimizing.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Establish that the tree knapsack's merge — whose loops are bounded by the
+      sizes of the two subtrees being merged rather than by the global capacity
+      — costs quadratic time in total rather than the cubic a naive reading
+      suggests. The argument is the acquisition: each pair of vertices is
+      charged exactly once, at their lowest common ancestor. Without it a
+      learner cannot tell a correct tree knapsack from one that is too slow,
+      because the two differ only in a loop bound.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.tree-knapsack-merge"
+      roots:
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The pair-counting argument for the O(n^2) bound is
+        language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    contested_by: ["CL-4"]
+    notes: >-
+      contested_by CL-4, recorded rather than smoothed. A T1 reading says
+      bounding the merge loops by subtree size is a cost reduction of an
+      already-correct recurrence and therefore CL-4's. Rejected here because
+      what this node contributes is the ARGUMENT that the natural recurrence
+      already has that bound — no state changes and no recurrence changes, so
+      T1's "reduce the cost of evaluating it" does not describe the node. The
+      distinct technique of REORGANIZING the merge to go faster (small-to-large
+      / DSU on tree) does fire T1 and is excluded to CL-4:
+      residual_exclusions E5. Empty corpus_refs is systematic for `proof` nodes.
+
+  - id: "cl-2.tree-diameter-via-dp"
+    name: "Tree diameter as a subtree DP"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The pattern in which the answer is not at the root but at SOME vertex: a
+      longest path has a highest point, and at that point it is the sum of the
+      two deepest child descents. So the DP returns the deepest descent while
+      accumulating a global best over each vertex's best two children. The
+      transferable idea is decomposing a global object by its topmost vertex —
+      the tree family's counterpart of the interval family's last-operation
+      view, and the reason both belong in one cluster.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+        - "cl-2.child-aggregation"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as a formulation: the diameter is the best downward path through some
+        vertex, a modelling insight. Its traversal inherits
+        cl-2.implement-tree-dp-post-order-dfs's JS-E1 verdict (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["diameter of a tree", "path-through-vertex decomposition", "best-two-children pattern"]
+
+  - id: "cl-2.rerooting-principle"
+    name: "Rerooting principle"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That the answer for EVERY vertex as root is obtainable in one pass more
+      than the answer for one, because a vertex's view of the tree splits into
+      its own subtree (already computed downward) and everything else (derivable
+      from its parent's corresponding value). The decomposition — down-value plus
+      up-value — is the whole idea, and it converts a quadratic
+      recompute-per-root into two traversals.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+        - "cl-2.formulate-subtree-recurrence"
+        - "cl-2.child-aggregation"
+      roots:
+        - "cl-1.root.overlapping-subproblems"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 4
+      transition_derivation_load: 4
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That every root's answer is recoverable from one traversal plus a
+        downward pass is a structural insight about the tree, not about the language. The
+        two-pass traversal's verdict is on cl-2.implement-rerooting-two-pass-dfs (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["rerooting", "all-roots DP", "up-down DP", "second-pass tree DP"]
+    contested_by: ["CL-4"]
+    notes: >-
+      contested_by CL-4 is recorded because a T1 reading is available and
+      arguable: rerooting turns n independent tree DPs into two passes, which
+      looks like accelerating an already-correct computation. Rejected here on
+      D-F4 §3.2's explicit assignment ("Tree DP / rerooting ... CL-2") and on the
+      merits: the up-value is a NEW state with a new meaning ("the answer for
+      the complement of v's subtree"), and T1 requires that the states' meanings
+      be unchanged. Introducing a state is formulation, not optimization.
+      Carried as a live rival claim, not smoothed. Route: D-F4a challenge (U4).
+
+  - id: "cl-2.exclude-one-child-aggregate"
+    name: "Excluding one child from an aggregate"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The technical core of rerooting, and the part that is not the idea: to
+      pass a value down to child c, a vertex must aggregate all its children
+      EXCEPT c, and doing that naively per child is quadratic in the degree —
+      which on a star is quadratic overall and defeats the whole point. The two
+      repairs are prefix-and-suffix aggregates over the child list (always
+      available), or subtracting c's contribution when the aggregate is
+      invertible (available for sums, not for maxima). Knowing WHICH applies is
+      knowing whether the fold has an inverse, and that is the fact this node
+      carries.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.rerooting-principle"
+        - "cl-2.child-aggregation"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 4
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Excluding one child from an aggregate without recomputing it — by
+        prefix/suffix folds, or by inverting the fold where an inverse exists — is an algebraic
+        technique. The choice between them is decided by whether the aggregate has an inverse,
+        not by the language.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["prefix-suffix child aggregates", "leave-one-out aggregate", "invertible merge"]
+    notes: >-
+      This node is NOT excluded to CL-4 despite being about cost, and the
+      distinction is worth stating for the floor audit. T1 requires an
+      already-correct recurrence whose cost is reduced. The exclude-one-child
+      aggregate is not an acceleration of rerooting — it is a CONSTITUENT of it:
+      without it the up-value cannot be computed at all in the invertible-free
+      case, because the naive per-child recomputation is the thing rerooting
+      exists to avoid. A technique whose absence leaves no correct recurrence is
+      not an optimization of one.
+
+  - id: "cl-2.recognize-rerooting-applicability"
+    name: "Recognize when rerooting applies and when the aggregate forbids it"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. S1 no — judging invertibility is in service of a
+      choice, not an argument offered as the contribution. S2 no: the decision
+      is which FORMULATION to adopt (recompute per root vs reroot), taken before
+      either exists, not a speed-up of an existing one. S3 no. S4 no — "output
+      an answer for every vertex" is stated plainly, not hidden. S5 yes:
+      choosing the formulation under a cost constraint, which is the definition.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Decide whether a tree DP can be rerooted at all. Two conditions, both
+      easily assumed rather than checked: the problem must actually want a
+      per-root answer, and the child aggregate must be re-computable with one
+      child withheld. A learner acquires the check for the second — is the fold
+      invertible; if not, are prefix-suffix aggregates affordable — before
+      writing two passes that silently produce wrong up-values.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.rerooting-principle"
+        - "cl-2.exclude-one-child-aggregate"
+        - "cl-2.formulate-subtree-recurrence"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Whether the aggregate permits rerooting is an algebraic property of
+        the aggregate.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      C4 cited at survey level only. CAP-2 — no Codeforces id asserted.
+
+  - id: "cl-2.implement-rerooting-two-pass-dfs"
+    name: "Implement rerooting as two traversals"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no, S2 no (realizing a chosen formulation, not
+      accelerating an existing one), S3 no, S4 no, S5 no (applicability already
+      decided). S6 yes: the second pass's argument — what the parent must hand
+      each child — is derived from THIS problem's aggregate, and whether the
+      prefix-suffix arrays or a subtraction is used follows from this fold's
+      invertibility. Both are judgments about the specific recurrence, so S7 is
+      rejected: nothing here is fixed across problems.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Write the two passes: a post-order pass computing every down-value, then a
+      pre-order pass carrying each vertex's up-value to its children, combining
+      the parent's up-value with the parent's other children's down-values. The
+      per-vertex answer is the fold of its down-values with its up-value. The
+      implementation risk is that both passes look plausible and only the
+      up-value can be wrong.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.recognize-rerooting-applicability"
+        - "cl-2.exclude-one-child-aggregate"
+        - "cl-2.implement-tree-dp-post-order-dfs"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 7
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 0
+      implementation_load: 4
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — rerooting is TWO traversals of the same tree, so it meets JS-E1
+        twice, and the second pass is the harder conversion. The upward (post-order) pass has
+        the same problem as any tree DP: depth 2e5 on a path-shaped tree against a ~1e4
+        JavaScript cap, no raisable limit. The downward pass is worse: it carries a value from
+        parent to child, so the explicit-stack rewrite must push the parent's contribution onto
+        the stack alongside the vertex, whereas the recursion carried it implicitly in the frame
+        as an argument. The C++ default writes both passes as plain recursion and never
+        confronts this. In JavaScript both passes must be rewritten with explicit stacks, and
+        the downward one's per-frame payload must be made explicit — a genuine acquisition, at
+        exactly the tree sizes rerooting is FOR (rerooting exists to avoid the O(n^2) of
+        re-running the DP from every root, so it is only reached for when n is large — precisely
+        where the JavaScript stack fails).
+      mapper_note: >-
+        Observation only, NOT a verdict — OUT-5 (SUB-8) owns it. Rerooting is two full
+        traversals, so the recursion-depth exposure noted on cl-2.debug-tree-dp-recursion-depth
+        applies twice over. Recorded for SUB-8; this note is not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.debug-rerooting-self-inclusion"
+    name: "Diagnose a rerooting whose up-value includes the child's own subtree"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3. S1 no, S2 no — the up-values are WRONG, not slow. S3
+      yes: it starts from the signature symptom — the answer is right at the
+      original root and wrong everywhere else, or right for leaves and wrong for
+      internal vertices — and reasons back to the cause, a child's own
+      contribution leaking into the aggregate handed down to it. Later tests
+      unreached.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Localize the classic rerooting failure: the aggregate passed to child c
+      included c. The diagnostic a learner acquires is the differential — check
+      the root's answer against a single-pass tree DP, then check any other
+      vertex against a brute-force re-root of a small tree; agreement at the root
+      and disagreement elsewhere localizes the fault to the second pass alone,
+      which is otherwise very hard to see because both passes look right.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.implement-rerooting-two-pass-dfs"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 8
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An up-value that wrongly includes the child's own subtree is a logic
+        error in the exclusion step, with an identical signature in every language.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      Empty corpus_refs: systematic for `debugging` nodes. D-F2 limitation, see
+      cl-2.debug-item-reuse-from-loop-direction.
+
+  - id: "cl-2.prove-rerooting-correctness"
+    name: "Prove the two-pass rerooting equals the per-root recomputation"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1. The contribution is the argument: induction from the
+      root downward establishing that each vertex's up-value equals what a full
+      DP rooted at that vertex would compute for the complement of its subtree,
+      given the parent's up-value is correct. Asked first, answers yes; nothing
+      later is reached.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Argue that two passes and n passes agree. The argument needs an explicit
+      statement of what an up-value MEANS (the answer over the tree minus this
+      subtree, viewed from the parent's edge), and the induction is downward —
+      the opposite direction to the tree DP proofs a learner has met, which is
+      why it is a separate acquisition rather than a corollary.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.rerooting-principle"
+        - "cl-2.exclude-one-child-aggregate"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The equivalence argument is language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      Empty corpus_refs: systematic for `proof` nodes. See
+      cl-2.prove-zero-one-knapsack-correctness.
+
+  - id: "cl-2.recognize-tree-dp-under-an-unfamiliar-surface"
+    name: "Recognize a tree DP under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no, S2 no, S3 no. S4 yes: the statement names no
+      tree — it describes a company's reporting lines, a filesystem, a set of
+      tasks each with one prerequisite, an expression to be parsed, or n-1 roads
+      connecting n cities so that all are reachable. The last is the sharpest:
+      it defines a tree without using the word, and the recognition is exactly
+      "a known technique under an unfamiliar surface". Stops before S5 because
+      nothing is being chosen yet.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      See the tree where the statement hides it. The surface-invariant cues are
+      arithmetic (n vertices and n-1 edges, connected) and structural (every
+      element has exactly one parent; the relation is hierarchical and
+      acyclic). A learner also acquires the near-miss: n edges is a functional
+      graph and not a tree, and the family's methods do not carry over
+      unmodified — which is the bridge to this file's DAG section.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 2
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition is a structural act.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY, carried explicitly (NEU-887 R1). Asserts the
+      skill exists and is distinct; does NOT assert it is produced by acquiring
+      its prerequisites. No selected reference or corpus is evidence for that.
+      C4/C5 survey-level; CAP-2 — no Codeforces id asserted as verified.
+
+  # ===========================================================================
+  # D. DAG / GRAPH-SHAPED DP
+  # ===========================================================================
+  # Assigned to CL-2 by the NEU-935 spec. D-F4 §3.2 does not work this family as
+  # an example, so the cascade is run here explicitly: T1 no (the DP is being
+  # formulated, not accelerated); T2 no (a vertex id is not an exotic ENCODING —
+  # it is a plain index — and the family is not bound to a specialized domain
+  # with its own value semantics, which is what separates it from CL-3's
+  # automaton DP, where the state is an automaton node with matching semantics);
+  # T3 YES — the state is indexed over a DAG and respecting its reachability
+  # order is the entire difficulty. Lands in CL-2 without invoking Convention U2.
+  #
+  # This section carries the two AR-1 requests. Both are recorded in the
+  # depending node's `notes` with `status: "provisional"`, per the register.
+  # ===========================================================================
+
+  - id: "cl-2.dp-state-graph-is-a-dag"
+    name: "Every DP's state graph is a DAG"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The unifying fact of the whole map: a DP's states are vertices, its
+      transitions are edges, and the requirement that the recurrence be
+      well-founded is exactly the requirement that this graph be acyclic. Every
+      family in every cluster is DP over a DAG — the item prefix, the interval
+      containment order, and the rooted tree are all DAGs. What a learner
+      acquires is the retro-reading that makes the evaluation-order problem one
+      problem rather than one per family.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That every DP's state graph is acyclic is the definitional insight
+        that licenses the whole family.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["subproblem graph", "state graph", "DP as DAG traversal"]
+    notes: >-
+      This node is CL-2's and not a root, though it is arguably foundational —
+      recorded because a reader may expect it in the frozen root block. The
+      roots are frozen (D-S2) and SUB-4 may not add to them; more importantly it
+      is not a first principle but a RETROSPECTIVE unification that only means
+      something once several families are held, so it depends on the roots
+      rather than joining them. If SUB-2 disagrees, the route is a D-S2 ledger
+      challenge, not a local move.
+
+  - id: "cl-2.dp-on-an-explicit-dag"
+    name: "DP on an explicit DAG"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The family in which the DAG is not implied by the recurrence but GIVEN in
+      the input — vertices are the states, the input's edges are the
+      transitions, and the DP's value is defined per vertex. What is new
+      relative to every earlier family is that the state space is arbitrary
+      rather than derived, so nothing about the input suggests an evaluation
+      order and one must be computed rather than read off a loop.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.dp-state-graph-is-a-dag"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Running a DP over a graph that is already a DAG is the same
+        recurrence with the states given rather than derived.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["DAG DP", "DP over a given graph"]
+
+  - id: "cl-2.impose-topological-evaluation-order"
+    name: "Impose a topological evaluation order on a DAG DP"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade runs to S7, asserted deliberately (schema §2.1 warns S7 is the
+      stronger claim). S1 no, S2 no, S3 no, S4 no, S5 no — WHICH topological
+      order is used does not matter, and where there is no choice there is no
+      strategy. S6 no: the routine does not vary with the problem — compute a
+      topological order, iterate it, relax outgoing edges. Every DAG DP runs the
+      identical steps. That invariance is the S7 test, and it is what separates
+      this node from cl-2.implement-interval-dp-length-loop, where the loop
+      bounds are derived from the specific recurrence.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Give a DAG DP a valid evaluation order by computing a topological order of
+      the state graph and processing states along it — or, equivalently, by
+      memoizing and letting the recursion discover the order. What a learner
+      acquires is that the two are the same act: topological order is what
+      memoization computes implicitly, which is why top-down needs no ordering
+      step and bottom-up does.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.dp-on-an-explicit-dag"
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING, and it changes WHICH ALGORITHM is chosen — the sharpest form the
+        recursion cap takes. There are two standard ways to impose a topological order: a
+        recursive DFS with post-order emission, and Kahn's iterative in-degree BFS. In C++ they
+        are interchangeable and the DFS one is often preferred for brevity. In JavaScript they
+        are NOT interchangeable: the DFS recurses to the DAG's longest path, which on a
+        2e5-vertex DAG is up to 2e5 frames against a ~1e4 cap, so it does not run — while Kahn's
+        is a queue loop with O(1) stack depth and runs fine. So a choice that is stylistic in
+        C++ is a FEASIBILITY choice in JavaScript: the iterative algorithm is not merely the
+        safer option, it is the option. A downstream agent inheriting the C++ default's
+        indifference between the two would present a broken one as an equal alternative. (A
+        recursive DFS with an explicit stack is the third option and is also fine; the point is
+        that the naive recursion is not.)
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["topological sort DP", "processing states in topological order"]
+    notes: >-
+      *** AR-1 REQUEST IN FLIGHT — anchor.topological-order ***
+      This node has a genuine NON-DP prerequisite that is NOT in
+      boundary-register.yaml: topological ordering of a directed graph (Kahn's
+      algorithm / DFS finish order) and its correctness. Per route AR-1 the
+      dependency is recorded here and `status` is "provisional". It is NOT
+      invented as a local anchor, NOT faked as a `prerequisites.roots` edge, and
+      NOT declared as a cross_cluster_attachment — all three are AR-1-forbidden.
+      Why it is genuinely non-DP: it computes no recurrence and has no
+      optimal-substructure claim; the D-F4 §3 cascade does not own it (T1..T3
+      all reject; it is not a DP technique at all). Why it is above NEU-887's
+      elementary floor: unlike a bare DFS (see cl-2.root-an-unrooted-tree, where
+      SUB-4 judged the traversal to be AT the floor and did NOT open a request),
+      topological order is a named algorithm with a correctness argument that
+      the DP's validity rests on directly.
+      LEDGER: the D-S3 request belongs in
+      ../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md, which is
+      SUB-2's file. SUB-4 is sole writer of this file ONLY and cannot write the
+      ledger without breaking the ownership rule that makes the parallel fan-out
+      safe. The request is therefore carried here and surfaced in NEU-935's PR
+      for SUB-2/OUT-7. Named gap, named owner — not a defect to be discovered.
+
+  - id: "cl-2.longest-path-in-a-dag"
+    name: "Longest path in a DAG"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The canonical explicit-DAG DP, and the contrast that gives it its weight:
+      longest path is NP-hard on a general graph and linear on a DAG, and the
+      only thing that changed is acyclicity. That contrast is what a learner
+      acquires — acyclicity is not a technicality of the recurrence, it is the
+      entire reason the problem is tractable, which retroactively explains why
+      every DP formulation must establish it.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.dp-on-an-explicit-dag"
+        - "cl-2.impose-topological-evaluation-order"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The longest-path recurrence over a DAG folds maxima over
+        predecessors. Its evaluation order carries the JS-E1 verdict
+        (cl-2.impose-topological-evaluation-order, JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["critical path", "longest path DAG"]
+
+  - id: "cl-2.counting-paths-in-a-dag"
+    name: "Counting paths in a DAG"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The counting DP over an explicit DAG: the number of paths into a vertex is
+      the sum over its predecessors, with the source seeded at one. It closes a
+      loop the file opens in section A — the same state graph answers "the best
+      path" and "how many paths" under a different aggregate, now over an
+      arbitrary rather than a derived graph, which is where the aggregate-as-
+      parameter idea is at its most visible.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.dp-on-an-explicit-dag"
+        - "cl-2.impose-topological-evaluation-order"
+        - "cl-2.counting-vs-optimizing-objective"
+      roots: []
+      boundary_anchors:
+        - "anchor.modular-arithmetic@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 7
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as a RECURRENCE: summing predecessors' path counts is the technique,
+        and it is language-independent. Path counts do explode past 2^53, but this node states
+        the recurrence and the modular arithmetic that answers the explosion is written at
+        cl-2.implement-counting-dp-under-a-modulus, which carries the blocking JS-E2 verdict
+        (JS-D2). Cross-referenced, not silent. Held to the same line as
+        cl-2.implement-counting-dp-loop-nesting: the node that WRITES the modmul owns the
+        finding, so one hazard is recorded once.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["path counting", "number of paths in a DAG"]
+
+  - id: "cl-2.cyclic-state-dependency-breaks-dp"
+    name: "A cyclic state dependency breaks the recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That a state graph with a cycle has no well-founded recurrence — the
+      values are not defined by the transitions, they are only constrained by
+      them — and that this is a property of the FORMULATION rather than of the
+      problem. A cycle means the state was chosen wrongly, or that the problem
+      is a system of equations (expectation DP over a cyclic chain) or a
+      shortest-path problem rather than a DP. The failure mode a learner
+      acquires: a cycle in the states is not a bug to patch but a signal that
+      the formulation must change.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.dp-state-graph-is-a-dag"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That a cycle in the state graph invalidates the recurrence is the
+        definitional consequence of the DAG property. The DIAGNOSIS of a live one is where
+        JavaScript binds — cl-2.debug-cyclic-state-dependency (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["cyclic dependency", "ill-founded recurrence", "functional-graph cycle"]
+    notes: >-
+      The named escape route in which a cyclic expectation DP is solved as a
+      linear system is NOT mapped here: probability/expectation DP is CL-3's by
+      D-F4 §3.2 (T2, specialized domain semantics). CL-2 may link, not own —
+      residual_exclusions E11. C4 cited at survey level only; CAP-2 — no
+      Codeforces id asserted.
+
