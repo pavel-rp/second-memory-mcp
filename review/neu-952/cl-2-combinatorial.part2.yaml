@@ -1,0 +1,1221 @@
+  - id: "cl-2.reconstruct-knapsack-witness"
+    name: "Reconstruct the chosen item set from a knapsack table"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no, S2 no, S3 no — reconstruction is a
+      REQUIREMENT here, not a response to a symptom (its use as a debugging
+      instrument is a different node, cl-2.debug-item-reuse-from-loop-
+      direction, which depends on this one). S4 no, S5 no. S6 yes: realizing the
+      back-walk requires deciding what this DP must retain — the full table, or
+      a parent-choice array, or nothing at all if the walk can re-derive each
+      decision by comparison — which is a judgment about this recurrence, not a
+      fixed routine.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Recover a witness, not just an optimum: walk the table backwards from the
+      answering state, at each step deciding which incoming transition was
+      taken, and emit the item set. The idea a learner acquires is that the
+      table already contains the witness and the collapse to one array is what
+      destroys it — which is why the space-saving and the reconstruction
+      requirements conflict, and why that conflict must be resolved at
+      formulation time rather than discovered afterwards.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.zero-one-knapsack-recurrence"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recovering the chosen item set is an iterative walk backwards
+        through the table — O(1) stack depth, so JS-E1 does not bind — reading a table whose
+        container verdict belongs to the node that builds it (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["path reconstruction", "witness recovery", "traceback"]
+
+  - id: "cl-2.recognize-knapsack-under-an-unfamiliar-surface"
+    name: "Recognize a knapsack under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no, S2 no, S3 no. S4 yes and this is the defining
+      test: the problem does not mention items, weights, or a bag — it asks
+      whether a set can be split into two equal halves, or how many ways a
+      target can be hit, or whether jobs fit two machines. The DP is the same;
+      the SURFACE is unrelated. This is precisely "recognizing a known technique
+      under an unfamiliar surface", and it stops before S5 because there is no
+      choice being made — there is a recognition happening, after which the
+      choice (S5, cl-2.select-knapsack-variant) becomes possible.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      See the selection-under-a-bound structure in a statement that names none
+      of it: equal-sum partition (a subset-sum to half the total), machine
+      scheduling, "can these ropes make exactly L", counting representations.
+      What a learner acquires is a set of surface-invariant cues — a bounded
+      integral resource, an independent per-item decision, an aggregate
+      objective — rather than a list of problem names.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subset-sum-feasibility"
+        - "cl-2.item-selection-state-space"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 2
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition is a structural act.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY, carried explicitly per node (NEU-887 R1). This
+      node asserts the skill EXISTS and is distinct from selecting a variant. It
+      does NOT assert that mapping it as a node, or teaching its prerequisites,
+      produces it in a learner — no selected reference or corpus is evidence for
+      that, and NEU-887's DP-transfer gap is not closed by this map. A
+      downstream progression (SUB-7/OUT-3) that treats this node as reachable by
+      completing its prerequisites is making a claim this map does not support.
+      corpus_refs cite C4 as SURVEY-LEVEL only: F-C-4 records that frontier
+      material appears as compositions, and CAP-2 forbids asserting any
+      Codeforces id as verified. No id is asserted here.
+
+  # ===========================================================================
+  # B. INTERVAL / RANGE DP
+  # ===========================================================================
+  # D-F4 §3.2 assigns interval DP to CL-2 by name and by T3: "Indexed over
+  # intervals — a nontrivial structure." Uncontested. The optimizations that ride
+  # on it (Knuth/quadrangle, divide-and-conquer) are CL-4's by T1 — that is
+  # D-F4 §3.1's central worked example, and residual_exclusions E1/E2 record it.
+  # ===========================================================================
+
+  - id: "cl-2.interval-indexed-state-space"
+    name: "Interval-indexed state space"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The state space whose subproblems are contiguous ranges of a sequence,
+      identified by their two endpoints, and the structural claim that makes it
+      DP: a range's answer depends only on the answers of ranges strictly
+      contained in it, so containment gives a partial order with no cycles. What
+      a learner acquires is the shift from "index into the sequence" to "a
+      subproblem IS a subrange" — the first state in the map that is not a
+      position.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.overlapping-subproblems"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 3
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An interval-indexed state is a modelling fact.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C3"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["range DP state", "substring DP state"]
+
+  - id: "cl-2.interval-split-recurrence"
+    name: "Interval split recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The recurrence that minimizes or maximizes over every way of cutting a
+      range into two adjacent subranges, plus a cost of joining them, and the
+      cubic complexity that follows from three nested ranges of parameters. The
+      shape is the family's signature: two endpoints indexing the state, one
+      split point enumerated inside the transition.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-indexed-state-space"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Splitting an interval and folding over the split point is
+        language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["range merge recurrence", "O(n^3) interval DP"]
+
+  - id: "cl-2.split-point-semantics"
+    name: "What the split point means: the last-operation view"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That the enumerated split is not "where to cut" but "which operation
+      happens LAST" — the final multiplication in a matrix chain, the root of a
+      subtree in an optimal BST, the last merge of two piles. The re-reading is
+      what makes an interval DP derivable rather than memorized, because "the
+      last thing that happens partitions the rest into independent halves" is
+      the optimal-substructure argument in this family, stated concretely.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-split-recurrence"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The last-operation view is an interpretive insight about what the
+        split means.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["last-operation decomposition", "final-move view"]
+
+  - id: "cl-2.formulate-interval-dp"
+    name: "Formulate an interval DP: choose the endpoints and the joining cost"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. S1 no — no argument (that is
+      cl-2.prove-interval-dp-correctness). S2 no — no recurrence exists yet, so
+      nothing can be accelerated; this rejection is the boundary that keeps
+      Knuth's optimization in CL-4 and this node in CL-2. S3 no. S4 no — the
+      range structure is visible in the statement (seeing it when it is NOT is
+      cl-2.recognize-interval-dp-under-an-unfamiliar-surface). S5 yes: deciding
+      whether the state is a closed range, a half-open one, or a range plus an
+      operation count, and deciding what the join costs, is choosing among
+      candidate formulations under a correctness constraint.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Given a problem about combining adjacent things, produce a concrete
+      formulation: fix the endpoint convention and hold it (the off-by-one here
+      is not a typo, it is a formulation error that propagates into every base
+      case), decide what a range's value means when the range is empty or a
+      singleton, and identify the joining cost as a function of the two halves.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.split-point-semantics"
+        - "cl-2.interval-split-recurrence"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C3"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.interval-evaluation-order-by-length"
+    name: "Interval DP is evaluated by increasing length"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That the containment order which makes the recurrence acyclic is realized
+      concretely by iterating ranges in increasing length, and that the natural
+      row-major order over the endpoint table does NOT respect it — a range's
+      dependencies are shorter ranges, which are scattered across the table
+      rather than adjacent to it. This is the first place in the map where the
+      evaluation order is not the obvious loop order, and knowing why is what
+      generalizes to the tree and DAG families.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-indexed-state-space"
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 2
+      transition_derivation_load: 1
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That shorter intervals must be evaluated before longer ones is a
+        dependency fact about the recurrence.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["length-first iteration", "increasing-span order"]
+
+  - id: "cl-2.implement-interval-dp-length-loop"
+    name: "Implement an interval DP over a length-major loop"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no, S2 no (making it run, not faster), S3 no, S4
+      no, S5 no (the formulation is chosen). S6 rather than S7: the loop bounds
+      must be derived from THIS formulation's endpoint convention and base-case
+      span, and the split enumeration's range depends on whether the convention
+      is closed or half-open — judgments about the specific recurrence, which is
+      the schema §2.1 test for S6. Not S7: nothing here is a fixed idiom.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Realize the recurrence bottom-up: outer loop over span, inner over the
+      left endpoint with the right derived, innermost over the split, with the
+      base cases seeded at the smallest span. Or, equivalently and often more
+      safely, realize it top-down and let recursion discover the order — a
+      choice the learner should make deliberately rather than by habit.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-evaluation-order-by-length"
+        - "cl-2.formulate-interval-dp"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — this is the node that writes the n^2 table and the O(n^3) loop nest, and the
+        container decision is JavaScript's to make. C++'s vector<vector<int>> gives unboxed
+        contiguous rows for free; the direct JavaScript translation gives a boxed outer array of
+        boxed inner arrays, read in the innermost loop of a cubic algorithm — the worst place to
+        pay a pointer chase and an unboxing. The JavaScript idiom is a flat Int32Array with i *
+        n + j addressing. Recorded here rather than on cl-2.interval-evaluation-order-by-length
+        because the order is a dependency fact and the table is a written artifact (JS-D2).
+        Deliberate non-claim on JS-E1: the length-major loop is ITERATIVE, so it is exactly the
+        realization that sidesteps the recursion cap — which is worth stating, because the
+        memoized top-down alternative a C++ author might reach for instead does not sidestep it.
+        Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C3"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.debug-interval-order-violation"
+    name: "Diagnose an interval DP that reads uncomputed states"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3. S1 no, S2 no — the DP is wrong, not slow. S3 yes: it
+      begins with a symptom (an answer built from base-case-valued or
+      zero-valued states; a result that is right for small n and wrong for
+      large; a top-down version that agrees and a bottom-up one that does not)
+      and reasons back to an evaluation order that violates containment. Later
+      tests unreached.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Recognize the specific signature of an order violation — the table is
+      fully populated, no index is out of bounds, nothing crashes, and the
+      answer is silently built on unfinished states — and localize it by
+      comparing against a memoized version that cannot violate the order. The
+      technique a learner acquires is the differential: an order bug is exactly
+      the bug that top-down cannot have.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.implement-interval-dp-length-loop"
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E9", "JS-E5"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — the symptom this node diagnoses has a container-dependent signature in
+        JavaScript that has no C++ counterpart. The bug is reading a state not yet computed. In
+        C++ the table is a zero-initialized vector, so the read returns 0 and the wrong answer
+        is a too-small optimum — one signature, always. In JavaScript the signature DEPENDS ON
+        THE CONTAINER CHOICE (JS-E5), which the author made for performance reasons and now
+        discovers has changed their debugging: a plain Array yields undefined, so the arithmetic
+        yields NaN and the wrongness SPREADS and is loud, visible immediately and traceable to
+        the first bad read; an Int32Array yields a silent 0, indistinguishable from a
+        legitimately computed zero, so the wrongness is quiet and looks like a modelling error
+        rather than an ordering error. A downstream agent must teach both signatures and must
+        teach that the container decides which one the learner will see. That is a
+        JavaScript-specific differential the inherited C++ taxonomy does not contain.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      Empty corpus_refs: systematic for `debugging` nodes — see
+      cl-2.debug-item-reuse-from-loop-direction's note. D-F2 limitation.
+
+  - id: "cl-2.prove-interval-dp-correctness"
+    name: "Prove an interval DP correct by induction on span"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1. The contribution is the argument: strong induction on
+      the span, with the inductive step supplied by the last-operation
+      decomposition (some operation is last; it partitions the range into two
+      strictly shorter ones; those are optimal by hypothesis; the enumeration
+      considers every candidate for last). No later test is reached.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Argue that enumerating splits yields the optimum: establish that every
+      solution HAS a last operation (an exhaustiveness claim about the solution
+      space, and the step that is usually skipped), that it induces the split,
+      and that the halves are independent given it. Independence is where real
+      interval problems fail this argument — and recognizing the failure is what
+      forces an augmented state, which is the boundary-context node below.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.split-point-semantics"
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Induction on span is language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      Empty corpus_refs: systematic for `proof` nodes — no selected corpus
+      grades an argument. See cl-2.prove-zero-one-knapsack-correctness.
+
+  - id: "cl-2.matrix-chain-recurrence"
+    name: "Matrix-chain multiplication recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The canonical interval DP: parenthesize a chain of matrix products to
+      minimize scalar multiplications, where a range's cost is the best split's
+      two subcosts plus the cost of the final product, itself determined by the
+      dimensions at the range's boundary. Its instructive property is that the
+      joining cost depends only on the range's endpoints and the split — the
+      simplest possible join, which is why the family is usually taught here
+      first.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-split-recurrence"
+        - "cl-2.split-point-semantics"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The recurrence minimizes over split points; its costs are triple
+        products of matrix dimensions, which the problems that pose it keep well inside 2^53.
+        Deliberate non-claim: no JS-E2 assertion, because the dimensions are small by
+        construction.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["matrix chain order", "optimal parenthesization"]
+
+  - id: "cl-2.optimal-bst-recurrence"
+    name: "Optimal binary search tree recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The weighted interval DP in which the split point is the subtree ROOT and
+      the joining cost is the total access frequency of the range — so choosing
+      a root pushes every key in the range one level deeper, and the cost is a
+      sum over the range rather than a function of its endpoints. It is the
+      family's second shape and the reason the family is more than matrix chain:
+      the join now depends on the range's CONTENTS.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-split-recurrence"
+        - "cl-2.split-point-semantics"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The weighted-search-cost recurrence sums probabilities or
+        frequencies over an interval. Language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C3", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["optimal BST", "Knuth's optimal binary search tree"]
+    notes: >-
+      This node is the RECURRENCE. Knuth's optimization — the monotone-split
+      acceleration that reduces exactly this recurrence from cubic to quadratic
+      — is CL-4's node (D-F4 §3.2 by name, T1). SUB-6 is expected to declare a
+      cross-cluster attachment INTO this node or into
+      cl-2.interval-split-recurrence; the schema's own worked example
+      (03_per-node-record-template.md §6) uses `to_name: "Interval DP"`. SUB-4
+      deliberately does NOT declare the mirror `required-by` here: the schema
+      §4.3 says declare from your own side only, and a mirrored pair would
+      surface to the cycle audit as a false cycle. residual_exclusions E1.
+
+  - id: "cl-2.palindromic-interval-dp"
+    name: "Palindromic range DP"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The range DP over a string in which a range's value depends on whether its
+      two boundary characters match — longest palindromic subsequence, minimum
+      insertions to make a palindrome, palindrome partitioning. Its shape is a
+      genuine variant, not an instance of the split recurrence: the transition
+      peels the two ENDS rather than enumerating an interior split, so it is
+      quadratic rather than cubic and the "last operation" is at the boundary.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-indexed-state-space"
+        - "cl-2.interval-evaluation-order-by-length"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-2.palindromic-interval-dp->cl-1.lcs-dp"
+        from: "cl-2.palindromic-interval-dp"
+        to_cluster: "CL-1"
+        to_node: "cl-1.lcs-dp"
+        to_name: "Longest common subsequence DP"
+        relation: "requires"
+        rationale: >-
+          The standard derivation of longest palindromic subsequence IS the LCS
+          of the string with its reverse, and the end-peeling transition is the
+          LCS transition read on one string from both sides. A learner meets
+          this family through that identification; the reduction is the content,
+          and it cannot be acquired without holding LCS first. CL-1 owns LCS
+          (a plain index tuple over a rectangular domain, T4). Declared, not
+          drawn: SUB-12 owns realization.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Palindromic range recurrences compare characters and fold small
+        counts.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["longest palindromic subsequence", "palindrome partitioning DP"]
+    contested_by: ["CL-1"]
+    notes: >-
+      contested_by CL-1 and the claim is real: if the DP is read as LCS-on-
+      reverse it is a plain two-index table over a rectangular domain (T4 ->
+      CL-1); if it is read as a range DP whose state is the substring it is T3
+      -> CL-2. Both readings describe the same table. Assigned CL-2 because the
+      end-peeling formulation — the one that generalizes to minimum-insertions
+      and to partitioning, neither of which is an LCS — indexes over ranges.
+      Carried, not smoothed. Route: D-F4a challenge (U4).
+      PREDICTION VERIFIED POST-HOC: authored blind as "cl-1.longest-common-
+      subsequence"; corrected against merged CL-1 (NEU-934) to `cl-1.lcs-dp`
+      / "Longest common subsequence DP". Confidence was already "named" and the
+      target exists, so the claim stands as made — only the id string moved.
+
+  - id: "cl-2.interval-state-with-boundary-context"
+    name: "Interval state augmented with boundary context"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That a range's endpoints are sometimes NOT a sufficient state, because
+      what happens inside a range depends on what survives outside it or on what
+      has already been removed around it — burst balloons, removing boxes,
+      merging with a carried count. The repair is a third state axis carrying
+      the boundary context, and the fact a learner acquires is diagnostic: when
+      the two halves of a split are NOT independent given the split, the state
+      is under-specified and the recurrence is wrong rather than merely slow.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-split-recurrence"
+        - "cl-2.split-point-semantics"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 4
+      transition_derivation_load: 4
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Augmenting the state with boundary context is a modelling device; it
+        multiplies the state count, which is a complexity fact, not a language fact.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["3D interval DP", "interval DP with an extra dimension", "remove-boxes pattern"]
+    notes: >-
+      corpus_refs cite C4 at SURVEY level only. CAP-2: no Codeforces id is
+      asserted as verified anywhere in this file.
+
+  - id: "cl-2.augment-an-insufficient-interval-state"
+    name: "Augment an interval state that is not sufficient"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. S1 no — establishing that the halves are dependent is
+      an argument in service of a decision, not the contribution itself. S2 no
+      — the recurrence is not correct-but-slow, it is WRONG, so there is nothing
+      to accelerate. S3 no, and this rejection is the sharp one: this is not
+      diagnosing a symptom, it is anticipating insufficiency AT FORMULATION time
+      by asking whether the halves are independent. (Meeting it as a symptom is
+      cl-2.debug-interval-order-violation's neighbour and not this node.) S4 no.
+      S5 yes: choosing what the state must additionally capture, and what it may
+      still safely forget, under a correctness constraint.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Detect that endpoints alone under-determine a range's answer, and repair
+      the formulation by carrying the minimum additional context — no more,
+      because every axis multiplies the table. The judgment is the whole skill:
+      the naive repair (carry everything relevant) is always correct and usually
+      intractable, and the acquisition is finding the smallest sufficient
+      augmentation.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-state-with-boundary-context"
+        - "cl-2.prove-interval-dp-correctness"
+        - "cl-2.formulate-interval-dp"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 4
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Diagnosing insufficiency and choosing the augmentation is a
+        modelling act.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.reconstruct-interval-witness"
+    name: "Reconstruct the optimal parenthesization from an interval table"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no, S2 no, S3 no (a requirement, not a symptom),
+      S4 no, S5 no. S6 yes: recovering the structure requires deciding what to
+      retain — the argmin split per range, or a re-derivation by comparison —
+      and emitting a nested structure rather than a flat set, which is a
+      judgment about this recurrence rather than a fixed routine.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Walk the table to emit the actual grouping — the parenthesization, the
+      merge order, the BST — rather than only its cost, by recursing on the
+      stored split of each range. The distinction from the knapsack witness is
+      real and is why this is its own node: the output is a TREE recovered from
+      a table indexed by ranges, not a subset, so the walk is recursive on both
+      halves rather than a single back-chain.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.implement-interval-dp-length-loop"
+        - "cl-2.split-point-semantics"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral, and deliberately so despite being a recursive walk. The
+        parenthesization is recovered by recursing on the two halves of each split, so the depth
+        is bounded by the interval nesting — and interval DP's own O(n^3) budget caps n at the
+        low thousands, putting the depth around 1e3 at worst against a cap on the order of 1e4
+        (JS-E1). The recursion is real but the cubic time bound forecloses the sizes that would
+        make it dangerous. This is a non-claim on JS-E1 stated explicitly rather than left
+        silent: the technique's own complexity, not the language, is what keeps it safe.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.recognize-interval-dp-under-an-unfamiliar-surface"
+    name: "Recognize an interval DP under an unfamiliar surface"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no, S2 no, S3 no. S4 yes: the statement mentions
+      no ranges and no splits — it describes bursting balloons, merging piles of
+      stones, removing coloured boxes, or scoring a game played from both ends
+      of a row. The range structure is present only after the reader notices
+      that every operation acts on a contiguous survivor of previous
+      operations. That noticing is the recognition of a known technique under an
+      unfamiliar surface, and it stops before S5 because no formulation is being
+      chosen yet.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      See "contiguous subrange" where the statement says something else. The
+      surface-invariant cue is that operations destroy or consume elements in a
+      way that leaves the remainder contiguous — which is what makes the
+      surviving fragment describable by two endpoints. A learner acquires the
+      cue and its counter-case: when removals leave a non-contiguous remainder,
+      the family does not apply and reaching for it wastes the contest.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.interval-indexed-state-space"
+        - "cl-2.split-point-semantics"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition is a structural act.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4", "C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY, carried explicitly (NEU-887 R1). The node
+      asserts the skill exists and is distinct from formulating. It does NOT
+      assert the skill is produced by acquiring its prerequisites — no selected
+      reference or corpus is evidence for that. C4/C5 refs are survey-level;
+      CAP-2 — no Codeforces id asserted as verified.
+
+  # ===========================================================================
+  # C. TREE DP (INCLUDING REROOTING)
+  # ===========================================================================
+  # D-F4 §3.2 assigns tree DP / rerooting to CL-2 by name and by T3: "The tree is
+  # the state's index; respecting it is the difficulty." Uncontested.
+  # ===========================================================================
+
+  - id: "cl-2.subtree-indexed-state-space"
+    name: "Subtree-indexed state space"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      The state space whose subproblem is "the subtree rooted at v", and the two
+      facts that make it the friendliest structured family: rooting the tree
+      induces a containment order with no cycles for free, and a subtree's
+      answer depends only on its children's — so the whole DP is one traversal
+      and the evaluation-order problem that dominates interval DP disappears.
+      What a learner acquires is that the tree IS the recursion, rather than a
+      structure the recursion must be fitted to.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.optimal-substructure"
+        - "cl-1.root.overlapping-subproblems"
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 2
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That a subtree is a state is a modelling fact. The traversal that
+        visits them is where JavaScript binds, and that verdict is on
+        cl-2.implement-tree-dp-post-order-dfs (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["tree DP state", "DP over subtrees"]
+
+  - id: "cl-2.root-an-unrooted-tree"
+    name: "Root an unrooted tree"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade runs to S7, and S7 is asserted rather than defaulted to — the
+      schema §2.1 warns that S7 is the stronger claim and that doubt should send
+      a node to S6, so the claim is made deliberately. S1 no, S2 no, S3 no, S4
+      no, S5 no (which vertex is picked does not matter — that is precisely the
+      point). S6 no: nothing here varies with the problem. Pick any vertex, run
+      one traversal, record parent and children, never revisit the parent. The
+      steps are identical for every tree DP ever written; no judgment about this
+      specific problem enters. That invariance IS the S7 test.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Turn an undirected acyclic input into the rooted structure the DP needs:
+      pick an arbitrary vertex, traverse, and record each vertex's parent so the
+      adjacency list can be read as a child list. Small, mechanical, and its own
+      node because it is a real precondition a learner executes before every
+      tree DP and can execute wrongly — most commonly by recursing back into the
+      parent and turning a tree into an infinite walk.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 2
+      recognition_load: 1
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — rooting is a traversal, and the recursive traversal that is the
+        C++ default does not survive the JavaScript stack at competitive tree sizes. The C++
+        idiom is a recursive DFS assigning parents and depths; on a path-shaped tree with n =
+        2e5 it descends 2e5 frames, which the default 8 MB process stack absorbs and which
+        judges routinely raise further. JavaScript's cap is on the order of 1e4 frames and there
+        is NO equivalent knob a submitted solution can set — V8's --stack-size is a host flag,
+        not something the program controls. A path-shaped tree is the standard adversarial
+        input, not an exotic one, so the failure is expected rather than unlucky. The JavaScript
+        realization must therefore root the tree with an EXPLICIT stack (or a BFS order) — not
+        as a stylistic preference but as the only form that runs. This node is upstream of every
+        tree-DP node in the cluster, so the effect propagates.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["parent assignment", "orienting a tree"]
+    notes: >-
+      Depends on a general graph traversal, which is NOT a registered anchor.
+      Not routed through AR-1: unlike topological order (see
+      cl-2.impose-topological-evaluation-order), a single DFS over an adjacency
+      list sits AT OR BELOW NEU-887's elementary-data-structures floor, and the
+      register's rule admits an anchor only if it is ABOVE that floor. Recorded
+      here so the floor audit can see the judgment was made rather than missed.
+      If SUB-2 disagrees, this becomes a third AR-1 request.
+
+  - id: "cl-2.formulate-subtree-recurrence"
+    name: "Formulate a subtree recurrence: decide what a subtree must summarize"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. S1 no (that is the proof nodes), S2 no (nothing
+      correct exists yet to accelerate), S3 no, S4 no (the tree is given in the
+      statement). S5 yes and it is the heart of the family: choosing WHAT a
+      subtree reports upward — a single optimum, an optimum per boundary
+      condition, a whole vector indexed by size — is choosing among candidate
+      formulations under a correctness-and-cost constraint, and it is where tree
+      problems are actually won or lost.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Decide the contract between a subtree and its parent: what a child must
+      report so that the parent can decide without looking inside it. The
+      discipline a learner acquires is to ask "what does my parent need to know
+      about me, and what may it safely not know" — which is the
+      forget-what-you-can principle of state design, made concrete by a
+      structure that enforces it.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+        - "cl-2.child-aggregation"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+        - "cl-1.root.recognize-optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Deciding what a subtree must summarize is a modelling act.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C3"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+
+  - id: "cl-2.child-aggregation"
+    name: "Child aggregation"
+    node_kind: "knowledge"
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      That a tree DP's transition is a fold over an arbitrary-arity child list
+      rather than a fixed-arity expression, and what follows: the combining
+      operation must be associative and commutative in the child order (the
+      children have no order), and the identity of that fold is the leaf base
+      case. Recognizing the fold is what lets a learner write the transition
+      once for binary and general trees alike.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.subtree-indexed-state-space"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Combining children's values into a parent's is a fold defined by the
+        problem.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["combining children", "merge over children"]
+
