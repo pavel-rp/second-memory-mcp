@@ -83,9 +83,12 @@
 # YAML: 1.2 core schema. All string enums quoted.
 #
 # ADDITIVE TOP-LEVEL KEYS — flagged, not slipped in silently.
-#   The schema fixes `nodes`; everything else at the top level of this file is
-#   ADDITIVE and is NOT part of D-S1's ratified shape. A validator (INC-S2) may
-#   reject an unknown key, so a consumer must not assume any of these is ratified:
+#   This file has 18 top-level keys. FOUR of them — schema_version, cluster,
+#   map_version, nodes — are the ones every sibling cluster node file also carries,
+#   and are not in question here. The OTHER FOURTEEN, listed in full below, are
+#   ADDITIVE and are NOT part of D-S1's ratified shape: the schema fixes `nodes`,
+#   and a validator (INC-S2) may reject an unknown key, so a consumer must not
+#   assume any of these fourteen is ratified:
 #     residual_exclusions, residual_exclusion_count, scope_boundary,
 #     carried_conflicts, prototype_disposition, self_check, ar1_requests,
 #     out6_endpoints, cl1_id_resolution, node_count, node_kind_breakdown,
@@ -96,9 +99,10 @@
 #   rationale, and the mapper may write no file but this one. Those two files reached
 #   the SAME key name independently, which is evidence the key belongs in D-S1 rather
 #   than being local improvisation — SUB-2's call, not a mapper's.
-#   This file carries MORE additive keys than either sibling, so the whole set is
-#   listed rather than just `residual_exclusions`: naming one of fourteen would
-#   replace a missing warning with a misleading one.
+#   This file carries MORE additive keys than either sibling (cl-2-combinatorial.yaml
+#   has 6 top-level keys to this file's 18), so the whole set is listed rather than
+#   just `residual_exclusions`: naming one of fourteen would replace a missing
+#   warning with a misleading one.
 #   Flagged for SUB-2 / OUT-7. None of these keys is claimed as ratified here.
 # =============================================================================
 #
