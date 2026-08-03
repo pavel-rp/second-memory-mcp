@@ -642,8 +642,8 @@ nodes:
       structural change that licenses it: the transition for capacity w reads
       the state at w minus the item's weight for the SAME item set rather than
       the prefix without it. The item axis stops being a prefix of decisions and
-      becomes a choice of "which item to use next", which is why the state loses
-      a dimension.
+      becomes a choice of "which item to use next", which is what LICENSES the
+      collapse to one dimension — an available optimization, not a forced one.
     prerequisites:
       intra_cluster:
         - "cl-2.item-selection-state-space"
@@ -1641,11 +1641,11 @@ nodes:
       severity: "performance"
       rationale: >-
         MATERIAL — this is the node that writes the n^2 table and the O(n^3) loop nest, and the
-        container decision is JavaScript's to make. C++'s vector<vector<int>> gives unboxed
-        contiguous rows for free; the direct JavaScript translation gives a boxed outer array of
-        boxed inner arrays, read in the innermost loop of a cubic algorithm — the worst place to
-        pay a pointer chase and an unboxing. The JavaScript idiom is a flat Int32Array with i *
-        n + j addressing. Recorded here rather than on cl-2.interval-evaluation-order-by-length
+        container decision is JavaScript's to make. C++'s vector<vector<int>> is also a row-of-rows,
+        not one contiguous table, though its rows hold unboxed ints; the JavaScript translation can
+        additionally box the elements, read in the innermost loop of a cubic algorithm — a bad place
+        to pay a pointer chase and a possible unboxing. The JavaScript idiom is a flat Int32Array
+        with i * n + j addressing. Recorded here rather than on cl-2.interval-evaluation-order-by-length
         because the order is a dependency fact and the table is a written artifact (JS-D2).
         Deliberate non-claim on JS-E1: the length-major loop is ITERATIVE, so it is exactly the
         realization that sidesteps the recursion cap — which is worth stating, because the
@@ -1706,9 +1706,9 @@ nodes:
       severity: "idiom-shift"
       rationale: >-
         MATERIAL — the symptom this node diagnoses has a container-dependent signature in
-        JavaScript that has no C++ counterpart. The bug is reading a state not yet computed. In
-        C++ the table is a zero-initialized vector, so the read returns 0 and the wrong answer
-        is a too-small optimum — one signature, always. In JavaScript the signature DEPENDS ON
+        JavaScript with no routine C++ counterpart. The bug is reading a state not yet computed.
+        In C++ the table is typically a zero-initialized vector, so the read returns 0 and the
+        wrong answer is a too-small optimum — usually one signature. In JavaScript it DEPENDS ON
         THE CONTAINER CHOICE (JS-E5), which the author made for performance reasons and now
         discovers has changed their debugging: a plain Array yields undefined, so the arithmetic
         yields NaN and the wrongness SPREADS and is loud, visible immediately and traceable to
@@ -2306,8 +2306,8 @@ nodes:
         MATERIAL AND BLOCKING — rooting is a traversal, and the recursive traversal that is the
         C++ default does not survive the JavaScript stack at competitive tree sizes. The C++
         idiom is a recursive DFS assigning parents and depths; on a path-shaped tree with n =
-        2e5 it descends 2e5 frames, which the default 8 MB process stack absorbs and which
-        judges routinely raise further. JavaScript's cap is on the order of 1e4 frames and there
+        2e5 it descends 2e5 frames, which a typical 8 MB process stack absorbs and which some judges
+        raise further — platform-dependent, not guaranteed. JavaScript's cap is ~1e4 frames and there
         is NO equivalent knob a submitted solution can set — V8's --stack-size is a host flag,
         not something the program controls. A path-shaped tree is the standard adversarial
         input, not an exotic one, so the failure is expected rather than unlucky. The JavaScript
@@ -2483,8 +2483,8 @@ nodes:
         MATERIAL AND BLOCKING — the flagship recursion finding of this audit. This node writes
         the post-order DFS, and the post-order DFS is exactly the shape JavaScript cannot run at
         competitive sizes. C++'s recursive post-order on a tree of n = 2e5 reaches depth 2e5 on
-        a path-shaped tree; the default 8 MB stack absorbs it, and judges raise the limit for
-        the cases that need more. JavaScript throws RangeError: Maximum call stack size exceeded
+        a path-shaped tree; a typical 8 MB stack absorbs it and some judges raise the limit
+        further, platform-dependent. JavaScript throws RangeError: Maximum call stack size exceeded
         at a depth on the order of 1e4 — an order of magnitude BELOW the input sizes this
         technique routinely meets — and a submitted program cannot raise the limit. So the
         recursive realization is not slow in JavaScript, it does not run at all on the standard
@@ -2550,8 +2550,8 @@ nodes:
         MATERIAL AND BLOCKING — this node IS the recursion-depth node, and both its threshold
         and its signature are language-specific. It diagnoses a tree DP that dies on a
         path-shaped tree. In C++ that death is a SEGFAULT (or a silent stack smash) at a depth
-        on the order of 1e5-1e6, and the standard fix is to raise the stack limit — an option
-        that exists. In JavaScript it is a NAMED, CATCHABLE RangeError: Maximum call stack size
+        that is platform-dependent (often ~1e5-1e6), and raising the stack limit is an option
+        that may exist. In JavaScript it is a NAMED, CATCHABLE RangeError: Maximum call stack size
         exceeded at a depth on the order of 1e4, and raising the limit IS NOT AN OPTION for a
         submitted program, so the only fix is the explicit-stack rewrite
         (cl-2.implement-tree-dp-post-order-dfs). Three things a downstream agent must therefore
@@ -3861,8 +3861,9 @@ nodes:
 # defining contribution is (D-F4 §3). Nothing here is dropped: each names the
 # cluster and sub-task that owns it.
 #
-# `disposition` values: "owned-elsewhere" (the cascade assigns it to a named
-# sibling cluster) | "not-dp" (outside the partition's domain entirely).
+# `disposition` values in use: "owned-by-sibling-cluster" (the cascade assigns it
+# to a named sibling cluster) | "scoped-out-with-rationale" (kept out of the node
+# set for a recorded reason rather than reassigned to a sibling cluster).
 # =============================================================================
 residual_exclusions:
 
