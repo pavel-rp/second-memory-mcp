@@ -66,7 +66,7 @@ This verdict replaces the pre-probe `[INFERENCE — not proven]` label the chart
 
 This rests on a direct observation and nothing else: probe C presented 1,215 added lines in one file and the reviewer resolved it, producing both an overview and a line-anchored finding. That observation stands on its own — **it remains true and usable regardless of whether Verdict 1's account of the cause is correct.**
 
-- **Recommended unit: ~1,200 added lines per file**, which sits roughly 700 lines below the lowest observed non-resolving measurement and therefore carries real margin.
+- **Recommended unit: ~1,200 added lines per file.** It carries real margin on either referent: roughly **985 lines** below the lowest observed non-resolving measurement (2,185, PR 618), and roughly **690 lines** below the lower edge of the boundary interval (1,893, the largest measurement observed to resolve).
 - **Largest size observed to resolve in this series: 1,893 added lines.** Usable, but it sits directly against the lower edge of the boundary interval and leaves no margin; ~1,200 is the safer unit.
 
 The floor was never reached. The brief's ~200-line floor branch — "no chunk size obtains a review" — **did not occur**, so OUT-3's method has a landing site and needs no re-scoping. SUB-11, SUB-12 and SUB-13 are unblocked.
