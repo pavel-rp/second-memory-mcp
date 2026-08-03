@@ -45,7 +45,11 @@ The subject file is **3,368 lines** on `develop` at `ea5910c` — larger than th
 
 1146 + 1091 + 1131 = **3368** — the whole file, with no gap and no overlap.
 
-**Evidence that files resolved.** Each of the three reviews produced a **pull-request overview naming the real path** and describing the specific node content in that chunk — PR 649 named the header, the frozen root block and the nodes through `cl-1.best-ending-at-index-state-pattern`; PR 650 named the 1D/2D linear, prefix-aggregate and grid-path nodes; PR 651 named the counting/LIS/edit-distance/Kadane nodes and the `residual_exclusions` block. Each also anchored at least one finding to a specific line of `docs/research/C005-dp-map/nodes/cl-1-foundational.yaml`, which is only possible if the file resolved. **The "wasn't able to review any files" failure did not recur on any chunk.**
+**Evidence that files resolved.** Each of the three reviews produced a **pull-request overview describing the specific node content in that chunk** — PR 649 named the header, the frozen root block and the nodes through `cl-1.best-ending-at-index-state-pattern`; PR 650 named the 1D/2D linear, prefix-aggregate and grid-path nodes; PR 651 named the counting/LIS/edit-distance/Kadane nodes and the `residual_exclusions` block.
+
+The **decisive** evidence is line anchoring: each review anchored at least one finding to a specific line of `docs/research/C005-dp-map/nodes/cl-1-foundational.yaml`, and all seven review comments carry that exact `path`. A reviewer cannot anchor a comment to a path-and-line it did not resolve. **The "wasn't able to review any files" failure did not recur on any chunk.**
+
+*Stated precisely, because overstating resolution evidence is the failure mode this charter exists to end:* the overviews describe the chunk's content and name it as the CL-1 foundational DP map, but only PR 649's names even the file's basename, and none reproduces the full path in the overview prose. The path-level proof is carried by the line-anchored findings, not by the overview text.
 
 **Bisect path: NOT TRIGGERED.** All three chunks resolved on first presentation, so nothing was bisected and the ~200-line floor was never approached.
 
