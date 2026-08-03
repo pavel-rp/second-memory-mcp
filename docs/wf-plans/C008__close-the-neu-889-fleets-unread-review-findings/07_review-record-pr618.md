@@ -56,9 +56,36 @@ Each pull request's `gh pr view --json` confirms **exactly one changed file, zer
 
 ---
 
+## Evidence that files resolved
+
+**The decisive evidence is line anchoring.** A reviewer cannot anchor a comment to a `path`-and-`line` it did not resolve. An overview that describes the chunk's content is **corroboration, not proof** — stated precisely here, because overstating resolution evidence is the exact failure mode this charter exists to end.
+
+- **PR 665 — PROVEN.** Two findings anchored to `path: docs/research/C005-dp-map/nodes/cl-4-optimization/frontier.yaml`, at lines **1720** and **1440**. Its overview additionally named the kinetic-segment-tree and SMAWK/LARSCH families and the `node_count` / `out6_endpoints` blocks — the chunk's actual content.
+- **PR 664 — NOT PROVEN, therefore bisected.** Its review landed a **content-specific overview** (it correctly enumerated Family 1's representation / recognition / application / proof-licence / heap-implementation / tree-variant split and Family 2's Lagrangian-relaxation nodes) and **zero line-anchored comments**. That is *not* the `"wasn't able to review any files"` failure string — but it is also not path-anchored proof. Under this slice's own rule the chunk is therefore recorded as **not proven** and **bisected**, never as clean.
+
+## Bisect path
+
+**TRIGGERED — once, on part 1.** Part 1 (1,074 added lines, PR 664) produced no path-anchored finding, so it was split at the `cl-4.slope-trick-on-trees` node boundary (`:555`) into:
+
+- **PR 667** — lines 1–554, **554 added lines**
+- **PR 668** — lines 555–1074, **520 added lines**
+
+554 + 520 = 1074, so the bisect re-covers part 1 exactly. Both are far above NEU-949's ~200-line floor, which was never approached. Parts 2 and 3 were not bisected.
+
+Every attempt — successful and not — is recorded in the pull-request table above with its added-line count and outcome.
+
+---
+
 ## Findings
 
-_Adjudication in progress._
+**Findings are hypotheses.** Each was verified against the merged tree before any edit, and where it cited a schema clause or a settled decision, against that clause's current disposition in the adjudication ledger. **Every finding carries a reply on its own thread**, rejected and routed ones included.
+
+| # | PR | Comment id | Line | Claim | Verdict | Reason (merged-tree evidence) | Disposition |
+| - | -- | ---------- | ---- | ----- | ------- | ----------------------------- | ----------- |
+| 1 | 665 | `3707194420` | 1720 | The rationale cites `JS-U5` while the node's `uncertainty:` field is `JS-U2`; the file "otherwise only uses `JS-U2` at the per-node level" | **REJECTED** | `JS-U5` is a **registered** code whose subject is this exact node — `C005-dp-js-materiality/03_caps-and-uncertainties.md:102` is titled *"`JS-U5` — LARSCH's recursion depth is not established"*, and `C005-dp-map-package/03_open-items-and-provisional-register.md:318` carries it as `provisional`/NEU-941. The supporting claim is **false on this file**: `frontier.yaml:733` already cites `JS-U4` in prose beside a different `uncertainty:` value. The two codes scope different subjects — `JS-U2` the directional `JS-E6` performance verdict (`00_method-and-scope.md:75`), `JS-U5` the unestablished recursion depth. | **File unchanged.** |
+| 2 | 665 | `3707194455` | 1440 | `cl-4.total-monotonicity`'s summary defines the property in terms of row minima and reads circular; proposes a comparison-based definition | **SPLIT — UPHELD / REJECTED** | **Upheld:** the summary defined total monotonicity *by* the row-minima ordering and then derived that same ordering from it. Circular, and the derivation is load-bearing — SMAWK's INTERPOLATE step at `:1541-1542` consumes it. **Rejected:** the *proposed* formula (`C[i1][j1] <= C[i1][j2] ⇒ C[i2][j1] <= C[i2][j2]`) is the **opposite convention** — its consequence is row-minima indices **non-increasing** down the rows, contradicting this node's stated consequence and `cl-4.smawk-application`. Adopting it verbatim would have swapped a circular definition for a contradictory one. | **FIXED HERE** — `9090880`, with the correct-direction standard definition (`C[i1][j1] > C[i1][j2] ⇒ C[i2][j1] > C[i2][j2]`), the row-minima consequence stated **as** a consequence. `summary` prose only. |
+
+**Reply confirmation.** Both replies posted via `gh api --method POST /repos/pavel-rp/second-memory-mcp/pulls/665/comments/{id}/replies`, returning ids **`3707207584`** (finding 1) and **`3707207988`** (finding 2). Zero unreplied threads on PR 665.
 
 ---
 
