@@ -601,9 +601,10 @@ nodes:
           T3 (the tree is the state's index and respecting it is the difficulty), and
           per D-F4 §3.1 the optimization node stays CL-4's. DECLARED, never drawn. Not a
           root edge and must not be resolved into one.
-          THE TARGET IS EXACT, AND ITS OWN WORDS SAY WHY: cl-2.formulate-subtree-
-          recurrence is "decide the contract between a subtree and its parent: what a
-          child must report so that the parent can decide without looking inside it".
+          THE TARGET IS EXACT, AND ITS OWN WORDS SAY WHY:
+          cl-2.formulate-subtree-recurrence is "decide the contract between a subtree and
+          its parent: what a child must report so that the parent can decide without
+          looking inside it".
           That contract is PRECISELY what this optimization changes the representation
           of — the child reports its convex value function as a breakpoint multiset
           rather than a value table. The contract must exist and be correct before its
@@ -977,9 +978,15 @@ nodes:
         separating penalized values that are equal or nearly so. This is exactly the situation
         competitive C++ answers by switching double to LONG DOUBLE (x87 80-bit extended) for the
         extra mantissa bits, or by keeping lambda integral and using __int128 for the penalized
-        comparison. JAVASCRIPT HAS NEITHER — binary64 is the ceiling and there is no 128-bit
-        integer. So the standard C++ escape hatches for this node's central difficulty do not
-        exist, and the JavaScript author must instead resolve the degeneracy structurally: keep
+        comparison. JAVASCRIPT HAS NEITHER PRIMITIVE — binary64 is the ceiling, and there is no
+        FIXED-WIDTH 128-bit integer type. Stated precisely, because the imprecise form would
+        overstate the gap: BigInt does supply exact arbitrary-precision integer arithmetic and
+        can carry the penalized comparison when lambda and the costs are integral, so the remedy
+        is not IMPOSSIBLE in JavaScript — it is a boxed, heap-allocated value rather than a
+        register-width primitive, which makes it a real but COSTLY substitute in a comparison
+        this node runs in its inner loop. So the standard C++ escape hatches for this node's
+        central difficulty do not exist in the one-token form the C++ taxonomy assumes, and the
+        JavaScript author is pushed to resolve the degeneracy structurally instead: keep
         lambda integral and carry a tie-breaking count alongside the value, comparing
         lexicographically. A downstream agent inheriting the C++ default would present a
         one-token remedy JavaScript does not have.
@@ -1060,9 +1067,12 @@ nodes:
         silently absorbed by a long double the solver reached for, or avoided outright by an
         __int128 exact comparison (JS-E9a, cl-4.aliens-trick-tie-breaking-implementation). So
         the JavaScript learner sees a failure the C++ learner would not have seen, AND, having
-        seen it, cannot apply the fix the C++ taxonomy prescribes, because JavaScript has no
-        wider float and no 128-bit integer. Both halves change what this node teaches: an extra
-        cause to check, and a remedy to replace.
+        seen it, cannot apply the fix the C++ taxonomy prescribes in the form it prescribes it,
+        because JavaScript has no wider float and no FIXED-WIDTH 128-bit integer. Precisely, as
+        at cl-4.aliens-trick-tie-breaking-implementation: BigInt is exact and can stand in for
+        the __int128 comparison, but it is a boxed arbitrary-precision value rather than a
+        register-width primitive, so it is a costly substitute rather than the same remedy. Both
+        halves change what this node teaches: an extra cause to check, and a remedy to replace.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
