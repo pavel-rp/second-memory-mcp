@@ -134,13 +134,124 @@ These two are the cases where a mapper **could not** do the right thing because 
 
 ## 8. Consolidation result
 
-| Outcome | Count |
-| --- | --- |
-| **Upheld as intentional exclusions** (rationale verified, materiality checked) | **19** |
-| **Resolved to mapped equivalences** (the named owner did map it) | **21** |
-| **Genuine gaps with a named owner** | **10** (9 the `04_…` class + `CV-19`) |
-| **Unresolved uncertainties** | **3** (`CV-1a`, `CV-17`, `CV-18`) |
-| **Discharged ledger blockages** | **2** (`CV-35`, `CV-33`) |
-| **Total consolidated** | **52** (some entries resolve to a shared verdict; `E3` splits into two) |
+### 8.1 The counting unit, declared
 
-**Every material residual exclusion carries a documented rationale — verified, not assumed.** This audit read all 52 and found **no exclusion recorded without a rationale**, and **no silently dropped technique**. The mappers' discipline held completely. The defects this audit found are all in the *decomposition*, not in the *map*.
+**§8 counts register entries** — one entry is one row of one mapper's `residual_exclusions` block. **A figure on any other unit does not enter this summation**; the verdict-id figures live in §8.4, separately labelled.
+
+**One independent confirmation of 52, not two.** §1's per-file partition (`11+12+9+7+13 = 52`) is on this unit and **is confirmed** — the ledger in §8.6 reproduces it file by file. §2's `31+7+3+9+2 = 52` reaches the right total but **is not a sound partition of the register**, and this section does not lean on it: its "blocked by file ownership = **2**" counts CL-2's `E-header` block, which §8.3 shows is **not one of the 52**; its "scoped out with rationale = **9**" resolves to **eight** entries in §6; and mainstream `RX-1` and `RX-2` are register entries that appear in **none** of its five classes (§8.7). Those errors happen to cancel. **Correcting §2 is a §§1–7 restructuring this task does not undertake** — it is recorded here so no later reader mistakes §2 for a second independent attestation.
+
+This has to be stated because it is exactly what an earlier revision of this table got wrong. It published `19 + 21 + 10 + 3 + 2` under a stated total of **52**, and those five figures sum to **55**. The gap was never a miscount of exclusions — it was **three different units added together**: two entry counts, two verdict-id counts, and one subtraction across the two. §8.3 walks the correction figure by figure.
+
+### 8.2 The result
+
+| Outcome | Register entries |
+| --- | --- |
+| **Upheld as intentional exclusions** (IE — rationale verified, materiality checked) | **13** |
+| **Resolved to mapped equivalences** (ME — the named owner did map it) | **20** |
+| **Genuine gaps with a named owner** (GAP) | **16** |
+| **Unresolved uncertainties** (UU) | **3** |
+| **Discharged ledger blockages** | **1** |
+| **Verdict assignments** | **53** |
+| *less* `E3`'s split — one entry carrying two verdicts (§8.5) | **−1** |
+| **Total consolidated** | **52** |
+
+The column adds to 53 and the single named adjustment brings it to 52. **The total is read off the ledger in §8.6, not asserted ahead of it.**
+
+### 8.3 How the published 55 became 52 — figure by figure
+
+Each line below is a correction of *unit*, not of any adjudication. Every verdict in §§3–7 stands exactly as recorded.
+
+| Published | Corrected | What was actually being counted, and why it moved |
+| --- | --- | --- |
+| **19** upheld | **13** | The 19 was §2's `7 + 3 + 9` — entries *classified outside §3*, not entries whose **verdict** is IE. Six of the 19 do not belong, and they are two different kinds of error. **Five carry a non-IE verdict:** `EXC-1`, `E0` and frontier `RX-13` are **UU**; frontier `RX-6` is **ME** (`CV-23`); mainstream `RX-6` is **GAP** (`CV-19`). **The sixth is an over-count inside §2 itself:** its "scoped out with rationale = **9**" resolves to only **eight** entries when §6's rows are counted (§6's first row covers two entries, `EXC-1` / `E0`, and the remaining six rows one each). So the real population is 18, of which 13 are IE. **−6** |
+| **21** mapped | **20** | The 21 was `31 − 10` — §3's sibling-claim count minus the *distinct gap verdict ids*. Subtracting a verdict-id count from an entry count yields neither unit. **No single entry "moved" here**, and none can be named: the 21 was never an entry count to begin with, so the `−1` is not a reassignment but the difference between a mixed-unit subtraction and a direct count. Counted as entries off the ledger, the ME verdicts are **20**. **−1** |
+| **10** gaps | **16** | The 10 was a count of **distinct `CV-*` ids**, not entries. **Three** gap verdicts are shared across several entries — `CV-1` (SOS DP) excludes **4**, `CV-2` (LIS) **2**, `CV-5` (bitset) **2**, so 3 ids cover **8** entries — and the remaining **eight** gap-carrying entries are one-to-one (`CV-3`, `CV-11`, `CV-12`, `CV-13`, `CV-14`, `CV-15`, `CV-16`, `CV-19`). `8 + 8 = 16`. **+6** |
+| **3** unresolved | **3** | Unchanged in size, but not for the reason the old table implied. It listed three *verdict ids* — `CV-1a`, `CV-17`, `CV-18`. On the entry unit `CV-17` covers **two** entries (`EXC-1`, `E0`), `CV-18` covers **one** (frontier `RX-13`), and **`CV-1a` covers none at all** — it is a `D-F4a` ledger question, not a residual exclusion. Two counts that were previously double-counted inside the 19 are removed there, not here. **±0** |
+| **2** discharged | **1** | `CV-35` discharges CL-1 `EXC-11`, a register entry. `CV-33` discharges CL-2's **`E-header` AR-1 block**, which sits above `E0`…`E11` as a separate top-level block and is **not one of the 52**. It is still discharged (§7) — it is simply not a member of this register. **−1** |
+| **55** | **53** | Verdict assignments. |
+| | **52** | Less `E3`'s split (§8.5). |
+
+**The net is derived, not fitted.** Note that the corrections run in both directions — `+6` on gaps against `−6/−1/−1` elsewhere — so `55 − 52 = 3` is a **net** figure that no single adjustment produces. Reading it as "three double-counted entries" is what the old parenthetical invited and is wrong.
+
+### 8.4 The verdict-id unit, kept separate
+
+Counted as **distinct `CV-*` ids** rather than entries, the gap verdicts are: `CV-1`, `CV-2`, `CV-3`, `CV-5`, `CV-11`, `CV-12`, `CV-13`, `CV-14`, `CV-15`, `CV-16` — the `04_work-split-seam.md` class, whose §4 enumerates and numbers **ten** instances and whose §6 and §8 both say "ten genuine gaps" — plus **`CV-19`**, the mainstream `RX-6` intra-cluster *edge* gap, which `04_…` §4 does not list because it is not a node gap.
+
+**One cross-file discrepancy is recorded here rather than smoothed.** `02_disagreement-adjudication.md` §17/§23 tallies **10** GAP verdicts by heading its `CV-11`…`CV-16` section *"the sweep's five further instances · GAP ×5 (six rows, five owners)"* — while that section's own table carries **six** rows and its closing line reads *"Named owner for all **six**"*. `04_…` §4's numbered table and `03_…` §3's row-by-row verification both support **six**. **This audit does not resolve the discrepancy here** — re-deriving verdict identity is outside this consolidation's remit, and the entry-unit total in §8.2 does not depend on it either way. **Routed to SUB-11 (NEU-944)** with `CV-32`'s id-hygiene items. Recorded because a register that silently picked one number would be asserting exactly the kind of unverified tally §8 exists to eliminate.
+
+### 8.5 The one entry that is not one verdict
+
+**CL-2 `E3` — bounded-knapsack accelerations.** `E3` bundles two techniques under one id, and §3 adjudicates them differently: **binary / powers-of-two splitting** is a **GAP** (`CV-3`), while the **monotonic-deque evaluation** is **ME** (`CV-4`) — it is SUB-6's enumerated "monotonic-queue / sliding-window optimization" and is mapped. `04_…` §4 records the reason plainly: this audit splits `E3` *"rather than report a mapped technique as a gap."*
+
+`E3` is therefore **one register entry carrying two verdicts** — the sole such case in the register, and the only reason the verdict-assignment column (53) exceeds the entry total (52). Every other one of the 51 entries resolves to exactly one bucket.
+
+### 8.6 The per-entry ledger — all 52, each to exactly one bucket
+
+Every id is file-qualified (§1's collision note applies). "Adjudicated in" names the section carrying the reasoning.
+
+| # | Entry | Verdict | Bucket | Adjudicated in |
+| --- | --- | --- | --- | --- |
+| 1 | `cl-1` `EXC-1` | `CV-17` UU | Unresolved | §6 |
+| 2 | `cl-1` `EXC-2` | `CV-11` GAP | Gap | §3 |
+| 3 | `cl-1` `EXC-3` | `CV-12` GAP | Gap | §3 |
+| 4 | `cl-1` `EXC-4` | ME | Mapped | §3 |
+| 5 | `cl-1` `EXC-5` | `CV-2` GAP | Gap | §3 |
+| 6 | `cl-1` `EXC-6` | `CV-13` GAP | Gap | §3 |
+| 7 | `cl-1` `EXC-7` | ME | Mapped | §3 |
+| 8 | `cl-1` `EXC-8` | ME | Mapped | §3 |
+| 9 | `cl-1` `EXC-9` | ME (`CV-20` alias) | Mapped | §3 |
+| 10 | `cl-1` `EXC-10` | IE | Upheld | §6 |
+| 11 | `cl-1` `EXC-11` | `CV-35` discharged | Discharged | §7 |
+| 12 | `cl-2` `E0` | `CV-17` UU | Unresolved | §6 |
+| 13 | `cl-2` `E1` | ME | Mapped | §3 |
+| 14 | `cl-2` `E2` | ME | Mapped | §3 |
+| 15 | `cl-2` `E3` **(split)** | `CV-3` GAP **and** `CV-4` ME | Gap **+** Mapped | §3, §8.5 |
+| 16 | `cl-2` `E4` | `CV-5` GAP | Gap | §3 |
+| 17 | `cl-2` `E5` | `CV-14` GAP | Gap | §3 |
+| 18 | `cl-2` `E6` | `CV-22` ME | Mapped | §3 |
+| 19 | `cl-2` `E7` | ME | Mapped | §3 |
+| 20 | `cl-2` `E8` | `CV-1` GAP | Gap | §3 |
+| 21 | `cl-2` `E9` | `CV-7` IE | Upheld | §5 |
+| 22 | `cl-2` `E10` | ME | Mapped | §3 |
+| 23 | `cl-2` `E11` | ME | Mapped | §3 |
+| 24 | `cl-3` `E1` | `CV-1` GAP | Gap | §3 |
+| 25 | `cl-3` `E2` | `CV-25` ME | Mapped | §3 |
+| 26 | `cl-3` `E3` | `CV-27` ME | Mapped | §3 |
+| 27 | `cl-3` `E4` | `CV-5` GAP | Gap | §3 |
+| 28 | `cl-3` `E5` | `CV-24` ME | Mapped | §3 |
+| 29 | `cl-3` `E6` | `CV-15` GAP | Gap | §3 |
+| 30 | `cl-3` `E7` | `CV-16` GAP | Gap | §3 |
+| 31 | `cl-3` `E8` | IE (anchor route, `CV-33`) | Upheld | §5 *(also rowed §3)* |
+| 32 | `cl-3` `E9` | `CV-8` IE | Upheld | §6 |
+| 33 | `cl-4/mainstream` `RX-1` | `CV-1` GAP | Gap | §3 *(unrowed — §8.7)* |
+| 34 | `cl-4/mainstream` `RX-2` | `CV-2` GAP | Gap | §3 *(unrowed — §8.7)* |
+| 35 | `cl-4/mainstream` `RX-3` | ME | Mapped | §3 |
+| 36 | `cl-4/mainstream` `RX-4` | ME | Mapped | §3 |
+| 37 | `cl-4/mainstream` `RX-5` | IE | Upheld | §6 |
+| 38 | `cl-4/mainstream` `RX-6` | `CV-19` GAP | Gap | §6 |
+| 39 | `cl-4/mainstream` `RX-7` | IE | Upheld | §6 |
+| 40 | `cl-4/frontier` `RX-1` | `CV-6` ME | Mapped | §3 |
+| 41 | `cl-4/frontier` `RX-2` | `CV-21` ME | Mapped | §3 |
+| 42 | `cl-4/frontier` `RX-3` | `CV-1` GAP | Gap | §3 |
+| 43 | `cl-4/frontier` `RX-4` | `CV-22` ME | Mapped | §3 |
+| 44 | `cl-4/frontier` `RX-5` | `CV-9` IE | Upheld | §5 |
+| 45 | `cl-4/frontier` `RX-6` | `CV-23` ME | Mapped | §6 *(also rowed §3)* |
+| 46 | `cl-4/frontier` `RX-7` | `CV-29` IE | Upheld | §4 |
+| 47 | `cl-4/frontier` `RX-8` | `CV-29` IE | Upheld | §4 |
+| 48 | `cl-4/frontier` `RX-9` | `CV-29` IE | Upheld | §4 |
+| 49 | `cl-4/frontier` `RX-10` | `CV-30` IE | Upheld | §4 |
+| 50 | `cl-4/frontier` `RX-11` | `CV-10` IE | Upheld | §4 |
+| 51 | `cl-4/frontier` `RX-12` | `CV-29` IE | Upheld | §4 |
+| 52 | `cl-4/frontier` `RX-13` | `CV-18` UU | Unresolved | §4 |
+
+**Bucket totals read off the ledger:** Upheld **13** (rows 10, 21, 31, 32, 37, 39, 44, 46–51) · Mapped **20** (rows 4, 7, 8, 9, 13, 14, 15b, 18, 19, 22, 23, 25, 26, 28, 35, 36, 40, 41, 43, 45) · Gap **16** (rows 2, 3, 5, 6, 15a, 16, 17, 20, 24, 27, 29, 30, 33, 34, 38, 42) · Unresolved **3** (rows 1, 12, 52) · Discharged **1** (row 11). **13 + 20 + 16 + 3 + 1 = 53 assignments over 52 entries**, the surplus being row 15 alone.
+
+**Not in this register, and why:** CL-2's **`E-header` AR-1 block** (§7, `CV-33`) is a top-level block above `E0`…`E11`, not a member of `residual_exclusions`; and **`CV-1a`** (§8.3) adjudicates a `D-F4a` ledger question, not an exclusion. Both are real adjudications; neither is one of the 52.
+
+### 8.7 Two entries §3's table does not row
+
+Mainstream **`RX-1`** (SOS DP) and mainstream **`RX-2`** (LIS in O(n log n)) are register entries whose verdicts are established in `04_work-split-seam.md` §4 — which names them as excluding `CV-1` and `CV-2` respectively — but which §3's verification table never gives a row of its own. They are **GAP** either way, and rows 33–34 place them explicitly so no entry of the 52 is left unresolved. **This is a presentation gap in §3, not a missing adjudication**; both techniques are fully adjudicated in `02_…` and `04_…`.
+
+---
+
+**Every material residual exclusion carries a documented rationale — verified, not assumed.** This audit read all 52 and found **no exclusion recorded without a rationale**, and **no silently dropped technique**. The mappers' discipline held completely. The defects this audit found are all in the *decomposition*, not in the *map* — **and, as §8.1–8.3 record, one was in this section's own arithmetic.**
