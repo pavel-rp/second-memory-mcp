@@ -1864,6 +1864,515 @@ out6_endpoints:
     declared_attachment_on_path: "xc.cl-4.kinetic-segment-tree-dp->cl-1.sequence-partition-dp"
 
 # =============================================================================
+# AR-1 ANCHOR REQUESTS IN FLIGHT
+# =============================================================================
+# Route AR-1 (boundary-register.yaml §anchor_request_route; schema ledger §3).
+# INC-S1 predicted exactly this: the register is EXACTLY the 5 anchors the NEU-933
+# spec sanctions and is explicitly NOT asserted complete over the technique space.
+# The frontier is where that incompleteness was always going to bite, and it did.
+#
+# INTERIM STATE, APPLIED: every dependent node below is `status: "provisional"` and
+# records the dependency in its `notes`. NONE of the four forbidden moves was made:
+#   - no anchor invented locally,
+#   - no dependency faked as a prerequisites.roots edge,
+#   - no dependency declared as a cross_cluster_attachment,
+#   - no dependency silently dropped.
+#
+# WHY THE REQUESTS ARE RECORDED HERE RATHER THAN AS ROWS IN THE LEDGER:
+#   AR-1 nominates ../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md as
+#   the filing location. That file is NEU-933's and is NOT SUB-13's to write — header
+#   rule 1 ("write ONLY this file") and template §4 rule 3 ("never write into another
+#   cluster's file") bind, and four mappers are writing concurrently. The requests are
+#   therefore recorded in full, in machine-readable form, in the requesting file, with
+#   everything AR-1 requires a request to name. The ledger row is a mechanical
+#   transcription for D-S3's owner (NEU-933) or SUB-11, who drives the filing routes.
+#   RECORDED AS A DEVIATION FROM AR-1's LETTER, NOT SLIPPED IN: AR-1's substance —
+#   name the anchor, name the dependent, argue the prerequisite is genuinely non-DP,
+#   mark dependents provisional, never improvise — is fully discharged. Only the
+#   physical location of the row differs, and only because file ownership forbids it.
+# =============================================================================
+ar1_requests:
+
+  - id: "AR-1-a"
+    files_against: "D-S3"
+    ledger: "../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+    filed_by: "NEU-938 (SUB-13)"
+    filed_at_map_version: "0.1.0"
+    requested_anchor_id: "anchor.lagrangian-duality"
+    requested_anchor_name: "Lagrangian duality"
+    requested_kind: "mathematics"
+    requested_scope: >-
+      Lagrangian relaxation of a constrained optimization problem: the Lagrangian and
+      its dual function, weak duality, and the condition under which the dual bound is
+      tight for an integer resource constraint (convexity of the optimum in the
+      constrained quantity). The anchor would be the duality theory — NOT the DP that
+      exploits it, NOT convex optimization at large, and NOT numerical methods for it.
+    dependent_nodes:
+      - "cl-4.lagrangian-relaxation-for-dp"
+      - "cl-4.aliens-trick-application"
+      - "cl-4.aliens-trick-convexity-proof"
+    why_genuinely_non_dp: >-
+      Run NEU-932 D-F4 §3's cascade on "Lagrangian duality" and NO test fires, because
+      every test presupposes a RECURRENCE and duality has none. T1 asks whether it takes
+      an already-correct recurrence and reduces its evaluation cost — it does not; it is
+      a reformulation theorem about constrained optimization that is stated, proved and
+      used with no recurrence anywhere in it (it applies to linear programs and to
+      continuous problems that are not DPs at all). T2 asks about the encoding of a
+      state — there is no state. T3 asks whether the state is indexed over a
+      combinatorial structure — there is no state. T4 is the residual for a DP whose
+      state is a plain index tuple — again, no state. It is therefore not a member of
+      the DP technique-space partition, which is the register's condition (a). It is a
+      real prerequisite of at least one DP technique in the partition — condition (b) —
+      since cl-4.aliens-trick-application IS this theorem specialised to a counted DP
+      constraint, and a learner who does not have the duality correspondence has no
+      reason to believe the lambda sweep recovers the constrained answer. And it is
+      above NEU-887's elementary-data-structures floor — condition (c) — by a
+      comfortable margin: it is graduate-level mathematical-optimization theory, not
+      something NEU-887 assumes.
+    why_not_an_existing_anchor: >-
+      Checked against all five registered anchors and none covers it.
+      anchor.convex-hull-envelope-geometry is the closest and still wrong: its scope is
+      envelopes of families of LINES and the geometry that makes an envelope queryable —
+      a statement about geometric objects. Lagrangian duality is a statement about the
+      relationship between a constrained program and its penalised relaxation. There is
+      a real conceptual cousinhood (the dual function is concave and the lambda sweep
+      does trace a hull) and that cousinhood is exactly the trap: drawing onto the
+      envelope anchor would make the dependent's terminal say something materially
+      weaker and different from what it needs, which is the precise failure D-S3's own
+      recorded reasoning cites when it declined to fold Li Chao into segment tree ("a
+      CHT node depending on 'segment tree' says materially less than one depending on
+      'Li Chao tree'"). anchor.linear-algebra covers matrices and linear recurrences —
+      unrelated. The remaining three (segment tree, Li Chao, modular arithmetic) are not
+      close.
+    interim_node_status: "provisional"
+    status: "requested"
+
+  - id: "AR-1-b"
+    files_against: "D-S3"
+    ledger: "../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+    filed_by: "NEU-938 (SUB-13)"
+    filed_at_map_version: "0.1.0"
+    requested_anchor_id: "anchor.min-plus-convolution"
+    requested_anchor_name: "(min,+) convolution"
+    requested_kind: "mathematics"
+    requested_scope: >-
+      The (min,+) (infimal) convolution operator on integer-indexed functions, its
+      associativity and commutativity, and its behaviour on convex piecewise-linear
+      functions — specifically that (min,+)-convolving two convex piecewise-linear
+      functions yields a convex piecewise-linear function whose slope multiset is the
+      MERGE of the operands' slope multisets. The anchor would be the operator and these
+      algebraic facts — NOT any algorithm for computing it fast in the general
+      (non-convex) case, and NOT discrete convex analysis at large.
+    dependent_nodes:
+      - "cl-4.slope-trick-application"
+      - "cl-4.slope-trick-convexity-preservation-proof"
+      - "cl-4.slope-trick-on-trees"
+    why_genuinely_non_dp: >-
+      Run the D-F4 §3 cascade on "(min,+) convolution" and no test fires, for the same
+      structural reason as AR-1-a: every test presupposes a recurrence and this is an
+      OPERATOR, not a technique for evaluating one. T1 requires an already-correct
+      recurrence whose cost it reduces — the operator reduces nothing; it is the algebra
+      a recurrence may be WRITTEN IN. T2/T3/T4 all presuppose a state, and the operator
+      has none. So condition (a) holds: it is not a member of the DP partition.
+      Condition (b) holds: it is a real prerequisite of cl-4.slope-trick-application,
+      because the merge fact IS the licence for slope trick's central move — replacing a
+      transition's function combination with a multiset union. Condition (c) holds: it is
+      above the elementary floor; NEU-887 assumes elementary data structures, not the
+      algebra of infimal convolution.
+      HONEST COUNTER-ARGUMENT, RECORDED RATHER THAN OMITTED: a reviewer may object that
+      (min,+) convolution is DP-adjacent to the point of being DP content, since a
+      knapsack transition IS a (min,+) convolution. The objection has force and D-S3's
+      owner should weigh it. SUB-13's answer is that "the knapsack transition is an
+      instance of the operator" argues the operator is MORE general than the DP, not that
+      it is part of it — the same relation linear algebra bears to matrix-exponentiation
+      DP, which IS registered as an anchor (anchor.linear-algebra) on exactly that
+      footing per D-F4 §3.2. If D-S3's owner rejects the request, the correct disposition
+      is NOT to fold the fact into anchor.convex-hull-envelope-geometry (see below) but
+      to rule that it is CL-4 knowledge, in which case
+      cl-4.slope-trick-convex-function-representation absorbs it and the three dependents
+      lose their AR-1 note. Either outcome is clean; the failure would have been to guess.
+    why_not_an_existing_anchor: >-
+      anchor.convex-hull-envelope-geometry@1.0.0 IS drawn by these nodes already, for the
+      facts inside its registered scope — that a convex piecewise-linear function is the
+      envelope of a family of lines, and the monotonicity properties of that envelope.
+      Its scope does NOT extend to the behaviour of an OPERATOR that combines two such
+      functions. That is function algebra, not "the geometric facts that make an envelope
+      queryable" (the anchor's own words). Stretching the anchor to cover it would change
+      its scope, which per boundary-register.yaml is a MAJOR register_version bump
+      precisely because every dependent's terminal would shift meaning — so it is a
+      register decision either way and must not be made locally by a mapper.
+    interim_node_status: "provisional"
+    status: "requested"
+
+# =============================================================================
+# RESIDUAL EXCLUSIONS — bounded by NEU-887's materiality rule
+# =============================================================================
+# THIS REGISTER IS A FIRST-CLASS DELIVERABLE OF NEU-938, NOT AN APPENDIX.
+#
+# The charter's named High risk: "Maximalist breadth expands the graph and audit
+# surface indefinitely in pursuit of a complete map." SUB-13 is where that risk is
+# realized, because "complete" here means the MAXIMAL KNOWN competitive DP technique
+# space. The bound is NEU-887's materiality rule (referenced, never re-derived — see
+# ../../C005-dp-map-schema/04_register-extension.md §2, which records that a
+# DP-specific materiality rule was considered and DECLINED).
+#
+# THE RULE AS APPLIED HERE: a frontier technique is mapped node-by-node iff it is
+# material to the charter's audience line — competitive DP as practised — which in
+# practice means it has a real instance a learner could meet in the D-F2 corpora
+# (C1..C6) or is the direct structural extension of one that does. A technique that
+# exists only as a literature result, or only as a composition, or that the partition
+# assigns elsewhere, is recorded HERE with a rationale rather than mapped.
+#
+# WHY RECORDED RATHER THAN OMITTED: NEU-887 status discipline, inherited — gaps and
+# conflicts are recorded, never smoothed. An exclusion with a rationale is auditable
+# by OUT-7 and reversible by a named trigger. A silent omission is neither. Every
+# entry below therefore carries a rationale AND a revision trigger AND an owner.
+#
+# SCOPE BOUNDARY VERSION: 1.0.0 (see `scope_boundary` at the bottom). The boundary is
+# VERSIONED so that widening it later is a visible, dated event rather than drift.
+# =============================================================================
+residual_exclusions:
+
+  # ---- KIND A: assigned elsewhere by the settled partition (NOT materiality) ----
+  # These are excluded because the partition owns them elsewhere, not because they
+  # are immaterial. Recorded here so a reader of the FRONTIER file — where the
+  # charter's own wording sends them looking — finds them with an owner rather than
+  # concluding the map dropped them.
+
+  - id: "RX-1"
+    technique: "Plug DP / broken-profile DP / connection-profile DP"
+    kind: "assigned-elsewhere"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    assigned_to: "CL-3 — owner SUB-5 (NEU-936)"
+    rationale: >-
+      *** THE ONE A REVIEWER SHOULD CHECK FIRST. THIS IS A CARRIED CONFLICT, NOT A
+      TIDY EXCLUSION. See `carried_conflicts` X-938-1. ***
+      The NEU-938 issue description names "broken-profile / connection-profile DP" in
+      SUB-13's desired outcome and in-scope list. NEU-932 D-F4 §3.2 — SETTLED, and the
+      partition SUB-13's own assumptions say supplies the cluster assignment — assigns
+      "Plug DP / broken-profile DP" to CL-3, verbatim, with the reasoning: "T2 fires:
+      the plug/profile encoding is the contribution. Lands cleanly without invoking the
+      indeterminate convention." D-F4 §3.2 further calls this one of the rows "that
+      matter": a technique the NEU-932 spec named as a hard un-enumerated case which
+      "lands in exactly one cluster by the rule alone".
+      SUB-13 does not map it. Convention U4 is explicit and binding: "A mapper that
+      believes a technique is misassigned MAY NOT RE-DECIDE LOCALLY... Until that
+      challenge is adjudicated, the existing assignment stands and the technique stays
+      mapped — the map never has a hole while an argument is in progress." Mapping it
+      here would be a local re-decision against a settled entry, would double-claim it
+      against SUB-5 who is mapping CL-3 concurrently, and would produce exactly the
+      duplicate-node outcome the ordered cascade exists to prevent (D-F4 §3.1).
+      THE SUBSTANTIVE POINT, RECORDED SO THE ADJUDICATOR HAS IT: SUB-13 believes D-F4
+      is RIGHT and the issue wording is the loose one. Broken-profile DP's contribution
+      is the profile ENCODING of a frontier of cells — what a learner acquires is the
+      plug/bracket state representation. It does not take an already-correct recurrence
+      and make it cheaper; without the encoding there IS no tractable recurrence to
+      accelerate. T1 does not fire. T2 does. It is CL-3's on the merits, not merely by
+      precedence. THE MAP HAS NO HOLE: the technique is mapped, by SUB-5, in CL-3.
+    materiality: >-
+      Not a materiality judgment. The technique IS material; it is simply not SUB-13's.
+      Recorded under `residual_exclusions` because that is where a reader of the NEU-938
+      spec's named list will look for it, and finding it here with an owner is the
+      difference between a recorded conflict and a silent drop.
+    revision_trigger: >-
+      A U4 ledger challenge against D-F4 (filed in NEU-932's ledger,
+      ../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md — NOT
+      the schema ledger) succeeds in reassigning plug/broken-profile DP to CL-4. Then and
+      only then does SUB-13's scope acquire it. SUB-13 does not file that challenge,
+      because SUB-13 does not believe it should succeed.
+    owner: "SUB-5 (NEU-936, CL-3)"
+
+  - id: "RX-2"
+    technique: "Automaton DP, including Aho–Corasick DP"
+    kind: "assigned-elsewhere"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    assigned_to: "CL-3 — owner SUB-5 (NEU-936)"
+    rationale: >-
+      D-F4 §3.2 assigns it to CL-3: "T2 fires: the state is an automaton node, not an
+      index tuple." Settled, and correct on the merits — the contribution is the state
+      encoding, not a cost reduction, so T1 does not fire and the technique never
+      reaches SUB-13's cluster. Convention U4 forbids a local re-decision. Recorded here
+      because it is a research-tier technique that a reader might reasonably expect to
+      find in the frontier file.
+    materiality: "Not a materiality judgment — assigned elsewhere by the settled partition."
+    revision_trigger: "A successful U4 challenge against D-F4 reassigning it to CL-4."
+    owner: "SUB-5 (NEU-936, CL-3)"
+    notes: >-
+      INC-S1 names the foreseen AR-1 here (Aho–Corasick automaton construction is a real
+      non-DP prerequisite with no registered anchor) and assigns it to SUB-5. SUB-13 does
+      NOT file it: it is not SUB-13's node, and filing an AR-1 for a dependent one does
+      not own would put a request in flight that nobody can discharge. SUB-13's own two
+      AR-1s (AR-1-a, AR-1-b) are for SUB-13's own dependents. Noted so that the absence
+      of the INC-S1 filing from this PR is legible as a scope decision rather than an
+      oversight.
+
+  - id: "RX-3"
+    technique: "SOS DP / subset-sum convolution / zeta–Möbius transform"
+    kind: "assigned-elsewhere-and-contested"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    assigned_to: "CL-4 by D-F4 §4.2, but D-F4a PROVISIONAL with CL-3's claim live"
+    rationale: >-
+      D-F4 §4.2 adjudicates SOS DP to CL-4 by the cascade order, and logs it as a
+      D-F4a PROVISIONAL entry with SUB-5's CL-3 claim explicitly live and a U4 route
+      named. It is carried as X-D1 in the schema ledger — a conflict preserved, not
+      smoothed. SUB-13 does not claim it, on two independent grounds, either sufficient:
+      (1) It is not research-tier. It is canon-adjacent, standard Div1 material, which
+      puts it in the MAINSTREAM half of CL-4 — NEU-937's file — not the frontier. The
+      NEU-938 out-of-scope list is the mainstream canon.
+      (2) It is CONTESTED and provisional. Quietly mapping a node whose cluster
+      assignment is under a live claim would be precisely the "smoothing" the charter
+      forbids, and would double-claim it against both NEU-937 (if CL-4 holds) and SUB-5
+      (if CL-3's claim succeeds).
+      Recorded rather than omitted so that if NEITHER CL-4 file maps it, OUT-7 sees a
+      deliberate boundary with two named candidate owners — not a hole.
+    materiality: >-
+      Material, and NOT excluded from the map — only from SUB-13's half of CL-4. If the
+      D-F4a provisional assignment to CL-4 stands, the node belongs in mainstream.yaml.
+    revision_trigger: >-
+      OUT-7 finds SOS DP mapped in NEITHER cl-4-optimization file NOR cl-3 — i.e. the
+      split dropped it. Then SUB-13 (or whoever the audit assigns) maps it under
+      whichever assignment D-F4a then holds.
+    owner: "NEU-937 (SUB-6, CL-4 mainstream) if CL-4 holds; SUB-5 (NEU-936) if CL-3's U4 claim succeeds"
+
+  - id: "RX-4"
+    technique: "Steiner-tree DP"
+    kind: "assigned-elsewhere"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    assigned_to: "CL-3 — owner SUB-5 (NEU-936)"
+    rationale: >-
+      D-F4 §3.2: "T2 fires on the subset-of-terminals mask encoding. Its tree structure
+      (T3) loses to T2 by order — CL-2 may link, not own." Settled. T1 never fires, so it
+      is not CL-4's at all. Recorded because it is genuinely rare/research-tier and a
+      maximalist reader would expect an accounting of it in the frontier file.
+    materiality: "Not a materiality judgment — assigned elsewhere by the settled partition."
+    revision_trigger: "A successful U4 challenge against D-F4."
+    owner: "SUB-5 (NEU-936, CL-3)"
+
+  # ---- KIND B: excluded from SUB-13 by the CL-4 work split (NOT materiality) ----
+
+  - id: "RX-5"
+    technique: "Segment tree beats"
+    kind: "boundary-of-the-partition"
+    excluded_from: "CL-4 frontier (SUB-13) as a node"
+    assigned_to: "nothing — it is not a DP technique"
+    rationale: >-
+      Segment tree beats is the nearest neighbour of the kinetic segment tree — same
+      amortization instinct (a potential argument over eliminated crossings/distinct
+      values, work bounded by what each rebuild permanently destroys) — so a maximalist
+      frontier file must account for it rather than let a reader wonder. It is NOT mapped
+      as a node, and NOT on materiality grounds but on PARTITION grounds: run the D-F4
+      cascade on it and nothing fires, because it is a general-algorithms DATA STRUCTURE
+      for range chmin/chmax with range-sum queries, not a DP technique. It computes no
+      recurrence and makes no optimal-substructure claim — the register's own test for
+      what sits OUTSIDE the partition (boundary-register.yaml §boundary). Its DP
+      interplay, where one exists, IS the kinetic case, which IS mapped
+      (cl-4.kinetic-segment-tree-*).
+      This makes segment tree beats ANCHOR-SHAPED, not node-shaped. SUB-13 files NO AR-1
+      for it, deliberately: AR-1's precondition is a real non-DP prerequisite OF A NODE
+      THE MAPPER OWNS, and no node in this file requires it — the kinetic nodes draw
+      anchor.segment-tree@1.0.0, which is the structure they actually need. Filing an
+      AR-1 for an anchor nothing depends on would be inventing scope, which is exactly
+      the rejected alternative D-S3 records ("pre-emptively registering anchors the spec
+      does not name (would invent scope)").
+      Recorded in cl-4.kinetic-segment-tree-amortization's `aliases` as a reader's
+      pointer ONLY — explicitly not a claim that they are the same technique.
+    materiality: >-
+      Not a materiality judgment. It is outside the DP technique-space partition
+      altogether.
+    revision_trigger: >-
+      A mapper (in any cluster) maps a DP node whose transition genuinely requires
+      segment-tree-beats semantics and cannot terminate on anchor.segment-tree@1.0.0.
+      That mapper then files AR-1 for it — with a dependent, as AR-1 requires.
+    owner: "SUB-13 for the pointer; any mapper that acquires a real dependent, via AR-1"
+
+  - id: "RX-6"
+    technique: "Monotone minima (the divide-and-conquer row-minima scheme)"
+    kind: "work-split"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    assigned_to: "CL-4 mainstream — owner NEU-937 (SUB-6)"
+    rationale: >-
+      Monotone minima IS the mechanism of divide-and-conquer optimization, which the
+      NEU-938 out-of-scope list names explicitly as NEU-937's. Mapping it here would
+      collide with SUB-6 in a shared cluster namespace. SUB-13's reach past it is
+      SMAWK/LARSCH, which IS mapped, and cl-4.smawk-application records the relationship
+      as an intra-cluster (cross-file) prerequisite on the predicted id
+      "cl-4.divide-and-conquer-optimization" per header rule 2b.
+    materiality: >-
+      Material and mapped — by the other half of this one cluster. Not excluded from the
+      map, only from this file.
+    revision_trigger: "OUT-7 finds D&C optimization / monotone minima unmapped in mainstream.yaml."
+    owner: "NEU-937 (SUB-6)"
+
+  # ---- KIND C: the exotic tail, bounded by NEU-887's materiality rule ----
+  # These ARE SUB-13's on the partition (T1 fires, or would). They are excluded on
+  # MATERIALITY. Each is the kind of name a maximalist file is tempted to list
+  # without a chain — which is precisely the charter's #1 anti-goal, "topic volume is
+  # never coverage". Listing them HERE, as bounded exclusions with rationales and
+  # triggers, is the honest form of the maximalist claim; listing them as nodes with
+  # no justified prerequisite chain would be the dishonest one.
+
+  - id: "RX-7"
+    technique: >-
+      Slope-trick generalizations to L♮-convex / M-convex functions (discrete convex
+      analysis, Murota's programme)
+    kind: "exotic-tail"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      This is the genuine mathematical frontier that slope trick sits at the foot of:
+      slope trick is the one-dimensional convex piecewise-linear case of a much larger
+      theory of discrete convexity, and the theory's higher-dimensional cases (L♮-convex
+      and M-convex function minimisation) are real, published, and strictly more general.
+      T1 would fire. It is not mapped.
+      MATERIALITY: no instance exists in any D-F2 corpus (C1..C6). The theory's
+      competitive-programming footprint IS the one-dimensional case, and that case is
+      mapped in full here (six nodes). Mapping the general theory would add nodes that no
+      learner path in this charter's audience line reaches, expanding the graph and the
+      audit surface with material that is literature-real but learner-unreal — which is
+      the charter's named High risk realized precisely. NEU-887's rule bounds the map to
+      what the audience line makes material; this is where it bites hardest and where
+      SUB-13 chose the bound over the breadth, explicitly, rather than by omission.
+      This is the single most defensible place to draw the maximalist line, and it is
+      drawn here deliberately: one step past slope trick's competitive instance and one
+      step short of a mathematics curriculum.
+    revision_trigger: >-
+      A problem in C4 or C5 is found requiring L♮- or M-convex minimisation beyond the
+      1-D convex piecewise-linear case. Then SUB-13's scope acquires it and the scope
+      boundary takes a MINOR version bump.
+    owner: "SUB-13; adjudicated by OUT-7 (the coverage audit)"
+
+  - id: "RX-8"
+    technique: >-
+      Multi-parameter Lagrangian relaxation (two or more simultaneous penalty
+      parameters / "multi-dimensional Aliens trick")
+    kind: "exotic-tail"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      The natural generalization of the mapped 1-D Aliens trick: relax k constraints at
+      once and search a k-dimensional lambda. T1 would fire. It is not mapped.
+      MATERIALITY: no instance in C1..C6. It is also materially harder in a way that is
+      not a matter of degree — the convexity hypothesis the 1-D case rests on generalizes
+      to a multi-dimensional convexity condition that is both harder to establish and
+      routinely false, and the search is no longer a binary search. Mapping it would mean
+      mapping a technique whose applicability conditions no corpus instance exercises.
+      The 1-D case IS mapped in full (five nodes, including the tie-breaking and
+      debugging nodes where the real difficulty lives).
+    revision_trigger: "A C4/C5 problem requiring a multi-parameter relaxation is identified."
+    owner: "SUB-13; adjudicated by OUT-7"
+
+  - id: "RX-9"
+    technique: >-
+      Sub-quadratic (min,+) convolution results for NON-convex sequences — e.g. the
+      O(n^2 / log n)-class bounds and the fine-grained-complexity conditional lower
+      bounds around them
+    kind: "exotic-tail"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      T1 would fire — these accelerate an already-correct knapsack-style convolution
+      transition. Not mapped.
+      MATERIALITY: these are fine-grained-complexity RESEARCH RESULTS, not competitive
+      techniques. Their constant factors and word-RAM assumptions make them unusable
+      inside a contest, no D-F2 corpus contains an instance, and their practical content
+      for this charter's audience is a NEGATIVE result (the conditional lower bound
+      saying not to look for a fast general algorithm). Mapping them would import a
+      complexity-theory frontier into a competitive-DP map — the clearest case in this
+      register of breadth that expands the audit surface while reaching no learner.
+      NOTE: this is distinct from AR-1-b, which requests an anchor for the (min,+)
+      operator's CONVEX-case algebra — a fact slope trick genuinely needs. The convex
+      case is mapped; the general-case fast algorithms are not.
+    revision_trigger: >-
+      A competitive instance appears, or NEU-887's audience line is widened to include
+      complexity-theoretic content.
+    owner: "SUB-13; adjudicated by OUT-7"
+
+  - id: "RX-10"
+    technique: >-
+      Ranked-zeta / fast subset convolution machinery beyond SOS (Björklund–Husfeldt–
+      Kaski–Koivisto subset convolution in O(2^n n^2))
+    kind: "exotic-tail"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      T1 would fire — it accelerates an already-correct subset-indexed transition.
+      Not mapped, on two grounds. MATERIALITY: its competitive footprint is essentially
+      the SOS/zeta–Möbius case, which is RX-3's contested node and in any case
+      canon-adjacent rather than research-tier. The ranked-zeta refinement appears in
+      no D-F2 corpus instance. SCOPE: it is also downstream of RX-3's unresolved D-F4a
+      dispute — mapping a refinement of a node whose cluster is contested would compound
+      the conflict rather than record it.
+    revision_trigger: >-
+      RX-3's D-F4a dispute is adjudicated AND a C4/C5 instance requiring ranked zeta is
+      identified.
+    owner: "SUB-13; adjudicated by OUT-7"
+
+  - id: "RX-11"
+    technique: >-
+      Composed frontier techniques — e.g. Aliens trick wrapping a D&C-optimized inner
+      DP; kinetic/Li Chao hybrids; offline-dynamic-connectivity-style DP rebuilds
+    kind: "exotic-tail"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      Not mapped as nodes, on a materiality ground that is structural rather than
+      incidental: THESE ARE COMPOSITIONS, NOT TECHNIQUES. NEU-932's own finding F-C-4
+      records that "frontier techniques appear in corpora predominantly as COMPOSITIONS
+      with other techniques rather than in isolation", and draws the consequence for
+      SUB-13 explicitly: "CL-4's mappers (SUB-6/SUB-13) should expect to DECOMPOSE
+      compositions rather than find clean instances." SUB-13 did exactly that — the
+      components are mapped (cl-4.aliens-trick-application, cl-4.smawk-application,
+      cl-4.kinetic-segment-tree-dp, and mainstream.yaml's D&C optimization and CHT) and
+      the compositions are not. Minting a node per observed composition is the
+      combinatorial explosion the charter's High risk names, and it would be a node set
+      that grows with the corpus rather than with the technique space.
+    revision_trigger: >-
+      A composition is identified that a learner cannot acquire from its components —
+      i.e. it has genuinely emergent content. That is a real node and SUB-13's scope
+      acquires it. (SUB-13 found none.)
+    owner: "SUB-13; adjudicated by OUT-7"
+
+  - id: "RX-12"
+    technique: "Quantum, parallel/GPU, streaming, and approximate DP speedups"
+    kind: "exotic-tail"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      T1 fires on all of them in the abstract. Not mapped: they are outside the charter's
+      technique space, which NEU-889 fixes as COMPETITIVE DP. The maximalist bar is "the
+      maximal known COMPETITIVE DP technique space", not the maximal known DP-acceleration
+      space — a distinction this register exists to make explicit rather than let a reader
+      infer. Recorded to mark that the boundary was located deliberately, since a
+      maximalist reading with no stated audience bound would have no principled reason to
+      stop before them.
+    revision_trigger: "NEU-887's audience line changes."
+    owner: "SUB-13; adjudicated by OUT-7"
+
+  - id: "RX-13"
+    technique: "The open remainder of the exotic-optimization tail"
+    kind: "exotic-tail-residual"
+    excluded_from: "CL-4 frontier (SUB-13)"
+    rationale: >-
+      THE HONEST BOTTOM LINE OF THE MAXIMALIST CLAIM, recorded rather than implied.
+      RX-7..RX-12 are the exotic-tail techniques SUB-13 CONSIDERED AND NAMED. They are
+      not asserted to exhaust the tail. NEU-932's INC-D3 already records that the
+      technique space does not exist as an enumerated object; the frontier is by
+      construction open (Convention U contemplates techniques invented after the
+      2026-07-16 cutoff), so an assertion that this file's exclusion list is COMPLETE
+      would be unfalsifiable and false.
+      WHAT IS ACTUALLY CLAIMED, precisely: (1) the four families NEU-938 names as
+      in-scope are mapped node-by-node — with the documented exception of RX-1, which
+      the settled partition assigns to CL-3 and which SUB-13 may not re-decide; (2) one
+      un-enumerated technique reachable by Convention U (SMAWK/LARSCH) is mapped, giving
+      the frontier a research-tier endpoint whose chain reaches the roots; (3) every
+      exotic-tail technique SUB-13 considered and declined is named above with a
+      rationale and a trigger. NOT claimed: that no further exotic technique exists.
+      That gap has an owner and a route — it is OUT-7's coverage question, and Convention
+      U1 already guarantees that any newly surfaced T1 technique is CL-4's without a
+      partition change or a new cluster.
+    revision_trigger: >-
+      OUT-7 surfaces a material technique the cascade assigns to CL-4 that is neither
+      mapped here nor in mainstream.yaml nor excluded above. That is a coverage finding
+      against this file and a MINOR bump of the scope boundary — NOT a partition finding.
+    owner: "SUB-13 for the mapped set; OUT-7 (SUB-9..11) adjudicates the residual"
+
+residual_exclusion_count: 13
+
+# =============================================================================
 # SCOPE BOUNDARY — VERSIONED
 # =============================================================================
 # The charter's High risk is that maximalist breadth expands the graph indefinitely.
