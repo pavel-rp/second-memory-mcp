@@ -55,8 +55,8 @@
 #   Do NOT invent an anchor and do NOT fake it as a root edge.
 #
 # BEFORE YOU WRITE A NODE, READ:
-#   ../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
-#   ../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
+#   ../../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
+#   ../../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
 #
 # THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
 #   1. Write ONLY this file. Four other mappers are writing concurrently — including
@@ -81,19 +81,48 @@
 #   A collision is a dependency-audit finding.
 #
 # YAML: 1.2 core schema. All string enums quoted.
+#
+# ADDITIVE TOP-LEVEL KEYS — flagged, not slipped in silently.
+#   This file has 18 top-level keys. FOUR of them — schema_version, cluster,
+#   map_version, nodes — are the ones every sibling cluster node file also carries,
+#   and are not in question here. The OTHER FOURTEEN, listed in full below, are
+#   ADDITIVE and are NOT part of D-S1's ratified shape: the schema fixes `nodes`,
+#   and a validator (INC-S2) may reject an unknown key, so a consumer must not
+#   assume any of these fourteen is ratified:
+#     residual_exclusions, residual_exclusion_count, scope_boundary,
+#     carried_conflicts, prototype_disposition, self_check, ar1_requests,
+#     out6_endpoints, cl1_id_resolution, node_count, node_kind_breakdown,
+#     skill_type_breakdown, techniques_mapped, work_split
+#   `residual_exclusions` is additive for the reason cl-1-foundational.yaml and
+#   cl-2-combinatorial.yaml each record in their own headers: the NEU-935 / NEU-887
+#   acceptance bar requires every material residual exclusion to carry a documented
+#   rationale, and the mapper may write no file but this one. Those two files reached
+#   the SAME key name independently, which is evidence the key belongs in D-S1 rather
+#   than being local improvisation — SUB-2's call, not a mapper's.
+#   This file carries MORE additive keys than either sibling (cl-2-combinatorial.yaml
+#   has 6 top-level keys to this file's 18), so the whole set is listed rather than
+#   just `residual_exclusions`: naming one of fourteen would replace a missing
+#   warning with a misleading one.
+#   Flagged for SUB-2 / OUT-7. None of these keys is claimed as ratified here.
 # =============================================================================
 #
 # -----------------------------------------------------------------------------
 # SUB-13 (NEU-938) MAPPING NOTE — READ THIS BEFORE THE NODES
 # -----------------------------------------------------------------------------
-# WHAT IS MAPPED HERE (4 families, 19 nodes):
+# WHAT IS MAPPED HERE (4 families, 18 nodes):
 #   1. Slope trick + its tree variant           (6 nodes)
 #   2. Lagrangian relaxation / "Aliens trick"   (5 nodes)
 #   3. Kinetic segment tree <-> DP interplay    (4 nodes)
-#   4. SMAWK / totally-monotone matrix search + LARSCH online variant (4 nodes)
+#   4. SMAWK / totally-monotone matrix search + LARSCH online variant (3 nodes)
 #      ^ the exotic-tail technique that IS mapped rather than excluded; it is the
 #        maximalist / research-tier reach past CL-4's mainstream D&C optimization,
 #        and supplies OUT-6's required research-tier endpoint.
+#      ^ family 4 read 4 nodes and the total read 19 until mainstream.yaml merged:
+#        cl-4.verify-monge-condition was RETIRED as a confirmed duplicate of SUB-6's
+#        cl-4.quadrangle-inequality-proof, and the obligation is now drawn from
+#        SUB-6's node instead of restated. See `techniques_mapped` and X-938-2.
+#        The count went DOWN because a duplicate was removed, not because coverage
+#        shrank. `node_count` below is the authoritative figure.
 #
 # WHAT IS *NOT* MAPPED, AND WHY — see `residual_exclusions` at the BOTTOM of this
 # file. That register is a first-class deliverable of this sub-task, not an
@@ -191,9 +220,13 @@ nodes:
         JavaScript binds hard, and that verdict is on cl-4.slope-trick-heap-implementation
         (JS-D2).
       mapper_note: >-
-        Observation only, not a verdict: the representation is a multiset of integers;
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — the representation is a multiset of integers;
         JavaScript has no built-in multiset or heap, so a realization must supply one. Recorded
-        for SUB-8; no materiality claim made here.
+        for SUB-8, whose verdict — recorded above as material: false, JavaScript-neutral —
+        has since landed. The note claimed no materiality of its own; it does not withhold
+        the assessment that now sits beside it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -365,7 +398,9 @@ nodes:
         that verdict is on cl-4.slope-trick-heap-implementation (JS-D2) — a one-hop
         cross-reference, not a silent C++ assumption.
       mapper_note: >-
-        Observation only, not a verdict: the operation repertoire needs two heaps with lazy
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — the operation repertoire needs two heaps with lazy
         offsets; JavaScript ships neither a heap nor a priority queue in its standard library.
         Recorded for SUB-8.
     coverage:
@@ -539,10 +574,12 @@ nodes:
         earlier idiom-shift verdict scored the container gap alone and left the accumulator's
         2^53 hazard out of the severity even though this rationale already stated it.
       mapper_note: >-
-        Observation only, not a verdict: two heaps with lazy offsets and an accumulator;
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — two heaps with lazy offsets and an accumulator;
         JavaScript has no standard-library heap, and the accumulator can exceed
-        Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which owns
-        any verdict.
+        Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which
+        owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5", "C4"]
@@ -601,9 +638,10 @@ nodes:
           T3 (the tree is the state's index and respecting it is the difficulty), and
           per D-F4 §3.1 the optimization node stays CL-4's. DECLARED, never drawn. Not a
           root edge and must not be resolved into one.
-          THE TARGET IS EXACT, AND ITS OWN WORDS SAY WHY: cl-2.formulate-subtree-
-          recurrence is "decide the contract between a subtree and its parent: what a
-          child must report so that the parent can decide without looking inside it".
+          THE TARGET IS EXACT, AND ITS OWN WORDS SAY WHY:
+          cl-2.formulate-subtree-recurrence is "decide the contract between a subtree and
+          its parent: what a child must report so that the parent can decide without
+          looking inside it".
           That contract is PRECISELY what this optimization changes the representation
           of — the child reports its convex value function as a breakpoint multiset
           rather than a value table. The contract must exist and be correct before its
@@ -663,7 +701,9 @@ nodes:
         — that remains true, and it is why this is a large acquisition rather than a dead end —
         but it does not lower the score.
       mapper_note: >-
-        Observation only, not a verdict: a mergeable heap (leftist/skew/pairing) has no
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — a mergeable heap (leftist/skew/pairing) has no
         JavaScript standard-library equivalent, and the recursion is over a tree that may be
         deep. Recorded for SUB-8.
     coverage:
@@ -839,7 +879,9 @@ nodes:
         problem overflows.
       uncertainty: "JS-U2"
       mapper_note: >-
-        Observation only, not a verdict: the penalised objective mixes lambda-scaled counts with
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — the penalised objective mixes lambda-scaled counts with
         costs and routinely exceeds Number.MAX_SAFE_INTEGER; a real-valued lambda search
         compounds it. Recorded for SUB-8.
     coverage:
@@ -977,17 +1019,25 @@ nodes:
         separating penalized values that are equal or nearly so. This is exactly the situation
         competitive C++ answers by switching double to LONG DOUBLE (x87 80-bit extended) for the
         extra mantissa bits, or by keeping lambda integral and using __int128 for the penalized
-        comparison. JAVASCRIPT HAS NEITHER — binary64 is the ceiling and there is no 128-bit
-        integer. So the standard C++ escape hatches for this node's central difficulty do not
-        exist, and the JavaScript author must instead resolve the degeneracy structurally: keep
+        comparison. JAVASCRIPT HAS NEITHER PRIMITIVE — binary64 is the ceiling, and there is no
+        FIXED-WIDTH 128-bit integer type. Stated precisely, because the imprecise form would
+        overstate the gap: BigInt does supply exact arbitrary-precision integer arithmetic and
+        can carry the penalized comparison when lambda and the costs are integral, so the remedy
+        is not IMPOSSIBLE in JavaScript — it is a boxed, heap-allocated value rather than a
+        register-width primitive, which makes it a real but COSTLY substitute in a comparison
+        this node runs in its inner loop. So the standard C++ escape hatches for this node's
+        central difficulty do not exist in the one-token form the C++ taxonomy assumes, and the
+        JavaScript author is pushed to resolve the degeneracy structurally instead: keep
         lambda integral and carry a tie-breaking count alongside the value, comparing
         lexicographically. A downstream agent inheriting the C++ default would present a
         one-token remedy JavaScript does not have.
       mapper_note: >-
-        Observation only, not a verdict: keeping lambda integral is the standard mitigation for
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — keeping lambda integral is the standard mitigation for
         the floating-point form, and JavaScript's single numeric type makes the integral
-        discipline load-bearing rather than optional. Recorded for SUB-8, which owns any
-        verdict.
+        discipline load-bearing rather than optional. Recorded for SUB-8, which owned the
+        verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1060,9 +1110,12 @@ nodes:
         silently absorbed by a long double the solver reached for, or avoided outright by an
         __int128 exact comparison (JS-E9a, cl-4.aliens-trick-tie-breaking-implementation). So
         the JavaScript learner sees a failure the C++ learner would not have seen, AND, having
-        seen it, cannot apply the fix the C++ taxonomy prescribes, because JavaScript has no
-        wider float and no 128-bit integer. Both halves change what this node teaches: an extra
-        cause to check, and a remedy to replace.
+        seen it, cannot apply the fix the C++ taxonomy prescribes in the form it prescribes it,
+        because JavaScript has no wider float and no FIXED-WIDTH 128-bit integer. Precisely, as
+        at cl-4.aliens-trick-tie-breaking-implementation: BigInt is exact and can stand in for
+        the __int128 comparison, but it is a boxed arbitrary-precision value rather than a
+        register-width primitive, so it is a costly substitute rather than the same remedy. Both
+        halves change what this node teaches: an extra cause to check, and a remedy to replace.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1232,10 +1285,12 @@ nodes:
         insight, and it is language-independent. Its realization is where JavaScript binds, and
         that verdict is on cl-4.kinetic-segment-tree-implementation (JS-D2).
       mapper_note: >-
-        Observation only, not a verdict: certificate values are ratios of line coefficients; the
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — certificate values are ratios of line coefficients; the
         standard mitigation is to compare cross-multiplied products, which overflow
-        Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which owns
-        any verdict.
+        Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which
+        owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5", "C4"]
@@ -1385,10 +1440,12 @@ nodes:
         tree is a flat array of nodes and wants typed arrays. Deliberate non-claim on JS-E1:
         segment-tree recursion is O(log n) deep — about 20 frames — nowhere near the cap.
       mapper_note: >-
-        Observation only, not a verdict: the expiry predicate is a cross-multiplied comparison
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — the expiry predicate is a cross-multiplied comparison
         of line coefficients whose products exceed Number.MAX_SAFE_INTEGER at competitive
         ranges; BigInt is the obvious mitigation and is slow in an amortized inner loop.
-        Recorded for SUB-8, which owns any verdict.
+        Recorded for SUB-8, which owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1430,10 +1487,15 @@ nodes:
     cluster: "CL-4"
     role: "technique"
     summary: >-
-      The fact that a cost matrix can be TOTALLY MONOTONE — every 2x2 submatrix whose top
-      row's minimum lies weakly left of its bottom row's has that ordering preserved — and
-      that total monotonicity implies the ROW-MINIMUM POSITIONS are non-decreasing down
-      the rows. This is the exact hypothesis SMAWK needs, and it is STRICTLY WEAKER than
+      The fact that a cost matrix can be TOTALLY MONOTONE — stated as a comparison between
+      two entries, NOT in terms of the row minima the property is meant to explain: for any
+      rows i1 < i2 and columns j1 < j2, if C[i1][j1] > C[i1][j2] then C[i2][j1] > C[i2][j2]
+      (if an upper row strictly prefers the right-hand column, every lower row prefers it
+      too) — and that total monotonicity IMPLIES the ROW-MINIMUM POSITIONS are non-decreasing
+      down the rows. Definition first, row-minima consequence second, and in that order on
+      purpose: the consequence is precisely what SMAWK exploits, so it has to be DERIVED from
+      the property rather than built into its statement. This is the exact hypothesis SMAWK
+      needs, and it is STRICTLY WEAKER than
       the Monge condition: Monge implies total monotonicity, not conversely. A learner
       acquires the property, the row-minima consequence, and the implication's DIRECTION —
       which is what lets them see that establishing Monge is a sufficient route to SMAWK's
@@ -1611,9 +1673,11 @@ nodes:
         JS-D1. Directional, not quantified (JS-U2).
       uncertainty: "JS-U2"
       mapper_note: >-
-        Observation only, not a verdict: SMAWK's constant factor is its whole selling point over
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — SMAWK's constant factor is its whole selling point over
         D&C optimization, and its access pattern is a stack of shrinking column-index arrays —
-        typed arrays are the obvious mitigation. Recorded for SUB-8, which owns any verdict.
+        typed arrays are the obvious mitigation. Recorded for SUB-8, which owned the verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1739,10 +1803,12 @@ nodes:
         either an assertion or a silence.
       uncertainty: "JS-U2"
       mapper_note: >-
-        Observation only, not a verdict: the online interleaving is a deep recursion with a
+        Pre-verdict observation, retained as the record of what the mapper saw before
+        SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
+        note supports that verdict and no longer withholds one — the online interleaving is a deep recursion with a
         per-level stack of column arrays and a strict evaluation order; both the recursion depth
-        and the allocation churn are realization concerns. Recorded for SUB-8, which owns any
-        verdict.
+        and the allocation churn are realization concerns. Recorded for SUB-8, which owned the
+        verdict and has delivered it.
     coverage:
       status: "unaudited"
       corpus_refs: ["C5"]
@@ -1879,7 +1945,7 @@ out6_endpoints:
 #   - no dependency silently dropped.
 #
 # WHY THE REQUESTS ARE RECORDED HERE RATHER THAN AS ROWS IN THE LEDGER:
-#   AR-1 nominates ../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md as
+#   AR-1 nominates ../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md as
 #   the filing location. That file is NEU-933's and is NOT SUB-13's to write — header
 #   rule 1 ("write ONLY this file") and template §4 rule 3 ("never write into another
 #   cluster's file") bind, and four mappers are writing concurrently. The requests are
@@ -1895,7 +1961,7 @@ ar1_requests:
 
   - id: "AR-1-a"
     files_against: "D-S3"
-    ledger: "../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+    ledger: "../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
     filed_by: "NEU-938 (SUB-13)"
     filed_at_map_version: "0.1.0"
     requested_anchor_id: "anchor.lagrangian-duality"
@@ -1949,7 +2015,7 @@ ar1_requests:
 
   - id: "AR-1-b"
     files_against: "D-S3"
-    ledger: "../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+    ledger: "../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
     filed_by: "NEU-938 (SUB-13)"
     filed_at_map_version: "0.1.0"
     requested_anchor_id: "anchor.min-plus-convolution"
@@ -2006,6 +2072,7 @@ ar1_requests:
 
 # =============================================================================
 # RESIDUAL EXCLUSIONS — bounded by NEU-887's materiality rule
+# (ADDITIVE TOP-LEVEL KEY — not part of D-S1's ratified shape; see the file header)
 # =============================================================================
 # THIS REGISTER IS A FIRST-CLASS DELIVERABLE OF NEU-938, NOT AN APPENDIX.
 #
@@ -2013,7 +2080,7 @@ ar1_requests:
 # surface indefinitely in pursuit of a complete map." SUB-13 is where that risk is
 # realized, because "complete" here means the MAXIMAL KNOWN competitive DP technique
 # space. The bound is NEU-887's materiality rule (referenced, never re-derived — see
-# ../../C005-dp-map-schema/04_register-extension.md §2, which records that a
+# ../../../C005-dp-map-schema/04_register-extension.md §2, which records that a
 # DP-specific materiality rule was considered and DECLINED).
 #
 # THE RULE AS APPLIED HERE: a frontier technique is mapped node-by-node iff it is
@@ -2076,7 +2143,7 @@ residual_exclusions:
       difference between a recorded conflict and a silent drop.
     revision_trigger: >-
       A U4 ledger challenge against D-F4 (filed in NEU-932's ledger,
-      ../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md — NOT
+      ../../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md — NOT
       the schema ledger) succeeds in reassigning plug/broken-profile DP to CL-4. Then and
       only then does SUB-13's scope acquire it. SUB-13 does not file that challenge,
       because SUB-13 does not believe it should succeed.
@@ -2557,7 +2624,7 @@ carried_conflicts:
       rarity is not a partition criterion, because it drifts.
     route: >-
       A U4 ledger challenge against D-F4, filed in NEU-932's ledger
-      (../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md), NOT
+      (../../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md), NOT
       the schema ledger. SUB-13 does not file it and does not believe it should succeed.
     affected_parties: ["SUB-5 (NEU-936, CL-3)", "OUT-7 coverage audit", "NEU-889 charter author"]
     visible_to: >-
@@ -2618,7 +2685,7 @@ carried_conflicts:
       who drives the filing routes.
     route: >-
       NEU-933 or SUB-11 transcribes AR-1-a and AR-1-b into
-      ../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md and adjudicates
+      ../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md and adjudicates
       against D-S3. Note that D-S3's own recorded revision trigger is "An AR-1 request is
       filed" — so these two requests fire it.
     affected_parties: ["NEU-933 (D-S3 owner)", "SUB-11", "OUT-7"]
@@ -2668,9 +2735,9 @@ prototype_disposition:
 # =============================================================================
 self_check:
   - check: "1. node_kind on every node; skill_type + skill_type_rationale on every skill; no skill_type on any knowledge node."
-    result: "Pass — 19/19 have node_kind; 15/15 skills have both; 4/4 knowledge nodes omit skill_type entirely (absent, not null)."
+    result: "Pass — 18/18 have node_kind; 14/14 skills have both; 4/4 knowledge nodes omit skill_type entirely (absent, not null). Read 19/19 and 15/15 until cl-4.verify-monge-condition was retired as SUB-6's duplicate; the check's verdict is unchanged, only its arithmetic is now current."
   - check: "2. Not one node per technique name (schema §1.1)."
-    result: "Pass — 4 technique families -> 19 nodes (ratio 4.75). Every family splits application / proof / implementation at minimum; no family is a single node."
+    result: "Pass — 4 technique families -> 18 nodes (ratio 4.5), matching techniques_mapped's own arithmetic. Every family splits application / proof / implementation at minimum; no family is a single node. Read 19 (ratio 4.75) until cl-4.verify-monge-condition was retired as SUB-6's duplicate; 4.5 still clears the schema §1.1 bar by the same margin, so the verdict is unchanged."
   - check: "3. Every prerequisite chain bottoms out on a root or a registered anchor."
     result: "Pass — every node draws at least one prerequisites.roots edge, directly or through an intra-cluster chain that does. No chain just stops."
   - check: "4. No prerequisites.* entry points at a sibling cluster's node."
@@ -2697,7 +2764,17 @@ self_check:
   - check: "7. attachment_id matches xc.<from>-><to_node>; from == the node's own id."
     result: "Pass — 5/5, checked mechanically."
   - check: "8. difficulty_dimensions {}; javascript_materiality.assessed false; coverage.status unaudited."
-    result: "Pass — 18/18 on all three. No dimension invented (INC-S3). Every js note is an observation, explicitly labelled 'not a verdict'."
+    result: >-
+      Pass AS AT NEU-938's authoring, and SUPERSEDED SINCE — recorded rather than
+      silently left standing. At the time: 18/18 on all three, no dimension invented
+      (INC-S3), and every js note an observation explicitly labelled "not a verdict".
+      What changed afterwards, by owners this file does not speak for: SUB-8 (OUT-5,
+      NEU-941) delivered the javascript_materiality verdicts, so assessed is now true
+      on 18/18 and each mapper_note reads as a retained pre-verdict observation rather
+      than a withheld one; NEU-940 discharged INC-S3, so difficulty_dimensions carries
+      values. coverage.status is still "unaudited" on 18/18. This check's ORIGINAL
+      verdict is preserved above because it was true when made; the dimension values
+      themselves are NEU-954's (F-943-1) and are not touched here.
   - check: "9. No node is settled without a ledger entry; no node carries frozen: true."
     result: "Pass — 18/18 are \"provisional\". No frozen field anywhere in this file."
   - check: "10. All string enums quoted (D-F3's YAML constraint — the Norway problem)."
