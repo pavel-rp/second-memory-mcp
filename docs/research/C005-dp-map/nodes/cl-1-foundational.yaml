@@ -815,11 +815,13 @@ nodes:
         Array) or a silent, legitimate-looking 0 (typed array), where C++ yields UB. The
         taxonomy as inherited would under-describe all three.
       mapper_note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: the "stack
-        overflow" symptom that a C++-oriented reference attributes to deep top-down recursion
-        presents differently in JavaScript (a RangeError at a non-tunable default depth reached
-        at far smaller n), so the symptom→cause row for that failure mode may not transfer as
-        written. An observation, not a verdict.
+        Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict,
+        recorded in the sibling `assessed: true` block above. This note is kept as the
+        observation that foresaw the question, NOT as a claim that it is still open. Observation:
+        the "stack overflow" symptom that a C++-oriented reference attributes to deep top-down
+        recursion presents differently in JavaScript (a RangeError at a non-tunable default depth
+        reached at far smaller n), so the symptom→cause row for that failure mode may not
+        transfer as written.
     coverage:
       status: "unaudited"
       corpus_refs: []
@@ -1262,11 +1264,13 @@ nodes:
         cluster's standard n. See JS-U1.
       uncertainty: "JS-U1"
       mapper_note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: a 1D DP over
-        n up to 1e5-1e6 is the first place a learner meets JavaScript's recursion-depth ceiling,
-        since the top-down form recurses once per index. The references assume a C++ default
-        where the same formulation survives. An observation about where the issue first BITES in
-        this cluster, not a verdict.
+        Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict,
+        recorded in the sibling `assessed: true` block above. This note is kept as the
+        observation that foresaw the question, NOT as a claim that it is still open. Observation:
+        a 1D DP over n up to 1e5-1e6 is the first place a learner meets JavaScript's
+        recursion-depth ceiling, since the top-down form recurses once per index. The references
+        assume a C++ default where the same formulation survives. It records where the issue
+        first BITES in this cluster.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -1619,12 +1623,13 @@ nodes:
         mitigable idiom, per JS-D1. Directional, not quantified (JS-U2).
       uncertainty: "JS-U2"
       mapper_note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: allocating a
-        2D table in JavaScript has no single obvious form (array of arrays vs a flat typed array
-        with manual index arithmetic), and the choice has materially different performance and
-        initialization semantics than the C++ `vector<vector<int>>` or raw 2D array the
-        references assume. An observation that a materiality question EXISTS here, not a verdict
-        on it.
+        Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict,
+        recorded in the sibling `assessed: true` block above. This note is kept as the
+        observation that foresaw the question, NOT as a claim that it is still open. Observation:
+        allocating a 2D table in JavaScript has no single obvious form (array of arrays vs a flat
+        typed array with manual index arithmetic), and the choice has materially different
+        performance and initialization semantics than the C++ `vector<vector<int>>` or raw 2D
+        array the references assume.
     coverage:
       status: "unaudited"
       corpus_refs: ["C2"]
@@ -2290,12 +2295,13 @@ nodes:
         safe (2M < 2^53); multiplication is not. This is the single highest-impact JavaScript
         effect in the map and it is invisible unless stated.
       mapper_note: >-
-        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: modular
-        multiplication of two values near a 1e9 prime exceeds JavaScript's exact-integer range
-        for Number, so the C++ `long long` idiom every selected reference writes has no direct
-        equivalent and forces a choice (BigInt, or splitting the multiply). This is an
-        observation that a materiality question exists on this node's anchor edge, NOT a verdict
-        — SUB-8 owns that.
+        Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict,
+        recorded in the sibling `assessed: true` block above. This note is kept as the
+        observation that foresaw the question, NOT as a claim that it is still open. Observation:
+        modular multiplication of two values near a 1e9 prime exceeds JavaScript's exact-integer
+        range for Number, so the C++ `long long` idiom every selected reference writes has no
+        direct equivalent and forces a choice (BigInt, or splitting the multiply). It records
+        that the question arises on this node's anchor edge.
     coverage:
       status: "unaudited"
       corpus_refs: ["C1", "C2"]
@@ -3198,6 +3204,17 @@ nodes:
 #
 # NOT a coverage claim. OUT-7 (SUB-9..11) owns coverage verdicts; this records what
 # this sub-task decided and why, which is the input that audit needs.
+#
+# ADDITIVE TOP-LEVEL KEY — `residual_exclusions` (the block below).
+#   The NEU-934 acceptance bar requires every material residual exclusion to carry
+#   a documented rationale, and SUB-3 may write no file but this one. The block is
+#   therefore recorded here as an additive top-level key. It is NOT part of D-S1's
+#   ratified shape: the schema fixes `nodes`, and a validator (INC-S2) may reject an
+#   unknown key. Flagged for SUB-2/OUT-7 rather than slipped in silently.
+#   CONVERGENCE: SUB-4 (NEU-935, CL-2) independently chose the SAME key name for the
+#   same reason — see `cl-2-combinatorial.yaml`'s matching header. Two mappers
+#   converging without coordinating is evidence the key belongs in D-S1 rather than
+#   being two local improvisations; that is SUB-2's call, not a mapper's.
 # =============================================================================
 residual_exclusions:
 
