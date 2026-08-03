@@ -69,17 +69,23 @@ copy and a fresh generation diverge.
 
 ---
 
-## 3. The open defect is surfaced, not buried
+## 3. The defect was surfaced, not buried — and its closure is EVIDENCED, not announced
+
+**`F-943-1` is closed** (ledger `D-R4`), so `PG-7` is reworked to its post-closure purpose. **The
+block is not deleted and no assertion is left that cannot fail**: each check below still fails on a
+register that merely *claims* the closure without evidencing it, or on a map that quietly regains the
+defect.
 
 | Check | Passing condition | Result |
 | --- | --- | --- |
-| **`PG-7a`** | **All 26 `F-943-1`-affected nodes carry the per-node warning marker** | ✅ **26** |
-| **`PG-7a2`** | All **5** inversion-bearing nodes name their backwards dependency (6 inversions) | ✅ **5** |
-| **`PG-7b0`** | The register has a **dedicated `F-943-1` section, stated FIRST** | ✅ |
-| **`PG-7b`** | `F-943-1` is bound as an explicit **unresolved** element — asserted **inside that section** | ✅ |
-| **`PG-7c`** | `F-943-1` names an **owner** — inside that section | ✅ NEU-940 |
-| **`PG-7d`** | `F-943-1` names a **revision trigger** — inside that section | ✅ the re-run over the edge-complete graph |
-| **`PG-7e`** | The `F-943-1` **repair is recorded as OUT of SUB-11's scope** | ✅ |
+| **`PG-7a`** | **No node carries the per-node `F-943-1` warning marker** — `PG-7a`'s inverse, holding because nothing computes it | ✅ **0** |
+| **`PG-7a2`** | **No block names a stage inversion** — `PG-7a2`'s inverse | ✅ **0** |
+| **`PG-7b0`** | The register has a **dedicated `F-943-1` section, stated FIRST** — retained after closing, so the closure can be read against the record it closed | ✅ |
+| **`PG-7b`** | `F-943-1` is recorded as **closed** — asserted **inside that section** | ✅ |
+| **`PG-7c`** | The closure **names its discharging ledger entry** — inside that section | ✅ `D-R4` |
+| **`PG-7d`** | The section records **what discharged it** — the re-run over the edge-complete graph, and its counts | ✅ NEU-954: 26 depth corrections, 16 stage changes, 1 `entry_gate` change |
+| **`PG-7f`** | **NEW.** The discharging ledger entry the register names **actually RESOLVES as a ledger row** — the strongest anti-false-pass check in the block, because a register can *name* any id it likes. Keyed on the row shape `\| **\`D-R#\`** \|`, so the ledger's *reservation prose* cannot satisfy it — only a landed entry can | ✅ `D-R4` |
+| **`PG-7e`** | **RETIRED — no closed-state analogue.** It asserted the *repair* was out of SUB-11's scope, which was a fact about the package's shipping state and cannot be restated about a closed finding. Its retirement is recorded in the gate's own comment rather than silently dropped | — |
 
 **`PG-7` caught the same class of defect in this gate TWICE. Both are recorded rather than quietly
 fixed, because the pattern is the point.**
@@ -180,10 +186,12 @@ JS-materiality finding, integrity finding, or coverage verdict — there is nowh
 
 **What this gate does NOT certify — stated so the PASS is not over-read:**
 
-- **It does not certify the map is free of defects.** It certifies the **known** defect (`F-943-1`) is
-  **bound, owned, and surfaced on all 26 affected nodes**. **The map ships with an open HIGH finding
-  and the gate passes anyway** — because binding a defect you do not own **is** the correct ship, and
-  the gate checks exactly that.
+- **It does not certify the map is free of defects.** It certified the **known** defect (`F-943-1`) as
+  **bound, owned, and surfaced on all 26 affected nodes**, and now certifies that **the closure is
+  evidenced** — the marker is gone from every node and the register names the discharging ledger entry
+  (`D-R4`). **The map shipped with an open HIGH finding and the gate passed anyway** — because binding
+  a defect you do not own **is** the correct ship. Other findings remain open, `F-943-3` among them,
+  and the gate binds rather than closes them.
 - **It does not certify the map teaches DP well.** Nothing in C005 measures DP learning (`R1`).
 - **It does not certify coverage completeness.** **10 techniques are missing** (`INC-C1`), known and
   owned. `INC-S1` means the boundary register is **not asserted complete**.

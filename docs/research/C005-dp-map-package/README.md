@@ -34,30 +34,34 @@ fresh, never hand-edited.
 
 ## 🔴 Read this before you sequence anything
 
-### The map's structure is SETTLED. Its stage annotations are DEFECTIVE.
+### The map's structure is SETTLED. Its stage annotations are REPAIRED but still UNREVIEWED.
 
-**`F-943-1` (HIGH, OPEN) — an open defect in the shipped map.**
+**`F-943-1` (HIGH) — CLOSED, discharged by ledger entry `D-R4`.**
 
 **NEU-940's `progression_stage` and `prerequisite_depth` were computed against the pre-NEU-939 graph —
-before the cross-cluster edges existed. 26 of 179 depths are wrong. 6 dependencies order backwards.**
+before the cross-cluster edges existed. 26 of 179 depths were wrong. 6 dependencies ordered backwards.
+NEU-954 re-derived both fields over the edge-complete graph: 26 depth corrections, 16 stage changes,
+1 `entry_gate` change. 0 inversions remain; 179/179 depths agree with the graph.**
 
-> **A downstream agent sequencing by `progression_stage` today would teach 6 dependencies before their
-> own prerequisites.**
+> **A downstream agent may now sequence by `progression_stage` — but see the second warning below
+> before treating any stage as binding.**
 
-**The binding consumer rule (NEU-943 `05` §5):**
+**The consumer rule, as it now reads (NEU-943 `05` §5):**
 
-> **Trust the edges. Do NOT trust `progression_stage` across a cluster boundary.** The 25
-> cross-cluster edges are audited and correct; the stages on 6 of them are inverted. **Sequence from
-> the graph's topological order — which exists, because the graph is acyclic — not from the stage
-> labels.** Treat `prerequisite_depth` as **advisory**; recompute it from the graph.
+> **Trust the edges — and `progression_stage` now agrees with them across every cluster boundary.**
+> The 25 cross-cluster edges are audited and correct, and the 6 stages that were inverted across them
+> have been re-derived. **The graph's topological order remains the authority** — it exists, because
+> the graph is acyclic — and `prerequisite_depth` is **no longer advisory**, though it is still a pure
+> function of the graph and re-derivable from source at any time.
 
-**Owner:** NEU-940's owner. **Revision trigger:** a re-run of NEU-940's depth-and-stage computation
-over the edge-complete graph. **Repairing it is out of SUB-11's scope** — this package **binds** the
-defect (`D-P2`), flags it on **all 26** affected nodes, and does not repair it.
+**Owner:** NEU-940's owner. **Discharged by:** NEU-954's re-run over the edge-complete graph.
+**Repairing it was out of SUB-11's scope** — this package **bound** the defect (`D-P2`) and flagged it
+on **all 26** affected nodes rather than repairing it, and that binding is what made the repair
+findable.
 
-**And independently: no stage or difficulty value is binding at all.** The **creator plausibility
+**But independently: no stage or difficulty value is binding at all.** The **creator plausibility
 review never ran** (Assumption #11) — all 179 nodes carry `creator_review: "deferred-provisional"`
-(`D-P3`). **Two independent reasons not to trust a stage.**
+(`D-P3`). **That reason to distrust a stage survives the repair, and it is now the only one.**
 
 **Full detail, owners, and triggers: `03_open-items-and-provisional-register.md`.**
 
@@ -83,11 +87,13 @@ review never ran** (Assumption #11) — all 179 nodes carry `creator_review: "de
 
 ## What ships OPEN — the short list
 
-**Nothing here is binding. Each has an owner and a revision trigger in `03_…`.**
+**Nothing here is binding. Each has an owner and a revision trigger in `03_…`.** The one **closed**
+row is kept, marked as such with its discharging ledger entry, so the list can be read against the
+record it came from.
 
 | Element | Status | Owner |
 | --- | --- | --- |
-| **`F-943-1`** — 26/179 depths wrong, 6 inversions | **unresolved** | **NEU-940** |
+| **`F-943-1`** — 26/179 depths wrong, 6 inversions | **closed** — `D-R4` | **NEU-940** → repaired by **NEU-954** |
 | **Deferred creator progression review** — all 179 | **provisional** | **the creator** |
 | **`INC-C1`** — 10 unmapped CL-4 techniques | **unresolved** | **the creator** (CL-4 completion task) |
 | **`INC-C2`** — `D-F4a`: SOS DP, CL-4 vs CL-3 | **unresolved** | **NEU-932** |
@@ -108,7 +114,8 @@ review never ran** (Assumption #11) — all 179 nodes carry `creator_review: "de
 3. **Preserve conflicts and gaps. Never smooth them.** **This is not ceremony — it is why this
    charter's real defects are visible.** `F-943-1`, `INC-C1` and the provably-incomplete `AR-1`
    register were all found because somebody wrote down an inconvenient fact instead of tidying it
-   away. **30 coverage disagreements were adjudicated with ZERO smoothed.**
+   away — and `F-943-1` was subsequently **repaired** (`D-R4`) because it was written down.
+   **30 coverage disagreements were adjudicated with ZERO smoothed.**
 
 ---
 

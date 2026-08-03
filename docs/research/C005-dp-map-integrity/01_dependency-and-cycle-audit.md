@@ -108,7 +108,10 @@ once as knowledge and once as skill.
 - **Grounding is not correctness of altitude.** Every chain reaches the floor; whether
   each individual edge attaches at the *right* altitude is a separate judgment —
   see `F-939-1` in `05_findings-register.md`.
-- **Acyclicity does not validate the annotations.** The graph's *structure* is clean while
-  its *stage/depth annotation* is measurably not (**F-943-1**, `04`). A topological order
-  exists; NEU-940's `progression_stage` does not currently agree with it across 6
-  cross-cluster edges.
+- **Acyclicity does not validate the annotations.** The graph's *structure* was clean while
+  its *stage/depth annotation* was measurably not (**F-943-1**, `04`). A topological order
+  exists; NEU-940's `progression_stage` disagreed with it across 6 cross-cluster edges.
+  **That disagreement is gone — NEU-954 re-derived the annotations and `progression_stage`
+  now agrees with the topological order on all 25 cross-cluster edges (0 inversions);
+  `F-943-1` is CLOSED (ledger `D-R4`).** The caveat itself stands: acyclicity still proves
+  nothing about the annotation layer — a separate check does, and it is now passing.

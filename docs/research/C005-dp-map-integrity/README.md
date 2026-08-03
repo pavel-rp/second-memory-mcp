@@ -26,19 +26,22 @@ audit does **not** license are in **`06_caps-and-incomplete-scope.md`**.
 The graph's **structure** is clean: acyclic, fully grounded, referentially intact, all
 eight skill types instantiated, and OUT-6's path criterion met on all five counts.
 
-The graph's **annotation** is not. This audit's single most consequential result:
+The graph's **annotation** was not. This audit's single most consequential result:
 
 > 🔴 **NEU-940's `difficulty_dimensions` values were computed against the pre-NEU-939
 > graph** — before the 25 cross-cluster edges existed. Two independent defect classes
 > (**26** under-reported `prerequisite_depth` values, **6** `progression_stage`
-> inversions) both fall out of that one cause, and both are confined **exactly** to
+> inversions) both fell out of that one cause, and both were confined **exactly** to
 > nodes whose dependency chain leaves their own cluster.
 >
-> The isolation is unambiguous: **intra-cluster edges — 293 checked, 0 inversions.
+> The isolation was unambiguous: **intra-cluster edges — 293 checked, 0 inversions.
 > Cross-cluster edges — 25 checked, 6 inversions.**
 
-This is **F-943-1**, and it is why NEU-940 routed its own unreviewed values here. The
-finding is **flagged and routed**, not repaired: SUB-9 audits, it does not edit nodes.
+This was **F-943-1**, and it is why NEU-940 routed its own unreviewed values here. The
+finding was **flagged and routed**, not repaired: SUB-9 audits, it does not edit nodes.
+**It has since been repaired by NEU-954 and is CLOSED** — both fields were re-derived over
+the edge-complete graph (26 depth corrections, 16 stage changes, 1 `entry_gate` change),
+leaving **0 inversions**. The discharging ledger entry is **`D-R4`**.
 
 ## 🔴 File ownership — this audit edited nothing it audited
 

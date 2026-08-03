@@ -4,7 +4,7 @@
 > A hand edit here is invisible to the graph and is overwritten by the next run.
 > If something is wrong here, fix it **in the owning package** — this file owns nothing.
 
-**Task:** NEU-944 (SUB-11) · **Package version:** `1.0.0` · **Map version projected:** `0.1.0` · **Schema:** `1.0.0` · **Generated:** 2026-07-16
+**Task:** NEU-944 (SUB-11) · **Package version:** `1.0.0` · **Map version projected:** `0.1.0` · **Schema:** `1.0.0` · **Generated:** 2026-08-03
 
 ---
 
@@ -33,20 +33,25 @@ that owns it and names that owner. Status lives in exactly one place —
 | **Findings** | every audit finding that lands on THIS node | NEU-943, NEU-939 |
 | **Status** | the node's adjudicated status | the ledger, and only the ledger |
 
-### ⚠ The one thing you must read before you sequence anything
+### The one thing you must read before you sequence anything
 
-**`F-943-1` (HIGH, OPEN) — 26 of 179 `prerequisite_depth` values are wrong, and 6 dependencies
-order backwards by `progression_stage`.** NEU-940's stages and depths were computed against the
-**pre-NEU-939 graph** — before the cross-cluster edges existed. Every affected node below carries
-an explicit `⚠ F-943-1` line. **Nothing hides it and nothing is silently corrected here.**
+**`F-943-1` is CLOSED** (ledger `D-R4`). NEU-940's `progression_stage` and `prerequisite_depth`
+had been computed against the **pre-NEU-939 graph** — before the cross-cluster edges existed —
+leaving **26 of 179** depths wrong and **6** dependencies ordering backwards by stage. Those values
+were **recomputed over the edge-complete graph** under ledger `D-R3` (NEU-954): **0 depth
+mismatches, 0 stage inversions** remain, and `entry_gate` was re-derived on all 179.
 
 **Consume accordingly (NEU-943 `05` §5, binding):**
-**Trust the edges. Do NOT trust `progression_stage` across a cluster boundary.** The 25
-cross-cluster edges are audited and correct; the stages on 6 of them are inverted. **Sequence from
-the graph's topological order — which exists, because the graph is acyclic — not from the stage
-labels**, until `F-943-1` is closed. Treat `prerequisite_depth` as **advisory**.
+**The stages and depths now agree with the graph, and either may be sequenced from.** The 25
+cross-cluster edges are audited and correct, and no stage inverts across any of them. The graph's
+topological order remains the strongest ordering — it exists, because the graph is acyclic — and
+`prerequisite_depth` is now a **binding** value rather than an advisory one.
 
-See `../03_open-items-and-provisional-register.md` for owner and revision trigger.
+**The values remain `provisional` for a separate reason:** the creator progression-plausibility
+review never ran (`D-P3`, map-wide). That is independent of `F-943-1` and is **not** closed by it.
+
+See `../03_open-items-and-provisional-register.md` for the closure record and the remaining
+open items.
 
 ---
 
@@ -59,8 +64,8 @@ See `../03_open-items-and-provisional-register.md` for owner and revision trigge
 | Mapped technique nodes | **179** | NEU-934–938, NEU-943 |
 | Registered boundary anchors | **5** | `boundary-register.yaml` `1.0.0` |
 | Realized cross-cluster edges | **25** | NEU-939 |
-| Nodes flagged by `F-943-1` (depth) | **26** | NEU-943 |
-| Nodes flagged by `F-943-1` (stage inversion) | **5** | NEU-943 |
+| Nodes flagged by `F-943-1` (depth) | **0** | NEU-943 |
+| Nodes flagged by `F-943-1` (stage inversion) | **0** | NEU-943 |
 
 **CL-4 is ONE cluster across TWO files.** Any audit counting clusters counts `len(clusters)` = **4**. Never count node files (that number is 5 and it is not the cluster count).
 
@@ -188,58 +193,58 @@ Grep this table for a technique name, then jump to its block. Every id below has
 | `cl-2.unbounded-knapsack-recurrence` | Unbounded knapsack recurrence | CL-2 | knowledge | PS-2 | `provisional` |
 | `cl-2.zero-one-knapsack-recurrence` | 0/1 knapsack recurrence | CL-2 | knowledge | PS-2 | `provisional` |
 | `cl-3.automaton-state-dp-semantics` | Automaton-state DP semantics | CL-3 | knowledge | PS-1 | `provisional` |
-| `cl-3.bitmask-state-encoding` | Bitmask state encoding | CL-3 | knowledge | PS-1 | `F-943-1` `provisional` |
-| `cl-3.broken-profile-state-encoding` | Broken-profile state encoding | CL-3 | knowledge | PS-2 | `F-943-1` `provisional` |
+| `cl-3.bitmask-state-encoding` | Bitmask state encoding | CL-3 | knowledge | PS-4 | `provisional` |
+| `cl-3.broken-profile-state-encoding` | Broken-profile state encoding | CL-3 | knowledge | PS-4 | `provisional` |
 | `cl-3.compute-grundy-values` | Compute Grundy values over a game graph | CL-3 | skill/procedural | PS-4 | `provisional` |
-| `cl-3.diagnose-bitmask-state-blowup` | Diagnose a bitmask DP that TLEs or MLEs | CL-3 | skill/debugging | PS-4 | `F-943-1` `provisional` |
-| `cl-3.digit-dp-bound-correctness` | Argue a digit DP's bound handling is exact | CL-3 | skill/proof | PS-3 | `F-943-1` `provisional` |
+| `cl-3.diagnose-bitmask-state-blowup` | Diagnose a bitmask DP that TLEs or MLEs | CL-3 | skill/debugging | PS-4 | `provisional` |
+| `cl-3.digit-dp-bound-correctness` | Argue a digit DP's bound handling is exact | CL-3 | skill/proof | PS-4 | `provisional` |
 | `cl-3.digit-dp-state-semantics` | Digit DP state semantics | CL-3 | knowledge | PS-1 | `provisional` |
 | `cl-3.expectation-dp-well-definedness` | Argue an expectation DP is well-defined | CL-3 | skill/proof | PS-4 | `provisional` |
-| `cl-3.formulate-automaton-dp` | Formulate a DP over an automaton's states | CL-3 | skill/strategic | PS-2 | `F-943-1` `provisional` |
-| `cl-3.formulate-digit-dp` | Formulate a digit DP | CL-3 | skill/strategic | PS-2 | `F-943-1` `provisional` |
+| `cl-3.formulate-automaton-dp` | Formulate a DP over an automaton's states | CL-3 | skill/strategic | PS-4 | `provisional` |
+| `cl-3.formulate-digit-dp` | Formulate a digit DP | CL-3 | skill/strategic | PS-4 | `provisional` |
 | `cl-3.formulate-expectation-dp` | Formulate an expectation DP | CL-3 | skill/strategic | PS-3 | `provisional` |
 | `cl-3.formulate-game-dp` | Formulate a game DP: choose what a position is | CL-3 | skill/strategic | PS-4 | `provisional` |
 | `cl-3.grundy-number-and-mex` | Grundy number and the mex operator | CL-3 | knowledge | PS-2 | `provisional` |
-| `cl-3.implement-aho-corasick-dp` | Implement a DP over an Aho-Corasick automaton | CL-3 | skill/implementation | PS-3 | `F-943-1` `provisional` |
-| `cl-3.implement-bitmask-dp` | Implement a bitmask DP | CL-3 | skill/implementation | PS-3 | `F-943-1` `provisional` |
-| `cl-3.implement-digit-dp` | Implement a digit DP | CL-3 | skill/implementation | PS-3 | `F-943-1` `provisional` |
-| `cl-3.implement-plug-dp` | Implement a plug / broken-profile DP | CL-3 | skill/implementation | PS-4 | `F-943-1` `provisional` |
-| `cl-3.implement-steiner-tree-dp` | Implement a Steiner-tree DP | CL-3 | skill/implementation | PS-4 | `F-943-1` `provisional` |
+| `cl-3.implement-aho-corasick-dp` | Implement a DP over an Aho-Corasick automaton | CL-3 | skill/implementation | PS-4 | `provisional` |
+| `cl-3.implement-bitmask-dp` | Implement a bitmask DP | CL-3 | skill/implementation | PS-4 | `provisional` |
+| `cl-3.implement-digit-dp` | Implement a digit DP | CL-3 | skill/implementation | PS-4 | `provisional` |
+| `cl-3.implement-plug-dp` | Implement a plug / broken-profile DP | CL-3 | skill/implementation | PS-4 | `provisional` |
+| `cl-3.implement-steiner-tree-dp` | Implement a Steiner-tree DP | CL-3 | skill/implementation | PS-4 | `provisional` |
 | `cl-3.linearity-of-expectation-in-dp` | Linearity of expectation as a DP-licensing property | CL-3 | knowledge | PS-2 | `provisional` |
-| `cl-3.plug-dp-connectivity-encoding` | Plug DP connectivity encoding | CL-3 | knowledge | PS-3 | `F-943-1` `provisional` |
+| `cl-3.plug-dp-connectivity-encoding` | Plug DP connectivity encoding | CL-3 | knowledge | PS-4 | `provisional` |
 | `cl-3.probability-vs-expectation-dp-semantics` | Probability DP vs expectation DP | CL-3 | knowledge | PS-1 | `provisional` |
 | `cl-3.prove-game-decomposition-via-grundy` | Argue a game decomposes and its Grundy composition is valid | CL-3 | skill/proof | PS-4 | `provisional` |
-| `cl-3.recognize-bitmask-state-applicability` | Recognize that a problem wants a bitmask state | CL-3 | skill/strategic | PS-2 | `F-943-1` `provisional` |
-| `cl-3.recognize-digit-dp-under-unfamiliar-surface` | Recognize a digit DP under an unfamiliar surface | CL-3 | skill/transfer | PS-3 | `F-943-1` `provisional` |
+| `cl-3.recognize-bitmask-state-applicability` | Recognize that a problem wants a bitmask state | CL-3 | skill/strategic | PS-4 | `provisional` |
+| `cl-3.recognize-digit-dp-under-unfamiliar-surface` | Recognize a digit DP under an unfamiliar surface | CL-3 | skill/transfer | PS-4 | `provisional` |
 | `cl-3.recognize-impartial-game-under-unfamiliar-surface` | Recognize an impartial game under an unfamiliar surface | CL-3 | skill/transfer | PS-4 | `provisional` |
 | `cl-3.resolve-expectation-dp-self-loops` | Resolve self-loops and cyclic dependencies in an expectation DP | CL-3 | skill/implementation | PS-4 | `provisional` |
 | `cl-3.sprague-grundy-theorem` | The Sprague-Grundy theorem | CL-3 | knowledge | PS-3 | `provisional` |
-| `cl-3.steiner-tree-dp-state-encoding` | Steiner-tree DP state encoding | CL-3 | knowledge | PS-4 | `F-943-1` `provisional` |
-| `cl-3.submask-enumeration` | Submask enumeration | CL-3 | skill/procedural | PS-2 | `F-943-1` `provisional` |
-| `cl-3.subset-cover-transition-correctness` | Argue a subset-partition transition covers each subset exactly once | CL-3 | skill/proof | PS-3 | `F-943-1` `provisional` |
+| `cl-3.steiner-tree-dp-state-encoding` | Steiner-tree DP state encoding | CL-3 | knowledge | PS-4 | `provisional` |
+| `cl-3.submask-enumeration` | Submask enumeration | CL-3 | skill/procedural | PS-4 | `provisional` |
+| `cl-3.subset-cover-transition-correctness` | Argue a subset-partition transition covers each subset exactly once | CL-3 | skill/proof | PS-4 | `provisional` |
 | `cl-3.win-lose-position-semantics` | Winning and losing position semantics | CL-3 | knowledge | PS-1 | `provisional` |
 | `cl-4.aliens-trick-application` | Lagrangian / Aliens trick | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.aliens-trick-convexity-proof` | Proving the constrained optimum is convex in the count (Aliens trick's licence) | CL-4 | skill/proof | PS-2 | `provisional` |
 | `cl-4.aliens-trick-tie-breaking-implementation` | Aliens-trick tie-breaking and degenerate-segment handling | CL-4 | skill/implementation | PS-4 | `provisional` |
 | `cl-4.cht-monotonicity-precondition-proof` | Proving the Convex Hull Trick's monotonicity preconditions | CL-4 | skill/proof | PS-2 | `provisional` |
-| `cl-4.construct-transfer-matrix` | Constructing the transfer matrix from a DP | CL-4 | skill/implementation | PS-4 | `F-943-1` `provisional` |
+| `cl-4.construct-transfer-matrix` | Constructing the transfer matrix from a DP | CL-4 | skill/implementation | PS-4 | `provisional` |
 | `cl-4.convex-hull-trick-monotonic` | Convex Hull Trick (monotonic slopes and queries) | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.debug-aliens-trick-failure` | Diagnosing an Aliens-trick solution that returns a wrong count or a wrong value | CL-4 | skill/debugging | PS-4 | `provisional` |
-| `cl-4.divide-and-conquer-optimization` | Divide-and-conquer optimization | CL-4 | skill/optimization | PS-2 | `F-943-1` `provisional` |
+| `cl-4.divide-and-conquer-optimization` | Divide-and-conquer optimization | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.implement-cht-deque-and-li-chao` | Implementing CHT and Li Chao correctly | CL-4 | skill/implementation | PS-4 | `provisional` |
-| `cl-4.implement-divide-and-conquer-optimization` | Implementing divide-and-conquer optimization | CL-4 | skill/implementation | PS-3 | `F-943-1` `provisional` |
-| `cl-4.implement-modular-matrix-power` | Implementing modular matrix exponentiation | CL-4 | skill/procedural | PS-4 | `F-943-1` `provisional` |
+| `cl-4.implement-divide-and-conquer-optimization` | Implementing divide-and-conquer optimization | CL-4 | skill/implementation | PS-4 | `provisional` |
+| `cl-4.implement-modular-matrix-power` | Implementing modular matrix exponentiation | CL-4 | skill/procedural | PS-4 | `provisional` |
 | `cl-4.kinetic-segment-tree-amortization` | Kinetic-segment-tree certificate amortization | CL-4 | knowledge | PS-1 | `provisional` |
 | `cl-4.kinetic-segment-tree-amortization-proof` | Proving the kinetic segment tree's amortized rebuild bound | CL-4 | skill/proof | PS-2 | `provisional` |
 | `cl-4.kinetic-segment-tree-dp` | Kinetic segment tree ↔ DP interplay | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.kinetic-segment-tree-implementation` | Realizing a kinetic segment tree | CL-4 | skill/implementation | PS-4 | `provisional` |
-| `cl-4.knuth-yao-optimization` | Knuth-Yao optimization | CL-4 | skill/optimization | PS-3 | `F-943-1` `provisional` |
+| `cl-4.knuth-yao-optimization` | Knuth-Yao optimization | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.lagrangian-relaxation-for-dp` | Lagrangian relaxation of a counted DP constraint | CL-4 | knowledge | PS-1 | `provisional` |
-| `cl-4.larsch-online-smawk-implementation` | Realizing online totally-monotone search (LARSCH) for a self-referential DP | CL-4 | skill/implementation | PS-4 | `F-943-1` `provisional` |
+| `cl-4.larsch-online-smawk-implementation` | Realizing online totally-monotone search (LARSCH) for a self-referential DP | CL-4 | skill/implementation | PS-4 | `provisional` |
 | `cl-4.li-chao-tree-dp-application` | Li Chao tree for non-monotone envelope DP | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.linear-recurrence-matrix-form` | Linear recurrences in transfer-matrix form | CL-4 | knowledge | PS-1 | `provisional` |
 | `cl-4.linear-transition-envelope-form` | Linear transitions as a line envelope | CL-4 | knowledge | PS-1 | `provisional` |
-| `cl-4.matrix-exponentiation-dp` | Matrix-exponentiation DP | CL-4 | skill/optimization | PS-4 | `F-943-1` `provisional` |
+| `cl-4.matrix-exponentiation-dp` | Matrix-exponentiation DP | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.monotonic-deque-maintenance` | Maintaining a monotonic deque | CL-4 | skill/procedural | PS-2 | `provisional` |
 | `cl-4.monotonic-queue-optimization` | Monotonic-queue / sliding-window optimization | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.opt-split-point-monotonicity` | Monotonicity of the optimal split point | CL-4 | knowledge | PS-1 | `provisional` |
@@ -247,7 +252,7 @@ Grep this table for a technique name, then jump to its block. Every id below has
 | `cl-4.quadrangle-inequality-proof` | Proving the quadrangle inequality for a cost function | CL-4 | skill/proof | PS-3 | `provisional` |
 | `cl-4.recognize-envelope-structured-transition` | Recognizing an envelope-structured transition | CL-4 | skill/transfer | PS-4 | `provisional` |
 | `cl-4.recognize-hidden-convexity-for-slope-trick` | Recognizing hidden convexity that licenses slope trick | CL-4 | skill/transfer | PS-2 | `provisional` |
-| `cl-4.recognize-matrix-exponentiable-dp` | Recognizing a matrix-exponentiable DP under an unfamiliar surface | CL-4 | skill/transfer | PS-4 | `F-943-1` `provisional` |
+| `cl-4.recognize-matrix-exponentiable-dp` | Recognizing a matrix-exponentiable DP under an unfamiliar surface | CL-4 | skill/transfer | PS-4 | `provisional` |
 | `cl-4.recognize-window-constrained-transition` | Recognizing a window-constrained transition under an unfamiliar surface | CL-4 | skill/transfer | PS-4 | `provisional` |
 | `cl-4.select-mainstream-optimization` | Selecting a mainstream optimization for a too-slow DP | CL-4 | skill/strategic | PS-4 | `provisional` |
 | `cl-4.sliding-window-transition-form` | Transitions over a sliding window of states | CL-4 | knowledge | PS-1 | `provisional` |
@@ -256,7 +261,7 @@ Grep this table for a technique name, then jump to its block. Every id below has
 | `cl-4.slope-trick-convexity-preservation-proof` | Proving a DP's transitions preserve convexity (slope trick's licence) | CL-4 | skill/proof | PS-2 | `provisional` |
 | `cl-4.slope-trick-heap-implementation` | Realizing slope trick with two lazy heaps | CL-4 | skill/implementation | PS-4 | `provisional` |
 | `cl-4.slope-trick-on-trees` | Slope trick on trees (mergeable breakpoint multisets) | CL-4 | skill/optimization | PS-4 | `provisional` |
-| `cl-4.smawk-application` | SMAWK totally-monotone matrix search | CL-4 | skill/optimization | PS-4 | `F-943-1` `provisional` |
+| `cl-4.smawk-application` | SMAWK totally-monotone matrix search | CL-4 | skill/optimization | PS-4 | `provisional` |
 | `cl-4.split-point-monotonicity-proof` | Proving split-point monotonicity from a cost condition | CL-4 | skill/proof | PS-2 | `provisional` |
 | `cl-4.total-monotonicity` | Total monotonicity of a DP cost matrix | CL-4 | knowledge | PS-3 | `provisional` |
 
@@ -525,7 +530,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -597,7 +602,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -667,7 +672,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -739,7 +744,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -793,7 +798,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **MATERIAL** · severity `blocking` · effects `JS-E2`, `JS-E3`
 - MATERIAL AND BLOCKING — the modulus is constitutive of this node (it draws anchor.modular-arithmetic), and the C++ one-liner it inherits is silently wrong in JavaScript. With the standard M = 1e9+7, two residues below M have a product up to ~1e18, which is ~111x past 2^53. So `(a * b) % 1000000007` — exact in C++ long long, and written without a thought — silently ROUNDS in JavaScript and returns a plausible, wrong residue. This is not a performance note: the direct translation of the C++ default produces wrong answers on most inputs. A correct JavaScript counting DP under a modulus requires BigInt for the multiply, or a split multiply keeping every partial product under 2^53 (decomposing one operand around 2^26, folding with Math.imul). Addition is safe (2M < 2^53); multiplication is not. This is the single highest-impact JavaScript effect in the map and it is invisible unless stated.
-- *mapper note (preserved):* Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: modular multiplication of two values near a 1e9 prime exceeds JavaScript's exact-integer range for Number, so the C++ `long long` idiom every selected reference writes has no direct equivalent and forces a choice (BigInt, or splitting the multiply). This is an observation that a materiality question exists on this node's anchor edge, NOT a verdict — SUB-8 owns that.
+- *mapper note (preserved):* Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict, recorded in the sibling `assessed: true` block above. This note is kept as the observation that foresaw the question, NOT as a claim that it is still open. Observation: modular multiplication of two values near a 1e9 prime exceeds JavaScript's exact-integer range for Number, so the C++ `long long` idiom every selected reference writes has no direct equivalent and forces a choice (BigInt, or splitting the multiply). It records that the question arises on this node's anchor edge.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -813,7 +818,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -886,7 +891,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -960,7 +965,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1032,7 +1037,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1102,7 +1107,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1174,7 +1179,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1225,7 +1230,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **MATERIAL** · severity `idiom-shift` · effects `JS-E1`, `JS-E2`, `JS-E9`
 - MATERIAL — this node's content IS the symptom list, and JavaScript's symptom list differs from the C++ one this taxonomy inherits. Three concrete divergences a downstream agent must write: (1) JS-E1 — a too-deep DP dies at ~10^4 frames with 'RangeError: Maximum call stack size exceeded', a named, catchable, immediate failure; the C++ counterpart is a segfault an order of magnitude deeper, or silent stack corruption. (2) JS-E2 — arithmetic past 2^53 ROUNDS, producing a plausible near-miss; the C++ counterpart WRAPS, often producing an obviously absurd or negative value. A learner debugging in JavaScript therefore gets a weaker signal from a wrong number than a C++ learner does. (3) JS-E9 — reading an uncomputed state yields a spreading NaN (plain Array) or a silent, legitimate-looking 0 (typed array), where C++ yields UB. The taxonomy as inherited would under-describe all three.
-- *mapper note (preserved):* Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: the "stack overflow" symptom that a C++-oriented reference attributes to deep top-down recursion presents differently in JavaScript (a RangeError at a non-tunable default depth reached at far smaller n), so the symptom→cause row for that failure mode may not transfer as written. An observation, not a verdict.
+- *mapper note (preserved):* Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict, recorded in the sibling `assessed: true` block above. This note is kept as the observation that foresaw the question, NOT as a claim that it is still open. Observation: the "stack overflow" symptom that a C++-oriented reference attributes to deep top-down recursion presents differently in JavaScript (a RangeError at a non-tunable default depth reached at far smaller n), so the symptom→cause row for that failure mode may not transfer as written.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -1245,7 +1250,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1316,7 +1321,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1369,7 +1374,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **MATERIAL** · severity `blocking` · effects `JS-E1`
 - MATERIAL AND BLOCKING — recorded here on the mapper's evidence, against this audit's own default that a formulation node is pre-code and therefore neutral. NEU-934's observation on this node is that a 1D DP over n up to 1e5-1e6 is THE FIRST PLACE a learner meets JavaScript's recursion ceiling, because the top-down form recurses once per index; the audit checked it and it holds. n = 1e5-1e6 against a cap on the order of 1e4 frames is not marginal, it is one to two orders of magnitude over, and 1D sequence DP is the most common shape in the map — so this is the highest-frequency instance of JS-E1, not the most exotic. The reason it lands on a FORMULATION node rather than an implementation one is a real gap, not a filing convenience: the node that owns the top-down/bottom-up realization choice is cl-1.root.implement-memoization-and-tabulation, which is a FROZEN root (DR-S02) that this audit may not write, and which itself carries a mapper observation foreseeing exactly this finding. CL-1 has no unfrozen 1D-linear implementation node. Leaving this node neutral would therefore strand the map's most common recursion-depth hazard behind a frozen node — a silent C++ assumption of exactly the kind the second acceptance scenario forbids. The effect on what is written: in JavaScript the top-down/bottom-up choice is not the stylistic one the references present, because the bottom-up form is a loop and the top-down form does not run at this cluster's standard n. See JS-U1.
-- *mapper note (preserved):* Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: a 1D DP over n up to 1e5-1e6 is the first place a learner meets JavaScript's recursion-depth ceiling, since the top-down form recurses once per index. The references assume a C++ default where the same formulation survives. An observation about where the issue first BITES in this cluster, not a verdict.
+- *mapper note (preserved):* Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict, recorded in the sibling `assessed: true` block above. This note is kept as the observation that foresaw the question, NOT as a claim that it is still open. Observation: a 1D DP over n up to 1e5-1e6 is the first place a learner meets JavaScript's recursion-depth ceiling, since the top-down form recurses once per index. The references assume a C++ default where the same formulation survives. It records where the issue first BITES in this cluster.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -1389,7 +1394,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1461,7 +1466,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1533,7 +1538,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1605,7 +1610,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1677,7 +1682,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1749,7 +1754,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1821,7 +1826,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1893,7 +1898,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -1964,7 +1969,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2035,7 +2040,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2106,7 +2111,7 @@ them; the withdrawals are upheld.*
 **Audit findings**
 
 - `F-943-2` (Low, **open**) — the map's `conceptual` skill type is union-complete but rests on **this single non-root node**. If this node is ever re-typed or removed, `conceptual` de-instantiates map-wide.
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2177,7 +2182,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2246,7 +2251,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2317,7 +2322,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2388,7 +2393,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2460,7 +2465,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2534,7 +2539,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2606,7 +2611,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2658,7 +2663,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **MATERIAL** · severity `performance` · effects `JS-E5`, `JS-E6`
 - MATERIAL — this is the node that writes the 2D table, and JavaScript forces a decision C++ does not. The direct translation of the C++ default is an array-of-arrays, which in JavaScript is a boxed outer array of boxed inner arrays: a pointer chase per row plus per-element overhead. C++'s vector<vector<int>> is also row-indirect but the rows are unboxed contiguous ints, and the flat vector<int> is the reflexive idiom. The JavaScript idiom for a hot 2D table is therefore an explicit FLAT typed array with manual index arithmetic (i * W + j) — a choice a C++ author gets for free and a JavaScript author must make deliberately. JS-E6 is recorded here only in combination with that specific mitigable idiom, per JS-D1. Directional, not quantified (JS-U2).
-- *mapper note (preserved):* Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: allocating a 2D table in JavaScript has no single obvious form (array of arrays vs a flat typed array with manual index arithmetic), and the choice has materially different performance and initialization semantics than the C++ `vector<vector<int>>` or raw 2D array the references assume. An observation that a materiality question EXISTS here, not a verdict on it.
+- *mapper note (preserved):* Retained pre-verdict mapper observation — SUB-8 (OUT-5) has SINCE delivered the verdict, recorded in the sibling `assessed: true` block above. This note is kept as the observation that foresaw the question, NOT as a claim that it is still open. Observation: allocating a 2D table in JavaScript has no single obvious form (array of arrays vs a flat typed array with manual index arithmetic), and the choice has materially different performance and initialization semantics than the C++ `vector<vector<int>>` or raw 2D array the references assume.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -2678,7 +2683,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2749,7 +2754,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2822,7 +2827,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2893,7 +2898,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -2964,7 +2969,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3036,7 +3041,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3107,7 +3112,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3179,7 +3184,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3249,7 +3254,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3324,7 +3329,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3396,7 +3401,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3467,7 +3472,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3538,7 +3543,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3608,7 +3613,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3679,7 +3684,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3753,7 +3758,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-934`
 
@@ -3833,7 +3838,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -3904,7 +3909,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -3976,7 +3981,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4046,7 +4051,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4116,7 +4121,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4188,7 +4193,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4262,7 +4267,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4333,7 +4338,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4406,7 +4411,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4479,7 +4484,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4531,7 +4536,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `idiom-shift` · effects `JS-E9`, `JS-E5`
-- MATERIAL — the symptom this node diagnoses has a container-dependent signature in JavaScript that has no C++ counterpart. The bug is reading a state not yet computed. In C++ the table is a zero-initialized vector, so the read returns 0 and the wrong answer is a too-small optimum — one signature, always. In JavaScript the signature DEPENDS ON THE CONTAINER CHOICE (JS-E5), which the author made for performance reasons and now discovers has changed their debugging: a plain Array yields undefined, so the arithmetic yields NaN and the wrongness SPREADS and is loud, visible immediately and traceable to the first bad read; an Int32Array yields a silent 0, indistinguishable from a legitimately computed zero, so the wrongness is quiet and looks like a modelling error rather than an ordering error. A downstream agent must teach both signatures and must teach that the container decides which one the learner will see. That is a JavaScript-specific differential the inherited C++ taxonomy does not contain.
+- MATERIAL — the symptom this node diagnoses has a container-dependent signature in JavaScript with no routine C++ counterpart. The bug is reading a state not yet computed. In C++ the table is typically a zero-initialized vector, so the read returns 0 and the wrong answer is a too-small optimum — usually one signature. In JavaScript it DEPENDS ON THE CONTAINER CHOICE (JS-E5), which the author made for performance reasons and now discovers has changed their debugging: a plain Array yields undefined, so the arithmetic yields NaN and the wrongness SPREADS and is loud, visible immediately and traceable to the first bad read; an Int32Array yields a silent 0, indistinguishable from a legitimately computed zero, so the wrongness is quiet and looks like a modelling error rather than an ordering error. A downstream agent must teach both signatures and must teach that the container decides which one the learner will see. That is a JavaScript-specific differential the inherited C++ taxonomy does not contain.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -4551,7 +4556,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4623,7 +4628,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4694,7 +4699,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4765,7 +4770,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4817,7 +4822,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `blocking` · effects `JS-E1`
-- MATERIAL AND BLOCKING — this node IS the recursion-depth node, and both its threshold and its signature are language-specific. It diagnoses a tree DP that dies on a path-shaped tree. In C++ that death is a SEGFAULT (or a silent stack smash) at a depth on the order of 1e5-1e6, and the standard fix is to raise the stack limit — an option that exists. In JavaScript it is a NAMED, CATCHABLE RangeError: Maximum call stack size exceeded at a depth on the order of 1e4, and raising the limit IS NOT AN OPTION for a submitted program, so the only fix is the explicit-stack rewrite (cl-2.implement-tree-dp-post-order-dfs). Three things a downstream agent must therefore write differently: the threshold is ~10x lower, the diagnosis is easier (a named error naming its own cause, versus a segfault that names nothing), and the remedy set is strictly smaller (one option, not two). The node's C++-derived form would teach a fix JavaScript does not have.
+- MATERIAL AND BLOCKING — this node IS the recursion-depth node, and both its threshold and its signature are language-specific. It diagnoses a tree DP that dies on a path-shaped tree. In C++ that death is a SEGFAULT (or a silent stack smash) at a depth that is platform-dependent (often ~1e5-1e6), and raising the stack limit is an option that may exist. In JavaScript it is a NAMED, CATCHABLE RangeError: Maximum call stack size exceeded at a depth on the order of 1e4, and raising the limit IS NOT AN OPTION for a submitted program, so the only fix is the explicit-stack rewrite (cl-2.implement-tree-dp-post-order-dfs). Three things a downstream agent must therefore write differently: the threshold is ~10x lower, the diagnosis is easier (a named error naming its own cause, versus a segfault that names nothing), and the remedy set is strictly smaller (one option, not two). The node's C++-derived form would teach a fix JavaScript does not have.
 - *mapper note (preserved):* Observation only, NOT a verdict — OUT-5 (SUB-8) owns it. Recorded because this node is where the root-level observation on cl-1.root.implement-memoization-and-tabulation (recursion depth is language-material in JavaScript) becomes acute rather than theoretical: a path-shaped tree of 2*10^5 vertices is a routine constraint and is far beyond JavaScript's default stack, which — unlike the C++ that every selected reference assumes — has no standard tunable equivalent. The explicit-stack rewrite may therefore be mandatory in JavaScript where it is optional in the references. SUB-8 must reach its own verdict; this note is not one.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
@@ -4838,7 +4843,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4911,7 +4916,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -4983,7 +4988,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5054,7 +5059,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5126,7 +5131,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5200,7 +5205,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5272,7 +5277,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5345,7 +5350,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5417,7 +5422,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5489,7 +5494,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5540,7 +5545,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `performance` · effects `JS-E5`, `JS-E6`
-- MATERIAL — this is the node that writes the n^2 table and the O(n^3) loop nest, and the container decision is JavaScript's to make. C++'s vector<vector<int>> gives unboxed contiguous rows for free; the direct JavaScript translation gives a boxed outer array of boxed inner arrays, read in the innermost loop of a cubic algorithm — the worst place to pay a pointer chase and an unboxing. The JavaScript idiom is a flat Int32Array with i * n + j addressing. Recorded here rather than on cl-2.interval-evaluation-order-by-length because the order is a dependency fact and the table is a written artifact (JS-D2). Deliberate non-claim on JS-E1: the length-major loop is ITERATIVE, so it is exactly the realization that sidesteps the recursion cap — which is worth stating, because the memoized top-down alternative a C++ author might reach for instead does not sidestep it. Directional, not quantified (JS-U2).
+- MATERIAL — this is the node that writes the n^2 table and the O(n^3) loop nest, and the container decision is JavaScript's to make. C++'s vector<vector<int>> is also a row-of-rows, not one contiguous table, though its rows hold unboxed ints; the JavaScript translation can additionally box the elements, read in the innermost loop of a cubic algorithm — a bad place to pay a pointer chase and a possible unboxing. The JavaScript idiom is a flat Int32Array with i * n + j addressing. Recorded here rather than on cl-2.interval-evaluation-order-by-length because the order is a dependency fact and the table is a written artifact (JS-D2). Deliberate non-claim on JS-E1: the length-major loop is ITERATIVE, so it is exactly the realization that sidesteps the recursion cap — which is worth stating, because the memoized top-down alternative a C++ author might reach for instead does not sidestep it. Directional, not quantified (JS-U2).
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -5560,7 +5565,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5631,7 +5636,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5704,7 +5709,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5756,7 +5761,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `blocking` · effects `JS-E1`
-- MATERIAL AND BLOCKING — the flagship recursion finding of this audit. This node writes the post-order DFS, and the post-order DFS is exactly the shape JavaScript cannot run at competitive sizes. C++'s recursive post-order on a tree of n = 2e5 reaches depth 2e5 on a path-shaped tree; the default 8 MB stack absorbs it, and judges raise the limit for the cases that need more. JavaScript throws RangeError: Maximum call stack size exceeded at a depth on the order of 1e4 — an order of magnitude BELOW the input sizes this technique routinely meets — and a submitted program cannot raise the limit. So the recursive realization is not slow in JavaScript, it does not run at all on the standard adversarial input. The JavaScript realization must convert to an EXPLICIT STACK, which is materially harder than the recursion it replaces: post-order specifically requires either a two-phase visit marker or an iterator-position-per-node scheme, because a child's value must be folded into the parent AFTER all children are done. That conversion is a real acquisition a C++ learner never makes. A downstream agent that inherits the C++ default here ships an exercise that crashes.
+- MATERIAL AND BLOCKING — the flagship recursion finding of this audit. This node writes the post-order DFS, and the post-order DFS is exactly the shape JavaScript cannot run at competitive sizes. C++'s recursive post-order on a tree of n = 2e5 reaches depth 2e5 on a path-shaped tree; a typical 8 MB stack absorbs it and some judges raise the limit further, platform-dependent. JavaScript throws RangeError: Maximum call stack size exceeded at a depth on the order of 1e4 — an order of magnitude BELOW the input sizes this technique routinely meets — and a submitted program cannot raise the limit. So the recursive realization is not slow in JavaScript, it does not run at all on the standard adversarial input. The JavaScript realization must convert to an EXPLICIT STACK, which is materially harder than the recursion it replaces: post-order specifically requires either a two-phase visit marker or an iterator-position-per-node scheme, because a child's value must be folded into the parent AFTER all children are done. That conversion is a real acquisition a C++ learner never makes. A downstream agent that inherits the C++ default here ships an exercise that crashes.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -5776,7 +5781,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5847,7 +5852,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5919,7 +5924,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -5990,7 +5995,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6060,7 +6065,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6131,7 +6136,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6204,7 +6209,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6277,7 +6282,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6347,7 +6352,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6417,7 +6422,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6491,7 +6496,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6564,7 +6569,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6635,7 +6640,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6708,7 +6713,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6780,7 +6785,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6853,7 +6858,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6924,7 +6929,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -6998,7 +7003,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7071,7 +7076,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7144,7 +7149,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7218,7 +7223,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7290,7 +7295,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7363,7 +7368,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7434,7 +7439,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7507,7 +7512,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7558,7 +7563,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `blocking` · effects `JS-E1`
-- MATERIAL AND BLOCKING — rooting is a traversal, and the recursive traversal that is the C++ default does not survive the JavaScript stack at competitive tree sizes. The C++ idiom is a recursive DFS assigning parents and depths; on a path-shaped tree with n = 2e5 it descends 2e5 frames, which the default 8 MB process stack absorbs and which judges routinely raise further. JavaScript's cap is on the order of 1e4 frames and there is NO equivalent knob a submitted solution can set — V8's --stack-size is a host flag, not something the program controls. A path-shaped tree is the standard adversarial input, not an exotic one, so the failure is expected rather than unlucky. The JavaScript realization must therefore root the tree with an EXPLICIT stack (or a BFS order) — not as a stylistic preference but as the only form that runs. This node is upstream of every tree-DP node in the cluster, so the effect propagates.
+- MATERIAL AND BLOCKING — rooting is a traversal, and the recursive traversal that is the C++ default does not survive the JavaScript stack at competitive tree sizes. The C++ idiom is a recursive DFS assigning parents and depths; on a path-shaped tree with n = 2e5 it descends 2e5 frames, which a typical 8 MB process stack absorbs and which some judges raise further — platform-dependent, not guaranteed. JavaScript's cap is ~1e4 frames and there is NO equivalent knob a submitted solution can set — V8's --stack-size is a host flag, not something the program controls. A path-shaped tree is the standard adversarial input, not an exotic one, so the failure is expected rather than unlucky. The JavaScript realization must therefore root the tree with an EXPLICIT stack (or a BFS order) — not as a stylistic preference but as the only form that runs. This node is upstream of every tree-DP node in the cluster, so the effect propagates.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -7578,7 +7583,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7654,7 +7659,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7724,7 +7729,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7793,7 +7798,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7866,7 +7871,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -7937,7 +7942,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -8010,7 +8015,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -8025,7 +8030,7 @@ flips it.***
 
 **Unbounded knapsack recurrence** · aliases: *complete knapsack*, *integer knapsack with repetition*
 
-> The recurrence in which an item may be taken any number of times, and the structural change that licenses it: the transition for capacity w reads the state at w minus the item's weight for the SAME item set rather than the prefix without it. The item axis stops being a prefix of decisions and becomes a choice of "which item to use next", which is why the state loses a dimension.
+> The recurrence in which an item may be taken any number of times, and the structural change that licenses it: the transition for capacity w reads the state at w minus the item's weight for the SAME item set rather than the prefix without it. The item axis stops being a prefix of decisions and becomes a choice of "which item to use next", which is what LICENSES the collapse to one dimension — an available optimization, not a forced one.
 
 **Type** — `knowledge`
 
@@ -8080,7 +8085,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -8150,7 +8155,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-935`
 
@@ -8226,7 +8231,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8268,10 +8273,10 @@ declaration.
 | --- | --- |
 | `creator_review` | `deferred-provisional` |
 | `dimension_set_version` | `1.0.0` |
-| `entry_gate` | `gate-a` |
+| `entry_gate` | `gate-c` |
 | `implementation_load` | `2` |
-| `prerequisite_depth` | `1` |
-| `progression_stage` | `PS-1` |
+| `prerequisite_depth` | `4` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `4` |
@@ -8280,17 +8285,6 @@ declaration.
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 1`; the graph, walked under
-  NEU-940's own rubric, gives **4**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-- **Stage inverts across a cluster boundary.** This node is `PS-1` but requires
-  `cl-2.subset-sum-feasibility` at `PS-3` — **a dependency that would be taught AFTER its own
-  prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -8316,8 +8310,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 - `F-939-A` — unresolvable declaration(s), above. Confirmed **genuine coverage gaps** by NEU-943; owned by `INC-C1`.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
@@ -8357,8 +8350,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `2` |
-| `prerequisite_depth` | `2` |
-| `progression_stage` | `PS-2` |
+| `prerequisite_depth` | `5` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `2` |
 | `recognition_load` | `3` |
 | `state_formulation_load` | `5` |
@@ -8367,14 +8360,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 2`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -8399,8 +8384,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8473,7 +8457,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8509,7 +8493,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `3` |
-| `prerequisite_depth` | `4` |
+| `prerequisite_depth` | `7` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `3` |
@@ -8519,14 +8503,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 4`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -8551,8 +8527,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8589,8 +8564,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `7` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `3` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `2` |
@@ -8599,14 +8574,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -8631,8 +8598,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8703,7 +8669,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8775,7 +8741,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8815,8 +8781,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `2` |
-| `progression_stage` | `PS-2` |
+| `prerequisite_depth` | `4` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `3` |
 | `state_formulation_load` | `4` |
@@ -8825,17 +8791,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 2`; the graph, walked under
-  NEU-940's own rubric, gives **4**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-- **Stage inverts across a cluster boundary.** This node is `PS-2` but requires
-  `cl-1.linear-sequence-dp-2d` at `PS-3` — **a dependency that would be taught AFTER its own
-  prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -8860,8 +8815,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -8901,8 +8855,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `2` |
-| `progression_stage` | `PS-2` |
+| `prerequisite_depth` | `6` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `4` |
@@ -8911,17 +8865,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 2`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-- **Stage inverts across a cluster boundary.** This node is `PS-2` but requires
-  `cl-1.counting-dp-over-linear-domain` at `PS-4` — **a dependency that would be taught AFTER its own
-  prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -8946,8 +8889,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9019,7 +8961,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9091,7 +9033,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9162,7 +9104,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9200,8 +9142,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `4` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `5` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `2` |
@@ -9210,14 +9152,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9243,8 +9177,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9291,8 +9224,8 @@ declaration.
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `4` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `6` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `2` |
@@ -9301,14 +9234,6 @@ declaration.
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9334,8 +9259,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 - `F-939-B` — unresolvable declaration(s), above. Confirmed **genuine coverage gaps** by NEU-943; owned by `INC-C1`.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
@@ -9374,8 +9298,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `3` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `7` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `2` |
@@ -9384,14 +9308,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9417,8 +9333,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9457,7 +9372,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `5` |
-| `prerequisite_depth` | `4` |
+| `prerequisite_depth` | `7` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `2` |
@@ -9467,14 +9382,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 4`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9500,8 +9407,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9540,7 +9446,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `4` |
-| `prerequisite_depth` | `5` |
+| `prerequisite_depth` | `8` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `2` |
@@ -9550,14 +9456,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 5`; the graph, walked under
-  NEU-940's own rubric, gives **8**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9582,8 +9480,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9655,7 +9552,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9692,8 +9589,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `2` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `6` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `2` |
 | `recognition_load` | `4` |
 | `state_formulation_load` | `5` |
@@ -9702,14 +9599,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9734,8 +9623,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9806,7 +9694,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9877,7 +9765,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9914,8 +9802,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `2` |
-| `progression_stage` | `PS-2` |
+| `prerequisite_depth` | `5` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `3` |
 | `state_formulation_load` | `4` |
@@ -9924,14 +9812,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 2`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -9956,8 +9836,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -9996,8 +9875,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `7` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `4` |
 | `state_formulation_load` | `2` |
@@ -10006,14 +9885,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -10038,8 +9909,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10112,7 +9982,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10187,7 +10057,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10259,7 +10129,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10297,7 +10167,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `4` |
+| `prerequisite_depth` | `7` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `3` |
@@ -10307,14 +10177,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 4`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -10339,8 +10201,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10377,8 +10238,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `3` |
-| `prerequisite_depth` | `2` |
-| `progression_stage` | `PS-2` |
+| `prerequisite_depth` | `5` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `2` |
 | `state_formulation_load` | `1` |
@@ -10387,14 +10248,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 2`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -10420,8 +10273,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10458,8 +10310,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `6` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `3` |
 | `recognition_load` | `3` |
 | `state_formulation_load` | `2` |
@@ -10468,14 +10320,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -10500,8 +10344,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10571,7 +10414,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-936`
 
@@ -10629,7 +10472,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **MATERIAL** · severity `correctness-risk` · effects `JS-E2`
 - MATERIAL — recorded on NEU-938's evidence, which corrected this audit's first reading. The audit initially marked this neutral by asserting that penalized values sit around n * maxCost ~ 2e14 and are therefore comfortably inside 2^53. The mapper's observation on this node states instead that the penalised objective mixes lambda-scaled counts with costs and ROUTINELY exceeds Number.MAX_SAFE_INTEGER. On re-examination the audit cannot stand behind its own bound: the penalized value is lambda * count + cost, and BOTH factors are problem-scaled — a cost range at 1e12 with n at 2e5 puts the objective at ~1e17, which is past 2^53, and nothing in the technique caps either factor. C++ carries all of it in long long (exact to ~9.2e18) without comment, which is precisely why the references never mention a bound. Where the penalized objective exceeds 2^53 JavaScript silently rounds it, and because the lambda binary search COMPARES penalized optima, a rounded objective returns the wrong comparison and the search converges on the wrong lambda. Recorded as correctness-risk rather than blocking, and with an uncertainty: whether a given problem's cost scale crosses 2^53 is a per-problem fact this audit cannot enumerate (CAP-2 — no verified problem-level corpus ids, and no benchmarking). The finding is that the C++ default's silent 9.2e18 headroom is not there, and that the technique's arithmetic is problem-scaled rather than bounded — not that any specific problem overflows.
-- *mapper note (preserved):* Observation only, not a verdict: the penalised objective mixes lambda-scaled counts with costs and routinely exceeds Number.MAX_SAFE_INTEGER; a real-valued lambda search compounds it. Recorded for SUB-8.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — the penalised objective mixes lambda-scaled counts with costs and routinely exceeds Number.MAX_SAFE_INTEGER; a real-valued lambda search compounds it. Recorded for SUB-8.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -10649,7 +10492,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -10721,7 +10564,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -10774,8 +10617,8 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `correctness-risk` · effects `JS-E9`
-- MATERIAL, narrowly — the second of exactly two nodes in the map where JavaScript's floating point is genuinely weaker than C++'s, and, like the first, not for the reason folklore expects. Number is binary64, identical to C++ double, so the lambda binary search itself is neutral. The real gap is JS-E9a: tie-breaking is the whole content of this node — when lambda hits a value where MULTIPLE counts are simultaneously optimal, the degenerate segment must be resolved to recover the intended count, and that means separating penalized values that are equal or nearly so. This is exactly the situation competitive C++ answers by switching double to LONG DOUBLE (x87 80-bit extended) for the extra mantissa bits, or by keeping lambda integral and using __int128 for the penalized comparison. JAVASCRIPT HAS NEITHER — binary64 is the ceiling and there is no 128-bit integer. So the standard C++ escape hatches for this node's central difficulty do not exist, and the JavaScript author must instead resolve the degeneracy structurally: keep lambda integral and carry a tie-breaking count alongside the value, comparing lexicographically. A downstream agent inheriting the C++ default would present a one-token remedy JavaScript does not have.
-- *mapper note (preserved):* Observation only, not a verdict: keeping lambda integral is the standard mitigation for the floating-point form, and JavaScript's single numeric type makes the integral discipline load-bearing rather than optional. Recorded for SUB-8, which owns any verdict.
+- MATERIAL, narrowly — the second of exactly two nodes in the map where JavaScript's floating point is genuinely weaker than C++'s, and, like the first, not for the reason folklore expects. Number is binary64, identical to C++ double, so the lambda binary search itself is neutral. The real gap is JS-E9a: tie-breaking is the whole content of this node — when lambda hits a value where MULTIPLE counts are simultaneously optimal, the degenerate segment must be resolved to recover the intended count, and that means separating penalized values that are equal or nearly so. This is exactly the situation competitive C++ answers by switching double to LONG DOUBLE (x87 80-bit extended) for the extra mantissa bits, or by keeping lambda integral and using __int128 for the penalized comparison. JAVASCRIPT HAS NEITHER PRIMITIVE — binary64 is the ceiling, and there is no FIXED-WIDTH 128-bit integer type. Stated precisely, because the imprecise form would overstate the gap: BigInt does supply exact arbitrary-precision integer arithmetic and can carry the penalized comparison when lambda and the costs are integral, so the remedy is not IMPOSSIBLE in JavaScript — it is a boxed, heap-allocated value rather than a register-width primitive, which makes it a real but COSTLY substitute in a comparison this node runs in its inner loop. So the standard C++ escape hatches for this node's central difficulty do not exist in the one-token form the C++ taxonomy assumes, and the JavaScript author is pushed to resolve the degeneracy structurally instead: keep lambda integral and carry a tie-breaking count alongside the value, comparing lexicographically. A downstream agent inheriting the C++ default would present a one-token remedy JavaScript does not have.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — keeping lambda integral is the standard mitigation for the floating-point form, and JavaScript's single numeric type makes the integral discipline load-bearing rather than optional. Recorded for SUB-8, which owned the verdict and has delivered it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -10795,7 +10638,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -10866,7 +10709,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -10906,7 +10749,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `4` |
-| `prerequisite_depth` | `5` |
+| `prerequisite_depth` | `6` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `2` |
@@ -10916,14 +10759,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 5`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -10948,8 +10783,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11025,7 +10859,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11079,7 +10913,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `idiom-shift` · effects `JS-E9`
-- MATERIAL — the differential diagnosis gains a JavaScript-specific branch AND loses a C++ remedy. The node diagnoses an Aliens-trick solution returning a wrong count or a wrong value, whose usual causes (a non-convex objective, a mishandled degenerate segment, a lambda search that terminates early) are language-independent. The JavaScript-specific branch: a wrong count can come from binary64 failing to separate two near-equal penalized candidates in a degenerate segment — a cause that in C++ would have been silently absorbed by a long double the solver reached for, or avoided outright by an __int128 exact comparison (JS-E9a, cl-4.aliens-trick-tie-breaking-implementation). So the JavaScript learner sees a failure the C++ learner would not have seen, AND, having seen it, cannot apply the fix the C++ taxonomy prescribes, because JavaScript has no wider float and no 128-bit integer. Both halves change what this node teaches: an extra cause to check, and a remedy to replace.
+- MATERIAL — the differential diagnosis gains a JavaScript-specific branch AND loses a C++ remedy. The node diagnoses an Aliens-trick solution returning a wrong count or a wrong value, whose usual causes (a non-convex objective, a mishandled degenerate segment, a lambda search that terminates early) are language-independent. The JavaScript-specific branch: a wrong count can come from binary64 failing to separate two near-equal penalized candidates in a degenerate segment — a cause that in C++ would have been silently absorbed by a long double the solver reached for, or avoided outright by an __int128 exact comparison (JS-E9a, cl-4.aliens-trick-tie-breaking-implementation). So the JavaScript learner sees a failure the C++ learner would not have seen, AND, having seen it, cannot apply the fix the C++ taxonomy prescribes in the form it prescribes it, because JavaScript has no wider float and no FIXED-WIDTH 128-bit integer. Precisely, as at cl-4.aliens-trick-tie-breaking-implementation: BigInt is exact and can stand in for the __int128 comparison, but it is a boxed arbitrary-precision value rather than a register-width primitive, so it is a costly substitute rather than the same remedy. Both halves change what this node teaches: an extra cause to check, and a remedy to replace.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -11099,7 +10933,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -11138,8 +10972,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `3` |
-| `prerequisite_depth` | `2` |
-| `progression_stage` | `PS-2` |
+| `prerequisite_depth` | `5` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `3` |
 | `state_formulation_load` | `1` |
@@ -11148,20 +10982,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 2`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-- **Stage inverts across a cluster boundary.** This node is `PS-2` but requires
-  `cl-1.sequence-partition-dp` at `PS-4` — **a dependency that would be taught AFTER its own
-  prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**
-- **Stage inverts across a cluster boundary.** This node is `PS-2` but requires
-  `cl-2.formulate-interval-dp` at `PS-4` — **a dependency that would be taught AFTER its own
-  prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -11186,9 +11006,8 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-939-2` (**sharpened by NEU-943**) — the T3/T4 cluster-drift signal; this node is *also* an `F-943-1` inversion. **`F-939-2` and `F-943-1` are the same blindness in two annotations.**
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-939-2` (**sharpened by NEU-943**) — the T3/T4 cluster-drift signal; this node also carried **two** of `F-943-1`'s stage inversions. **`F-939-2` and `F-943-1` were the same blindness in two annotations** — `F-943-1`'s half is now **closed** (`D-R4`).
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11262,7 +11081,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11299,8 +11118,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `3` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `6` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `1` |
 | `state_formulation_load` | `1` |
@@ -11309,14 +11128,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -11342,8 +11153,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11381,7 +11191,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `2` |
-| `prerequisite_depth` | `6` |
+| `prerequisite_depth` | `7` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `0` |
 | `recognition_load` | `1` |
@@ -11391,14 +11201,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 6`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -11424,8 +11226,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11498,7 +11299,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -11572,7 +11373,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -11627,7 +11428,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **JavaScript-neutral** (assessed, explicitly not material)
 - JavaScript-neutral as the INTERPLAY: that a DP whose transition coefficients advance monotonically can be driven by a kinetic segment tree's certificate mechanism is the insight, and it is language-independent. Its realization is where JavaScript binds, and that verdict is on cl-4.kinetic-segment-tree-implementation (JS-D2).
-- *mapper note (preserved):* Observation only, not a verdict: certificate values are ratios of line coefficients; the standard mitigation is to compare cross-multiplied products, which overflow Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which owns any verdict.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — certificate values are ratios of line coefficients; the standard mitigation is to compare cross-multiplied products, which overflow Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which owned the verdict and has delivered it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -11647,7 +11448,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -11701,7 +11502,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **MATERIAL** · severity `blocking` · effects `JS-E2`, `JS-E5`
 - MATERIAL AND BLOCKING — the certificate arithmetic overflows 2^53, exactly as CHT's does and for the same geometric reason. Each node stores a line (slope, intercept) and the tree's whole mechanism is the 'melt time': the parameter value at which the currently-winning line is overtaken by a rival. Computing it is a CROSS-MULTIPLICATION of slope and intercept differences — the same division-free comparison CHT uses, chosen for the same reason (exact integer arithmetic) — and at the 1e9 operand scale these problems are posed at, the products reach ~1e18, ~111x past 2^53. C++ evaluates it in long long or __int128, exactly. JavaScript silently rounds, so a certificate expires at the wrong time or fails to expire, so the tree serves a stale line and the DP is silently wrong — and worse, the AMORTIZED BOUND the structure's whole justification rests on is a counting argument over correct certificate expiries, so a rounded melt time can also break the complexity, not just the answer. Correct JavaScript requires BigInt or split multiplication for the certificate comparison. JS-E5 rides along: the tree is a flat array of nodes and wants typed arrays. Deliberate non-claim on JS-E1: segment-tree recursion is O(log n) deep — about 20 frames — nowhere near the cap.
-- *mapper note (preserved):* Observation only, not a verdict: the expiry predicate is a cross-multiplied comparison of line coefficients whose products exceed Number.MAX_SAFE_INTEGER at competitive ranges; BigInt is the obvious mitigation and is slow in an amortized inner loop. Recorded for SUB-8, which owns any verdict.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — the expiry predicate is a cross-multiplied comparison of line coefficients whose products exceed Number.MAX_SAFE_INTEGER at competitive ranges; BigInt is the obvious mitigation and is slow in an amortized inner loop. Recorded for SUB-8, which owned the verdict and has delivered it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -11721,7 +11522,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -11759,8 +11560,8 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `2` |
-| `prerequisite_depth` | `3` |
-| `progression_stage` | `PS-3` |
+| `prerequisite_depth` | `5` |
+| `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `3` |
 | `state_formulation_load` | `1` |
@@ -11769,17 +11570,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 3`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-- **Stage inverts across a cluster boundary.** This node is `PS-3` but requires
-  `cl-2.formulate-interval-dp` at `PS-4` — **a dependency that would be taught AFTER its own
-  prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -11804,8 +11594,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -11877,7 +11666,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -11918,7 +11707,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `5` |
-| `prerequisite_depth` | `6` |
+| `prerequisite_depth` | `7` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `3` |
@@ -11929,19 +11718,11 @@ flips it.***
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
 
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 6`; the graph, walked under
-  NEU-940's own rubric, gives **7**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `performance` · effects `JS-E6`, `JS-E5`
 - MATERIAL — the node this map's JS-D1 exception exists for, plus a second effect recorded on NEU-938's evidence. JS-E5, from the mapper's observation: the online interleaving carries A PER-LEVEL STACK OF COLUMN ARRAYS under a strict evaluation order, so allocation churn in the hot path is a real realization concern and preallocated typed-array scratch buffers are the JavaScript idiom against a C++ default that gets contiguous vectors for free. The mapper also flags the recursion depth, and this audit RECORDS THAT AS OPEN RATHER THAN ANSWERING IT: LARSCH's online recursion is not the clean halving of offline SMAWK's REDUCE, and the audit cannot establish its depth bound from language semantics alone — it is a property of the algorithm's interleaving, and settling it would mean implementing it, which NEU-941 is barred from. Neither a JS-E1 claim nor a JS-E1 non-claim is asserted here (JS-U5). JS-E6 is the primary effect, and this is the ONE node where it is recorded essentially alone under JS-D1's explicit exception, because LARSCH is the case that exception exists for. LARSCH's entire reason to exist is the CONSTANT FACTOR: it solves the same self-referential totally-monotone DP that a Li Chao tree or a divide-and-conquer scheme also solves, and it is chosen over them ONLY because it is O(n) rather than O(n log n) — a log factor, which is to say a constant-ish factor, bought at a substantial implementation cost. So a language whose constant factor is worse attacks the technique's ONLY advantage, rather than merely taxing it as it taxes everything else. If JavaScript's overhead on LARSCH's intricate stack machinery exceeds the log factor it saves, the technique is not merely slower — it is POINTLESS, and a downstream agent should reach for the simpler O(n log n) structure instead. UNCERTAINTY, EXPLICITLY (JS-U2): whether that is actually the case CANNOT BE ESTABLISHED HERE. It is a quantitative question about a real runtime on a real workload, and implementing or benchmarking JavaScript solutions and selecting a runtime are out of scope for NEU-941 by its own spec. This verdict therefore records the EFFECT AND ITS DIRECTION — JavaScript's constant-factor penalty lands where LARSCH is most vulnerable — and explicitly does NOT assert the conclusion that LARSCH is not worth using in JavaScript. That determination is routed to the curriculum-production charter that owns benchmarking. Recorded as a directional finding with a named uncertainty rather than as either an assertion or a silence.
-- *mapper note (preserved):* Observation only, not a verdict: the online interleaving is a deep recursion with a per-level stack of column arrays and a strict evaluation order; both the recursion depth and the allocation churn are realization concerns. Recorded for SUB-8, which owns any verdict.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — the online interleaving is a deep recursion with a per-level stack of column arrays and a strict evaluation order; both the recursion depth and the allocation churn are realization concerns. Recorded for SUB-8, which owned the verdict and has delivered it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -11961,8 +11742,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -12039,7 +11819,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12111,7 +11891,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12184,7 +11964,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12226,7 +12006,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `2` |
-| `prerequisite_depth` | `4` |
+| `prerequisite_depth` | `5` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `3` |
@@ -12236,14 +12016,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 4`; the graph, walked under
-  NEU-940's own rubric, gives **5**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -12269,8 +12041,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12342,7 +12113,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12417,7 +12188,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12487,7 +12258,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12559,7 +12330,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12629,7 +12400,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12700,7 +12471,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12773,7 +12544,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -12813,7 +12584,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `1` |
-| `prerequisite_depth` | `5` |
+| `prerequisite_depth` | `6` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `4` |
@@ -12823,14 +12594,6 @@ flips it.***
 *`creator_review: "deferred-provisional"` — the creator plausibility review did NOT run (charter
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
-
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 5`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
@@ -12855,8 +12618,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -12929,7 +12691,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -13007,7 +12769,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -13079,7 +12841,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -13132,7 +12894,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **JavaScript-neutral** (assessed, explicitly not material)
 - JavaScript-neutral as the TECHNIQUE: that convexity lets a whole value function be maintained as a breakpoint multiset under add-slope and min-prefix operations, collapsing an O(n^2) DP to O(n log n), is the acquisition and it is language-independent. Its realization is where JavaScript's missing containers bite, and that verdict is on cl-4.slope-trick-heap-implementation (JS-D2) — a one-hop cross-reference, not a silent C++ assumption.
-- *mapper note (preserved):* Observation only, not a verdict: the operation repertoire needs two heaps with lazy offsets; JavaScript ships neither a heap nor a priority queue in its standard library. Recorded for SUB-8.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — the operation repertoire needs two heaps with lazy offsets; JavaScript ships neither a heap nor a priority queue in its standard library. Recorded for SUB-8.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -13152,7 +12914,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -13205,7 +12967,7 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 - **JavaScript-neutral** (assessed, explicitly not material)
 - JavaScript-neutral. Representing a convex piecewise-linear value function by its multiset of breakpoints — rather than by its values — is the representational insight, and it is language-independent. The CONTAINER that holds the breakpoints is where JavaScript binds hard, and that verdict is on cl-4.slope-trick-heap-implementation (JS-D2).
-- *mapper note (preserved):* Observation only, not a verdict: the representation is a multiset of integers; JavaScript has no built-in multiset or heap, so a realization must supply one. Recorded for SUB-8; no materiality claim made here.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — the representation is a multiset of integers; JavaScript has no built-in multiset or heap, so a realization must supply one. Recorded for SUB-8, whose verdict — recorded above as material: false, JavaScript-neutral — has since landed. The note claimed no materiality of its own; it does not withhold the assessment that now sits beside it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -13225,7 +12987,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -13299,7 +13061,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -13350,9 +13112,9 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
-- **MATERIAL** · severity `idiom-shift` · effects `JS-E8`, `JS-E2`
-- MATERIAL on two counts. SECOND COUNT FIRST, recorded on NEU-938's evidence and missed by this audit's first pass (JS-E2): the lazy-offset ACCUMULATOR can exceed Number.MAX_SAFE_INTEGER on large-coordinate instances. The offsets are added cumulatively across every transition, so the accumulator's range is the SUM of the per-step shifts rather than any single coordinate — it grows with n, and on large-coordinate instances it crosses 2^53 where C++'s long long carries it silently to ~9.2e18. Past that the offset rounds and every breakpoint it is applied to is wrong. FIRST COUNT (JS-E8), the structural one: slope trick is DEFINED in terms of a container JavaScript does not have, and this node is where that is confronted. The canonical formulation is two heaps (a max-heap of left breakpoints, a min-heap of right breakpoints) plus lazy add offsets, and in C++ that formulation IS the code: priority_queue is stdlib, the lazy offset is an integer, and the technique transcribes line for line from the exposition. JavaScript's standard library ships Array, Map, and Set — Set is INSERTION-ORDERED, NOT SORTED — and no binary heap, no priority queue, and no ordered container of any kind (JS-E8). So every JavaScript slope-trick solution must hand-roll a binary heap before it can write a line of slope trick. That is a real, separable prerequisite acquisition that the C++ learner simply does not have, and it materially changes what a downstream agent authors on this node: the exercise is 'implement a heap, then implement slope trick', not 'implement slope trick'. The lazy-offset discipline compounds it slightly — the offset must be applied on push and pop of a heap the author wrote, rather than of one they trust. Recorded as idiom-shift, not blocking: a hand-rolled binary heap over a typed array is entirely feasible and the asymptotics are unchanged.
-- *mapper note (preserved):* Observation only, not a verdict: two heaps with lazy offsets and an accumulator; JavaScript has no standard-library heap, and the accumulator can exceed Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which owns any verdict.
+- **MATERIAL** · severity `correctness-risk` · effects `JS-E8`, `JS-E2`
+- MATERIAL on two counts. SECOND COUNT FIRST, recorded on NEU-938's evidence and missed by this audit's first pass (JS-E2): the lazy-offset ACCUMULATOR can exceed Number.MAX_SAFE_INTEGER on large-coordinate instances. The offsets are added cumulatively across every transition, so the accumulator's range is the SUM of the per-step shifts rather than any single coordinate — it grows with n, and on large-coordinate instances it crosses 2^53 where C++'s long long carries it silently to ~9.2e18. Past that the offset rounds and every breakpoint it is applied to is wrong. FIRST COUNT (JS-E8), the structural one: slope trick is DEFINED in terms of a container JavaScript does not have, and this node is where that is confronted. The canonical formulation is two heaps (a max-heap of left breakpoints, a min-heap of right breakpoints) plus lazy add offsets, and in C++ that formulation IS the code: priority_queue is stdlib, the lazy offset is an integer, and the technique transcribes line for line from the exposition. JavaScript's standard library ships Array, Map, and Set — Set is INSERTION-ORDERED, NOT SORTED — and no binary heap, no priority queue, and no ordered container of any kind (JS-E8). So every JavaScript slope-trick solution must hand-roll a binary heap before it can write a line of slope trick. That is a real, separable prerequisite acquisition that the C++ learner simply does not have, and it materially changes what a downstream agent authors on this node: the exercise is 'implement a heap, then implement slope trick', not 'implement slope trick'. The lazy-offset discipline compounds it slightly — the offset must be applied on push and pop of a heap the author wrote, rather than of one they trust. SEVERITY, under the aggregation rule recorded as D-R2 in the adjudication ledger — a node's severity is the most severe of the severities its individual effects earn under the written tests — is the maximum of two per-effect scores. JS-E8 earns IDIOM-SHIFT on its own test: a hand-rolled binary heap over a typed array is entirely feasible and the asymptotics are unchanged, so that gap is one of container idiom. JS-E2 earns CORRECTNESS-RISK on its own test: the accumulator is correct at the sizes slope trick usually meets, but a reachable large-coordinate range carries it past 2^53, and past that the offset rounds silently. The maximum is CORRECTNESS-RISK, which is what this node now carries — consistent with the single-effect JS-E2 precedent on cl-4.aliens-trick-application. The earlier idiom-shift verdict scored the container gap alone and left the accumulator's 2^53 hazard out of the severity even though this rationale already stated it.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — two heaps with lazy offsets and an accumulator; JavaScript has no standard-library heap, and the accumulator can exceed Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which owned the verdict and has delivered it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -13372,7 +13134,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -13424,9 +13186,9 @@ Assumption #11, creator unavailable). **These values ship PROVISIONAL with a nam
 
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
-- **MATERIAL** · severity `idiom-shift` · effects `JS-E8`, `JS-E1`
-- MATERIAL — the most severe container gap in the map, and it meets a second effect on the way. The technique merges children's breakpoint multisets up a tree, and its efficiency rests on SMALL-TO-LARGE merging of an ORDERED MULTISET — C++'s std::multiset, with the standard trick of merging the smaller into the larger and stealing the larger's storage — or on a mergeable heap (leftist/skew). JavaScript has NEITHER: no ordered multiset, no lower_bound, and no mergeable heap (JS-E8). So the JavaScript author must hand-roll not the binary heap of cl-4.slope-trick-heap-implementation but a MERGEABLE one — a leftist or skew heap, which is a materially harder structure and a genuinely separate acquisition — or hand-roll an ordered multiset with the small-to-large merge, whose complexity argument depends on properties of the structure they wrote. JS-E1 is the second effect: the merge is driven by a post-order tree traversal, which at competitive tree sizes exceeds JavaScript's ~1e4 frame cap on a path-shaped tree and must be an explicit stack (cl-2.implement-tree-dp-post-order-dfs) — and the explicit-stack rewrite is harder here than usual, because each frame must carry a heap handle. Recorded as idiom-shift rather than blocking because both obstacles are surmountable, but the gap between the C++ exposition and the JavaScript artifact is the widest in the map.
-- *mapper note (preserved):* Observation only, not a verdict: a mergeable heap (leftist/skew/pairing) has no JavaScript standard-library equivalent, and the recursion is over a tree that may be deep. Recorded for SUB-8.
+- **MATERIAL** · severity `blocking` · effects `JS-E8`, `JS-E1`
+- MATERIAL — the most severe container gap in the map, and it meets a second effect on the way. The technique merges children's breakpoint multisets up a tree, and its efficiency rests on SMALL-TO-LARGE merging of an ORDERED MULTISET — C++'s std::multiset, with the standard trick of merging the smaller into the larger and stealing the larger's storage — or on a mergeable heap (leftist/skew). JavaScript has NEITHER: no ordered multiset, no lower_bound, and no mergeable heap (JS-E8). So the JavaScript author must hand-roll not the binary heap of cl-4.slope-trick-heap-implementation but a MERGEABLE one — a leftist or skew heap, which is a materially harder structure and a genuinely separate acquisition — or hand-roll an ordered multiset with the small-to-large merge, whose complexity argument depends on properties of the structure they wrote. JS-E1 is the second effect: the merge is driven by a post-order tree traversal, which at competitive tree sizes exceeds JavaScript's ~1e4 frame cap on a path-shaped tree and must be an explicit stack (cl-2.implement-tree-dp-post-order-dfs) — and the explicit-stack rewrite is harder here than usual, because each frame must carry a heap handle. SEVERITY, under the aggregation rule recorded as D-R2 in the adjudication ledger — a node's severity is the most severe of the severities its individual effects earn under the written tests — is the maximum of two per-effect scores. JS-E8 earns IDIOM-SHIFT on its own test: the mergeable structure is hand-rollable and correct, so that gap is one of container idiom, and it is the widest such gap in the map. JS-E1 earns BLOCKING on its own test: the direct transcription of the recursive post-order crashes with RangeError at competitive tree sizes, and an explicit stack is REQUIRED, NOT PREFERRED. The maximum is BLOCKING, which is what this node now carries — consistent with the single-effect JS-E1 precedent on cl-2.implement-tree-dp-post-order-dfs, the very node this rationale cross-references. RULING ON THE EARLIER SURMOUNTABILITY CRITERION, recorded rather than dropped: this node previously read idiom-shift rather than blocking BECAUSE BOTH OBSTACLES ARE SURMOUNTABLE. That criterion is OVERRIDDEN, and the ruling is made where it belongs — at JS-E1's own per-effect score, never as a downgrade applied after aggregation, because the rule has no downgrade step and a post-hoc downgrade would subtract from a maximum the rule itself fixed. Surmountability is a claim about DIFFICULTY, while the blocking test asks about NECESSITY (required, not preferred); and since the effect catalogue names a JavaScript technique that recovers every effect, letting surmountability lower a score would leave blocking with no node it could ever apply to. The obstacles ARE surmountable — that remains true, and it is why this is a large acquisition rather than a dead end — but it does not lower the score.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — a mergeable heap (leftist/skew/pairing) has no JavaScript standard-library equivalent, and the recursion is over a tree that may be deep. Recorded for SUB-8.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -13446,7 +13208,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -13487,7 +13249,7 @@ flips it.***
 | `dimension_set_version` | `1.0.0` |
 | `entry_gate` | `gate-c` |
 | `implementation_load` | `4` |
-| `prerequisite_depth` | `5` |
+| `prerequisite_depth` | `6` |
 | `progression_stage` | `PS-4` |
 | `proof_obligation_load` | `1` |
 | `recognition_load` | `4` |
@@ -13498,19 +13260,11 @@ flips it.***
 Assumption #11, creator unavailable). **These values ship PROVISIONAL with a named revision trigger.***
 *See `../03_open-items-and-provisional-register.md` → deferred creator review.*
 
-**⚠ `F-943-1` (HIGH, OPEN) lands on this node — its stage/depth annotation is NOT trustworthy.**
-
-- **Depth under-reports.** Declared `prerequisite_depth: 5`; the graph, walked under
-  NEU-940's own rubric, gives **6**. NEU-940 computed against the **pre-NEU-939 graph** —
-  before the cross-cluster edges existed. **The declared value remains the recorded one** (correcting it
-  is NEU-940's to do, not this package's); the rubric figure is quoted here as `F-943-1`'s evidence,
-  **not as a difficulty value to consume**. Treat the declared depth as **advisory**.
-
 **JavaScript materiality** — NEU-941, `rule_version 1.0.0`
 
 - **MATERIAL** · severity `performance` · effects `JS-E5`, `JS-E6`
 - MATERIAL — recorded on NEU-938's evidence, which found the one hazard this audit's first pass missed. Two expected hazards genuinely do NOT apply, and both non-claims are kept: SMAWK's REDUCE recurses on a halved problem, so the depth is O(log n) — about 20 frames against a cap on the order of 1e4, so JS-E1 does not bind; and its arithmetic is COMPARISONS of matrix entries generated on demand, with no multiplication to overflow 2^53, so JS-E2 does not bind. The audit's first pass then concluded neutral by reasoning that the matrix is implicit and never materialized, so there is no table for JS-E5. The mapper's observation on this node shows that reasoning is incomplete: SMAWK's access pattern is A STACK OF SHRINKING COLUMN-INDEX ARRAYS — REDUCE builds a new surviving-column list at every level — so while the MATRIX is implicit, the column-index arrays are real, allocated per level, and are the algorithm's actual working set. Typed arrays (or a single preallocated scratch buffer indexed per level) are the JavaScript idiom; a per-level Array.push loop is allocation churn in the hot path. And the mapper's second point sharpens why it matters: SMAWK's constant factor IS its selling point over divide-and-conquer optimization — the same reasoning that puts cl-4.larsch-online-smawk-implementation under JS-D1's exception applies here in weaker form. Recorded with JS-E5's specific mitigable idiom rather than as bare JS-E6, per JS-D1. Directional, not quantified (JS-U2).
-- *mapper note (preserved):* Observation only, not a verdict: SMAWK's constant factor is its whole selling point over D&C optimization, and its access pattern is a stack of shrinking column-index arrays — typed arrays are the obvious mitigation. Recorded for SUB-8, which owns any verdict.
+- *mapper note (preserved):* Pre-verdict observation, retained as the record of what the mapper saw before SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this note supports that verdict and no longer withholds one — SMAWK's constant factor is its whole selling point over D&C optimization, and its access pattern is a stack of shrinking column-index arrays — typed arrays are the obvious mitigation. Recorded for SUB-8, which owned the verdict and has delivered it.
 
 *`JS-U2` (inherited, open): **every performance verdict is directional, never quantified.** No
 benchmark was run. Do not read a `performance` severity as a measured factor.*
@@ -13530,8 +13284,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-1` (HIGH, **open**) — see above
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 
@@ -13603,7 +13356,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-937`
 
@@ -13620,7 +13373,7 @@ flips it.***
 
 **Total monotonicity of a DP cost matrix** · aliases: *totally monotone matrix*, *total monotonicity*, *row-minima monotonicity*
 
-> The fact that a cost matrix can be TOTALLY MONOTONE — every 2x2 submatrix whose top row's minimum lies weakly left of its bottom row's has that ordering preserved — and that total monotonicity implies the ROW-MINIMUM POSITIONS are non-decreasing down the rows. This is the exact hypothesis SMAWK needs, and it is STRICTLY WEAKER than the Monge condition: Monge implies total monotonicity, not conversely. A learner acquires the property, the row-minima consequence, and the implication's DIRECTION — which is what lets them see that establishing Monge is a sufficient route to SMAWK's hypothesis rather than the hypothesis itself.
+> The fact that a cost matrix can be TOTALLY MONOTONE — stated as a comparison between two entries, NOT in terms of the row minima the property is meant to explain: for any rows i1 < i2 and columns j1 < j2, if C[i1][j1] > C[i1][j2] then C[i2][j1] > C[i2][j2] (if an upper row strictly prefers the right-hand column, every lower row prefers it too) — and that total monotonicity IMPLIES the ROW-MINIMUM POSITIONS are non-decreasing down the rows. Definition first, row-minima consequence second, and in that order on purpose: the consequence is precisely what SMAWK exploits, so it has to be DERIVED from the property rather than built into its statement. This is the exact hypothesis SMAWK needs, and it is STRICTLY WEAKER than the Monge condition: Monge implies total monotonicity, not conversely. A learner acquires the property, the row-minima consequence, and the implication's DIRECTION — which is what lets them see that establishing Monge is a sufficient route to SMAWK's hypothesis rather than the hypothesis itself.
 
 **Type** — `knowledge`
 
@@ -13676,7 +13429,7 @@ them; the withdrawals are upheld.*
 
 **Audit findings**
 
-- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.
+- `F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.
 
 **Status** — `provisional` · adjudicated at map version `0.1.0` · owner `NEU-938`
 

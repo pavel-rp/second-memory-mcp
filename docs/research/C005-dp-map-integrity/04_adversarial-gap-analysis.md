@@ -27,21 +27,24 @@ cap in `06`.
 ## 2. 🔴 F-943-1 — NEU-940's dimension values were computed against the pre-NEU-939 graph
 
 **Severity: HIGH. The most consequential finding in this audit.**
+**Status: CLOSED — repaired by NEU-954, discharged by ledger entry `D-R4`.**
 
 NEU-940 shipped its per-node dimension values **asserted-present, not reviewed for
 consistency**, and its own V-1..V-18 run never completed. It routed this check here. The
-check found a real, systematic defect — with a single root cause.
+check found a real, systematic defect — with a single root cause. The analysis below is the
+diagnosis as made; §2.5 records the repair that discharged it.
 
 ### 2.1 The two symptoms
 
-**Symptom A — 26 of 179 nodes under-report `prerequisite_depth`.**
+**Symptom A — 26 of 179 nodes under-reported `prerequisite_depth`.**
 The rubric (`02_difficulty-dimensions.md` §2) defines it as *"Longest DP-technique path
 back to the floor"*. Re-computing that definition against the edge-complete graph:
-**153/179 agree exactly; 26 disagree.**
+**153/179 agreed exactly; 26 disagreed.** All 26 have since been corrected — **179/179
+agree.**
 
-**Symptom B — 6 `progression_stage` inversions.** A dependent sits at an *earlier* stage
-than its own prerequisite — the learner would meet the technique before the thing it
-requires.
+**Symptom B — 6 `progression_stage` inversions.** A dependent sat at an *earlier* stage
+than its own prerequisite — the learner would have met the technique before the thing it
+requires. **All 6 are resolved; the graph carries 0 inversions.**
 
 ### 2.2 The root cause — isolated, not guessed
 
@@ -76,34 +79,37 @@ which the cross-cluster layer was absent or unconsumed. Both symptoms are one de
 This is not carelessness — it is the predictable consequence of the pipeline's own
 sequencing, and it is exactly what NEU-940's caveat warned might be there.
 
-### 2.3 The six inversions, in full
+### 2.3 The six inversions, in full — as found, and as repaired
 
-| Dependent | Stage | requires | Stage |
-| --------- | ----- | -------- | ----- |
-| `cl-3.bitmask-state-encoding` | PS-1 | `cl-2.subset-sum-feasibility` | PS-3 |
-| `cl-3.formulate-digit-dp` | PS-2 | `cl-1.counting-dp-over-linear-domain` | PS-4 |
-| `cl-3.formulate-automaton-dp` | PS-2 | `cl-1.linear-sequence-dp-2d` | PS-3 |
-| `cl-4.divide-and-conquer-optimization` | PS-2 | `cl-1.sequence-partition-dp` | PS-4 |
-| `cl-4.divide-and-conquer-optimization` | PS-2 | `cl-2.formulate-interval-dp` | PS-4 |
-| `cl-4.knuth-yao-optimization` | PS-3 | `cl-2.formulate-interval-dp` | PS-4 |
+| Dependent | Stage as found | requires | Stage | Dependent's stage now |
+| --------- | -------------- | -------- | ----- | --------------------- |
+| `cl-3.bitmask-state-encoding` | PS-1 | `cl-2.subset-sum-feasibility` | PS-3 | **PS-4** ✅ |
+| `cl-3.formulate-digit-dp` | PS-2 | `cl-1.counting-dp-over-linear-domain` | PS-4 | **PS-4** ✅ |
+| `cl-3.formulate-automaton-dp` | PS-2 | `cl-1.linear-sequence-dp-2d` | PS-3 | **PS-4** ✅ |
+| `cl-4.divide-and-conquer-optimization` | PS-2 | `cl-1.sequence-partition-dp` | PS-4 | **PS-4** ✅ |
+| `cl-4.divide-and-conquer-optimization` | PS-2 | `cl-2.formulate-interval-dp` | PS-4 | **PS-4** ✅ |
+| `cl-4.knuth-yao-optimization` | PS-3 | `cl-2.formulate-interval-dp` | PS-4 | **PS-4** ✅ |
 
-The pattern is legible: CL-3 and CL-4 each staged their *entry-level* techniques as PS-1/2
+**All six now order correctly** — no prerequisite stage exceeds its dependent's.
+
+The pattern was legible: CL-3 and CL-4 each staged their *entry-level* techniques as PS-1/2
 **relative to their own cluster** — reasonable in isolation — while the CL-1/CL-2 base DP
 those techniques stand on is genuinely PS-3/PS-4 work. `cl-4.divide-and-conquer-optimization`
-at PS-2 requiring two separate PS-4 nodes is the sharpest case: it is annotated as early
+at PS-2 requiring two separate PS-4 nodes was the sharpest case: it was annotated as early
 material that in fact presupposes two pieces of advanced material.
 
 ### 2.4 Why this matters downstream
 
 Consumers of this map — the C005 curriculum-production agents — are expected to sequence
-by `progression_stage`. **A consumer trusting the stages today would order 6 dependencies
-backwards** and would under-estimate the prerequisite burden of 26 techniques by 1–4 hops.
-The graph's *structure* would have carried them correctly; its *annotation* would not.
+by `progression_stage`. **A consumer trusting the stages as shipped would have ordered 6
+dependencies backwards** and would have under-estimated the prerequisite burden of 26
+techniques by 1–4 hops. The graph's *structure* would have carried them correctly; its
+*annotation* would not.
 
 This is precisely the failure OUT-6's "consistent with the progression stages" clause
 exists to catch, and it was caught by the check NEU-940 asked for.
 
-### 2.5 Route — NOT repaired here
+### 2.5 Route — not repaired here, repaired by the owner
 
 **Owner: NEU-940's dimension values (the `progression_stage` / `prerequisite_depth`
 fields on 26 nodes across CL-3 and CL-4).** SUB-9 audits; it does not repair. Repair means
@@ -113,8 +119,18 @@ re-derive both fields against the **edge-complete** graph, and treat `prerequisi
 as **computed** rather than hand-asserted — it is a pure function of the graph, and the
 validator in this package already computes it.
 
-**Consumers, until then:** trust the **edges**, not the stages, wherever a chain crosses
-a cluster. The edges are audited and correct.
+**The route completed.** NEU-954 took ownership and applied exactly that remedy: both
+fields re-derived over the edge-complete graph — **26 depth corrections, 16 stage changes
+(all to `PS-4`), 1 `entry_gate` change** (`cl-3.bitmask-state-encoding`, `gate-a` →
+`gate-c`) — leaving **0 stage inversions** and **179/179** depths agreeing with the graph.
+**`F-943-1` is CLOSED**, discharged by ledger entry **`D-R4`**. Six residual `cl-4` values
+(the matrix-exponentiation family and SMAWK) were corrected with the rest, but their
+declared values matched **neither** the pre-939 nor the post-939 graph; NEU-954 records
+that residual cause as **`unestablished`**, and it stays recorded rather than explained
+away.
+
+**Consumers:** the edges are audited and correct, and the stages and depths now agree with
+them. The validator re-derives both from source — re-run it after any edge change.
 
 ## 3. F-939-A — SOS DP · verdict: **GENUINE GAP, orphan attachment. Confirmed.**
 
@@ -227,10 +243,12 @@ direction** — a mapper judging a base DP "combinatorial" (T3) where CL-1 judge
 recurrence "a plain index tuple" (T4). Two independent mappers drifting the same way at
 the same cascade boundary is a signal about the **T3/T4 cascade step**, not an error by
 either mapper. **This audit adds a third data point:** `cl-4.divide-and-conquer-optimization`
-is *also* one of the six F-943-1 stage inversions. The same node is mis-predicted on
+was *also* one of the six F-943-1 stage inversions. The same node was mis-predicted on
 cluster **and** mis-staged — both because CL-4 reasoned about a CL-1 base DP without
-seeing it. **F-939-2 and F-943-1 are the same blindness in two annotations.** Routed to
-the partition audit as a cascade signal.
+seeing it. **F-939-2 and F-943-1 were the same blindness in two annotations.** F-943-1's
+half is now repaired and closed (`D-R4`); **the cluster-prediction signal F-939-2 records is
+untouched by that repair and remains open**, routed to the partition audit as a cascade
+signal.
 
 ## 6. Adversarial probes that found nothing — recorded so absence is evidence
 
@@ -271,9 +289,11 @@ a terminal, and that discipline is why this audit can see the hole at all.
 - **`creator_review: "deferred-provisional"` on all 179** — no creator has reviewed any
   dimension value. This audit is a *consistency* check, not a substitute for that review.
   A value can be consistent and wrong.
-- **`entry_gate` restricted to `gate-a`/`gate-c`** — confirmed: 20 gate-a (all PS-1) and
-  159 gate-c (all PS-2+). Gates B and D are instantiated by **no** node. Whether that is
-  correct is NEU-940's/NEU-888's, not SUB-9's. The crosstab is perfectly clean —
-  PS-1↔gate-a, PS-2/3/4↔gate-c, with **zero** exceptions — which means the field is
-  currently a **deterministic function of `progression_stage`** and carries no independent
-  information. Recorded as an observation for the owner.
+- **`entry_gate` restricted to `gate-a`/`gate-c`** — confirmed: **19 gate-a** (all PS-1) and
+  **160 gate-c** (all PS-2+). **`gate-b`, `gate-d` and `gate-e` are instantiated by no node.**
+  Whether that is correct is NEU-940's/NEU-888's, not SUB-9's. The crosstab is
+  perfectly clean — PS-1↔gate-a, PS-2/3/4↔gate-c, with **zero** exceptions — which means
+  the field is a **deterministic function of `progression_stage`** and carries no
+  independent information. **Re-measured after NEU-954's repair: still zero exceptions**,
+  so the redundancy is exactly as it was and **`F-943-3` stays open (Low)** even though
+  `F-943-1`, which it once inherited, is closed. Recorded as an observation for the owner.

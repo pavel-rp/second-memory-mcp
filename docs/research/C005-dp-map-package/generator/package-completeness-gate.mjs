@@ -152,19 +152,36 @@ for (const n of nodes)
 check(anGaps.length === 0, 'PG-6e every registered boundary-anchor TERMINAL appears on its dependent\'s block', anGaps.join(','));
 
 // =============================================================================
-// PG-7 — the F-943-1 defect is SURFACED, never buried
+// PG-7 — F-943-1 is CLOSED, and the closure is EVIDENCED, never just announced
 // =============================================================================
-console.log('\n=== PG-7 · THE OPEN DEFECT IS SURFACED ===');
-// Key on the PER-NODE WARNING MARKER, not a bare "F-943-1" mention. Most blocks
-// reference F-943-1 in passing (F-943-3 inherits it, the stage caveats cite it), so a
-// substring match reports 179 and proves nothing. The marker below is emitted ONLY on a
-// node the finding actually lands on.
+// POST-CLOSURE PURPOSE (NEU-956). Until now this block asserted the mirror image: that the
+// OPEN defect was SURFACED, never buried. `F-943-1` is now closed, so the same discipline is
+// turned around — a closure is worth exactly as much as the evidence it carries. Every check
+// below still FAILS on a register that merely CLAIMS the closure without evidencing it, and
+// on a map that quietly regains the defect. Deleting this block would also make the gate
+// green: that is precisely the outcome this rework exists to prevent, which is why the block
+// is reworked rather than removed.
+//
+// PG-7e IS RETIRED — DISCHARGED, NOT INVERTED, AND NOT SILENTLY DROPPED.
+//   It asserted: "the F-943-1 repair is explicitly recorded as OUT of SUB-11's scope."
+//   That was a true statement about the package's SHIPPING state, and C008 made it false by
+//   PERFORMING the repair. A closed finding has no "the fix is out of scope" analogue to
+//   restate, so the assertion has no closed-state successor and is discharged. It is recorded
+//   here rather than deleted quietly, because a vanished assertion is indistinguishable from
+//   a lost one. Its replacement in the count is PG-7f, which asserts something PG-7e never
+//   could: that the ledger entry the register names as discharging the finding RESOLVES.
+console.log('\n=== PG-7 · THE CLOSURE IS EVIDENCED ===');
+// Still keyed on the PER-NODE WARNING MARKER, not a bare "F-943-1" mention. The marker is
+// EMITTED by the view generator from its computed depthBad/invByNode sets, so the two checks
+// below hold because NOTHING COMPUTED THEM — not because prose was deleted. Re-break one
+// node's declared depth and the marker returns and PG-7a fails. That is the point: this is an
+// assertion about the MAP, routed through the generator, not an assertion about wording.
 const MARK = '**⚠ `F-943-1` (HIGH, OPEN) lands on this node';
 const flagged = [...blocks.entries()].filter(([, b]) => b.includes(MARK)).map(([id]) => id);
-check(flagged.length === 26, 'PG-7a all 26 F-943-1-affected nodes carry the per-node warning marker', `${flagged.length} flagged`);
-// and the 6 inversions are named on the 5 nodes that carry them
+check(flagged.length === 0, 'PG-7a NO node carries the per-node F-943-1 warning marker (nothing computed one)', `${flagged.length} flagged`);
+// and no block names a stage inversion, on the same emitted-not-written basis
 const invMarked = [...blocks.entries()].filter(([, b]) => b.includes('Stage inverts across a cluster boundary')).map(([id]) => id);
-check(invMarked.length === 5, 'PG-7a2 all 5 inversion-bearing nodes name their backwards dependency (6 inversions)', `${invMarked.length} nodes`);
+check(invMarked.length === 0, 'PG-7a2 NO block names a stage inversion (nothing computed one)', `${invMarked.length} nodes`);
 const OPEN = join(PKG, '03_open-items-and-provisional-register.md');
 const openTxt = existsSync(OPEN) ? readFileSync(OPEN, 'utf8') : '';
 
@@ -176,12 +193,23 @@ const openTxt = existsSync(OPEN) ? readFileSync(OPEN, 'utf8') : '';
 const secStart = openTxt.indexOf('## 1. `F-943-1`');
 const secEnd = secStart < 0 ? -1 : openTxt.indexOf('\n## ', secStart + 1);
 const f943 = secStart < 0 ? '' : openTxt.slice(secStart, secEnd < 0 ? openTxt.length : secEnd);
-check(secStart >= 0, 'PG-7b0 the register has a dedicated F-943-1 section (stated FIRST, before any other open item)');
-check(/\*\*unresolved\*\*/.test(f943), 'PG-7b F-943-1 is bound as an explicit UNRESOLVED element (asserted INSIDE its own section)');
-check(/NEU-940/.test(f943), 'PG-7c F-943-1 names an OWNER (inside its own section)');
-check(/[Rr]evision trigger/.test(f943) && /edge-complete/.test(f943), 'PG-7d F-943-1 names a REVISION TRIGGER (inside its own section)');
-// and the fix is explicitly disclaimed as out of scope, so no future reader "helpfully" does it here
-check(/[Oo]ut of .*scope/.test(f943), 'PG-7e the F-943-1 repair is explicitly recorded as OUT of SUB-11 scope');
+check(secStart >= 0, 'PG-7b0 the register KEEPS a dedicated F-943-1 section, stated FIRST (a closure that erases what it closed is not evidence)');
+check(/\*\*closed\*\*/.test(f943), 'PG-7b F-943-1 is recorded CLOSED (asserted INSIDE its own section)');
+// An OPEN item owes an owner and a revision trigger. A CLOSED one owes the record of what
+// discharged it — so PG-7c/PG-7d assert THAT instead, and PG-7f proves the record resolves.
+const ledgerRef = (f943.match(/`(D-R\d+)`/) || [])[1] || '';
+check(ledgerRef !== '', 'PG-7c the closure NAMES its discharging ledger entry (inside its own section)', ledgerRef || '(none named)');
+check(/[Rr]evision trigger/.test(f943) && /edge-complete/.test(f943) && /26 depth corrections/.test(f943),
+  'PG-7d the section records WHAT discharged it — the edge-complete re-run and its counts');
+// PG-7f — the anti-false-pass check with the most content in this block: a register can NAME
+// any ledger id it likes. This one has to actually exist AS A LEDGER ROW. The `D-R#` id must
+// appear at the start of a table row, so the reservation prose ("D-R4 onward remain reserved")
+// cannot satisfy it — only a real, landed entry can.
+const LEDGER_PATH = join(RESEARCH, 'C005-dp-map-schema/adjudication/01_schema-decision-ledger.md');
+const ledgerTxt = existsSync(LEDGER_PATH) ? readFileSync(LEDGER_PATH, 'utf8') : '';
+const ledgerRowRe = ledgerRef === '' ? null : new RegExp('^\\|\\s*\\*\\*`' + ledgerRef + '`\\*\\*\\s*\\|', 'm');
+check(ledgerRowRe !== null && ledgerRowRe.test(ledgerTxt),
+  'PG-7f the discharging ledger entry the register names ACTUALLY RESOLVES as a ledger row', ledgerRef || '(none named)');
 
 // =============================================================================
 // PG-8 — every OPEN ITEM has an owner and a revision trigger

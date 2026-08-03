@@ -32,24 +32,27 @@ result**, and cites the result it derives from.
 
 ## 1. The prime directive
 
-> **Author against the GRAPH. Do not author against the STAGE LABELS.**
+> **Author against the GRAPH. The STAGE LABELS now agree with it — they are still not binding.**
 
-**This is not a preference. It is a defect workaround with a named owner.** `F-943-1` (HIGH, open)
-means **26 of 179 `prerequisite_depth` values are wrong** and **6 dependencies order backwards by
-`progression_stage`**. NEU-943's binding consumer instruction (`05` §5):
+**This started as a defect workaround with a named owner.** `F-943-1` (HIGH) meant **26 of 179
+`prerequisite_depth` values were wrong** and **6 dependencies ordered backwards by
+`progression_stage`**. **NEU-954 re-derived both fields over the edge-complete graph and `F-943-1` is
+CLOSED** (ledger `D-R4`) — 26 depth corrections, 16 stage changes, 1 `entry_gate` change, **0
+inversions remaining**. NEU-943's consumer instruction (`05` §5), as it now reads:
 
-> *"Trust the edges. Do not trust `progression_stage` across a cluster boundary. The 25 cross-cluster
-> edges are audited and correct; the stages on 6 of them are inverted. Sequence from the graph's
-> topological order — which exists, because the graph is acyclic — not from the stage labels, until
-> `F-943-1` is closed."*
+> *"Trust the edges, and you may now trust `progression_stage` across a cluster boundary too. The 25
+> cross-cluster edges are audited and correct, and the 6 stages that were inverted across them were
+> re-derived — 0 inversions remain. The graph's topological order is still the authority where the
+> two could ever disagree."*
 
 **The graph supports this.** It is **acyclic** (187 nodes, 572 edges, 0 cycles), so **a topological
 order exists and is computable**. `../C005-dp-map-integrity/validator/audit-graph-integrity.mjs`
-computes `prerequisite_depth` correctly from source; **use it, not the declared field.**
+re-derives `prerequisite_depth` from source; **it now agrees with the declared field on all 179, and
+re-running it is the check after any edge change.**
 
-**When `F-943-1` closes** (NEU-940 re-runs its computation over the edge-complete graph), this
-directive relaxes — but **the stages remain `provisional` regardless**, because the creator review
-never ran (§4.3). **Re-read `03_open-items-and-provisional-register.md` before relying on any stage.**
+**The directive has therefore relaxed, but only on the defect axis** — **the stages remain
+`provisional`**, because the creator review never ran (§4.3). **Re-read
+`03_open-items-and-provisional-register.md` before relying on any stage.**
 
 ---
 
@@ -125,7 +128,7 @@ blind to what does not.**
 | # | Rule | Basis |
 | --- | --- | --- |
 | **S1** | **Never teach a node before every one of its prerequisites.** All four prerequisite fields bind equally: `intra_cluster`, `roots`, `boundary_anchors`, and the **realized cross-cluster edges**. | The graph; `D-S1` |
-| **S2** | **Derive order from a TOPOLOGICAL SORT of the graph, not from `progression_stage`.** | **`F-943-1`**; NEU-943 `05` §5 |
+| **S2** | **Derive order from a TOPOLOGICAL SORT of the graph.** `progression_stage` now agrees with it on every edge, but the sort is the authority and the stages remain `provisional`. | **`F-943-1`** (closed, `D-R4`); NEU-943 `05` §5 |
 | **S3** | **Classify edges BY FIELD, never by endpoint span.** Root edges carry `cl-1.` ids and *look* cross-cluster under a naive endpoint test; they are **not**. An audit classifying by span reports **223 false positives**. `manifest.yaml`'s `edge_disposition` block exists for exactly this. | **`D-S4` / `X-S1`** |
 | **S4** | **A `boundary_anchor` terminal is a SANCTIONED STOP, not a gap and not a to-do.** Do not author the anchor's content; do not decompose it. **Assume it.** | `D-S3` |
 | **S5** | **A root is a terminal.** Chains bottom out on a root **or** a registered anchor. **Anything else that bottoms out is an unexplained jump** — and there are **0 of them** in this map (179/179). If you create one, you have broken the map. | `D-S2`; NEU-943 floor audit |
@@ -133,22 +136,23 @@ blind to what does not.**
 | **S7** | **A prerequisite edge is a STRUCTURAL claim, not a validated LEARNING claim.** See §3.3 — this is non-negotiable and non-downgradable. | **`R1` / `X-D3`** |
 | **S8** | **Need a non-DP prerequisite with no registered anchor? File `AR-1`. Never invent an anchor**, fake a root edge, declare it cross-cluster, or drop it. | Route `AR-1` |
 
-### 3.2 The 6 known-bad orderings
+### 3.2 The 6 known-bad orderings — REPAIRED
 
-**If you sequence by `progression_stage`, these 6 come out backwards.** Named so no downstream agent
-rediscovers them the hard way:
+**These 6 came out backwards if you sequenced by `progression_stage`.** Kept, with the repaired
+values, so no downstream agent rediscovers them the hard way and so the closure can be checked:
 
-| Dependent (stage) | Requires (stage) |
-| --- | --- |
-| `cl-3.bitmask-state-encoding` (`PS-1`) | `cl-2.subset-sum-feasibility` (`PS-3`) |
-| `cl-3.formulate-digit-dp` (`PS-2`) | `cl-1.counting-dp-over-linear-domain` (`PS-4`) |
-| `cl-3.formulate-automaton-dp` (`PS-2`) | `cl-1.linear-sequence-dp-2d` (`PS-3`) |
-| `cl-4.divide-and-conquer-optimization` (`PS-2`) | `cl-1.sequence-partition-dp` (`PS-4`) |
-| `cl-4.divide-and-conquer-optimization` (`PS-2`) | `cl-2.formulate-interval-dp` (`PS-4`) |
-| `cl-4.knuth-yao-optimization` (`PS-3`) | `cl-2.formulate-interval-dp` (`PS-4`) |
+| Dependent (stage as shipped) | Requires (stage) | Dependent's stage now |
+| --- | --- | --- |
+| `cl-3.bitmask-state-encoding` (`PS-1`) | `cl-2.subset-sum-feasibility` (`PS-3`) | **`PS-4`** ✅ |
+| `cl-3.formulate-digit-dp` (`PS-2`) | `cl-1.counting-dp-over-linear-domain` (`PS-4`) | **`PS-4`** ✅ |
+| `cl-3.formulate-automaton-dp` (`PS-2`) | `cl-1.linear-sequence-dp-2d` (`PS-3`) | **`PS-4`** ✅ |
+| `cl-4.divide-and-conquer-optimization` (`PS-2`) | `cl-1.sequence-partition-dp` (`PS-4`) | **`PS-4`** ✅ |
+| `cl-4.divide-and-conquer-optimization` (`PS-2`) | `cl-2.formulate-interval-dp` (`PS-4`) | **`PS-4`** ✅ |
+| `cl-4.knuth-yao-optimization` (`PS-3`) | `cl-2.formulate-interval-dp` (`PS-4`) | **`PS-4`** ✅ |
 
-**All 6 are cross-cluster. All 293 intra-cluster edges are clean.** A curriculum that never crosses a
-cluster boundary would never hit this — which is exactly why the defect survived to here.
+**All 6 were cross-cluster. All 293 intra-cluster edges were clean.** A curriculum that never crosses
+a cluster boundary would never have hit this — which is exactly why the defect survived to here.
+**All 6 now order correctly** (`F-943-1` closed, `D-R4`).
 
 ### 3.3 🔴 The transfer constraint — `R1`, non-downgradable
 
@@ -180,9 +184,9 @@ Roots carry `{}` **by design** (frozen, `DR-S02`).
 
 | Dimension | What it is | Trust |
 | --- | --- | --- |
-| `progression_stage` | `PS-0`…`PS-4` | ⚠ **`F-943-1`: wrong on 6 orderings. `PS-2/3/4` granularity UNGROUNDED. `provisional`.** |
-| `entry_gate` | `gate-a` / `gate-c` | ⚠ **`F-943-3`: a deterministic function of `progression_stage` — NO independent information. Gates B and D instantiated by no node.** |
-| `prerequisite_depth` | Longest DP-technique path back to the floor | ⚠ **`F-943-1`: 26/179 under-report by 1–4 hops. ADVISORY ONLY — recompute from the graph.** |
+| `progression_stage` | `PS-0`…`PS-4` | ⚠ **`F-943-1` CLOSED (`D-R4`) — the 6 bad orderings are repaired. `PS-2/3/4` granularity still UNGROUNDED. Still `provisional`.** |
+| `entry_gate` | `gate-a` / `gate-c` | ⚠ **`F-943-3` (still open): a deterministic function of `progression_stage` — NO independent information. `gate-b`, `gate-d` and `gate-e` instantiated by no node.** |
+| `prerequisite_depth` | Longest DP-technique path back to the floor | ✅ **`F-943-1` CLOSED — all 179 agree with the graph. Still a pure function of the graph, so recomputing it is always valid.** |
 | `state_formulation_load` | Cost of formulating the state | `provisional` (creator review deferred) |
 | `transition_derivation_load` | Cost of deriving the transition | `provisional` |
 | `proof_obligation_load` | Weight of the correctness obligation | `provisional` |
@@ -192,8 +196,9 @@ Roots carry `{}` **by design** (frozen, `DR-S02`).
 
 ### 4.2 How to consume them
 
-1. **`prerequisite_depth`: recompute. Do not read.** It is a **pure function of the graph** and
-   NEU-943's validator computes it correctly. The declared field is wrong on 26 nodes.
+1. **`prerequisite_depth`: readable, and still recomputable.** It is a **pure function of the graph**,
+   NEU-943's validator re-derives it, and since `F-943-1`'s repair the declared field agrees with the
+   derivation on **all 179**. Re-derive after any edge change.
 2. **The five load dimensions are the usable calibration signal** — but they are **`provisional`**
    (§4.3) and were **not** implicated in `F-943-1`, which touched only the two graph-derived fields.
 3. **`entry_gate` adds nothing.** Derive it from the stage or ignore it (`F-943-3`).
@@ -213,8 +218,9 @@ unavailable in an unattended run.** Recorded per-node as `creator_review: "defer
 | **Revision trigger** | **The creator reviews the progression assignment for plausibility.** |
 
 **A curriculum charter calibrating against these values MUST surface that reliance.** This is
-**independent of `F-943-1`** — even after the re-run, the values remain unreviewed until the creator
-reviews them. **Both defects stack on the same field.**
+**independent of `F-943-1`** — the re-run has landed, and the values remain unreviewed until the
+creator reviews them. **Two defects stacked on the same field; the repair cleared one and this is the
+one that is left.**
 
 ---
 
@@ -297,13 +303,15 @@ computed against a graph NEU-939 had not finished drawing. **The charter's own S
 
 A curriculum-production charter consuming this package should be able to answer **yes** to all:
 
-- [ ] Sequences from the **graph's topological order**, not `progression_stage` (`F-943-1`).
+- [ ] Sequences from the **graph's topological order** — the authority, even now that
+      `progression_stage` agrees with it (`F-943-1` closed, `D-R4`).
 - [ ] Classifies edges **by field**, never by endpoint span (`X-S1`).
 - [ ] Treats every `boundary_anchor` terminal as **assumed knowledge**, authoring none of it.
 - [ ] Authors **none** of the 10 `INC-C1` gaps, and **states the incompleteness** rather than implying
       coverage.
 - [ ] Leaves the two dangling declarations (`F-939-A`/`F-939-B`) **in place**.
-- [ ] **Recomputes** `prerequisite_depth` from the graph rather than reading the declared field.
+- [ ] **Re-derives** `prerequisite_depth` from the graph after any edge change — the declared field
+      now agrees on all 179, and staying derivable is what keeps it that way.
 - [ ] **Surfaces its reliance** on every `provisional` value it consumes — stages, difficulty loads,
       AR-1 dependents.
 - [ ] **Invents no problem-level citation** (`CAP-2`).

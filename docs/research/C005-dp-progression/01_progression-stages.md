@@ -105,9 +105,12 @@ which would re-bucket stages **without touching `prerequisite_depth`**, since de
 losslessly per node and the stage is a pure function of it (§2). Re-bucketing is therefore a
 cheap, mechanical change, which is *why* the exact depth is stored alongside the stage.
 
-**Observed distribution** (`04_consistency-check.md` §2): PS-1 20 · PS-2 32 · PS-3 36 · PS-4 91.
-**PS-4 holds 51% of the graph** — the ceiling's cost, reported rather than tuned away. The
-depth range is 1–9 and the depth histogram is preserved in full in `04_consistency-check.md`.
+**Observed distribution** (recomputed over the edge-complete graph, NEU-954 `D-R3`):
+PS-1 19 · PS-2 26 · PS-3 27 · PS-4 107.
+**PS-4 holds ~60% of the graph** (107/179) — the ceiling's cost, reported rather than tuned away.
+The depth range is 1–9 — **re-verified against the recomputed map, unchanged**: the 26 depth
+corrections moved values *within* the range without extending either end. The depth histogram is
+preserved in full in `04_consistency-check.md`.
 
 ---
 
