@@ -20,7 +20,9 @@ The file measured **4,068 lines** at the time of re-presentation (it is larger t
 
 The reviewer was requested on each PR by a **direct `gh api` POST** to `/repos/pavel-rp/second-memory-mcp/pulls/{n}/requested_reviewers`, naming `copilot-pull-request-reviewer[bot]`.
 
-`gh pr edit --add-reviewer` was **not used and not trusted** — it is known to report success while silently failing to register a reviewer. Registration was **API-confirmed for all four PRs**: the POST response body listed the reviewer under `requested_reviewers` (`.requested_reviewers[].login` returned `Copilot` each time), and a review from `copilot-pull-request-reviewer[bot]` subsequently landed on every one. No registration claim in this record rests on a command exit code.
+`gh pr edit --add-reviewer` was **not used and not trusted** — it is known to report success while silently failing to register a reviewer. Registration was **API-confirmed for all four PRs**: the POST response body listed the reviewer under `requested_reviewers`, and a review subsequently landed on every one. No registration claim in this record rests on a command exit code.
+
+**Two logins, one reviewer — expected, not an inconsistency.** The request is POSTed naming `copilot-pull-request-reviewer[bot]`, and the response's `.requested_reviewers[].login` reads back as **`Copilot`**; the review that later lands is authored by **`copilot-pull-request-reviewer[bot]`**. Both were observed on all four PRs. GitHub surfaces the requested-reviewer entry under the short user login and the authored review under the bot app account, so anyone reproducing this check should expect the two strings to differ and should not read the difference as a failed registration.
 
 ---
 
