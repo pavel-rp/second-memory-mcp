@@ -23,7 +23,11 @@
 //   The rubric-computed prerequisite_depth, shown ONLY inside an F-943-1 warning.
 //   That number is NEU-943's published finding (its validator prints it), not a
 //   value minted here, and it is never presented as a difficulty value to consume.
-//   The BINDING value stays NEU-940's `declared`. See ../03 F-943-1.
+//   `F-943-1` is CLOSED (ledger `D-R4`, NEU-956): the recomputation over the
+//   edge-complete graph landed under `D-R3`, so `depthBad`/`invByNode` are EMPTY
+//   and the warning block below emits nothing at all. The machinery is KEPT
+//   DELIBERATELY, so any FUTURE depth/stage drift surfaces the same way — the
+//   package gate's post-closure `PG-7` assertions depend on it. See ../03 F-943-1.
 //
 // NOTE ON THE `yaml` IMPORT — same constraint as NEU-943's validator: `yaml` is a
 //   transitive dep, NOT hoisted under pnpm; on Windows an absolute path must be a
@@ -188,20 +192,25 @@ p('| **Coverage** | the node\'s own `coverage` block | NEU-934–938; map-level 
 p('| **Findings** | every audit finding that lands on THIS node | NEU-943, NEU-939 |');
 p('| **Status** | the node\'s adjudicated status | the ledger, and only the ledger |');
 p();
-p('### ⚠ The one thing you must read before you sequence anything');
+p('### The one thing you must read before you sequence anything');
 p();
-p('**`F-943-1` (HIGH, OPEN) — 26 of 179 `prerequisite_depth` values are wrong, and 6 dependencies');
-p('order backwards by `progression_stage`.** NEU-940\'s stages and depths were computed against the');
-p('**pre-NEU-939 graph** — before the cross-cluster edges existed. Every affected node below carries');
-p('an explicit `⚠ F-943-1` line. **Nothing hides it and nothing is silently corrected here.**');
+p('**`F-943-1` is CLOSED** (ledger `D-R4`). NEU-940\'s `progression_stage` and `prerequisite_depth`');
+p('had been computed against the **pre-NEU-939 graph** — before the cross-cluster edges existed —');
+p('leaving **26 of 179** depths wrong and **6** dependencies ordering backwards by stage. Those values');
+p('were **recomputed over the edge-complete graph** under ledger `D-R3` (NEU-954): **0 depth');
+p('mismatches, 0 stage inversions** remain, and `entry_gate` was re-derived on all 179.');
 p();
 p('**Consume accordingly (NEU-943 `05` §5, binding):**');
-p('**Trust the edges. Do NOT trust `progression_stage` across a cluster boundary.** The 25');
-p('cross-cluster edges are audited and correct; the stages on 6 of them are inverted. **Sequence from');
-p('the graph\'s topological order — which exists, because the graph is acyclic — not from the stage');
-p('labels**, until `F-943-1` is closed. Treat `prerequisite_depth` as **advisory**.');
+p('**The stages and depths now agree with the graph, and either may be sequenced from.** The 25');
+p('cross-cluster edges are audited and correct, and no stage inverts across any of them. The graph\'s');
+p('topological order remains the strongest ordering — it exists, because the graph is acyclic — and');
+p('`prerequisite_depth` is now a **binding** value rather than an advisory one.');
 p();
-p('See `../03_open-items-and-provisional-register.md` for owner and revision trigger.');
+p('**The values remain `provisional` for a separate reason:** the creator progression-plausibility');
+p('review never ran (`D-P3`, map-wide). That is independent of `F-943-1` and is **not** closed by it.');
+p();
+p('See `../03_open-items-and-provisional-register.md` for the closure record and the remaining');
+p('open items.');
 p();
 p('---');
 p();
@@ -381,8 +390,8 @@ for (const c of manifest.clusters) {
     const findings = [];
     if (depthBad.has(n.id) || invByNode.has(n.id)) findings.push('`F-943-1` (HIGH, **open**) — see above');
     if (n.id === 'cl-1.judge-dp-applicability') findings.push('`F-943-2` (Low, **open**) — the map\'s `conceptual` skill type is union-complete but rests on **this single non-root node**. If this node is ever re-typed or removed, `conceptual` de-instantiates map-wide.');
-    if (n.id === 'cl-4.divide-and-conquer-optimization') findings.push('`F-939-2` (**sharpened by NEU-943**) — the T3/T4 cluster-drift signal; this node is *also* an `F-943-1` inversion. **`F-939-2` and `F-943-1` are the same blindness in two annotations.**');
-    if (n.role !== 'root' && dd(n).entry_gate) findings.push('`F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (zero exceptions map-wide), so it carries **no independent information** and inherits `F-943-1`. Gates B and D are instantiated by no node.');
+    if (n.id === 'cl-4.divide-and-conquer-optimization') findings.push('`F-939-2` (**sharpened by NEU-943**) — the T3/T4 cluster-drift signal; this node also carried **two** of `F-943-1`\'s stage inversions. **`F-939-2` and `F-943-1` were the same blindness in two annotations** — `F-943-1`\'s half is now **closed** (`D-R4`).');
+    if (n.role !== 'root' && dd(n).entry_gate) findings.push('`F-943-3` (Low, **open**) — `entry_gate` is a **deterministic function** of `progression_stage` (`PS-1`↔`gate-a` ×19, `PS-2/3/4`↔`gate-c` ×160, **zero exceptions map-wide**), so it carries **no independent information**. `gate-b`, `gate-d` and `gate-e` are instantiated by no node. **Its inheritance of `F-943-1` is DISCHARGED** (`D-R4`) — the stages are correct and the gates were re-derived from them — **but the redundancy it reports survives the repair unchanged**, so it stays open. Owner: NEU-940 / NEU-888.');
     if (unres.length) findings.push('`' + unres.map((u) => u.finding_id).join('`, `') + '` — unresolvable declaration(s), above. Confirmed **genuine coverage gaps** by NEU-943; owned by `INC-C1`.');
     p('**Audit findings**');
     p();

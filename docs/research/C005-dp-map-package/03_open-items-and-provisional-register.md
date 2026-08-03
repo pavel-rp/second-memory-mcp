@@ -24,29 +24,33 @@ edges, 0 cycles). All 179 non-root chains reach the sanctioned floor with **0 un
 All 8 skill types are instantiated. The 25 cross-cluster edges are audited and correct. **Sequence
 from this graph and you will not go wrong.**
 
-**The map's ANNOTATIONS are not all trustworthy, and one is outright defective.** `progression_stage`
-and `prerequisite_depth` are wrong on 26 of 179 nodes (`F-943-1`, HIGH, open). The creator
-plausibility review never ran. **Do not sequence from the stage labels.**
+**The map's ANNOTATIONS are still not all binding, but the one outright defect is repaired.**
+`progression_stage` and `prerequisite_depth` were wrong on 26 of 179 nodes (`F-943-1`, HIGH) and have
+been re-derived over the edge-complete graph — **`F-943-1` is closed** (`D-R4`). What remains is
+weaker but real: **the creator plausibility review never ran**, so no stage or difficulty value is
+binding. **You may now sequence from the stage labels; you still may not treat them as reviewed.**
 
 **The map has 10 known holes**, all owned, all in one class (`INC-C1`), none faked shut.
 
 ---
 
-## 1. `F-943-1` — the open defect in the shipped map  🔴 HIGH · **unresolved**
+## 1. `F-943-1` — the defect that shipped open, now REPAIRED  🔴 HIGH · **closed**
 
-**This is the single most important thing in this package. It is stated first, in full, because a map
-whose stage annotations are 26/179 wrong and not flagged would fail this package's own acceptance
-gate** (OUT-9: a cold agent must *"tell binding decisions from open ones"*).
+**This was the single most important thing in this package, and it is kept first, in full, because a
+map whose stage annotations were 26/179 wrong and not flagged would fail this package's own acceptance
+gate** (OUT-9: a cold agent must *"tell binding decisions from open ones"*) — **and because a closure
+that erases what was closed is no better than a defect that was never recorded.**
 
 | | |
 | --- | --- |
 | **Finding** | NEU-940's `progression_stage` and `prerequisite_depth` were computed against the **pre-NEU-939 graph** — **before the cross-cluster edges existed**. |
-| **Blast radius** | **26 of 179** `prerequisite_depth` values are wrong (153/179 correct). **6** dependencies (across 5 nodes) **order backwards by `progression_stage`**. |
-| **What it means today** | **A downstream agent sequencing by `progression_stage` would teach 6 dependencies before their own prerequisites.** |
-| **Status** | **unresolved** |
-| **Owner** | **NEU-940's owner** — the progression/difficulty dimension values (26 nodes, CL-3 + CL-4). **Not this package.** |
-| **Revision trigger** | **A re-run of NEU-940's depth-and-stage computation over the edge-complete (post-NEU-939) graph.** When that re-run lands, `F-943-1` closes, `F-943-3` closes with it, and the 26 nodes' dimension values are re-adjudicated in the ledger. |
-| **Fix is OUT of this task's scope** | Producing any progression stage or difficulty value is explicitly out of scope for SUB-11. **This package binds the defect; it does not repair it.** Repairing it here would be minting difficulty values under an assembly spec — the exact category error the charter's file-ownership rules exist to prevent. |
+| **Blast radius** | **26 of 179** `prerequisite_depth` values were wrong (153/179 correct). **6** dependencies (across 5 nodes) **ordered backwards by `progression_stage`**. |
+| **What it meant** | **A downstream agent sequencing by `progression_stage` would have taught 6 dependencies before their own prerequisites.** |
+| **Status** | **closed** — discharged by ledger entry **`D-R4`** |
+| **Repair** | **NEU-954** re-ran NEU-940's depth-and-stage computation over the edge-complete graph: **26 depth corrections, 16 stage changes (all to `PS-4`), 1 `entry_gate` change** (`cl-3.bitmask-state-encoding`, `gate-a` → `gate-c`). **0 inversions remain; 179/179 depths agree with the graph.** Six residual `cl-4` values (the matrix-exponentiation family and SMAWK) were corrected with the rest, but their declared values matched **neither** the pre-939 nor the post-939 graph — NEU-954 records that residual cause as **`unestablished`**, and it stays recorded. |
+| **Owner** | **NEU-940's owner** — the progression/difficulty dimension values (26 nodes, CL-3 + CL-4). **Discharged by NEU-954.** |
+| **Revision trigger — FIRED** | **A re-run of NEU-940's depth-and-stage computation over the edge-complete (post-NEU-939) graph.** That re-run landed. `F-943-1` closes and the 26 nodes' dimension values are re-adjudicated in the ledger. **It did NOT carry `F-943-3` with it** — see §1.5: that forecast was a prediction, not a status, and the substance re-check contradicts it. |
+| **Fix was OUT of this task's scope** | Producing any progression stage or difficulty value is explicitly out of scope for SUB-11. **This package bound the defect; it did not repair it.** Repairing it here would have been minting difficulty values under an assembly spec — the exact category error the charter's file-ownership rules exist to prevent. **The binding is what made the repair findable.** |
 
 ### 1.1 Why the evidence is decisive, not speculative
 
@@ -80,36 +84,44 @@ graph that existed when it ran.
 cannot collide in git can still collide in the graph. This is the same root cause as `INC-C1`'s
 work-split seam (§3) in a different guise, and both are routed into `02_authoring-requirements.md`.
 
-### 1.3 The 6 inversions, named
+### 1.3 The 6 inversions, named — and as they read after the repair
 
-| Dependent | Its stage | Requires | Prerequisite's stage |
-| --- | --- | --- | --- |
-| `cl-3.bitmask-state-encoding` | `PS-1` | `cl-2.subset-sum-feasibility` | `PS-3` |
-| `cl-3.formulate-digit-dp` | `PS-2` | `cl-1.counting-dp-over-linear-domain` | `PS-4` |
-| `cl-3.formulate-automaton-dp` | `PS-2` | `cl-1.linear-sequence-dp-2d` | `PS-3` |
-| `cl-4.divide-and-conquer-optimization` | `PS-2` | `cl-1.sequence-partition-dp` | `PS-4` |
-| `cl-4.divide-and-conquer-optimization` | `PS-2` | `cl-2.formulate-interval-dp` | `PS-4` |
-| `cl-4.knuth-yao-optimization` | `PS-3` | `cl-2.formulate-interval-dp` | `PS-4` |
+| Dependent | Its stage as shipped | Requires | Prerequisite's stage | Its stage now |
+| --- | --- | --- | --- | --- |
+| `cl-3.bitmask-state-encoding` | `PS-1` | `cl-2.subset-sum-feasibility` | `PS-3` | **`PS-4`** ✅ |
+| `cl-3.formulate-digit-dp` | `PS-2` | `cl-1.counting-dp-over-linear-domain` | `PS-4` | **`PS-4`** ✅ |
+| `cl-3.formulate-automaton-dp` | `PS-2` | `cl-1.linear-sequence-dp-2d` | `PS-3` | **`PS-4`** ✅ |
+| `cl-4.divide-and-conquer-optimization` | `PS-2` | `cl-1.sequence-partition-dp` | `PS-4` | **`PS-4`** ✅ |
+| `cl-4.divide-and-conquer-optimization` | `PS-2` | `cl-2.formulate-interval-dp` | `PS-4` | **`PS-4`** ✅ |
+| `cl-4.knuth-yao-optimization` | `PS-3` | `cl-2.formulate-interval-dp` | `PS-4` | **`PS-4`** ✅ |
 
-**All 26 depth-affected nodes are flagged individually in `01_cross-reference-view.md`** — one hop,
-on the node, where a consumer will actually hit it.
+**All six now order correctly.** The 26 depth-affected nodes carried an individual flag in
+`01_cross-reference-view.md` until the repair; regenerating the view drops those flags, because
+nothing computes them any more.
 
 ### 1.4 Consequences that are NOT separate defects
 
-- **2 of the 5 OUT-6 representative paths (CL-3, CL-4) are structurally sound but inconsistent with
-  NEU-940's stages.** The paths are correct; the stage labels along them are not. **OUT-6 still passes
-  5/5** — its criterion is grounding, not stage monotonicity.
-- **`F-939-2` is the same blindness in a second annotation.** NEU-943 sharpened it:
-  `cl-4.divide-and-conquer-optimization` is *also* an `F-943-1` inversion. **`F-939-2` and `F-943-1`
-  are one root cause, surfaced by two audits.**
+- **2 of the 5 OUT-6 representative paths (CL-3, CL-4) were structurally sound but inconsistent with
+  NEU-940's stages.** The paths were correct; the stage labels along them were not. **OUT-6 passed
+  5/5 throughout** — its criterion is grounding, not stage monotonicity. **After the repair all 5 are
+  stage-consistent as well.**
+- **`F-939-2` was the same blindness in a second annotation.** NEU-943 sharpened it:
+  `cl-4.divide-and-conquer-optimization` was *also* an `F-943-1` inversion. **`F-939-2` and `F-943-1`
+  were one root cause, surfaced by two audits.** The stage half is repaired; **`F-939-2`'s own
+  cluster-prediction signal is untouched by that repair and stays open.**
 
-### 1.5 `F-943-3` — `entry_gate` inherits the defect  🟡 Low · **unresolved**
+### 1.5 `F-943-3` — `entry_gate` is redundant  🟡 Low · **unresolved**
+
+**`F-943-3` did NOT close with `F-943-1`.** §1's revision trigger forecast that it would. **A forecast
+is not a status**, and the substance re-check against the repaired map contradicts it: the redundancy
+`F-943-3` reports is exactly what it was.
 
 | | |
 | --- | --- |
-| **Finding** | `entry_gate` is a **deterministic function** of `progression_stage` — `PS-1`↔`gate-a` (×20), `PS-2/3/4`↔`gate-c` (×159), **zero exceptions**. It therefore carries **no independent information** and **inherits `F-943-1` wholesale**. Gates **B and D are instantiated by no node**. |
-| **Status** | **unresolved** · **Owner** NEU-940 / NEU-888 |
-| **Revision trigger** | `F-943-1`'s re-run (which changes the stages the gate is a function of), **or** NEU-888's gate vocabulary being revised to earn B and D. |
+| **Finding** | `entry_gate` is a **deterministic function** of `progression_stage` — `PS-1`↔`gate-a` (×19), `PS-2/3/4`↔`gate-c` (×160), **zero exceptions**. It therefore carries **no independent information**. **`gate-b`, `gate-d` and `gate-e` are instantiated by no node.** |
+| **Re-checked against the repaired map** | **Inheritance limb — DISCHARGED.** The stages are correct and NEU-954 re-derived every gate *from* them. **Determinism / redundancy limb — RE-MEASURED, STILL TRUE:** 0 exceptions over all 179. Re-deriving the gate *as* that function is precisely what leaves the redundancy intact. **Uninstantiated-gates limb — corrected:** the original text named B and D; measured, **three** gates are instantiated by no node. |
+| **Status** | **unresolved** — the surviving limbs are the redundancy and the uninstantiated vocabulary · **Owner** NEU-940 / NEU-888 |
+| **Revision trigger** | **`F-943-1`'s re-run no longer qualifies — it has landed and left the finding standing.** What remains: `entry_gate` is given independent content, **or** NEU-888's gate vocabulary is revised to earn `gate-b`, `gate-d` and `gate-e`, **or** the field is retired as derivable. |
 
 ---
 
@@ -125,10 +137,11 @@ on the node, where a consumer will actually hit it.
 | **Owner** | **The creator.** |
 | **Revision trigger** | **The creator reviews the progression assignment for plausibility.** On review, each node's `creator_review` flips and the ledger re-adjudicates. **Until then no stage or difficulty value in this map is binding**, independently of `F-943-1`. |
 
-**Both defects stack on the same field.** A stage value is *(a)* unreviewed by its only qualified
-reviewer **and** *(b)* on 26 nodes, computed against an incomplete graph. **This is why
-`02_authoring-requirements.md` requires sequencing from the graph and forbids sequencing from the
-stage labels.**
+**Two defects stacked on the same field.** A stage value was *(a)* unreviewed by its only qualified
+reviewer **and** *(b)* on 26 nodes, computed against an incomplete graph. **(b) is repaired
+(`F-943-1`, `D-R4`); (a) is not, and it was always the more durable of the two.** So
+`02_authoring-requirements.md` now permits sequencing from the stage labels and still requires the
+consumer to surface its reliance on them.
 
 ### 2.1 `PS-2`/`PS-3`/`PS-4` granularity — **UNGROUNDED against NEU-888**
 
@@ -340,7 +353,7 @@ NEU-943 restated it; NEU-944 follows it.
 | Ledger addition | What it does | Kind |
 | --- | --- | --- |
 | **`D-P1`** | Binds the assembled package itself — the cross-reference view, the authoring requirements, the gate, the dry-run. | **new row** (settled) |
-| **`D-P2`** | Records `F-943-1` as an **unresolved** element of the shipped map with owner + revision trigger. **Does not repair it.** | **new row** (unresolved) |
+| **`D-P2`** | Records `F-943-1` as an **unresolved** element of the shipped map with owner + revision trigger. **Does not repair it.** **Its trigger has since fired — `D-R4` discharges it as to `F-943-1`.** | **new row** (unresolved → discharged by **`D-R4`**) |
 | **`D-P3`** | Records the **deferred creator progression review** as **provisional**, map-wide, per Assumption #11. | **new row** (provisional) |
 | **`D-P4`** | **`INC-C4` discharged** — fixes the `AR-1` id convention to `AR-1-<letter>/<filer>`, **preserving both original label pairs as aliases**. | **new row** (settled) |
 | **`INC-C6` disposition** | Records what NEU-944 did and did **not** build of the deferred validator/index generator. | **new marker row** |
@@ -356,12 +369,14 @@ modified.** Verified by the package-completeness gate (`PG-10`) and by `git diff
 ## 9. The complete provisional/unresolved manifest — nothing below is binding
 
 **If you are a downstream agent and you rely on ANY row in this table, you must surface that
-reliance.** That is NEU-887's status discipline, inherited.
+reliance.** That is NEU-887's status discipline, inherited. **One row is retained after closing** —
+`F-943-1`, marked **closed** with its discharging ledger entry — because a manifest that deletes what
+it once carried cannot be checked against the record that carried it.
 
 | Element | Status | Owner | Revision trigger |
 | --- | --- | --- | --- |
-| **`F-943-1`** — 26/179 depths wrong, 6 stage inversions | **unresolved** | **NEU-940's owner** | **Re-run NEU-940's depth/stage computation over the edge-complete graph** |
-| **`F-943-3`** — `entry_gate` redundant, inherits `F-943-1` | **unresolved** | NEU-940 / NEU-888 | `F-943-1`'s re-run, or NEU-888 revises the gate vocabulary |
+| **`F-943-1`** — 26/179 depths wrong, 6 stage inversions | **closed** — discharged by **`D-R4`** | NEU-940's owner → **repaired by NEU-954** | **Fired.** The re-run over the edge-complete graph landed: 26 depth corrections, 16 stage changes, 1 `entry_gate` change, 0 inversions remaining |
+| **`F-943-3`** — `entry_gate` redundant (`gate-b`/`gate-d`/`gate-e` uninstantiated) | **unresolved** | NEU-940 / NEU-888 | **Not `F-943-1`'s re-run — that landed and left this standing.** `entry_gate` gains independent content, NEU-888 revises the gate vocabulary, or the field is retired |
 | **Deferred creator progression review** — all 179 nodes | **provisional** | **the creator** | **The creator reviews progression plausibility (Assumption #11)** |
 | **`PS-2`/`PS-3`/`PS-4` granularity** — ungrounded vs NEU-888 | **provisional** | NEU-940 / NEU-888 | NEU-888 supplies discriminating evidence, or the creator re-cuts the stages |
 | **`INC-C1`** — the 10-instance CL-4 gap class | **unresolved** | **the creator** — commission a CL-4 completion task, **scoped by the cascade, not an enumeration** | The completion task lands, or a further CL-4-by-cascade technique surfaces (MINOR `scope_boundary` bump) |

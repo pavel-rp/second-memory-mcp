@@ -39,31 +39,37 @@ bite a real consumer. **Failures are recorded, not retried into success.**
 | **Prerequisites — root terminal** | ✅ | `cl-1.root.formulate-state-transition-base-case` *(floor terminal)* |
 | **Prerequisites — cross-cluster** | ✅ | `cl-2.formulate-interval-dp` *(CL-4→CL-2, realized by NEU-939, edge id given)* |
 | **Prerequisites — boundary anchor** | ✅ | none on this node (the field is present and empty — **absence is stated, not implied**) |
-| **Progression stage** | ✅ | `PS-3` — **flagged not trustworthy** |
+| **Progression stage** | ✅ | `PS-4` (**`PS-3` when this dry-run was walked**; re-derived by NEU-954) — **`provisional`, creator review deferred** |
 | **Difficulty** | ✅ | all 8 dimensions + `creator_review: "deferred-provisional"` |
 | **JavaScript materiality** | ✅ | **MATERIAL** · `performance` · `JS-E5`, `JS-E6` + rationale |
 | **Coverage verdict** | ✅ | `unaudited` + the explanation of what that means and why (`INC-C7`) |
-| **Audit findings** | ✅ | `F-943-1` (HIGH, open) **and** `F-943-3` |
+| **Audit findings** | ✅ | `F-943-1` (HIGH — **closed**, `D-R4`) **and** `F-943-3` (Low — **still open**) |
 | **Binding vs open** | ✅ | `status: provisional` + what `provisional` obliges the consumer to do |
 
 **✅ PASS — 11/11 facets, one hop, zero further reads.**
 
-**The block did more than list values — it stopped a mistake.** A cold agent reading `PS-3` would
-naturally schedule this before `PS-4` material. The block says, in situ:
+**The block did more than list values — it stopped a mistake.** As walked, a cold agent reading `PS-3`
+would naturally have scheduled this before `PS-4` material, and the block said, in situ:
 
 > *"**Stage inverts across a cluster boundary.** This node is `PS-3` but requires
 > `cl-2.formulate-interval-dp` at `PS-4` — **a dependency that would be taught AFTER its own
 > prerequisite** if sequenced by stage. **Sequence from the graph, not the stage label.**"*
 
-**This is the acceptance criterion working.** The consumer cannot naively mis-sequence this node
-**without reading the warning that says not to**, because the warning is on the node, not in a
+**That was the acceptance criterion working.** The consumer could not naively mis-sequence this node
+**without reading the warning that said not to**, because the warning was on the node, not in a
 footnote in another package.
+
+**The warning is now gone from the block, and correctly so.** NEU-954 re-derived the node to `PS-4`,
+the inversion no longer exists, and the marker was computed — regenerating the view drops it because
+nothing computes it any more. **`F-943-1` is closed** (`D-R4`). What the scenario demonstrated —
+that a per-node defect surfaces on the node — is unaffected; the machinery that emitted this marker
+is intact and will fire again on any future mismatch.
 
 ---
 
 ## 3. Scenario B — a progression decision deferred for creator unavailability
 
-**Task:** *"Is `PS-3` binding? Can I calibrate against `transition_derivation_load: 4`?"*
+**Task:** *"Is this node's stage binding? Can I calibrate against `transition_derivation_load: 4`?"*
 
 **Hops: 1** (same block).
 
@@ -76,8 +82,9 @@ a named revision trigger**, and pointing to `03_…` → deferred creator review
 it is **listed among the decisions that ship provisional** (`03_…` §9, and ledger `D-P3`).
 
 **The consumer's correct conclusion:** *usable for calibration, not binding, and my reliance must be
-surfaced.* **Two independent reasons not to trust `PS-3`** — unreviewed (`D-P3`) **and** defective
-(`D-P2`) — and the block gives both.
+surfaced.* There were **two independent reasons not to trust the stage** — unreviewed (`D-P3`) **and**
+defective (`D-P2`) — and the block gave both. **`D-P2`'s half is discharged (`D-R4`); `D-P3`'s is
+not, and it is sufficient on its own.**
 
 ---
 
@@ -132,14 +139,15 @@ legitimately, 0 unexplained jumps** — and the view says which terminal each on
 
 **Hops: 1** → `02_authoring-requirements.md` §1 and §3.
 
-**Recovered:** the prime directive — **author against the graph, not the stage labels** — with the
-reason (`F-943-1`), the mechanism (the graph is **acyclic**, so a topological order **exists and is
-computable**), the tool (NEU-943's validator computes `prerequisite_depth` correctly from source), and
-**the 6 known-bad orderings named explicitly** (§3.2).
+**Recovered:** the prime directive — **author against the graph** — with its history (`F-943-1`, now
+closed by `D-R4`), the mechanism (the graph is **acyclic**, so a topological order **exists and is
+computable**), the tool (NEU-943's validator re-derives `prerequisite_depth` from source), and
+**the 6 formerly-bad orderings named explicitly, with their repaired values** (§3.2).
 
 **✅ PASS.** **This is the single highest-value recovery in the package**, and the one a cold agent is
 most likely to get wrong: `progression_stage` *looks* exactly like a teaching order. It is the field
-whose name most invites the mistake, and it is wrong on 6 orderings.
+whose name most invites the mistake, and it was wrong on 6 orderings until the re-run repaired them.
+**The graph is still the authority, and the stages are still `provisional`.**
 
 ---
 
@@ -183,14 +191,19 @@ cross-cluster prerequisite and every anchor terminal.
 
 **A dry-run that only passes is a dry-run that was not really run.** Three honest findings:
 
-### 9.1 The consumer's most useful field is the one it must not trust
+### 9.1 The consumer's most useful field was the one it could not trust
 
-`progression_stage` is the field a curriculum agent reaches for **first** and the field that is
-**wrong**. The package's mitigation is heavy — a per-node marker on all 26, the prime directive in
-`02_…` §1, the headline in the README, first position in `03_…`, `D-P2` in the ledger — **but
-mitigation is not repair.** **`F-943-1` remains an open defect in the shipped map and the package says
-so in five places rather than pretending otherwise.** A consumer that ignores all five will
-mis-sequence 6 dependencies. **Owner: NEU-940. Trigger: the re-run over the edge-complete graph.**
+`progression_stage` is the field a curriculum agent reaches for **first** and, at this package's ship,
+the field that was **wrong**. The package's mitigation was heavy — a per-node marker on all 26, the
+prime directive in `02_…` §1, the headline in the README, first position in `03_…`, `D-P2` in the
+ledger — **but mitigation is not repair.** **The package said so in five places rather than pretending
+otherwise, and a consumer that ignored all five would have mis-sequenced 6 dependencies.**
+
+**The trigger fired.** NEU-954 re-ran the computation over the edge-complete graph and **`F-943-1` is
+closed** (`D-R4`): 0 inversions, 179/179 depths agreeing. **The finding this section records is
+therefore about the package, not the map** — it shipped mitigating a defect it could not fix, and that
+is still an accurate account of what it did. `progression_stage` remains `provisional` for the
+independent reason in §3: the creator review never ran.
 
 ### 9.2 One-hop recovery of the *coverage verdict* is thinner than the other six facets
 

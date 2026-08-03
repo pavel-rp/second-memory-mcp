@@ -62,9 +62,11 @@ named ground.** Recorded because a decision not to act is still a decision.
 1. **`INC-P4` — the dry-run had no independent reader.** The strongest claim in the package
    (*"a cold agent recovers a technique in one hop"*) was tested by the agent that built it.
    `PG-6c` mechanises the structural half; **the judgment half is unvalidated.**
-2. **`F-943-1` ships open, and it is the field consumers reach for first.** The package mitigates in
-   five places. **Mitigation is not repair, and a consumer that ignores all five will mis-sequence 6
-   dependencies.**
+2. **`F-943-1` shipped open on the field consumers reach for first.** The package mitigated in five
+   places. **Mitigation was not repair, and a consumer that ignored all five would have mis-sequenced
+   6 dependencies.** **NEU-954 has since repaired it and `F-943-1` is closed** (`D-R4`) — the
+   weakness recorded here is that the package shipped mitigating a defect it could not fix, and that
+   remains an accurate account of this package.
 3. **`INC-P3` — the coverage facet is an explanation, not a verdict.** Six of OUT-9's seven facets
    resolve to a value. **The seventh resolves to a reason.**
 4. **The package's value is entirely derivative.** It creates no knowledge. **If any of NEU-932…943 is

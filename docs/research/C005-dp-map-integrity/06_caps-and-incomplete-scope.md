@@ -29,9 +29,13 @@ stage boundaries themselves against evidence. **NEU-940 flags `PS-2/3/4` granula
 `ungrounded` against NEU-888, and that flag stands untouched.**
 
 > A stage set can be perfectly monotone over every edge **and still be ungrounded.**
-> Closing **F-943-1** would achieve the former and would say nothing about the latter.
+> Closing **F-943-1** achieved the former and said nothing about the latter.
 
-**Owner:** NEU-940 / NEU-888. **Not** closed by this audit.
+**That conditional has now fired.** `F-943-1` is closed (`D-R4`) and the stage set is
+monotone over all 318 checked edges — **and the `PS-2/3/4` granularity flag stands exactly
+as it did.** The two were never the same question.
+
+**Owner:** NEU-940 / NEU-888. **Not** closed by this audit, and not closed by the repair.
 
 ## INC-9.3 — `creator_review: "deferred-provisional"` on all 179 nodes
 
@@ -95,7 +99,7 @@ adjudication-ledger rows** and therefore promotes nothing. Note the `manifest.ya
 still reads `status: "scaffold"` — stale against a node- and edge-complete graph, but
 correcting it means editing a file this task does not own. **Recorded, not repaired.**
 
-## INC-9.9 — F-943-1 is flagged, not fixed — and that is a deliberate cost
+## INC-9.9 — F-943-1 was flagged here, not fixed — and that was a deliberate cost
 
 The single highest-value repair this audit identified — re-deriving 26 nodes' stage and
 depth values against the edge-complete graph — is **not performed here.**
@@ -105,11 +109,18 @@ editing node files owned by the family clusters, **concurrently with NEU-941**, 
 defect **NEU-940 explicitly routed here for flagging**. Doing it would trade a clean
 audit boundary and a safe merge for a fix that is not this task's to make.
 
-**The cost is real and is stated rather than hidden:** until an owner acts, the map ships
-with **26 under-reported depths and 6 stage inversions**, and any consumer sequencing by
-`progression_stage` across a cluster boundary will get 6 dependencies backwards. `05` §5
-tells consumers what to do in the meantime. **The remedy is cheap** — `prerequisite_depth`
-is a pure function of the graph and this package's validator already computes it correctly.
+**The cost was real and was stated rather than hidden:** until an owner acted, the map
+shipped with **26 under-reported depths and 6 stage inversions**, and any consumer
+sequencing by `progression_stage` across a cluster boundary would get 6 dependencies
+backwards. `05` §5 told consumers what to do in the meantime. **The remedy was cheap** —
+`prerequisite_depth` is a pure function of the graph and this package's validator already
+computed it correctly.
+
+**An owner acted.** NEU-954 re-derived both fields over the edge-complete graph — 26 depth
+corrections, 16 stage changes, 1 `entry_gate` change — and **`F-943-1` is CLOSED** (ledger
+`D-R4`). **The scoping decision recorded above is unchanged and stays true: SUB-9 was right
+not to make the repair itself.** The deliberate cost was paid for the length of one
+hand-off, and the flag-and-route discipline is what made the repair findable.
 
 ## INC-9.10 — JavaScript materiality is untouched
 

@@ -84,9 +84,11 @@ edited **zero** node files, **zero** edge files, and neither `manifest.yaml` nor
 `javascript_materiality`) throughout; not editing them was a correctness rule **and** a
 merge-safety one.
 
-This is why **F-943-1** — a genuine, measured defect in 179 nodes' annotations — is
-recorded and routed rather than fixed here. Fixing it would mean editing 26 node records
-in files this task does not own, concurrently with their actual owner.
+This is why **F-943-1** — a genuine, measured defect in 179 nodes' annotations — was
+recorded and routed rather than fixed here. Fixing it would have meant editing 26 node
+records in files this task does not own, concurrently with their actual owner. The route
+worked: **NEU-954 took ownership and repaired it, and `F-943-1` is CLOSED** (ledger
+`D-R4`).
 
 ## 4. Inherited status discipline
 
