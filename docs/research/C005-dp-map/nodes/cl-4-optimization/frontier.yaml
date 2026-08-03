@@ -1430,10 +1430,15 @@ nodes:
     cluster: "CL-4"
     role: "technique"
     summary: >-
-      The fact that a cost matrix can be TOTALLY MONOTONE — every 2x2 submatrix whose top
-      row's minimum lies weakly left of its bottom row's has that ordering preserved — and
-      that total monotonicity implies the ROW-MINIMUM POSITIONS are non-decreasing down
-      the rows. This is the exact hypothesis SMAWK needs, and it is STRICTLY WEAKER than
+      The fact that a cost matrix can be TOTALLY MONOTONE — stated as a comparison between
+      two entries, NOT in terms of the row minima the property is meant to explain: for any
+      rows i1 < i2 and columns j1 < j2, if C[i1][j1] > C[i1][j2] then C[i2][j1] > C[i2][j2]
+      (if an upper row strictly prefers the right-hand column, every lower row prefers it
+      too) — and that total monotonicity IMPLIES the ROW-MINIMUM POSITIONS are non-decreasing
+      down the rows. Definition first, row-minima consequence second, and in that order on
+      purpose: the consequence is precisely what SMAWK exploits, so it has to be DERIVED from
+      the property rather than built into its statement. This is the exact hypothesis SMAWK
+      needs, and it is STRICTLY WEAKER than
       the Monge condition: Monge implies total monotonicity, not conversely. A learner
       acquires the property, the row-minima consequence, and the implication's DIRECTION —
       which is what lets them see that establishing Monge is a sufficient route to SMAWK's
