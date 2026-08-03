@@ -4,6 +4,8 @@
 
 **This is the material finding of the coverage audit.** Nine of the ten genuine gaps are one defect, not nine.
 
+> **A note on the two counts in this file.** "Nine of the ten" is on the **verdict-id** unit and is `02_disagreement-adjudication.md`'s tally, which collapses this file's `CV-11`…`CV-16` rows into "five further instances." **§4 below enumerates and numbers ten class instances**, and §6 and §8 both say "ten genuine gaps." The two are not reconciled, and neither this file nor `03_…` resolves them: `03_residual-exclusion-consolidation.md` §8.4 records the discrepancy and **routes it to SUB-11 (NEU-944)**. Nothing in this file's *substance* turns on it — the membership test in §3, the ten instances in §4, and the remedy in §7 are unaffected either way. `03_…` §8's own consolidation total is on the **register-entry** unit and does not depend on this tally at all.
+
 ---
 
 ## 1. The finding in one paragraph

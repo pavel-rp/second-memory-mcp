@@ -32,7 +32,9 @@ The coverage audit of the mapped DP knowledge-and-skill graph against the multip
 
 ## The verdicts at a glance
 
-| Verdict | Count |
+**Unit: distinct `CV-*` verdict ids.** One verdict can adjudicate several register entries, so these figures are *not* comparable with the register-entry figures below — see `03_…` §8.1.
+
+| Verdict | Distinct verdict ids |
 | --- | --- |
 | **Genuine gap with a named owner** | **10** |
 | **Mapped equivalence** | **11** |
@@ -40,7 +42,9 @@ The coverage audit of the mapped DP knowledge-and-skill graph against the multip
 | **Unresolved uncertainty** | **3** |
 | **Total** | **30** |
 
-Residual exclusions consolidated: **52** → 19 upheld as intentional exclusions · 21 resolved to mapped equivalences · 10 genuine gaps · 3 unresolved · 2 ledger blockages discharged.
+> The GAP row's composition carries one unreconciled tally — `02_…` collapses `CV-11`…`CV-16` into "five further instances" while that section's own table has six rows and `04_…` §4 numbers ten class instances. `03_…` §8.4 records it and routes it to SUB-11 (NEU-944). It does not affect the register-entry total below.
+
+**Unit: register entries.** Residual exclusions consolidated: **52** → 13 upheld as intentional exclusions · 20 resolved to mapped equivalences · 16 genuine gaps · 3 unresolved · 1 ledger blockage discharged. That is **53 verdict assignments over 52 entries**, the surplus being CL-2 `E3` alone, which carries two verdicts (`CV-3` GAP + `CV-4` ME). The full per-entry ledger and the derivation are in `03_…` §8.
 
 ## The three headline verdicts
 
