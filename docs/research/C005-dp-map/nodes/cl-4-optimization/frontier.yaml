@@ -218,7 +218,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:the representation is a multiset of integers;
+        note supports that verdict and no longer withholds one — the representation is a multiset of integers;
         JavaScript has no built-in multiset or heap, so a realization must supply one. Recorded
         for SUB-8, whose verdict — recorded above as material: false, JavaScript-neutral —
         has since landed. The note claimed no materiality of its own; it does not withhold
@@ -396,7 +396,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:the operation repertoire needs two heaps with lazy
+        note supports that verdict and no longer withholds one — the operation repertoire needs two heaps with lazy
         offsets; JavaScript ships neither a heap nor a priority queue in its standard library.
         Recorded for SUB-8.
     coverage:
@@ -572,7 +572,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:two heaps with lazy offsets and an accumulator;
+        note supports that verdict and no longer withholds one — two heaps with lazy offsets and an accumulator;
         JavaScript has no standard-library heap, and the accumulator can exceed
         Number.MAX_SAFE_INTEGER on large-coordinate instances. Recorded for SUB-8, which
         owned the verdict and has delivered it.
@@ -699,7 +699,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:a mergeable heap (leftist/skew/pairing) has no
+        note supports that verdict and no longer withholds one — a mergeable heap (leftist/skew/pairing) has no
         JavaScript standard-library equivalent, and the recursion is over a tree that may be
         deep. Recorded for SUB-8.
     coverage:
@@ -877,7 +877,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:the penalised objective mixes lambda-scaled counts with
+        note supports that verdict and no longer withholds one — the penalised objective mixes lambda-scaled counts with
         costs and routinely exceeds Number.MAX_SAFE_INTEGER; a real-valued lambda search
         compounds it. Recorded for SUB-8.
     coverage:
@@ -1030,7 +1030,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:keeping lambda integral is the standard mitigation for
+        note supports that verdict and no longer withholds one — keeping lambda integral is the standard mitigation for
         the floating-point form, and JavaScript's single numeric type makes the integral
         discipline load-bearing rather than optional. Recorded for SUB-8, which owned the
         verdict and has delivered it.
@@ -1283,7 +1283,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:certificate values are ratios of line coefficients; the
+        note supports that verdict and no longer withholds one — certificate values are ratios of line coefficients; the
         standard mitigation is to compare cross-multiplied products, which overflow
         Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which
         owned the verdict and has delivered it.
@@ -1438,7 +1438,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:the expiry predicate is a cross-multiplied comparison
+        note supports that verdict and no longer withholds one — the expiry predicate is a cross-multiplied comparison
         of line coefficients whose products exceed Number.MAX_SAFE_INTEGER at competitive
         ranges; BigInt is the obvious mitigation and is slow in an amortized inner loop.
         Recorded for SUB-8, which owned the verdict and has delivered it.
@@ -1671,7 +1671,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:SMAWK's constant factor is its whole selling point over
+        note supports that verdict and no longer withholds one — SMAWK's constant factor is its whole selling point over
         D&C optimization, and its access pattern is a stack of shrinking column-index arrays —
         typed arrays are the obvious mitigation. Recorded for SUB-8, which owned the verdict and has delivered it.
     coverage:
@@ -1801,7 +1801,7 @@ nodes:
       mapper_note: >-
         Pre-verdict observation, retained as the record of what the mapper saw before
         SUB-8 ruled — SUB-8 HAS SINCE DELIVERED the verdict in the fields above, so this
-        note supports that verdict and no longer withholds one:the online interleaving is a deep recursion with a
+        note supports that verdict and no longer withholds one — the online interleaving is a deep recursion with a
         per-level stack of column arrays and a strict evaluation order; both the recursion depth
         and the allocation churn are realization concerns. Recorded for SUB-8, which owned the
         verdict and has delivered it.
