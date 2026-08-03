@@ -1,0 +1,477 @@
+  - id: "cl-2.condense-sccs-to-recover-a-dag"
+    name: "Condense strongly connected components to recover a DAG"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5. S1 no — the argument that the condensation is acyclic
+      is a supporting fact, not the contribution. S2 no, and this is the
+      rejection that matters: there is no correct recurrence to accelerate,
+      because on a cyclic graph the DP does not exist. Condensation MAKES a DP
+      possible rather than making one faster, which is exactly the S2/S5
+      boundary the schema §2.1 draws. S3 no — this is chosen at formulation
+      time, not reached from a symptom (that is
+      cl-2.debug-cyclic-state-dependency). S4 no. S5 yes: choosing a new state
+      space — components rather than vertices — under a correctness constraint.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      When the input graph is cyclic, change the state: collapse each strongly
+      connected component to a single vertex, observe that the condensation is
+      by construction a DAG, and run the DP on it — with each component's own
+      internal contribution folded into its vertex weight. The judgment a
+      learner acquires is when this is legitimate: it is exactly when the answer
+      does not distinguish vertices within a component, and it is wrong when it
+      does.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.cyclic-state-dependency-breaks-dp"
+        - "cl-2.dp-on-an-explicit-dag"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 4
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — recorded on NEU-935's evidence, against this audit's first
+        reading. The audit's initial verdict was neutral on the ground that the strategic act
+        (recognizing the cycles are genuine and that condensing recovers a DAG) is
+        language-independent, and that the SCC computation is a boundary anchor whose internals
+        DR-S03 forbids decomposing. The mapper's observation on this node reaches further and is
+        right: the strategic act COMMITS the learner to running an SCC algorithm, and BOTH
+        standard ones — Tarjan and Kosaraju — are recursive DFS in their C++ default form, so at
+        the 2e5-vertex DAGs this technique is reached for they descend far past JavaScript's
+        ~1e4 frame cap and do not run. That is not an internal detail of the anchor, it is the
+        feasibility of the step this node tells the learner to take, and a node that says
+        'condense the SCCs' while the only realizations it implies crash is a silent C++
+        assumption. The JavaScript-feasible forms are an iterative Tarjan with an explicit
+        stack, or Kosaraju with both passes iterative. SCOPE CAVEAT PRESERVED, not smoothed: the
+        anchor's own internals remain out of this audit's reach per DR-S03, so this verdict is
+        recorded on the DP-side act that depends on them rather than on the anchor, and the
+        anchor-side question stays open as JS-U4.
+      uncertainty: "JS-U4"
+      mapper_note: >-
+        Observation only, NOT a verdict — OUT-5 (SUB-8) owns it. Standard SCC algorithms
+        (Tarjan, Kosaraju) are recursive, so the recursion-depth exposure recorded on
+        cl-2.debug-tree-dp-recursion-depth applies to this node's prerequisite step too.
+        Recorded for SUB-8; not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["SCC condensation", "condensation DAG", "component graph DP"]
+    notes: >-
+      *** AR-1 REQUEST IN FLIGHT — anchor.strongly-connected-components ***
+      This node has a genuine NON-DP prerequisite that is NOT in
+      boundary-register.yaml: strongly-connected-component decomposition
+      (Tarjan / Kosaraju) and the fact that the condensation is acyclic. Per
+      route AR-1 the dependency is recorded here and `status` is "provisional".
+      NOT invented locally, NOT faked as a root edge, NOT declared as a
+      cross-cluster attachment — all AR-1-forbidden.
+      Why genuinely non-DP: SCC decomposition computes no recurrence and makes
+      no optimal-substructure claim; the D-F4 §3 cascade rejects it at T1..T3
+      because it is not a DP technique. Why above NEU-887's elementary floor: it
+      is a named non-trivial algorithm whose correctness argument is what
+      licenses this node's entire move.
+      LEDGER: same constraint as the topological-order request — the D-S3 entry
+      belongs in SUB-2's ledger file, which SUB-4 may not write. Carried here
+      and surfaced in NEU-935's PR. Named gap, named owner.
+      C4 cited at survey level only; CAP-2 — no Codeforces id asserted.
+
+  - id: "cl-2.debug-cyclic-state-dependency"
+    name: "Diagnose a memoized DP that never terminates"
+    node_kind: "skill"
+    skill_type: "debugging"
+    skill_type_rationale: >-
+      Cascade stops at S3. S1 no, S2 no — it does not terminate, which is not a
+      cost problem. S3 yes: it starts from a symptom (infinite recursion, a
+      stack overflow that survives an increased stack, a memo entry read while
+      still being computed) and reasons back to a cause — the state graph has a
+      cycle. Later tests unreached. Note the deliberate contrast with
+      cl-2.debug-tree-dp-recursion-depth: identical symptom, different cause,
+      and telling them apart IS the skill.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Distinguish "the recursion is too deep" from "the recursion is circular"
+      — the same crash, opposite fixes. The discriminator a learner acquires is
+      an in-progress marker in the memo: a state re-entered while its
+      computation is unfinished proves a cycle, whereas a legitimately deep
+      chain never re-enters. Having proved the cycle, the repair is a
+      reformulation (a new state, or a condensation), never a bigger stack.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.cyclic-state-dependency-breaks-dp"
+        - "cl-2.impose-topological-evaluation-order"
+      roots:
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — and the finding is that JavaScript makes this diagnosis AMBIGUOUS in a way
+        C++ does not. The node's premise is a memoized DP that never terminates. In C++ an
+        infinite memoized recursion consumes the stack for a long time and then segfaults at a
+        depth on the order of 1e5-1e6, which is far beyond any legitimate DP depth, so the
+        failure itself nearly identifies the cause. In JavaScript it throws RangeError: Maximum
+        call stack size exceeded at a depth on the order of 1e4 — WHICH IS EXACTLY THE SAME
+        ERROR, AT THE SAME THRESHOLD, THAT A CORRECT-BUT-DEEP TREE OR DAG DP THROWS (JS-E1,
+        cl-2.debug-tree-dp-recursion-depth). So in JavaScript the symptom does not distinguish
+        'my state graph has a cycle' from 'my state graph is fine and 2e5 deep', and the two
+        have completely different fixes: find the cycle, versus convert to an explicit stack.
+        The learner must disambiguate by other means — instrumenting the recursion path, or
+        checking whether the depth grows with input size. That extra diagnostic step is
+        JavaScript-specific and a C++-derived version of this node does not contain it.
+        Additionally the premise itself shifts: 'never terminates' is a C++ description; in
+        JavaScript it terminates, quickly, with an error.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    notes: >-
+      Empty corpus_refs: systematic for `debugging` nodes. D-F2 limitation, see
+      cl-2.debug-item-reuse-from-loop-direction.
+
+  - id: "cl-2.recognize-an-implicit-dag"
+    name: "Recognize an implicit DAG in a problem that mentions no graph"
+    node_kind: "skill"
+    skill_type: "transfer"
+    skill_type_rationale: >-
+      Cascade stops at S4. S1 no, S2 no, S3 no. S4 yes: the statement describes
+      a sequence, a set of jobs, a board, or a string, and the DAG exists only
+      after the reader decides that the situations are vertices and the legal
+      moves are edges. That construction is recognizing a known technique
+      (DP-over-a-DAG) under an unfamiliar surface, and it is the most general
+      instance of S4 in this cluster. Stops before S5 because the formulation is
+      not yet chosen — the recognition is what makes choosing possible.
+    cluster: "CL-2"
+    role: "technique"
+    summary: >-
+      Build the DAG that a problem does not mention: identify what a "situation"
+      is, what a legal move between situations is, and check that no sequence of
+      moves returns to a situation. The canonical instance is longest increasing
+      subsequence, which is a longest path in the DAG on indices with an edge
+      wherever a later index carries a larger value — the same problem read two
+      ways. What a learner acquires is that this construction is always
+      available, and that its acyclicity check is where a wrong state
+      declares itself.
+    prerequisites:
+      intra_cluster:
+        - "cl-2.dp-state-graph-is-a-dag"
+        - "cl-2.longest-path-in-a-dag"
+        - "cl-2.cyclic-state-dependency-breaks-dp"
+      roots:
+        - "cl-1.root.recognize-optimal-substructure"
+        - "cl-1.root.recognize-overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-2.recognize-an-implicit-dag->cl-1.longest-increasing-subsequence-quadratic"
+        from: "cl-2.recognize-an-implicit-dag"
+        to_cluster: "CL-1"
+        to_node: "cl-1.longest-increasing-subsequence-quadratic"
+        to_name: "Longest increasing subsequence, O(n^2) recurrence"
+        relation: "requires"
+        rationale: >-
+          The re-reading that this node teaches is worked ON longest increasing
+          subsequence: the learner must already hold the O(n^2) LIS recurrence
+          as a sequence DP in order to experience seeing it AGAIN as a longest
+          path in an implicit DAG. Without the first reading there is no second
+          reading, so the dependency is real and not decorative. D-F4 §3.2
+          assigns "Longest increasing subsequence (O(n^2) recurrence)" to CL-1
+          by name. Declared, not drawn: SUB-12 owns realization.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 5
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Recognition is a structural act.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-935"
+    aliases: ["implicit graph DP", "states-as-vertices reading", "DP as longest path"]
+    notes: >-
+      TRANSFER-TO-DP UNCERTAINTY, carried explicitly (NEU-887 R1). Asserts the
+      skill exists and is distinct from formulating a DP; does NOT assert that
+      acquiring its prerequisites produces it. No selected reference or corpus
+      is evidence for that, and this node is the one where the gap bites
+      hardest — "see the DAG" is precisely the transfer NEU-887's R1 records as
+      unevidenced.
+      PREDICTION VERIFIED POST-HOC: authored blind as
+      "cl-1.longest-increasing-subsequence" with confidence "named" (D-F4 §3.2
+      names LIS O(n^2) as CL-1's); corrected against merged CL-1 (NEU-934) to
+      the real id and name. The claim stands as made; only the id string moved.
+      C4 cited at survey level only; CAP-2 — no Codeforces id asserted.
+
+# =============================================================================
+# RESIDUAL EXCLUSIONS  (additive top-level key — see the file header)
+# =============================================================================
+# The NEU-935 acceptance bar: "Given a technique the selected references
+# disagree about or that this cluster excludes, when the node set is reviewed,
+# then the exclusion is recorded with a rationale."
+#
+# Every entry is a technique a reader could REASONABLY EXPECT in CL-2 — usually
+# because its NAME contains "knapsack", "subset", or "tree" — and which the D-F4
+# cascade assigns elsewhere. Name-similarity is not cluster membership; the
+# defining contribution is (D-F4 §3). Nothing here is dropped: each names the
+# cluster and sub-task that owns it.
+#
+# `disposition` values: "owned-elsewhere" (the cascade assigns it to a named
+# sibling cluster) | "not-dp" (outside the partition's domain entirely).
+# =============================================================================
+residual_exclusions:
+
+  - id: "E0"
+    technique: "Problem-level corpus references"
+    disposition: "scoped-out-with-rationale"
+    owner_cluster: "none"
+    owner_subtask: "SUB-9..11 (OUT-7)"
+    cascade_test: "not run — an evidence-discipline decision, not a partition question"
+    rationale: >-
+      `coverage.corpus_refs` asserts CORPUS-level ids ("C1", "C2") rather than
+      the problem-level ids the template illustrates ("C1:1635"). Recorded
+      because SUB-4 initially wrote problem-level refs into the EDPC corpus
+      (e.g. "C2:D" for the 0/1 knapsack, "C2:V" for rerooting) from memory and
+      then withdrew them. The reasoning for the withdrawal: NEU-932 F-C-1
+      verified only the CSES section COUNTS at the 2026-07-16 cutoff, no
+      per-problem id in any corpus was verified by this sub-task, and CAP-2
+      marks C4's ids unverified outright. A remembered problem letter is an
+      invented value wearing a citation's clothes — forbidden by NEU-887's
+      discipline and by the template's own CAP-2 warning — and it is worse than
+      a corpus-level ref because it LOOKS checkable. A corpus-level ref is the
+      strongest claim this sub-task can stand behind. OUT-7 resolves refs to
+      problems when it audits coverage.
+    convergence_note: >-
+      SUB-3 (NEU-934) reached the identical decision independently and recorded
+      it as its EXC-1. Two mappers converging on the same withdrawal without
+      coordinating is evidence the template's "C1:1635" illustration invites a
+      claim the evidence base cannot support, and is worth a D-F2/D-S1 look.
+
+  - id: "E1"
+    technique: "Knuth / quadrangle-inequality optimization"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937)"
+    cascade_test: "T1"
+    rationale: >-
+      Named by D-F4 §3.2 as CL-4's. It reduces the cost of evaluating the
+      already-correct interval DP recurrence (cl-2.interval-split-recurrence,
+      cl-2.optimal-bst-recurrence) from cubic to quadratic without changing what
+      any state means. T1 fires and the cascade stops. CL-2 owns the BASE
+      recurrence; CL-4 owns the acceleration — two nodes, not one contested node
+      (D-F4 §3.1).
+    expected_realization: >-
+      SUB-6 declares a cross_cluster_attachment INTO CL-2. SUB-4 does not
+      declare the mirror: schema §4.3 forbids declaring on a sibling's behalf,
+      and a mirrored pair would present to the cycle audit as a false cycle.
+
+  - id: "E2"
+    technique: "Divide-and-conquer optimization"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937)"
+    cascade_test: "T1"
+    rationale: >-
+      Named by D-F4 §3.2 as CL-4's, same shape as E1: it exploits monotonicity
+      of the optimal split to evaluate an unchanged recurrence more cheaply.
+
+  - id: "E3"
+    technique: "Bounded-knapsack acceleration — binary/powers-of-two splitting of the multiplicity, and monotonic-deque sliding-window evaluation"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937)"
+    cascade_test: "T1"
+    rationale: >-
+      MATERIAL exclusion, and the one most likely to be read as a coverage gap,
+      because the NEU-935 spec assigns "bounded variants" to CL-2 and these are
+      how bounded knapsack is actually written in practice. The variant's
+      RECURRENCE is mapped here (cl-2.bounded-knapsack-multiplicity). Its two
+      standard accelerations are not: both take that already-correct recurrence
+      and reduce its cost without changing what a state means, so T1 fires and
+      the cascade stops at CL-4 before T3 is ever asked. Excluding them is D-F4
+      §3.1 working as designed — the same split that puts the interval
+      recurrence in CL-2 and Knuth's optimization in CL-4. Reading the spec's
+      "bounded variants" as granting CL-2 the accelerations too would require
+      overriding the cascade, which a mapper may not do locally (U4).
+    residual_risk: >-
+      If SUB-6 does not map them — they are knapsack-flavoured and may read as
+      CL-2's from CL-4's side — they fall through the fan-out. Flagged for OUT-7
+      as a named cross-cluster coverage risk rather than left implicit.
+
+  - id: "E4"
+    technique: "Bitset-accelerated subset sum"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937)"
+    cascade_test: "T1"
+    rationale: >-
+      Same states, same meanings, same recurrence as cl-2.subset-sum-feasibility
+      — machine-word parallelism divides the constant. A pure cost reduction of
+      an already-correct DP: T1.
+    residual_risk: >-
+      Same fall-through risk as E3, and additionally a JavaScript-materiality
+      question (no native fixed-width bitset), which is OUT-5's, not this map's.
+
+  - id: "E5"
+    technique: "Small-to-large merging / DSU on tree"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937)"
+    cascade_test: "T1"
+    rationale: >-
+      Reorganizes an already-correct child merge (cl-2.tree-knapsack-merge,
+      cl-2.child-aggregation) so the total work is bounded by a
+      log factor, without changing any state's meaning. T1. Distinguished
+      carefully from cl-2.prove-tree-knapsack-quadratic-bound, which is mapped
+      here: proving the natural merge's bound is an ARGUMENT about an unchanged
+      recurrence (S1/CL-2); reorganizing the merge to beat that bound is a cost
+      reduction (T1/CL-4).
+
+  - id: "E6"
+    technique: "Steiner-tree DP"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-3"
+    owner_subtask: "SUB-5 (NEU-936)"
+    cascade_test: "T2"
+    rationale: >-
+      D-F4 §3.2 adjudicates it explicitly: "T2 fires on the subset-of-terminals
+      mask encoding. Its tree structure (T3) loses to T2 by order — CL-2 may
+      link, not own." A genuine multi-match resolved by the cascade's order.
+      Recorded here because its tree structure makes CL-2 the natural place a
+      reader looks for it.
+
+  - id: "E7"
+    technique: "Bitmask / subset DP (including TSP-over-subsets and subset-partition counting)"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-3"
+    owner_subtask: "SUB-5 (NEU-936)"
+    cascade_test: "T2"
+    rationale: >-
+      D-F4 §3.2: "T2 fires before T3. The mask IS the contribution." Recorded
+      because subset-partition counting is combinatorial counting by any plain
+      reading and a reader will look for it in CL-2's counting section. The
+      order decides: the ENCODING outranks the structure it encodes (D-F4 §3.1).
+
+  - id: "E8"
+    technique: "SOS DP / subset-sum convolution (zeta-Moebius transform)"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937)"
+    cascade_test: "T1"
+    rationale: >-
+      CONTESTED UPSTREAM and carried, not smoothed. D-F4 §4.2 adjudicates it to
+      CL-4 by the order (it accelerates an already-correct subset-indexed
+      transition) and records CL-3's live rival claim as a D-F4a provisional
+      entry. Recorded in CL-2's exclusions because its name contains
+      "subset-sum" and this cluster owns subset sum — the two are unrelated:
+      cl-2.subset-sum-feasibility is over integer totals, SOS DP is over a
+      subset lattice. CL-2 has no claim on either reading; this entry exists to
+      stop a reader inferring one from the name.
+
+  - id: "E9"
+    technique: "Centroid-decomposition path counting"
+    disposition: "scoped-out-with-rationale"
+    owner_cluster: "none"
+    owner_subtask: "unowned — flagged for OUT-7"
+    cascade_test: "not run — outside the partition's domain"
+    rationale: >-
+      Excluded as not-DP: it is divide-and-conquer over a tree. It computes no
+      recurrence over a state space and makes no optimal-substructure claim —
+      it recursively splits at a centroid and counts paths through it, and the
+      counting is combinatorial rather than a fold over subproblem optima.
+    contested: true
+    rival_reading: >-
+      A rival reading takes the per-centroid-level subproblems as states over a
+      tree structure, which would fire T3 and land it in CL-2. SUB-4 does not
+      hold this reading but records it rather than smoothing it (NEU-889:
+      conflicts preserved). This is the one exclusion in this list with no named
+      owning cluster, which makes it the one most likely to be a real gap.
+      Escalated to OUT-7 as an open question: if the rival reading is right,
+      CL-2 must map it and this entry is a defect. If SUB-4's reading is right,
+      the technique is outside the charter's domain and the entry is correct.
+      SUB-4 has no route to settle this alone — it is a D-F4 scope question.
+
+  - id: "E10"
+    technique: "Digit DP, automaton DP (incl. Aho-Corasick), plug / broken-profile DP, probability & expectation DP, game DP / Sprague-Grundy"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-3"
+    owner_subtask: "SUB-5 (NEU-936)"
+    cascade_test: "T2"
+    rationale: >-
+      All assigned to CL-3 by D-F4 §3.2 by name. Grouped into one entry because
+      they share one reason: each is either a non-tuple state encoding or a
+      specialized problem domain whose value semantics are the difficulty. Two
+      touch CL-2's material and are recorded for that reason: plug DP's state is
+      a profile over a grid boundary (structural by any plain reading, but T2
+      fires on the encoding first), and expectation DP is the named escape route
+      for the cyclic dependencies of cl-2.cyclic-state-dependency-breaks-dp.
+      CL-2 may link to both; it owns neither.
+
+  - id: "E11"
+    technique: "Matrix-exponentiation DP, Convex Hull Trick / Li Chao, slope trick, Lagrangian relaxation (Aliens trick), kinetic-segment-tree DP"
+    disposition: "owned-by-sibling-cluster"
+    owner_cluster: "CL-4"
+    owner_subtask: "SUB-6 (NEU-937) / SUB-13 (NEU-938, frontier)"
+    cascade_test: "T1"
+    rationale: >-
+      All named by D-F4 §3.2 as CL-4's under T1. Recorded for completeness of
+      this cluster's boundary rather than because a reader would expect them
+      here — no CL-2 node depends on any of them, and their non-DP prerequisites
+      (envelope geometry, Li Chao trees, linear algebra) are registered boundary
+      anchors, not CL-2 material.
+
+exclusion_count: 12
