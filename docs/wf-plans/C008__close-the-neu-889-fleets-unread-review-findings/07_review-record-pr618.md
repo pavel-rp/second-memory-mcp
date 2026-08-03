@@ -168,7 +168,7 @@ Had the review re-raised any of the following, the standing reply was prepared a
 | `72260eb` | The stale 19-node arithmetic corrected at **3** sites — header banner (total and family 4), `self_check` items 1 and 2. Comment text and `result:` strings. | 6 |
 | `9a1b1d6` | Sibling-package relative paths corrected at **9** sites (7 schema, 2 foundations), including 2 `ledger:` field values; the additive-top-level-key warning added, naming all 14 keys. Comment text and 2 path values. | 7, 8, 9 |
 
-**One self-inflicted defect, caught by this slice's own gate and recorded rather than quietly amended.** The class-wide `mapper_note` rewrite in `2f2957c` was applied by whole-string replacement, and the replacement consumed the space that had followed the original colon — leaving `withholds one:the representation…` in **all ten** blocks, which the folded scalar would have rendered as a run-together word. It was found by reading the branch diff during the pre-ship gates, not by the reviewer, and fixed in `61a3e02` (em dash plus space, all ten). Noted because a class-wide fix is exactly the kind of change that can introduce a class-wide defect, and the mechanical diff review is what caught it.
+**One self-inflicted defect, caught by this slice's own gate and recorded rather than quietly amended.** The class-wide `mapper_note` rewrite in `2f2957c` was applied by whole-string replacement, and the replacement consumed the space that had followed the original colon — leaving `withholds one:the representation…` in **all ten** blocks, which the folded scalar would have rendered as a run-together word. It was found by reading the branch diff during the pre-ship gates, not by the reviewer, and fixed in `f63c3fb` (em dash plus space, all ten). Noted because a class-wide fix is exactly the kind of change that can introduce a class-wide defect, and the mechanical diff review is what caught it.
 
 **Upheld and fixed: 7 of 9 findings** — and in five of the seven the fix was applied to the **whole defect class** (10 `mapper_note` blocks, 3 count sites, 9 path sites, 2 BigInt sites, 14 listed keys) rather than only to the lines the reviewer anchored. In each case the class was **enumerated by grep or by resolving paths on disk**, never assumed from the anchors.
 
@@ -180,7 +180,22 @@ Had the review re-raised any of the following, the standing reply was prepared a
 
 **Volume judgement (explicit, not by omission):** the review produced **9 findings across 7 pull requests**, 7 upheld, all fixed in one branch. That is a larger result than the 2 findings the mid-run state suggested, and larger than any sibling slice's, but it fit **one pull request and one session** with no compromise on class-wide fixes or per-thread replies. **No re-scoping flag is raised on volume.** The one item flagged for re-scoping is the silent-non-delivery observation in §"Bisect path", which is a probe question rather than a review finding.
 
-**Local verification, reported honestly:** the configured verify command `pnpm run type-check` is **UNVERIFIABLE in this worktree** — neither `pnpm` nor `node_modules` is present — and the same holds for the YAML graph-integrity validator. Neither was faked as a local pass; both are deferred to CI's `build-test-lint` on the deliverable pull request. The gates that *did* run locally are the diff-scope audit, the chunk line-count arithmetic, and the unreplied-thread reconciliation.
+**Local verification, reported honestly:** the configured verify command `pnpm run type-check` is **UNVERIFIABLE in this worktree** — neither `pnpm` nor `node_modules` is present — and the same holds for the YAML graph-integrity validator, since no YAML parser is resolvable either. Neither was faked as a local pass; both are deferred to CI's `build-test-lint` on the deliverable pull request.
+
+The gates that *did* run locally, and their results:
+
+| Gate | Method | Result |
+| ---- | ------ | ------ |
+| Diff scope | `git diff --stat origin/develop...HEAD` | **PASS** — exactly 2 files: `frontier.yaml` and this record. Nothing else touched. |
+| No severity/status/structural flip | 169 changed lines in `frontier.yaml` matched against `node_kind`, `skill_type`, `severity`, `status`, `assessed`, `material`, `effects`, `id`, `attachment_id`, `uncertainty`, `prerequisite_depth`, `progression_stage`, `entry_gate`, `difficulty_dimensions` | **PASS** — **0** hits. |
+| Field-value changes enumerated | every field-shaped changed line listed | **PASS** — 11 lines: 2 `ledger:` path values and 3 `self_check` `result:` strings (6 lines, ± pairs), all documented above. Everything else is comment text or block-scalar prose. |
+| Chunk arithmetic | added-line counts vs. file length | **PASS** — 1074 + 791 + 867 = 2732; 554 + 520 = 1074; 509 + 358 = 867. |
+| Unreplied threads | per-PR top-level comment ids differenced against `in_reply_to_id` values | **PASS** — empty on all seven. |
+| Whitespace hygiene | tabs and trailing whitespace scan | **PASS** — none. |
+| Instruments closed | `gh pr view` state and `mergedAt` | **PASS** — 664, 665, 666, 667, 668, 669, 670 all `CLOSED` with `mergedAt: null`. |
+| Scratch branches removed | `git branch` and `git ls-remote` | **PASS** — no `review/neu-953-*` or `review-base/neu-953-*` remains locally or on the remote. All 14 were deleted. |
+
+**One observation from the branch sweep, routed not fixed:** six `review*/neu-951-part{1,2,3}` branches from **NEU-951 (SUB-11)** are still present on the remote and locally. They are that slice's instruments, not this one's, and deleting another slice's refs is not this slice's call — **flagged for NEU-955's remainder**. This slice's own 14 branches were all removed.
 
 ---
 
