@@ -86,14 +86,20 @@
 # -----------------------------------------------------------------------------
 # SUB-13 (NEU-938) MAPPING NOTE — READ THIS BEFORE THE NODES
 # -----------------------------------------------------------------------------
-# WHAT IS MAPPED HERE (4 families, 19 nodes):
+# WHAT IS MAPPED HERE (4 families, 18 nodes):
 #   1. Slope trick + its tree variant           (6 nodes)
 #   2. Lagrangian relaxation / "Aliens trick"   (5 nodes)
 #   3. Kinetic segment tree <-> DP interplay    (4 nodes)
-#   4. SMAWK / totally-monotone matrix search + LARSCH online variant (4 nodes)
+#   4. SMAWK / totally-monotone matrix search + LARSCH online variant (3 nodes)
 #      ^ the exotic-tail technique that IS mapped rather than excluded; it is the
 #        maximalist / research-tier reach past CL-4's mainstream D&C optimization,
 #        and supplies OUT-6's required research-tier endpoint.
+#      ^ family 4 read 4 nodes and the total read 19 until mainstream.yaml merged:
+#        cl-4.verify-monge-condition was RETIRED as a confirmed duplicate of SUB-6's
+#        cl-4.quadrangle-inequality-proof, and the obligation is now drawn from
+#        SUB-6's node instead of restated. See `techniques_mapped` and X-938-2.
+#        The count went DOWN because a duplicate was removed, not because coverage
+#        shrank. `node_count` below is the authoritative figure.
 #
 # WHAT IS *NOT* MAPPED, AND WHY — see `residual_exclusions` at the BOTTOM of this
 # file. That register is a first-class deliverable of this sub-task, not an
@@ -2705,9 +2711,9 @@ prototype_disposition:
 # =============================================================================
 self_check:
   - check: "1. node_kind on every node; skill_type + skill_type_rationale on every skill; no skill_type on any knowledge node."
-    result: "Pass — 19/19 have node_kind; 15/15 skills have both; 4/4 knowledge nodes omit skill_type entirely (absent, not null)."
+    result: "Pass — 18/18 have node_kind; 14/14 skills have both; 4/4 knowledge nodes omit skill_type entirely (absent, not null). Read 19/19 and 15/15 until cl-4.verify-monge-condition was retired as SUB-6's duplicate; the check's verdict is unchanged, only its arithmetic is now current."
   - check: "2. Not one node per technique name (schema §1.1)."
-    result: "Pass — 4 technique families -> 19 nodes (ratio 4.75). Every family splits application / proof / implementation at minimum; no family is a single node."
+    result: "Pass — 4 technique families -> 18 nodes (ratio 4.5), matching techniques_mapped's own arithmetic. Every family splits application / proof / implementation at minimum; no family is a single node. Read 19 (ratio 4.75) until cl-4.verify-monge-condition was retired as SUB-6's duplicate; 4.5 still clears the schema §1.1 bar by the same margin, so the verdict is unchanged."
   - check: "3. Every prerequisite chain bottoms out on a root or a registered anchor."
     result: "Pass — every node draws at least one prerequisites.roots edge, directly or through an intra-cluster chain that does. No chain just stops."
   - check: "4. No prerequisites.* entry points at a sibling cluster's node."

@@ -6,7 +6,7 @@
 **Model:** claude-opus-5[1m]
 **Date:** 2026-08-03
 
-Review PRs: **664, 665, 666** · WORK IN PROGRESS — adjudication pending
+**Review-only pull requests: [664](https://github.com/pavel-rp/second-memory-mcp/pull/664), [665](https://github.com/pavel-rp/second-memory-mcp/pull/665), [666](https://github.com/pavel-rp/second-memory-mcp/pull/666), [667](https://github.com/pavel-rp/second-memory-mcp/pull/667), [668](https://github.com/pavel-rp/second-memory-mcp/pull/668), [669](https://github.com/pavel-rp/second-memory-mcp/pull/669), [670](https://github.com/pavel-rp/second-memory-mcp/pull/670)** — all seven closed unmerged. This list is the sweep input NEU-955 (SUB-9) reads from this file.
 
 ---
 
@@ -36,7 +36,7 @@ The whole current file was re-presented in **three chunks**, each well under the
 
 **Mechanism.** For each part *N* a scratch base branch `review-base/neu-953-part{N}` was cut from `develop` with part *N* **removed** from the file, and a head branch `review/neu-953-part{N}` was cut from that base **restoring** it. Each pull request's diff is therefore **that chunk alone, at the file's real path** — no synthetic path, no altered content, no reformatting. This is NEU-951's method verbatim (`05_review-record-pr615.md` §Method), which resolved 3/3.
 
-**Reviewer registration.** Requested by a direct `gh api --method POST /repos/pavel-rp/second-memory-mcp/pulls/{n}/requested_reviewers` naming `copilot-pull-request-reviewer[bot]`. `gh pr edit --add-reviewer` was **not used** — it is known to report success while silently failing to register. Registration was confirmed from each POST's response body, which listed `Copilot` under `requested_reviewers`, for **all three** pull requests.
+**Reviewer registration.** Requested by a direct `gh api --method POST /repos/pavel-rp/second-memory-mcp/pulls/{n}/requested_reviewers` naming `Copilot`. `gh pr edit --add-reviewer` was **not used** — it is known to report success while silently failing to register. Registration was confirmed from each POST's own response body, which listed `Copilot` under `requested_reviewers`, for **all seven** pull requests including every re-request.
 
 ---
 
@@ -44,15 +44,19 @@ The whole current file was re-presented in **three chunks**, each well under the
 
 | Part | PR | File lines re-presented | Added lines | Registration API-confirmed | Files resolved? |
 | ---- | -- | ----------------------- | ----------- | -------------------------- | --------------- |
-| 1 of 3 | [664](https://github.com/pavel-rp/second-memory-mcp/pull/664) | 1–1074 (header, `nodes:` → `cl-4.debug-aliens-trick-failure`) | **1074** | yes | **NOT PROVEN — bisected** (see below) |
-| 1a (bisect) | [667](https://github.com/pavel-rp/second-memory-mcp/pull/667) | 1–554 (header → `cl-4.slope-trick-heap-implementation`) | **554** | yes | _pending_ |
-| 1b (bisect) | [668](https://github.com/pavel-rp/second-memory-mcp/pull/668) | 555–1074 (`cl-4.slope-trick-on-trees` → `cl-4.debug-aliens-trick-failure`) | **520** | yes | _pending_ |
-| 2 of 3 | [665](https://github.com/pavel-rp/second-memory-mcp/pull/665) | 1075–1865 (`FAMILY 3` banner → coverage/`techniques_mapped` block) | **791** | yes | **YES** |
-| 3 of 3 | [666](https://github.com/pavel-rp/second-memory-mcp/pull/666) | 1866–2732 (`ar1_requests` → `self_check` → EOF) | **867** | yes | _pending_ |
+| 1 of 3 | [664](https://github.com/pavel-rp/second-memory-mcp/pull/664) | 1–1074 (header, `nodes:` → `cl-4.debug-aliens-trick-failure`) | **1074** | yes | **NOT PROVEN — bisected into 667 + 668** |
+| 1a (bisect of 664) | [667](https://github.com/pavel-rp/second-memory-mcp/pull/667) | 1–554 (header → `cl-4.slope-trick-heap-implementation`) | **554** | yes | **YES** — 1 anchored finding (`:196`) + 1 suppressed duplicate (`:545`) |
+| 1b (bisect of 664) | [668](https://github.com/pavel-rp/second-memory-mcp/pull/668) | 555–1074 (`cl-4.slope-trick-on-trees` → `cl-4.debug-aliens-trick-failure`) | **520** | yes | **YES** — 2 anchored findings (`:606`, `:981`) + 1 suppressed duplicate (`:1064`) |
+| 2 of 3 | [665](https://github.com/pavel-rp/second-memory-mcp/pull/665) | 1075–1865 (`FAMILY 3` banner → coverage/`techniques_mapped` block) | **791** | yes | **YES** — 2 anchored findings (`:1440`, `:1720`) |
+| 3 of 3 | [666](https://github.com/pavel-rp/second-memory-mcp/pull/666) | 1866–2732 (`ar1_requests` → `self_check` → EOF) | **867** | yes (× 2 — requested, then re-requested) | **NO REVIEW DELIVERED — bisected into 669 + 670** |
+| 3a (bisect of 666) | [669](https://github.com/pavel-rp/second-memory-mcp/pull/669) | 1866–2374 (`ar1_requests` → `residual_exclusions` RX-1 … RX-13 → `residual_exclusion_count`) | **509** | yes (× 2 — requested, then re-requested) | **NO REVIEW DELIVERED** |
+| 3b (bisect of 666) | [670](https://github.com/pavel-rp/second-memory-mcp/pull/670) | 2375–2732 (`scope_boundary` → `carried_conflicts` → `prototype_disposition` → `self_check` → EOF) | **358** | yes (× 2 — requested, then re-requested) | **NO REVIEW DELIVERED** |
 
-1074 + 791 + 867 = **2732** — the whole file, with no gap and no overlap. The 1a/1b bisect re-covers part 1 only: 554 + 520 = 1074.
+1074 + 791 + 867 = **2732** — the whole file, with no gap and no overlap. Each bisect re-covers its parent exactly: 554 + 520 = 1074 (part 1), and 509 + 358 = 867 (part 3).
 
 Each pull request's `gh pr view --json` confirms **exactly one changed file, zero deletions**, at `docs/research/C005-dp-map/nodes/cl-4-optimization/frontier.yaml`.
+
+**Coverage, stated plainly.** **1,865 of the file's 2,732 lines (68%) obtained a review that provably resolved the file.** The remaining **867 lines (32%) — the `ar1_requests` tail, `residual_exclusions`, `scope_boundary`, `carried_conflicts`, `prototype_disposition`, and `self_check` — obtained no review at all**, under a distinct failure mode described below. That is reported here as an incomplete outcome, not rounded up to a clean one.
 
 ---
 
@@ -60,17 +64,27 @@ Each pull request's `gh pr view --json` confirms **exactly one changed file, zer
 
 **The decisive evidence is line anchoring.** A reviewer cannot anchor a comment to a `path`-and-`line` it did not resolve. An overview that describes the chunk's content is **corroboration, not proof** — stated precisely here, because overstating resolution evidence is the exact failure mode this charter exists to end.
 
-- **PR 665 — PROVEN.** Two findings anchored to `path: docs/research/C005-dp-map/nodes/cl-4-optimization/frontier.yaml`, at lines **1720** and **1440**. Its overview additionally named the kinetic-segment-tree and SMAWK/LARSCH families and the `node_count` / `out6_endpoints` blocks — the chunk's actual content.
-- **PR 664 — NOT PROVEN, therefore bisected.** Its review landed a **content-specific overview** (it correctly enumerated Family 1's representation / recognition / application / proof-licence / heap-implementation / tree-variant split and Family 2's Lagrangian-relaxation nodes) and **zero line-anchored comments**. That is *not* the `"wasn't able to review any files"` failure string — but it is also not path-anchored proof. Under this slice's own rule the chunk is therefore recorded as **not proven** and **bisected**, never as clean.
+- **PR 665 — PROVEN.** Two findings anchored to `path: docs/research/C005-dp-map/nodes/cl-4-optimization/frontier.yaml`, at lines **1440** and **1720**. Its overview additionally named the kinetic-segment-tree and SMAWK/LARSCH families and the `node_count` / `out6_endpoints` blocks — the chunk's actual content.
+- **PR 667 — PROVEN.** One finding anchored at line **196**, plus a suppressed duplicate the reviewer itself recorded at **545** — two distinct resolved positions 349 lines apart.
+- **PR 668 — PROVEN.** Two findings anchored at lines **606** and **981**, plus a suppressed duplicate at **1064**.
+- **PR 664 — NOT PROVEN, therefore bisected.** Its review landed a **content-specific overview** (it correctly enumerated Family 1's representation / recognition / application / proof-licence / heap-implementation / tree-variant split and Family 2's Lagrangian-relaxation nodes) and **zero line-anchored comments**. That is *not* the `"wasn't able to review any files"` failure string — but it is also not path-anchored proof. Under this slice's own rule the chunk was therefore recorded as **not proven** and **bisected**, never as clean. **The bisect vindicated the call:** both halves then resolved and between them produced 3 findings, all upheld. Had 664 been recorded as clean, those three defects would have been missed.
+- **PRs 666 / 669 / 670 — NOT RESOLVED, and not for the reason this charter was built around.** No review was delivered **at all**: no overview, no comment, no `"wasn't able to review any files"` string. On each pull request the `Copilot` reviewer request was API-confirmed present and then **silently cleared with `reviews: []` and zero review comments**.
 
 ## Bisect path
 
-**TRIGGERED — once, on part 1.** Part 1 (1,074 added lines, PR 664) produced no path-anchored finding, so it was split at the `cl-4.slope-trick-on-trees` node boundary (`:555`) into:
+**TRIGGERED TWICE — on part 1 and on part 3 — with opposite outcomes. Both are recorded, because the failing one is the informative one.**
 
-- **PR 667** — lines 1–554, **554 added lines**
-- **PR 668** — lines 555–1074, **520 added lines**
+**Part 1 (PR 664, 1,074 added lines) — bisect succeeded.** No path-anchored finding, so it was split at the `cl-4.slope-trick-on-trees` node boundary (`:555`) into **PR 667** (1–554, **554 lines**) and **PR 668** (555–1074, **520 lines**). 554 + 520 = 1074. **Both then resolved**, together yielding findings 3, 4 and 5 — all three upheld and fixed. This is a clean demonstration that the size-driven bisect works and that "no anchored comment" is a real signal rather than noise.
 
-554 + 520 = 1074, so the bisect re-covers part 1 exactly. Both are far above NEU-949's ~200-line floor, which was never approached. Parts 2 and 3 were not bisected.
+**Part 3 (PR 666, 867 added lines) — bisect did not help, and the failure is a different one.** Split at the `SCOPE BOUNDARY` banner (`:2375`) into **PR 669** (1866–2374, **509 lines**) and **PR 670** (2375–2732, **358 lines**). 509 + 358 = 867. **Neither delivered a review**, and the smaller half was smaller than PR 668's 520 lines and PR 667's 554 lines — both of which resolved. So the outcome is **not explained by chunk size**, and bisecting further toward NEU-949's ~200-line floor has no mechanism to fix it.
+
+**Why the floor was not driven to.** The floor exists to answer *"is this chunk too big to resolve?"* The evidence rules that question out here:
+
+1. **A 358-line chunk failed while a 520-line and a 554-line chunk of the same file, in the same session, succeeded.** Size is monotonic in the cap model; this ordering is not.
+2. **The failure signature is different in kind.** A size-cap failure produces a review that says it could not read the files. These produced **no review object at all** — the request was accepted, confirmed, and then dropped.
+3. **Each was requested and re-requested** with the registration API-confirmed both times, which is exactly the remedy the brief prescribes for a dropped request; it did not change the outcome.
+
+The consistent discriminator is not size but **when** — every attempt from PR 666 onward, the fifth review request of the session, failed, while every attempt before it succeeded. That is the signature of a **reviewer-side quota or availability limit**, not of the per-file diff cap `04_probe-record.md` characterised. **This record does not claim to have proven that**, and deliberately does not upgrade the observation into a finding: it is an ordering consistent with exhaustion, recorded as the reason the floor was not driven to, and flagged below for re-scoping rather than absorbed.
 
 Every attempt — successful and not — is recorded in the pull-request table above with its added-line count and outcome.
 
