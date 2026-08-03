@@ -1072,6 +1072,797 @@ nodes:
     owner: "NEU-938"
     aliases: ["debugging WQS binary search", "Aliens trick wrong-answer diagnosis"]
 
+  # ===========================================================================
+  # FAMILY 3 — KINETIC SEGMENT TREE <-> DP INTERPLAY
+  # D-F4 §3.2: "Kinetic segment tree <-> DP interplay | yes | — | — | CL-4 |
+  #             Research-tier frontier — still CL-4, still one cluster, mapped by
+  #             SUB-13."
+  # THIS IS SUB-13's NAMED WORKED EXAMPLE and the node the NEU-938 acceptance
+  # scenario singles out: it carries BOTH prerequisite kinds at once — a DRAWN
+  # boundary anchor (segment tree) and a DECLARED cross-cluster attachment (the
+  # family it optimizes) — and neither is faked as a root edge.
+  # One technique, FOUR nodes.
+  # ===========================================================================
+
+  - id: "cl-4.kinetic-segment-tree-amortization"
+    name: "Kinetic-segment-tree certificate amortization"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The fact that a segment tree whose leaves hold linear functions of a global
+      parameter t can maintain their maximum as t advances monotonically, by storing at
+      each node a "certificate" — the value of t at which its winner would change — and
+      rebuilding only the subtrees whose certificates expire; and that although a single
+      advance can cascade, the TOTAL rebuild work over a monotone sweep is bounded
+      (O(n log^2 n) amortized for the standard construction) because each rebuild
+      permanently destroys a crossing that cannot recur. A learner acquires the
+      certificate idea and the amortization CLAIM; arguing the bound is
+      cl-4.kinetic-segment-tree-amortization-proof and using it is
+      cl-4.kinetic-segment-tree-dp.
+    prerequisites:
+      intra_cluster: []
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors:
+        - "anchor.segment-tree@1.0.0"
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-1"
+      entry_gate: "gate-a"
+      prerequisite_depth: 1
+      state_formulation_load: 3
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That certificates expire in an amortized-bounded number of rebuilds
+        is a combinatorial property of the structure.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["kinetic tournament", "kinetic segment tree", "segment tree beats (related family)"]
+    notes: >-
+      BOTH boundary-anchor edges are DRAWN DIRECTLY onto registered anchors — this is a
+      sanctioned terminal, not an unexplained jump, and NOT a cross-cluster declaration
+      (anchors are in the shared frozen floor from the start, so SUB-12 has nothing to
+      resolve). anchor.segment-tree covers the structure and its query/update contract;
+      anchor.convex-hull-envelope-geometry covers the fact that the leaves are lines and
+      that their upper envelope changes at crossings. Neither is decomposed here — per
+      D-S3 an anchor is never decomposed.
+      X-D2 (naming instability): "kinetic tournament" is the more common name in the
+      Chinese/Japanese tradition. Recorded in `aliases`. "Segment tree beats" is a
+      RELATED but distinct family — see RX-5 in `residual_exclusions`; it is recorded
+      as an alias here only as a reader's pointer, NOT as a claim that they are the
+      same technique.
+
+  - id: "cl-4.kinetic-segment-tree-dp"
+    name: "Kinetic segment tree ↔ DP interplay"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — the amortization bound is a real obligation but it
+      is a SEPARATE node (cl-4.kinetic-segment-tree-amortization-proof, typed "proof");
+      this node applies the structure, it does not bound it. Split per schema §1.1. S2
+      YES: it takes an already-correct DP whose transition is a maximum over linear
+      functions of the current index — a transition a learner can already evaluate
+      correctly in O(n) per state, giving O(n^2) — and reduces it to O(n log^2 n)
+      amortized by evaluating that maximum with a kinetic segment tree as the index
+      sweeps. No state changes meaning; the same maximum is taken, more cheaply. This
+      is D-F4's T1, and D-F4 §3.2 assigns this technique to CL-4 on T1 and names it as
+      SUB-13's research-tier example explicitly.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Evaluate a DP transition that is a maximum (or minimum) over linear functions
+      using a kinetic segment tree, so that the sweep over the DP's index doubles as the
+      monotone advance of the structure's global parameter. A learner acquires the
+      correspondence — DP index becomes kinetic time — and the precondition that makes
+      it available: the parameter must advance MONOTONICALLY, which is what makes this
+      reach the transitions the convex hull trick cannot, at the price of an
+      amortization that a single non-monotone query destroys.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.kinetic-segment-tree-amortization"
+        - "cl-4.convex-hull-trick-monotonic"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors:
+        - "anchor.segment-tree@1.0.0"
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.kinetic-segment-tree-dp->cl-1.sequence-partition-dp"
+        from: "cl-4.kinetic-segment-tree-dp"
+        to_cluster: "CL-1"
+        to_node: "cl-1.sequence-partition-dp"
+        to_name: "Sequence partition DP (index-plus-count state)"
+        relation: "requires"
+        rationale: >-
+          THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. The
+          kinetic segment tree accelerates a linear-sequence DP whose transition is a
+          max/min over linear functions of the index — the recurrence must already be
+          correct before there is anything to accelerate; this node only makes the
+          transition affordable. A learner cannot acquire it without first being able
+          to formulate that recurrence. Per D-F4 §3.1 the base DP is CL-1's by T4 and
+          the OPTIMIZATION node is CL-4's. DECLARED, never drawn. THIS IS NOT A ROOT
+          EDGE AND MUST NOT BE RESOLVED INTO ONE — the roots are the four DP first
+          principles, not the linear-sequence family. This node is the NEU-938
+          acceptance scenario's worked case: it carries a DRAWN registered anchor
+          (anchor.segment-tree@1.0.0) AND this DECLARED optimized-family attachment
+          simultaneously, so before SUB-12 runs it reads as complete-but-pending-
+          integration rather than broken.
+          CONFIDENCE IS "conjectured" DELIBERATELY — see `notes`. The target named is
+          the closest CL-1 node, but the base this technique actually optimizes is the
+          COUNT-FREE variant of that shape (dp[i] = min over j of dp[j] + cost(j,i)),
+          and SUB-13 is not confident CL-1 mints it as its own node.
+        confidence: "conjectured"
+        status: "declared"
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 3
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as the INTERPLAY: that a DP whose transition coefficients advance
+        monotonically can be driven by a kinetic segment tree's certificate mechanism is the
+        insight, and it is language-independent. Its realization is where JavaScript binds, and
+        that verdict is on cl-4.kinetic-segment-tree-implementation (JS-D2).
+      mapper_note: >-
+        Observation only, not a verdict: certificate values are ratios of line coefficients; the
+        standard mitigation is to compare cross-multiplied products, which overflow
+        Number.MAX_SAFE_INTEGER at competitive coordinate ranges. Recorded for SUB-8, which owns
+        any verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["kinetic tournament DP", "kinetic segment tree optimization"]
+    notes: >-
+      INTRA-CLUSTER, CROSS-FILE PREREQUISITE (header rule 2b), now RESOLVED against a
+      real id: mainstream.yaml merged (NEU-937, PR #614) before this PR. SUB-13's
+      original prediction "cl-4.convex-hull-trick" was a MISS — SUB-6 minted
+      "cl-4.convex-hull-trick-monotonic", qualifying the name by the precondition. The
+      edge now points at the real id. It remains INTRA-CLUSTER — the two CL-4 files share
+      one cluster id and one id namespace — so it is correctly in
+      prerequisites.intra_cluster and is NOT a cross_cluster_attachment.
+      THE MISS IS ITSELF INFORMATIVE AND IS WHY THE NAME MATTERS HERE: SUB-6 qualified the
+      node as "-monotonic" precisely because CHT's monotonicity precondition is load-
+      bearing, and THIS node is the answer to "what do I do when that precondition
+      fails?" — the two files independently identified the same precondition as the
+      hinge. A learner who has not acquired monotonic CHT has no reason for the kinetic
+      structure to exist. Per rule 2b, an unresolved intra-cluster id would have been
+      reported by the dependency audit as a GAP carrying the id, never deleted — that
+      safety net was not needed here, but it is what made predicting safe.
+
+  - id: "cl-4.kinetic-segment-tree-amortization-proof"
+    name: "Proving the kinetic segment tree's amortized rebuild bound"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1, the first and most specific test. The contribution is
+      ARGUING a bound: that the total certificate-expiry work over a monotone sweep is
+      O(n log^2 n) amortized, via a potential argument counting the crossings a rebuild
+      permanently eliminates. Nothing downstream is reached. Split from
+      cl-4.kinetic-segment-tree-dp per schema §1.1 — and the split earns its keep here
+      more than anywhere else in this file, because the amortization is the ENTIRE
+      reason the technique is usable, yet a learner can apply the structure from a
+      template with no idea why it is not quadratic, and will then apply it to a
+      non-monotone sweep where the bound is false.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Establish the amortized bound on a kinetic segment tree's rebuild work by a
+      potential argument over the crossings of the stored lines, and — the part that
+      matters operationally — identify exactly which hypothesis the argument uses, so
+      that a learner can tell when it stops holding. A learner acquires the potential
+      argument and the ability to see that monotonicity of the advance is load-bearing
+      rather than incidental.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.kinetic-segment-tree-amortization"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors:
+        - "anchor.segment-tree@1.0.0"
+        - "anchor.convex-hull-envelope-geometry@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 5
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The amortized rebuild bound is proven by a potential argument.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["kinetic tournament amortization", "potential argument for kinetic segment trees"]
+
+  - id: "cl-4.kinetic-segment-tree-implementation"
+    name: "Realizing a kinetic segment tree"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no — the bound is argued in
+      cl-4.kinetic-segment-tree-amortization-proof. S2 no — the asymptotic win is
+      already secured by cl-4.kinetic-segment-tree-dp; this makes the chosen
+      formulation run, not run faster. S3 no — no symptom is the starting point. S4 no.
+      S5 no — the structure is chosen. S6 YES: realizing it as code — storing the
+      per-node certificate (the next t at which this node's winner changes), the
+      recursive "advance to t" that descends only into expired subtrees, and the
+      comparison arithmetic that decides expiry without dividing. S7 rejected: the
+      comparison predicate and the certificate's meaning depend on THIS DP's line
+      family and parameter, so steps vary with the problem (schema §2.1).
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Turn the kinetic segment tree into working code: certificates stored per node,
+      an advance routine that recurses only where a certificate has expired, and
+      integer comparison arithmetic in place of the ratio the certificate nominally is.
+      A learner acquires the layout and the arithmetic discipline that keep the
+      amortization real rather than theoretical.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.kinetic-segment-tree-dp"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors:
+        - "anchor.segment-tree@1.0.0"
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 7
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 0
+      implementation_load: 5
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2", "JS-E5"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — the certificate arithmetic overflows 2^53, exactly as CHT's does
+        and for the same geometric reason. Each node stores a line (slope, intercept) and the
+        tree's whole mechanism is the 'melt time': the parameter value at which the
+        currently-winning line is overtaken by a rival. Computing it is a CROSS-MULTIPLICATION
+        of slope and intercept differences — the same division-free comparison CHT uses, chosen
+        for the same reason (exact integer arithmetic) — and at the 1e9 operand scale these
+        problems are posed at, the products reach ~1e18, ~111x past 2^53. C++ evaluates it in
+        long long or __int128, exactly. JavaScript silently rounds, so a certificate expires at
+        the wrong time or fails to expire, so the tree serves a stale line and the DP is
+        silently wrong — and worse, the AMORTIZED BOUND the structure's whole justification
+        rests on is a counting argument over correct certificate expiries, so a rounded melt
+        time can also break the complexity, not just the answer. Correct JavaScript requires
+        BigInt or split multiplication for the certificate comparison. JS-E5 rides along: the
+        tree is a flat array of nodes and wants typed arrays. Deliberate non-claim on JS-E1:
+        segment-tree recursion is O(log n) deep — about 20 frames — nowhere near the cap.
+      mapper_note: >-
+        Observation only, not a verdict: the expiry predicate is a cross-multiplied comparison
+        of line coefficients whose products exceed Number.MAX_SAFE_INTEGER at competitive
+        ranges; BigInt is the obvious mitigation and is slow in an amortized inner loop.
+        Recorded for SUB-8, which owns any verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["kinetic tournament implementation"]
+
+  # ===========================================================================
+  # FAMILY 4 — SMAWK / TOTALLY-MONOTONE MATRIX SEARCH, AND THE ONLINE (LARSCH)
+  # VARIANT
+  # ---------------------------------------------------------------------------
+  # THIS IS THE EXOTIC-TAIL TECHNIQUE THAT IS *MAPPED* RATHER THAN EXCLUDED, and
+  # SUB-13's primary discharge of the maximalist bar.
+  #
+  # It is in NO selected reference taxonomy — Convention U (D-F4 §4) governs, and
+  # it is explicit that this is the NORMAL case, not a defect: run the cascade.
+  # T1 fires confidently and unambiguously — SMAWK takes an already-correct
+  # partition DP whose cost matrix is totally monotone and reduces the row-minima
+  # search from O(n log n) (D&C optimization, mainstream, NEU-937's) to O(n),
+  # changing no state's meaning. So it is CL-4's, by U1. Its absence from the
+  # reference taxonomies is a COVERAGE question for OUT-7, not a partition
+  # question and not grounds for a fifth cluster.
+  #
+  # WHY THIS ONE IS MAPPED AND THE REST OF THE TAIL IS NOT (NEU-887 materiality):
+  #   It is the technique the frontier's own structure points at. CL-4's mainstream
+  #   half maps D&C optimization, whose precondition IS the Monge/total-monotonicity
+  #   condition; SMAWK/LARSCH is the strict strengthening of that same condition's
+  #   exploitation. Mapping it costs four nodes and yields a genuine research-tier
+  #   endpoint whose chain reaches the roots through justified prerequisites.
+  #   Every OTHER exotic-tail candidate considered is recorded in
+  #   `residual_exclusions` with a rationale rather than mapped — see RX-5..RX-13.
+  # ===========================================================================
+
+  - id: "cl-4.total-monotonicity"
+    name: "Total monotonicity of a DP cost matrix"
+    node_kind: "knowledge"
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      The fact that a cost matrix can be TOTALLY MONOTONE — every 2x2 submatrix whose top
+      row's minimum lies weakly left of its bottom row's has that ordering preserved — and
+      that total monotonicity implies the ROW-MINIMUM POSITIONS are non-decreasing down
+      the rows. This is the exact hypothesis SMAWK needs, and it is STRICTLY WEAKER than
+      the Monge condition: Monge implies total monotonicity, not conversely. A learner
+      acquires the property, the row-minima consequence, and the implication's DIRECTION —
+      which is what lets them see that establishing Monge is a sufficient route to SMAWK's
+      hypothesis rather than the hypothesis itself.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.quadrangle-inequality"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 2
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Total monotonicity is a property of a cost matrix.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["totally monotone matrix", "total monotonicity", "row-minima monotonicity"]
+    notes: >-
+      X-938-2 RESOLVED — THIS NODE WAS NARROWED AFTER mainstream.yaml MERGED. SUB-13
+      originally wrote this node as "Total monotonicity AND the Monge condition", which
+      predicted a duplicate against SUB-6. That prediction landed: NEU-937 merged
+      cl-4.quadrangle-inequality ("The quadrangle inequality (Monge condition)",
+      aliases incl. "Monge condition"). Rather than ship two CL-4 knowledge nodes for the
+      same fact, this node now states ONLY total monotonicity — the strictly weaker
+      property SMAWK actually needs — and DRAWS the Monge condition from SUB-6's node via
+      prerequisites.intra_cluster. That edge is intra-cluster and now RESOLVES against a
+      real merged id (both CL-4 files share one cluster and one namespace, header rule 2b).
+      THIS IS NOT A MERGE OF THE TWO NODES AND NOT A DELETION OF SUB-6's. It is the
+      mathematically honest split, and the split is real rather than diplomatic: Monge
+      implies total monotonicity but NOT conversely, and SUB-6's node states Monge's
+      SPLIT-POINT-SANDWICH consequence (what Knuth-Yao and D&C optimization need) while
+      SMAWK needs the ROW-MINIMA consequence of the weaker property. Two different facts,
+      correctly two nodes, with the implication drawn as the edge it is.
+      NO BOUNDARY ANCHOR IS DRAWN AND NO AR-1 IS FILED, deliberately. Total monotonicity
+      is a property of a matrix, so one might argue it is non-DP and wants an anchor.
+      Rejected: the register's rule (boundary-register.yaml §boundary) admits an anchor
+      iff it is (a) NOT DP, (b) a real prerequisite of a DP technique, (c) above the
+      elementary floor. (a) fails in the sense that matters — the object is THIS DP's
+      cost matrix and the property is asserted OF the recurrence's own transition cost,
+      which is DP content, not borrowed general-algorithms content. SUB-6 reached the
+      same disposition independently for cl-4.quadrangle-inequality (no anchor, roots
+      only), which is corroboration rather than coincidence.
+
+  # RETIRED BEFORE MERGE — "cl-4.verify-monge-condition" (skill/proof).
+  #   SUB-13 wrote this node, and X-938-2 predicted it would duplicate a SUB-6 node.
+  #   THE PREDICTION LANDED. NEU-937 merged cl-4.quadrangle-inequality-proof ("Proving
+  #   the quadrangle inequality for a cost function", skill_type "proof") — the same
+  #   obligation, the same cascade stop at S1, the same closure/rearrangement argument
+  #   shapes, in the same cluster and the same id namespace.
+  #   SUB-13 RETIRES ITS OWN NODE and draws SUB-6's instead (see cl-4.smawk-application
+  #   and cl-4.larsch-online-smawk-implementation, whose intra_cluster edges now point at
+  #   cl-4.quadrangle-inequality-proof and RESOLVE against a real merged id).
+  #   WHY THIS IS NOT THE MOVE X-938-2 FORBIDS: that rule forbids a mapper deleting a
+  #   SIBLING's node to resolve a duplicate unilaterally. This deletes SUB-13's OWN node
+  #   in favour of the sibling's ALREADY-MERGED one. Nothing of SUB-6's is touched,
+  #   nothing is smoothed, and the map ends with one node where the technique has one
+  #   obligation. Shipping the duplicate instead would have knowingly handed OUT-2 a
+  #   defect that SUB-13 had already predicted and could see.
+  #   Recorded as a retired node rather than silently dropped, so the audit can see the
+  #   deconfliction happened and on what evidence.
+
+  - id: "cl-4.smawk-application"
+    name: "SMAWK totally-monotone matrix search"
+    node_kind: "skill"
+    skill_type: "optimization"
+    skill_type_rationale: >-
+      Cascade stops at S2. S1 no — establishing total monotonicity is a real and
+      dominant obligation, but it is a SEPARATE node (cl-4.quadrangle-inequality-proof,
+      typed "proof", in the sibling CL-4 file); this node applies the algorithm to a
+      matrix already known to be totally monotone. Split per schema §1.1. S2 YES: it
+      takes an already-correct DP
+      row-minima computation — which a learner can already perform correctly in
+      O(n^2) naively or O(n log n) with the mainstream D&C optimization — and reduces
+      it to O(n) by the REDUCE/INTERPOLATE recursion, with no state changing meaning.
+      D-F4's T1 fires confidently, so by Convention U1 this technique is CL-4's despite
+      appearing in no selected reference taxonomy; its absence there is OUT-7's
+      coverage question, not a partition question (D-F4 §4).
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Compute all row minima of a totally monotone matrix in time linear in its
+      dimensions, via SMAWK's alternating REDUCE step (discard columns that can hold no
+      row minimum, using total monotonicity to prove they cannot) and INTERPOLATE step
+      (recurse on even rows, then fill odd rows within the bounds their neighbours
+      establish). A learner acquires the recursion and the reason it is linear rather
+      than log-linear — the strict improvement over the D&C optimization that exploits
+      the same hypothesis less aggressively.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.total-monotonicity"
+        - "cl-4.quadrangle-inequality-proof"
+        - "cl-4.divide-and-conquer-optimization"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments:
+      - attachment_id: "xc.cl-4.smawk-application->cl-1.sequence-partition-dp"
+        from: "cl-4.smawk-application"
+        to_cluster: "CL-1"
+        to_node: "cl-1.sequence-partition-dp"
+        to_name: "Sequence partition DP (index-plus-count state)"
+        relation: "requires"
+        rationale: >-
+          THE DEFINING PREREQUISITE ONTO THE FAMILY THIS TECHNIQUE OPTIMIZES. SMAWK is
+          parasitic on a base DP whose transition is a row-minimum over a cost matrix —
+          canonically "partition a sequence into segments at minimum total cost" — which
+          must already be correct before its row minima are worth finding faster. A
+          learner cannot acquire SMAWK-for-DP without first being able to formulate that
+          recurrence. Per D-F4 §3.1 the base DP is CL-1's by T4 and the OPTIMIZATION node
+          is CL-4's — two nodes, not one contested node. DECLARED, never drawn.
+          CORROBORATED BY THE TARGET ITSELF: cl-1.sequence-partition-dp's own summary
+          names this exact relationship from the other side — "makes this family the
+          standard base for the divide-and-conquer and Knuth optimizations. Those
+          optimizations are NOT this node and NOT this cluster (D-F4 T1 -> CL-4;
+          recorded as EXC-4)." SMAWK is the linear-time strengthening of that same
+          exploitation, so it attaches to the same base.
+        confidence: "named"
+        status: "declared"
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 4
+      proof_obligation_load: 1
+      implementation_load: 4
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — recorded on NEU-938's evidence, which found the one hazard this audit's first
+        pass missed. Two expected hazards genuinely do NOT apply, and both non-claims are kept:
+        SMAWK's REDUCE recurses on a halved problem, so the depth is O(log n) — about 20 frames
+        against a cap on the order of 1e4, so JS-E1 does not bind; and its arithmetic is
+        COMPARISONS of matrix entries generated on demand, with no multiplication to overflow
+        2^53, so JS-E2 does not bind. The audit's first pass then concluded neutral by reasoning
+        that the matrix is implicit and never materialized, so there is no table for JS-E5. The
+        mapper's observation on this node shows that reasoning is incomplete: SMAWK's access
+        pattern is A STACK OF SHRINKING COLUMN-INDEX ARRAYS — REDUCE builds a new
+        surviving-column list at every level — so while the MATRIX is implicit, the column-index
+        arrays are real, allocated per level, and are the algorithm's actual working set. Typed
+        arrays (or a single preallocated scratch buffer indexed per level) are the JavaScript
+        idiom; a per-level Array.push loop is allocation churn in the hot path. And the mapper's
+        second point sharpens why it matters: SMAWK's constant factor IS its selling point over
+        divide-and-conquer optimization — the same reasoning that puts
+        cl-4.larsch-online-smawk-implementation under JS-D1's exception applies here in weaker
+        form. Recorded with JS-E5's specific mitigable idiom rather than as bare JS-E6, per
+        JS-D1. Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Observation only, not a verdict: SMAWK's constant factor is its whole selling point over
+        D&C optimization, and its access pattern is a stack of shrinking column-index arrays —
+        typed arrays are the obvious mitigation. Recorded for SUB-8, which owns any verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["SMAWK algorithm", "totally monotone matrix searching", "linear-time row minima"]
+    notes: >-
+      INTRA-CLUSTER, CROSS-FILE PREREQUISITES (header rule 2b) — the case rule 2b
+      describes as SUB-13's most common: a frontier technique generalizes a mainstream
+      one. All three intra_cluster targets now RESOLVE against real ids: mainstream.yaml
+      merged (NEU-937, PR #614) before this PR, so "cl-4.divide-and-conquer-optimization"
+      and "cl-4.quadrangle-inequality-proof" are looked up, not predicted. They remain
+      INTRA-CLUSTER — the two CL-4 files share one cluster id and one id namespace — so
+      they belong in prerequisites.intra_cluster and are NOT cross_cluster_attachments
+      (declaring them so would be wrong: SUB-12 has no sibling cluster to resolve them
+      against).
+      SUB-13's D&C-optimization prediction was a HIT (unlike the CL-1 predictions — see
+      cl1_id_resolution). The dependency is real: SMAWK and D&C optimization exploit the
+      SAME hypothesis, D&C optimization exploits it in the obvious way, and SMAWK is only
+      intelligible — and only worth its constant factor — as the strengthening of it.
+      SUB-6's own cl-4.divide-and-conquer-optimization neighbourhood corroborates the
+      shape from the other side: it models cl-4.opt-split-point-monotonicity once as
+      shared knowledge rather than restating it per skill node, for the same
+      "keeps this a graph and not a list" reason schema §1.1 gives.
+      CONVENTION U (D-F4 §4) governs this node's very existence: SMAWK is in no selected
+      reference taxonomy. That is explicitly NOT a gap, NOT unowned, and NOT grounds for
+      a new cluster — the cascade was run, T1 fired confidently, U1 assigns it here.
+
+  - id: "cl-4.larsch-online-smawk-implementation"
+    name: "Realizing online totally-monotone search (LARSCH) for a self-referential DP"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. S1 no — no property is argued here; the hypothesis is
+      cl-4.quadrangle-inequality-proof's (SUB-6's node, drawn intra-cluster). S2 no, and
+      this is the interesting rejection: the
+      asymptotic class (linear) is ALREADY secured by cl-4.smawk-application. What this
+      node adds is not a lower cost but the ability to obtain that cost AT ALL under a
+      constraint SMAWK cannot meet — SMAWK requires random access to the matrix, and
+      when C[i][j] depends on dp[j] the entries do not exist until the algorithm has
+      produced them. So this node makes a chosen formulation RUN, which schema §2's S2
+      row explicitly distinguishes from making it run faster ("you are making it run
+      rather than run faster -> implementation"). S3 no — no symptom. S4 no. S5 no —
+      the technique is chosen. S6 YES: it is the realization — interleaving the
+      REDUCE/INTERPOLATE recursion with the DP's own evaluation so that every matrix
+      entry is demanded only after the dp value it depends on has been committed. S7
+      rejected: the interleaving order depends on THIS recurrence's dependency
+      structure, so steps vary with the problem (schema §2.1).
+      CONVENTION S IS NOT INVOKED — the S2-vs-S6 call above is confident, not
+      indeterminate, so no D-S1a entry is filed. Recorded explicitly because S2 is the
+      plausible rival and a reviewer should see it was considered and rejected on the
+      schema's own stated test rather than overlooked.
+    cluster: "CL-4"
+    role: "technique"
+    summary: >-
+      Realize totally-monotone row-minima search in the ONLINE setting a real DP forces:
+      where the cost matrix is self-referential — C[i][j] is a function of dp[j], which
+      the same search is in the middle of computing — so the matrix cannot be probed
+      arbitrarily and offline SMAWK is simply unavailable. A learner acquires the
+      interleaving of the search's recursion with the DP's own evaluation order, and the
+      demand discipline that guarantees no entry is read before it exists. This is the
+      deepest point of the mapped frontier: it is where the optimization stops being a
+      subroutine applied to a DP and becomes co-routine with it.
+    prerequisites:
+      intra_cluster:
+        - "cl-4.smawk-application"
+        - "cl-4.total-monotonicity"
+        - "cl-4.quadrangle-inequality-proof"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 5
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E6", "JS-E5"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — the node this map's JS-D1 exception exists for, plus a second effect recorded
+        on NEU-938's evidence. JS-E5, from the mapper's observation: the online interleaving
+        carries A PER-LEVEL STACK OF COLUMN ARRAYS under a strict evaluation order, so
+        allocation churn in the hot path is a real realization concern and preallocated
+        typed-array scratch buffers are the JavaScript idiom against a C++ default that gets
+        contiguous vectors for free. The mapper also flags the recursion depth, and this audit
+        RECORDS THAT AS OPEN RATHER THAN ANSWERING IT: LARSCH's online recursion is not the
+        clean halving of offline SMAWK's REDUCE, and the audit cannot establish its depth bound
+        from language semantics alone — it is a property of the algorithm's interleaving, and
+        settling it would mean implementing it, which NEU-941 is barred from. Neither a JS-E1
+        claim nor a JS-E1 non-claim is asserted here (JS-U5). JS-E6 is the primary effect, and
+        this is the ONE node where it is recorded essentially alone under JS-D1's explicit
+        exception, because LARSCH is the case that exception exists for. LARSCH's entire reason
+        to exist is the CONSTANT FACTOR: it solves the same self-referential totally-monotone DP
+        that a Li Chao tree or a divide-and-conquer scheme also solves, and it is chosen over
+        them ONLY because it is O(n) rather than O(n log n) — a log factor, which is to say a
+        constant-ish factor, bought at a substantial implementation cost. So a language whose
+        constant factor is worse attacks the technique's ONLY advantage, rather than merely
+        taxing it as it taxes everything else. If JavaScript's overhead on LARSCH's intricate
+        stack machinery exceeds the log factor it saves, the technique is not merely slower — it
+        is POINTLESS, and a downstream agent should reach for the simpler O(n log n) structure
+        instead. UNCERTAINTY, EXPLICITLY (JS-U2): whether that is actually the case CANNOT BE
+        ESTABLISHED HERE. It is a quantitative question about a real runtime on a real workload,
+        and implementing or benchmarking JavaScript solutions and selecting a runtime are out of
+        scope for NEU-941 by its own spec. This verdict therefore records the EFFECT AND ITS
+        DIRECTION — JavaScript's constant-factor penalty lands where LARSCH is most vulnerable —
+        and explicitly does NOT assert the conclusion that LARSCH is not worth using in
+        JavaScript. That determination is routed to the curriculum-production charter that owns
+        benchmarking. Recorded as a directional finding with a named uncertainty rather than as
+        either an assertion or a silence.
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Observation only, not a verdict: the online interleaving is a deep recursion with a
+        per-level stack of column arrays and a strict evaluation order; both the recursion depth
+        and the allocation churn are realization concerns. Recorded for SUB-8, which owns any
+        verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C5"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-938"
+    aliases: ["LARSCH algorithm", "online SMAWK", "online concave least-weight subsequence"]
+    notes: >-
+      SUB-13's PRIMARY OUT-6 RESEARCH-TIER ENDPOINT (see `out6_endpoints`). Its chain
+      reaches the frozen floor through justified prerequisites with no unexplained jump:
+      cl-4.larsch-online-smawk-implementation -> cl-4.smawk-application ->
+      cl-4.total-monotonicity -> cl-4.quadrangle-inequality (SUB-6's node, intra-cluster,
+      resolved) -> cl-1.root.optimal-substructure (DRAWN root edge). This node also draws
+      cl-1.root.implement-memoization-and-tabulation and
+      cl-1.root.formulate-state-transition-base-case directly, so it reaches the floor
+      even if every intra-cluster hop is ignored. Every step is a real prerequisite, not
+      a name on a list.
+      CONVENTION U (D-F4 §4) governs: LARSCH is in no selected reference taxonomy. Per
+      U1 that is a coverage question for OUT-7, not a partition question.
+
+# =============================================================================
+# NODE COUNT
+# =============================================================================
+node_count: 18
+node_kind_breakdown:
+  knowledge: 4     # slope-trick representation; Lagrangian relaxation; kinetic
+                   # amortization; total monotonicity
+  skill: 14
+skill_type_breakdown:
+  optimization: 5  # slope trick; slope trick on trees; Aliens trick; kinetic
+                   # segment tree DP; SMAWK
+  proof: 3         # slope-trick convexity preservation; Aliens convexity;
+                   # kinetic amortization.
+                   # (The Monge-verification proof obligation is NOT absent — it is
+                   #  SUB-6's cl-4.quadrangle-inequality-proof, drawn intra-cluster.
+                   #  SUB-13 retired its own duplicate. See X-938-2.)
+  implementation: 4  # slope-trick heaps; Aliens tie-breaking; kinetic segment
+                     # tree; LARSCH online
+  transfer: 1      # hidden-convexity recognition
+  debugging: 1     # Aliens-trick wrong-answer diagnosis
+  conceptual: 0    # deliberately: no node reached S8. S8 is the confident
+                   # residual, never the sink (schema §3.1), and a frontier file
+                   # full of "conceptual" would be the name-drop failure wearing
+                   # the schema's clothes.
+  strategic: 0
+  procedural: 0
+techniques_mapped: 4
+# 4 technique families -> 18 nodes. Schema §1.1: "a mapper that emits exactly one
+# node per technique name has produced a topic list wearing a graph's clothes."
+# The ratio (4.5) is the evidence that this file is not that.
+# Was 19 before mainstream.yaml merged; one node (cl-4.verify-monge-condition) was
+# RETIRED as a confirmed duplicate of SUB-6's cl-4.quadrangle-inequality-proof, and
+# the obligation is now drawn from SUB-6's node instead of restated. The count went
+# DOWN because a duplicate was removed, not because coverage shrank.
+
+# =============================================================================
+# OUT-6 ENDPOINTS — the maximalist / research-tier paths SUB-9 needs
+# =============================================================================
+# NEU-938 is the source of the research-tier endpoint OUT-6 requires at least one
+# representative path to reach. Three are offered; the first is primary.
+# NONE of these is a name on a list: each reaches the frozen floor through drawn,
+# justified prerequisites, with its optimized-family prerequisite DECLARED (never
+# drawn, never faked as a root edge) for SUB-12.
+# =============================================================================
+out6_endpoints:
+
+  - node: "cl-4.larsch-online-smawk-implementation"
+    rank: "primary"
+    why_research_tier: >-
+      In no selected reference taxonomy; owned by Convention U1 rather than by
+      enumeration. It is the deepest point of the mapped frontier — the place where the
+      optimization stops being a subroutine applied to a DP and becomes co-routine with
+      it, because the cost matrix is self-referential.
+    path_to_floor: >-
+      cl-4.larsch-online-smawk-implementation -> cl-4.smawk-application ->
+      cl-4.total-monotonicity -> cl-4.quadrangle-inequality (SUB-6's node, intra-cluster)
+      -> cl-1.root.optimal-substructure (DRAWN root edge).
+      Fully-inside-this-file alternative, if the audit prefers a path touching one file:
+      cl-4.larsch-online-smawk-implementation -> cl-4.total-monotonicity ->
+      cl-1.root.state-transition-base-case-formulation (DRAWN root edge).
+    declared_attachment_on_path: "xc.cl-4.smawk-application->cl-1.sequence-partition-dp"
+    caveat: >-
+      EVERY intra-cluster id on this path RESOLVES — mainstream.yaml merged (PR #614)
+      before this PR, so cl-4.quadrangle-inequality, cl-4.quadrangle-inequality-proof and
+      cl-4.divide-and-conquer-optimization are looked up, not predicted. No hop is
+      unresolved. The path crosses the CL-4 FILE boundary, which is NOT a cluster
+      boundary: both files carry cluster "CL-4", so this remains a single-cluster path
+      and OUT-6's per-cluster count still sees four clusters, not five.
+
+  - node: "cl-4.slope-trick-on-trees"
+    rank: "secondary"
+    why_research_tier: >-
+      Slope trick is named by the charter as research-tier and by D-F4 §3.2 as CL-4/T1;
+      the tree variant is its frontier extension, reached through the mergeable-multiset
+      discipline.
+    path_to_floor: >-
+      cl-4.slope-trick-on-trees -> cl-4.slope-trick-application ->
+      cl-4.slope-trick-convex-function-representation ->
+      cl-1.root.state-transition-base-case-formulation (DRAWN root edge) AND
+      anchor.convex-hull-envelope-geometry@1.0.0 (DRAWN, registered, sanctioned
+      terminal).
+    declared_attachment_on_path: "xc.cl-4.slope-trick-on-trees->cl-2.formulate-subtree-recurrence"
+    caveat: >-
+      AR-1-b is in flight against this path (the (min,+)-convolution fact). Every node
+      on it is `status: "provisional"` and the dependency is recorded in `notes`, not
+      laundered.
+
+  - node: "cl-4.kinetic-segment-tree-dp"
+    rank: "secondary"
+    why_research_tier: >-
+      D-F4 §3.2 names it verbatim as "Research-tier frontier — still CL-4, still one
+      cluster, mapped by SUB-13". It is also the NEU-938 acceptance scenario's worked
+      both-prerequisite-kinds case.
+    path_to_floor: >-
+      cl-4.kinetic-segment-tree-dp -> cl-4.kinetic-segment-tree-amortization ->
+      cl-1.root.state-transition-base-case-formulation (DRAWN root edge) AND
+      anchor.segment-tree@1.0.0 (DRAWN, registered, sanctioned terminal).
+    declared_attachment_on_path: "xc.cl-4.kinetic-segment-tree-dp->cl-1.sequence-partition-dp"
+
 # =============================================================================
 # AR-1 ANCHOR REQUESTS IN FLIGHT
 # =============================================================================
