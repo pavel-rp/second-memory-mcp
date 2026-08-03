@@ -55,8 +55,8 @@
 #   Do NOT invent an anchor and do NOT fake it as a root edge.
 #
 # BEFORE YOU WRITE A NODE, READ:
-#   ../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
-#   ../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
+#   ../../../C005-dp-map-schema/03_per-node-record-template.md   <- copy the template
+#   ../../../C005-dp-map-schema/01_node-and-edge-schema.md       <- the 8 skill types + cascade
 #
 # THE FOUR RULES THAT KEEP THE PARALLEL FAN-OUT WORKING:
 #   1. Write ONLY this file. Four other mappers are writing concurrently — including
@@ -81,6 +81,25 @@
 #   A collision is a dependency-audit finding.
 #
 # YAML: 1.2 core schema. All string enums quoted.
+#
+# ADDITIVE TOP-LEVEL KEYS — flagged, not slipped in silently.
+#   The schema fixes `nodes`; everything else at the top level of this file is
+#   ADDITIVE and is NOT part of D-S1's ratified shape. A validator (INC-S2) may
+#   reject an unknown key, so a consumer must not assume any of these is ratified:
+#     residual_exclusions, residual_exclusion_count, scope_boundary,
+#     carried_conflicts, prototype_disposition, self_check, ar1_requests,
+#     out6_endpoints, cl1_id_resolution, node_count, node_kind_breakdown,
+#     skill_type_breakdown, techniques_mapped, work_split
+#   `residual_exclusions` is additive for the reason cl-1-foundational.yaml and
+#   cl-2-combinatorial.yaml each record in their own headers: the NEU-935 / NEU-887
+#   acceptance bar requires every material residual exclusion to carry a documented
+#   rationale, and the mapper may write no file but this one. Those two files reached
+#   the SAME key name independently, which is evidence the key belongs in D-S1 rather
+#   than being local improvisation — SUB-2's call, not a mapper's.
+#   This file carries MORE additive keys than either sibling, so the whole set is
+#   listed rather than just `residual_exclusions`: naming one of fourteen would
+#   replace a missing warning with a misleading one.
+#   Flagged for SUB-2 / OUT-7. None of these keys is claimed as ratified here.
 # =============================================================================
 #
 # -----------------------------------------------------------------------------
@@ -1922,7 +1941,7 @@ out6_endpoints:
 #   - no dependency silently dropped.
 #
 # WHY THE REQUESTS ARE RECORDED HERE RATHER THAN AS ROWS IN THE LEDGER:
-#   AR-1 nominates ../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md as
+#   AR-1 nominates ../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md as
 #   the filing location. That file is NEU-933's and is NOT SUB-13's to write — header
 #   rule 1 ("write ONLY this file") and template §4 rule 3 ("never write into another
 #   cluster's file") bind, and four mappers are writing concurrently. The requests are
@@ -1938,7 +1957,7 @@ ar1_requests:
 
   - id: "AR-1-a"
     files_against: "D-S3"
-    ledger: "../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+    ledger: "../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
     filed_by: "NEU-938 (SUB-13)"
     filed_at_map_version: "0.1.0"
     requested_anchor_id: "anchor.lagrangian-duality"
@@ -1992,7 +2011,7 @@ ar1_requests:
 
   - id: "AR-1-b"
     files_against: "D-S3"
-    ledger: "../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
+    ledger: "../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md"
     filed_by: "NEU-938 (SUB-13)"
     filed_at_map_version: "0.1.0"
     requested_anchor_id: "anchor.min-plus-convolution"
@@ -2049,6 +2068,7 @@ ar1_requests:
 
 # =============================================================================
 # RESIDUAL EXCLUSIONS — bounded by NEU-887's materiality rule
+# (ADDITIVE TOP-LEVEL KEY — not part of D-S1's ratified shape; see the file header)
 # =============================================================================
 # THIS REGISTER IS A FIRST-CLASS DELIVERABLE OF NEU-938, NOT AN APPENDIX.
 #
@@ -2056,7 +2076,7 @@ ar1_requests:
 # surface indefinitely in pursuit of a complete map." SUB-13 is where that risk is
 # realized, because "complete" here means the MAXIMAL KNOWN competitive DP technique
 # space. The bound is NEU-887's materiality rule (referenced, never re-derived — see
-# ../../C005-dp-map-schema/04_register-extension.md §2, which records that a
+# ../../../C005-dp-map-schema/04_register-extension.md §2, which records that a
 # DP-specific materiality rule was considered and DECLINED).
 #
 # THE RULE AS APPLIED HERE: a frontier technique is mapped node-by-node iff it is
@@ -2119,7 +2139,7 @@ residual_exclusions:
       difference between a recorded conflict and a silent drop.
     revision_trigger: >-
       A U4 ledger challenge against D-F4 (filed in NEU-932's ledger,
-      ../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md — NOT
+      ../../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md — NOT
       the schema ledger) succeeds in reassigning plug/broken-profile DP to CL-4. Then and
       only then does SUB-13's scope acquire it. SUB-13 does not file that challenge,
       because SUB-13 does not believe it should succeed.
@@ -2600,7 +2620,7 @@ carried_conflicts:
       rarity is not a partition criterion, because it drifts.
     route: >-
       A U4 ledger challenge against D-F4, filed in NEU-932's ledger
-      (../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md), NOT
+      (../../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md), NOT
       the schema ledger. SUB-13 does not file it and does not believe it should succeed.
     affected_parties: ["SUB-5 (NEU-936, CL-3)", "OUT-7 coverage audit", "NEU-889 charter author"]
     visible_to: >-
@@ -2661,7 +2681,7 @@ carried_conflicts:
       who drives the filing routes.
     route: >-
       NEU-933 or SUB-11 transcribes AR-1-a and AR-1-b into
-      ../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md and adjudicates
+      ../../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md and adjudicates
       against D-S3. Note that D-S3's own recorded revision trigger is "An AR-1 request is
       filed" — so these two requests fire it.
     affected_parties: ["NEU-933 (D-S3 owner)", "SUB-11", "OUT-7"]
