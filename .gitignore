@@ -71,7 +71,12 @@ AUDIT.md
 /docs/testing/
 /docs/audits/
 /docs/pg-migration/
-/docs/wf-plans/
+# Charter folders are local scratch by default; the C008 folder is the
+# brief-of-record that NEU-945's sub-tasks cite, so it must be readable from a
+# fresh checkout. Node-first negation: exclude each child, then re-include the
+# one folder (a bare negation under an excluded dir is inert).
+/docs/wf-plans/*
+!/docs/wf-plans/C008__close-the-neu-889-fleets-unread-review-findings/
 /4.7/
 /4.6/
 .claude/
@@ -89,3 +94,6 @@ AUDIT.md
 second-memory-tech-overview.pptx
 AGENTS.md
 .codex
+
+# wf:* skill suite task root
+_local/
