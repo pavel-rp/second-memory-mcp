@@ -15,8 +15,15 @@
 //
 // EXIT CODE: 0 if the STRUCTURAL invariants hold (acyclicity, grounding, referential
 //   integrity, skill-type union-completeness, OUT-6 path criterion). The ANNOTATION
-//   findings (F-943-1) are REPORTED, not fatal — they are routed to NEU-940's owner,
-//   and failing the build on them would block a merge on someone else's defect.
+//   findings in §H1/§H2 are still REPORTED, not fatal — they were routed to NEU-940's
+//   owner, and failing the build on them would have blocked a merge on someone else's
+//   defect. That routing is now spent: NEU-954 (C008 SUB-14) took ownership of F-943-1
+//   and recomputed the values, so H1/H2 report ZERO.
+//
+//   §H3 IS DIFFERENT AND IS DELIBERATELY BUILD-FATAL. Its two entry_gate limbs go
+//   through check(), so they DO set the exit code. `entry_gate` had no executable
+//   assertion anywhere in the package before NEU-954; a reported-only check on it
+//   would have repeated exactly the pass-that-cannot-fail weakness H1/H2 carry.
 // =============================================================================
 
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -281,6 +288,78 @@ for (const [k, list] of Object.entries(classified)) {
   console.log(`     ${k.padEnd(16)} checked ${String(checked).padStart(3)} | inversions ${inv}${inv ? '   <-- DEFECT CONCENTRATED HERE' : '   (clean)'}`);
 }
 for (const i of inversions) console.log(`       INVERSION [${i.cls}] ${i.dep} (${i.depStage}) requires ${i.pre} (${i.preStage})`);
+
+// H3 — entry_gate / progression_stage AGREEMENT  (NEU-954, F-943-1's third field)
+//
+// `entry_gate` is a documented PURE FUNCTION of depth, never an independent field:
+// ../../C005-dp-progression/01_progression-stages.md:78-84 (the stage table) and
+// :150-152 fix it as `gate-a` iff PS-1 (depth 1) and `gate-c` for PS-2/PS-3/PS-4
+// (depth >= 2). Move a node's stage and its gate MUST move with it.
+//
+// UNLIKE H1/H2 ABOVE, BOTH LIMBS BELOW ARE WIRED INTO check() AND ARE BUILD-FATAL.
+// That is the whole point. Nothing else in this package — and nothing at all in
+// package-completeness-gate.mjs — ever looks at `entry_gate`, so a gate that
+// disagrees with its stage is invisible to every other check here. An assertion
+// that merely REPORTED would reproduce precisely the weakness H1/H2 carry: a pass
+// that cannot fail proves nothing.
+//
+// TWO limbs, because ONE IS DEMONSTRABLY NOT ENOUGH:
+//   limb 1 — gate vs the node's OWN DECLARED stage. Internal self-consistency.
+//            On its own this CANNOT FAIL on a map whose stages are wrong but
+//            self-consistent with their gates — exactly the pre-NEU-954 state,
+//            where 26 depths were wrong yet ZERO gates disagreed with their own
+//            declared stage. A one-limb check here would be un-failable by
+//            construction.
+//   limb 2 — gate vs the stage implied by the RUBRIC-COMPUTED depth, reusing
+//            depth() above rather than introducing a second depth engine. This is
+//            the limb that fires when a graph edit outruns a value recomputation —
+//            the drift F-943-1 was.
+//
+// BOUNDED TO THE 179 dimension-bearing nodes, deliberately. The 8 frozen roots
+// carry {} for difficulty_dimensions (asserted at the top of §H) and therefore no
+// entry_gate at all: they sit at depth 0 by construction, no recomputation moves
+// them, and they are OUTSIDE this check rather than swept into `gate-c` by it.
+console.log('  H3 entry_gate agreement (both limbs are check()ed and build-fatal):');
+const stageForDepth = (d) => 'PS-' + Math.min(d, 4);
+const gateForStage = (s) => (s === 'PS-1' ? 'gate-a' : 'gate-c');
+const gateOf = (id) => dd(id).entry_gate;
+
+const gateVsDeclared = nonRoot.filter((n) => {
+  const s = dd(n.id).progression_stage;
+  // A missing/unparseable stage cannot "agree" with anything — it reaches the
+  // check() below as a clean FAIL rather than being silently skipped.
+  return !s || gateOf(n.id) !== gateForStage(s);
+});
+check(gateVsDeclared.length === 0,
+  `limb 1: all ${nonRoot.length} entry_gate values agree with their DECLARED progression_stage (gate-a iff PS-1)`,
+  gateVsDeclared.map((n) => `${n.id} declares ${dd(n.id).progression_stage}/${gateOf(n.id)}`).join('; '));
+
+const gateVsRubric = nonRoot.filter((n) => gateOf(n.id) !== gateForStage(stageForDepth(depth(n.id))));
+check(gateVsRubric.length === 0,
+  `limb 2: all ${nonRoot.length} entry_gate values agree with the stage their RUBRIC-COMPUTED depth implies`,
+  gateVsRubric.map((n) => `${n.id} rubric depth ${depth(n.id)} => ${stageForDepth(depth(n.id))} requires ` +
+    `${gateForStage(stageForDepth(depth(n.id)))}, declares ${gateOf(n.id)}`).join('; '));
+
+// GATE DISTRIBUTION — REPORTED, not asserted. Handed to NEU-956/SUB-15, whose
+// F-943-3 adjudication stakes present-tense claims on exactly these counts. It is
+// a report of what IS instantiated, never an assertion that a particular count is
+// correct: pinning a number here would re-break the map the next time it changes.
+// The five tokens are NEU-888's mastery ladder (Gates A-E); only two of them are
+// entry gates at all (:118 — "entry_gate takes exactly two values"), and which of
+// the rest no node instantiates is SUB-15's to rule on, not this validator's.
+const LADDER = ['gate-a', 'gate-b', 'gate-c', 'gate-d', 'gate-e'];
+const gateTally = {};
+for (const n of nonRoot) gateTally[gateOf(n.id)] = (gateTally[gateOf(n.id)] || 0) + 1;
+console.log(`     distribution over the ${nonRoot.length} dimension-bearing nodes: ` +
+  LADDER.map((g) => `${g} ${gateTally[g] || 0}`).join(' | '));
+const uninstantiated = LADDER.filter((g) => !gateTally[g]);
+console.log(`     instantiated by NO node: ${uninstantiated.join(', ') || '(none)'}`);
+const offVocabulary = Object.keys(gateTally).filter((g) => !LADDER.includes(g));
+if (offVocabulary.length) console.log(`     !! off-vocabulary entry_gate value(s): ${offVocabulary.join(', ')}`);
+const stageTally = {};
+for (const n of nonRoot) stageTally[dd(n.id).progression_stage] = (stageTally[dd(n.id).progression_stage] || 0) + 1;
+console.log(`     stage distribution: ` +
+  ['PS-1', 'PS-2', 'PS-3', 'PS-4'].map((s) => `${s} ${stageTally[s] || 0}`).join(' | '));
 
 // =============================================================================
 // I. OUT-6 REPRESENTATIVE PATH SET — >=1 per each of the 4 clusters + >=1 research-tier

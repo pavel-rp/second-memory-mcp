@@ -1639,7 +1639,7 @@ nodes:
       dimension_set_version: "1.0.0"
       progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 5
+      prerequisite_depth: 6
       state_formulation_load: 2
       transition_derivation_load: 4
       proof_obligation_load: 1
@@ -1757,7 +1757,7 @@ nodes:
       dimension_set_version: "1.0.0"
       progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 6
+      prerequisite_depth: 7
       state_formulation_load: 2
       transition_derivation_load: 3
       proof_obligation_load: 1
