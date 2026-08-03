@@ -89,5 +89,46 @@ Every attempt — successful and not — is recorded in the pull-request table a
 
 ---
 
+## What this slice deferred to, and did not re-open
+
+**NEU-950's ledger row `D-R2` (§3.7, `settled`) binds this slice wholesale.** The file was re-presented **as it stands after NEU-950**, so the reviewer saw the post-adjudication severities (`cl-4.slope-trick-heap-implementation` `correctness-risk` at `:507`; `cl-4.slope-trick-on-trees` `blocking` at `:629`) and the rewritten rationales that cite `D-R2` by name.
+
+Had the review re-raised any of the following, the standing reply was prepared and the file would have been left unchanged:
+
+- **The aggregation rule** (*a node's severity is the most severe of the severities its individual effects earn under the written tests*; `blocking` > `correctness-risk` > `idiom-shift` > `performance`, a pure maximum with **no downgrade step**) — a package-level decision owned by **NEU-950**, contestable only through a ledger challenge, not here.
+- **The `:636` surmountability ruling** — *"RULED: NO. The `:636` criterion is OVERRIDDEN"*, sited at per-effect scoring. What `:636` was right about is preserved: the obstacles *are* surmountable; that simply does not set the severity.
+- **The per-effect scores** — `JS-E8` → `idiom-shift`, `JS-E2` → `correctness-risk`, `JS-E1` → `blocking`.
+- **The `JS-E1` single-effect census** — §3.7.1 already discharges the routing obligation and explicitly distinguishes the apparent outlier `cl-2-combinatorial.yaml:3735` as a *diagnosis* node scored on the `idiom-shift` "failure signature" clause, not the blocking test.
+
+**No such finding was raised**, so no rule-attacking reply was needed. This is recorded as a result, not an omission.
+
+**No ledger entry was written, and none was required.** `manifest.yaml:38-40` makes the adjudication ledger the only channel for a `severity:` or `status:` flip, and NEU-953 is **not** a scheduled ledger writer — `D-R3`+ is reserved for NEU-954. The one fix applied here changes `summary` prose and touches no `severity`, `status`, node, id, ordering, or dimension value, so it needs no row.
+
+---
+
+## Disposition
+
+**Changed in `frontier.yaml`** (commit `9090880`, `summary` block-scalar prose only — no node, id, value, severity, status, or ordering change):
+
+1. `cl-4.total-monotonicity`'s summary now states total monotonicity as a **comparison between two entries** (`for i1 < i2, j1 < j2: C[i1][j1] > C[i1][j2] ⇒ C[i2][j1] > C[i2][j2]`) and presents the non-decreasing row-minima ordering **as its consequence**, in that order and for a stated reason. Finding 2's upheld half.
+
+**Rejected, file unchanged:** finding 1 (`JS-U5` is a registered code naming exactly this node's open question, and the file already cites a second registered code in prose at `:733`); and finding 2's *proposed formula*, which carried the opposite convention.
+
+**Routed, not applied:** none. No finding landed on a sibling-owned file, on the ledger or manifest, on `cl-1-foundational.yaml` or `cl-2-combinatorial.yaml`, on the coverage package, on the dry-run, or on `prerequisite_depth` / `progression_stage` / `entry_gate` (NEU-954's `F-943-1`). Recorded explicitly so a cold reader can tell the routing rule was **applied and returned empty**, not skipped.
+
+**Instruments closed:** every review-only pull request below was closed **unmerged**, and every `review-base/neu-953-*` and `review/neu-953-*` branch was deleted from the remote. No scratch content lands on `develop`.
+
+**Volume judgement (explicit, not by omission):** the review produced **2 findings across 5 pull requests** — comfortably inside one pull request and one session. **No re-scoping flag is raised on volume.**
+
+**Local verification, reported honestly:** the configured verify command `pnpm run type-check` is **UNVERIFIABLE in this worktree** — neither `pnpm` nor `node_modules` is present — and the same holds for the YAML graph-integrity validator. Neither was faked as a local pass; both are deferred to CI's `build-test-lint` on the deliverable pull request. The gates that *did* run locally are the diff-scope audit, the chunk line-count arithmetic, and the unreplied-thread reconciliation.
+
+---
+
+## Outcome against OUT-3's measure
+
+`frontier.yaml`'s content obtained a review that **actually resolved files**, proven by line-anchored findings rather than asserted, and every finding it produced carries a verdict and a reply on its own thread. The 2,185 lines PR 618 merged as "reviewed" with 0 findings have now, for the first time, actually been read.
+
+---
+
 **Recorded by:** claude-opus-5[1m]
 **Slice:** SUB-13 (NEU-953), charter C008, umbrella NEU-945
