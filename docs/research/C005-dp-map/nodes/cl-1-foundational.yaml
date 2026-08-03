@@ -1144,6 +1144,1097 @@ nodes:
   # SECTION 1 — 1D linear/sequence DP
   # ---------------------------------------------------------------------------
 
+  - id: "cl-1.linear-sequence-dp-1d"
+    name: "1D linear/sequence DP (prefix-index state)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The base shape of the whole cluster: a state indexed by a single position in a
+      sequence, dp[i], whose value answers the problem restricted to the first i
+      elements, and whose transition looks back a bounded distance. What makes it the
+      simplest useful DP — the state space is linear, the dependency order is the index
+      order itself (so evaluation order is free rather than a decision), and the
+      transition is a small case analysis over what happens at position i. D-F4 assigns
+      it here by T4, a confident residual: a plain index tuple over a linear domain,
+      with no exotic encoding and no combinatorial structure to respect.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-2"
+      entry_gate: "gate-c"
+      prerequisite_depth: 2
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. A prefix-index state over one dimension is a single flat array in
+        every language. It is the one table shape where JS-E5's array-of-arrays hazard cannot
+        arise, and at 1D sizes the container choice does not decide feasibility. Recording a
+        typed-array claim here would be JS-E6 dilution (JS-D1).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["1D DP", "prefix DP", "linear DP"]
+
+  - id: "cl-1.formulate-1d-sequence-dp"
+    name: "Formulate a 1D sequence DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing what dp[i] MEANS is a choice among candidate
+      formulations under a correctness constraint, specialized to the 1D shape. S1 no —
+      proving the chosen meaning sufficient is cl-1.prove-prefix-state-sufficiency. S2
+      no — nothing exists yet to accelerate. S3 no — statement-driven, not symptom-
+      driven. S4 no — the 1D shape is readable from the statement here.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Turn a sequence problem into a concrete dp[i]: decide what the index ranges over
+      (elements consumed? position reached?), decide what the value means (the optimum
+      over the prefix? the optimum ending at i?), write the transition as a case
+      analysis on the decision at position i, and fix dp at the empty prefix. The
+      recurring judgment this node carries: whether looking back ONE position suffices
+      or the transition must look back further, and what that costs.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.select-linear-dp-pattern"
+        - "cl-1.derive-recurrence-routine"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E1"]
+      severity: "blocking"
+      rationale: >-
+        MATERIAL AND BLOCKING — recorded here on the mapper's evidence, against this audit's own
+        default that a formulation node is pre-code and therefore neutral. NEU-934's observation
+        on this node is that a 1D DP over n up to 1e5-1e6 is THE FIRST PLACE a learner meets
+        JavaScript's recursion ceiling, because the top-down form recurses once per index; the
+        audit checked it and it holds. n = 1e5-1e6 against a cap on the order of 1e4 frames is
+        not marginal, it is one to two orders of magnitude over, and 1D sequence DP is the most
+        common shape in the map — so this is the highest-frequency instance of JS-E1, not the
+        most exotic. The reason it lands on a FORMULATION node rather than an implementation one
+        is a real gap, not a filing convenience: the node that owns the top-down/bottom-up
+        realization choice is cl-1.root.implement-memoization-and-tabulation, which is a FROZEN
+        root (DR-S02) that this audit may not write, and which itself carries a mapper
+        observation foreseeing exactly this finding. CL-1 has no unfrozen 1D-linear
+        implementation node. Leaving this node neutral would therefore strand the map's most
+        common recursion-depth hazard behind a frozen node — a silent C++ assumption of exactly
+        the kind the second acceptance scenario forbids. The effect on what is written: in
+        JavaScript the top-down/bottom-up choice is not the stylistic one the references
+        present, because the bottom-up form is a loop and the top-down form does not run at this
+        cluster's standard n. See JS-U1.
+      uncertainty: "JS-U1"
+      mapper_note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: a 1D DP over
+        n up to 1e5-1e6 is the first place a learner meets JavaScript's recursion-depth ceiling,
+        since the top-down form recurses once per index. The references assume a C++ default
+        where the same formulation survives. An observation about where the issue first BITES in
+        this cluster, not a verdict.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-prefix-state-sufficiency"
+    name: "Prove a prefix-index state is sufficient"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is ARGUING that the state forgets nothing
+      the future needs — that any two histories arriving at the same index are
+      interchangeable for everything that follows. Typically a cut-and-paste exchange:
+      assume a better completion exists for one history, splice it onto the other,
+      contradict optimality. S2/S3 no (nothing to accelerate, no symptom). S8 rejected
+      deliberately: judging that a state "feels sufficient" is the conceptual node;
+      this is the argument that settles it.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Establish the sufficiency obligation for a specific 1D formulation, which is the
+      one that fails silently: a state that has forgotten something relevant still
+      produces a table, still terminates, and still returns a plausible number. The
+      skill is producing the interchangeability argument — and, when it cannot be
+      produced, reading the failure as the signal that the state needs an extra
+      dimension. That diagnostic direction is why this node is a prerequisite of the
+      state-machine formulation below: a learner arrives at "this needs a mode
+      dimension" by failing to prove sufficiency without one.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.prove-recurrence-correctness"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. A sufficiency argument about a state is language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: []
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["state sufficiency argument", "Markov property of a DP state"]
+
+  - id: "cl-1.state-machine-over-sequence"
+    name: "Sequence DP with an auxiliary mode dimension (state-machine DP)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The shape that appears when a prefix index alone is not a sufficient state: dp[i]
+      becomes dp[i][m] where m ranges over a SMALL, FIXED set of modes the process can
+      be in — holding or not holding an asset, in a cooldown, having used k of a
+      resource, having taken or skipped element i-1. The transition becomes a small
+      transition matrix between modes. Why it stays in CL-1 rather than moving to CL-3:
+      the mode is a plain index in a tuple, not an encoding — nothing is packed,
+      compressed, or reinterpreted (D-F4 T2 answers no), and the domain is still linear
+      (T3 no), so T4 catches it. The family covers the non-adjacent-selection and
+      buy/sell-with-constraints problems that are the cluster's most common exam
+      material.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An auxiliary mode dimension is a modelling device. The mode count is
+        small and the table stays 1D-by-small-k; no JavaScript effect binds.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["state-machine DP", "DP with a mode dimension", "automaton-free multi-state DP"]
+    contested_by: []
+    notes: >-
+      NAMING HAZARD, recorded for OUT-7 (X-D2 discipline). "State-machine DP" is a
+      community name, not a taxonomy term, and it collides conceptually with CL-3's
+      AUTOMATON DP, which is a different thing (there the state IS an automaton node
+      built from the input — an encoding, D-F4 T2; here the mode set is small, fixed,
+      and read straight off the problem statement). The two are not the same technique
+      and this node makes no claim on CL-3's. Aliases carried so the audit does not read
+      the name overlap either as a duplicate or as a coverage gap.
+
+  - id: "cl-1.formulate-state-machine-over-sequence"
+    name: "Formulate a sequence DP with an auxiliary mode dimension"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: the choice is WHICH modes to carry and, critically, how few
+      — a decision under a correctness constraint (too few modes and the state is
+      insufficient) and a cost constraint (modes multiply the state space). S1 no —
+      that is the sufficiency proof. S2 no — the recurrence does not exist yet;
+      note this is exactly the boundary the schema §2.1 names, since collapsing modes
+      to shrink an EXISTING correct DP would be CL-4's S2 optimization instead.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Recognize that a constraint cannot be remembered by the index alone and promote
+      exactly it into a mode dimension — no more, no less. The two failures the skill
+      exists to prevent: too few modes (an insufficient state that silently returns
+      wrong answers) and too many (modes that encode information the transition never
+      reads, multiplying the state space for nothing). Includes writing the mode
+      transitions as a complete, disjoint case analysis.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.state-machine-over-sequence"
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.prove-prefix-state-sufficiency"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 4
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  # ---------------------------------------------------------------------------
+  # SECTION 2 — 2D linear/sequence DP
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.linear-sequence-dp-2d"
+    name: "2D linear/sequence DP (index-pair state)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      A state indexed by a PAIR of positions, dp[i][j], where the two indices range
+      over two independent linear domains — most often the prefixes of two sequences,
+      sometimes a position paired with a resource count. What changes relative to 1D
+      and why it is a separate node: the dependency order is no longer given for free
+      by "increasing index", because a state can depend on neighbours in either
+      dimension, so a valid evaluation order becomes something that must be ESTABLISHED
+      rather than assumed. Still CL-1 by D-F4 T4: a plain index tuple over a
+      rectangular domain, difficulty in the recurrence itself.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+        - "cl-1.linear-dp-pattern-catalogue"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as KNOWLEDGE: an index-pair state is a modelling fact. The 2D table's
+        realization is where JavaScript binds, and that verdict is recorded on
+        cl-1.order-2d-table-evaluation, the node that writes the table (JS-D2). This is a
+        cross-reference, not a silent C++ assumption.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["2D DP", "index-pair DP", "two-sequence DP"]
+
+  - id: "cl-1.formulate-2d-sequence-dp"
+    name: "Formulate a 2D sequence DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing what the index PAIR ranges over and what dp[i][j]
+      means, under correctness and state-space cost constraints. S1 no — sufficiency
+      is proved elsewhere. S2 no — nothing correct exists yet; shrinking a correct 2D
+      table's memory is CL-4's by T1 and is excluded here (see EXC-3). S3/S4 no.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Decide that a problem needs two indices and what each one ranges over — most
+      commonly "the first i of A against the first j of B" — then write the transition
+      as a case analysis over what happens to the two elements at the frontier
+      (consume both, consume one, consume neither) and fix the base cases along both
+      empty-prefix edges. The judgment carried: recognizing that a SECOND index is
+      required at all, which is the same insufficiency signal the 1D sufficiency proof
+      produces, met here in the shape that resolves it.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+        - "cl-1.formulate-1d-sequence-dp"
+        - "cl-1.select-linear-dp-pattern"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.order-2d-table-evaluation"
+    name: "Establish a valid evaluation order for a 2D table"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6. It is realizing an ALREADY-CHOSEN formulation as code, and
+      the schema §2.1 test decides S6 over S7 explicitly: choosing a loop order that
+      respects THIS recurrence's dependency pattern is a judgment about this specific
+      problem, so it is not a fixed routine. S2 rejected on the boundary the frozen
+      root `implement-memoization-and-tabulation` already draws inside CL-1: making the
+      DP RUN CORRECTLY is not making it run FASTER — a wrong order yields a wrong
+      answer, not a slow one. That keeps this node clear of D-F4 T1 and therefore of
+      CL-4. S1/S3/S4/S5 reject cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Determine an iteration order in which every state's dependencies are already
+      computed when it is reached, and write the loops that realize it: row-major when
+      the transition looks up and left, reverse order when it looks forward, and the
+      recognition that some recurrences admit no simple nested-loop order and want the
+      top-down form instead. What a learner acquires is that evaluation order is a
+      CORRECTNESS obligation in 2D rather than a stylistic choice — the 1D case gave it
+      away for free and thereby hid the lesson.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-2d-sequence-dp"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+        - "cl-1.root.memoization-vs-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E5", "JS-E6"]
+      severity: "performance"
+      rationale: >-
+        MATERIAL — this is the node that writes the 2D table, and JavaScript forces a decision
+        C++ does not. The direct translation of the C++ default is an array-of-arrays, which in
+        JavaScript is a boxed outer array of boxed inner arrays: a pointer chase per row plus
+        per-element overhead. C++'s vector<vector<int>> is also row-indirect but the rows are
+        unboxed contiguous ints, and the flat vector<int> is the reflexive idiom. The JavaScript
+        idiom for a hot 2D table is therefore an explicit FLAT typed array with manual index
+        arithmetic (i * W + j) — a choice a C++ author gets for free and a JavaScript author
+        must make deliberately. JS-E6 is recorded here only in combination with that specific
+        mitigable idiom, per JS-D1. Directional, not quantified (JS-U2).
+      uncertainty: "JS-U2"
+      mapper_note: >-
+        Foreseen, NOT assessed — SUB-8 (OUT-5) owns the verdict. Observation only: allocating a
+        2D table in JavaScript has no single obvious form (array of arrays vs a flat typed array
+        with manual index arithmetic), and the choice has materially different performance and
+        initialization semantics than the C++ `vector<vector<int>>` or raw 2D array the
+        references assume. An observation that a materiality question EXISTS here, not a verdict
+        on it.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.sequence-partition-dp"
+    name: "Sequence partition DP (index-plus-count state)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The shape for "split a sequence into k contiguous pieces, optimally": dp[i][j] =
+      the best way to split the first i elements into j pieces, with a transition that
+      ranges over where the last piece starts. Its two distinguishing properties: the
+      second index is a COUNT rather than a position, and the transition is a
+      linear scan rather than a bounded look-back — which makes the naive evaluation
+      O(n^2 k) and makes this family the standard base for the divide-and-conquer and
+      Knuth optimizations. Those optimizations are NOT this node and NOT this cluster
+      (D-F4 T1 → CL-4; recorded as EXC-4). The base recurrence is CL-1 by T4: the
+      domain is linear, the state is a plain tuple, and the difficulty is the
+      recurrence itself.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+        - "cl-1.prefix-aggregate-recurrence"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An index-plus-count state is a modelling fact.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["array partition DP", "split into k segments", "segmented least squares shape"]
+
+  - id: "cl-1.formulate-sequence-partition-dp"
+    name: "Formulate a sequence partition DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing the (prefix, pieces-used) state and the
+      last-piece-start transition over rival formulations. S2 is the near miss and is
+      rejected on the schema §2.1 test — accelerating this recurrence's inner scan is
+      the textbook D&C-optimization case and presupposes the recurrence this node is
+      still choosing. S1/S3/S4 reject cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Turn a "divide this sequence into k parts" problem into the index-plus-count
+      recurrence: recognize that the last piece's start is the decision, that the state
+      must count pieces used, and that the piece-cost function must be O(1)-queryable
+      for the formulation to be workable at all — which is where prefix aggregates
+      enter as a genuine prerequisite rather than an optimization.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.sequence-partition-dp"
+        - "cl-1.formulate-2d-sequence-dp"
+        - "cl-1.range-aggregate-by-difference"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 3
+      transition_derivation_load: 3
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2", "C4"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  # ---------------------------------------------------------------------------
+  # SECTION 3 — Prefix-sum DP
+  # ---------------------------------------------------------------------------
+  # 🔴 A BOUNDARY THIS SUB-TASK HAD TO ADJUDICATE, RECORDED RATHER THAN SMOOTHED.
+  #   The NEU-934 spec assigns "prefix-sum DP" to CL-1. But D-F4's T1 test fires on the
+  #   most famous thing wearing that name: using a prefix-sum array to collapse a
+  #   transition that sums over a range from O(n) to O(1) takes an ALREADY-CORRECT
+  #   recurrence and reduces its cost without changing what its states mean — that is
+  #   T1, and T1 is CL-4's.
+  #
+  #   The resolution is that "prefix-sum DP" names TWO different things, and only one
+  #   of them is contested:
+  #     (a) The prefix-aggregate array AS a DP — S[i] = S[i-1] + a[i] is a 1D linear
+  #         recurrence with a base case, and range aggregation by difference is what its
+  #         table is FOR. Confident T4 residual → CL-1. THIS is what this section maps.
+  #     (b) Prefix-sum ACCELERATION of another DP's transition — T1 → CL-4. NOT mapped
+  #         here; recorded as EXC-2 in `residual_exclusions` with its rationale.
+  #
+  #   Mapping (a) and (b) as one node would have been the smoothing the charter
+  #   forbids: it would put a CL-4-owned contribution inside CL-1 under cover of a
+  #   shared name. The split is honest and it costs nothing — (a) is a real prerequisite
+  #   of (b), so the chain is intact either way.
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.prefix-aggregate-recurrence"
+    name: "The prefix-aggregate array as a DP recurrence"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      S[i] = S[i-1] (+) a[i], with S[0] the identity — the smallest non-trivial DP in
+      the map, and worth a node precisely because it is usually taught as an array
+      trick rather than as what it is. Seeing it as a DP is load-bearing: it has a
+      state (the prefix index), a transition (combine the previous prefix with the
+      current element), a base case (the empty prefix maps to the operator's identity),
+      and it earns its keep through overlapping subproblems exactly like every other
+      DP here. It generalizes past sums to any associative operator with an identity —
+      which is what makes prefix-xor, prefix-max-with-caveats, and prefix-count the
+      same node rather than four tricks.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-1d"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.overlapping-subproblems"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-3"
+      entry_gate: "gate-c"
+      prerequisite_depth: 3
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral as KNOWLEDGE: that a prefix-aggregate array IS a DP recurrence is the
+        insight, and it is language-independent. The exactness headroom of the accumulator is
+        recorded on cl-1.build-prefix-aggregate, the node that writes it (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["prefix sums", "cumulative sums", "partial sums", "scan"]
+    contested_by: []
+    notes: >-
+      SCOPE, stated because the name invites a wider reading. This node is the prefix
+      array AS a recurrence (D-F4 T4, confident residual). It is NOT prefix-sum
+      acceleration of another DP's transition, which answers T1 and is CL-4's —
+      excluded here as EXC-2 rather than absorbed. Also NOT claimed: that prefix sums
+      are novel to a mastery-plus-competitive learner. The node's contribution is the
+      REFRAME (array trick → DP), which is what the downstream nodes actually depend
+      on, plus the associative-operator generalization. If SUB-9's audit judges the
+      reframe to sit below NEU-887's elementary floor, the correct disposition is a
+      ledger challenge, not deletion — the partition-DP nodes draw on it.
+
+  - id: "cl-1.build-prefix-aggregate"
+    name: "Build a prefix-aggregate array"
+    node_kind: "skill"
+    skill_type: "procedural"
+    skill_type_rationale: >-
+      Cascade stops at S7, and this is the cluster's cleanest S7 — the reason it is
+      worth having as a node is that it CALIBRATES the type against the harder S7 call
+      at cl-1.derive-recurrence-routine. The steps genuinely do not vary with the
+      problem: allocate n+1, seed index 0 with the operator's identity, sweep forward
+      combining. Nothing in that sequence asks a question about the problem. Contrast
+      the schema §2.1 exemplar (submask iteration) — identical character. S6 rejected:
+      no evaluation-order judgment arises, the order is forced. S1-S5 reject cleanly.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Execute the fixed construction: size n+1 rather than n, seed the identity at
+      index 0, sweep forward. The off-by-one discipline is the entire content — the
+      1-based-with-empty-prefix convention exists so that range queries need no special
+      case at the left edge, and a learner who builds the n-sized version meets a
+      boundary bug on every subsequent query rather than once.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.prefix-aggregate-recurrence"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 2
+      recognition_load: 1
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E2"]
+      severity: "correctness-risk"
+      rationale: >-
+        MATERIAL — the accumulator's exact range is three orders of magnitude smaller than the
+        C++ default's, and this is the node that writes the accumulation. A C++ author
+        reflexively declares the prefix array long long, exact to ~9.2e18, and stops thinking.
+        JavaScript's Number is exact only to 2^53 ~ 9.0e15. A prefix sum over 1e6 elements of
+        magnitude 1e9 lands at ~1e15 — INSIDE the bound, but within one order of magnitude of
+        it, so the headroom a C++ author never has to reason about is nearly exhausted before
+        the problem is even large. Past 2^53 the sum silently rounds rather than wrapping, so
+        the array stays plausible while being wrong. Any prefix aggregate whose totals can
+        exceed 2^53 requires BigInt. Recorded as correctness-risk, not blocking: the common case
+        is correct, and a reachable one is not.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.range-aggregate-by-difference"
+    name: "Range aggregation by prefix difference (1D and 2D)"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      What the prefix table is for: any range's aggregate is recoverable in O(1) from
+      prefix values alone — S[r] - S[l-1] in one dimension, and the four-term
+      inclusion-exclusion S[r][c] - S[r][c'-1] - S[r'-1][c] + S[r'-1][c'-1] in two.
+      The requirement the identity rests on and that learners skip: the operator must be
+      INVERTIBLE, which sums and xor are and max is not — the reason prefix-max does not
+      answer range-max queries and why that question routes to a different structure
+      entirely (anchor.segment-tree's territory, not this cluster's). Held as knowledge
+      because the identity is a fact; applying it is folded into the formulators that
+      depend on it rather than split into a node that would fail with them.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.prefix-aggregate-recurrence"
+        - "cl-1.build-prefix-aggregate"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 1
+      transition_derivation_load: 2
+      proof_obligation_load: 2
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Subtracting two prefix entries to get a range aggregate is
+        arithmetic on values already constrained by cl-1.build-prefix-aggregate's verdict; the
+        subtraction itself introduces no new JavaScript effect and the identity is
+        language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["range sum query", "2D prefix sums", "summed-area table", "inclusion-exclusion on prefixes"]
+    notes: >-
+      `prerequisites.roots: []` is deliberate and is NOT an unexplained jump. This node
+      is a consequence of cl-1.prefix-aggregate-recurrence, which is itself rooted; the
+      chain to the floor runs through it. Adding a root edge here would be decorative —
+      the schema §4 semantics ask what a learner cannot acquire this WITHOUT, and the
+      answer is the prefix recurrence, not a second direct path to the same roots.
+
+  - id: "cl-1.difference-array-and-range-update"
+    name: "The difference array: the prefix recurrence run backwards"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      The dual of the prefix array: store D[i] = a[i] - a[i-1], and a range update
+      ("add v to every element of [l, r]") becomes two point writes, with the original
+      array recovered by a prefix sweep. Why it belongs next to the prefix node rather
+      than somewhere else: it is the SAME recurrence read in the other direction, and
+      the pairing is the point — prefix turns point-updates plus range-queries into
+      O(1) queries, difference turns range-updates plus a final read into O(1) updates.
+      A learner who has one and not the other reaches for a segment tree on problems
+      that do not need one.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.prefix-aggregate-recurrence"
+        - "cl-1.range-aggregate-by-difference"
+      roots: []
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. That the difference array is the prefix recurrence run backwards is
+        a structural insight. No JavaScript effect touches it.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["difference array", "imos method", "range update trick"]
+    notes: >-
+      Root edges omitted for the same reason as cl-1.range-aggregate-by-difference: the
+      chain bottoms out through cl-1.prefix-aggregate-recurrence. Deliberate, not a gap.
+
+  # ---------------------------------------------------------------------------
+  # SECTION 4 — Grid / path DP
+  # ---------------------------------------------------------------------------
+
+  - id: "cl-1.grid-path-dp"
+    name: "Grid / path DP"
+    node_kind: "knowledge"
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      DP whose state is a cell coordinate on a rectangular grid and whose transition
+      follows the permitted moves into that cell — counting paths, finding the
+      cheapest path, or finding the best sub-rectangle anchored at a cell. What makes
+      it distinct from a generic 2D sequence DP despite sharing the index-pair shape:
+      the two indices are COUPLED by the movement rule rather than independent, so the
+      transition is dictated by the geometry rather than chosen, and the dependency
+      order follows the move directions. D-F4 places it in CL-1 by T4 — a plain index
+      tuple over a rectangular domain. The restriction that keeps it here and out of
+      CL-2: monotone moves only. A grid with unrestricted movement is a shortest-path
+      problem on a graph, not a DP, because the state dependency stops being acyclic —
+      that is the boundary, and it is the thing worth knowing about this family.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.linear-sequence-dp-2d"
+      roots:
+        - "cl-1.root.state-transition-base-case-formulation"
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 4
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. The grid recurrence is a modelling fact. Boundary handling — where
+        JavaScript does bind — is recorded on cl-1.handle-grid-boundaries-and-obstacles (JS-D2).
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["grid DP", "path counting DP", "lattice path DP"]
+
+  - id: "cl-1.formulate-grid-path-dp"
+    name: "Formulate a grid/path DP"
+    node_kind: "skill"
+    skill_type: "strategic"
+    skill_type_rationale: >-
+      Cascade stops at S5: choosing what dp[r][c] means — paths INTO this cell versus
+      paths FROM it, cost including this cell or excluding it — and which decisions the
+      transition enumerates. The choice is real and consequential: the two directions
+      give different base cases and different answer states, and picking the one that
+      matches the question is the skill. S1 no (the no-double-count argument is its own
+      node). S2 no — nothing correct exists yet. S3/S4 no.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Turn a grid movement problem into a concrete recurrence: fix the direction of the
+      state's meaning, enumerate the transition over the legal incoming moves, place
+      the base case at the source cell, and confirm the move rule keeps the dependency
+      acyclic — the check that decides whether this is a DP at all or a shortest-path
+      problem wearing a grid.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.grid-path-dp"
+        - "cl-1.formulate-2d-sequence-dp"
+        - "cl-1.select-linear-dp-pattern"
+      roots:
+        - "cl-1.root.formulate-state-transition-base-case"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 5
+      state_formulation_load: 2
+      transition_derivation_load: 2
+      proof_obligation_load: 1
+      implementation_load: 2
+      recognition_load: 3
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. Formulation is pre-code.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
+  - id: "cl-1.prove-path-transition-partition"
+    name: "Prove a path transition partitions the solution set exactly once"
+    node_kind: "skill"
+    skill_type: "proof"
+    skill_type_rationale: >-
+      Cascade stops at S1: the contribution is the ARGUMENT that the transition's cases
+      are exhaustive and pairwise disjoint — that every path into a cell is counted by
+      exactly one case. S3 rejected although double-counting is a famous SYMPTOM: this
+      node is the argument made in advance, cl-1.diagnose-wrong-state-transition-base-
+      case is the one that starts from the wrong number. Same subject matter, opposite
+      direction, two nodes — a learner can routinely detect a doubled count and still
+      not be able to argue a transition sound.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Discharge the exhaustiveness and disjointness obligations for a counting DP over
+      paths: argue that classifying paths by their LAST MOVE covers every path (there
+      is always a last move, except at the base case) and covers none twice (a path has
+      exactly one last move). The last-move classification is the standard instrument
+      and the reason it works is worth acquiring explicitly — it is a partition of the
+      solution set induced by a function on it, which is the general move that makes
+      counting DP sound and that recurs in every counting family in the map.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-grid-path-dp"
+        - "cl-1.prove-recurrence-correctness"
+        - "cl-1.dp-correctness-proof-obligations"
+      roots:
+        - "cl-1.root.optimal-substructure"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 2
+      transition_derivation_load: 3
+      proof_obligation_load: 3
+      implementation_load: 1
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: false
+      effects: []
+      rationale: >-
+        JavaScript-neutral. An exactly-once partition argument is language-independent.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+    aliases: ["last-move argument", "no-double-count proof"]
+
+  - id: "cl-1.handle-grid-boundaries-and-obstacles"
+    name: "Handle grid boundaries and obstacles"
+    node_kind: "skill"
+    skill_type: "implementation"
+    skill_type_rationale: >-
+      Cascade stops at S6: the formulation is already chosen and the work is realizing
+      it without the edges breaking it. S7 rejected on the schema §2.1 test — the
+      sentinel value is a judgment about THIS recurrence (0 is the right absorbing
+      value for a counting DP, infinity for a minimization, and getting it backwards
+      produces a plausible wrong answer), so the step varies with the problem. S3
+      rejected: this is building it right, not diagnosing it wrong. S2 rejected: no
+      cost is being reduced.
+    cluster: "CL-1"
+    role: "technique"
+    summary: >-
+      Make a grid DP correct at its edges: choose the sentinel that makes an
+      out-of-bounds or blocked cell absorb correctly under THIS recurrence's operator,
+      decide between a padded border and explicit bounds checks, and place the base
+      case so it is not itself overwritten by the transition. Worth a node because the
+      failure is universal and specific — a grid DP with a wrong boundary produces
+      correct-looking output on the interior and is wrong only at the margin, which is
+      the hardest kind of wrong to see.
+    prerequisites:
+      intra_cluster:
+        - "cl-1.formulate-grid-path-dp"
+        - "cl-1.order-2d-table-evaluation"
+      roots:
+        - "cl-1.root.implement-memoization-and-tabulation"
+      boundary_anchors: []
+    cross_cluster_attachments: []
+    difficulty_dimensions:
+      dimension_set_version: "1.0.0"
+      progression_stage: "PS-4"
+      entry_gate: "gate-c"
+      prerequisite_depth: 6
+      state_formulation_load: 1
+      transition_derivation_load: 1
+      proof_obligation_load: 0
+      implementation_load: 3
+      recognition_load: 2
+      creator_review: "deferred-provisional"
+    javascript_materiality:
+      assessed: true
+      rule_version: "1.0.0"
+      material: true
+      effects: ["JS-E9", "JS-E5"]
+      severity: "idiom-shift"
+      rationale: >-
+        MATERIAL — the guard idiom and the failure signature both differ from the C++ default.
+        In C++ an out-of-range vector read is undefined behaviour, which is WHY the
+        sentinel-padding idiom exists: the pad is not a convenience, it is what keeps the
+        program defined. In JavaScript an out-of-range Array read is defined and returns
+        undefined, which becomes NaN in arithmetic and then propagates through every downstream
+        comparison silently (NaN < x is always false, so a max-fold quietly ignores it). So a
+        JavaScript author CAN lean on the read returning undefined where a C++ author must not —
+        but must then guard the NaN, a failure mode C++ does not have. JS-E5 compounds it: the
+        same out-of-range read on an Int32Array is also undefined, but an uninitialized IN-range
+        cell is 0, which for a path-counting grid is a legitimate value and therefore invisible.
+        The correct JavaScript idiom (explicit bounds test, or sentinel padding chosen
+        deliberately rather than inherited) must be written; it cannot be assumed from the C++
+        default.
+    coverage:
+      status: "unaudited"
+      corpus_refs: ["C1", "C2"]
+    evidence_class: 1
+    status: "provisional"
+    adjudicated_at_map_version: "0.1.0"
+    owner: "NEU-934"
+
   - id: "cl-1.counting-dp-over-linear-domain"
     name: "Counting DP over a linear or rectangular domain, modulo a prime"
     node_kind: "knowledge"
