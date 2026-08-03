@@ -594,9 +594,9 @@ nodes:
         status: "declared"
     difficulty_dimensions:
       dimension_set_version: "1.0.0"
-      progression_stage: "PS-2"
+      progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 2
+      prerequisite_depth: 5
       state_formulation_load: 1
       transition_derivation_load: 4
       proof_obligation_load: 1
@@ -716,9 +716,9 @@ nodes:
     cross_cluster_attachments: []
     difficulty_dimensions:
       dimension_set_version: "1.0.0"
-      progression_stage: "PS-3"
+      progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 3
+      prerequisite_depth: 6
       state_formulation_load: 1
       transition_derivation_load: 2
       proof_obligation_load: 0
@@ -846,9 +846,9 @@ nodes:
         status: "declared"
     difficulty_dimensions:
       dimension_set_version: "1.0.0"
-      progression_stage: "PS-3"
+      progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 3
+      prerequisite_depth: 5
       state_formulation_load: 1
       transition_derivation_load: 4
       proof_obligation_load: 1
@@ -1312,7 +1312,7 @@ nodes:
       dimension_set_version: "1.0.0"
       progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 4
+      prerequisite_depth: 5
       state_formulation_load: 1
       transition_derivation_load: 5
       proof_obligation_load: 1
@@ -1390,7 +1390,7 @@ nodes:
       dimension_set_version: "1.0.0"
       progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 5
+      prerequisite_depth: 6
       state_formulation_load: 3
       transition_derivation_load: 3
       proof_obligation_load: 0
@@ -1448,7 +1448,7 @@ nodes:
       dimension_set_version: "1.0.0"
       progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 6
+      prerequisite_depth: 7
       state_formulation_load: 1
       transition_derivation_load: 1
       proof_obligation_load: 0
@@ -1526,7 +1526,7 @@ nodes:
       dimension_set_version: "1.0.0"
       progression_stage: "PS-4"
       entry_gate: "gate-c"
-      prerequisite_depth: 5
+      prerequisite_depth: 6
       state_formulation_load: 2
       transition_derivation_load: 3
       proof_obligation_load: 1
