@@ -6,8 +6,15 @@ import type {
   SessionQuestionStatus,
 } from '../domain/types/entities.js';
 import type { QuestionType } from '../domain/types/teaching.js';
+import type { SchedulingBand } from '../domain/algorithms/scheduling-snapshot.js';
 
-/** Input for creating a question attempt. */
+/**
+ * Input for creating a question attempt.
+ *
+ * The four `snapshot*` members (NEU-844) are **required but nullable**: every
+ * call site must decide explicitly, and `null` is the honest "uncovered" answer
+ * for a multi-chunk assessment attempt or a failed best-effort chunk read.
+ */
 export type CreateQuestionAttemptInput = {
   id: string;
   sessionQuestionId: string;
@@ -20,6 +27,14 @@ export type CreateQuestionAttemptInput = {
   questionType: QuestionType | null;
   timeSpentMs: number;
   createdAt: number;
+  /** Coverage + band discriminator. `null` ⇒ no snapshot was captured. */
+  snapshotBand: SchedulingBand | null;
+  /** `classifyChunk` power-law estimate. Non-null only when the band is `'established'`. */
+  snapshotPredictedRecall: number | null;
+  /** The chunk's `intervalDays` verbatim at answer time. */
+  snapshotIntervalDays: number | null;
+  /** `classifyChunk`'s `daysOverdue`, clamped at 0. Fractional days. */
+  snapshotDaysOverdue: number | null;
 };
 
 /**

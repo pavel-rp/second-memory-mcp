@@ -147,6 +147,10 @@ export class DrizzleSessionQuestionRepository implements SessionQuestionReposito
       questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
       createdAt: input.createdAt,
+      snapshotBand: input.snapshotBand,
+      snapshotPredictedRecall: input.snapshotPredictedRecall,
+      snapshotIntervalDays: input.snapshotIntervalDays,
+      snapshotDaysOverdue: input.snapshotDaysOverdue,
     };
     await this.db.insert(sessionQuestionAttempts).values(row);
     return row as SessionQuestionAttempt;

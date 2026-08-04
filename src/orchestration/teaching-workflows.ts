@@ -2,7 +2,10 @@ import { toIsoTimestamp } from '../shared/date-helpers.js';
 import type { SessionRepository } from '../ports/session-repository.js';
 import type { ChunkRepository } from '../ports/chunk-repository.js';
 import type { ReviewPersistencePort } from '../ports/review-persistence-port.js';
-import type { SessionQuestionRepository } from '../ports/session-question-repository.js';
+import type {
+  CreateQuestionAttemptInput,
+  SessionQuestionRepository,
+} from '../ports/session-question-repository.js';
 import type { NotesRepository } from '../ports/notes-repository.js';
 import type { AlgorithmConfig } from '../domain/config/algorithm.js';
 import type { LearningSession, SessionChunk } from '../domain/types/entities.js';
@@ -54,6 +57,7 @@ import {
   type PrerequisiteChunkMeta,
 } from '../domain/algorithms/resolve-stale-prerequisites.js';
 import { computePacing } from '../domain/algorithms/compute-pacing.js';
+import { computeSchedulingSnapshot } from '../domain/algorithms/scheduling-snapshot.js';
 
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
@@ -944,6 +948,76 @@ export function aggregateQuestionQualities(qualities: number[]): number {
 
 // ── submit_answer with session_question_id flow ─────────────────
 
+/** The four scheduling-snapshot members of a `createAttempt` input (NEU-844). */
+type AttemptSnapshotFields = Pick<
+  CreateQuestionAttemptInput,
+  'snapshotBand' | 'snapshotPredictedRecall' | 'snapshotIntervalDays' | 'snapshotDaysOverdue'
+>;
+
+/** All-NULL snapshot — the honest "this attempt is uncovered" answer. */
+const UNCOVERED_SNAPSHOT: AttemptSnapshotFields = {
+  snapshotBand: null,
+  snapshotPredictedRecall: null,
+  snapshotIntervalDays: null,
+  snapshotDaysOverdue: null,
+};
+
+/**
+ * Capture the answering chunk's pre-review scheduling state (NEU-844).
+ *
+ * Called immediately before `createAttempt` at both scoring call sites, which is
+ * the only point where the SR state is still what the scheduler predicted from:
+ * teaching mode defers the SR update to `teach_next`, and assessment mode runs
+ * `processReviewResult` after the attempt is persisted.
+ *
+ * Returns an all-NULL snapshot when the question does not map to exactly one
+ * chunk (D4 — an assessment fan-out has N distinct SR states and attributing one
+ * of them to the attempt row would silently corrupt calibration), and when the
+ * best-effort read fails or finds nothing (D6 — a measurement feature must never
+ * fail a scored answer).
+ */
+async function captureAttemptSnapshot(
+  deps: TeachingDeps,
+  chunkIds: string[],
+  now: Date
+): Promise<AttemptSnapshotFields> {
+  const chunkId = chunkIds.length === 1 ? chunkIds[0] : undefined;
+  if (chunkId === undefined) return UNCOVERED_SNAPSHOT;
+
+  try {
+    const chunk = await deps.chunks.getById(chunkId);
+    if (!chunk) {
+      getRequestLogger().warn(
+        `submitAnswer: scheduling snapshot skipped — chunk ${chunkId} not found`
+      );
+      return UNCOVERED_SNAPSHOT;
+    }
+
+    const snapshot = computeSchedulingSnapshot(
+      {
+        easeFactor: chunk.easeFactor,
+        repetitions: chunk.repetitions,
+        nextReviewAt: chunk.nextReviewAt,
+        intervalDays: chunk.intervalDays,
+      },
+      now
+    );
+
+    return {
+      snapshotBand: snapshot.band,
+      snapshotPredictedRecall: snapshot.predictedRecall,
+      snapshotIntervalDays: snapshot.intervalDays,
+      snapshotDaysOverdue: snapshot.daysOverdue,
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    getRequestLogger().warn(
+      `submitAnswer: scheduling snapshot capture failed for chunk ${chunkId}: ${message}`
+    );
+    return UNCOVERED_SNAPSHOT;
+  }
+}
+
 /**
  * Records an attempt for a session question (inline or retry path).
  * Writes to session_question_attempts, derives quality per question.
@@ -1056,7 +1130,10 @@ async function submitAnswerForQuestion(
   // agent-supplied pass override, so a high self-report cannot certify a pass.
   const passed = quality >= 3;
 
-  // 5. Persist attempt
+  // 5. Persist attempt, together with the chunk's pre-review scheduling snapshot.
+  // One `now` for both, so a row's snapshot and its timestamp cannot disagree.
+  const now = new Date();
+  const snapshot = await captureAttemptSnapshot(deps, [primaryChunkId], now);
   try {
     await deps.sessionQuestions.createAttempt({
       id: crypto.randomUUID(),
@@ -1069,7 +1146,8 @@ async function submitAnswerForQuestion(
       agentQuality: rubricQuality,
       questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
-      createdAt: Date.now(),
+      createdAt: now.getTime(),
+      ...snapshot,
     });
   } catch (err: unknown) {
     if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
@@ -1273,6 +1351,12 @@ async function submitAnswerForAssessmentQuestion(
   const quality = mapRubricToQuality(input.grading);
   const passed = quality >= 3;
 
+  // Snapshot before `createAttempt` — `processReviewResult` fans SR out below,
+  // so this is the last point where the state is still pre-review. A question
+  // mapping to more than one chunk stays uncovered (D4).
+  const now = new Date();
+  const snapshot = await captureAttemptSnapshot(deps, questionChunkIds, now);
+
   try {
     await deps.sessionQuestions.createAttempt({
       id: crypto.randomUUID(),
@@ -1285,7 +1369,8 @@ async function submitAnswerForAssessmentQuestion(
       agentQuality: quality,
       questionType: input.questionType,
       timeSpentMs: input.timeSpentMs,
-      createdAt: Date.now(),
+      createdAt: now.getTime(),
+      ...snapshot,
     });
   } catch (err: unknown) {
     if (isPgUniqueViolation(err, 'uq_session_question_attempts_question_number')) {
