@@ -26,6 +26,37 @@ type RetentionCellResponse = {
   below_min_sample: boolean;
 };
 
+/** One snake_case calibration bin as it crosses the MCP boundary (NEU-846). */
+type CalibrationBinResponse = {
+  key: string;
+  sample_size: number;
+  observed_passed: number;
+  observed_pass_rate: number | null;
+  mean_predicted_recall: number | null;
+  calibration_gap: number | null;
+  below_min_sample: boolean;
+};
+
+/** The ten fixed bin keys, in emission order. */
+const CALIBRATION_BIN_KEYS = [
+  '0.0-0.1',
+  '0.1-0.2',
+  '0.2-0.3',
+  '0.3-0.4',
+  '0.4-0.5',
+  '0.5-0.6',
+  '0.6-0.7',
+  '0.7-0.8',
+  '0.8-0.9',
+  '0.9-1.0',
+];
+
+function findBin(bins: CalibrationBinResponse[], key: string): CalibrationBinResponse {
+  const bin = bins.find(candidate => candidate.key === key);
+  expect(bin).toBeDefined();
+  return bin as CalibrationBinResponse;
+}
+
 const TOPIC_ID = 'topic-health';
 const CHUNK_A = 'chunk-health-a';
 const CHUNK_B = 'chunk-health-b';
@@ -291,7 +322,34 @@ describe('Integration: analytics_health tool', () => {
 
     expect(parsed.status).toBe('ok');
     expect(parsed.data.min_sample_size).toBe(20);
-    expect(parsed.data.calibration).toBeNull();
+    // NEU-846: calibration is always an object, never null — at zero
+    // observations it is a complete payload with zero counts and null rates.
+    expect(parsed.data.calibration.coverage).toEqual({
+      total_first_attempts: 0,
+      calibration_observations: 0,
+      excluded_fresh_band: 0,
+      excluded_uncovered: 0,
+      coverage_ratio: 0,
+    });
+    expect(parsed.data.calibration.overall).toEqual({
+      sample_size: 0,
+      observed_passed: 0,
+      observed_pass_rate: null,
+      mean_predicted_recall: null,
+      calibration_gap: null,
+      below_min_sample: true,
+      log_loss: null,
+      rmse_bins: null,
+    });
+    expect(parsed.data.calibration.min_sample_size).toBe(20);
+    expect(parsed.data.calibration.bin_edges).toEqual([
+      0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+    ]);
+    expect(parsed.data.calibration.log_loss_epsilon).toBe(1e-6);
+    const emptyBins: CalibrationBinResponse[] = parsed.data.calibration.bins;
+    expect(emptyBins.map(bin => bin.key)).toEqual(CALIBRATION_BIN_KEYS);
+    expect(emptyBins.every(bin => bin.below_min_sample)).toBe(true);
+    expect(emptyBins.reduce((sum, bin) => sum + bin.sample_size, 0)).toBe(0);
     expect(parsed.data.coverage).toEqual({
       total_first_attempts: 0,
       covered_first_attempts: 0,
@@ -347,8 +405,81 @@ describe('Integration: analytics_health tool', () => {
         interval_band_edges_days: [1, 7, 21, 60],
         days_overdue_band_edges_days: [1, 3, 7],
       });
-      expect(parsed.data.calibration).toBeNull();
+      // NEU-846 widened this key from null to an object; every other key on the
+      // payload is unchanged.
+      expect(parsed.data.calibration).not.toBeNull();
+      expect(typeof parsed.data.calibration).toBe('object');
       expect(typeof parsed.data.generated_at).toBe('string');
+    });
+
+    it('reports the hand-computed calibration block in snake_case', async () => {
+      const result = await analyticsHealth.handler({ context_token: 'ctx-test' });
+      const parsed = parseToolResult(result);
+
+      // 23 established rows carry a prediction: 12 @ 0.85 (9 pass), 10 @ 0.7
+      // (7 pass), 1 @ 0.95 (pass). The 2 fresh and 3 uncovered rows have no
+      // stored prediction and are excluded — counted, never silently dropped.
+      expect(parsed.data.calibration.coverage).toEqual({
+        total_first_attempts: 28,
+        calibration_observations: 23,
+        excluded_fresh_band: 2,
+        excluded_uncovered: 3,
+        coverage_ratio: 0.8214,
+      });
+      // logLoss = −(1/23)·[9·ln0.85 + 3·ln0.15 + 7·ln0.7 + 3·ln0.3 + ln0.95]
+      //         = 13.3139666/23 = 0.5789
+      // rmseBins = sqrt((12·0.10² + 1·0.05²)/23) = sqrt(0.1225/23) = 0.0730
+      expect(parsed.data.calibration.overall).toEqual({
+        sample_size: 23,
+        observed_passed: 17,
+        observed_pass_rate: 0.7391,
+        mean_predicted_recall: 0.7891,
+        calibration_gap: 0.05,
+        below_min_sample: false,
+        log_loss: 0.5789,
+        rmse_bins: 0.073,
+      });
+    });
+
+    it('bins the calibration observations and keeps their counts under suppression', async () => {
+      const result = await analyticsHealth.handler({ context_token: 'ctx-test' });
+      const parsed = parseToolResult(result);
+      const bins: CalibrationBinResponse[] = parsed.data.calibration.bins;
+
+      expect(bins.map(bin => bin.key)).toEqual(CALIBRATION_BIN_KEYS);
+      // Every bin is under the sample-size minimum, so the rates suppress while
+      // the counts survive — and the p = 0.95 row lands in the top bin, which is
+      // closed at 1.0 rather than half-open, so it is never dropped.
+      expect(findBin(bins, '0.7-0.8')).toEqual({
+        key: '0.7-0.8',
+        sample_size: 10,
+        observed_passed: 7,
+        observed_pass_rate: null,
+        mean_predicted_recall: null,
+        calibration_gap: null,
+        below_min_sample: true,
+      });
+      expect(findBin(bins, '0.8-0.9').sample_size).toBe(12);
+      expect(findBin(bins, '0.8-0.9').observed_passed).toBe(9);
+      expect(findBin(bins, '0.9-1.0').sample_size).toBe(1);
+      expect(findBin(bins, '0.0-0.1').sample_size).toBe(0);
+      expect(bins.reduce((sum, bin) => sum + bin.sample_size, 0)).toBe(23);
+    });
+
+    it('keeps every pre-existing top-level key alongside calibration', async () => {
+      const result = await analyticsHealth.handler({ context_token: 'ctx-test' });
+      const parsed = parseToolResult(result);
+
+      expect(Object.keys(parsed.data).sort()).toEqual([
+        'band_definitions',
+        'breakdowns',
+        'calibration',
+        'coverage',
+        'fresh_band_retention',
+        'generated_at',
+        'min_sample_size',
+        'true_retention',
+      ]);
     });
 
     it('reports the fresh band separately from the headline', async () => {

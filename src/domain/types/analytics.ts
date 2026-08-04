@@ -198,6 +198,73 @@ export type RetentionCellPayload = {
 };
 
 /**
+ * The metric fields shared by the calibration `overall` block and every bin.
+ *
+ * `sample_size` and `observed_passed` are absolute counts and are always
+ * present, even when the rates are suppressed. All three rates are `null`
+ * exactly when `below_min_sample` is `true`, i.e. whenever
+ * `sample_size < min_sample_size` (which subsumes `sample_size === 0`).
+ * `calibration_gap` is `mean_predicted_recall − observed_pass_rate`, signed —
+ * positive means the scheduler was overconfident. Rounded to four decimals.
+ */
+export type CalibrationFigurePayload = {
+  sample_size: number;
+  observed_passed: number;
+  observed_pass_rate: number | null;
+  mean_predicted_recall: number | null;
+  calibration_gap: number | null;
+  below_min_sample: boolean;
+};
+
+/**
+ * One half-open `[edge, next)` prediction bucket. All ten are always emitted in
+ * fixed order, including empty ones, and their `sample_size` values always sum
+ * to the `overall` block's.
+ */
+export type CalibrationBinPayload = CalibrationFigurePayload & {
+  key: string;
+};
+
+/** The whole calibration observation set scored as one block. */
+export type CalibrationOverallPayload = CalibrationFigurePayload & {
+  /** THE HEADLINE — mean negative log-likelihood in nats. `null` when suppressed. */
+  log_loss: number | null;
+  /** Secondary FSRS-benchmark axis — bin-weighted RMSE. `null` when suppressed. */
+  rmse_bins: number | null;
+};
+
+/**
+ * How much of the first-attempt population calibration could actually score.
+ * Both exclusions are counted so the filter is visible rather than silent.
+ */
+export type CalibrationCoveragePayload = {
+  total_first_attempts: number;
+  calibration_observations: number;
+  /** The `fresh` band, where R = 1.0 is definitional and therefore never stored. */
+  excluded_fresh_band: number;
+  /** No usable prediction and not the fresh band — uncovered or out-of-domain rows. */
+  excluded_uncovered: number;
+  /** `0` when there are no rows. Never `NaN`. */
+  coverage_ratio: number;
+};
+
+/**
+ * The predicted-vs-observed calibration block (NEU-846) — always an object,
+ * never `null`. At zero observations it is a complete payload with zero counts,
+ * suppressed rates and all ten bins present.
+ */
+export type CalibrationPayload = {
+  min_sample_size: number;
+  /** The bin lower edges verbatim, so the bucketing is reproducible. */
+  bin_edges: number[];
+  /** The log-loss clamp verbatim, so `log_loss` is reproducible. */
+  log_loss_epsilon: number;
+  coverage: CalibrationCoveragePayload;
+  overall: CalibrationOverallPayload;
+  bins: CalibrationBinPayload[];
+};
+
+/**
  * The `analytics_health` success payload — the dashboard contract. Breakdown
  * arrays are emitted in a fixed order with every band present, including empty
  * ones, so consumers can rely on a stable table rather than a sparse map.
@@ -228,11 +295,11 @@ export type AnalyticsHealthOutput = {
     by_days_overdue_band: RetentionCellPayload[];
   };
   /**
-   * NEU-846 extension seam: always present, always `null` here. NEU-846 fills it
-   * with its predicted-vs-observed block, which consumers see as an additive
-   * change rather than a restructure.
+   * Predicted-vs-observed scoring of the scheduler's recall estimate (NEU-846).
+   * Always an object, never `null` — at zero observations it is a complete
+   * payload with zero counts and suppressed rates.
    */
-  calibration: null;
+  calibration: CalibrationPayload;
 };
 
 export const DailyKpisSchema = z.object({
