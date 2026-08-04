@@ -117,6 +117,7 @@ export function stubReviewPersistence(
     getReviewObservations: vi.fn().mockResolvedValue(new Map()),
     getReviewsByDateRange: vi.fn().mockResolvedValue([]),
     getWeakAreas: vi.fn().mockResolvedValue([]),
+    getFirstAttemptObservations: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }

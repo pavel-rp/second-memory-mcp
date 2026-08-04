@@ -23,6 +23,33 @@ export type WeakAreaResult = {
   avgRecentQuality: number;
 };
 
+/**
+ * One scored question's first attempt — the observation unit of the NEU-845
+ * scheduler-health metrics. A question contributes exactly one of these, never
+ * two: the `attempt_number = 2` pivot-hint retry is folded into `eventualPassed`
+ * and never becomes its own observation.
+ */
+export type FirstAttemptObservation = {
+  sessionQuestionId: string;
+  /** `passed` on the `attempt_number = 1` row — the only input to true retention. */
+  firstAttemptPassed: boolean;
+  /** Passed on attempt 1 **or** on the attempt-2 pivot-hint retry. */
+  eventualPassed: boolean;
+  /** `'established'` | `'fresh'` | `null`. `null` means uncovered — no snapshot was recorded. */
+  snapshotBand: string | null;
+  /**
+   * NEU-846 extension seam: carried so calibration needs no new port method,
+   * no adapter change and no second round-trip. NEU-845 never reads it.
+   */
+  snapshotPredictedRecall: number | null;
+  /** The chunk's `intervalDays` verbatim at answer time. */
+  snapshotIntervalDays: number | null;
+  /** `classifyChunk`'s `daysOverdue`, clamped at 0. Fractional days. */
+  snapshotDaysOverdue: number | null;
+  /** The mapped `session_chunks.teaching_approach`, or `null` when absent or ambiguous. */
+  teachingApproach: string | null;
+};
+
 /** Data returned after persisting a review result. */
 export type ReviewResultData = {
   previous: {
@@ -92,4 +119,25 @@ export interface ReviewPersistencePort {
   getReviewsByDateRange(from: Date, to: Date): Promise<PersistedReviewEntry[]>;
   /** Identify chunks where the learner is struggling based on recent low-quality reviews. */
   getWeakAreas(options?: GetWeakAreasOptions): Promise<WeakAreaResult[]>;
+  /**
+   * Every scored question's first attempt over all history — the observation set
+   * the NEU-845 scheduler-health metrics are computed from.
+   *
+   * Guarantees **exactly one row per `session_question_id`**: the
+   * `session_question_chunks` mapping is aggregated away rather than joined
+   * through, so a question mapped to several chunks still yields a single row.
+   *
+   * `teachingApproach` is the question's single mapped `session_chunks`
+   * teaching approach, and `null` whenever that is not unambiguous — the
+   * question maps to more than one chunk, the mapped `session_chunks` row is
+   * missing or carries a null approach, or duplicate rows disagree. There is no
+   * single teaching tier in those cases, and the domain maps `null` to the
+   * `unknown` tier.
+   *
+   * Rows whose `snapshotBand` is `null` (uncovered — pre-cutover, multi-chunk
+   * assessment attempts, or a failed best-effort chunk read) are **returned**,
+   * not filtered: they are the coverage denominator, and suppressing them would
+   * make the reported coverage a lie. They contribute to no rate.
+   */
+  getFirstAttemptObservations(): Promise<FirstAttemptObservation[]>;
 }
