@@ -23,6 +23,7 @@ import type {
   SubmitAnswerRetry,
 } from '../../../src/domain/types/teaching.js';
 import type { ChunkWithTopicTitle } from '../../../src/ports/chunk-repository.js';
+import type { CreateQuestionAttemptInput } from '../../../src/ports/session-question-repository.js';
 import {
   stubSessionRepository,
   stubChunkRepository,
@@ -32,6 +33,8 @@ import {
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-defaults.js';
 import type { AlgorithmConfig } from '../../../src/domain/config/algorithm.js';
 import type { RubricGradingPayload } from '../../../src/domain/algorithms/grade-mapper.js';
+import { computeSchedulingSnapshot } from '../../../src/domain/algorithms/scheduling-snapshot.js';
+import { MS_PER_DAY } from '../../../src/shared/constants/time.js';
 import { rubricForQuality } from '../../helpers/grading.js';
 
 // ── Fixtures ────────────────────────────────────────────────────
@@ -1806,6 +1809,13 @@ function makeQuestionAttempt(overrides?: Partial<SessionQuestionAttempt>): Sessi
   };
 }
 
+/** The `createAttempt` input from the most recent call (NEU-844 snapshot assertions). */
+function lastAttemptInput(deps: TeachingDeps): CreateQuestionAttemptInput {
+  const call = vi.mocked(deps.sessionQuestions.createAttempt).mock.calls.at(-1);
+  if (!call) throw new Error('Expected createAttempt to have been called');
+  return call[0];
+}
+
 function makeQuestionDeps(overrides?: {
   sessions?: Partial<Parameters<typeof stubSessionRepository>[0]>;
   chunks?: Partial<Parameters<typeof stubChunkRepository>[0]>;
@@ -2523,6 +2533,22 @@ describe('submitAnswer with session_question_id', () => {
       expect(deps.reviewPersistence.persistReviewUpdate).toHaveBeenCalledTimes(2);
     });
 
+    // NEU-844 / D4: N distinct SR states cannot be attributed to one attempt row.
+    it('leaves the snapshot NULL for a multi-chunk assessment attempt', async () => {
+      const deps = makeAssessmentDeps();
+
+      const result = await submitAnswer(makeInput({ quality: 5, sessionQuestionId: 'sq-1' }), deps);
+      expect(result.action).toBe('recorded');
+
+      const attempt = lastAttemptInput(deps);
+      expect(attempt.snapshotBand).toBeNull();
+      expect(attempt.snapshotPredictedRecall).toBeNull();
+      expect(attempt.snapshotIntervalDays).toBeNull();
+      expect(attempt.snapshotDaysOverdue).toBeNull();
+      // The guard short-circuits before any chunk read.
+      expect(deps.chunks.getById).not.toHaveBeenCalled();
+    });
+
     it('assessment marks session_chunks completed when all questions answered', async () => {
       const deps = makeAssessmentDeps();
 
@@ -3208,5 +3234,118 @@ describe('buildAssessmentCompleteResponse', () => {
     const result = buildAssessmentCompleteResponse(questions, attempts, chunkMapping);
 
     expect(result.summary.weak_chunks).toEqual(['c1', 'c2', 'c3']);
+  });
+});
+
+// ── NEU-844: pre-review scheduling snapshot on the attempt row ───
+
+/**
+ * The snapshot is captured at the orchestration boundary and handed to
+ * `createAttempt`, so these assert the input the port actually receives.
+ * The four columns are the frozen downstream contract for NEU-845/NEU-846:
+ * a capture failure must degrade to all-NULL, never fail the scored answer.
+ */
+describe('submit_answer scheduling snapshot', () => {
+  it('captures the established band for a chunk with a real interval', async () => {
+    const chunk = makeLearningChunk({
+      id: 'c1',
+      intervalDays: 10,
+      nextReviewAt: Date.now() - 5 * MS_PER_DAY,
+      easeFactor: 2.5,
+      repetitions: 3,
+    });
+    const deps = makeDeps({ chunks: { getById: vi.fn().mockResolvedValue(chunk) } });
+
+    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    expect(result.action).toBe('recorded');
+
+    const attempt = lastAttemptInput(deps);
+    expect(attempt.snapshotBand).toBe('established');
+    expect(attempt.snapshotIntervalDays).toBe(10);
+
+    const predictedRecall = attempt.snapshotPredictedRecall;
+    if (predictedRecall === null) throw new Error('Expected an established-band predicted recall');
+    expect(predictedRecall).toBeGreaterThan(0);
+    expect(predictedRecall).toBeLessThan(1);
+
+    // The row's snapshot and its timestamp share one `now`: recomputing the
+    // snapshot from the persisted `createdAt` reproduces it exactly.
+    const expected = computeSchedulingSnapshot(
+      {
+        easeFactor: chunk.easeFactor,
+        repetitions: chunk.repetitions,
+        nextReviewAt: chunk.nextReviewAt,
+        intervalDays: chunk.intervalDays,
+      },
+      new Date(attempt.createdAt)
+    );
+    expect(attempt.snapshotPredictedRecall).toBe(expected.predictedRecall);
+    expect(attempt.snapshotDaysOverdue).toBe(expected.daysOverdue);
+    expect(attempt.snapshotDaysOverdue).toBeCloseTo(5, 2);
+  });
+
+  it('captures the fresh band with no predicted recall for a null-interval chunk', async () => {
+    const chunk = makeLearningChunk({
+      id: 'c1',
+      intervalDays: null,
+      nextReviewAt: Date.now() - 3 * MS_PER_DAY,
+    });
+    const deps = makeDeps({ chunks: { getById: vi.fn().mockResolvedValue(chunk) } });
+
+    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    expect(result.action).toBe('recorded');
+
+    const attempt = lastAttemptInput(deps);
+    expect(attempt.snapshotBand).toBe('fresh');
+    // No synthetic 1.0 can enter a calibration mean.
+    expect(attempt.snapshotPredictedRecall).toBeNull();
+    expect(attempt.snapshotIntervalDays).toBeNull();
+    expect(attempt.snapshotDaysOverdue).toBeCloseTo(3, 2);
+  });
+
+  it('records an all-NULL snapshot when the chunk read finds nothing', async () => {
+    const deps = makeDeps({ chunks: { getById: vi.fn().mockResolvedValue(undefined) } });
+
+    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    expect(result.action).toBe('recorded');
+
+    const attempt = lastAttemptInput(deps);
+    expect(attempt.snapshotBand).toBeNull();
+    expect(attempt.snapshotPredictedRecall).toBeNull();
+    expect(attempt.snapshotIntervalDays).toBeNull();
+    expect(attempt.snapshotDaysOverdue).toBeNull();
+  });
+
+  it('still records the attempt with an all-NULL snapshot when the chunk read throws', async () => {
+    const deps = makeDeps({
+      chunks: { getById: vi.fn().mockRejectedValue(new Error('connection lost')) },
+    });
+
+    // Fail-open: a measurement feature never fails a scored answer.
+    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    expect(result.action).toBe('recorded');
+    if (result.action !== 'recorded') throw new Error('Expected recorded');
+    expect(result.quality).toBe(4);
+
+    const attempt = lastAttemptInput(deps);
+    expect(attempt.snapshotBand).toBeNull();
+    expect(attempt.snapshotPredictedRecall).toBeNull();
+    expect(attempt.snapshotIntervalDays).toBeNull();
+    expect(attempt.snapshotDaysOverdue).toBeNull();
+  });
+
+  it('fails open when the chunk read rejects with a non-Error value', async () => {
+    const deps = makeDeps({
+      chunks: { getById: vi.fn().mockRejectedValue('pool exhausted') },
+    });
+
+    const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+    expect(result.action).toBe('recorded');
+
+    const attempt = lastAttemptInput(deps);
+    expect(attempt.snapshotBand).toBeNull();
+    expect(attempt.snapshotPredictedRecall).toBeNull();
+    expect(attempt.snapshotIntervalDays).toBeNull();
+    expect(attempt.snapshotDaysOverdue).toBeNull();
   });
 });

@@ -210,6 +210,14 @@ export const sessionQuestionAttempts = pgTable(
     questionType: text('question_type'), // 'recall' | 'explain_apply' | 'analyze_create' (nullable for historical data)
     timeSpentMs: integer('time_spent_ms').notNull(),
     createdAt: bigint('created_at', { mode: 'number' }).notNull(), // epoch ms
+    // NEU-844: pre-review scheduling snapshot — what the scheduler predicted at
+    // answer time. All four are nullable forever; NULL on `snapshot_band` means
+    // "uncovered" (pre-cutover row, multi-chunk assessment attempt, or a failed
+    // best-effort chunk read).
+    snapshotBand: text('snapshot_band'), // CHECK('fresh','established') — enforced at DB level
+    snapshotPredictedRecall: real('snapshot_predicted_recall'), // classifyChunk power-law R; non-NULL only when band = 'established'
+    snapshotIntervalDays: integer('snapshot_interval_days'), // the chunk's interval_days verbatim at answer time
+    snapshotDaysOverdue: real('snapshot_days_overdue'), // classifyChunk daysOverdue, clamped at 0; fractional days
   },
   table => [
     index('idx_session_question_attempts_session_question_id').on(table.sessionQuestionId),
@@ -223,6 +231,15 @@ export const sessionQuestionAttempts = pgTable(
     check(
       'chk_question_type',
       sql`${table.questionType} IN ('recall', 'explain_apply', 'analyze_create')`
+    ),
+    check('chk_snapshot_band', sql`${table.snapshotBand} IN ('fresh', 'established')`),
+    check(
+      'chk_snapshot_predicted_recall',
+      sql`${table.snapshotPredictedRecall} IS NULL OR (${table.snapshotPredictedRecall} > 0 AND ${table.snapshotPredictedRecall} <= 1)`
+    ),
+    check(
+      'chk_snapshot_days_overdue',
+      sql`${table.snapshotDaysOverdue} IS NULL OR ${table.snapshotDaysOverdue} >= 0`
     ),
   ]
 );
