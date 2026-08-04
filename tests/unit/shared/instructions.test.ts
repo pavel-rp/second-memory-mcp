@@ -84,6 +84,9 @@ describe('SERVER_INSTRUCTIONS truncation-survival contract', () => {
   });
 
   it('keeps the full instructions within the MCP handshake budget', () => {
-    expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThan(6800);
+    // Raised from 6800 (NEU-847): the correct_answer presentation clause added
+    // to both TEACHING FLOW and ROLLING SESSION FLOW step 4 is genuine new
+    // content, not slack — this still leaves headroom for future growth.
+    expect(Buffer.byteLength(SERVER_INSTRUCTIONS, 'utf8')).toBeLessThan(7000);
   });
 });

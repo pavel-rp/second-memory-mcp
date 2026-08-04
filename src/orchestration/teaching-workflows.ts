@@ -25,6 +25,7 @@ import type {
   CreateSessionQuestionsResult,
   ReviseGradeInput,
   ReviseGradeResult,
+  CorrectAnswerBlock,
 } from '../domain/types/teaching.js';
 import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/entities.js';
 import crypto from 'node:crypto';
@@ -1018,6 +1019,30 @@ async function captureAttemptSnapshot(
   }
 }
 
+const CORRECT_ANSWER_DIRECTIVE =
+  'Present this material to the learner as the correct answer/explanation before moving on.';
+
+/**
+ * Build the second-failure correct-answer block from already-fetched chunk
+ * fields (NEU-847). Pure and throw-free — never does I/O itself. `content`/
+ * `condensed_summary` pass through the chunk's own nullability unchanged, so
+ * "whatever material exists" is expressed as `null` fields rather than a
+ * partial shape (charter assumption #8 — the server holds no per-question
+ * canonical answer, only chunk-derived material).
+ */
+function buildCorrectAnswerBlock(chunk: {
+  title: string;
+  content: string | null;
+  condensedSummary: string | null;
+}): CorrectAnswerBlock {
+  return {
+    content: chunk.content,
+    condensed_summary: chunk.condensedSummary,
+    title: chunk.title,
+    directive: CORRECT_ANSWER_DIRECTIVE,
+  };
+}
+
 /**
  * Records an attempt for a session question (inline or retry path).
  * Writes to session_question_attempts, derives quality per question.
@@ -1245,9 +1270,24 @@ async function submitAnswerForQuestion(
     };
   }
 
-  // 8. Second attempt or passed → recorded. If second attempt failed, still mark answered.
+  // 8. Second attempt or passed → recorded. If second attempt failed, still mark answered,
+  // and best-effort fetch the chunk to surface a correct-answer block (NEU-847). This is a
+  // second, independent fetch from NEU-844's captureAttemptSnapshot above — that snapshot's
+  // return type is scoped to scheduling fields only and is left untouched.
+  let correctAnswer: CorrectAnswerBlock | undefined;
   if (!passed && attemptNumber === 2) {
     await deps.sessionQuestions.updateQuestionStatus(sessionQuestionId, 'answered');
+    try {
+      const chunk = await deps.chunks.getById(primaryChunkId);
+      if (chunk) {
+        correctAnswer = buildCorrectAnswerBlock(chunk);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      getRequestLogger().warn(
+        `submitAnswer: correct-answer block skipped for chunk ${primaryChunkId}: ${message}`
+      );
+    }
   }
 
   // Chunk stays in_progress; SR + completion are handled by teach_next.
@@ -1283,6 +1323,7 @@ async function submitAnswerForQuestion(
     chunk_id: primaryChunkId,
     ...(isLateSubmission && { late_submission: true }),
     ...(forecast && { roadblock_forecast: forecast }),
+    ...(correctAnswer && { correct_answer: correctAnswer }),
   };
 }
 
