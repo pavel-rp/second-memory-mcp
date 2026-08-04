@@ -15,6 +15,7 @@ import {
 import { logEvent, getRequestLogger } from '../../../src/shared/logger.js';
 import * as sessionWorkflows from '../../../src/orchestration/session-workflows.js';
 import * as recommendationWorkflows from '../../../src/orchestration/recommendation-workflows.js';
+import * as sessionAdvisoryAlgorithm from '../../../src/domain/algorithms/session-advisory.js';
 import type {
   LearningSession,
   SessionChunk,
@@ -28,6 +29,7 @@ import type {
 import type {
   TeachNextComplete,
   TeachNextAssessmentComplete,
+  TeachNextTeach,
 } from '../../../src/domain/types/teaching.js';
 import type { HistoricalFeedback } from '../../../src/domain/types/session.js';
 import type { TopicRecommendationOutput } from '../../../src/domain/types/recommendations.js';
@@ -2107,6 +2109,158 @@ describe('getNextTeachingStep', () => {
     await getNextTeachingStep(deps);
 
     expect(logEvent).not.toHaveBeenCalled();
+  });
+
+  // ── NEU-848: within-session stopping advisory ─────────────────────
+
+  describe('NEU-848: session advisory on teach_next', () => {
+    /**
+     * Six persisted attempts whose later-window latency rises and quality
+     * falls relative to the earlier window — fires `computeFatigueTrend`
+     * (MINIMUM_ATTEMPTS = 6, WINDOW_SPLIT_RATIO = 0.5). Unrelated to any
+     * mapped session question, so it never touches roadblock/completion
+     * gating (those key off `questionsByChunkId`, built from
+     * `getChunkIdsForQuestions`, which stays empty here).
+     */
+    function fatigueAttempts(): SessionQuestionAttempt[] {
+      const latencies = [1000, 1000, 1000, 2000, 2000, 2000];
+      const qualities = [5, 5, 5, 3, 3, 3];
+      return latencies.map((latencyMs, i) => ({
+        id: `sqa-fatigue-${i}`,
+        sessionQuestionId: `sq-fatigue-${i}`,
+        attemptNumber: 1,
+        response: 'r',
+        passed: true,
+        feedback: 'f',
+        quality: qualities[i] as number,
+        agentQuality: null,
+        questionType: null,
+        timeSpentMs: latencyMs,
+        createdAt: 1_000 + i * 1_000,
+      }));
+    }
+
+    it('is present on a teach response while the fatigue signal fires', async () => {
+      const sqRepo = stubSessionQuestionRepository();
+      vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: sqRepo,
+      });
+
+      const result = (await getNextTeachingStep(deps)) as TeachNextTeach;
+
+      expect(result.action).toBe('teach');
+      expect(result.session_advisory).toEqual({
+        kind: 'fatigue',
+        reason: expect.any(String),
+        directive: expect.any(String),
+      });
+    });
+
+    it('recurs on the next call — no dedupe or "already shown" state', async () => {
+      const sqRepo = stubSessionQuestionRepository();
+      vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: sqRepo,
+      });
+
+      const first = (await getNextTeachingStep(deps)) as TeachNextTeach;
+      const second = (await getNextTeachingStep(deps)) as TeachNextTeach;
+
+      expect(first.session_advisory?.kind).toBe('fatigue');
+      expect(second.session_advisory?.kind).toBe('fatigue');
+    });
+
+    it('is absent when neither the fatigue nor the time-ceiling signal fires', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+      });
+      // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent.
+
+      const result = await getNextTeachingStep(deps);
+
+      expect(result.action).toBe('teach');
+      expect(result).not.toHaveProperty('session_advisory');
+    });
+
+    it('carries the time_ceiling advisory on the same channel past maxTimeMs while fatigue stays silent', async () => {
+      const pastCeiling = Date.now() - (DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs + 60_000);
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: pastCeiling })),
+        },
+      });
+      // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent, only ceiling can fire.
+
+      const result = (await getNextTeachingStep(deps)) as TeachNextTeach;
+
+      expect(result.action).toBe('teach');
+      expect(result.session_advisory).toEqual({
+        kind: 'time_ceiling',
+        reason: expect.any(String),
+        directive: expect.any(String),
+      });
+    });
+
+    it('fails open: a throw in advisory assembly still returns a complete, successful teach response with the block omitted', async () => {
+      const sqRepo = stubSessionQuestionRepository();
+      vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: sqRepo,
+      });
+      const spy = vi
+        .spyOn(sessionAdvisoryAlgorithm, 'resolveSessionAdvisory')
+        .mockImplementation(() => {
+          throw new Error('injected advisory failure');
+        });
+
+      try {
+        const result = (await getNextTeachingStep(deps)) as TeachNextTeach;
+
+        expect(result.action).toBe('teach');
+        expect(result.chunk_id).toBe('c1');
+        expect(result.session_id).toBe('sess-1');
+        expect(result).not.toHaveProperty('session_advisory');
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('adds zero additional getAllAttemptsForSession calls — reuses the existing batch-prefetch', async () => {
+      const sqRepo = stubSessionQuestionRepository();
+      vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: sqRepo,
+      });
+
+      await getNextTeachingStep(deps);
+
+      expect(sqRepo.getAllAttemptsForSession).toHaveBeenCalledTimes(1);
+    });
   });
 
   // ── NEU-312: Response enrichment + tier-branched instructions ────

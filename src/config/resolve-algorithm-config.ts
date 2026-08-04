@@ -71,7 +71,11 @@ export function resolveAlgorithmConfig(
       DEFAULT_ALGORITHM_CONFIG.minLeechEasePenalty
     ),
     dailyCaps: {
+      // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
+      // anchoring evidence for this cap).
       maxNew: parseNumber(env.SM_DAILY_CAP_NEW, DEFAULT_ALGORITHM_CONFIG.dailyCaps.maxNew),
+      // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
+      // anchoring evidence for this cap).
       maxReviews: parseNumber(
         env.SM_DAILY_CAP_REVIEWS,
         DEFAULT_ALGORITHM_CONFIG.dailyCaps.maxReviews
@@ -83,6 +87,11 @@ export function resolveAlgorithmConfig(
         env.SM_SESSION_QUALITY_THRESHOLD,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.qualityThreshold
       ),
+      // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
+      // anchoring evidence for this value). No longer the break trigger — NEU-848
+      // replaced that with the measured fatigue advisory (`resolveSessionAdvisory`).
+      // Remains the minimum-practice-time input to the surviving
+      // `qualityMet && timeMet` -> 'complete' completion heuristic.
       timeThresholdMs: parseNumber(
         env.SM_SESSION_TIME_THRESHOLD_MS,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.timeThresholdMs
@@ -91,6 +100,10 @@ export function resolveAlgorithmConfig(
         env.SM_SESSION_COMPLETION_THRESHOLD,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.completionThreshold
       ),
+      // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
+      // anchoring evidence for this value). Remains the hard 2-hour ceiling
+      // backstop, now surfaced both through `session_status` and in-band as a
+      // recurring `time_ceiling` stopping advisory.
       maxTimeMs: parseNumber(
         env.SM_SESSION_MAX_TIME_MS,
         DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs

@@ -5,6 +5,7 @@ import type { SessionMode } from './session.js';
 import type { TeachingApproach } from '../algorithms/classify-chunk.js';
 import type { TopicStalenessProfile } from '../algorithms/compute-topic-profile.js';
 import type { RubricGradingPayload } from '../algorithms/grade-mapper.js';
+import type { SessionAdvisoryKind } from '../algorithms/session-advisory.js';
 import { z } from 'zod';
 
 /**
@@ -73,6 +74,8 @@ export type TeachNextTeach = {
   // NEU-715: assessment-mode fields — only populated when mode === 'assessment'
   session_question_id?: string;
   assessment_chunk_ids?: string[];
+  // NEU-848: within-session stopping advisory
+  session_advisory?: SessionAdvisoryBlock;
 };
 
 export type TeachNextComplete = {
@@ -196,6 +199,26 @@ export type CorrectAnswerBlock = {
   directive: string;
 };
 
+/**
+ * Within-session stopping advisory (NEU-848), carried in-band on `teach_next`
+ * (`TeachNextTeach`) and `submit_answer` (`SubmitAnswerRetry` /
+ * `SubmitAnswerRecorded`) so an agent that never polls `session_status` still
+ * receives stopping guidance. Advisory-only and best-effort: assembly is
+ * guarded fail-open at every call site — a throw anywhere in the advisory
+ * path is caught and logged, and the block is simply omitted, never failing
+ * an otherwise-successful teaching call. Recurring by design: there is no
+ * dedupe or "already shown" state, so the block reappears on every response
+ * for as long as the underlying signal (`resolveSessionAdvisory`) keeps
+ * firing — it is never suppressed after being surfaced once.
+ */
+export type SessionAdvisoryBlock = {
+  kind: SessionAdvisoryKind;
+  /** Learner-facing explanation for the advisory. */
+  reason: string;
+  /** Fixed directive: relay the suggestion to the learner without interrupting or ending the session. */
+  directive: string;
+};
+
 export type RetryGuidance = {
   roadblock: RoadblockForecast;
   teaching_approach: TeachingApproach;
@@ -210,6 +233,8 @@ export type SubmitAnswerRetry = {
   message: string;
   feedback: string;
   retry_guidance?: RetryGuidance;
+  // NEU-848: within-session stopping advisory
+  session_advisory?: SessionAdvisoryBlock;
 };
 
 export type SubmitAnswerRecorded = {
@@ -224,6 +249,8 @@ export type SubmitAnswerRecorded = {
   late_submission?: boolean;
   roadblock_forecast?: RoadblockForecast;
   correct_answer?: CorrectAnswerBlock;
+  // NEU-848: within-session stopping advisory — placed after correct_answer? (NEU-847 field order preserved)
+  session_advisory?: SessionAdvisoryBlock;
 };
 
 export type SubmitAnswerError = {

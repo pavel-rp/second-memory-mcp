@@ -24,15 +24,26 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
   leechEasePenaltyAdjustment: -0.05,
   minLeechEasePenalty: -0.25,
   dailyCaps: {
+    // ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit found no
+    // anchoring evidence for these caps).
     maxNew: 20,
     maxReviews: 200,
   },
   tagWeights: {},
   sessionConfig: {
     qualityThreshold: 4.0,
-    timeThresholdMs: 90 * 60 * 1000, // 90 minutes
+    // 90 minutes — ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy
+    // audit found no anchoring evidence). No longer the break trigger — NEU-848
+    // replaced that with the measured fatigue advisory (`resolveSessionAdvisory`).
+    // Remains the minimum-practice-time input to the surviving
+    // `qualityMet && timeMet` -> 'complete' completion heuristic.
+    timeThresholdMs: 90 * 60 * 1000,
     completionThreshold: 0.8, // 80%
-    maxTimeMs: 120 * 60 * 1000, // 2 hours
+    // 2 hours — ENGINEERING DEFAULT, not evidence-derived (NEU-848 pedagogy audit
+    // found no anchoring evidence). Remains the hard ceiling backstop, now
+    // surfaced both through `session_status` and in-band as a recurring
+    // `time_ceiling` stopping advisory.
+    maxTimeMs: 120 * 60 * 1000,
   },
   recommendationConfig: {
     conversation: {

@@ -26,12 +26,15 @@ import type {
   ReviseGradeInput,
   ReviseGradeResult,
   CorrectAnswerBlock,
+  SessionAdvisoryBlock,
 } from '../domain/types/teaching.js';
 import type { SessionQuestion, SessionQuestionAttempt } from '../domain/types/entities.js';
 import crypto from 'node:crypto';
 import type { DrillFormat, PromptFeedbackEntry } from '../shared/prompts/prompt-pack.js';
 import { promptPack } from '../shared/prompts/prompt-pack.js';
 import { getRequestLogger, logEvent } from '../shared/logger.js';
+import type { FatigueAttempt } from '../domain/algorithms/fatigue-trend.js';
+import * as sessionAdvisoryAlgorithm from '../domain/algorithms/session-advisory.js';
 import * as reviewWorkflows from './review-workflows.js';
 import * as sessionWorkflows from './session-workflows.js';
 import * as recommendationWorkflows from './recommendation-workflows.js';
@@ -43,7 +46,7 @@ import {
 } from '../domain/algorithms/roadblock-gate.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { mapRubricToQuality } from '../domain/algorithms/grade-mapper.js';
-import { isPgUniqueViolation } from '../shared/errors.js';
+import { extractErrorMessage, isPgUniqueViolation } from '../shared/errors.js';
 import {
   classifyChunk,
   type ClassifyChunkInput,
@@ -63,6 +66,48 @@ import { computeSchedulingSnapshot } from '../domain/algorithms/scheduling-snaps
 /** Lookup helper — returns empty array when key is absent from a Map<string, T[]>. */
 function mapGetList<T>(map: Map<string, T[]>, key: string): T[] {
   return map.get(key) ?? [];
+}
+
+/** Fixed presentation directive for `SessionAdvisoryBlock` (NEU-848). */
+const SESSION_ADVISORY_DIRECTIVE =
+  'Relay this suggestion to the learner conversationally without interrupting or ending the ' +
+  'current teaching flow — this is advisory only, not a control signal.';
+
+/** Map persisted attempt rows into the shared fatigue resolver's input shape (NEU-848). */
+function toFatigueAttempts(attempts: SessionQuestionAttempt[]): FatigueAttempt[] {
+  return attempts.map(a => ({
+    timestamp: a.createdAt,
+    quality: a.quality,
+    latencyMs: a.timeSpentMs,
+  }));
+}
+
+/**
+ * Pure: derive the in-band session-advisory block (NEU-848) from an attempt
+ * population, elapsed session time, and the configured max session time —
+ * both `getNextTeachingStep` and `submitAnswerForQuestion` call this same
+ * derivation over the SAME shared resolver (`resolveSessionAdvisory`), the
+ * agreement invariant with `session-analyzer.ts`. Kept pure and throw-free
+ * per `resolveSessionAdvisory`'s own contract; callers still wrap their call
+ * site fail-open since the attempt population itself may come from a fresh,
+ * fallible fetch.
+ */
+function deriveSessionAdvisoryBlock(
+  attempts: SessionQuestionAttempt[],
+  elapsedMs: number,
+  maxTimeMs: number
+): SessionAdvisoryBlock | undefined {
+  const advisory = sessionAdvisoryAlgorithm.resolveSessionAdvisory({
+    attempts: toFatigueAttempts(attempts),
+    elapsedMs,
+    maxTimeMs,
+  });
+  if (!advisory) return undefined;
+  return {
+    kind: advisory.kind,
+    reason: advisory.reason,
+    directive: SESSION_ADVISORY_DIRECTIVE,
+  };
 }
 
 /** Mode-specific retry pivot strings — what to change because the first attempt failed. */
@@ -640,6 +685,22 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
 
   const previousFeedbackStrings = historicalFeedback.map(hf => hf.feedback);
 
+  // NEU-848: within-session stopping advisory, built from the already-loaded
+  // `allAttempts` — zero additional queries on this path. Fail-open: a throw
+  // anywhere in assembly must never fail an otherwise-successful teach_next call.
+  let sessionAdvisory: SessionAdvisoryBlock | undefined;
+  try {
+    sessionAdvisory = deriveSessionAdvisoryBlock(
+      allAttempts,
+      now.getTime() - session.startTime,
+      deps.algorithmConfig.sessionConfig.maxTimeMs
+    );
+  } catch (err: unknown) {
+    getRequestLogger().warn(
+      `teach_next: session advisory assembly failed: ${extractErrorMessage(err)}`
+    );
+  }
+
   return {
     action: 'teach',
     session_id: session.id,
@@ -676,6 +737,7 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
     is_first_chunk_in_topic: isFirstChunkInTopic,
     dominant_tier: topicProfile.dominantTier,
     pacing: computePacing(chunkData.difficulty),
+    ...(sessionAdvisory && { session_advisory: sessionAdvisory }),
   };
 }
 
@@ -1190,6 +1252,25 @@ async function submitAnswerForQuestion(
     ...(wasCapped && { wasCapped: true, rubricQuality }),
   });
 
+  // NEU-848: within-session stopping advisory. One added `getAllAttemptsForSession`
+  // call, placed after the attempt above is persisted so the just-recorded attempt
+  // is in the population fed to the shared resolver. Fail-open: a throw anywhere
+  // in the fetch or assembly must never fail an otherwise-successful submit_answer
+  // call — the block is simply omitted.
+  let sessionAdvisory: SessionAdvisoryBlock | undefined;
+  try {
+    const advisoryAttempts = await deps.sessionQuestions.getAllAttemptsForSession(session.id);
+    sessionAdvisory = deriveSessionAdvisoryBlock(
+      advisoryAttempts,
+      now.getTime() - session.startTime,
+      deps.algorithmConfig.sessionConfig.maxTimeMs
+    );
+  } catch (err: unknown) {
+    getRequestLogger().warn(
+      `submit_answer: session advisory assembly failed for session ${session.id}: ${extractErrorMessage(err)}`
+    );
+  }
+
   // 6. Resolve teaching approach early so we can skip the roadblock-state fetch
   // when nothing will surface it (first-attempt fail with no approach → retry
   // without retry_guidance).
@@ -1267,6 +1348,7 @@ async function submitAnswerForQuestion(
           pivot: RETRY_PIVOT[approach],
         },
       }),
+      ...(sessionAdvisory && { session_advisory: sessionAdvisory }),
     };
   }
 
@@ -1324,6 +1406,7 @@ async function submitAnswerForQuestion(
     ...(isLateSubmission && { late_submission: true }),
     ...(forecast && { roadblock_forecast: forecast }),
     ...(correctAnswer && { correct_answer: correctAnswer }),
+    ...(sessionAdvisory && { session_advisory: sessionAdvisory }),
   };
 }
 
