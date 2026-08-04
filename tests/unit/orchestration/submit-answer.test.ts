@@ -34,6 +34,7 @@ import { DEFAULT_ALGORITHM_CONFIG } from '../../../src/domain/config/algorithm-d
 import type { AlgorithmConfig } from '../../../src/domain/config/algorithm.js';
 import type { RubricGradingPayload } from '../../../src/domain/algorithms/grade-mapper.js';
 import { computeSchedulingSnapshot } from '../../../src/domain/algorithms/scheduling-snapshot.js';
+import * as sessionAdvisoryAlgorithm from '../../../src/domain/algorithms/session-advisory.js';
 import { MS_PER_DAY } from '../../../src/shared/constants/time.js';
 import { rubricForQuality } from '../../helpers/grading.js';
 
@@ -1685,6 +1686,223 @@ describe('submitAnswer', () => {
     });
   });
 
+  // ── NEU-848: within-session stopping advisory ──────────────────────
+
+  describe('session_advisory (NEU-848)', () => {
+    /**
+     * Six attempts whose later-window latency rises and quality falls
+     * relative to the earlier window — fires `computeFatigueTrend`
+     * (MINIMUM_ATTEMPTS = 6, WINDOW_SPLIT_RATIO = 0.5). Unrelated to any
+     * mapped session question, so it doesn't interact with roadblock gating.
+     */
+    function fatigueAttempts(): SessionQuestionAttempt[] {
+      const latencies = [1000, 1000, 1000, 2000, 2000, 2000];
+      const qualities = [5, 5, 5, 3, 3, 3];
+      return latencies.map((latencyMs, i) => ({
+        id: `sqa-fatigue-${i}`,
+        sessionQuestionId: `sq-fatigue-${i}`,
+        attemptNumber: 1,
+        response: 'r',
+        passed: true,
+        feedback: 'f',
+        quality: qualities[i] as number,
+        agentQuality: null,
+        questionType: null,
+        timeSpentMs: latencyMs,
+        createdAt: 1_000 + i * 1_000,
+      }));
+    }
+
+    it('is present on the recorded response while the fatigue signal fires', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.session_advisory).toEqual({
+        kind: 'fatigue',
+        reason: expect.any(String),
+        directive: expect.any(String),
+      });
+    });
+
+    it('is present on the retry response while the fatigue signal fires', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 1 }), deps);
+
+      expect(result.action).toBe('retry');
+      const retry = result as SubmitAnswerRetry;
+      expect(retry.session_advisory).toEqual({
+        kind: 'fatigue',
+        reason: expect.any(String),
+        directive: expect.any(String),
+      });
+    });
+
+    it('recurs across repeated submissions — no dedupe or "already shown" state', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+      });
+
+      const first = await submitAnswer(makeInput({ quality: 4 }), deps);
+      const second = await submitAnswer(makeInput({ quality: 4 }), deps);
+
+      expect((first as SubmitAnswerRecorded).session_advisory?.kind).toBe('fatigue');
+      expect((second as SubmitAnswerRecorded).session_advisory?.kind).toBe('fatigue');
+    });
+
+    it('coexists with correct_answer and roadblock_forecast on a second-attempt-failure response', async () => {
+      const pastCeiling = Date.now() - (DEFAULT_ALGORITHM_CONFIG.sessionConfig.maxTimeMs + 60_000);
+      const sq1 = makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' });
+      const deps = makeQuestionDeps({
+        sessions: {
+          getSessionById: vi.fn().mockResolvedValue(makeSession({ startTime: pastCeiling })),
+        },
+        chunks: {
+          getById: vi.fn().mockResolvedValue(
+            makeLearningChunk({
+              id: 'c1',
+              title: 'Chunk 1',
+              content: 'Chunk 1 content',
+              condensedSummary: 'Chunk 1 summary',
+            })
+          ),
+        },
+        sessionQuestions: {
+          getQuestionById: vi.fn().mockResolvedValue(sq1),
+          getAttemptsForQuestion: vi
+            .fn()
+            .mockResolvedValue([
+              makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: 1, agentQuality: 1 }),
+            ]),
+          getQuestionsForSession: vi.fn().mockResolvedValue([sq1]),
+          getChunkIdsForQuestions: vi.fn().mockResolvedValue(new Map([['sq-1', ['c1']]])),
+          getAllAttemptsForSession: vi.fn().mockResolvedValue([
+            makeQuestionAttempt({
+              id: 'sqa-1',
+              attemptNumber: 1,
+              passed: false,
+              quality: 1,
+              agentQuality: 1,
+              createdAt: NOW,
+            }),
+            makeQuestionAttempt({
+              id: 'sqa-2',
+              attemptNumber: 2,
+              passed: false,
+              quality: 2,
+              agentQuality: 2,
+              createdAt: NOW + 1000,
+            }),
+          ]),
+        },
+      });
+
+      const result = await submitAnswer(
+        makeInput({ sessionQuestionId: 'sq-1', quality: 2, passed: false }),
+        deps
+      );
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(recorded.correct_answer).toEqual({
+        content: 'Chunk 1 content',
+        condensed_summary: 'Chunk 1 summary',
+        title: 'Chunk 1',
+        directive: expect.any(String),
+      });
+      expect(recorded.session_advisory).toEqual({
+        kind: 'time_ceiling',
+        reason: expect.any(String),
+        directive: expect.any(String),
+      });
+    });
+
+    it('fails open: a throw in advisory assembly still returns a complete, successful response with the block omitted', async () => {
+      const deps = makeDeps({
+        sessions: {
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+        },
+        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+      });
+      const spy = vi
+        .spyOn(sessionAdvisoryAlgorithm, 'resolveSessionAdvisory')
+        .mockImplementation(() => {
+          throw new Error('injected advisory failure');
+        });
+
+      try {
+        const result = await submitAnswer(makeInput({ quality: 4 }), deps);
+
+        expect(result.action).toBe('recorded');
+        const recorded = result as SubmitAnswerRecorded;
+        expect(recorded.passed).toBe(true);
+        expect(recorded.quality).toBe(4);
+        expect(result).not.toHaveProperty('session_advisory');
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('adds at most one getAllAttemptsForSession call beyond the existing roadblock-state fetch', async () => {
+      const getAllAttempts = vi.fn().mockResolvedValue([
+        {
+          id: 'sqa-current',
+          sessionQuestionId: 'sq-created',
+          attemptNumber: 1 as const,
+          response: 'X is a concept',
+          passed: true,
+          feedback: 'Good explanation',
+          quality: 3,
+          agentQuality: 3,
+          questionType: 'recall' as const,
+          timeSpentMs: 5000,
+          createdAt: NOW,
+        },
+      ]);
+      const deps = makeDeps({
+        sessionQuestions: {
+          getAllAttemptsForSession: getAllAttempts,
+        },
+      });
+
+      const result = await submitAnswer(makeInput({ quality: 3, passed: true }), deps);
+
+      expect(result.action).toBe('recorded');
+      const recorded = result as SubmitAnswerRecorded;
+      // Existing behavior (NEU-600) already calls getAllAttemptsForSession once
+      // for the gate-aligned roadblock-state fetch when a forecast will surface;
+      // NEU-848 adds exactly one more for the session advisory — never more than
+      // one additional round trip.
+      expect(recorded.roadblock_forecast).toBeDefined();
+      expect(getAllAttempts).toHaveBeenCalledTimes(2);
+    });
+  });
+
   // ── NEU-600: gate-aligned retry_guidance.roadblock ────────────────
 
   describe('retry_guidance roadblock alignment (NEU-600)', () => {
@@ -1853,14 +2071,16 @@ describe('submitAnswer', () => {
       expect(retry.retry_guidance!.roadblock.remaining).toBe(3);
     });
 
-    it('lazy: skips roadblock state fetch when first-attempt-fail has no teaching approach', async () => {
+    it('lazy: skips the roadblock-state fetch, but the NEU-848 session-advisory fetch still fires once, when first-attempt-fail has no teaching approach', async () => {
       // When the retry path will not emit retry_guidance (approach is null),
-      // the gate-aligned state is never surfaced — so the fetch should be
-      // skipped entirely. We assert by mocking getAllAttemptsForSession to
-      // throw: if the helper were called, the call would reject (and surface
-      // through the best-effort log warn); since it is skipped, the rejection
-      // never fires.
-      const getAllAttempts = vi.fn().mockRejectedValue(new Error('should not be called'));
+      // the gate-aligned roadblock state is never surfaced — so
+      // computeChunkRoadblockState's own fetch should be skipped entirely.
+      // Separately, NEU-848's session-advisory assembly always fetches once
+      // after the attempt is persisted, regardless of whether a forecast will
+      // be surfaced. Since both call sites share the same port method, a
+      // single total call proves the roadblock-state fetch specifically
+      // stayed skipped (a second call would mean it fired too).
+      const getAllAttempts = vi.fn().mockResolvedValue([]);
       const deps = makeDeps({
         sessions: {
           getSessionChunks: vi.fn().mockResolvedValue([
@@ -1882,7 +2102,7 @@ describe('submitAnswer', () => {
       expect(result.action).toBe('retry');
       const retry = result as SubmitAnswerRetry;
       expect(retry.retry_guidance).toBeUndefined();
-      expect(getAllAttempts).not.toHaveBeenCalled();
+      expect(getAllAttempts).toHaveBeenCalledTimes(1);
     });
   });
 });
