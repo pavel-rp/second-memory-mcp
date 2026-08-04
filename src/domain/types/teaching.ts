@@ -181,6 +181,21 @@ export type RoadblockForecast = {
   quality_floor: 3;
 };
 
+/**
+ * Chunk-derived corrective material surfaced only after a second failed
+ * attempt (NEU-847). Not a canonical or generated per-question answer — the
+ * server holds none; this is the answering chunk's own `title`/`content`/
+ * `condensedSummary` plus a fixed presentation directive. `content` and
+ * `condensed_summary` mirror `LearningChunk`'s own nullability: a `null`
+ * field means "no material of that kind", never an omitted key.
+ */
+export type CorrectAnswerBlock = {
+  content: string | null;
+  condensed_summary: string | null;
+  title: string;
+  directive: string;
+};
+
 export type RetryGuidance = {
   roadblock: RoadblockForecast;
   teaching_approach: TeachingApproach;
@@ -208,6 +223,7 @@ export type SubmitAnswerRecorded = {
   review_update?: ReviewUpdate;
   late_submission?: boolean;
   roadblock_forecast?: RoadblockForecast;
+  correct_answer?: CorrectAnswerBlock;
 };
 
 export type SubmitAnswerError = {
