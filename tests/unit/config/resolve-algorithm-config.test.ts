@@ -138,61 +138,6 @@ describe('resolveAlgorithmConfig', () => {
     });
   });
 
-  // ── Nested: recommendationConfig.cognitiveLoad ──────────────
-
-  it('overrides cognitiveLoad fields', () => {
-    const result = resolveAlgorithmConfig({
-      SM_REC_MAX_COG_LOAD_DEFAULT: '25',
-      SM_REC_COG_EASY_THRESHOLD: '5',
-      SM_REC_COG_HARD_THRESHOLD: '18',
-      SM_REC_COG_PER_MIN_FACTOR: '0.7',
-    });
-    expect(result.recommendationConfig.cognitiveLoad).toEqual({
-      defaultMax: 25,
-      easyThreshold: 5,
-      hardThreshold: 18,
-      perMinuteFactor: 0.7,
-    });
-  });
-
-  // ── Nested: recommendationConfig.sessionComposition ─────────
-
-  it('overrides sessionComposition numeric fields', () => {
-    const result = resolveAlgorithmConfig({
-      SM_REC_MAX_NEW_DEFAULT: '5',
-      SM_REC_SHORT_SESSION_MIN: '10',
-      SM_REC_MAX_NEW_SHORT: '2',
-      SM_REC_LONG_SESSION_MIN: '60',
-      SM_REC_MAX_NEW_LONG: '8',
-    });
-    expect(result.recommendationConfig.sessionComposition.maxNewDefault).toBe(5);
-    expect(result.recommendationConfig.sessionComposition.shortSessionMinutes).toBe(10);
-    expect(result.recommendationConfig.sessionComposition.maxNewShort).toBe(2);
-    expect(result.recommendationConfig.sessionComposition.longSessionMinutes).toBe(60);
-    expect(result.recommendationConfig.sessionComposition.maxNewLong).toBe(8);
-  });
-
-  // ── parseEnum: interleaveStrategy ───────────────────────────
-
-  it('accepts valid interleaveStrategy "balanced"', () => {
-    const result = resolveAlgorithmConfig({ SM_REC_INTERLEAVE_STRATEGY: 'balanced' });
-    expect(result.recommendationConfig.sessionComposition.interleaveStrategy).toBe('balanced');
-  });
-
-  it('accepts valid interleaveStrategy "easy-medium-hard"', () => {
-    const result = resolveAlgorithmConfig({ SM_REC_INTERLEAVE_STRATEGY: 'easy-medium-hard' });
-    expect(result.recommendationConfig.sessionComposition.interleaveStrategy).toBe(
-      'easy-medium-hard'
-    );
-  });
-
-  it('falls back to default for invalid interleaveStrategy', () => {
-    const result = resolveAlgorithmConfig({ SM_REC_INTERLEAVE_STRATEGY: 'random' });
-    expect(result.recommendationConfig.sessionComposition.interleaveStrategy).toBe(
-      DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.interleaveStrategy
-    );
-  });
-
   // ── Nested: recommendationConfig.conversation ───────────────
 
   it('overrides conversation booleans', () => {

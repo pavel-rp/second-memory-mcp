@@ -35,20 +35,6 @@ export const DEFAULT_ALGORITHM_CONFIG: AlgorithmConfig = {
     maxTimeMs: 120 * 60 * 1000, // 2 hours
   },
   recommendationConfig: {
-    cognitiveLoad: {
-      defaultMax: 20,
-      easyThreshold: 8,
-      hardThreshold: 15,
-      perMinuteFactor: 0.5,
-    },
-    sessionComposition: {
-      maxNewDefault: 3,
-      shortSessionMinutes: 15,
-      maxNewShort: 1,
-      longSessionMinutes: 45,
-      maxNewLong: 5,
-      interleaveStrategy: 'easy-medium-hard',
-    },
     conversation: {
       enableEncouragement: true,
       enableProgressUpdates: true,
