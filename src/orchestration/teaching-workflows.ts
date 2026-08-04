@@ -46,7 +46,7 @@ import {
 } from '../domain/algorithms/roadblock-gate.js';
 import { computeQualityCap } from '../domain/algorithms/quality-cap.js';
 import { mapRubricToQuality } from '../domain/algorithms/grade-mapper.js';
-import { isPgUniqueViolation } from '../shared/errors.js';
+import { extractErrorMessage, isPgUniqueViolation } from '../shared/errors.js';
 import {
   classifyChunk,
   type ClassifyChunkInput,
@@ -696,8 +696,9 @@ export async function getNextTeachingStep(deps: TeachingDeps): Promise<TeachNext
       deps.algorithmConfig.sessionConfig.maxTimeMs
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    getRequestLogger().warn(`teach_next: session advisory assembly failed: ${message}`);
+    getRequestLogger().warn(
+      `teach_next: session advisory assembly failed: ${extractErrorMessage(err)}`
+    );
   }
 
   return {
@@ -1265,9 +1266,8 @@ async function submitAnswerForQuestion(
       deps.algorithmConfig.sessionConfig.maxTimeMs
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
     getRequestLogger().warn(
-      `submit_answer: session advisory assembly failed for session ${session.id}: ${message}`
+      `submit_answer: session advisory assembly failed for session ${session.id}: ${extractErrorMessage(err)}`
     );
   }
 

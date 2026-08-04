@@ -223,6 +223,51 @@ describe('computeFatigueTrend', () => {
       expect(result.sampledCount).toBe(0);
     });
 
+    it('non-object elements inside the array are filtered out, not thrown on', () => {
+      const attempts: unknown[] = [
+        attempt(0, 1000, 4),
+        null,
+        attempt(1, 1000, 4),
+        'not an attempt',
+        attempt(2, 1000, 4),
+        42,
+        attempt(3, 1000, 4),
+        undefined,
+      ];
+
+      const result = computeFatigueTrend(attempts);
+
+      // Four valid attempts survive — below MINIMUM_ATTEMPTS (6).
+      expect(result).toEqual({
+        fatigued: false,
+        sampledCount: 0,
+        latencyDeltaRatio: null,
+        qualityDelta: null,
+      });
+    });
+
+    it('a zero-latency earlier window yields a null ratio and cannot fire', () => {
+      const attempts: FatigueAttempt[] = [
+        attempt(0, 0, 4),
+        attempt(1, 0, 4),
+        attempt(2, 0, 4),
+        attempt(3, 0, 4),
+        attempt(4, 2000, 1),
+        attempt(5, 2000, 1),
+        attempt(6, 2000, 1),
+        attempt(7, 2000, 1),
+      ];
+
+      const result = computeFatigueTrend(attempts);
+
+      // Quality fell hard, but a relative rise is undefined against a zero
+      // baseline — the advisory stays silent rather than dividing by zero.
+      expect(result.sampledCount).toBe(8);
+      expect(result.latencyDeltaRatio).toBeNull();
+      expect(result.qualityDelta).toBe(-3);
+      expect(result.fatigued).toBe(false);
+    });
+
     it('malformed or absent input never throws', () => {
       const expected = {
         fatigued: false,

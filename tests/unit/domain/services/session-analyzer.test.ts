@@ -1049,6 +1049,79 @@ describe('Session Manager', () => {
       expect(duplicatedResult).toEqual(singleResult);
     });
 
+    it('treats an attempt with no quality as unscored rather than a zero', () => {
+      // 6 attempts whose latency doubles while quality drops by 2 — enough
+      // for the trend to fire when every attempt is scored.
+      const scoredAttempts: ChunkAttempt[] = [
+        makeAttempt({ timestamp: '2024-01-01T09:50:00.000Z', time_spent_ms: 10000, quality: 4 }),
+        makeAttempt({ timestamp: '2024-01-01T09:51:00.000Z', time_spent_ms: 10000, quality: 4 }),
+        makeAttempt({ timestamp: '2024-01-01T09:52:00.000Z', time_spent_ms: 10000, quality: 4 }),
+        makeAttempt({ timestamp: '2024-01-01T10:00:00.000Z', time_spent_ms: 20000, quality: 2 }),
+        makeAttempt({ timestamp: '2024-01-01T10:01:00.000Z', time_spent_ms: 20000, quality: 2 }),
+        makeAttempt({ timestamp: '2024-01-01T10:02:00.000Z', time_spent_ms: 20000, quality: 2 }),
+      ];
+
+      // The same population with the final attempt's `quality` omitted — the
+      // shape `convertSessionToSessionInput` produces for an unscored retry.
+      const unscoredRetry: ChunkAttempt = {
+        timestamp: '2024-01-01T10:02:00.000Z',
+        time_spent_ms: 20000,
+        question: 'Q',
+        response: 'A',
+        passed: true,
+        feedback: 'ok',
+      };
+      const withUnscoredAttempt: ChunkAttempt[] = [...scoredAttempts.slice(0, 5), unscoredRetry];
+
+      function sessionWith(attempts: ChunkAttempt[]): SessionInput {
+        return {
+          session_id: 'unscored-attempt-session',
+          mode: 'learning',
+          ...baseTimes,
+          chunks: [
+            {
+              chunk_id: 'c1',
+              session_chunk_id: 'sc1',
+              title: 'C1',
+              status: 'completed',
+              attempts,
+              quality_scores: [4, 4, 4, 2, 2, 2],
+              time_spent_ms: 90000,
+            },
+            {
+              chunk_id: 'c2',
+              session_chunk_id: 'sc2',
+              title: 'C2',
+              status: 'pending',
+              attempts: [],
+              quality_scores: [],
+              time_spent_ms: 0,
+            },
+          ],
+        };
+      }
+
+      const scoredResult = getSessionStatus(
+        sessionWith(scoredAttempts),
+        DEFAULT_ALGORITHM_CONFIG,
+        NOW
+      );
+      const unscoredResult = getSessionStatus(
+        sessionWith(withUnscoredAttempt),
+        DEFAULT_ALGORITHM_CONFIG,
+        NOW
+      );
+
+      // Fully scored, the trend fires.
+      expect(scoredResult.recommendation).toBe('break');
+
+      // With one attempt unscored it is dropped from the sample (not counted
+      // as a quality-0 attempt, which would deepen the apparent decline and
+      // still fire), leaving 5 — below the minimum sample size.
+      expect(unscoredResult.recommendation).toBe('continue');
+      expect(unscoredResult.shouldComplete).toBe(false);
+    });
+
     it('still recommends break past maxTimeMs even when the fatigue trend is silent', () => {
       const session: SessionInput = {
         session_id: 'past-ceiling-silent-fatigue',
