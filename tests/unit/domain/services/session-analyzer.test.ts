@@ -8,7 +8,11 @@ import {
 import { DEFAULT_ALGORITHM_CONFIG } from '../../../../src/domain/config/algorithm-defaults.js';
 import { resolveSessionAdvisory } from '../../../../src/domain/algorithms/session-advisory.js';
 import type { FatigueAttempt } from '../../../../src/domain/algorithms/fatigue-trend.js';
-import type { SessionInput, SessionChunk, ChunkAttempt } from '../../../../src/domain/types/session.js';
+import type {
+  SessionInput,
+  SessionChunk,
+  ChunkAttempt,
+} from '../../../../src/domain/types/session.js';
 
 const NOW = new Date('2024-01-01T10:30:00.000Z');
 
@@ -937,7 +941,8 @@ describe('Session Manager', () => {
     };
 
     function makeAttempt(
-      overrides: Partial<ChunkAttempt> & Pick<ChunkAttempt, 'timestamp' | 'time_spent_ms' | 'quality'>
+      overrides: Partial<ChunkAttempt> &
+        Pick<ChunkAttempt, 'timestamp' | 'time_spent_ms' | 'quality'>
     ): ChunkAttempt {
       return {
         question: 'Q',
@@ -1057,7 +1062,11 @@ describe('Session Manager', () => {
             title: 'Chunk 1',
             status: 'in_progress',
             attempts: [
-              makeAttempt({ timestamp: '2024-01-01T08:10:00.000Z', time_spent_ms: 300000, quality: 3 }),
+              makeAttempt({
+                timestamp: '2024-01-01T08:10:00.000Z',
+                time_spent_ms: 300000,
+                quality: 3,
+              }),
             ],
             quality_scores: [3],
             time_spent_ms: 300000,
@@ -1086,7 +1095,11 @@ describe('Session Manager', () => {
             title: 'Chunk 1',
             status: 'completed',
             attempts: [
-              makeAttempt({ timestamp: '2024-01-01T09:45:00.000Z', time_spent_ms: 300000, quality: 3 }),
+              makeAttempt({
+                timestamp: '2024-01-01T09:45:00.000Z',
+                time_spent_ms: 300000,
+                quality: 3,
+              }),
             ],
             quality_scores: [3],
             time_spent_ms: 300000,
@@ -1159,7 +1172,11 @@ describe('Session Manager', () => {
               title: 'Chunk 1',
               status: 'completed',
               attempts: [
-                makeAttempt({ timestamp: '2024-01-01T10:00:00.000Z', time_spent_ms: 600000, quality: 3 }),
+                makeAttempt({
+                  timestamp: '2024-01-01T10:00:00.000Z',
+                  time_spent_ms: 600000,
+                  quality: 3,
+                }),
               ],
               quality_scores: [3],
               time_spent_ms: 600000,
@@ -1249,7 +1266,11 @@ describe('Session Manager', () => {
               title: 'Chunk 1',
               status: 'in_progress',
               attempts: [
-                makeAttempt({ timestamp: '2024-01-01T08:10:00.000Z', time_spent_ms: 300000, quality: 3 }),
+                makeAttempt({
+                  timestamp: '2024-01-01T08:10:00.000Z',
+                  time_spent_ms: 300000,
+                  quality: 3,
+                }),
               ],
               quality_scores: [3],
               time_spent_ms: 300000,
@@ -1275,7 +1296,11 @@ describe('Session Manager', () => {
               title: 'Chunk 1',
               status: 'completed',
               attempts: [
-                makeAttempt({ timestamp: '2024-01-01T10:20:00.000Z', time_spent_ms: 300000, quality: 5 }),
+                makeAttempt({
+                  timestamp: '2024-01-01T10:20:00.000Z',
+                  time_spent_ms: 300000,
+                  quality: 5,
+                }),
               ],
               quality_scores: [5],
               time_spent_ms: 300000,

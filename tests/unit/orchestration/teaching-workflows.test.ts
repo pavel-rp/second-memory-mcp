@@ -2145,7 +2145,9 @@ describe('getNextTeachingStep', () => {
       vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
       const deps = makeDeps({
         sessions: {
-          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
         sessionQuestions: sqRepo,
       });
@@ -2165,7 +2167,9 @@ describe('getNextTeachingStep', () => {
       vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
       const deps = makeDeps({
         sessions: {
-          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
         sessionQuestions: sqRepo,
       });
@@ -2180,7 +2184,9 @@ describe('getNextTeachingStep', () => {
     it('is absent when neither the fatigue nor the time-ceiling signal fires', async () => {
       const deps = makeDeps({
         sessions: {
-          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
       });
       // Default stub: getAllAttemptsForSession resolves to [] — fatigue silent.
@@ -2215,7 +2221,9 @@ describe('getNextTeachingStep', () => {
       vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
       const deps = makeDeps({
         sessions: {
-          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
         sessionQuestions: sqRepo,
       });
@@ -2242,7 +2250,9 @@ describe('getNextTeachingStep', () => {
       vi.mocked(sqRepo.getAllAttemptsForSession).mockResolvedValue(fatigueAttempts());
       const deps = makeDeps({
         sessions: {
-          getActiveSession: vi.fn().mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
+          getActiveSession: vi
+            .fn()
+            .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
         sessionQuestions: sqRepo,
       });

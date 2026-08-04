@@ -1720,7 +1720,9 @@ describe('submitAnswer', () => {
             .fn()
             .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
-        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()),
+        },
       });
 
       const result = await submitAnswer(makeInput({ quality: 4 }), deps);
@@ -1741,7 +1743,9 @@ describe('submitAnswer', () => {
             .fn()
             .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
-        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()),
+        },
       });
 
       const result = await submitAnswer(makeInput({ quality: 1 }), deps);
@@ -1762,7 +1766,9 @@ describe('submitAnswer', () => {
             .fn()
             .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
-        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()),
+        },
       });
 
       const first = await submitAnswer(makeInput({ quality: 4 }), deps);
@@ -1847,7 +1853,9 @@ describe('submitAnswer', () => {
             .fn()
             .mockResolvedValue(makeSession({ startTime: Date.now() - 1_000 })),
         },
-        sessionQuestions: { getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()) },
+        sessionQuestions: {
+          getAllAttemptsForSession: vi.fn().mockResolvedValue(fatigueAttempts()),
+        },
       });
       const spy = vi
         .spyOn(sessionAdvisoryAlgorithm, 'resolveSessionAdvisory')

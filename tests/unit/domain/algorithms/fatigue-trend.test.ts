@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { computeFatigueTrend, type FatigueAttempt } from '../../../../src/domain/algorithms/fatigue-trend.js';
+import {
+  computeFatigueTrend,
+  type FatigueAttempt,
+} from '../../../../src/domain/algorithms/fatigue-trend.js';
 
 const T0 = 1_700_000_000_000;
 const HOUR = 3_600_000;
