@@ -1658,6 +1658,20 @@ describe('submitAnswer', () => {
       expect(result).not.toHaveProperty('correct_answer');
     });
 
+    it('fails open (no block, attempt still recorded) when the chunk fetch rejects with a non-Error value', async () => {
+      const deps = secondFailDeps({
+        getById: vi.fn().mockRejectedValue('boom'),
+      });
+
+      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result.passed).toBe(false);
+      expect(result.attempt).toBe(2);
+      expect(result).not.toHaveProperty('correct_answer');
+    });
+
     it('fails open (no block, attempt still recorded) when the chunk is not found', async () => {
       const deps = secondFailDeps({
         getById: vi.fn().mockResolvedValue(undefined),
