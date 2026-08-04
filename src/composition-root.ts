@@ -300,6 +300,8 @@ export interface AppContext {
     to: string,
     options: { includeBreakdowns?: boolean }
   ) => Promise<AnalyticsOutput>;
+  /** NEU-845 scheduler health: true retention over the recorded scheduling snapshots. */
+  computeSchedulerHealth: () => Promise<analyticsWorkflows.SchedulerHealthAnalytics>;
   getSessionStatus: (sessionData: SessionInput) => SessionStatus;
   validateSessionContext: (context: unknown) => ServiceResult<SessionInput>;
   applyBatchSessionChunkOperations: typeof applyBatchSessionChunkOperations;
@@ -617,6 +619,9 @@ export function createAppContext(
     computeDailyAnalytics: date => analyticsWorkflows.computeDailyAnalytics(date, analyticsDeps),
     computeWindowAnalytics: (from, to, options) =>
       analyticsWorkflows.computeWindowAnalytics(from, to, options, analyticsDeps),
+    // The clock is injected here so the workflow and the domain stay clock-free.
+    computeSchedulerHealth: () =>
+      analyticsWorkflows.computeSchedulerHealthAnalytics(analyticsDeps, new Date()),
     getSessionStatus: sessionData => getSessionStatus(sessionData, algorithmConfig, new Date()),
     validateSessionContext: context => validateSessionContext(context, new Date()),
     applyBatchSessionChunkOperations,
