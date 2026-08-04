@@ -15,6 +15,7 @@ import type {
   ReviewPersistencePort,
   GetWeakAreasOptions,
   WeakAreaResult,
+  FirstAttemptObservation,
 } from '../../ports/review-persistence-port.js';
 import { toIsoTimestamp } from '../../shared/date-helpers.js';
 import { GRADE_PASS_THRESHOLD } from '../../domain/algorithms/over-validation-guard.js';
@@ -32,6 +33,22 @@ const weakAreaRowSchema = z.object({
   low_count: z.coerce.number(),
   recent_attempts: z.coerce.number(),
   avg_recent_quality: z.coerce.number(),
+});
+
+// The pg driver hands back real booleans for boolean columns but strings for
+// several numeric types, hence z.boolean() for the two flags (z.coerce.boolean()
+// would turn the string "false" into true) and z.coerce.number() for the
+// numeric snapshot columns. `.nullable()` short-circuits before coercion, so a
+// NULL column never becomes 0.
+const firstAttemptObservationRowSchema = z.object({
+  session_question_id: z.string(),
+  first_attempt_passed: z.boolean(),
+  eventual_passed: z.boolean(),
+  snapshot_band: z.string().nullable(),
+  snapshot_predicted_recall: z.coerce.number().nullable(),
+  snapshot_interval_days: z.coerce.number().nullable(),
+  snapshot_days_overdue: z.coerce.number().nullable(),
+  teaching_approach: z.string().nullable(),
 });
 
 export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
@@ -219,6 +236,90 @@ export class DrizzleReviewPersistenceAdapter implements ReviewPersistencePort {
         lowCount: parsed.low_count,
         recentAttempts: parsed.recent_attempts,
         avgRecentQuality: parsed.avg_recent_quality,
+      };
+    });
+  }
+
+  async getFirstAttemptObservations(): Promise<FirstAttemptObservation[]> {
+    // One row per scored question over all history (NEU-845). Three CTEs:
+    //
+    //  first_attempts — the attempt_number = 1 row, unique per question via
+    //    uq_session_question_attempts_question_number. Carries the four NEU-844
+    //    snapshot columns. Deliberately NOT filtered on snapshot_band: uncovered
+    //    rows are the coverage denominator.
+    //  retry — the attempt_number = 2 pivot-hint row, also unique per question.
+    //    LEFT JOINed, so a question with no retry is unaffected.
+    //  tier — the question's teaching approach, aggregated by question id. The
+    //    two-column join to session_chunks (session_id AND chunk_id) can fan out
+    //    because session_chunks has no unique index on that pair, and a question
+    //    may map to several chunks; grouping collapses both. The approach is
+    //    emitted only when the question maps to exactly one distinct chunk that
+    //    resolves to exactly one distinct non-null approach — otherwise there is
+    //    no single tier and the column is NULL. COUNT(DISTINCT ...) ignores
+    //    NULLs, so a missing or null approach yields 0 and falls to NULL too.
+    const query = sql`
+      WITH first_attempts AS (
+        SELECT
+          sqa.session_question_id,
+          sqa.passed,
+          sqa.snapshot_band,
+          sqa.snapshot_predicted_recall,
+          sqa.snapshot_interval_days,
+          sqa.snapshot_days_overdue
+        FROM session_question_attempts sqa
+        WHERE sqa.attempt_number = 1
+      ),
+      retry AS (
+        SELECT
+          sqa.session_question_id,
+          sqa.passed
+        FROM session_question_attempts sqa
+        WHERE sqa.attempt_number = 2
+      ),
+      tier AS (
+        SELECT
+          sq.id AS session_question_id,
+          CASE
+            WHEN COUNT(DISTINCT sqc.chunk_id) = 1
+             AND COUNT(DISTINCT sc.teaching_approach) = 1
+            THEN MIN(sc.teaching_approach)
+            ELSE NULL
+          END AS teaching_approach
+        FROM session_questions sq
+        INNER JOIN session_question_chunks sqc
+          ON sqc.session_question_id = sq.id
+        LEFT JOIN session_chunks sc
+          ON sc.session_id = sq.session_id
+         AND sc.chunk_id = sqc.chunk_id
+        GROUP BY sq.id
+      )
+      SELECT
+        fa.session_question_id,
+        fa.passed AS first_attempt_passed,
+        (fa.passed OR COALESCE(r.passed, FALSE)) AS eventual_passed,
+        fa.snapshot_band,
+        fa.snapshot_predicted_recall,
+        fa.snapshot_interval_days,
+        fa.snapshot_days_overdue,
+        t.teaching_approach
+      FROM first_attempts fa
+      LEFT JOIN retry r ON r.session_question_id = fa.session_question_id
+      LEFT JOIN tier t ON t.session_question_id = fa.session_question_id
+      ORDER BY fa.session_question_id
+    `;
+
+    const result = await this.db.execute(query);
+    return result.rows.map(row => {
+      const parsed = firstAttemptObservationRowSchema.parse(row);
+      return {
+        sessionQuestionId: parsed.session_question_id,
+        firstAttemptPassed: parsed.first_attempt_passed,
+        eventualPassed: parsed.eventual_passed,
+        snapshotBand: parsed.snapshot_band,
+        snapshotPredictedRecall: parsed.snapshot_predicted_recall,
+        snapshotIntervalDays: parsed.snapshot_interval_days,
+        snapshotDaysOverdue: parsed.snapshot_days_overdue,
+        teachingApproach: parsed.teaching_approach,
       };
     });
   }
