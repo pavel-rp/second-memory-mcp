@@ -567,7 +567,7 @@ class PromptPack {
       '',
       '## Session Continuation',
       '',
-      '- Check status: `session_status({ session_id: "..." })` — returns progress, quality, and continue/complete/break recommendation',
+      '- Check status: `session_status({ session_id: "..." })` — returns progress, quality, and continue/complete/break recommendation. Stopping guidance also arrives in-band on teaching responses (`teach_next` / `submit_answer`) as an advisory `session_advisory` block, so polling is not required to catch it',
       '',
       '## Completing a Session',
       '',

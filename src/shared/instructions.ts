@@ -17,12 +17,12 @@ TEACHING FLOW (start_learning → submit_answer loop)
 1. Call start_learning. Check data.action: "nothing_due"/"error" → surface message and stop. "started"/"resumed" → check data.first_chunk.action: "teach" → present instruction; "blocked"/"error" → surface and stop.
 2. Call submit_answer with prompt_text, chunk_ids, response, pass/fail, feedback, time_spent_ms.
 3. On data.action "retry", if retry_guidance is present, follow it: use the mode-specific pivot to scaffold the learner. roadblock.remaining follow-up questions (each scoring >= quality 3) are required before the server allows progression. Re-call submit_answer with session_question_id from the response.
-4. On data.action "recorded", if roadblock_forecast is present, follow-up questions are required before progression — prepare accordingly. If correct_answer is present, show it to the learner before calling teach_next. Call teach_next to get the next action: "teach" → present instruction, repeat from step 2. "roadblock" → follow-up questions are required before the server allows progression; follow roadblock_detail.instruction to scaffold the learner. "complete" → go to step 5. "blocked"/"error" → stop.
+4. On data.action "recorded", if roadblock_forecast is present, follow-up questions are required before progression — prepare accordingly. If correct_answer is present, show it to the learner before calling teach_next. If session_advisory is present, relay its reason and honor its directive (advisory only). Call teach_next to get the next action: "teach" → present instruction, repeat from step 2. "roadblock" → follow-up questions are required before the server allows progression; follow roadblock_detail.instruction to scaffold the learner. "complete" → go to step 5. "blocked"/"error" → stop.
 5. On "complete", call complete_session with session_id and optional feedback.
 
 OPERATIONAL CONSTRAINTS
 - Never fabricate scores — always use submit_answer, which lets the server derive quality.
-- submit_answer is the sole path for recording review data. The server derives quality from the learner's response.
+- submit_answer is the sole path for recording review data.
 - Never skip drills; the server decides when a chunk is mastered.
 - Do not manually hydrate prompt templates; call prompts through the MCP protocol.
 - The interval_days value in review responses is SM-2-derived — always read it from the response, never hardcode.
@@ -62,12 +62,11 @@ Before creating a topic: search existing content, then probe the learner — abs
 
 TOOL DISAMBIGUATION
 - start_learning vs create_session: start_learning is the one-call convenience. Use create_session only for manual control over chunk_ids or modes.
-- session_status: session metrics and completion checks. Returns progress, quality, and a continue/complete/break recommendation.
+- session_status: session metrics and completion checks; progress, quality, continue/complete/break. Stopping guidance also arrives in-band on teach_next/submit_answer, so polling is not required.
 
 TEACHING CONTENT INTEGRITY
 All content items provided by the server must be presented to the learner before they are referenced in any question.
 Your context window is not the learner's knowledge — do not ask about content the learner has not yet seen.
-Confirm that each item was explicitly shown to the learner before using it in a question or follow-up.
 
 QUESTION QUALITY
 You are responsible for asking high-quality questions using the three-level taxonomy:
