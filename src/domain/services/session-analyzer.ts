@@ -10,6 +10,9 @@ import type { AlgorithmConfig } from '../config/algorithm.js';
 import type { ServiceResult } from '../types/service-result.js';
 import { serviceOk, serviceFail } from '../types/service-result.js';
 import { clamp, roundTo } from '../../shared/math.js';
+import type { FatigueAttempt } from '../algorithms/fatigue-trend.js';
+import type { SessionAdvisory } from '../algorithms/session-advisory.js';
+import { resolveSessionAdvisory } from '../algorithms/session-advisory.js';
 
 // Helper function to parse ISO timestamp
 function parseTimestamp(timestamp: string, fallback: Date): Date {
@@ -43,6 +46,43 @@ function cleanSessionChunks(chunks: SessionChunk[]): SessionChunk[] {
     quality_scores: chunk.quality_scores.map(score => clampQuality(score)),
     time_spent_ms: Math.max(0, chunk.time_spent_ms || 0),
   }));
+}
+
+/**
+ * Flatten `sessionData.chunks[].attempts[]` into the shared fatigue
+ * resolver's attempt shape.
+ *
+ * `convertSessionToSessionInput` (`src/adapters/drizzle/session-repository.ts:192-284`)
+ * attaches a multi-chunk (assessment) question's attempts to *every* chunk
+ * it maps to, so a naive flatten would count the same attempt more than
+ * once and skew the trend. `ChunkAttempt` carries no attempt id, so
+ * de-duplication uses the composite key `timestamp + question + response`:
+ * the same underlying attempt reattached to a second chunk carries the same
+ * timestamp, question text, and response text every time, while two
+ * genuinely distinct attempts essentially never collide on all three at
+ * once. Quality maps through as `attempt.quality ?? null` — `quality` is
+ * omitted for unscored retry attempts, and the resolver treats `null` as
+ * "not scored" rather than a real 0.
+ */
+function toDeduplicatedFatigueAttempts(chunks: SessionChunk[]): FatigueAttempt[] {
+  const seen = new Set<string>();
+  const attempts: FatigueAttempt[] = [];
+
+  for (const chunk of chunks) {
+    for (const attempt of chunk.attempts) {
+      const dedupeKey = `${attempt.timestamp} ${attempt.question} ${attempt.response}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      attempts.push({
+        timestamp: new Date(attempt.timestamp).getTime(),
+        quality: attempt.quality ?? null,
+        latencyMs: attempt.time_spent_ms,
+      });
+    }
+  }
+
+  return attempts;
 }
 
 /**
@@ -94,7 +134,8 @@ function evaluateCompletionCriteria(
     timeMet: boolean;
     chunkMet: boolean;
     maxTimeExceeded: boolean;
-  }
+  },
+  advisory: SessionAdvisory | null
 ): { shouldComplete: boolean; reason: string; recommendation: 'continue' | 'complete' | 'break' } {
   if (thresholds.maxTimeExceeded) {
     return {
@@ -124,10 +165,10 @@ function evaluateCompletionCriteria(
       recommendation: 'complete',
     };
   }
-  if (thresholds.timeMet && progress.overall_progress >= 0.5) {
+  if (advisory?.kind === 'fatigue') {
     return {
       shouldComplete: true,
-      reason: 'Good progress made in extended session. Consider taking a break.',
+      reason: advisory.reason,
       recommendation: 'break',
     };
   }
@@ -156,12 +197,22 @@ export function getSessionStatus(
   const progress = calculateSessionProgress(sessionData, now);
   const config = algorithmConfig.sessionConfig;
 
-  const { shouldComplete, reason, recommendation } = evaluateCompletionCriteria(progress, {
-    qualityMet: progress.average_quality >= config.qualityThreshold,
-    timeMet: progress.time_elapsed_ms >= config.timeThresholdMs,
-    chunkMet: progress.overall_progress >= config.completionThreshold,
-    maxTimeExceeded: progress.time_elapsed_ms >= config.maxTimeMs,
+  const advisory = resolveSessionAdvisory({
+    attempts: toDeduplicatedFatigueAttempts(sessionData.chunks),
+    elapsedMs: progress.time_elapsed_ms,
+    maxTimeMs: config.maxTimeMs,
   });
+
+  const { shouldComplete, reason, recommendation } = evaluateCompletionCriteria(
+    progress,
+    {
+      qualityMet: progress.average_quality >= config.qualityThreshold,
+      timeMet: progress.time_elapsed_ms >= config.timeThresholdMs,
+      chunkMet: progress.overall_progress >= config.completionThreshold,
+      maxTimeExceeded: progress.time_elapsed_ms >= config.maxTimeMs,
+    },
+    advisory
+  );
 
   return {
     sessionId: progress.session_id,
