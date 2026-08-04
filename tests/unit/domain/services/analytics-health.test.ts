@@ -767,7 +767,9 @@ describe('computeSchedulerHealth — teaching tier mapping', () => {
       ],
       { minSampleSize: 1 }
     );
-    const sizes = new Map(report.breakdowns.byTeachingTier.map(cell => [cell.key, cell.sampleSize]));
+    const sizes = new Map(
+      report.breakdowns.byTeachingTier.map(cell => [cell.key, cell.sampleSize])
+    );
     expect(sizes.get('unknown')).toBe(3);
     expect(sizes.get('scaffold')).toBe(1);
     expect(sizes.get('recall')).toBe(0);
