@@ -41,20 +41,6 @@ export type AlgorithmConfig = {
   };
   // Recommendation-specific configuration
   recommendationConfig: {
-    cognitiveLoad: {
-      defaultMax: number; // default max cognitive load for a session
-      easyThreshold: number; // threshold below which items are considered easy
-      hardThreshold: number; // threshold above which items are considered hard
-      perMinuteFactor: number; // heuristic factor to scale load with time
-    };
-    sessionComposition: {
-      maxNewDefault: number; // default max new items if not specified
-      shortSessionMinutes: number; // minutes threshold for short sessions
-      maxNewShort: number; // max new items for short sessions
-      longSessionMinutes: number; // minutes threshold for long sessions
-      maxNewLong: number; // max new items for long sessions
-      interleaveStrategy: 'easy-medium-hard' | 'balanced'; // strategy label
-    };
     conversation: {
       enableEncouragement: boolean; // toggle encouragement messages
       enableProgressUpdates: boolean; // toggle progress updates

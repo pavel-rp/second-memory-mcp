@@ -97,51 +97,6 @@ export function resolveAlgorithmConfig(
       ),
     },
     recommendationConfig: {
-      cognitiveLoad: {
-        defaultMax: parseNumber(
-          env.SM_REC_MAX_COG_LOAD_DEFAULT,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.cognitiveLoad.defaultMax
-        ),
-        easyThreshold: parseNumber(
-          env.SM_REC_COG_EASY_THRESHOLD,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.cognitiveLoad.easyThreshold
-        ),
-        hardThreshold: parseNumber(
-          env.SM_REC_COG_HARD_THRESHOLD,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.cognitiveLoad.hardThreshold
-        ),
-        perMinuteFactor: parseNumber(
-          env.SM_REC_COG_PER_MIN_FACTOR,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.cognitiveLoad.perMinuteFactor
-        ),
-      },
-      sessionComposition: {
-        maxNewDefault: parseNumber(
-          env.SM_REC_MAX_NEW_DEFAULT,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.maxNewDefault
-        ),
-        shortSessionMinutes: parseNumber(
-          env.SM_REC_SHORT_SESSION_MIN,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.shortSessionMinutes
-        ),
-        maxNewShort: parseNumber(
-          env.SM_REC_MAX_NEW_SHORT,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.maxNewShort
-        ),
-        longSessionMinutes: parseNumber(
-          env.SM_REC_LONG_SESSION_MIN,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.longSessionMinutes
-        ),
-        maxNewLong: parseNumber(
-          env.SM_REC_MAX_NEW_LONG,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.maxNewLong
-        ),
-        interleaveStrategy: parseEnum(
-          env.SM_REC_INTERLEAVE_STRATEGY,
-          ['easy-medium-hard', 'balanced'] as const,
-          DEFAULT_ALGORITHM_CONFIG.recommendationConfig.sessionComposition.interleaveStrategy
-        ),
-      },
       conversation: {
         enableEncouragement: parseBoolean(
           env.SM_REC_CONVO_ENCOURAGEMENT,
