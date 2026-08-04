@@ -31,8 +31,9 @@ describe('createMcpServer', () => {
   it('includes instructions in server init response', () => {
     const instructions = client.getInstructions();
     expect(instructions).toBeTypeOf('string');
-    // MCP initialize response includes instructions; keep them concise to avoid bloating handshakes
-    expect(instructions!.length).toBeLessThan(6800);
+    // MCP initialize response includes instructions; keep them concise to avoid bloating handshakes.
+    // Raised from 6800 (NEU-847): the correct_answer presentation clause is genuine new content.
+    expect(instructions!.length).toBeLessThan(7000);
     expect(instructions).toContain('start_learning');
     expect(instructions).toContain('submit_answer');
     expect(instructions).toContain('roadblock');

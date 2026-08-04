@@ -284,6 +284,8 @@ describe('submitAnswer', () => {
     expect(result.passed).toBe(true);
     expect(result.chunk_id).toBe('c1');
     expect(result.session_question_id).toBe('sq-created');
+    // NEU-847: correct_answer is only populated on a second-attempt failure
+    expect(result).not.toHaveProperty('correct_answer');
   });
 
   // VC-03: First attempt fail → retry, no SR update
@@ -310,6 +312,8 @@ describe('submitAnswer', () => {
     expect(result.feedback).toBe('Good explanation');
     // SR update should NOT be called
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
+    // NEU-847: a first-attempt-fail (retry) response never carries correct_answer
+    expect(result).not.toHaveProperty('correct_answer');
   });
 
   // VC-02: Second attempt pass — agent provides quality (retry path)
@@ -345,6 +349,8 @@ describe('submitAnswer', () => {
     expect(result.attempt).toBe(2);
     expect(result.passed).toBe(true);
     expect(result.session_question_id).toBe('sq-1');
+    // NEU-847: a passing second-attempt response never carries correct_answer
+    expect(result).not.toHaveProperty('correct_answer');
   });
 
   // VC-02 + VC-04: Second attempt fail — agent provides quality, no SR update (deferred to teach_next)
@@ -360,6 +366,16 @@ describe('submitAnswer', () => {
             makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: 1, agentQuality: 1 }),
           ]),
       },
+      chunks: {
+        getById: vi.fn().mockResolvedValue(
+          makeLearningChunk({
+            id: 'c1',
+            title: 'Chunk 1',
+            content: 'Chunk 1 content',
+            condensedSummary: 'Chunk 1 summary',
+          })
+        ),
+      },
     });
 
     const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
@@ -372,6 +388,13 @@ describe('submitAnswer', () => {
     expect(result.session_question_id).toBe('sq-1');
     // SR update deferred to teach_next — NOT called from submit_answer
     expect(deps.reviewPersistence.persistReviewUpdate).not.toHaveBeenCalled();
+    // NEU-847: second-failure recorded response carries the correct-answer block
+    expect(result.correct_answer).toEqual({
+      content: 'Chunk 1 content',
+      condensed_summary: 'Chunk 1 summary',
+      title: 'Chunk 1',
+      directive: expect.any(String),
+    });
   });
 
   // NEU-347: submit_answer never completes chunks — deferred to teach_next
@@ -1572,6 +1595,93 @@ describe('submitAnswer', () => {
       expect(recorded.roadblock_forecast!.required_followups).toBe(2);
       expect(recorded.roadblock_forecast!.completed_followups).toBe(1);
       expect(recorded.roadblock_forecast!.remaining).toBe(1);
+    });
+  });
+
+  // ── NEU-847: correct-answer block on second-attempt failure ───────
+
+  describe('correct_answer (NEU-847)', () => {
+    /** Shared second-attempt-fail setup; only the `chunks` port dep varies per case. */
+    function secondFailDeps(chunks: Partial<Parameters<typeof stubChunkRepository>[0]>) {
+      return makeQuestionDeps({
+        sessionQuestions: {
+          getQuestionById: vi
+            .fn()
+            .mockResolvedValue(
+              makeQuestion({ id: 'sq-1', sessionId: 'sess-1', status: 'pending' })
+            ),
+          getAttemptsForQuestion: vi
+            .fn()
+            .mockResolvedValue([
+              makeQuestionAttempt({ attemptNumber: 1, passed: false, quality: 1, agentQuality: 1 }),
+            ]),
+        },
+        chunks,
+      });
+    }
+
+    it('degrades to directive + available material when content is null', async () => {
+      const deps = secondFailDeps({
+        getById: vi.fn().mockResolvedValue(
+          makeLearningChunk({
+            id: 'c1',
+            title: 'Chunk 1',
+            content: null,
+            condensedSummary: 'Chunk 1 summary',
+          })
+        ),
+      });
+
+      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result.correct_answer).toEqual({
+        content: null,
+        condensed_summary: 'Chunk 1 summary',
+        title: 'Chunk 1',
+        directive: expect.any(String),
+      });
+    });
+
+    it('fails open (no block, attempt still recorded) when the chunk fetch rejects', async () => {
+      const deps = secondFailDeps({
+        getById: vi.fn().mockRejectedValue(new Error('db unavailable')),
+      });
+
+      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result.passed).toBe(false);
+      expect(result.attempt).toBe(2);
+      expect(result).not.toHaveProperty('correct_answer');
+    });
+
+    it('fails open (no block, attempt still recorded) when the chunk fetch rejects with a non-Error value', async () => {
+      const deps = secondFailDeps({
+        getById: vi.fn().mockRejectedValue('boom'),
+      });
+
+      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result.passed).toBe(false);
+      expect(result.attempt).toBe(2);
+      expect(result).not.toHaveProperty('correct_answer');
+    });
+
+    it('fails open (no block, attempt still recorded) when the chunk is not found', async () => {
+      const deps = secondFailDeps({
+        getById: vi.fn().mockResolvedValue(undefined),
+      });
+
+      const result = await submitAnswer(makeInput({ sessionQuestionId: 'sq-1', quality: 1 }), deps);
+
+      expect(result.action).toBe('recorded');
+      if (result.action !== 'recorded') throw new Error('Expected recorded');
+      expect(result).not.toHaveProperty('correct_answer');
     });
   });
 
