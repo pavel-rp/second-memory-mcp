@@ -161,6 +161,80 @@ export const AnalyticsWindowInputSchema = z
   .refine(d => d.from <= d.to, { message: '"from" must not be after "to"' })
   .transform(toCamelCaseKeys);
 
+// ---------------------------------------------------------------------------
+// analytics_health (NEU-845) — scheduler-health / true-retention contract
+// ---------------------------------------------------------------------------
+
+export const AnalyticsHealthInputShape = {
+  context_token: z
+    .string()
+    .min(1)
+    .describe(
+      'Token returned by init_agent_context. Required on every call. ' +
+        'Call init_agent_context at the start of every conversation to obtain this token.'
+    ),
+} as const;
+
+export const AnalyticsHealthInputSchema = z.object(AnalyticsHealthInputShape);
+
+/**
+ * One reusable retention cell — the shape used by the headline `true_retention`
+ * figure, the separate `fresh_band_retention` figure, and every breakdown cell.
+ *
+ * `retained` and `eventual_passed` are absolute counts and are always present,
+ * even when the rates are suppressed. Both rates are `null` exactly when
+ * `below_min_sample` is `true`, i.e. whenever `sample_size < min_sample_size`
+ * (which subsumes `sample_size === 0`). Rates are ratios in `[0, 1]` rounded to
+ * four decimal places. No figure is ever emitted without its sample size.
+ */
+export type RetentionCellPayload = {
+  key: string;
+  sample_size: number;
+  retained: number;
+  true_retention_rate: number | null;
+  eventual_passed: number;
+  eventual_pass_rate: number | null;
+  below_min_sample: boolean;
+};
+
+/**
+ * The `analytics_health` success payload — the dashboard contract. Breakdown
+ * arrays are emitted in a fixed order with every band present, including empty
+ * ones, so consumers can rely on a stable table rather than a sparse map.
+ */
+export type AnalyticsHealthOutput = {
+  generated_at: string; // ISO 8601 timestamp, injected at the composition root
+  min_sample_size: number;
+  band_definitions: {
+    interval_band_edges_days: number[];
+    days_overdue_band_edges_days: number[];
+  };
+  coverage: {
+    total_first_attempts: number;
+    covered_first_attempts: number;
+    uncovered_first_attempts: number;
+    coverage_ratio: number;
+    established_first_attempts: number;
+    fresh_first_attempts: number;
+  };
+  /** THE HEADLINE — first-attempt pass rate over the `established` band. */
+  true_retention: RetentionCellPayload;
+  /** The `fresh` band, reported separately and never folded into the headline. */
+  fresh_band_retention: RetentionCellPayload;
+  /** Computed over the headline (`established`) population only. */
+  breakdowns: {
+    by_teaching_tier: RetentionCellPayload[];
+    by_interval_band: RetentionCellPayload[];
+    by_days_overdue_band: RetentionCellPayload[];
+  };
+  /**
+   * NEU-846 extension seam: always present, always `null` here. NEU-846 fills it
+   * with its predicted-vs-observed block, which consumers see as an additive
+   * change rather than a restructure.
+   */
+  calibration: null;
+};
+
 export const DailyKpisSchema = z.object({
   date: z
     .string()
