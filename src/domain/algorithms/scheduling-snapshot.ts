@@ -17,8 +17,10 @@ import { classifyChunk, type ClassifyChunkInput } from './classify-chunk.js';
 // ── Types ──────────────────────────────────────────────────────────────────
 
 /**
- * `'established'` — the chunk had `intervalDays > 0` at answer time.
- * `'fresh'` — the `classifyChunk` R = 1.0 null/zero-interval band.
+ * `'established'` — the chunk had a finite `intervalDays > 0` at answer time.
+ * `'fresh'` — the `classifyChunk` R = 1.0 band: `intervalDays` is `null`, non-finite,
+ * or `<= 0` (a negative interval is corrupt SR state and is treated as no interval,
+ * never as an established one).
  */
 export type SchedulingBand = 'fresh' | 'established';
 
@@ -26,7 +28,7 @@ export type SchedulingSnapshot = {
   band: SchedulingBand;
   /** Power-law estimate. Non-null only on the `'established'` band, and only inside `(0, 1]`. */
   predictedRecall: number | null;
-  /** The chunk's `intervalDays` verbatim. May legitimately be `null` or `0` on a `'fresh'` row. */
+  /** The chunk's `intervalDays` verbatim. May legitimately be `null`, `0` or negative on a `'fresh'` row. */
   intervalDays: number | null;
   /** `classifyChunk`'s `daysOverdue`, clamped at 0. Fractional days. */
   daysOverdue: number | null;
