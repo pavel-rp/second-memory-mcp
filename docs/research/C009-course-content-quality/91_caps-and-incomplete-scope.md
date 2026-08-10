@@ -282,6 +282,67 @@
 | **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
 | **Closes when** | An independent reader re-runs the scans and reviews the judgment call in `03_…` §4.2. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
 
+### SUB-6 — NEU-962, assessment evidence out of band (OUT-5)
+
+#### `CAP-S6-1` — **this design specifies evidence and enforces nothing** · out of scope by design
+
+| | |
+| --- | --- |
+| **Cap** | `06_assessment-evidence-out-of-band.md` states which signals may and may not feed each mastery gate and threshold, and states the rule that **a happy-path-only item may not carry a gate**. **Nothing enforces any of it at runtime.** No gate reads this mapping, no validator rejects an item with an empty `separating_distractor_or_boundary_input`, and no code path consults a signal's reliability class. |
+| **The consequence, named rather than left implicit** | Inherited directly from **`CAP-S2-4`**, which already names "the discriminating design of gate-bearing items" as SUB-6's and the gates themselves as **SUB-9's (NEU-965)**. A mapping that is not enforced is a **specification with a seam**, and the seam is exactly where an item with a plausible-looking but non-separating distractor would get through. The mapping is written in SUB-2's exact field vocabulary precisely so SUB-9 can enforce it **without a translation layer**. |
+| **What was done instead of pretending otherwise** | Every rule that SUB-9 must enforce is stated with a **decision procedure**, not a sentiment — §5.2's four-condition happy-path check is decidable by inspection, and §4's may-feed / may-not-feed lists are exhaustive over A–E and `MM-T1`…`MM-T15` rather than eliding a remainder. |
+| **Owner** | **SUB-9 (NEU-965)** — the quality-system owner that builds the enforcing gates. |
+| **Closes when** | SUB-9 lands the gates that consume this mapping. This entry is the seam, not a defect. |
+
+#### `CAP-S6-2` — **no in-app signal closes the authorship gap** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | Whether the learner wrote the solution they pasted back is **not observable**, and **no signal this design defines closes that gap.** The full residual and its bound are filed as `OI-S6-3` in `90_open-items-and-provisional-register.md`; this entry records the *incompleteness* rather than the open question. |
+| **What the design achieves instead** | It **bounds** the exposure rather than eliminating it: at most **one** counted success toward `MM-T1` is obtainable by copying, because Gate A is not opened by the paste alone, Gate B requires **K = 3** across **≥ 2 separated sessions ≥ 1 day apart**, Gate C is server-evaluated from multi-session history, and Gates D and E are unreachable on out-of-band evidence at all. |
+| **What was refused** | **A stylometric, timing-based, or similarity-based authorship inference.** Any of them would have closed this cap on paper by manufacturing a confident signal from evidence that does not support one. `RA5` already forbids the closest analogue, and **a cap honestly recorded is worth more than a control that does not work.** |
+| **Owner** | **SUB-9 (NEU-965)** for any narrower bound at the gate; **the creator by default** for the product question of whether the exposure is acceptable. |
+| **Closes when** | **A genuinely observable authorship or unaidedness signal exists** — an in-app editor with captured attempts, or a source-platform integration — falsifying charter assumption 5. **No inference closes it.** |
+
+#### `CAP-S6-3` — **the corpus-swap run is specification-level; no store implements the record shape** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | `dry-run/06_corpus-swap-verification.md` verifies that the **specified** record shape has the corpus-neutrality property. It does **not** verify that an implementation of it does — because **there is no implementation**: no schema, table, query or migration exists for this record shape, and this sub-task builds none by scope. No code was written, no database was touched, and no fetch was performed. |
+| **What it costs** | An implementation that put the citation **in the key** would fail the property, and nothing in this run would catch it. The run's claim is *"this shape has the property"*, never *"the system has the property"*. |
+| **Mitigation actually applied** | The pass condition (`PC-1`…`PC-4`) was **fixed before the run**, the comparison is field-by-field and mechanical, and the specimen was chosen to be maximally unfavourable — three records across two separated sessions with Gate A and Gate B already cleared, i.e. the state with the **most** to strand. A trivially-passing single ungraded record would have proved nothing. |
+| **Owner** | **SUB-9 (NEU-965)** and whoever implements the evidence store; **NEU-969 (SUB-12)** at the completeness gate. |
+| **Closes when** | The record shape is implemented and the swap is re-run against the real store, with the citation demonstrably outside the key. |
+
+#### `CAP-S6-4` — **the checks in this change were run by the task that produced the artifacts** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The signal → gate mapping audit, the misconception-discrimination check, the control-by-control no-weakening demonstration, the composition-invariant check and the corpus-swap run were **all performed by SUB-6 over SUB-6's own documents**. Inherited from **`CAP-S1-4`** / **`CAP-S2-5`**: a producing task self-checking its own artifact is weaker evidence than an independent pass. |
+| **Mitigation actually applied** | The checks were kept **mechanical wherever a mechanical form existed** — the greedy-misconception demonstration is arithmetic against the shipped mapper's real weights and its fail-closed span rule (`2 < 3`); the swap comparison is field-by-field against a pre-fixed pass condition; the field-name conformance check is lexical; the append-only property is proved by a **deletion count of `0`**, not asserted in prose. What remains judgemental is the **control-by-control table**: six controls argued, none executed or measured. |
+| **Owner** | **NEU-969 (SUB-12)** at the completeness gate; reviewers of this change. |
+| **Closes when** | An independent pass re-runs the checks — `92_package-completeness-gate.md` is the natural site. |
+
+#### `CAP-S6-5` — **`qa-execution:engine` is unconfigured; the automated QA phase is a genuine no-op** · environmental, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The capability registry for this project resolves to **`git, linear` only**. **No capability owns the `qa-execution:engine` surface**, so the automated QA phase runs **inert** — a genuine **Core Article 8** no-op ("core never requires a capability; every extension point ships a lean default and runs inert when none is registered"). **No QA run was executed for this change, and none could be.** |
+| **What was refused** | **No QA pass is claimed, fabricated, or implied anywhere in this change.** No scenario table, no pass rate, no report artifact. Writing one would have been the single most damaging thing available here: a fabricated QA result in a package whose entire subject is *not laundering weak evidence into a strong claim* would falsify the package by example. |
+| **What verification actually was** | **File inspection plus `git diff`** against the spec's numbered criteria. The repository's own gates (`tsc --noEmit`, `eslint --max-warnings 0`) were run and are **no-regression checks only** — neither reads `docs/**`, so a green result is **not evidence about anything in this change**, and is not presented as any. |
+| **Owner** | **the creator** (default) — registering a `qa-execution` capability is a project-configuration decision, not a sub-task's. |
+| **Closes when** | A capability owning the `qa-execution:engine` surface is registered **and** the QA phase has something in this package it can meaningfully execute. For a documentation deliverable that second condition may never hold, in which case this stays open as an accurate description rather than a defect. |
+
+#### `CAP-S6-6` — **every `MM-T*` value the mapping is stated against is provisional in value** · inherited, non-closable here
+
+| | |
+| --- | --- |
+| **Cap** | The mapping names `MM-T1` (K = 3), `MM-T2` (S ≥ 2, ≥ 1 day apart), `MM-T3` (q ≥ 3), `MM-T5` (≤ 0.10), `MM-T7` (≥ 0.90), `MM-T8` (posterior ≥ 0.90), `MM-T11` (N = 3), `MM-T15` (≤ 1.5×) and the rest with their recorded values. **Those values are provisional.** NEU-888's mechanisms are **binding in shape, open in value**, each with a stated calibration band. |
+| **What that means for this design, precisely** | The mapping's content is **which signal may feed which threshold**, and that is a statement about *shape* — it survives any value inside the band. A value change moves how much evidence a gate needs; it does not move which evidence may supply it. **This design may cite a provisional value; it may never lower one**, and it lowers none. |
+| **What would actually invalidate the mapping** | Not a value change, but a **shape** change — a threshold being redefined over a different quantity (e.g. `MM-T15` redefined over something other than solve latency would reopen §8.1's refusal). |
+| **Owner** | **NEU-888** as the owner of the instructional and mastery model; **the creator by default.** |
+| **Closes when** | It does not close here. It closes if and when the mastery model's values are calibrated and frozen — which is that package's decision, not this one's. |
+
 ### SUB-5 — NEU-961, per-cluster non-root conceptual obligation (OUT-6)
 
 **The headline, stated before the entries.** This sub-task was commissioned to specify the per-cluster non-root `conceptual` obligation and route its map-side half. **It specified 4 of 4 and routed 3 of 4. It covered none of the 3, and it closed no finding.** The cause is not a shortfall of effort or of content quality: **three clusters contain no node a conceptual form set could attach to**, and creating one is out of scope charter-wide. **A cap recorded here is not a failure; a cap that was not recorded is.**
