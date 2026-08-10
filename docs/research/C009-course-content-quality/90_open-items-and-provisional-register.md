@@ -201,3 +201,82 @@
 | **Owner** | **SUB-3's successor** — whoever first executes path (1) against a live API — **the creator by default.** |
 | **Revision trigger** | **The first sanctioned call that actually returns an enumerating response**, at which point the retention check is run for real and its result replaces this vacuous one. |
 
+### SUB-7 — NEU-964, difficulty calibration and its provisional inputs (OUT-4)
+
+**The headline, stated before the entries.** The calibration standard ships. **Exactly one of its inputs was verified** — `prerequisite_depth`, re-derived 2026-08-10 by the untouched C005 integrity validator, **179/179 agree, 0 disagree**. **Six are provisional** on 179/179 unreviewed values. **The external cross-check is absent for every node**, not for some. And **which dimensions define calibration could not be settled on the evidence available**, so it is escalated below rather than assumed through.
+
+#### `OI-S7-1` — the dimension set could not be settled; **escalated to the creator** · **open — this is OUT-4's named escalation exit**
+
+| | |
+| --- | --- |
+| **Open item** | **Charter assumption 16 — *which* dimensions define calibration — is `[unconfirmed]` and is NOT settled by this sub-task.** OUT-4 requires it settled **or** escalated, never assumed through. It is **escalated.** `07_difficulty-calibration.md` §3 adopts assumption 16's default as the **working** set, **loudly and visibly**, and labels every calibrated output provisional on this choice (`PR-7`). **The default is not adopted silently as though it had been settled.** |
+| **Why it could not be settled** | The evidence that would discriminate between candidate sets is of exactly two kinds, and **neither exists at this cutoff**: (a) the **creator's plausibility review** of the map's provisional values — **deferred on 179/179**; and (b) **a non-empty seed set of externally-rated cited problems** permitting the §5.4 ordering comparison — **zero, `CAP-S3-1`**. A set chosen now would be chosen on the authoring pass's taste, and shipping that as settled is the exact laundering OUT-4 exists to prevent. |
+| **Candidate dimension sets considered** | **(1)** Assumption 16's default — `prerequisite_depth` + the five load dimensions + `progression_stage`, `entry_gate` excluded (**the working set**). **(2)** A **depth-only** set — `prerequisite_depth` alone, on the ground that it is the sole re-derivable input; rejected as a *settled* answer because it discards every stated-load signal on a provenance argument rather than an evidential one. **(3)** The default **plus a `javascript_materiality`-derived implementation term**, which would make `JS-U1`/`JS-U2`/`JS-U3`/`JS-U5` live reliances. **(4)** A **reduced subset** of D2–D6 retaining only dimensions the creator reviews first. **(5)** A **weighted** set with weights fitted to an external anchor — **not evaluable at all** while the anchor is absent. |
+| **The evidence that would discriminate between them** | **The creator's plausibility review of the 179 deferred values** (which of D2–D6 the creator affirms, and whether `progression_stage` survives as an independent band or collapses into depth); **and** a **non-empty externally-rated seed set** large enough to compare orderings under each candidate set against an independent signal (`07_…` §5.4). Candidate **(5)** additionally requires the anchor to exist at all. |
+| **Owner** | **the creator** — **the only qualified reviewer of the map's provisional values.** This is not a default assignment of convenience: `02_authoring-requirements.md` §4.3 names the creator as owner of the deferred review, and every candidate set turns on it. |
+| **Revision trigger** | **The creator reviews the deferred progression and load values and states which dimensions define calibration** — or NEU-888 supplies the discriminating evidence for the stage granularity and an externally-rated seed set becomes available, permitting the comparison to decide it empirically. **This entry does not close by a downstream sub-task finding the working set convenient.** |
+| **Note on the exit taken** | **Exactly one of {settled decision record, this escalation entry} exists — this one.** No dimension-set decision record was written to `decision-records/`. `traceability/07_…` §5.3 records the choice explicitly. |
+
+#### `OI-S7-2` — the calibration rests on 179/179 `deferred-provisional` values · **provisional / the standing reliance**
+
+| | |
+| --- | --- |
+| **Open item** | Six of the standard's seven input fields — `state_formulation_load`, `transition_derivation_load`, `proof_obligation_load`, `implementation_load`, `recognition_load` and `progression_stage` — carry `creator_review: "deferred-provisional"` on **all 179** non-root nodes. They are **usable and not binding**. Every point of use is enumerated as `PR-1`…`PR-6` in `07_…` §7 and audited against `../C005-dp-map-package/03_…` §9 in `traceability/07_…` §2. |
+| **Why it is filed rather than absorbed** | §4.3's own words: *"A curriculum charter calibrating against these values MUST surface that reliance."* Surfacing it once in prose would satisfy the letter; **surfacing it at every point of use** is what the constraint actually asks, and it is why the standard carries a per-use table rather than a caveat paragraph. |
+| **What is refused** | **Re-classing any of the six upward.** Agreement with an external rating would **not** promote a provisional dimension (`07_…` §5.4 step 4) — corroboration is not review. |
+| **Owner** | **the creator** |
+| **Revision trigger** | **The creator reviews the progression and load assignments for plausibility** (C005 charter assumption #11). Nothing else closes it — not a cross-check, not a downstream consumer's confidence, and not the passage of time. |
+
+#### `OI-S7-3` — `provisional_load_index` weights the five dimensions equally **by declaration, not by measurement** · **provisional**
+
+| | |
+| --- | --- |
+| **Open item** | `PLI` is the **equal-weight sum** of the five load dimensions. **Equal weighting is declared because no evidence discriminates a weighting** — **not** because the five were found to contribute equally. No pass has ever measured their relative contribution. |
+| **Why it is filed** | An equal-weight sum reads, to a downstream consumer, exactly like a considered choice. It is not one; it is the absence of a choice, made explicit. Left unfiled it would harden into a finding by repetition. |
+| **What the standard does about it** | It **refuses to collapse the triple into a scalar** (`07_…` §5.2), because a scalar would bake this non-choice into a sortable number. A reader wanting a scalar must resolve `OI-S7-1` first. **That friction is intended.** |
+| **Owner** | **the creator** — the same review that settles `OI-S7-1` |
+| **Revision trigger** | **`OI-S7-1` resolves**, supplying either a reviewed dimension set with weights or the evidence to fit them. |
+
+#### `OI-S7-4` — the calibrated value is a triple, and downstream consumers will want a scalar · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | `calibrated_difficulty` is the labelled triple `(structural_tier, provisional_load_index, stage_band)`, lexicographically ordered, and **nodes with equal triples are declared incomparable rather than tie-broken.** A tie-break would need either `entry_gate` (**forbidden**, `F-943-3`) or a weight (**unsettled**, `OI-S7-1`). |
+| **Why it is filed** | **SUB-9 (NEU-965)** merges this standard into one enforceable quality system, and a gate that must sort will meet the incomparability. It should meet it as a **recorded design decision with a named resolution route**, not as a surprise. |
+| **Owner** | **SUB-9 (NEU-965)** for the consuming half; **the creator** for the resolution — surfaced for reassignment |
+| **Revision trigger** | **`OI-S7-1` resolves** and a weighting becomes available; or SUB-9 specifies a gate whose semantics tolerate incomparability. |
+
+#### `OI-S7-5` — the ordering is a structural-load claim and **not** a learning order · **provisional, non-downgradable (inherited)**
+
+| | |
+| --- | --- |
+| **Open item** | `R1` / `X-D3` is carried **undiminished** and **non-downgradable**: *nothing in C005 measures DP learning*, and no selected corpus is ordered by learning dependency. The calibrated ordering is therefore a claim about **structural and stated load only**. Recorded as `PR-8`. |
+| **Why it is filed here rather than left upstream** | This is the sub-task that produces an artifact a curriculum would sort learners by. **The misreading has a natural home here and nowhere else**, so the disclaimer belongs at the point of production, not only in the register that first recorded it. |
+| **Owner** | **NEU-887 / the creator** |
+| **Revision trigger** | **Nothing in C005 or C009 can close it.** It closes only if DP learning is actually measured. |
+
+#### `OI-S7-6` — node-level coverage is `unaudited` on all 179, so no calibrated value carries a coverage claim · **open (inherited `INC-C7`)**
+
+| | |
+| --- | --- |
+| **Open item** | `coverage.status` reads `unaudited` on all 179 nodes (`INC-C7`). Any node-level coverage claim attached to a calibrated value therefore rests on an unaudited field. Recorded as `PR-9`; **the standard attaches none.** |
+| **Owner** | **NEU-942's route / a later pass** |
+| **Revision trigger** | **A node-level coverage write-back is commissioned.** |
+
+#### `OI-S7-7` — the node set a calibration ranges over is known-incomplete · **open (inherited `INC-C1`)**
+
+| | |
+| --- | --- |
+| **Open item** | The **10-instance `INC-C1` CL-4 gap class has no nodes**, so a calibration over the map ranges over a **known-incomplete** node set. SUB-3's disqualifier `X3` names the same seam from the sourcing side. Recorded as `PR-10`. **Stated so a completeness claim is never read into a calibrated ordering.** |
+| **Owner** | **the creator** — commission the CL-4 completion task, scoped by the cascade |
+| **Revision trigger** | **The completion task lands**, or a further CL-4-by-cascade technique surfaces. |
+
+#### `OI-S7-8` — no per-node calibrated value is published · **deliberate, recorded so it is not read as an omission**
+
+| | |
+| --- | --- |
+| **Open item** | The standard publishes **no per-node difficulty table**. Publishing 179 provisional triples with **no external cross-check** would circulate them as results, and a table is exactly the artifact that outlives its labels once it is copied into a second document. |
+| **What ships instead** | The **rule**, its **input classification**, its **labels**, and the **branch behaviour** — everything needed to compute a calibrated value and to know precisely how far to trust it. |
+| **Owner** | **SUB-9 (NEU-965)** — the first consumer that may need instantiated values — **or the creator by default** |
+| **Revision trigger** | **`OI-S7-1` resolves and the anchor becomes available** (`CAP-S7-1` closes), at which point instantiated values can be published with a cross-check rather than with a caveat. |
+
