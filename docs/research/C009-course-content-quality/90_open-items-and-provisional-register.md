@@ -238,6 +238,7 @@
 | **Why it matters** | A number collision is a **merge-visible, cheap** failure — two files, one number — and it is filed here so the reconciling owner meets it as a known item rather than as a surprise. It is not a reason for any sub-task to renumber another's document in flight; **that would be the expensive failure this register exists to prevent.** |
 | **Owner** | **NEU-969 (SUB-12)** at reconciliation. |
 | **Revision trigger** | **SUB-12's reconciliation pass**, or a merge in which two sub-tasks land the same topic or decision-record number. |
+
 ### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
 
 #### `OI-S3-1` — the access gate is shut for all twelve sources, so the seed set is empty · **open**

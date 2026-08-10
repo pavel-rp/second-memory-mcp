@@ -209,6 +209,7 @@
 | **Mitigation, not a fix** | The **mechanical** half is **reproducible by anyone**: each of the 19 node ids is matched by exact string against the upstream audit register, the directional-statement audit records each statement's file and location, and every field name and skill-type literal is grep-checkable in both directions against `02_content-and-exercise-forms.md`. The **judgment** half — is a standard's correctness obligation the right bar? is the walkthrough's failure the failure a real reviewer would hit first? — **remains unvalidated by an independent reader.** |
 | **Owner** | **NEU-969 (SUB-12)** at the completeness gate; and any reviewer of this change. |
 | **Closes when** | **An independent pass re-runs the mechanical checks and reviews the judgment calls** — **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
 ### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
 
 **The headline, stated before the entries.** This sub-task was commissioned to produce a seed set of verified problem-level citations and to close `CAP-2` by evidence. **It shipped the procedure, the criteria, the record shapes and the probe. It shipped zero citations and it did not close `CAP-2`.** The cause is a single rights precondition that SUB-3 is expressly forbidden to re-decide, and it is recorded here rather than absorbed. **A cap recorded here is not a failure; a cap that was not recorded is.**
