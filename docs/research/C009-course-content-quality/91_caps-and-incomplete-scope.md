@@ -218,3 +218,71 @@
 | **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
 | **Closes when** | An independent reader re-runs the scans and reviews the judgment call in `03_…` §4.2. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
 
+### SUB-7 — NEU-964, difficulty calibration and its provisional inputs (OUT-4)
+
+**The headline, stated before the entries.** This sub-task was commissioned to calibrate difficulty **honestly about the provisional data it rests on**. **It shipped the standard. It shipped it with no external cross-check for any of the 179 nodes, and with its dimension set escalated rather than settled.** Both are recorded below with named owners. **A cap recorded here is not a failure; a cap that was not recorded is.**
+
+**No field-set cap is filed here.** The unresolved stored-field set is **SUB-3's entry**, inherited and cited by id — `CAP-S3-3`, and behind it `CH-F5-1`, `DR-C09-01`, `CAP-S1-2` / `OI-S1-13`. **SUB-12 (NEU-969) is the single owner of every cap**, so this sub-task restates none of them and incurs no duplicate.
+
+#### `CAP-S7-1` — **the external difficulty anchor is absent for all 179 nodes; there is no cross-check** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **No calibrated value in this standard has an independent external cross-check.** C4's numeric rating is the only quantitative difficulty signal in the corpus selection (charter assumptions 16 and 24), and **zero ratings exist**: SUB-3's seed set is empty and cluster citation coverage is **0/4** (`CAP-S3-1`). The anchor-unavailable branch of OUT-4 therefore fires **universally — for all 179 nodes, not for some.** |
+| **The cause** | All twelve sources fail SUB-3's step **V0**: every one carries access disposition `Restricted` in `01_provenance-and-rights.md` §3, so **no request was issued on either sanctioned path** — not C4's documented API, not the single targeted fetch. `problemset.problems` was never called. **This sub-task issued no request either**, on any path: reaching a source is expressly out of its scope, and a rating SUB-3 did not capture is this branch, never a fetch made here. Network **capability** exists (`OI-S3-2`) and the rights gate is shut regardless — **capability is not authority.** |
+| **What was refused** | **Inventing, estimating or recalling a rating.** `CH-F5-1`'s governing rule — an unverifiable value is **refused, never invented** — applies directly to any difficulty datum this sub-task could not source. Equally refused: **promoting a second provisional value into the anchor's place.** By name — `entry_gate` was **not** pressed into service as a pseudo-anchor (it carries no independent information at all, `F-943-3`), and `progression_stage` was **not** re-classed as an independent check on load dimensions drawn from the same unreviewed pass. |
+| **What it costs** | The calibration proceeds — the triple is fully computable from the map — but **nothing corroborates it.** Every calibrated output carries the verbatim *no external cross-check* label of `07_…` §9.4. **The result is labelled, never presented as grounded.** |
+| **Owner** | **SUB-1 (NEU-957)** for the re-verification half (residual owner of OUT-7); **SUB-3's successor** for the execution half — **the creator by default** |
+| **Closes when** | A SUB-1-owned dated re-verification pass re-dates the §3 access rows, **and then** `03_…` §5's procedure resolves at least one externally-rated C4 citation, at which point `07_…` §5.4's cross-check executes for real. `OI-S3-1`, `CAP-S3-1`, `CAP-S3-2`. |
+
+#### `CAP-S7-2` — **the observation-read path passed VACUOUSLY and proves nothing about a real rating** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | While `CH-F5-1` is open, the standard reads its external signal from **SUB-3's dated verification observations** rather than from a stored field. The restricted-stored-set run's first two assertions — *every rating is read from a dated observation* and *every dependent output carries the observation date* — **pass vacuously**: `traceability/03_…` §2 holds **zero** observations, so nothing was read and no output consumed one. |
+| **Why it is named rather than reported as a clean pass** | In a summary table a vacuous pass is indistinguishable from a demonstrated one — the same defect `CAP-S3-4` names for the retention check, in a different register. **Nothing in SUB-7's output establishes that the observation-read path works under a real observation**, and no future pass may cite `traceability/07_…` §5.1 as precedent that it does. |
+| **What did pass non-vacuously** | Three of the five: the inherited field-set cap is **cited by id** and never restated; **storage gains no field** (this change adds no schema, no field, no stored citation record); and the standard is **specified for both `CH-F5-1` dispositions**, with the rating staying **class X** either way and the dimensions, combination rule, classification and labelling unchanged. |
+| **Owner** | **SUB-7's successor** — whoever first calibrates against a real dated observation — **the creator by default** |
+| **Closes when** | At least one external rating exists as a dated verification observation and is actually consumed by the standard, so the date-labelling path is exercised rather than asserted. Depends on `CAP-S7-1`. |
+
+#### `CAP-S7-3` — **the standard ships UNEXERCISED: no calibrated value was computed for any node** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The combination rule has **never been run end-to-end over real values.** No `calibrated_difficulty` triple was computed, published or compared for any of the 179 nodes. What ships is the **rule**, its input classification, its labels and its branch behaviour — deliberately (`OI-S7-8`), because circulating 179 provisional triples with no cross-check would present them as results. |
+| **What that leaves untested** | The rule's **behaviour at scale**: how many nodes fall into equal-triple **incomparability** (`OI-S7-4`), whether the lexicographic order produces bands a curriculum can use, and what the actual numeric range of `PLI` is. **`07_…` §3.3 asserts no per-dimension range precisely because none was measured** — the validator reports key-set uniformity, not value ranges. |
+| **What was refused** | **Asserting a range, a distribution or a band this sub-task did not compute.** That would be the same defect as asserting a rating it did not capture, at smaller scale and with better camouflage. |
+| **Owner** | **SUB-9 (NEU-965)** as the first consumer that must instantiate the rule — **the creator by default** |
+| **Closes when** | The rule is executed over the real node set and its output characteristics are recorded — ideally at the same pass that resolves `OI-S7-1`, since the dimension set is what the execution would be testing. |
+
+#### `CAP-S7-4` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This repository's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — a phase with no provider, **not** one skipped, deferred or waived. |
+| **What is claimed** | **Nothing. No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-7's output.** **Fabricating a QA pass would be the same failure class as fabricating the external rating this sub-task spends `CAP-S7-1` refusing to invent** — committing it here would refute the deliverable in its own verification register. |
+| **What verification actually is** | File inspection, `git diff` against the task's numbered success criteria, and **the re-run of the C005 integrity validator** recorded verbatim at `traceability/07_…` §3 — the one genuinely mechanical, third-party-reproducible check this sub-task has. The repository's own gates never see `docs/`, so a green line there is **not evidence about anything in this package**. |
+| **Owner** | **the creator** — registering a QA-execution provider is a repository-configuration decision, not a sub-task's |
+| **Closes when** | A `qa-execution:engine` provider is registered **and** this package acquires runtime behaviour worth exercising. Neither is expected within C009. |
+
+#### `CAP-S7-5` — **the audit and the branch runs were performed by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The §9 provisional-reliance audit, the input-traceability table and both pre-specified branch runs (`traceability/07_…` §2, §4, §5) were **run by SUB-7 against SUB-7's own output**. Inherited from `CAP-S1-4`, `CAP-S2-5` and `CAP-S3-7`: an author checking its own completeness shares the author's blind spots by construction. |
+| **Mitigation actually applied, and its limit** | The one genuinely independent check **was** made independent: `traceability/07_…` §3's **validator run** executes a program this sub-task did not write and could not modify, and its output is recorded **verbatim**, including the parts that bear on nothing here. It is what makes `prerequisite_depth` class **MD** rather than an assertion. The **judgment** half — is escalating the dimension set right rather than settling it? is each `NOT APPLICABLE` disposition in the §9 audit correct? — **remains unvalidated by an independent reader.** |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
+| **Closes when** | An independent reader re-runs the validator and reviews the judgment calls in `07_…` §3.1 and `traceability/07_…` §2. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
+#### `CAP-S7-6` — **caps inherited and consumed, not re-owned**
+
+**Listed so this sub-task's limits are not mistaken for new ones, and so SUB-12 sees no duplicate.**
+
+| Inherited entry | How SUB-7 consumes it | Owner (unchanged) |
+| --- | --- | --- |
+| **`CAP-S3-3`** — the stored field set is consumed, not decided; Branch A discharged | **Cited by id.** `07_…` §8 specifies the calibration for **both** `CH-F5-1` dispositions and stores **no** field. **No new field-set cap is incurred**, and the wider set is never admitted on this package's judgment. | NEU-932 (`D-F5`'s owner) / the creator |
+| **`CAP-S3-1`** / **`CAP-S3-2`** — empty seed set, coverage 0/4, `CAP-2` closure declined | **Consumed as the factual input** to the anchor-unavailable branch. SUB-7 neither closes nor partially closes `CAP-2`, and **does not re-decide SUB-3's standing judgment** (`OI-S3-3`). | SUB-1 / SUB-3's successor / the creator |
+| **`CAP-S1-1`** — twelve rows are **restricted by default**, not verified-restricted | **Carried verbatim.** No statement in SUB-7's output may be read as evidence that any source's terms were checked, and none treats a restricted row as an observed refusal. | the creator |
+| **`CAP-S1-5`** / **`CAP-S2-6`** — the anti-fabrication scans are lexical | **Inherited as a review obligation**, this sub-task included. No grep proves that no sentence here is a disguised unsourced difficulty claim. | SUB-1 (NEU-957), enforced at review |
+| **`INC-C7`**, **`INC-C1`**, **`R1` / `X-D3`**, **`PS-2/3/4` granularity** (C005 §9) | **Surfaced as `PR-9`, `PR-10`, `PR-8`, `PR-6`** in `07_…` §7 with owners and revision triggers. **Not re-owned** — C005's register keeps them. | per `../C005-dp-map-package/03_…` §9 |
+
