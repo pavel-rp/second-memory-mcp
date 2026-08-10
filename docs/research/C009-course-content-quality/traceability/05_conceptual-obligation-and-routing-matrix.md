@@ -68,7 +68,7 @@ Reproduced so **SUB-9 (NEU-965)** binds without translation. Source: `../02_cont
 | The schema ledger is append-only | **0 deletions** | `git diff --numstat <base> -- …/01_schema-decision-ledger.md` |
 | Both shared registers are append-only | **0 deletions** each | `git diff --numstat <base> -- …/90_…md …/91_…md` |
 | `D-R5` and `### 3.10` survive intact; exactly one `D-R6` is added | `D-R5` count unchanged; `### 3.11` present once | `grep -c` on the ledger |
-| `D-R7` onward left free for NEU-963 | no `D-R7` anywhere | `grep -c "D-R7"` is 0 |
+| `D-R7` onward left free for NEU-963 | **no `D-R7` row** — the id appears once, in §3.11's namespace note reserving it | `grep -c "D-R7"` is 1, and no line matches `^\|\s*\*\*`D-R7`\*\*\s*\|` |
 
 ---
 
