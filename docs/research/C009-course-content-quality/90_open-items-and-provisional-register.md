@@ -238,4 +238,52 @@
 | **Why it matters** | A number collision is a **merge-visible, cheap** failure — two files, one number — and it is filed here so the reconciling owner meets it as a known item rather than as a surprise. It is not a reason for any sub-task to renumber another's document in flight; **that would be the expensive failure this register exists to prevent.** |
 | **Owner** | **NEU-969 (SUB-12)** at reconciliation. |
 | **Revision trigger** | **SUB-12's reconciliation pass**, or a merge in which two sub-tasks land the same topic or decision-record number. |
+### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
+
+#### `OI-S3-1` — the access gate is shut for all twelve sources, so the seed set is empty · **open**
+
+| | |
+| --- | --- |
+| **Open item** | `03_problem-citation-verification-and-access-paths.md` §4.1 records that **all twelve sources fail the access gate** at the 2026-08-10 cutoff: every one carries access disposition `Restricted` in `01_provenance-and-rights.md` §3, and the charter's Branch C rule states that a source SUB-1 recorded as restricted **is not fetched**. **Zero requests were issued to any of the twelve sources**, so the sanctioned hierarchy has no reachable leaf and the seed citation set has **zero entries**. |
+| **Why it is an open item and not a defect** | The procedure, the selection criteria and the record shapes all ship and are re-executable. What is missing is a **rights precondition**, and it is one SUB-3 is expressly forbidden to re-decide (`01_provenance-and-rights.md` §3.1 clause 1). **No unverified id was admitted to preserve the appearance of coverage.** |
+| **Owner** | **SUB-1 (NEU-957)** as residual owner of OUT-7, for the re-verification that would lift a restricted row — **the creator by default.** |
+| **Revision trigger** | **A SUB-1-owned dated re-verification pass reads each source's own terms, robots directives and rate limits and re-dates its §3 access-permission row.** Nothing else lifts it; `01_provenance-and-rights.md` §11.2 names this as the only route. |
+
+#### `OI-S3-2` — outbound network capability now exists; the named trigger on `CAP-S1-1` has fired · **provisional / newly observed**
+
+| | |
+| --- | --- |
+| **Observation** | At 2026-08-10, an outbound HTTPS request from this execution environment to a **neutral, non-source endpoint** (`example.com`, chosen precisely because it is **none of the twelve sources**) succeeded. **Outbound network capability exists.** Evidence class 2 `[code-evidence]`; recorded at `traceability/03_access-path-and-verification-record.md` §1.1. |
+| **What it establishes** | `CAP-S1-1`'s premise — *"no network access was available to this sub-task and none was permitted"* — **is no longer true of the environment.** Its named closure condition, and §11.2's revision trigger, both read *"network access becomes available to a re-verification pass."* **The capability half of that condition is now satisfied and dated.** |
+| **What it does not establish** | **Nothing whatsoever about any of the twelve sources.** No source was contacted. It is not a robots reading, not a rate-limit reading, not a terms reading, and **not a permission**. Citing it as one would be the exact class-2-to-class-1 laundering `01_provenance-and-rights.md` §7.3 lists as a review-stopping defect. **Capability is not authority.** |
+| **Owner** | **SUB-1 (NEU-957)** — the re-verification pass is OUT-7's, not SUB-3's — **the creator by default.** |
+| **Revision trigger** | **SUB-1 schedules the re-verification pass this observation now makes actionable**, closing `OI-S1-1`…`OI-S1-12` and `CAP-S1-1`. |
+
+#### `OI-S3-3` — twelve rows read `Restricted` by default, and SUB-3 treated them as binding anyway · **recorded judgment, open to challenge**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-1's twelve access rows are restricted **by the restricted-default rule**, not by an observed refusal (`OI-S2-7` records the same caveat for SUB-2). SUB-3 nonetheless treated every row as **binding**, issued no request, and produced no citation. The contrary reading — that a merely-default restriction may be probed once by a sub-task that could read the source's `robots.txt` first — was **considered and rejected on standing**, with the argument recorded in full at `03_…` §4.2. |
+| **Why it is filed rather than settled** | It is the one judgment in SUB-3's output that could plausibly have gone the other way, and it is the judgment that produced an empty seed set. **A reader who disagrees should be able to find the argument and challenge it**, not reverse-engineer it from an absence. The three grounds are: SUB-3 may not form its own view of a disposition (§3.1 clause 1); only a rights re-verification promotes a row (§11.2); and the failure directions are asymmetric — over-caution costs a cap, a wrong permissive call costs a rights breach recorded in a package whose whole claim is that it does not commit one. |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change — **the creator by default.** |
+| **Revision trigger** | **`D-F5`'s owner or the creator rules on whether a restricted-by-default row is fetchable by a downstream sub-task**, or the re-verification pass makes the question moot. |
+
+#### `OI-S3-4` — `OI-S2-4` and `OI-S2-8` are discharged as to SUB-3's probe run · **discharged, rows untouched**
+
+| | |
+| --- | --- |
+| **Open item** | Two of SUB-2's entries name **SUB-3's probe run** as their revision trigger. Both triggers have now fired, and the result is recorded here **without editing either row** — they are SUB-2's, and this register is append-only. |
+| **`OI-S2-4`** (unsourced provenance characterization) | **Did not recur.** Run 2's output (`dry-run/03_…` §4.3) contains **no appeal to an unnamed authority**; every claim is definitional or explicitly marked as a claim. **Not escalated to a template defect**, and no template is revised. One observation, not a trend — `claim_citations` stays REQUIRED for the reason `OI-S2-4` gives. |
+| **`OI-S2-8`** (pass condition scoped to identifier-bearing fields) | **Discharged as required.** Run 2 **states its own pass condition and its scope explicitly** (`dry-run/03_…` §1, §2) rather than inheriting SUB-2's by reference, including the restatement that "10/10 PASS" does not mean ten blank refusals. |
+| **Owner** | **SUB-2 (NEU-958)** for the rows themselves; **NEU-969 (SUB-12)** to reconcile the discharge into them at the end |
+| **Revision trigger** | **SUB-12's reconciliation pass**, which may fold this discharge into the two rows it refers to. |
+
+#### `OI-S3-5` — the retention discipline passed vacuously and remains untested under a live response · **open**
+
+| | |
+| --- | --- |
+| **Open item** | `01_provenance-and-rights.md` §6 binds an enumerating API response on **retention, not request count**. SUB-3 confirmed the disposition was in force before the first request on path (1) — but **C4 failed the access gate, so `problemset.problems` was never called and no enumerating response was ever received.** The check therefore passes **vacuously**: there was nothing to retain. |
+| **Why it is filed** | A vacuous pass reads identically to a demonstrated one in a summary table. **Nothing in SUB-3's output establishes that the retention discipline holds under a real enumerating response**, and a future pass must not cite `03_…` §8 as precedent that it does. |
+| **Owner** | **SUB-3's successor** — whoever first executes path (1) against a live API — **the creator by default.** |
+| **Revision trigger** | **The first sanctioned call that actually returns an enumerating response**, at which point the retention check is run for real and its result replaces this vacuous one. |
 
