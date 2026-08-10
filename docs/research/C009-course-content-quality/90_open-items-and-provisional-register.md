@@ -152,6 +152,93 @@
 | **Owner** | **SUB-3 (NEU-959)** — which re-runs the probe and restates the condition for the admitting run — **or the creator by default.** |
 | **Revision trigger** | **SUB-3's probe run**, which must state its own pass condition and its scope explicitly rather than inheriting this one by reference. |
 
+### SUB-4 — NEU-960, correctness standards and authoring languages (OUT-2)
+
+**Residual ownership and owner defaults, stated once.** SUB-4 is **OUT-2's residual owner**. Where an entry below names SUB-4 or the creator as owner, that is the residual clause or an authoring-pass **default**; where it names another party, the assignment is a **proposal addressed to that owner**, surfaced here precisely so it can be reassigned or refused. **SUB-4 takes no decision it does not own:** every obligation below that wants a field, a gate, a placement or an upstream correction is filed here instead of being absorbed locally.
+
+**Cross-reference note.** `04_correctness-standards-and-authoring-languages.md` §1 references `OI-S4-1` … `OI-S4-7` by id and files none of them itself; they are minted here. `OI-S4-8` and `OI-S4-9` are filed here and referenced nowhere else.
+
+#### `OI-S4-1` — the solution invariant is carried as a named slot inside the existing REQUIRED `reasoning` field, not as a field of its own · **provisional / proposed, never taken**
+
+| | |
+| --- | --- |
+| **Item** | The solution standard (`04_…` §2.2) obliges a solution to state an invariant. That obligation is expressed as a **named `invariant` slot inside the existing REQUIRED `reasoning` field**, **not** as an `invariant` field on SUB-2's `solution` form. **SUB-4 adds no field to SUB-2's frozen ten-form catalogue and promotes no `OPTIONAL` field to `REQUIRED`** (`04_…` §1). Whether the invariant deserves a dedicated field is **proposed here and decided elsewhere.** |
+| **Why it matters** | A standard that quietly mints a field produces artifacts validating against a catalogue nobody published, and a merge in which SUB-2's owner meets a field they never defined. A constrained payload inside a field SUB-2 already marked REQUIRED is checkable **today**, against the catalogue actually on `origin/develop`. The cost of the discipline is real and is named rather than hidden: a slot is weaker than a field — see `OI-S4-3`. |
+| **Owner** | **SUB-2 (NEU-958)**, as the form catalogue's owner, and **SUB-9 (NEU-965)**, as the quality-system owner — **the creator by default.** A producing task may not promote its own artifact (`A1`–`A5`). |
+| **Revision trigger** | **SUB-2's owner amends the `solution` form**, or **SUB-9 publishes a gate that must address the invariant separately from the rest of `reasoning`.** It does not close by SUB-4 deciding a field would be tidier. |
+
+#### `OI-S4-2` — the conditional `complexity_claim` tension: the standard fails on a field the form marks `OPTIONAL` · **open, left standing deliberately**
+
+| | |
+| --- | --- |
+| **Item** | `complexity_claim` is **`OPTIONAL`** on SUB-2's `solution` form (`02_…` §3.5) and **stays `OPTIONAL`**. The solution standard nonetheless **fails** a solution authored for a node whose skill type is `optimization` or `implementation` when it omits a complexity statement (`04_…` §2.2). **That is a standard-level obligation on an `OPTIONAL` form field — a real tension, and `04_…` §1 states it out loud rather than implying the form was amended.** |
+| **Why it matters** | The tension has exactly three honest resolutions and SUB-4 owns none of them: a dedicated field, a **conditional** REQUIRED keyed to the node's recorded skill type, or a rejection of the obligation. Resolving it locally would mean SUB-4 amending a frozen catalogue by implication. Leaving it unrecorded would mean an author meeting a failure the form told them could not happen. |
+| **Owner** | **SUB-2 (NEU-958)** and **SUB-9 (NEU-965)**, between them — **the creator by default.** |
+| **Revision trigger** | **SUB-2's owner marks `complexity_claim` conditionally REQUIRED, or SUB-9 publishes a gate that either enforces or rejects the conditional obligation.** Until one of those, the standard fails on it and the form does not. |
+
+#### `OI-S4-3` — a slot inside a REQUIRED field has no addressable identity a gate can name · **open / structural**
+
+| | |
+| --- | --- |
+| **Item** | Three of SUB-4's obligations are **within-field payloads**: the `proof` form's three-slot `argument` payload (`optimal_substructure` / `overlapping_subproblems` / `recurrence_justification`), the `solution`'s `invariant` slot inside `reasoning`, and the `test`'s `kind:` label inside `misconception_or_edge_case`. **A slot is not separately addressable by a validator until SUB-9 defines how a slot is referenced** — `04_…` §6 describes the generic surface this would need (an optional **slot manifest** per field), and **describing it is not deciding to build it.** |
+| **Why it matters** | It bounds every "detected mechanically" claim SUB-4 makes about a slot. The checks are stated as rules a reviewer can apply today; **they are not stated as gates, because the addressing scheme a gate would need does not exist at this cutoff.** A reader who reads slot-presence as machine-enforced would be reading more than was written. |
+| **Owner** | **SUB-9 (NEU-965)** — which owns the gates, their mechanism vocabulary, and any slot-addressing scheme. |
+| **Revision trigger** | **SUB-9 defines how a slot inside a field is referenced** (a slot manifest or an equivalent), or decides the three payloads should be fields — in which case `OI-S4-1` and `OI-S4-5` resolve with it. |
+
+#### `OI-S4-4` — the explanation standard's depth obligation is `AI-judgment-only` and needs a compensating observable gate · **open / residual for SUB-9**
+
+| | |
+| --- | --- |
+| **Item** | The explanation standard's correctness obligation — *a learner holding exactly the node named in `prerequisite_recall` can reconstruct the applicability decision in both directions from the explanation alone* — is detected by **judgment**, and `04_…` §2.1 and §3.1 flag it **`AI-judgment-only`**. The field floor beneath it (presence of `applies_when`, `does_not_apply_when`, `prerequisite_recall`, `claim_citations`; the restatement check) is mechanical; **the depth obligation itself is not, and no mechanical proxy is proposed for it.** |
+| **Why it matters** | **`04_…` refuses to invent a metric to make the obligation look enforceable** — a word count is not depth, a readability score is not depth, and counting defined terms rewards padding. The honest consequence is that the explanation standard is **the weakest of the four, and weak in the place that matters most to a learner.** Naming that is more useful to SUB-9 than a fabricated metric would be. Nothing in `04_…` describes this standard as enforced, gated or blocking. |
+| **Owner** | **SUB-9 (NEU-965)** — owner of the compensating observable gate. |
+| **Revision trigger** | **SUB-9 publishes a compensating observable gate for the depth obligation, or records that none exists and the residue stands.** Either is a resolution; silence is not. |
+
+#### `OI-S4-5` — the hatch-authored artifact's JavaScript-failure note payload is unspecified in its field and its citation shape · **open**
+
+| | |
+| --- | --- |
+| **Item** | Every escape-hatch-authored artifact **carries a stated JavaScript-failure note citing the forcing `JS-E*` id(s)** (`04_…` §4.2, `DR-C09-04` Consequences). Two things about that note are **not** decided by SUB-4: **which field it lives in** — it is currently a payload inside the artifact's existing REQUIRED body-bearing fields, not a `forced_by_effects` field — and **exactly which `JS-E*` id(s) an artifact must cite** when NEU-941 recorded several effects on its node. |
+| **Why it matters** | The note is what makes the hatch **legible instead of arbitrary**: it answers *which enumerated effect made the standard realization wrong or unreachable here*, in the audit's own vocabulary. Its detection is stated as a **presence-and-id-membership check** (`schema`) — the note is present and every id it cites is one of `JS-E1`…`JS-E9`. **A membership check over an unspecified payload location is weaker than it reads**, which is why this is filed rather than assumed settled. |
+| **Owner** | **SUB-9 (NEU-965)** for the check's shape and placement; **SUB-2 (NEU-958)** if it becomes a field — **the creator by default.** |
+| **Revision trigger** | **SUB-9 specifies the note's carrying field and citation obligation**, or SUB-2's owner adds a field for it. Not by an author choosing a convenient field per artifact. |
+
+#### `OI-S4-6` — pressure to widen the escape hatch beyond NEU-941's enumerated 19 · **standing / filed, never absorbed**
+
+| | |
+| --- | --- |
+| **Item** | An author will at some point believe a twentieth technique belongs in the escape hatch. **That belief is filed here as a new `OI-S4-k`-class entry addressed to NEU-941's owner, and the artifact is authored in TypeScript in the meantime** (`DR-C09-04` §3, `04_…` §4.3). This entry is the standing slot that pressure lands in. |
+| **Why it matters** | **Membership is by node id at `rule_version: 1.0.0`, and only by node id.** *"This technique also carries `JS-E2`"* is an observation about an effect, **not an admission argument** — the 19 are the set NEU-941 adjudicated on evidence and recorded as a **severity**, not a set of symptoms anyone may re-derive. **The hatch cannot widen by precedent:** one artifact in C++17 creates no entitlement for a neighbouring technique, for the rest of its cluster, or for the technique it is most often taught beside. Absorbing the pressure locally is the one failure mode that **leaves no trace**, which is exactly why it is given a filing slot instead of a prohibition alone. |
+| **Owner** | **NEU-941's owner** — the audit's, at its own `rule_version` — **the creator by default.** |
+| **Revision trigger** | **NEU-941 publishes a new `rule_version`.** That is the only route. Not a downstream reading, not an effect resemblance, not this package's scope. |
+
+#### `OI-S4-7` — inherited reliance on SUB-1's source rows, `restricted` **by default rather than by verification**, and on the interim field set · **provisional / inherited**
+
+| | |
+| --- | --- |
+| **Item** | Every statement in SUB-4's output about what may be stored regarding an external problem rests on SUB-1's twelve source access-permission rows. Those rows are **`restricted` by the restricted-default rule — NEU-957 had no network access and issued zero HTTP requests** (`OI-S1-1`…`OI-S1-12`, `CAP-S1-1`). **They are not verified-restricted.** Riding on the same inheritance: the interim problem-reference field set is **`stable_id` + `canonical_url` only**, governed by the open ledger challenge **`CH-F5-1`** (`DR-C09-01`, `CAP-S1-2`), and the wider set is **NOT-YET-STORABLE**. |
+| **Why it matters** | The failure direction is the safe one — the standards consume a set **at least** as narrow as it must be, so no statement here can make the package less safe. But **no sentence in SUB-4's output may be read as evidence that any source's terms were checked.** An inability to read terms is not evidence the terms permit anything, and equally not evidence that they forbid it. `04_…` §2.2 accordingly writes an unverifiable `problem_ref` value as the literal `REFUSED — not verifiable`, **never invented**. |
+| **Owner** | **the creator** for the inherited reliance; **NEU-932 (`D-F5`'s owner)** for the field-set disposition — surfaced for reassignment. |
+| **Revision trigger** | **A dated re-verification pass with network access**, closing `OI-S1-1`…`OI-S1-12`; and, separately, **the foundations ledger recording a disposition for `CH-F5-1`** (`OI-S1-13`). Neither closes by a standard in this package needing a wider set. |
+
+#### `OI-S4-8` — the `JS-E2` blocking-subtotal discrepancy in the upstream audit register · **recorded, never corrected upstream**
+
+| | |
+| --- | --- |
+| **Item** | In `../C005-dp-js-materiality/02_audit-register.md`, the **§3.1 heading and the §2 headline attribute `JS-E2` to 9 blocking nodes**, while **the §2 per-node table carries `JS-E2` on 10 blocking rows**. The rest of the arithmetic is **internally consistent**: the **19-node blocking total** holds, the **`JS-E1` subtotal (7)** holds, and the **`JS-E4` subtotal (2)** holds. This is a **summary-line discrepancy against the rows, not a verdict difference** — no node's `blocking` severity is in doubt, and no id enters or leaves the 19 either way. |
+| **Why it is filed rather than fixed** | **SUB-4 writes no path under `docs/research/C005-*`** — the prohibition is absolute for this sub-task, and a correction is the owning task's to make by its own route. SUB-4 **consumes the 19 ids as binding rather than re-deriving them**, so nothing in this package's output depends on which subtotal is right. Filing it is the same discipline as `OI-S1-14`: an upstream arithmetic slip is **recorded where a downstream reader will meet it**, and repaired by the party entitled to repair it. |
+| **Owner** | **NEU-941 / the creator** — the audit register's owner. |
+| **Revision trigger** | **NEU-941 publishes a new `rule_version`**, or otherwise next touches the `JS-E2` subtotal. At that point the summary line is brought into agreement with the rows by the party entitled to edit them. |
+
+#### `OI-S4-9` — residual numbering-collision risk in the `00`–`89` topic band and the `DR-C09-NN` decision-record band · **provisional / reconciliation-time**
+
+| | |
+| --- | --- |
+| **Item** | SUB-4 claimed topic number **`04`**, decision record **`DR-C09-04`** and traceability register **`04_`**, all matching its own SUB number — the collision-free convention SUB-1 set (owns `01`, wrote `DR-C09-01`). All three were **re-confirmed free on `origin/develop` immediately before authoring**. **They cannot be confirmed free against a sibling's working tree**, because concurrent sub-tasks claim numbers at the same time and none can see another's tree. |
+| **Why it matters** | A number collision is a **merge-visible, cheap** failure — two files, one number — and it is filed here so the reconciling owner meets it as a known item rather than as a surprise. It is not a reason for any sub-task to renumber another's document in flight; **that would be the expensive failure this register exists to prevent.** |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation. |
+| **Revision trigger** | **SUB-12's reconciliation pass**, or a merge in which two sub-tasks land the same topic or decision-record number. |
+
 ### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
 
 #### `OI-S3-1` — the access gate is shut for all twelve sources, so the seed set is empty · **open**

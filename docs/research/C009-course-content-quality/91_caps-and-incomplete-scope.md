@@ -146,6 +146,70 @@
 | **Owner** | **SUB-1 (NEU-957)** as residual owner of OUT-7; a **review obligation on every C009 sub-task**, this one included |
 | **Closes when** | It does not. It is bounded, not closable. |
 
+### SUB-4 — NEU-960, correctness standards and authoring languages (OUT-2)
+
+**What this section is.** SUB-4 publishes four correctness standards, two authoring-language decisions and a membership-by-id selection rule. **Everything it deliberately did not do — the gates it did not assign, the review it did not run, the numbers it did not measure and the field set it did not widen — is below.** A cap recorded is not a failure; a cap not recorded is.
+
+#### `CAP-S4-1` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine Core Article 8 no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This project's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — core ships a lean default and runs inert when no capability is registered. **Not a skipped phase, not a deferred one, not a waived one.** |
+| **What is claimed** | **Nothing. No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-4's output.** Fabricating one to fill the gap would be **the same failure class as fabricating a citation** — a result presented for a run that did not happen. |
+| **What verification actually is** | **File inspection and `git diff`**, resolved against the task's numbered success criteria: the three new files exist at exactly their stated paths and carry their `**Model:**` attribution, the two shared registers show **zero deletions**, the change set is exactly the five package paths, and **zero paths under `docs/research/C005-*` are touched**. The repo's own gates are **no-regression checks only** — `lint`'s scope is literally `src tests` and **never sees `docs/`**, so a green line there is **not evidence about anything in this package**. |
+| **Consistency** | Explicitly consistent with **`CAP-S1-3`** and **`CAP-S2-2`**, which record the same no-op for the same registry. This is the third independent statement of it, not a new finding. |
+| **Owner** | **the creator** — registering a QA-execution provider is a repository-configuration decision, not a sub-task's. |
+| **Closes when** | A provider owning **`qa-execution:engine`** is registered **and** this package acquires runtime behaviour worth exercising. **Neither is expected within C009.** |
+
+#### `CAP-S4-2` — **no blocking behaviour and no placement is assigned; SUB-4 assigns the mechanism axis only** · out of scope by design
+
+| | |
+| --- | --- |
+| **Cap** | The pre-classification in `04_…` §3.1 assigns **the mechanism axis and nothing else**, from SUB-9's five published values — `deterministic`, `schema`, `server-side`, `automated`, `AI`. **It asserts no gate, no severity, no behaviour on failure, and no placement.** SUB-9 (NEU-965) owns **both** of those axes and SUB-4 assigns **neither**. |
+| **How binding it is** | **PROVISIONAL and NON-BINDING.** **SUB-9 re-expresses the table in the published scheme, may reassign any mechanism with a recorded reason, and SUB-9's assignment is the one that governs.** SUB-4 runs in `[P1]`, **seven positions before SUB-9**, and asserts no enforcement rule it does not own. |
+| **The consequence, named rather than left implicit** | A standard that fails an artifact is a **rule a reviewer applies**, not a gate that blocks. **Nothing in SUB-4's output enforces anything at runtime**, because no enforcement surface exists yet. The generic validation surface described in `04_…` §6 is **described, not decided** — SUB-9 decides what is implemented. |
+| **Owner** | **SUB-9 (NEU-965).** |
+| **Closes when** | **SUB-9 publishes the enforcement scheme and re-expresses the pre-classification table in it.** Not by review of this document, and not by a later sub-task treating a mechanism value as settled. |
+
+#### `CAP-S4-3` — **the standards-conformance review of the package's exemplars is SUB-11's — cited, never produced, never waited on** · seam, not defect
+
+| | |
+| --- | --- |
+| **Cap** | The standards-conformance review of the package's exemplars is **OUT-2's primary verification signal**, and it is **owned and run by SUB-11 (NEU-967)**. **SUB-4 does not produce it and does not claim its result.** SUB-4 runs **seven positions earlier in `[P1]`**, and **the exemplars do not exist at this cutoff** — so **SUB-4's completion never waits on that review.** |
+| **What SUB-4 produced instead** | Its own **exemplar-free end-to-end check**: the three-artifact violation-detection walkthrough (`04_…` §7). Three non-conforming artifacts are constructed inline and walked to a failure naming the standard, the exact field or payload slot, and the mechanism value that catches it — **with no authored content, no node id, no citation and no external reference.** A standard that could only be checked by first authoring an exemplar would be a standard nobody could apply until the exemplars existed; that coupling is what the walkthrough removes. |
+| **What the walkthrough is not** | **It is not a substitute for SUB-11's review and is never presented as one.** It exercises the standards against artifacts SUB-4 constructed to fail; it says nothing about whether real exemplars pass. |
+| **Owner** | **SUB-11 (NEU-967).** |
+| **Closes when** | **SUB-11 runs the standards-conformance review against these four standards and its result is cited back into this package.** |
+
+#### `CAP-S4-4` — **every NEU-941 performance verdict is directional, never quantified (`JS-U2`)** · non-closable within C009
+
+| | |
+| --- | --- |
+| **Cap** | **NEU-941 implemented nothing, benchmarked nothing, timed nothing, and selected no runtime, compiler or sandbox** — that was **out of scope by its own spec**, and it is recorded as **`JS-U2`**. Every performance, speed, cost or constant-factor statement inherited from it is therefore **directional only**. |
+| **What that binds here** | **No performance statement anywhere in SUB-4's output is presented as a measurement.** It applies in **both** directions and to **both** languages: SUB-4 does **not** claim the no-hatch TypeScript rewrite is too slow, that C++17 is fast enough, or that any technique clears any threshold in any runtime. `DR-C09-04`'s rejection of the no-hatch alternative **stands entirely on pedagogical accuracy and needs no performance claim at all.** Every such statement across the three new files is listed and labelled in `traceability/04_standards-evidence-and-scope-audit.md`. |
+| **What a reader must not do** | **A reader needing a threshold will not find one here and MUST NOT INFER ONE.** Converting a directional verdict into a quantity would manufacture a measurement out of a declined scope — the same failure class as a fabricated fetch result. |
+| **Owner** | **NEU-941 / the creator** — the audit's owner declined the scope; this package inherits the decline rather than quietly resolving it. |
+| **Closes when** | **An implementation-and-measurement pass is actually run**, against a selected runtime and a real workload. **Out of scope for C009.** |
+
+#### `CAP-S4-5` — **the interim `stable_id` + `canonical_url` field set is CONSUMED, not re-decided** · unresolved by design
+
+| | |
+| --- | --- |
+| **Cap** | The solution standard's `problem_ref` carries **`stable_id` and `canonical_url` only** — the interim set governed by open ledger challenge **`CH-F5-1`**. It is **cited by id — `CH-F5-1`, `DR-C09-01`, `CAP-S1-2` — and never restated, re-derived or re-argued.** The wider set (`title`, numeric `constraints`, difficulty signal, curriculum placement) appears nowhere as fillable and remains **NOT-YET-STORABLE**. |
+| **What this sub-task did not do** | **It did not widen the set, did not argue for widening it, and did not treat its own needs as grounds to widen it.** A producing task may not promote its own artifact (`A1`–`A5`), and needing a field is not an adjudication. **An unverifiable value is REFUSED, NEVER INVENTED** — every `problem_ref` in `04_…` §7's constructed artifacts reads exactly `REFUSED — not verifiable`, and every node id in them is a withheld placeholder, under `C2` / `EXC-1`. |
+| **What is not blocked** | Nothing in the four standards depends on the outcome. The standards attach to SUB-2's fields and to node-level structure; the field-set question touches one field of one form. That independence is what makes consuming the cap cheap enough to be the honest option. |
+| **Owner** | **NEU-932 (`D-F5`'s owner) / the creator** (default) — surfaced for reassignment. |
+| **Closes when** | **The foundations ledger records a disposition for `CH-F5-1`** (`OI-S1-13`). Not by this package needing the fields, and not by a downstream sub-task deciding it does. |
+
+#### `CAP-S4-6` — **SUB-4's structural checks were run by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The scope audit over the 19 ids, the `JS-U2` directional-statement audit, the field-name and skill-type conformance greps, and the three-artifact walkthrough in `04_…` §7 were **run by SUB-4 over SUB-4's own documents**. Inherited directly from **`CAP-S1-4`** and **`CAP-S2-5`**: an author checking its own completeness shares the author's blind spots by construction. |
+| **Mitigation, not a fix** | The **mechanical** half is **reproducible by anyone**: each of the 19 node ids is matched by exact string against the upstream audit register, the directional-statement audit records each statement's file and location, and every field name and skill-type literal is grep-checkable in both directions against `02_content-and-exercise-forms.md`. The **judgment** half — is a standard's correctness obligation the right bar? is the walkthrough's failure the failure a real reviewer would hit first? — **remains unvalidated by an independent reader.** |
+| **Owner** | **NEU-969 (SUB-12)** at the completeness gate; and any reviewer of this change. |
+| **Closes when** | **An independent pass re-runs the mechanical checks and reviews the judgment calls** — **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
 ### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
 
 **The headline, stated before the entries.** This sub-task was commissioned to produce a seed set of verified problem-level citations and to close `CAP-2` by evidence. **It shipped the procedure, the criteria, the record shapes and the probe. It shipped zero citations and it did not close `CAP-2`.** The cause is a single rights precondition that SUB-3 is expressly forbidden to re-decide, and it is recorded here rather than absorbed. **A cap recorded here is not a failure; a cap that was not recorded is.**
