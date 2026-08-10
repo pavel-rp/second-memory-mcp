@@ -416,3 +416,56 @@
 | **Owner** | **SUB-9 (NEU-965)** — the first consumer that may need instantiated values — **or the creator by default** |
 | **Revision trigger** | **`OI-S7-1` resolves and the anchor becomes available** (`CAP-S7-1` closes), at which point instantiated values can be published with a cross-check rather than with a caveat. |
 
+
+### SUB-8 — NEU-963, the authoring workflow and the in-situ creator-review loop (OUT-8)
+
+**Model:** claude-opus-5[1m]
+
+#### `OI-S8-1` — the residual clause is owned; an unenumerated unit or judgement is a gap, not an absence · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | **"…and any content unit or review judgement whose path is not enumerated above" is NEU-963's, and it defaults to `blocked`.** `08_authoring-workflow-and-in-situ-review-loop.md` §3.2 enumerates eight states and thirteen transitions; §9 states plainly that this enumeration is **the floor, not the boundary**. An unenumerated case does not disappear because the table looks complete — it lands in `blocked` and is recorded here. |
+| **Why it stays open** | The enumeration was derived from SUB-2's ten forms and the four SUB-4 standards **as they stand today**. A form, a standard, or a review kind added later produces a transition this table does not carry. **No enumeration over a package still under construction can be asserted complete**, and asserting it would be the one failure the residual clause exists to prevent. |
+| **Three cases already known to hit it** | (1) A unit naming a `node_id` that does not resolve. (2) A unit whose form is in neither the REQUIRED nor the OPTIONAL set for its node's `skill_type`. (3) A unit authored against a `conceptual` obligation in CL-2/CL-3/CL-4, where **zero** non-root `conceptual` nodes exist (`OI-S8-3`). Listed so each is a **predicted** filing rather than a surprise. |
+| **Why the default is `blocked` and not `quarantined`** | `blocked` is the only terminal whose meaning this sub-task owns in full. Defaulting into `quarantined` would route a population into a state whose semantics **do not exist yet**, making SUB-9's future definition retroactively govern cases SUB-9 never saw. |
+| **Owner** | **NEU-963 (SUB-8)** for classification of a filed residual case; **the creator** as residual owner of OUT-8 thereafter |
+| **Revision trigger** | **A real content unit or review judgement is filed that §3.2 does not carry a path for** — at which point the case is classified and the transition table extended by append. Also revised if SUB-2's form set or SUB-4's standard set changes, either of which changes what "enumerated" means. |
+
+#### `OI-S8-2` — the three quarantine slots are a shape without a meaning until SUB-9 lands · **open — this is the deliberate hand-off**
+
+| | |
+| --- | --- |
+| **Open item** | **`reason`, `owner` and `exit_condition` are present, named and unpopulated in every `RR-QUARANTINE` record, and SUB-8 asserts nothing about what may fill them.** The record has a defined **shape** now and its **meaning** later, so SUB-9's landing is a fill rather than a schema change to every record already written. |
+| **What is genuinely unknown** | Whether three slots are the right three. SUB-9 owns quarantine's semantics outright and may find it needs a fourth slot, or that one of these three is not a slot at all but a property of the transition. **SUB-8 deliberately did not design against that possibility**, because designing against it would require forming a view on quarantine's meaning — the exact thing it was told it does not have. |
+| **What would be a failure, in both directions** | A record whose slots SUB-8 filled — a squatter semantics SUB-9 must then argue against rather than define on open ground. **And** a record that omits them — which is why the presence requirement is as hard as the emptiness requirement. |
+| **Owner** | **SUB-9 (NEU-965)** — quarantine's single declared owner |
+| **Revision trigger** | **SUB-9 defines quarantine and fills or re-shapes the slots.** SUB-9 reconciles the filled slots against its own definition when it lands; this entry closes on that reconciliation, **not** on a downstream reader finding three slots sufficient. |
+
+#### `OI-S8-3` — the workflow inherits SUB-5's unchosen route and does not choose it · **open — routed, not resolved**
+
+| | |
+| --- | --- |
+| **Open item** | **A unit authored against a `conceptual` obligation in CL-2, CL-3 or CL-4 has no attachment point**, because those three clusters instantiate non-root `conceptual` **zero** times (`../C005-dp-map-integrity/`; `05_per-cluster-conceptual-obligation.md` §1). §3.3's entry precondition requires an existing `node_id`, so such a unit cannot enter `draft` and lands in `blocked` by §9. |
+| **What is NOT decided here** | **SUB-5 left three routes open — mint per-cluster S8-residual nodes, amend the `D-S1` cascade, or decline the spread bar — and deliberately did not choose.** SUB-8 does not choose on SUB-5's behalf, does not rank the routes, and does not treat any of them as more likely. The workflow simply states the consequence of the unchosen state and stops. |
+| **Why it is filed rather than absorbed** | A workflow that quietly routed these units to `published` — or that invented an attachment point — would make three clusters read as authorable while the map still offers nowhere to attach. The `blocked` default keeps the shortfall visible, which is what `F-943-2` was filed to preserve. |
+| **Owner** | **The map's owner — the creator, and whichever task next writes `nodes/*.yaml`** (the routing `D-R6`, `INC-C7` and `INC-S2` already carry) |
+| **Revision trigger** | **The map's owner adjudicates among `05_…` §6's three routes and records the disposition in the schema decision ledger.** No content authored under C009 closes it, and this workflow does not close it by defining a path around it. |
+
+#### `OI-S8-4` — the misfiling audit passes vacuously today, and the vacuity is the finding · **open**
+
+| | |
+| --- | --- |
+| **Open item** | The §8 audit — *for every node whose `creator_review` is not `"deferred-provisional"`, an adjudicated ledger entry exists whose id the node's `notes` cite verbatim* — **passes vacuously at this cutoff**, because the set of such nodes is **empty**: 179/179 are still `"deferred-provisional"`. |
+| **Why it is recorded rather than reported green** | A vacuous pass and a real pass are indistinguishable in a summary, and the difference is the whole content of the check. **The audit has never discriminated a correctly filed review from a misfiled one, because neither exists yet.** Its discriminating power is asserted by construction, not demonstrated. |
+| **Owner** | **The creator** — the only party who can produce the first non-vacuous instance |
+| **Revision trigger** | **The first node whose `creator_review` is adjudicated away from `"deferred-provisional"`**, at which point the audit runs against a non-empty set for the first time and either discriminates or is found not to. |
+
+#### `OI-S8-5` — the human/agent rubric is a rule, not a measured allocation · **open**
+
+| | |
+| --- | --- |
+| **Open item** | §6's condition resolves every transition to `human`, `agent` or `either` **by rule**, and the rule's limbs are defensible on their face — but **no measurement supports any of them.** H1 rests on class 4's stated self-preference limitation, not on an observed disagreement rate between an AI reviewer and a human on this corpus; H3 rests on irrecoverability, not on an observed error rate at terminals. |
+| **What would discriminate** | A recorded comparison — the same set of transitions reviewed by both, with disagreements counted. **That is a class 4 or class 5 artifact that does not exist**, and inventing an expected agreement rate would be exactly the fabrication the package forbids. |
+| **Owner** | **SUB-9 (NEU-965)** as the gate owner and first party with a reason to know the allocation's cost — **or the creator by default** |
+| **Revision trigger** | **A recorded reviewer-comparison run exists**, or SUB-9's gate placement makes a limb's cost concrete enough to be worth measuring. **This entry does not close by a downstream reader finding the rubric reasonable.** |
