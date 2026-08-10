@@ -76,3 +76,79 @@
 | **Why it is filed rather than patched** | §10 is a **dated scan result**. Rewriting its counts to match a later file set would present a re-run that did not happen as though it had — the same failure mode as a fabricated fetch, at smaller scale. The honest form is a re-run with its own date, which is exactly what §10's re-run obligation already requires. |
 | **Owner** | **SUB-1 (NEU-957) / the creator** — SUB-1 is the residual owner of OUT-7. |
 | **Revision trigger** | **The completeness gate (`92_package-completeness-gate.md`) re-runs both scans over the whole package**, or any sub-task adds a path that holds problem references. **A hit is a failure to fix, not a note to add.** |
+
+### SUB-2 — NEU-958, content and exercise forms (OUT-1)
+
+**Residual ownership, stated once.** SUB-2 is **OUT-1's residual owner**. Where an entry below names SUB-2 as owner, that is not a default assignment — it is the residual clause operating. Where it names another party, the assignment is a **default made by the authoring pass** and is surfaced here precisely so it can be reassigned.
+
+#### `OI-S2-1` — the residual clause is standing and unexercised, not discharged · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | The residual clause — *"…and any content or exercise form required by a mechanism `M01`–`M10` that is not one of the ten enumerated above"* — is an **owned, standing clause** (`02_content-and-exercise-forms.md` §8.2). At this cutoff it is **unexercised**: the reverse trace (§8.1) shows all ten mechanisms served by an enumerated form, so no eleventh form is required today. |
+| **Why it is filed rather than closed** | "No gap today" is not "no gap possible". The clause exists because the absence of exactly this rule upstream produced **all ten `INC-C1` gaps**. Closing it on a clean reverse-trace would recreate the condition it was written to prevent — a mechanism revision could strand a mechanism and the trace table would simply omit it. |
+| **Owner** | **SUB-2 (NEU-958) / the creator** — residual owner of OUT-1. |
+| **Revision trigger** | **Any revision to `M01`–`M10`**, or any mechanism found to require an observable behaviour no enumerated form carries. At that point the missing form is recorded here as a new `OI-S2-k` entry and resolved — **never left as a silent omission in the trace table.** |
+
+#### `OI-S2-2` — whether the **solution** form should carry the discriminative field pair · **decided provisionally, filed as reviewable**
+
+| | |
+| --- | --- |
+| **Open item** | Seven of the ten forms are decided discriminative and carry the REQUIRED `misconception_or_edge_case` / `separating_distractor_or_boundary_input` pair. **`solution` was decided NOT discriminative** (`02_…` §4), on the grounds that its learning function is post-attempt exposure (`M06`), not separation. The task's enumeration was a **floor, not a boundary**, so the decision to stop at seven is a judgement, not a derivation. |
+| **What was added beyond the floor** | **visualization** and **proof**, each with a stated per-form rationale (§4). The floor five — retrieval, assessment, reflection, test, worked example — are all included. |
+| **Owner** | **SUB-9 (NEU-965)** — the quality-system owner, which specifies what validates a form — **or the creator by default.** Surfaced for reassignment. |
+| **Revision trigger** | **SUB-9 specifying a gate over the solution form**, or **SUB-4** setting a correctness bar that the pair would carry evidence for. Either resolves whether the pair belongs on `solution`. |
+
+#### `OI-S2-3` — the placement matrix is a design assertion, not a per-node derivation · **provisional**
+
+| | |
+| --- | --- |
+| **Open item** | `02_…` §6.3 states, per form and per skill type, whether a form is required, optional or not applicable. The matrix is asserted from each form's learning function; it is **not** derived by inspecting the 187 mapped nodes, and no node was checked against it. |
+| **Why it is filed** | An author reading the matrix will treat it as authoritative for their node. If a real node's requirements contradict a cell, that is a finding about the matrix, and it must land somewhere visible rather than being resolved silently per author. |
+| **Owner** | **SUB-11 (exemplars)** — the first sub-task to instantiate forms against real nodes — **or the creator by default.** |
+| **Revision trigger** | **The first exemplar authored against a real node whose required forms contradict a matrix cell**, or any node-level authoring pass that exercises the matrix at scale. |
+
+#### `OI-S2-4` — the probe produced an unsourced provenance characterization · **recorded, below the failure threshold**
+
+| | |
+| --- | --- |
+| **Observation** | In the cold-agent fabrication probe (`dry-run/02_template-fabrication-probe.md` §3), the **example** template's output described a hand-constructed instance as *"the standard textbook counterexample."* **No book, author, identifier or address was produced**, so this is **not** a fabricated citation and does **not** fail the probe's stated condition (which the run passed 10/10). |
+| **Why it is filed anyway** | An appeal to an unnamed authority occupies the **same rhetorical position a citation would**. It is the nearest thing the run produced to the `EXC-1` failure mode, and recording it is cheaper than rediscovering it. It is the reason the lesson form's `claim_citations` field is REQUIRED rather than optional — that field forces the same impulse into a slot where its absence is visible. |
+| **Owner** | **SUB-3 (NEU-959)** — which re-runs the probe against a real verification procedure — **or the creator by default.** |
+| **Revision trigger** | **SUB-3's probe run.** If the same shape recurs there, it is escalated from an observation to a template defect and the affected template is revised. |
+
+#### `OI-S2-5` — `README.md`'s index granularity was left undecided · **open**
+
+| | |
+| --- | --- |
+| **Open item** | `README.md` carries a **generic** index row covering `02_…`–`89_…` as "the remaining topic documents, one or more per sub-task". SUB-2's documents are therefore **not** made stale by this change, and `README.md` was **deliberately not edited** — editing it would contend with concurrent siblings on a shared file for no correctness gain. Whether the index should eventually name each sub-task's document by number is **not decided here.** |
+| **Owner** | **NEU-969 (SUB-12)** — the declared reconciling owner — **or the creator by default.** |
+| **Revision trigger** | **SUB-12's reconciliation pass**, or the package reaching a document count at which the generic row stops being navigable. |
+
+#### `OI-S2-6` — a fourth file was added beyond the spec's enumerated scope · **recorded, not silently taken**
+
+| | |
+| --- | --- |
+| **Open item** | `traceability/02_form-mechanism-placement-matrix.md` is **not** in the spec's enumerated scope list. It was written because `traceability/README.md`'s own convention requires each sub-task to write the register rows for its own claims, and because the task's verification evidence names a traceability audit. It claims SUB-2's already-exclusive number `02`, so **no sibling can collide with it.** |
+| **Why it is filed** | A reviewer should **see** a scope deviation rather than discover it in a diff. The verbatim probe output stayed at its separately named path (`dry-run/02_…`) rather than being folded in. |
+| **Owner** | **SUB-2 (NEU-958) / the creator.** |
+| **Revision trigger** | **Review of this change**, or SUB-12's reconciliation, either of which may fold the matrix elsewhere or ratify it in place. |
+
+#### `OI-S2-7` — this catalogue relies on SUB-1's rows, which are restricted **by default**, not verified-restricted · **provisional / inherited**
+
+| | |
+| --- | --- |
+| **Open item** | The problem-reference form and every statement about what may be stored about an external problem rest on SUB-1's twelve source access-permission rows. Those rows are **restricted by the restricted-default rule** — **no network access was available and zero requests were issued** (`OI-S1-1`…`OI-S1-12`). They are **not** verified-restricted. |
+| **What that means here** | The form's narrow fillable set is **at least** as narrow as it must be, so the caveat cannot make this catalogue *less* safe. But no statement here may be read as evidence that any source's terms were checked. **An inability to read terms is not evidence the terms permit anything** — and equally, not evidence that they forbid it. |
+| **Owner** | **SUB-3 (NEU-959)** for the sourcing half; **`D-F5`'s owner (NEU-932)** for the dispositions — **the creator by default.** |
+| **Revision trigger** | **A dated re-verification pass with network access**, closing `OI-S1-1`…`OI-S1-12`. This entry does not close by this catalogue being reviewed. |
+
+#### `OI-S2-8` — the probe's pass condition is scoped to identifier-bearing fields · **owned, not silent**
+
+| | |
+| --- | --- |
+| **Open item** | The fabrication probe's stated condition — "every template yields an explicit refusal or the template's own non-data placeholder" — is applied to the **identifier-bearing fields**, not to the expository fields. **One** of the ten templates (problem-reference) refused outright; the other nine refused precisely in their identifier-bearing fields while authoring their prose fields. "10/10 PASS" therefore does **not** mean "ten refusals". |
+| **Why it is filed rather than left as a reading** | A template whose purpose is to elicit exposition cannot honestly be failed for eliciting exposition — so the narrowing is defensible. But an unstated narrowing of a pass condition is how a check quietly becomes weaker than its headline, and this probe's headline is load-bearing for the whole catalogue. Stating the scope costs nothing; discovering it later costs the result's credibility. |
+| **Owner** | **SUB-3 (NEU-959)** — which re-runs the probe and restates the condition for the admitting run — **or the creator by default.** |
+| **Revision trigger** | **SUB-3's probe run**, which must state its own pass condition and its scope explicitly rather than inheriting this one by reference. |
+
