@@ -282,6 +282,60 @@
 | **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
 | **Closes when** | An independent reader re-runs the scans and reviews the judgment call in `03_…` §4.2. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
 
+### SUB-5 — NEU-961, per-cluster non-root conceptual obligation (OUT-6)
+
+**The headline, stated before the entries.** This sub-task was commissioned to specify the per-cluster non-root `conceptual` obligation and route its map-side half. **It specified 4 of 4 and routed 3 of 4. It covered none of the 3, and it closed no finding.** The cause is not a shortfall of effort or of content quality: **three clusters contain no node a conceptual form set could attach to**, and creating one is out of scope charter-wide. **A cap recorded here is not a failure; a cap that was not recorded is.**
+
+#### `CAP-S5-1` — **non-root `conceptual` coverage is 0/3 for CL-2, CL-3 and CL-4** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **No cluster's conceptual coverage is achieved by this package beyond CL-1's.** Non-root `conceptual` stands at **1/4 clusters** — CL-1 only, on a single node — and at **0/3** across CL-2, CL-3 and CL-4. All three are capped **under this single entry with one named owner and one shared closure condition**, because they share **one** cause and **one** decision surface; three separately-worded caps would misrepresent one adjudication as three independent problems. |
+| **The cause** | SUB-2's placement matrix keys the REQUIRED form set off **the node's `skill_type`**, and all ten templates require `node_id` to be *"the exact node id from the map — copy it; if you cannot locate it, refuse."* CL-2, CL-3 and CL-4 instantiate `conceptual` **zero** times, so there is **no attachment point**. The absence is itself structural: the `S1→S8` cascade (`D-S1`, `settled`) reaches `conceptual` only as a **confident residual**, and the audit already records that it *"structurally suppresses `conceptual` outside the first-principles layer."* |
+| **What was refused** | **Authoring conceptual-flavoured content against the existing `strategic` and `transfer` nodes and reporting the clusters covered.** Those artifacts would be individually valid — `reflection`, `retrieval` and `assessment` are **R** for those types too — but the matrix reads the *node's* type, so the coverage produced is of that type. The package would then read green on all four clusters while the map still instantiates `conceptual` exactly once, **hiding the very fragility `F-943-2` was filed to keep visible, behind our own output.** Also refused: **retyping a near-candidate**, which contradicts a committed `skill_type_rationale` under a `settled` decision. |
+| **Owner** | **The map's owner — the creator, and whichever task next writes `nodes/*.yaml`** — for the map-side half. **The creator by default.** |
+| **Closes when** | The map's owner adjudicates among `D-R6`'s three routes and the chosen route is executed, so that each of CL-2, CL-3 and CL-4 carries at least one **non-root** node typed `conceptual` — **and then** SUB-2's six REQUIRED forms are authored against it. **No content authored under C009 closes it.** `OI-S5-1`. |
+
+#### `CAP-S5-2` — **whether each stated obligation clears the `S1→S8` cascade is UNADJUDICATED** · unresolved by design
+
+| | |
+| --- | --- |
+| **Cap** | The four obligations in `05_…` §4 are written deliberately as **property judgments** rather than as selections or as recognitions-under-an-unfamiliar-surface, so that a cascade adjudication is *possible*. **Whether each actually reaches S8 as a confident residual is not decided here and is not presumed.** A node minted on a mis-assessed cascade would carry a false type, which is the same defect as a retype, arrived at by a longer route. |
+| **Why this package cannot close it** | Assigning a `skill_type` is a map-authoring act, and **authoring, minting or reclassifying a map node is out of scope charter-wide.** `D-S1` is `settled` and its cascade is NEU-933's; forming a view on where it stops for a node that does not exist yet would be re-deciding it on the map's behalf. |
+| **What is nevertheless supplied** | Each obligation states its **failure directions** — the two ways the judgment goes wrong — which is precisely the evidence a cascade adjudication needs to distinguish an S8 residual from an S5 selection or an S4 transfer. **The adjudication is made cheap, not made.** |
+| **Owner** | **The map's owner / `D-S1`'s owner (NEU-933)** — **the creator by default.** |
+| **Closes when** | The map's owner records a cascade disposition for each minted node in `../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md`, or files a `D-S1` challenge if the cascade cannot express the obligation — the route `D-S1`'s own second revision limb names. |
+
+#### `CAP-S5-3` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This repository's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — a phase with no provider, not one skipped, deferred or waived. Consistent with `CAP-S1-3`, `CAP-S2-2` and `CAP-S3-6`. |
+| **What is claimed** | **Nothing. No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-5's output.** |
+| **What verification actually is** | File inspection and `git diff` against the named success criteria — in particular the **append-only** check (`0` deletions on the schema ledger and on both shared registers) and the **non-mutation** check (`docs/research/C005-dp-map/` shows zero changed files). The repository's own type-check and lint gates never see `docs/`, so a green line there is **not evidence about anything in this package.** |
+| **Owner** | **the creator** — registering a QA-execution provider is a repository-configuration decision, not a sub-task's |
+| **Closes when** | A `qa-execution:engine` provider is registered **and** this package acquires runtime behaviour worth exercising. Neither is expected within C009. |
+
+#### `CAP-S5-4` — **zero verified citations; the obligation's citation-independence is not evidence of coverage** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **Cluster citation coverage is `0/4`** (`CAP-S3-1`) and `CAP-2`'s closure was **declined** (`D-R5`). The per-cluster conceptual obligation is nevertheless statable in full, because for a `conceptual` node `problem-reference` and `solution` are both **O** and none of the six REQUIRED forms carries a required citation-bearing field. |
+| **Why that is capped rather than reported as a clean result** | Citation-independence is a real property of SUB-2's matrix, and it would be easy to read it as *"this obligation is unaffected by the rights gate, therefore it is in good shape."* **It is not.** Three clusters remain blocked on the map, which no citation would unblock, and the independence says nothing about that. **Stating the property without this cap would let a reader convert an unrelated absence of a blocker into evidence of progress.** |
+| **What was refused** | Asserting, constructing or illustrating **any** problem id, URL or identifier-shaped string. Where a citation is eventually used the interim field set is **`stable_id` + `canonical_url` only** (`CH-F5-1`, `DR-C09-01`, `CAP-S1-2`), and an unverifiable value is **refused, never invented**. `OI-S3-2`'s network-capability observation is **capability, not authority**; the rights gate stays shut and nothing in SUB-5's output licenses a fetch. |
+| **Owner** | **SUB-1 (NEU-957)** for the re-verification half, as residual owner of OUT-7 — **the creator by default** |
+| **Closes when** | It does not close by anything SUB-5 owns. It is retired when `CAP-S3-1` closes, at which point the independence becomes an ordinary fact rather than a claim needing a guard. |
+
+#### `CAP-S5-5` — **the per-cluster check was run by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The 4/4 per-cluster check, the discharge split and the non-mutation check in `traceability/05_conceptual-obligation-and-routing-matrix.md` were **run by SUB-5 against SUB-5's own output.** Inherited from `CAP-S1-4`, `CAP-S2-5` and `CAP-S3-7`: an author checking its own completeness shares the author's blind spots by construction. |
+| **Mitigation actually applied** | The **mechanical** half is reproducible by anyone and is stated as commands rather than as claims: the append-only check is `git diff --numstat` on three named files (expect `0` deletions each), and the non-mutation check is `git diff --stat` restricted to `docs/research/C005-dp-map/` (expect empty). The **counts** are not this task's — they are consumed from `../C005-dp-map-integrity/02_skill-type-union-completeness.md`, which measured them independently, so a reader checking the baseline is checking a **different** task's arithmetic. |
+| **What remains unvalidated** | The **judgment** half: whether each stated obligation is genuinely the conceptual acquisition its cluster needs, and whether the reclassification bar in `05_…` §6 is correctly drawn. Both are recorded so they can be challenged rather than reverse-engineered from an absence. |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
+| **Closes when** | An independent reader re-runs the two mechanical checks and reviews `05_…` §4 and §6. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
 ### SUB-7 — NEU-964, difficulty calibration and its provisional inputs (OUT-4)
 
 **The headline, stated before the entries.** This sub-task was commissioned to calibrate difficulty **honestly about the provisional data it rests on**. **It shipped the standard. It shipped it with no external cross-check for any of the 179 nodes, and with its dimension set escalated rather than settled.** Both are recorded below with named owners. **A cap recorded here is not a failure; a cap that was not recorded is.**
