@@ -288,6 +288,94 @@
 | **Owner** | **SUB-3's successor** — whoever first executes path (1) against a live API — **the creator by default.** |
 | **Revision trigger** | **The first sanctioned call that actually returns an enumerating response**, at which point the retention check is run for real and its result replaces this vacuous one. |
 
+### SUB-6 — NEU-962, assessment evidence out of band (OUT-5)
+
+#### `OI-S6-1` — the residual signal clause is **standing and undischarged**, not closed by this document · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | `06_assessment-evidence-out-of-band.md` §3.3 closes its signal enumeration with the clause *"…and any observable signal not enumerated above"*, which defaults to reliability class **`unclassified`** and **may feed no gate**. The enumeration is a **floor, not a boundary**: six signals were enumerated because six were observable at this cutoff, not because six is the complete set. |
+| **Why it is filed rather than treated as discharged** | A residual clause that is recorded as "handled" stops being read. The safe default only works if someone is responsible for noticing when it fires — otherwise a seventh signal appears, nobody classifies it, and the honest failure mode (a signal that feeds nothing) quietly becomes a dishonest one (a signal used before it was classified). **The clause is unexercised: no unenumerated signal has ever been run through it** (`RG-S6-10`). |
+| **Owner** | **SUB-6 (NEU-962)** as the classifying authority the clause names — **the creator by default.** Surfaced for reassignment. |
+| **Revision trigger** | **Any new observable signal reaching the product** — a submission surface, a telemetry field, an integration with the source platform — which must be classified in `06_…md` §3.1 **before** it may feed anything. Also **SUB-9 (NEU-965)** specifying gates over a signal not in the enumeration. |
+
+#### `OI-S6-2` — a false success report still pollutes **placement**, which no gate protects · **residual, bounded**
+
+| | |
+| --- | --- |
+| **Open item** | Adversarial scenario (a) — a learner who reports success falsely (`06_…md` §7.1) — is stopped at every **gate**, because `self_report_outcome` has an empty may-feed list. It is **not** stopped at **placement**: the system may stop offering a problem the learner never solved, and may sequence past a node the learner has not met. |
+| **What that costs, stated plainly** | A scheduling cost, not a mastery claim. No gate advances, no unlock fires, and no mastery history records a success. What degrades is the *usefulness* of what the learner is offered next — which is real, and is a different kind of harm from an unearned unlock. |
+| **Why it is not fixed here** | Placement is not a gate, and this sub-task's remit is gate-bearing evidence. Fixing it would mean either treating the report as evidence (forbidden) or ignoring the learner's stated preference (a product decision not owned here). |
+| **Owner** | **SUB-9 (NEU-965)** for whether placement warrants a gate at all; **the creator by default** for the product question. |
+| **Revision trigger** | **SUB-9 specifying a placement-affecting gate**, or a product decision on whether a self-report may influence sequencing at all. |
+
+#### `OI-S6-3` — the **unaidedness and authorship** of an out-of-band solve are not observable · **residual exposure, compensated not closed**
+
+| | |
+| --- | --- |
+| **Open item** | Two scenarios collapse to one unobservable property. `MM-T9` (Gate A) requires an **unaided** correct application, and adversarial scenario (c) (`06_…md` §7.3) concerns a learner who pastes back a solution they did not write. **Neither unaidedness nor authorship of the external solve is observable to us.** A learner may have read an editorial, or copied the solution outright, and the pasted text is identical either way. |
+| **The bound, stated exactly** | **At most one counted success toward `MM-T1`** may be obtained by copying. Gate A is not opened by the paste alone (`06_…md` §4.2); Gate B needs **K = 3** at q ≥ 3 across **≥ 2 sessions ≥ 1 day apart** (`MM-T1`, `MM-T2`); Gate C is server-evaluated and unreachable by any single artifact (`MM-T8`); Gates D and E are unreachable on out-of-band evidence entirely. |
+| **The compensating in-app signal** | The remaining successes must come from **`retrieval_item_result`** and **`assessment_item_result`** on our own items, in **separated sessions**, each of which must **discriminate the node's named misconception** (`06_…md` §5). A copied solution transfers no ability to answer a discriminating item. |
+| **What was deliberately refused** | **No stylometric, timing-based, or similarity-based authorship inference is proposed.** Each would manufacture a confident-looking signal from evidence that does not support one — the same failure `RA5` already forbids for AI judgement. **Refuse rather than invent applies to inferences, not only to citations.** |
+| **Owner** | **SUB-9 (NEU-965)** as the gate owner that would have to enforce any narrower bound — **the creator by default.** |
+| **Revision trigger** | **A genuinely observable authorship or unaidedness signal becomes available** (an in-app editor with captured attempts, or a source-platform integration), falsifying charter assumption 5. Also **SUB-9 deciding the one-success exposure is too wide**, which would tighten `MM-T1`'s admission rule rather than this design. |
+
+#### `OI-S6-4` — a **drifted problem** can make a gate-bearing item wrong, and this design does not detect drift · **provisional / routed to SUB-10**
+
+| | |
+| --- | --- |
+| **Open item** | Adversarial scenario (b) (`06_…md` §7.2): a learner solves the problem **as it now stands** after the source changed its constraints. The report itself feeds nothing, and a `pasted_solution` is graded against **our** rubric criteria — properties of the learner's *method*, not of the source's current constraint text — so the grade largely survives. What does **not** survive is an item authored against the old constraints: a `retrieval` item's `expected_response` may be stale, and a learner reasoning correctly about the current problem would be marked incorrect. |
+| **What this design supplies instead of detection** | **Survivability, not detection.** Because the evidence record is corpus-neutral (`06_…md` §6), the blast radius of a drifted citation is **two subfields and one placement** — never a learner's mastery history. When drift *is* detected downstream, the swap procedure replaces the citation and every accumulated gate result stands (verified: `dry-run/06_corpus-swap-verification.md`, 4/4 PASS). |
+| **What is explicitly not claimed** | **This design does not detect drift and does not claim to.** No staleness check, no re-verification schedule, and no constraint-diffing is specified here. |
+| **Owner** | **SUB-10 (NEU-966)** — drift detection is its remit, and it cites the corpus-swap result rather than re-running it. |
+| **Revision trigger** | **SUB-10 landing drift detection**, which supplies the missing half and may require this design to state what a detected-drift event does to an *already-counted* success. |
+
+#### `OI-S6-5` — learner `response` text is **deliberately not redacted** in logging today · **live exposure, recorded not fixed**
+
+| | |
+| --- | --- |
+| **Open item** | `src/shared/logger.ts`'s `LOG_REDACT` redacts only `password`, `token`, `apiKey`, `api_key`, `authorization` and `secret`, and its own doc comment records that learner `response` text is **intentionally not redacted** because it is useful diagnostic data. Every signal in this design that carries learner content — a `pasted_solution`, an `assessment` answer, a `post_hoc_reflection` — therefore travels through a logging path that does not redact it. |
+| **Why it is filed here** | `P5` binds this package: raw learner payloads are never exposed, and log-derived evidence is aggregate-only; `EX6` excludes un-gated operational-log payloads. **This design does not lean on redaction it does not have** — it states the exposure rather than assuming it away. The two class-6 signals it defines (`self_report_outcome`, `return_timing`) are also the two that feed no gate, so no per-learner mastery claim rests on log-derived evidence. |
+| **Why it is not fixed here** | **No `src/` change is in scope** — implementing any surface is explicitly excluded by this sub-task's brief. A redaction change is a code change with its own diagnostic trade-off, owned by whoever owns the logging policy, not smuggled into a research document's PR. |
+| **Owner** | **the creator** (default) as the owner of the logging/privacy policy; **NEU-887**'s privacy gate as the governing artifact. Surfaced for reassignment. |
+| **Revision trigger** | **A decision on whether learner `response` text is redacted, sampled, or retained under a bounded policy** — or any signal in this design being routed to a log-derived evidence path, which would make the exposure load-bearing rather than incidental. |
+
+#### `OI-S6-6` — `DR-C09-02` may **collide** with a concurrent sibling's decision-record id · **procedural, for SUB-12**
+
+| | |
+| --- | --- |
+| **Open item** | `DR-C09-nn` ids are **not namespaced per sub-task** — unlike `OI-S<n>-k`, `CAP-S<n>-k` and `RG-S<n>-nn`, which cannot collide by construction. Only `DR-C09-01` existed on the base this sub-task cut from, so `DR-C09-02` was free; **up to three siblings are in flight concurrently** and none can see another's working tree. |
+| **What was done about it** | The id was used as-is and the risk filed, rather than renumbering to a speculative gap. **Renumbering to avoid a collision that may not happen is how a numbering scheme acquires holes nobody can explain later**, and this sub-task may not renumber another's record in any case. |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation — the declared owner for exactly this class of cross-sub-task collision. |
+| **Revision trigger** | **A second `DR-C09-02` appearing in the package**, at merge or at SUB-12's reconciliation. |
+
+#### `OI-S6-7` — the corpus-swap run was kept in `dry-run/` rather than folded into the topic document · **scope decision, filed for visibility**
+
+| | |
+| --- | --- |
+| **Open item** | `dry-run/06_corpus-swap-verification.md` is a separate file rather than a section of `06_…md`. It claims SUB-6's already-exclusive number `06`, so **no sibling can collide with it**. Mirrors `OI-S2-6`'s shape: a reviewer should **see** a scope decision rather than discover it in a diff. |
+| **Why it was decided this way** | `dry-run/README.md` declares that folder the home for runs against constructed specimens, and SUB-2 kept its probe output at `dry-run/02_…` rather than folding it in. More importantly, **SUB-10 must cite this run by path**, and a citable run is easier to cite when it is a document rather than a subsection. |
+| **Owner** | **SUB-6 (NEU-962) / the creator.** |
+| **Revision trigger** | **Review of this change**, or **SUB-12's reconciliation**, either of which may fold the run elsewhere or ratify it in place. |
+
+#### `OI-S6-8` — this design's statements about external sources inherit SUB-1's **restricted-by-default** rows · **provisional / inherited**
+
+| | |
+| --- | --- |
+| **Open item** | Anything this design says about an external problem — that a citation may be retired, that constraints may drift, that a reference stores `stable_id` and `canonical_url` only — rests on SUB-1's twelve source access-permission rows. Those rows are **restricted by the restricted-default rule**; **no network access was available and zero requests were issued** (`OI-S1-1`…`OI-S1-12`). They are **not** verified-restricted. |
+| **What that means here** | Mirrors `OI-S2-7`. The caveat cannot make this design *less* safe — a narrower permitted set only narrows what may be stored. But **no statement in `06_…md` may be read as evidence that any source's terms were checked**, and the corpus-swap run deliberately used a **placeholder** citation precisely so that it needed no verified one. |
+| **Owner** | **SUB-3 (NEU-959)** for the sourcing half; **`D-F5`'s owner (NEU-932)** for the dispositions — **the creator by default.** |
+| **Revision trigger** | **A dated re-verification pass with network access**, closing `OI-S1-1`…`OI-S1-12`. This entry does not close by this design being reviewed. |
+
+#### `OI-S6-9` — the signal ids introduced here are **not** registered in `docs/GLOSSARY.md` · **deliberate deferral**
+
+| | |
+| --- | --- |
+| **Open item** | `06_…md` §3.1 introduces six signal ids — `self_report_outcome`, `pasted_solution`, `retrieval_item_result`, `assessment_item_result`, `post_hoc_reflection`, `return_timing` — plus the evidence-record field names in §6.1. The repository convention is that a new domain term gets a `docs/GLOSSARY.md` row in the same change. **No such row was added.** |
+| **Why it was deferred rather than taken** | These are **research-package vocabulary, not implemented domain terms**: no module owns them, no file defines them in code, and the glossary's own columns (owning module, defining file) would have to be filled with a research-document path. Adding a seventh file outside this sub-task's declared write set would also contend with concurrent siblings for no correctness gain. **The names become glossary-eligible when SUB-9 makes them enforceable and something in `src/` owns them.** |
+| **Owner** | **SUB-9 (NEU-965)** — the sub-task that turns this vocabulary into an enforceable quality system and therefore into implemented domain terms — **the creator by default.** |
+| **Revision trigger** | **Any of these ids appearing in `src/`**, or SUB-9 landing the gates that consume them, at which point each earns a glossary row with a real owning module. |
+
 ### SUB-5 — NEU-961, per-cluster non-root conceptual obligation (OUT-6)
 
 **The headline, stated before the entries.** This sub-task was commissioned to specify the per-cluster non-root `conceptual` obligation and to **route** its map-side half. **It specified all four obligations and routed three of them. It achieved coverage for none of the three, and it did not close `F-943-2`.** The completion condition is *specified and routed*, exactly as charter assumption 9 states. **Every entry below describes pending coverage with a named owner; none of them may be read as coverage achieved.**
