@@ -11,6 +11,8 @@ Ids are namespaced `RG-S6-nn`, so no sibling's rows can collide with these and n
 
 ## 1. Register
 
+### 1.1 Rows `RG-S6-01` … `RG-S6-25`
+
 | Id | Claim | Class | Evidence type | Cutoff | Provenance | Structural limitation |
 | --- | --- | --- | --- | --- | --- | --- |
 | **`RG-S6-01`** | Bare self-report (`self_report_outcome`) may feed **no** gate: A–E and `MM-T1`…`MM-T15` are all in its may-not-feed list. | — | Design rule derived from an upstream decision, not a measurement | 2026-08-10 | `../06_…md` §4.1, §1 R1; charter assumption 22 | It is a **rule**, not a finding. Nothing enforces it at runtime; enforcement is SUB-9's (`CAP-S6-1`). |
@@ -37,19 +39,24 @@ Ids are namespaced `RG-S6-nn`, so no sibling's rows can collide with these and n
 | **`RG-S6-22`** | `RA5` is retained (AI grading is not the signal of record) and `MC-4`'s metric is `PROXY-BOUNDING`; the shipped mapper and ceiling check are honoured and unchanged. | 2 | `[code-evidence]` | 2026-08-10 | `../06_…md` §10; `src/domain/algorithms/grade-mapper.ts`; `src/domain/algorithms/over-validation-guard.ts`; measurement-contract register `v1.0` | Verifiable negatively: no `src/` path appears in this change's diff. |
 | **`RG-S6-23`** | Every SUB-2 field name is used in its exact spelling, with no renamed, pluralised or camelCased variant, so SUB-9 merges the mapping without translation. | 2 | `[code-evidence]` — checked lexically against SUB-2's definitions | 2026-08-10 | `../06_…md` throughout; `../02_content-and-exercise-forms.md` §3.5, §3.8, §3.9, §3.10, §4 | A **lexical** check. It proves the exact spellings appear; it cannot prove no near-synonym was introduced elsewhere in prose (inherited `CAP-S2-6`). |
 | **`RG-S6-24`** | Every residual exposure named in the three adversarial scenarios is filed as an open item or a cap with a named owner and a trigger. | — | Structural check over this change | 2026-08-10 | `../06_…md` §7.1–§7.3; `../90_…md` `OI-S6-2`, `OI-S6-3`, `OI-S6-4`; `../91_…md` `CAP-S6-2` | Run by the producing task (inherited `CAP-S1-4`/`CAP-S2-5`). |
+| **`RG-S6-25`** | `assessment_item_result` **may** feed Gate A (`MM-T9`) and Gate B (`MM-T1`, `MM-T3`), plus remediation (`MM-T13`, `MM-T14`); it may **not** feed Gate C directly, Gate D, Gate E, `MM-T4`–`MM-T7` or `MM-T10`. | 2 | `[code-evidence]` — gate/threshold semantics and the form's field set read at source | 2026-08-10 | `../06_…md` §4.4; `../02_content-and-exercise-forms.md` §3.10; `../../C005-instructional-model/mastery-model/00_operational-mastery-model.md` §4, §5 | Admission presumes the item is **discriminating** per §5.2's four-condition check, which **nothing enforces** (`CAP-S6-1`). The same signal's `MM-T2` exclusion is registered separately as `RG-S6-06`. |
 
 ## 2. Orphan-and-completeness check
 
+### 2.1 Checks and their results
+
 | Check | Result |
 | --- | --- |
-| **Every gate-bearing claim in `../06_…md` is registered.** Sections §3.1–§3.4 → `RG-S6-03`, `RG-S6-08`; §3.3 → `RG-S6-10`; §4.0–§4.8 → `RG-S6-01`, `RG-S6-04`, `RG-S6-05`, `RG-S6-06`, `RG-S6-07`, `RG-S6-09`; §5 → `RG-S6-11`, `RG-S6-12`, `RG-S6-13`, `RG-S6-23`; §6 → `RG-S6-14`, `RG-S6-16`; §7 → `RG-S6-24`; §8 → `RG-S6-19`; §9 → `RG-S6-20`; §10 → `RG-S6-21`, `RG-S6-22`. | **No claim unregistered.** |
+| **Every gate-bearing claim in `../06_…md` is registered.** Sections §3.1–§3.4 → `RG-S6-03`, `RG-S6-08`; §3.3 → `RG-S6-10`; §4.0–§4.8 → `RG-S6-01`, `RG-S6-04`, `RG-S6-05`, `RG-S6-06`, `RG-S6-25`, `RG-S6-07`, `RG-S6-09`; §5 → `RG-S6-11`, `RG-S6-12`, `RG-S6-13`, `RG-S6-23`; §6 → `RG-S6-14`, `RG-S6-16`; §7 → `RG-S6-24`; §8 → `RG-S6-19`; §9 → `RG-S6-20`; §10 → `RG-S6-21`, `RG-S6-22`. | **No claim unregistered.** |
 | **Every gate-bearing claim in `../decision-records/DR-C09-02_…md` is registered.** Decision → `RG-S6-02`, `RG-S6-18`; control-by-control table → `RG-S6-17`. | **No claim unregistered.** |
-| **Every row points at a claim that exists.** Each of `RG-S6-01`…`RG-S6-24` names a file and section that is present in this change. | **No row orphaned.** |
-| **Class discipline.** Every row carries exactly one class, or an explicit `—` for a design rule or consumed upstream decision that is not an evidentiary claim at all. | **Held.** |
+| **Every row points at a claim that exists.** Each of `RG-S6-01`…`RG-S6-25` names a file and section that is present in this change. | **No row orphaned.** |
+| **Class discipline.** Every row carries exactly one of the seven classes, or an explicit `—` for a design rule, a specification, or a consumed upstream decision that is not an evidentiary claim at all. | **Deviation, stated rather than held.** 17 of 25 rows carry one of the seven classes; **eight carry `—`** (§3, first disclosure). That is a departure from `README.md`'s one-class-per-claim rule, taken deliberately — assigning a class to a non-empirical claim would dress a judgement as a finding. It is recorded here as a **deviation**, not as a satisfied check. |
 | **No class-7 row.** | **Held — zero rows carry class 7.** |
-| **Every row states a structural limitation.** | **Held — 24 of 24.** |
+| **Every row states a structural limitation.** | **Held — 25 of 25.** |
 
 ## 3. Disclosures
+
+### 3.1 Standing disclosures on this register
 
 - **`—` in the class column is deliberate and is not a blank.** Eight rows (`RG-S6-01`, `RG-S6-02`, `RG-S6-07`, `RG-S6-10`, `RG-S6-11`, `RG-S6-14`, `RG-S6-18`, `RG-S6-24`) record a **design rule**, a **specification**, or an **upstream decision consumed**. None of these is an empirical claim, and assigning one an evidence class would dress a judgement as a finding — the disclosure discipline `DR-C09-01` §Evidence follows.
 - **These checks were run by the task that produced the artifacts.** Inherited from `CAP-S1-4` / `CAP-S2-5` and re-stated as `CAP-S6-4`. The mitigation available was to keep the checks mechanical — presence, spelling, arithmetic, and a fixed-in-advance pass condition — rather than judgemental.
