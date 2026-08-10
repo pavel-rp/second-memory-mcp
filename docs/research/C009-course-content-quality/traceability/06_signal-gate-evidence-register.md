@@ -51,6 +51,6 @@ Ids are namespaced `RG-S6-nn`, so no sibling's rows can collide with these and n
 
 ## 3. Disclosures
 
-- **`—` in the class column is deliberate and is not a blank.** Six rows (`RG-S6-01`, `RG-S6-02`, `RG-S6-07`, `RG-S6-10`, `RG-S6-11`, `RG-S6-14`, `RG-S6-18`, `RG-S6-24`) record a **design rule**, a **specification**, or an **upstream decision consumed**. None of these is an empirical claim, and assigning one an evidence class would dress a judgement as a finding — the disclosure discipline `DR-C09-01` §Evidence follows.
+- **`—` in the class column is deliberate and is not a blank.** Eight rows (`RG-S6-01`, `RG-S6-02`, `RG-S6-07`, `RG-S6-10`, `RG-S6-11`, `RG-S6-14`, `RG-S6-18`, `RG-S6-24`) record a **design rule**, a **specification**, or an **upstream decision consumed**. None of these is an empirical claim, and assigning one an evidence class would dress a judgement as a finding — the disclosure discipline `DR-C09-01` §Evidence follows.
 - **These checks were run by the task that produced the artifacts.** Inherited from `CAP-S1-4` / `CAP-S2-5` and re-stated as `CAP-S6-4`. The mitigation available was to keep the checks mechanical — presence, spelling, arithmetic, and a fixed-in-advance pass condition — rather than judgemental.
 - **No class-7 `[future-real-user]` evidence supports any row, and none could.** No learner has used any part of this design. Class 7 does not exist for this package, and no class 1–6 row here is relabelled as one.
