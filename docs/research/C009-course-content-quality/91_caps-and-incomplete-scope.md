@@ -465,3 +465,48 @@
 | **`CAP-S1-5`** / **`CAP-S2-6`** — the anti-fabrication scans are lexical | **Inherited as a review obligation**, this sub-task included. No grep proves that no sentence here is a disguised unsourced difficulty claim. | SUB-1 (NEU-957), enforced at review |
 | **`INC-C7`**, **`INC-C1`**, **`R1` / `X-D3`**, **`PS-2/3/4` granularity** (C005 §9) | **Surfaced as `PR-9`, `PR-10`, `PR-8`, `PR-6`** in `07_…` §7 with owners and revision triggers. **Not re-owned** — C005's register keeps them. | per `../C005-dp-map-package/03_…` §9 |
 
+
+### SUB-8 — NEU-963, the authoring workflow and the in-situ creator-review loop (OUT-8)
+
+**Model:** claude-opus-5[1m]
+
+#### `CAP-S8-1` — **zero class 3 `[dogfooding]` evidence was collected; the loop is specified, never exercised on real evidence** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **The in-situ creator-review loop names class 3 `[dogfooding]` as the class every creator judgement carries — and this sub-task collected none of it.** No protocol run, no date and no journey id exists for any judgement about any node. The dry run in `08_…` §10.3 is labelled a **specification instrument** on its face and carries **no evidential weight**. |
+| **The cause** | Class 3's own definition is *"the creator running benchmark journeys as a first-class learner."* **Only the creator can produce it**, and it is produced **while learning** — over time, not on the schedule of an authoring pass. A sub-task that manufactured one would be inventing the creator's judgement, which is worse than having none. |
+| **What was refused** | **Simulating a plausible creator judgement and filing it as real.** The dry-run entry exists, and it is labelled `dry-run` in the ledger itself, precisely so it can never be mistaken for a class 3 datum by a cold reader who finds it later. |
+| **What it costs** | The loop is **specified and route-tested, never validated**. Nothing demonstrates that a real while-learning judgement fits the `CR-1` entry shape without loss, or that the class 3 provenance triple is capturable in practice mid-learning. |
+| **Owner** | **The creator** — the only party who can produce class 3 evidence |
+| **Closes when** | **The creator files the first real `CR-1` candidate entry** carrying a genuine protocol run, date and journey id, and it is adjudicated. |
+
+#### `CAP-S8-2` — **the flag flip is specified end to end and executed by nobody; 179/179 remain deferred** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **`creator_review` is `"deferred-provisional"` on 179/179 non-root nodes before this sub-task and on 179/179 after it.** `08_…` §7.5 enumerates the five artifacts that change on a flip and the party authorised to change each — and **steps 3, 4 and 5 (adjudication, the `nodes/*.yaml` write, the `notes` citation) are performed by nobody today.** |
+| **Why that is correct rather than a shortfall** | Reviewing the 179 nodes is **explicitly out of scope**; this sub-task specifies the loop and dry-runs it once. And `A4` forbids the filing task from adjudicating its own candidate, so even a real entry could not have been carried to a flip here. |
+| **What it costs** | The path is **observable, not demonstrated**. No flip has occurred, so no step of the flip has ever been executed by a real party, and a friction that only appears at step 4 — say, that the authorised writer of `nodes/*.yaml` is not the same party as the adjudicator — would not yet have surfaced. |
+| **Owner** | **The ledger's owner** for the adjudication half; **the map's owner — the creator, and whichever task next writes `nodes/*.yaml`** for the write-back half (the routing `INC-C7` and `INC-S2` already carry) |
+| **Closes when** | **At least one node's `creator_review` is adjudicated away from `"deferred-provisional"` and its `notes` cite the adjudicated ledger id verbatim.** The count `179` is the honest denominator until then. |
+
+#### `CAP-S8-3` — **no automated conformance check exists for this workflow, and `qa-execution:engine` is unconfigured** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **Nothing mechanically verifies that a real `RR-QUARANTINE` record carries three empty slots, that a `CR-1` entry is correctly classed, or that a review record carries exactly one evidence class.** The repository's capability registry resolves `git` and `linear` only; **no capability owns the `qa-execution:engine` surface**, so an automated QA pass over this deliverable is a genuine **Core Article 8 no-op** — the phase runs inert by design. |
+| **What was refused** | **Reporting a QA pass.** No engine ran, so no engine's verdict is claimed. The checks that were executed are real shell commands over the working tree (`git diff --numstat`, `git diff`, targeted scans) and are recorded as such in `traceability/08_…` §4 — mechanical, but hand-run and narrow. |
+| **What it costs** | Conformance to the record schema rests on review, not on a check. **A non-conforming record — one with a filled `reason`, or two evidence classes — would be caught by a reader or not at all.** |
+| **Owner** | **SUB-9 (NEU-965)** — building that check is a **gate**, and both the gate's blocking behaviour and its placement are SUB-9's on both axes; **or the creator by default** |
+| **Closes when** | **SUB-9 specifies the gate and a `qa-execution` capability is registered**, at which point the record-schema checks become executable rather than reviewable. |
+
+#### `CAP-S8-4` — **the workflow has never been run on a real content unit; the state graph is unexercised** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **Zero real content units exist to move through this workflow.** The `08_…` §10.1 walkthrough uses a constructed unit `U-DR-1` against a real node, and is a desk walk — not an execution. **No transition has ever been taken by a real reviewer on a real unit**, and no review record has ever been persisted anywhere. |
+| **The cause** | C009 specifies the content system; **authoring the content is not this charter's work**, and no authoring pass has run. The workflow is therefore correct-by-construction and untested-by-construction at the same time. |
+| **What it costs** | Friction that only appears in use — a role that turns out to be held by nobody, a record field that turns out to be uncapturable, a transition that turns out to need splitting — is invisible today. **A desk walk cannot find it**, and this cap is the honest statement that one was not attempted. |
+| **Owner** | **The creator**, as the party who authors the first real unit |
+| **Closes when** | **At least one real content unit reaches a terminal state through an enumerated transition**, leaving a persisted review record chain that an auditor can read without consulting the unit's author. |
