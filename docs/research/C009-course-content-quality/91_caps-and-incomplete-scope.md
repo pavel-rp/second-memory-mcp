@@ -87,3 +87,62 @@
 | **T4's specific catalogue entry ids remain unverified** (`INC-D4`). | Same ground as `CAP-2`: unverifiable without access. **No entry is cited until SUB-3 has resolved it.** | SUB-3 / the coverage-audit owner |
 | **`D-F3a` is `unresolved — by design`** — the node schema that will govern stored fields does not yet exist. | Bound when SUB-2 lands in the C005 schema package. This package quotes `D-F3a`'s **inherited field constraint** as the admission rationale for two fields; it does not and may not bind the schema. | SUB-2 (C005 schema package) |
 | **The C005 baseline's summary-line arithmetic slip** (`RC-2` and the `D-F5` ledger row summarise 13 dispositions against a 12-source set). | **Recorded, never corrected — this package edits neither the baseline file nor any ledger row in place.** It bears on no per-source disposition. Filed as `OI-S1-14`. | NEU-932 / the creator (default) |
+
+### SUB-2 — NEU-958, content and exercise forms (OUT-1)
+
+**Disambiguation, because the token collides.** `CAP-S1-6` above refers to a **`SUB-2` of the C005 *schema* package** as the owner of `D-F3a`. That is **not this sub-task.** This section is **SUB-2 of charter C009 (NEU-958)**, the form catalogue. The two are unrelated and no entry here binds the C005 schema.
+
+#### `CAP-S2-1` — **the problem-reference field set is CONSUMED, not decided** · unresolved by design
+
+| | |
+| --- | --- |
+| **Cap** | `02_content-and-exercise-forms.md` §5 specifies the problem-reference form for **both** `D-F5` dispositions, with the **restricted** shape — `stable_id` + `canonical_url` only — as the sole fillable one. It **decides nothing**: the field set is SUB-1's cap, cited by id (`CH-F5-1`, `DR-C09-01`, `CAP-S1-2`) and **never restated or re-derived**. |
+| **What this sub-task did not do** | It did not widen the set, did not argue for widening it, and did not treat its own need for richer fields as grounds to widen it. The wider fields appear **only** as `NOT-YET-STORABLE`, offered by no template as fillable and never presented as the current form. |
+| **Owner** | **NEU-932 (`D-F5`'s owner) — the creator by default.** A producing task may not promote its own artifact (`A1`–`A5`). |
+| **Closes when** | **The foundations ledger records a disposition for `CH-F5-1`.** Not by this catalogue needing the fields, and not by a downstream sub-task deciding it does. |
+
+#### `CAP-S2-2` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This project's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — core ships a lean default and runs inert when no capability is registered. |
+| **What that means, stated plainly** | **No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-2's output.** The fabrication probe (`dry-run/02_…`) is a **hand-run structural check recorded by the task that ran it** — it is not a QA run and is not presented as one. Fabricating a QA pass to fill the gap would be the same failure class as fabricating a citation. |
+| **Owner** | the creator / whoever registers a `qa-execution` capability |
+| **Closes when** | A capability owning `qa-execution:engine` is registered **and** a run is actually performed and recorded. Not before. |
+
+#### `CAP-S2-3` — **the fabrication probe is one run by one agent** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The probe (`dry-run/02_…`) passed **10/10** at its stated condition, with the problem-reference template — the exact `EXC-1` site — returning an explicit refusal in **both** fields, unprompted. That is **one observation, not a distribution.** A single cold-agent run cannot establish that no template can ever induce fabrication. |
+| **What this run deliberately could not admit** | A **verified** citation. The charter's OUT-1 wording admits one; this run satisfies that wording **only in its refusal branch**, because "verified" is defined by **SUB-3's** procedure and that procedure does not exist at this cutoff. A produced citation of any kind was therefore scored a failure here. |
+| **Owner** | **SUB-3 (NEU-959)** — owner of the second, admitting probe run. |
+| **Closes when** | SUB-3 re-runs the probe against a real verification procedure and its result is cited back into this package. |
+
+#### `CAP-S2-4` — **the catalogue defines fields; it sets no bar and no gate** · out of scope by design
+
+| | |
+| --- | --- |
+| **Cap** | This sub-task defines **what a form is** — its fields and their obligations. It does **not** define how good an instance must be. The correctness standards for `solution`, `proof` and `test` are **SUB-4's**; which gate validates a form, and any severity tier or lint rule, is **SUB-9's (NEU-965)**; the discriminating design of gate-bearing items is **SUB-6's**; exemplars are **SUB-11's**. |
+| **The consequence, named rather than left implicit** | The REQUIRED misconception/edge-case pair is a **structural obligation of the form definition** — a submission omitting it is not a valid instance. **Nothing in this package enforces that at runtime**, because no enforcement surface exists yet. A form definition that rejects is not the same as a gate that blocks. |
+| **Owner** | SUB-4, SUB-6, SUB-9, SUB-11 respectively |
+| **Closes when** | Each named sub-task lands its half. This entry is the seam, not a defect. |
+
+#### `CAP-S2-5` — **the structural checks were run by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The traceability audit, the misconception/edge-case structural check and the anti-fabrication greps in `traceability/02_…` were **run by SUB-2 over SUB-2's own document**. Inherited from `CAP-S1-4`: a producing task self-checking its own artifact is weaker evidence than an independent pass. |
+| **Mitigation actually applied** | The fabrication probe was delegated to a **cold agent with no prior context and no priming toward refusal** — the one check that could be made genuinely independent was. The remaining checks are mechanical (presence, count, grep) rather than judgemental, which bounds how much the self-check can flatter itself. |
+| **Owner** | **NEU-969 (SUB-12)** at the completeness gate; reviewers of this change |
+| **Closes when** | An independent pass re-runs the checks — the completeness gate (`92_package-completeness-gate.md`) is the natural site. |
+
+#### `CAP-S2-6` — **the anti-fabrication greps are lexical; a disguised plausible value is beyond them** · non-closable by any scan
+
+| | |
+| --- | --- |
+| **Cap** | Inherited directly from **`CAP-S1-5`** and re-stated here because this sub-task's central constraint depends on it. The checks that no template contains a copyable identifier or address are **lexical**. They prove structural absence of the obvious shapes. **They cannot prove that no placeholder anywhere reads, to some future author, as data.** No grep can. |
+| **What was done instead of pretending otherwise** | Every placeholder is angle-bracketed instruction text in the imperative, and **every one of the ten templates carries its own refuse-rather-than-invent line** rather than relying on one global statement — a redundancy chosen precisely because the lexical check cannot certify the property. |
+| **Owner** | **SUB-1 (NEU-957)** as residual owner of OUT-7; a **review obligation on every C009 sub-task**, this one included |
+| **Closes when** | It does not. It is bounded, not closable. |
+

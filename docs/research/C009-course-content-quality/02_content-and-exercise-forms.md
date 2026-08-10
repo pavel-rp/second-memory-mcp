@@ -442,7 +442,7 @@ gate_relevance:                      <which dependent this result can contribute
 - It does **not** author any of the ten `INC-C1` techniques or mint their nodes.
 - It sets **no status**. Status lives in a ledger.
 
-**No QA-engine run is claimed.** `qa-execution:engine` is unconfigured in this project's capability registry, so the QA-execution phase is a genuine **Core Article 8 no-op**. No QA pass, scenario, verdict or report is asserted or implied anywhere in this package by this sub-task (`CAP-S2-3`, consistent with `CAP-S1-3`).
+**No QA-engine run is claimed.** `qa-execution:engine` is unconfigured in this project's capability registry, so the QA-execution phase is a genuine **Core Article 8 no-op**. No QA pass, scenario, verdict or report is asserted or implied anywhere in this package by this sub-task (`CAP-S2-2`, consistent with `CAP-S1-3`).
 
 ---
 
