@@ -11,7 +11,7 @@ Follows the house decision-record shape (`../../C005-dp-map-foundations/decision
 
 A problem reference stores **`stable id` and `canonical URL` — and nothing else.**
 
-1. **`stable id` — ADMITTED**, on the rationale `D-F3a` already records: *"no field may hold verbatim external content; problem references are URLs and identifiers only"* (`../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md:27`). No ledger challenge is required or filed: the field is *inside* the recorded bar, and the challenge route is reserved for fields that exceed it.
+1. **`stable id` — ADMITTED**, on the rationale `D-F3a` already records — *"no field may hold verbatim external content"* (`../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md:27`), which in full at its source reads *"no node field may hold verbatim external content; problem references, if any, are URLs and identifiers only"* (`../../C005-dp-map-foundations/05_provenance-and-rights.md:54`). No ledger challenge is required or filed: the field is *inside* the recorded bar, and the challenge route is reserved for fields that exceed it.
 2. **`canonical URL` — ADMITTED**, on the same recorded rationale, which names URLs in its own words.
 3. **`title`, numeric `constraints`, `difficulty signal` and `curriculum placement` — NOT ADMITTED on this package's judgment.** Each is routed to ledger challenge **`CH-F5-1`**, filed against **`D-F5`** by append in `../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md`.
 4. **The interim stored set is `stable id` + `canonical URL` only, and it binds every C009 sub-task from the moment `../01_provenance-and-rights.md` lands, until `CH-F5-1` resolves.** A sub-task that needs a wider set does not widen it; it cites `CH-F5-1` by id and carries the unresolved field set as a cap with a named owner.
@@ -50,8 +50,8 @@ This is a **rights judgment resting on recorded constraints plus reasoning — n
 
 | What it rests on | Class | Provenance |
 | --- | --- | --- |
-| `D-F3a`'s field constraint — *"no field may hold verbatim external content; problem references are URLs and identifiers only"* | 2 `[code-evidence]` | `../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md:27`, commit base `c558ff9` |
-| `D-F5` §5's requirement that a wider proposal file a ledger challenge rather than proceed on local judgment | 2 `[code-evidence]` | `../../C005-dp-map-foundations/05_provenance-and-rights.md:71`; ledger row `D-F5` at `:26` |
+| `D-F3a`'s field constraint — *"no field may hold verbatim external content"* (ledger row), stated in full at its source as *"no node field may hold verbatim external content; problem references, if any, are URLs and identifiers only"* | 2 `[code-evidence]` | `../../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md:27` and `../../C005-dp-map-foundations/05_provenance-and-rights.md:54`, commit base `c558ff9` |
+| `D-F5` §5's requirement that a wider proposal file a ledger challenge rather than proceed on local judgment | 2 `[code-evidence]` | `../../C005-dp-map-foundations/05_provenance-and-rights.md:73`; ledger row `D-F5` at `:26` |
 | The §2 selection-and-curation bright line, as the ground for treating a stored table of titles, bounds or ratings as retained curation | 2 `[code-evidence]` | `../../C005-dp-map-foundations/05_provenance-and-rights.md` §2; restated at `../01_provenance-and-rights.md` §2 |
 | The twelve dated source dispositions this field set is stored against | 1 `[literature]`, documentary re-read at the 2026-08-10 cutoff — **no source was fetched** | `../01_provenance-and-rights.md` §1; `../00_method-and-provenance.md` §4 |
 | The warning that an external rating is a contest-performance proxy, never a learning-difficulty measurement | 1 `[literature]` | `../../C005-dp-map-foundations/02_corpus-selection.md` F-C-3 |

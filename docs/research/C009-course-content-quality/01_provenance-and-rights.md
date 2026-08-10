@@ -104,7 +104,7 @@ The operative rule is inherited verbatim in substance from `../C005-dp-map-found
 
 ## 4. The permitted-field decision — what a problem reference may store
 
-**The tension, stated exactly.** The reference-only product decision (charter assumption 1, confirmed) says the system stores a problem's id, canonical URL, title, constraints, difficulty signal and curriculum placement, and never the statement text. `D-F3a` reads *"no field may hold verbatim external content; problem references are URLs and identifiers only"* (`../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md:27`). Those two statements do not both hold for four of the six fields.
+**The tension, stated exactly.** The reference-only product decision (charter assumption 1, confirmed) says the system stores a problem's id, canonical URL, title, constraints, difficulty signal and curriculum placement, and never the statement text. `D-F3a` reads *"no field may hold verbatim external content"* (`../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md:27`), and the constraint it inherits reads in full *"no node field may hold verbatim external content; problem references, if any, are URLs and identifiers only"* (`../C005-dp-map-foundations/05_provenance-and-rights.md:54`). Those two statements do not both hold for four of the six fields.
 
 **`D-F3a` is the bar to argue against, not around.** A proposal to store anything beyond ids and canonical URLs **files a ledger challenge and never proceeds on local judgment** (`D-F5` §5). That is what this section does.
 
