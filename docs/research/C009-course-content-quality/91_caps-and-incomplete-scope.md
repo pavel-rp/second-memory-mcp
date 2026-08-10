@@ -206,4 +206,75 @@
 | **What would actually invalidate the mapping** | Not a value change, but a **shape** change — a threshold being redefined over a different quantity (e.g. `MM-T15` redefined over something other than solve latency would reopen §8.1's refusal). |
 | **Owner** | **NEU-888** as the owner of the instructional and mastery model; **the creator by default.** |
 | **Closes when** | It does not close here. It closes if and when the mastery model's values are calibrated and frozen — which is that package's decision, not this one's. |
+### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
+
+**The headline, stated before the entries.** This sub-task was commissioned to produce a seed set of verified problem-level citations and to close `CAP-2` by evidence. **It shipped the procedure, the criteria, the record shapes and the probe. It shipped zero citations and it did not close `CAP-2`.** The cause is a single rights precondition that SUB-3 is expressly forbidden to re-decide, and it is recorded here rather than absorbed. **A cap recorded here is not a failure; a cap that was not recorded is.**
+
+#### `CAP-S3-1` — **cluster coverage is 0/4; the seed citation set is empty** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **No verified problem-level citation was produced for any of CL-1, CL-2, CL-3 or CL-4.** The seed set has **zero entries**. All four clusters are capped **under this single entry with one named owner and one shared closure condition**, because they share **one** cause — the access gate — and four separately-worded caps would misrepresent one blocker as four independent problems. |
+| **The cause** | All twelve sources carry access disposition `Restricted` in `01_provenance-and-rights.md` §3. Under the charter's Branch C rule a source SUB-1 recorded as restricted **is not fetched**, and §3.1 clause 1 binds SUB-3 to consume that record rather than form its own view. **The sanctioned hierarchy has no reachable leaf**, so `C1` (which carries the CL-1/CL-2 foundational material) and every other corpus were gate-blocked before any path was reached. **Zero requests were issued.** |
+| **What was refused** | **Admitting a single unverified id to make the coverage row read better.** The acceptance criterion is explicit — a candidate that cannot be verified is dropped or capped, **never admitted with a caveat** — and `C1`'s constraint (*invent no problem-level citation, under any pressure, including schedule*) is not weakened by the fact that a blocked gate makes the deliverable look thin. **A cluster row reading 0 with a named owner is worth more than a row reading 1 that nobody can resolve.** |
+| **Owner** | **SUB-1 (NEU-957)** for the re-verification half (residual owner of OUT-7); **SUB-3's successor** for the execution half — **the creator by default** |
+| **Closes when** | A SUB-1-owned dated re-verification pass re-dates the §3 access rows, **and then** `03_…` §5's procedure is executed against the sources whose rows permit it, producing at least one seven-step PASS per cluster. `OI-S3-1`. |
+
+#### `CAP-S3-2` — **`CAP-2` closure DECLINED — not closed, not partially closed** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `CAP-2` records that problem-level citations are unverified because an entry-level automated fetch of the Codeforces corpus returned **HTTP 403** on 2026-07-16. **This sub-task declines to close it, and declines to partially close it.** Filed as **`D-R5`** in `../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md` §3.10, **by union** — a new appended subsection and row, no prior row replaced, **not self-promoted to `settled`** (`A4`). |
+| **Why declined rather than partially closed** | A partial closure needs at least one verified citation — some evidence that the hierarchy resolves *something*. **There is none.** **No fetch was attempted at this cutoff, so no new information about the 403 exists**, and a cap cannot be partially closed by a procedure never executed against a live source. **Declaring a partial closure on the strength of a shipped procedure would be closing a finding on a prediction** — precisely the defect `D-R4` was written to prevent in this same ledger. |
+| **What did change** | `CAP-2` previously had **no operational definition of "verified"** to close against and **no selection rule**; it now has both (`03_…` §5, §6). Its blocker moves from diffuse ("corpus access", unowned) to **exactly one named, dated, currently-actionable pass**. And `OI-S3-2` records that outbound network capability now exists, **firing `CAP-S1-1`'s named trigger.** |
+| **Owner** | **the creator / SUB-1 (NEU-957)** for the re-verification half; **SUB-3's successor** for the execution half |
+| **Closes when** | Both halves complete and at least one citation returns PASS on all seven steps of `03_…` §5. **No fetch outcome, absent `robots.txt`, or unenforced rate limit closes it** — inherited verbatim from `CAP-S1-1` and not weakened here. |
+
+#### `CAP-S3-3` — **the field set is CONSUMED, not decided; Branch A discharged** · unresolved by design
+
+| | |
+| --- | --- |
+| **Cap** | `CH-F5-1` is **unresolved and open**. Branch A fires as pre-specified: `03_…` §7 specifies the citation record for **both** dispositions, the produced shape is **`stable_id` + `canonical_url` only**, and title, constraints and difficulty signal are carried as **dated verification observations** in `traceability/03_…` §2 rather than as stored fields. |
+| **What this sub-task did not do** | It did not widen the set, did not argue for widening it, and **did not treat its own empty seed set as grounds to widen it.** The wider set is never admitted on this package's judgment under either branch. |
+| **Migration property, recorded because it is what makes the narrow set cheap** | If `CH-F5-1` resolves **for** the wider set, the four fields become admissible with **no change to the procedure** — §5's V5 and V6 already produce every one of those values as dated observations, so it is a **promotion of existing observations**, not a re-verification. **No citation would need re-resolving.** If it resolves **against**, nothing changes at all. |
+| **Owner** | **NEU-932 (`D-F5`'s owner) — the creator by default.** A producing task may not promote its own artifact (`A1`–`A5`). |
+| **Closes when** | **The foundations ledger records a disposition for `CH-F5-1`.** Not by this sub-task needing the fields, and not by a blocked seed set making the narrow record inconvenient. |
+
+#### `CAP-S3-4` — **the retention check passed VACUOUSLY and proves nothing about a live response** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `01_provenance-and-rights.md` §6's retention disposition was confirmed in force **before** the first request on path (1) — but **C4 failed the access gate**, `problemset.problems` was never called, and **no enumerating response was ever received**. There was nothing to retain, so the check passes **vacuously**. |
+| **Why it is named rather than reported as a clean pass** | In a summary table a vacuous pass is indistinguishable from a demonstrated one. **Nothing here establishes that the retention discipline holds under a real enumerating response**, and `03_…` §8 must not be cited by a future pass as precedent that it does. The failure this disposition exists to prevent — retaining or mining a whole-problem-list response — **has not yet been given the opportunity to occur.** |
+| **Owner** | **SUB-3's successor** — whoever first executes path (1) against a live API — **the creator by default** |
+| **Closes when** | The first sanctioned call that actually returns an enumerating response has its retention check run for real. `OI-S3-5`. |
+
+#### `CAP-S3-5` — **probe run 2 never exercised its admitting branch** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | Run 2 (`dry-run/03_…`) is the **admitting** run — the one whose pass condition allows a *verified* citation. **It passed 10/10 entirely on the refusal branch.** Because §5's step V0 halts every source at the access gate, **no citation could resolve under the procedure**, so the admitting branch was **available in principle and unreachable in fact**. **Whether a real resolution produces a real PASS remains untested.** |
+| **What the run did establish, and it is not nothing** | That supplying a verification procedure to an authoring agent **did not create a laundering vocabulary** — the live risk this run existed to test, and the one thing run 1 could not test. The cold agent used the procedure as a **gate**, cited V0 by name, and declined; it did not dress a guess as "verified under §5". |
+| **Disposition of `CAP-S2-3`** | Its closure condition — *"SUB-3 re-runs the probe against a real verification procedure and its result is cited back into this package"* — is **discharged as to the re-run and the citing**. The underlying limitation it names (two runs are two observations, not a distribution) **stands, undiminished.** `CAP-S2-3` is SUB-2's row and is **not edited here.** |
+| **Owner** | **SUB-3 (NEU-959)** for the run; **SUB-3's successor** for the admitting branch — **the creator by default** |
+| **Closes when** | The probe is re-run at a cutoff where at least one source is reachable, so a produced citation can actually be checked against the procedure. |
+
+#### `CAP-S3-6` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This repository's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — a phase with no provider, not one skipped, deferred or waived. |
+| **What is claimed** | **Nothing. No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-3's output.** The fabrication probe is a **hand-run structural check recorded by the task that ran it**, not a QA run. **Fabricating a QA pass would be the same failure class as fabricating a citation** — which is the failure this entire sub-task exists to prevent, so committing it in the verification register would be self-refuting. |
+| **What verification actually is** | File inspection, `git diff` against the named success criteria, and the re-run lexical scans of `traceability/03_…` §4. The repository's own gates never see `docs/`, so a green line there is **not evidence about anything in this package**. |
+| **Owner** | **the creator** — registering a QA-execution provider is a repository-configuration decision, not a sub-task's |
+| **Closes when** | A `qa-execution:engine` provider is registered **and** this package acquires runtime behaviour worth exercising. Neither is expected within C009. |
+
+#### `CAP-S3-7` — **the self-checks and scans were run by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | `traceability/03_…` §3's rights checks — including the two **new** ones, `RC-9` (no access outcome promotes a restricted source) and `RC-10` (every asserted problem id has a dated resolution record) — and §4's scan re-run were **run by SUB-3 against SUB-3's own output**. Inherited from `CAP-S1-4` and `CAP-S2-5`: an author checking its own completeness shares the author's blind spots by construction. |
+| **Mitigation actually applied** | The **mechanical** half is reproducible by anyone: §4 records each scan's command, date and outcome. **`RC-10` is trivially checkable** — SUB-3 asserts zero problem ids, and scans B and C both return 0. And the one check that could be made genuinely independent **was**: the fabrication probe ran on a **cold agent with no prior context and no priming toward refusal**. The **judgment** half — chiefly `03_…` §4.2's standing argument — remains unvalidated by an independent reader, which is why it is also filed as `OI-S3-3` for challenge. |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
+| **Closes when** | An independent reader re-runs the scans and reviews the judgment call in `03_…` §4.2. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
 
