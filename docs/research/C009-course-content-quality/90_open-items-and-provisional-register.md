@@ -152,6 +152,93 @@
 | **Owner** | **SUB-3 (NEU-959)** — which re-runs the probe and restates the condition for the admitting run — **or the creator by default.** |
 | **Revision trigger** | **SUB-3's probe run**, which must state its own pass condition and its scope explicitly rather than inheriting this one by reference. |
 
+### SUB-4 — NEU-960, correctness standards and authoring languages (OUT-2)
+
+**Residual ownership and owner defaults, stated once.** SUB-4 is **OUT-2's residual owner**. Where an entry below names SUB-4 or the creator as owner, that is the residual clause or an authoring-pass **default**; where it names another party, the assignment is a **proposal addressed to that owner**, surfaced here precisely so it can be reassigned or refused. **SUB-4 takes no decision it does not own:** every obligation below that wants a field, a gate, a placement or an upstream correction is filed here instead of being absorbed locally.
+
+**Cross-reference note.** `04_correctness-standards-and-authoring-languages.md` §1 references `OI-S4-1` … `OI-S4-7` by id and files none of them itself; they are minted here. `OI-S4-8` and `OI-S4-9` are filed here and referenced nowhere else.
+
+#### `OI-S4-1` — the solution invariant is carried as a named slot inside the existing REQUIRED `reasoning` field, not as a field of its own · **provisional / proposed, never taken**
+
+| | |
+| --- | --- |
+| **Item** | The solution standard (`04_…` §2.2) obliges a solution to state an invariant. That obligation is expressed as a **named `invariant` slot inside the existing REQUIRED `reasoning` field**, **not** as an `invariant` field on SUB-2's `solution` form. **SUB-4 adds no field to SUB-2's frozen ten-form catalogue and promotes no `OPTIONAL` field to `REQUIRED`** (`04_…` §1). Whether the invariant deserves a dedicated field is **proposed here and decided elsewhere.** |
+| **Why it matters** | A standard that quietly mints a field produces artifacts validating against a catalogue nobody published, and a merge in which SUB-2's owner meets a field they never defined. A constrained payload inside a field SUB-2 already marked REQUIRED is checkable **today**, against the catalogue actually on `origin/develop`. The cost of the discipline is real and is named rather than hidden: a slot is weaker than a field — see `OI-S4-3`. |
+| **Owner** | **SUB-2 (NEU-958)**, as the form catalogue's owner, and **SUB-9 (NEU-965)**, as the quality-system owner — **the creator by default.** A producing task may not promote its own artifact (`A1`–`A5`). |
+| **Revision trigger** | **SUB-2's owner amends the `solution` form**, or **SUB-9 publishes a gate that must address the invariant separately from the rest of `reasoning`.** It does not close by SUB-4 deciding a field would be tidier. |
+
+#### `OI-S4-2` — the conditional `complexity_claim` tension: the standard fails on a field the form marks `OPTIONAL` · **open, left standing deliberately**
+
+| | |
+| --- | --- |
+| **Item** | `complexity_claim` is **`OPTIONAL`** on SUB-2's `solution` form (`02_…` §3.5) and **stays `OPTIONAL`**. The solution standard nonetheless **fails** a solution authored for a node whose skill type is `optimization` or `implementation` when it omits a complexity statement (`04_…` §2.2). **That is a standard-level obligation on an `OPTIONAL` form field — a real tension, and `04_…` §1 states it out loud rather than implying the form was amended.** |
+| **Why it matters** | The tension has exactly three honest resolutions and SUB-4 owns none of them: a dedicated field, a **conditional** REQUIRED keyed to the node's recorded skill type, or a rejection of the obligation. Resolving it locally would mean SUB-4 amending a frozen catalogue by implication. Leaving it unrecorded would mean an author meeting a failure the form told them could not happen. |
+| **Owner** | **SUB-2 (NEU-958)** and **SUB-9 (NEU-965)**, between them — **the creator by default.** |
+| **Revision trigger** | **SUB-2's owner marks `complexity_claim` conditionally REQUIRED, or SUB-9 publishes a gate that either enforces or rejects the conditional obligation.** Until one of those, the standard fails on it and the form does not. |
+
+#### `OI-S4-3` — a slot inside a REQUIRED field has no addressable identity a gate can name · **open / structural**
+
+| | |
+| --- | --- |
+| **Item** | Three of SUB-4's obligations are **within-field payloads**: the `proof` form's three-slot `argument` payload (`optimal_substructure` / `overlapping_subproblems` / `recurrence_justification`), the `solution`'s `invariant` slot inside `reasoning`, and the `test`'s `kind:` label inside `misconception_or_edge_case`. **A slot is not separately addressable by a validator until SUB-9 defines how a slot is referenced** — `04_…` §6 describes the generic surface this would need (an optional **slot manifest** per field), and **describing it is not deciding to build it.** |
+| **Why it matters** | It bounds every "detected mechanically" claim SUB-4 makes about a slot. The checks are stated as rules a reviewer can apply today; **they are not stated as gates, because the addressing scheme a gate would need does not exist at this cutoff.** A reader who reads slot-presence as machine-enforced would be reading more than was written. |
+| **Owner** | **SUB-9 (NEU-965)** — which owns the gates, their mechanism vocabulary, and any slot-addressing scheme. |
+| **Revision trigger** | **SUB-9 defines how a slot inside a field is referenced** (a slot manifest or an equivalent), or decides the three payloads should be fields — in which case `OI-S4-1` and `OI-S4-5` resolve with it. |
+
+#### `OI-S4-4` — the explanation standard's depth obligation is `AI-judgment-only` and needs a compensating observable gate · **open / residual for SUB-9**
+
+| | |
+| --- | --- |
+| **Item** | The explanation standard's correctness obligation — *a learner holding exactly the node named in `prerequisite_recall` can reconstruct the applicability decision in both directions from the explanation alone* — is detected by **judgment**, and `04_…` §2.1 and §3.1 flag it **`AI-judgment-only`**. The field floor beneath it (presence of `applies_when`, `does_not_apply_when`, `prerequisite_recall`, `claim_citations`; the restatement check) is mechanical; **the depth obligation itself is not, and no mechanical proxy is proposed for it.** |
+| **Why it matters** | **`04_…` refuses to invent a metric to make the obligation look enforceable** — a word count is not depth, a readability score is not depth, and counting defined terms rewards padding. The honest consequence is that the explanation standard is **the weakest of the four, and weak in the place that matters most to a learner.** Naming that is more useful to SUB-9 than a fabricated metric would be. Nothing in `04_…` describes this standard as enforced, gated or blocking. |
+| **Owner** | **SUB-9 (NEU-965)** — owner of the compensating observable gate. |
+| **Revision trigger** | **SUB-9 publishes a compensating observable gate for the depth obligation, or records that none exists and the residue stands.** Either is a resolution; silence is not. |
+
+#### `OI-S4-5` — the hatch-authored artifact's JavaScript-failure note payload is unspecified in its field and its citation shape · **open**
+
+| | |
+| --- | --- |
+| **Item** | Every escape-hatch-authored artifact **carries a stated JavaScript-failure note citing the forcing `JS-E*` id(s)** (`04_…` §4.2, `DR-C09-04` Consequences). Two things about that note are **not** decided by SUB-4: **which field it lives in** — it is currently a payload inside the artifact's existing REQUIRED body-bearing fields, not a `forced_by_effects` field — and **exactly which `JS-E*` id(s) an artifact must cite** when NEU-941 recorded several effects on its node. |
+| **Why it matters** | The note is what makes the hatch **legible instead of arbitrary**: it answers *which enumerated effect made the standard realization wrong or unreachable here*, in the audit's own vocabulary. Its detection is stated as a **presence-and-id-membership check** (`schema`) — the note is present and every id it cites is one of `JS-E1`…`JS-E9`. **A membership check over an unspecified payload location is weaker than it reads**, which is why this is filed rather than assumed settled. |
+| **Owner** | **SUB-9 (NEU-965)** for the check's shape and placement; **SUB-2 (NEU-958)** if it becomes a field — **the creator by default.** |
+| **Revision trigger** | **SUB-9 specifies the note's carrying field and citation obligation**, or SUB-2's owner adds a field for it. Not by an author choosing a convenient field per artifact. |
+
+#### `OI-S4-6` — pressure to widen the escape hatch beyond NEU-941's enumerated 19 · **standing / filed, never absorbed**
+
+| | |
+| --- | --- |
+| **Item** | An author will at some point believe a twentieth technique belongs in the escape hatch. **That belief is filed here as a new `OI-S4-k`-class entry addressed to NEU-941's owner, and the artifact is authored in TypeScript in the meantime** (`DR-C09-04` §3, `04_…` §4.3). This entry is the standing slot that pressure lands in. |
+| **Why it matters** | **Membership is by node id at `rule_version: 1.0.0`, and only by node id.** *"This technique also carries `JS-E2`"* is an observation about an effect, **not an admission argument** — the 19 are the set NEU-941 adjudicated on evidence and recorded as a **severity**, not a set of symptoms anyone may re-derive. **The hatch cannot widen by precedent:** one artifact in C++17 creates no entitlement for a neighbouring technique, for the rest of its cluster, or for the technique it is most often taught beside. Absorbing the pressure locally is the one failure mode that **leaves no trace**, which is exactly why it is given a filing slot instead of a prohibition alone. |
+| **Owner** | **NEU-941's owner** — the audit's, at its own `rule_version` — **the creator by default.** |
+| **Revision trigger** | **NEU-941 publishes a new `rule_version`.** That is the only route. Not a downstream reading, not an effect resemblance, not this package's scope. |
+
+#### `OI-S4-7` — inherited reliance on SUB-1's source rows, `restricted` **by default rather than by verification**, and on the interim field set · **provisional / inherited**
+
+| | |
+| --- | --- |
+| **Item** | Every statement in SUB-4's output about what may be stored regarding an external problem rests on SUB-1's twelve source access-permission rows. Those rows are **`restricted` by the restricted-default rule — NEU-957 had no network access and issued zero HTTP requests** (`OI-S1-1`…`OI-S1-12`, `CAP-S1-1`). **They are not verified-restricted.** Riding on the same inheritance: the interim problem-reference field set is **`stable_id` + `canonical_url` only**, governed by the open ledger challenge **`CH-F5-1`** (`DR-C09-01`, `CAP-S1-2`), and the wider set is **NOT-YET-STORABLE**. |
+| **Why it matters** | The failure direction is the safe one — the standards consume a set **at least** as narrow as it must be, so no statement here can make the package less safe. But **no sentence in SUB-4's output may be read as evidence that any source's terms were checked.** An inability to read terms is not evidence the terms permit anything, and equally not evidence that they forbid it. `04_…` §2.2 accordingly writes an unverifiable `problem_ref` value as the literal `REFUSED — not verifiable`, **never invented**. |
+| **Owner** | **the creator** for the inherited reliance; **NEU-932 (`D-F5`'s owner)** for the field-set disposition — surfaced for reassignment. |
+| **Revision trigger** | **A dated re-verification pass with network access**, closing `OI-S1-1`…`OI-S1-12`; and, separately, **the foundations ledger recording a disposition for `CH-F5-1`** (`OI-S1-13`). Neither closes by a standard in this package needing a wider set. |
+
+#### `OI-S4-8` — the `JS-E2` blocking-subtotal discrepancy in the upstream audit register · **recorded, never corrected upstream**
+
+| | |
+| --- | --- |
+| **Item** | In `../C005-dp-js-materiality/02_audit-register.md`, the **§3.1 heading and the §2 headline attribute `JS-E2` to 9 blocking nodes**, while **the §2 per-node table carries `JS-E2` on 10 blocking rows**. The rest of the arithmetic is **internally consistent**: the **19-node blocking total** holds, the **`JS-E1` subtotal (7)** holds, and the **`JS-E4` subtotal (2)** holds. This is a **summary-line discrepancy against the rows, not a verdict difference** — no node's `blocking` severity is in doubt, and no id enters or leaves the 19 either way. |
+| **Why it is filed rather than fixed** | **SUB-4 writes no path under `docs/research/C005-*`** — the prohibition is absolute for this sub-task, and a correction is the owning task's to make by its own route. SUB-4 **consumes the 19 ids as binding rather than re-deriving them**, so nothing in this package's output depends on which subtotal is right. Filing it is the same discipline as `OI-S1-14`: an upstream arithmetic slip is **recorded where a downstream reader will meet it**, and repaired by the party entitled to repair it. |
+| **Owner** | **NEU-941 / the creator** — the audit register's owner. |
+| **Revision trigger** | **NEU-941 publishes a new `rule_version`**, or otherwise next touches the `JS-E2` subtotal. At that point the summary line is brought into agreement with the rows by the party entitled to edit them. |
+
+#### `OI-S4-9` — residual numbering-collision risk in the `00`–`89` topic band and the `DR-C09-NN` decision-record band · **provisional / reconciliation-time**
+
+| | |
+| --- | --- |
+| **Item** | SUB-4 claimed topic number **`04`**, decision record **`DR-C09-04`** and traceability register **`04_`**, all matching its own SUB number — the collision-free convention SUB-1 set (owns `01`, wrote `DR-C09-01`). All three were **re-confirmed free on `origin/develop` immediately before authoring**. **They cannot be confirmed free against a sibling's working tree**, because concurrent sub-tasks claim numbers at the same time and none can see another's tree. |
+| **Why it matters** | A number collision is a **merge-visible, cheap** failure — two files, one number — and it is filed here so the reconciling owner meets it as a known item rather than as a surprise. It is not a reason for any sub-task to renumber another's document in flight; **that would be the expensive failure this register exists to prevent.** |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation. |
+| **Revision trigger** | **SUB-12's reconciliation pass**, or a merge in which two sub-tasks land the same topic or decision-record number. |
+
 ### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
 
 #### `OI-S3-1` — the access gate is shut for all twelve sources, so the seed set is empty · **open**
@@ -249,4 +336,83 @@
 | **Why it is filed rather than read as discharged** | **Cluster-level completeness is not member-level completeness**, and conflating the two is the specific error the clause exists to prevent. At this cutoff the clause is **standing and exercised exactly once** — `OI-S5-3`'s `INC-C1` member set is a group whose conceptual obligation §4 cannot enumerate. Recording it live keeps a 4/4 cluster check from being read as a complete member check. |
 | **Owner** | **SUB-5 (NEU-961)** as the clause's residual owner; **NEU-969 (SUB-12)** to reconcile it at the end — **the creator by default.** |
 | **Revision trigger** | **Any cluster member surfaces with a conceptual obligation `05_…` §4 does not enumerate** — recorded as a new entry under this clause, never absorbed into an existing cluster row. |
+
+### SUB-7 — NEU-964, difficulty calibration and its provisional inputs (OUT-4)
+
+**The headline, stated before the entries.** The calibration standard ships. **Exactly one of its inputs was verified** — `prerequisite_depth`, re-derived 2026-08-10 by the untouched C005 integrity validator, **179/179 agree, 0 disagree**. **Six are provisional** on 179/179 unreviewed values. **The external cross-check is absent for every node**, not for some. And **which dimensions define calibration could not be settled on the evidence available**, so it is escalated below rather than assumed through.
+
+#### `OI-S7-1` — the dimension set could not be settled; **escalated to the creator** · **open — this is OUT-4's named escalation exit**
+
+| | |
+| --- | --- |
+| **Open item** | **Charter assumption 16 — *which* dimensions define calibration — is `[unconfirmed]` and is NOT settled by this sub-task.** OUT-4 requires it settled **or** escalated, never assumed through. It is **escalated.** `07_difficulty-calibration.md` §3 adopts assumption 16's default as the **working** set, **loudly and visibly**, and labels every calibrated output provisional on this choice (`PR-7`). **The default is not adopted silently as though it had been settled.** |
+| **Why it could not be settled** | The evidence that would discriminate between candidate sets is of exactly two kinds, and **neither exists at this cutoff**: (a) the **creator's plausibility review** of the map's provisional values — **deferred on 179/179**; and (b) **a non-empty seed set of externally-rated cited problems** permitting the §5.4 ordering comparison — **zero, `CAP-S3-1`**. A set chosen now would be chosen on the authoring pass's taste, and shipping that as settled is the exact laundering OUT-4 exists to prevent. |
+| **Candidate dimension sets considered** | **(1)** Assumption 16's default — `prerequisite_depth` + the five load dimensions + `progression_stage`, `entry_gate` excluded (**the working set**). **(2)** A **depth-only** set — `prerequisite_depth` alone, on the ground that it is the sole re-derivable input; rejected as a *settled* answer because it discards every stated-load signal on a provenance argument rather than an evidential one. **(3)** The default **plus a `javascript_materiality`-derived implementation term**, which would make `JS-U1`/`JS-U2`/`JS-U3`/`JS-U5` live reliances. **(4)** A **reduced subset** of D2–D6 retaining only dimensions the creator reviews first. **(5)** A **weighted** set with weights fitted to an external anchor — **not evaluable at all** while the anchor is absent. |
+| **The evidence that would discriminate between them** | **The creator's plausibility review of the 179 deferred values** (which of D2–D6 the creator affirms, and whether `progression_stage` survives as an independent band or collapses into depth); **and** a **non-empty externally-rated seed set** large enough to compare orderings under each candidate set against an independent signal (`07_…` §5.4). Candidate **(5)** additionally requires the anchor to exist at all. |
+| **Owner** | **the creator** — **the only qualified reviewer of the map's provisional values.** This is not a default assignment of convenience: `02_authoring-requirements.md` §4.3 names the creator as owner of the deferred review, and every candidate set turns on it. |
+| **Revision trigger** | **The creator reviews the deferred progression and load values and states which dimensions define calibration** — or NEU-888 supplies the discriminating evidence for the stage granularity and an externally-rated seed set becomes available, permitting the comparison to decide it empirically. **This entry does not close by a downstream sub-task finding the working set convenient.** |
+| **Note on the exit taken** | **Exactly one of {settled decision record, this escalation entry} exists — this one.** No dimension-set decision record was written to `decision-records/`. `traceability/07_…` §5.3 records the choice explicitly. |
+
+#### `OI-S7-2` — the calibration rests on 179/179 `deferred-provisional` values · **provisional / the standing reliance**
+
+| | |
+| --- | --- |
+| **Open item** | Six of the standard's seven input fields — `state_formulation_load`, `transition_derivation_load`, `proof_obligation_load`, `implementation_load`, `recognition_load` and `progression_stage` — carry `creator_review: "deferred-provisional"` on **all 179** non-root nodes. They are **usable and not binding**. Every point of use is enumerated as `PR-1`…`PR-6` in `07_…` §7 and audited against `../C005-dp-map-package/03_…` §9 in `traceability/07_…` §2. |
+| **Why it is filed rather than absorbed** | §4.3's own words: *"A curriculum charter calibrating against these values MUST surface that reliance."* Surfacing it once in prose would satisfy the letter; **surfacing it at every point of use** is what the constraint actually asks, and it is why the standard carries a per-use table rather than a caveat paragraph. |
+| **What is refused** | **Re-classing any of the six upward.** Agreement with an external rating would **not** promote a provisional dimension (`07_…` §5.4 step 4) — corroboration is not review. |
+| **Owner** | **the creator** |
+| **Revision trigger** | **The creator reviews the progression and load assignments for plausibility** (C005 charter assumption #11). Nothing else closes it — not a cross-check, not a downstream consumer's confidence, and not the passage of time. |
+
+#### `OI-S7-3` — `provisional_load_index` weights the five dimensions equally **by declaration, not by measurement** · **provisional**
+
+| | |
+| --- | --- |
+| **Open item** | `PLI` is the **equal-weight sum** of the five load dimensions. **Equal weighting is declared because no evidence discriminates a weighting** — **not** because the five were found to contribute equally. No pass has ever measured their relative contribution. |
+| **Why it is filed** | An equal-weight sum reads, to a downstream consumer, exactly like a considered choice. It is not one; it is the absence of a choice, made explicit. Left unfiled it would harden into a finding by repetition. |
+| **What the standard does about it** | It **refuses to collapse the triple into a scalar** (`07_…` §5.2), because a scalar would bake this non-choice into a sortable number. A reader wanting a scalar must resolve `OI-S7-1` first. **That friction is intended.** |
+| **Owner** | **the creator** — the same review that settles `OI-S7-1` |
+| **Revision trigger** | **`OI-S7-1` resolves**, supplying either a reviewed dimension set with weights or the evidence to fit them. |
+
+#### `OI-S7-4` — the calibrated value is a triple, and downstream consumers will want a scalar · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | `calibrated_difficulty` is the labelled triple `(structural_tier, provisional_load_index, stage_band)`, lexicographically ordered, and **nodes with equal triples are declared incomparable rather than tie-broken.** A tie-break would need either `entry_gate` (**forbidden**, `F-943-3`) or a weight (**unsettled**, `OI-S7-1`). |
+| **Why it is filed** | **SUB-9 (NEU-965)** merges this standard into one enforceable quality system, and a gate that must sort will meet the incomparability. It should meet it as a **recorded design decision with a named resolution route**, not as a surprise. |
+| **Owner** | **SUB-9 (NEU-965)** for the consuming half; **the creator** for the resolution — surfaced for reassignment |
+| **Revision trigger** | **`OI-S7-1` resolves** and a weighting becomes available; or SUB-9 specifies a gate whose semantics tolerate incomparability. |
+
+#### `OI-S7-5` — the ordering is a structural-load claim and **not** a learning order · **provisional, non-downgradable (inherited)**
+
+| | |
+| --- | --- |
+| **Open item** | `R1` / `X-D3` is carried **undiminished** and **non-downgradable**: *nothing in C005 measures DP learning*, and no selected corpus is ordered by learning dependency. The calibrated ordering is therefore a claim about **structural and stated load only**. Recorded as `PR-8`. |
+| **Why it is filed here rather than left upstream** | This is the sub-task that produces an artifact a curriculum would sort learners by. **The misreading has a natural home here and nowhere else**, so the disclaimer belongs at the point of production, not only in the register that first recorded it. |
+| **Owner** | **NEU-887 / the creator** |
+| **Revision trigger** | **Nothing in C005 or C009 can close it.** It closes only if DP learning is actually measured. |
+
+#### `OI-S7-6` — node-level coverage is `unaudited` on all 179, so no calibrated value carries a coverage claim · **open (inherited `INC-C7`)**
+
+| | |
+| --- | --- |
+| **Open item** | `coverage.status` reads `unaudited` on all 179 nodes (`INC-C7`). Any node-level coverage claim attached to a calibrated value therefore rests on an unaudited field. Recorded as `PR-9`; **the standard attaches none.** |
+| **Owner** | **NEU-942's route / a later pass** |
+| **Revision trigger** | **A node-level coverage write-back is commissioned.** |
+
+#### `OI-S7-7` — the node set a calibration ranges over is known-incomplete · **open (inherited `INC-C1`)**
+
+| | |
+| --- | --- |
+| **Open item** | The **10-instance `INC-C1` CL-4 gap class has no nodes**, so a calibration over the map ranges over a **known-incomplete** node set. SUB-3's disqualifier `X3` names the same seam from the sourcing side. Recorded as `PR-10`. **Stated so a completeness claim is never read into a calibrated ordering.** |
+| **Owner** | **the creator** — commission the CL-4 completion task, scoped by the cascade |
+| **Revision trigger** | **The completion task lands**, or a further CL-4-by-cascade technique surfaces. |
+
+#### `OI-S7-8` — no per-node calibrated value is published · **deliberate, recorded so it is not read as an omission**
+
+| | |
+| --- | --- |
+| **Open item** | The standard publishes **no per-node difficulty table**. Publishing 179 provisional triples with **no external cross-check** would circulate them as results, and a table is exactly the artifact that outlives its labels once it is copied into a second document. |
+| **What ships instead** | The **rule**, its **input classification**, its **labels**, and the **branch behaviour** — everything needed to compute a calibrated value and to know precisely how far to trust it. |
+| **Owner** | **SUB-9 (NEU-965)** — the first consumer that may need instantiated values — **or the creator by default** |
+| **Revision trigger** | **`OI-S7-1` resolves and the anchor becomes available** (`CAP-S7-1` closes), at which point instantiated values can be published with a cross-check rather than with a caveat. |
 

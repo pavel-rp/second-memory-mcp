@@ -146,6 +146,70 @@
 | **Owner** | **SUB-1 (NEU-957)** as residual owner of OUT-7; a **review obligation on every C009 sub-task**, this one included |
 | **Closes when** | It does not. It is bounded, not closable. |
 
+### SUB-4 — NEU-960, correctness standards and authoring languages (OUT-2)
+
+**What this section is.** SUB-4 publishes four correctness standards, two authoring-language decisions and a membership-by-id selection rule. **Everything it deliberately did not do — the gates it did not assign, the review it did not run, the numbers it did not measure and the field set it did not widen — is below.** A cap recorded is not a failure; a cap not recorded is.
+
+#### `CAP-S4-1` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine Core Article 8 no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This project's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — core ships a lean default and runs inert when no capability is registered. **Not a skipped phase, not a deferred one, not a waived one.** |
+| **What is claimed** | **Nothing. No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-4's output.** Fabricating one to fill the gap would be **the same failure class as fabricating a citation** — a result presented for a run that did not happen. |
+| **What verification actually is** | **File inspection and `git diff`**, resolved against the task's numbered success criteria: the three new files exist at exactly their stated paths and carry their `**Model:**` attribution, the two shared registers show **zero deletions**, the change set is exactly the five package paths, and **zero paths under `docs/research/C005-*` are touched**. The repo's own gates are **no-regression checks only** — `lint`'s scope is literally `src tests` and **never sees `docs/`**, so a green line there is **not evidence about anything in this package**. |
+| **Consistency** | Explicitly consistent with **`CAP-S1-3`** and **`CAP-S2-2`**, which record the same no-op for the same registry. This is the third independent statement of it, not a new finding. |
+| **Owner** | **the creator** — registering a QA-execution provider is a repository-configuration decision, not a sub-task's. |
+| **Closes when** | A provider owning **`qa-execution:engine`** is registered **and** this package acquires runtime behaviour worth exercising. **Neither is expected within C009.** |
+
+#### `CAP-S4-2` — **no blocking behaviour and no placement is assigned; SUB-4 assigns the mechanism axis only** · out of scope by design
+
+| | |
+| --- | --- |
+| **Cap** | The pre-classification in `04_…` §3.1 assigns **the mechanism axis and nothing else**, from SUB-9's five published values — `deterministic`, `schema`, `server-side`, `automated`, `AI`. **It asserts no gate, no severity, no behaviour on failure, and no placement.** SUB-9 (NEU-965) owns **both** of those axes and SUB-4 assigns **neither**. |
+| **How binding it is** | **PROVISIONAL and NON-BINDING.** **SUB-9 re-expresses the table in the published scheme, may reassign any mechanism with a recorded reason, and SUB-9's assignment is the one that governs.** SUB-4 runs in `[P1]`, **seven positions before SUB-9**, and asserts no enforcement rule it does not own. |
+| **The consequence, named rather than left implicit** | A standard that fails an artifact is a **rule a reviewer applies**, not a gate that blocks. **Nothing in SUB-4's output enforces anything at runtime**, because no enforcement surface exists yet. The generic validation surface described in `04_…` §6 is **described, not decided** — SUB-9 decides what is implemented. |
+| **Owner** | **SUB-9 (NEU-965).** |
+| **Closes when** | **SUB-9 publishes the enforcement scheme and re-expresses the pre-classification table in it.** Not by review of this document, and not by a later sub-task treating a mechanism value as settled. |
+
+#### `CAP-S4-3` — **the standards-conformance review of the package's exemplars is SUB-11's — cited, never produced, never waited on** · seam, not defect
+
+| | |
+| --- | --- |
+| **Cap** | The standards-conformance review of the package's exemplars is **OUT-2's primary verification signal**, and it is **owned and run by SUB-11 (NEU-967)**. **SUB-4 does not produce it and does not claim its result.** SUB-4 runs **seven positions earlier in `[P1]`**, and **the exemplars do not exist at this cutoff** — so **SUB-4's completion never waits on that review.** |
+| **What SUB-4 produced instead** | Its own **exemplar-free end-to-end check**: the three-artifact violation-detection walkthrough (`04_…` §7). Three non-conforming artifacts are constructed inline and walked to a failure naming the standard, the exact field or payload slot, and the mechanism value that catches it — **with no authored content, no node id, no citation and no external reference.** A standard that could only be checked by first authoring an exemplar would be a standard nobody could apply until the exemplars existed; that coupling is what the walkthrough removes. |
+| **What the walkthrough is not** | **It is not a substitute for SUB-11's review and is never presented as one.** It exercises the standards against artifacts SUB-4 constructed to fail; it says nothing about whether real exemplars pass. |
+| **Owner** | **SUB-11 (NEU-967).** |
+| **Closes when** | **SUB-11 runs the standards-conformance review against these four standards and its result is cited back into this package.** |
+
+#### `CAP-S4-4` — **every NEU-941 performance verdict is directional, never quantified (`JS-U2`)** · non-closable within C009
+
+| | |
+| --- | --- |
+| **Cap** | **NEU-941 implemented nothing, benchmarked nothing, timed nothing, and selected no runtime, compiler or sandbox** — that was **out of scope by its own spec**, and it is recorded as **`JS-U2`**. Every performance, speed, cost or constant-factor statement inherited from it is therefore **directional only**. |
+| **What that binds here** | **No performance statement anywhere in SUB-4's output is presented as a measurement.** It applies in **both** directions and to **both** languages: SUB-4 does **not** claim the no-hatch TypeScript rewrite is too slow, that C++17 is fast enough, or that any technique clears any threshold in any runtime. `DR-C09-04`'s rejection of the no-hatch alternative **stands entirely on pedagogical accuracy and needs no performance claim at all.** Every such statement across the three new files is listed and labelled in `traceability/04_standards-evidence-and-scope-audit.md`. |
+| **What a reader must not do** | **A reader needing a threshold will not find one here and MUST NOT INFER ONE.** Converting a directional verdict into a quantity would manufacture a measurement out of a declined scope — the same failure class as a fabricated fetch result. |
+| **Owner** | **NEU-941 / the creator** — the audit's owner declined the scope; this package inherits the decline rather than quietly resolving it. |
+| **Closes when** | **An implementation-and-measurement pass is actually run**, against a selected runtime and a real workload. **Out of scope for C009.** |
+
+#### `CAP-S4-5` — **the interim `stable_id` + `canonical_url` field set is CONSUMED, not re-decided** · unresolved by design
+
+| | |
+| --- | --- |
+| **Cap** | The solution standard's `problem_ref` carries **`stable_id` and `canonical_url` only** — the interim set governed by open ledger challenge **`CH-F5-1`**. It is **cited by id — `CH-F5-1`, `DR-C09-01`, `CAP-S1-2` — and never restated, re-derived or re-argued.** The wider set (`title`, numeric `constraints`, difficulty signal, curriculum placement) appears nowhere as fillable and remains **NOT-YET-STORABLE**. |
+| **What this sub-task did not do** | **It did not widen the set, did not argue for widening it, and did not treat its own needs as grounds to widen it.** A producing task may not promote its own artifact (`A1`–`A5`), and needing a field is not an adjudication. **An unverifiable value is REFUSED, NEVER INVENTED** — every `problem_ref` in `04_…` §7's constructed artifacts reads exactly `REFUSED — not verifiable`, and every node id in them is a withheld placeholder, under `C2` / `EXC-1`. |
+| **What is not blocked** | Nothing in the four standards depends on the outcome. The standards attach to SUB-2's fields and to node-level structure; the field-set question touches one field of one form. That independence is what makes consuming the cap cheap enough to be the honest option. |
+| **Owner** | **NEU-932 (`D-F5`'s owner) / the creator** (default) — surfaced for reassignment. |
+| **Closes when** | **The foundations ledger records a disposition for `CH-F5-1`** (`OI-S1-13`). Not by this package needing the fields, and not by a downstream sub-task deciding it does. |
+
+#### `CAP-S4-6` — **SUB-4's structural checks were run by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The scope audit over the 19 ids, the `JS-U2` directional-statement audit, the field-name and skill-type conformance greps, and the three-artifact walkthrough in `04_…` §7 were **run by SUB-4 over SUB-4's own documents**. Inherited directly from **`CAP-S1-4`** and **`CAP-S2-5`**: an author checking its own completeness shares the author's blind spots by construction. |
+| **Mitigation, not a fix** | The **mechanical** half is **reproducible by anyone**: each of the 19 node ids is matched by exact string against the upstream audit register, the directional-statement audit records each statement's file and location, and every field name and skill-type literal is grep-checkable in both directions against `02_content-and-exercise-forms.md`. The **judgment** half — is a standard's correctness obligation the right bar? is the walkthrough's failure the failure a real reviewer would hit first? — **remains unvalidated by an independent reader.** |
+| **Owner** | **NEU-969 (SUB-12)** at the completeness gate; and any reviewer of this change. |
+| **Closes when** | **An independent pass re-runs the mechanical checks and reviews the judgment calls** — **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
 ### SUB-3 — NEU-959, problem-level citation verification and access paths (OUT-3, OUT-1 probe run 2)
 
 **The headline, stated before the entries.** This sub-task was commissioned to produce a seed set of verified problem-level citations and to close `CAP-2` by evidence. **It shipped the procedure, the criteria, the record shapes and the probe. It shipped zero citations and it did not close `CAP-2`.** The cause is a single rights precondition that SUB-3 is expressly forbidden to re-decide, and it is recorded here rather than absorbed. **A cap recorded here is not a failure; a cap that was not recorded is.**
@@ -271,4 +335,72 @@
 | **What remains unvalidated** | The **judgment** half: whether each stated obligation is genuinely the conceptual acquisition its cluster needs, and whether the reclassification bar in `05_…` §6 is correctly drawn. Both are recorded so they can be challenged rather than reverse-engineered from an absence. |
 | **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
 | **Closes when** | An independent reader re-runs the two mechanical checks and reviews `05_…` §4 and §6. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
+### SUB-7 — NEU-964, difficulty calibration and its provisional inputs (OUT-4)
+
+**The headline, stated before the entries.** This sub-task was commissioned to calibrate difficulty **honestly about the provisional data it rests on**. **It shipped the standard. It shipped it with no external cross-check for any of the 179 nodes, and with its dimension set escalated rather than settled.** Both are recorded below with named owners. **A cap recorded here is not a failure; a cap that was not recorded is.**
+
+**No field-set cap is filed here.** The unresolved stored-field set is **SUB-3's entry**, inherited and cited by id — `CAP-S3-3`, and behind it `CH-F5-1`, `DR-C09-01`, `CAP-S1-2` / `OI-S1-13`. **SUB-12 (NEU-969) is the single owner of every cap**, so this sub-task restates none of them and incurs no duplicate.
+
+#### `CAP-S7-1` — **the external difficulty anchor is absent for all 179 nodes; there is no cross-check** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **No calibrated value in this standard has an independent external cross-check.** C4's numeric rating is the only quantitative difficulty signal in the corpus selection (charter assumptions 16 and 24), and **zero ratings exist**: SUB-3's seed set is empty and cluster citation coverage is **0/4** (`CAP-S3-1`). The anchor-unavailable branch of OUT-4 therefore fires **universally — for all 179 nodes, not for some.** |
+| **The cause** | All twelve sources fail SUB-3's step **V0**: every one carries access disposition `Restricted` in `01_provenance-and-rights.md` §3, so **no request was issued on either sanctioned path** — not C4's documented API, not the single targeted fetch. `problemset.problems` was never called. **This sub-task issued no request either**, on any path: reaching a source is expressly out of its scope, and a rating SUB-3 did not capture is this branch, never a fetch made here. Network **capability** exists (`OI-S3-2`) and the rights gate is shut regardless — **capability is not authority.** |
+| **What was refused** | **Inventing, estimating or recalling a rating.** `CH-F5-1`'s governing rule — an unverifiable value is **refused, never invented** — applies directly to any difficulty datum this sub-task could not source. Equally refused: **promoting a second provisional value into the anchor's place.** By name — `entry_gate` was **not** pressed into service as a pseudo-anchor (it carries no independent information at all, `F-943-3`), and `progression_stage` was **not** re-classed as an independent check on load dimensions drawn from the same unreviewed pass. |
+| **What it costs** | The calibration proceeds — the triple is fully computable from the map — but **nothing corroborates it.** Every calibrated output carries the verbatim *no external cross-check* label of `07_…` §9.4. **The result is labelled, never presented as grounded.** |
+| **Owner** | **SUB-1 (NEU-957)** for the re-verification half (residual owner of OUT-7); **SUB-3's successor** for the execution half — **the creator by default** |
+| **Closes when** | A SUB-1-owned dated re-verification pass re-dates the §3 access rows, **and then** `03_…` §5's procedure resolves at least one externally-rated C4 citation, at which point `07_…` §5.4's cross-check executes for real. `OI-S3-1`, `CAP-S3-1`, `CAP-S3-2`. |
+
+#### `CAP-S7-2` — **the observation-read path passed VACUOUSLY and proves nothing about a real rating** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | While `CH-F5-1` is open, the standard reads its external signal from **SUB-3's dated verification observations** rather than from a stored field. The restricted-stored-set run's first two assertions — *every rating is read from a dated observation* and *every dependent output carries the observation date* — **pass vacuously**: `traceability/03_…` §2 holds **zero** observations, so nothing was read and no output consumed one. |
+| **Why it is named rather than reported as a clean pass** | In a summary table a vacuous pass is indistinguishable from a demonstrated one — the same defect `CAP-S3-4` names for the retention check, in a different register. **Nothing in SUB-7's output establishes that the observation-read path works under a real observation**, and no future pass may cite `traceability/07_…` §5.1 as precedent that it does. |
+| **What did pass non-vacuously** | Three of the five: the inherited field-set cap is **cited by id** and never restated; **storage gains no field** (this change adds no schema, no field, no stored citation record); and the standard is **specified for both `CH-F5-1` dispositions**, with the rating staying **class X** either way and the dimensions, combination rule, classification and labelling unchanged. |
+| **Owner** | **SUB-7's successor** — whoever first calibrates against a real dated observation — **the creator by default** |
+| **Closes when** | At least one external rating exists as a dated verification observation and is actually consumed by the standard, so the date-labelling path is exercised rather than asserted. Depends on `CAP-S7-1`. |
+
+#### `CAP-S7-3` — **the standard ships UNEXERCISED: no calibrated value was computed for any node** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The combination rule has **never been run end-to-end over real values.** No `calibrated_difficulty` triple was computed, published or compared for any of the 179 nodes. What ships is the **rule**, its input classification, its labels and its branch behaviour — deliberately (`OI-S7-8`), because circulating 179 provisional triples with no cross-check would present them as results. |
+| **What that leaves untested** | The rule's **behaviour at scale**: how many nodes fall into equal-triple **incomparability** (`OI-S7-4`), whether the lexicographic order produces bands a curriculum can use, and what the actual numeric range of `PLI` is. **`07_…` §3.3 asserts no per-dimension range precisely because none was measured** — the validator reports key-set uniformity, not value ranges. |
+| **What was refused** | **Asserting a range, a distribution or a band this sub-task did not compute.** That would be the same defect as asserting a rating it did not capture, at smaller scale and with better camouflage. |
+| **Owner** | **SUB-9 (NEU-965)** as the first consumer that must instantiate the rule — **the creator by default** |
+| **Closes when** | The rule is executed over the real node set and its output characteristics are recorded — ideally at the same pass that resolves `OI-S7-1`, since the dimension set is what the execution would be testing. |
+
+#### `CAP-S7-4` — **`qa-execution:engine` is unconfigured; the QA-execution phase is a genuine no-op** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | This repository's capability registry resolves to **`git, linear`** only. **No capability owns the `qa-execution:engine` surface**, so the QA-execution phase is a genuine **Core Article 8 no-op** — a phase with no provider, **not** one skipped, deferred or waived. |
+| **What is claimed** | **Nothing. No QA pass, scenario, verdict, report or coverage claim is asserted or implied anywhere in SUB-7's output.** **Fabricating a QA pass would be the same failure class as fabricating the external rating this sub-task spends `CAP-S7-1` refusing to invent** — committing it here would refute the deliverable in its own verification register. |
+| **What verification actually is** | File inspection, `git diff` against the task's numbered success criteria, and **the re-run of the C005 integrity validator** recorded verbatim at `traceability/07_…` §3 — the one genuinely mechanical, third-party-reproducible check this sub-task has. The repository's own gates never see `docs/`, so a green line there is **not evidence about anything in this package**. |
+| **Owner** | **the creator** — registering a QA-execution provider is a repository-configuration decision, not a sub-task's |
+| **Closes when** | A `qa-execution:engine` provider is registered **and** this package acquires runtime behaviour worth exercising. Neither is expected within C009. |
+
+#### `CAP-S7-5` — **the audit and the branch runs were performed by the task that produced the artifact** · mitigated, not closed
+
+| | |
+| --- | --- |
+| **Cap** | The §9 provisional-reliance audit, the input-traceability table and both pre-specified branch runs (`traceability/07_…` §2, §4, §5) were **run by SUB-7 against SUB-7's own output**. Inherited from `CAP-S1-4`, `CAP-S2-5` and `CAP-S3-7`: an author checking its own completeness shares the author's blind spots by construction. |
+| **Mitigation actually applied, and its limit** | The one genuinely independent check **was** made independent: `traceability/07_…` §3's **validator run** executes a program this sub-task did not write and could not modify, and its output is recorded **verbatim**, including the parts that bear on nothing here. It is what makes `prerequisite_depth` class **MD** rather than an assertion. The **judgment** half — is escalating the dimension set right rather than settling it? is each `NOT APPLICABLE` disposition in the §9 audit correct? — **remains unvalidated by an independent reader.** |
+| **Owner** | **NEU-969 (SUB-12)** at reconciliation, and any reviewer of this change |
+| **Closes when** | An independent reader re-runs the validator and reviews the judgment calls in `07_…` §3.1 and `traceability/07_…` §2. **`92_package-completeness-gate.md`'s run is the intended occasion.** |
+
+#### `CAP-S7-6` — **caps inherited and consumed, not re-owned**
+
+**Listed so this sub-task's limits are not mistaken for new ones, and so SUB-12 sees no duplicate.**
+
+| Inherited entry | How SUB-7 consumes it | Owner (unchanged) |
+| --- | --- | --- |
+| **`CAP-S3-3`** — the stored field set is consumed, not decided; Branch A discharged | **Cited by id.** `07_…` §8 specifies the calibration for **both** `CH-F5-1` dispositions and stores **no** field. **No new field-set cap is incurred**, and the wider set is never admitted on this package's judgment. | NEU-932 (`D-F5`'s owner) / the creator |
+| **`CAP-S3-1`** / **`CAP-S3-2`** — empty seed set, coverage 0/4, `CAP-2` closure declined | **Consumed as the factual input** to the anchor-unavailable branch. SUB-7 neither closes nor partially closes `CAP-2`, and **does not re-decide SUB-3's standing judgment** (`OI-S3-3`). | SUB-1 / SUB-3's successor / the creator |
+| **`CAP-S1-1`** — twelve rows are **restricted by default**, not verified-restricted | **Carried verbatim.** No statement in SUB-7's output may be read as evidence that any source's terms were checked, and none treats a restricted row as an observed refusal. | the creator |
+| **`CAP-S1-5`** / **`CAP-S2-6`** — the anti-fabrication scans are lexical | **Inherited as a review obligation**, this sub-task included. No grep proves that no sentence here is a disguised unsourced difficulty claim. | SUB-1 (NEU-957), enforced at review |
+| **`INC-C7`**, **`INC-C1`**, **`R1` / `X-D3`**, **`PS-2/3/4` granularity** (C005 §9) | **Surfaced as `PR-9`, `PR-10`, `PR-8`, `PR-6`** in `07_…` §7 with owners and revision triggers. **Not re-owned** — C005's register keeps them. | per `../C005-dp-map-package/03_…` §9 |
 
