@@ -245,7 +245,7 @@ Both of SUB-1's scan families (`01_provenance-and-rights.md` §5.1 and §6) were
 | **A** | Statement-section markers at line start | **0 matches.** |
 | **B** | Problem-level URLs of the twelve sources | **0 matches.** |
 | **C** | Enumerated candidate sets — sibling rows carrying source-native problem identifiers | **0 matches.** |
-| **D** | Fenced blocks carrying a sample, example, or serialised response body | The package's fenced blocks are this sub-task's probe-output blocks in `dry-run/03_…`, which carry **refusal strings only** — no identifier, no address, no statement text. |
+| **D** | Fenced blocks carrying a sample, example, or serialised response body | **43 fence markers across three files** — SUB-2's templates and run-1 output, plus this sub-task's run-2 output. All **inspected, not counted**: instruction text, refusals and prose only. **No identifier, no address, no statement text, no response body.** SUB-1's baseline *"no fenced block at all"* no longer holds — the first blocks were SUB-2's — so **D now proves by inspection rather than by absence.** |
 | **E** | The enumerating endpoint by name | Matches are **policy prose only** — this document's §3, §4.1 and §8, each naming the endpoint as the subject of a prohibition or of a non-event. **No response body, quotation or summary.** |
 
 **Outcome: PASS.** **Stated limitation, unchanged and not weakened:** these are lexical scans (`CAP-S1-5`). They prove structural absence; they cannot prove the absence of semantic paraphrase. The residual is a review obligation, inherited here rather than rediscovered.
