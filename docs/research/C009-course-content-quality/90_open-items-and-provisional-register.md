@@ -376,6 +376,55 @@
 | **Owner** | **SUB-9 (NEU-965)** — the sub-task that turns this vocabulary into an enforceable quality system and therefore into implemented domain terms — **the creator by default.** |
 | **Revision trigger** | **Any of these ids appearing in `src/`**, or SUB-9 landing the gates that consume them, at which point each earns a glossary row with a real owning module. |
 
+### SUB-5 — NEU-961, per-cluster non-root conceptual obligation (OUT-6)
+
+**The headline, stated before the entries.** This sub-task was commissioned to specify the per-cluster non-root `conceptual` obligation and to **route** its map-side half. **It specified all four obligations and routed three of them. It achieved coverage for none of the three, and it did not close `F-943-2`.** The completion condition is *specified and routed*, exactly as charter assumption 9 states. **Every entry below describes pending coverage with a named owner; none of them may be read as coverage achieved.**
+
+#### `OI-S5-1` — non-root `conceptual` coverage for CL-2, CL-3 and CL-4 is **routed and pending**, never achieved · **open**
+
+| | |
+| --- | --- |
+| **Open item** | `05_per-cluster-conceptual-obligation.md` §5 records non-root `conceptual` coverage at **1/4 clusters** — **0/3** across CL-2, CL-3 and CL-4. The obligation for each of those three is stated in full (§4.2–§4.4) and its **entire** discharge is map-side: the clusters contain no node typed `conceptual`, so SUB-2's form set has no `node_id` to attach to. Filed as **`D-R6`** in `../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md` §3.11, **by union** — a new appended subsection and row, no prior row replaced, **not self-promoted to `settled`** (`A4`). |
+| **Why it is an open item and not a defect** | The specification ships complete and is actionable: four named acquisitions, an evidenced discharge split, the reason content cannot close three of them, and three enumerated routes with the barred fourth explained. What is missing is a **map-side decision** this package is forbidden to make — authoring, minting or reclassifying a map node is out of scope charter-wide. **No conceptual-flavoured content was authored against a `strategic` or `transfer` node to make the coverage row read better.** |
+| **Owner** | **The map's owner — the creator, and whichever task next writes `nodes/*.yaml`** (the same routing `INC-C7` and the `INC-S2` residual already carry) — **the creator by default.** Which party ultimately satisfies a map-side conceptual obligation is a charter open question; this sub-task routes it and does not resolve it. |
+| **Revision trigger** | **The map's owner adjudicates among `D-R6`'s three routes** — mint a per-cluster S8-residual node, amend the `D-S1` cascade, or decline the spread bar — **and records the disposition in the owning ledger.** **No content authored under C009 closes this**, which is the whole point of the split. |
+
+#### `OI-S5-2` — the spread bar supersedes union-completeness, so OUT-2's check now returns a **false green** for `conceptual` · **open**
+
+| | |
+| --- | --- |
+| **Open item** | OUT-2's criterion is union-completeness **over the graph** and explicitly **not** per-cluster (`../C005-dp-map-integrity/02_skill-type-union-completeness.md` §4). The charter's `F-943-2` closure raised the bar to per-cluster **non-root** spread. The two disagree in the most dangerous available way: **the union check returns PASS on today's graph while the live bar fails 3 of 4 clusters.** An audit running the criterion as written will be correct about what it ran and **silent about what now governs**. |
+| **What a future coverage audit must do instead** | Count **non-root** instances only (a frozen `D-S2` root is a floor artifact, not evidence the mapping phase produced the type); count **per cluster**, not by union; and **report the owner named in `D-R6` rather than filing a fresh finding** — a duplicate finding against an already-routed obligation makes the routed one harder to see. |
+| **Owner** | **The coverage / integrity audit's owner** (NEU-942's and NEU-943's remit) — **the creator by default.** |
+| **Revision trigger** | **The next coverage or integrity audit is parameterised to the spread bar**, or OUT-2's criterion text is amended to state which bar it now expresses. Either resolves the disagreement; leaving both criteria live and unreconciled is what this entry exists to prevent. |
+
+#### `OI-S5-3` — the 10 `INC-C1` techniques have no nodes, so their conceptual obligation cannot be enumerated at all · **open**
+
+| | |
+| --- | --- |
+| **Open item** | CL-4's analysis is scoped to the cluster's **mapped** members. **The 10 `INC-C1` techniques have no nodes**, and a technique with no node has nowhere for a conceptual obligation to attach or to be checked. `F-939-A` (SOS DP) and `F-939-B` (bitset / word-parallel) are **left standing exactly as `../C005-dp-map-integrity/05_findings-register.md` records them** — both *"🔴 GENUINE GAP — confirmed"*. **No node was minted, no edge was faked, `D-F4a` was not re-decided.** |
+| **Why it is filed separately rather than folded into CL-4's row** | Folding it in would **misreport an unmapped gap as a mapped one**. Even a fully discharged CL-4 map-side obligation leaves these ten untouched, and a CL-4 row that read "covered" would then be true of the mapped members and false of the cluster's real technique space. |
+| **Owner** | **NEU-942 / the `INC-C1` CL-4 completion task** — the existing owner of the hole, cited here and **untouched here** — **the creator by default.** |
+| **Revision trigger** | **The `INC-C1` techniques are mapped**, at which point their conceptual obligation becomes enumerable and this entry is superseded by an ordinary per-member analysis under `OI-S5-5`'s residual clause. |
+
+#### `OI-S5-4` — CL-1's compliance rests on **one** node, and its two frozen roots do not count · **provisional / recorded fragility**
+
+| | |
+| --- | --- |
+| **Open item** | CL-1 is the only cluster meeting the spread bar today, and it meets it on **exactly one** non-root node — `cl-1.judge-dp-applicability`. Its two `conceptual` roots are **frozen `D-S2` floor artifacts** and are **not** evidence under a non-root bar. This is `F-943-2`'s original point, restated rather than smoothed: **if that one node were retyped or removed, non-root `conceptual` would be instantiated nowhere in the graph.** |
+| **Why it is filed rather than treated as a pass** | A 1/4 row and a 4/4 row look equally green in a cluster column. Recording the margin is the difference between a reader who knows CL-1 is one edit from zero and one who does not. **Counting the frozen roots to make CL-1 look doubly covered was considered and rejected** — the bar is non-root, and generosity here would conceal the margin. |
+| **Owner** | **The map's owner** — **the creator by default.** |
+| **Revision trigger** | **`cl-1.judge-dp-applicability` is retyped or removed** (which converts `D-R6`'s subject from a spread shortfall into a total absence), **or a second non-root `conceptual` node lands in CL-1**, which retires the fragility. |
+
+#### `OI-S5-5` — the residual clause, standing and live · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | > *"…and any cluster member whose conceptual obligation is not enumerated above."* **SUB-5 (NEU-961) owns this clause.** The four-cluster enumeration in `05_…` §4 is **the floor, not the boundary.** If a cluster member — an existing technique node, a member added by a later mapping pass, or an `INC-C1` technique once mapped — carries a conceptual obligation that §4 does not enumerate, that omission is **this sub-task's to record**, not one that disappears because 4/4 clusters are addressed. |
+| **Why it is filed rather than read as discharged** | **Cluster-level completeness is not member-level completeness**, and conflating the two is the specific error the clause exists to prevent. At this cutoff the clause is **standing and exercised exactly once** — `OI-S5-3`'s `INC-C1` member set is a group whose conceptual obligation §4 cannot enumerate. Recording it live keeps a 4/4 cluster check from being read as a complete member check. |
+| **Owner** | **SUB-5 (NEU-961)** as the clause's residual owner; **NEU-969 (SUB-12)** to reconcile it at the end — **the creator by default.** |
+| **Revision trigger** | **Any cluster member surfaces with a conceptual obligation `05_…` §4 does not enumerate** — recorded as a new entry under this clause, never absorbed into an existing cluster row. |
+
 ### SUB-7 — NEU-964, difficulty calibration and its provisional inputs (OUT-4)
 
 **The headline, stated before the entries.** The calibration standard ships. **Exactly one of its inputs was verified** — `prerequisite_depth`, re-derived 2026-08-10 by the untouched C005 integrity validator, **179/179 agree, 0 disagree**. **Six are provisional** on 179/179 unreviewed values. **The external cross-check is absent for every node**, not for some. And **which dimensions define calibration could not be settled on the evidence available**, so it is escalated below rather than assumed through.
