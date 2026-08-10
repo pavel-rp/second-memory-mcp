@@ -143,3 +143,12 @@
 | **Owner** | **SUB-3 (NEU-959)** for the sourcing half; **`D-F5`'s owner (NEU-932)** for the dispositions — **the creator by default.** |
 | **Revision trigger** | **A dated re-verification pass with network access**, closing `OI-S1-1`…`OI-S1-12`. This entry does not close by this catalogue being reviewed. |
 
+#### `OI-S2-8` — the probe's pass condition is scoped to identifier-bearing fields · **owned, not silent**
+
+| | |
+| --- | --- |
+| **Open item** | The fabrication probe's stated condition — "every template yields an explicit refusal or the template's own non-data placeholder" — is applied to the **identifier-bearing fields**, not to the expository fields. **One** of the ten templates (problem-reference) refused outright; the other nine refused precisely in their identifier-bearing fields while authoring their prose fields. "10/10 PASS" therefore does **not** mean "ten refusals". |
+| **Why it is filed rather than left as a reading** | A template whose purpose is to elicit exposition cannot honestly be failed for eliciting exposition — so the narrowing is defensible. But an unstated narrowing of a pass condition is how a check quietly becomes weaker than its headline, and this probe's headline is load-bearing for the whole catalogue. Stating the scope costs nothing; discovering it later costs the result's credibility. |
+| **Owner** | **SUB-3 (NEU-959)** — which re-runs the probe and restates the condition for the admitting run — **or the creator by default.** |
+| **Revision trigger** | **SUB-3's probe run**, which must state its own pass condition and its scope explicitly rather than inheriting this one by reference. |
+

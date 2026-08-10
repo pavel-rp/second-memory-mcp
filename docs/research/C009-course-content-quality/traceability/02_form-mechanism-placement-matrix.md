@@ -60,6 +60,8 @@ Provenance for every mechanism id, name and learning-critical flag: `../../C005-
 
 Full verbatim per-template output: `../dry-run/02_template-fabrication-probe.md`. Not duplicated here.
 
+**Evidence for `RG-S2-13`:** class 2 `[code-evidence]` — a recorded run over files in this branch · **evidence type:** hand-run cold-agent probe, recorded by the task that ran it (`CAP-S2-5`) · **cutoff:** 2026-08-10.
+
 | Row | Claim | Result | Structural limitation |
 | --- | --- | --- | --- |
 | `RG-S2-13` | A cold agent with no prior context, handed all ten templates and asked to fill them for a technique node — with no priming toward refusal — produced **zero invented identifiers, zero invented addresses, and zero produced citations of any kind**. The problem-reference template returned `REFUSED — not verifiable` in **both** fields and stopped. | **10/10 PASS** at this run's stated condition (refusal-or-placeholder). | **One run, one agent — an observation, not a distribution.** The admitting run (which may pass a *verified* citation) is **SUB-3's**, against a verification procedure that does not exist at this cutoff. One sub-threshold observation — an unsourced provenance characterization, no identifier — is recorded as `OI-S2-4`. |
@@ -67,6 +69,8 @@ Full verbatim per-template output: `../dry-run/02_template-fabrication-probe.md`
 ---
 
 ## 4. Misconception / edge-case structural check (RG-S2-14 … RG-S2-16)
+
+**Evidence for `RG-S2-14`…`RG-S2-16`:** class 2 `[code-evidence]` — presence, count and lexical checks over `../02_content-and-exercise-forms.md` in this branch · **evidence type:** mechanical structural check · **cutoff:** 2026-08-10 · **structural limitation:** lexical, per `CAP-S2-6`.
 
 | Row | Check | Result |
 | --- | --- | --- |
@@ -79,6 +83,8 @@ Full verbatim per-template output: `../dry-run/02_template-fabrication-probe.md`
 ---
 
 ## 5. Scope boundaries honoured (RG-S2-17)
+
+**Evidence for `RG-S2-17`:** class 2 `[code-evidence]` — `git diff --numstat origin/develop` over this branch · **evidence type:** version-control diff · **cutoff:** 2026-08-10.
 
 | Row | Claim | Evidence |
 | --- | --- | --- |

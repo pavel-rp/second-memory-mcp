@@ -47,7 +47,9 @@ Each definition in §3 lists its fields with an explicit **REQUIRED** or **OPTIO
 
 ## 3. The ten required-field definitions
 
-Fields shared by every form, listed once and not repeated per form: `form` (REQUIRED — one of the ten names), `node_id` (REQUIRED — see §6 placement), `title` (REQUIRED), `body` (REQUIRED), `author_kind` (REQUIRED — human or agent), `provenance_note` (OPTIONAL).
+Fields shared by the **nine content and exercise forms**, listed once and not repeated per form: `form` (REQUIRED — one of the ten names), `node_id` (REQUIRED — see §6 placement), `title` (REQUIRED), `body` (REQUIRED), `author_kind` (REQUIRED — human or agent), `provenance_note` (OPTIONAL).
+
+> **`problem-reference` is exempt from the shared-field block in its entirety.** It is a **citation record, not content**, and its field set is capped by `CH-F5-1`. It carries **`stable_id` and `canonical_url` and nothing else** — no `title`, no `body`, no `node_id`, no `author_kind`, no `provenance_note`. `title` in particular is **NOT-YET-STORABLE** for this form (§5.2). Nothing in this section may be read as admitting a field that §3.4 and §5 exclude: **where this block and §5 appear to differ, §5 governs.** A form instance that stores a field the interim disposition forbids is invalid regardless of which section an author read first.
 
 ### 3.1 lesson
 
