@@ -965,3 +965,186 @@
 | **What is NOT claimed** | That any sub-task recorded its own instance dishonestly. **The opposite** — each of the five false greens and each of the seven zeros is recorded, qualified and owned in the document that produced it. The pattern is invisible from inside any one of them, which is the finding. |
 | **Owner** | **SUB-12 (NEU-969)** — the only party that reads all thirteen sub-tasks together and publishes a package-level judgment |
 | **Revision trigger** | A sixth vacuous-or-mismatched pass is recorded, **or** any execution-bearing surface in `13_…` §4.2 moves off zero. |
+
+### SUB-12 — NEU-969, the package completeness gate and the register reconciliation (OUT-11 gate half, + the OUT-9 self-classification of its own requirements)
+
+**Residual ownership, stated once.** SUB-12 is the **package-level** residual owner: the gate's own findings, and any
+obligation the charter allocates to C009 that no other sub-task's residual clause reaches. Where an entry below names
+another sub-task as owner, that is **the party who can satisfy the exit condition** — never the party who recorded the
+item, and never this sub-task by default because it noticed.
+
+#### `OI-S12-1` — four folder READMEs carry no `**Status:**` header field · **house-form nonconformance, recorded**
+
+| | |
+| --- | --- |
+| **Open item** | `adjudication/README.md`, `decision-records/README.md`, `dry-run/README.md` and `traceability/README.md` carry a `**Model:**` attribution line but **no `**Status:**` field** in their header. 34 of 38 package files carry one. |
+| **Why it is filed rather than patched** | Each is a **folder index**, not a topic document, and **none asserts a status** — so none of them sets a status outside a ledger, which is the obligation that matters. Adding a deferring status line to four files owned by four different sub-tasks would be this gate editing other sub-tasks' files to make a table read clean. |
+| **Owner** | **The owning sub-task of each README** — SUB-1 (NEU-957) created all four with the package skeleton. |
+| **Revision trigger** | Any touch of one of the four files, **or** a decision that a folder index is exempt from the house header, recorded in a ledger. |
+
+#### `OI-S12-2` — nine caps named this gate run as their closing occasion and **this gate cannot close them** · **open, re-owned**
+
+| | |
+| --- | --- |
+| **Open item** | `CAP-S1-4`, `CAP-S2-5`, `CAP-S3-7`, `CAP-S4-6`, `CAP-S5-5`, `CAP-S6-4`, `CAP-S7-5`, `CAP-S10-5` and `CAP-S11-2` each name the `92_package-completeness-gate.md` run as their closing occasion, under the condition *"an **independent** reader re-runs the checks and reviews the judgment calls."* |
+| **Why they do not close** | **This gate is not an independent reader.** `92_…` carries `**Model:** claude-opus-5[1m]`, the same model id as every document it audits, so the package's own contamination check **`C-3`** — *`reviewer_identity.model ≠ author_identity.model`* — **fails for this gate on exactly the ground it fails for the one AI correctness review** (`CAP-S9-4`, `OI-S9-14`). Closing nine caps on a same-model re-read would be presenting contaminated agreement as independent confirmation, which is the failure `13_…` `RK-6` names and this package refuses by name. |
+| **What the gate did instead** | Ran every check the nine caps name, published the results in `92_…` §1–§11, and **left all nine open**. The re-run happened; the **independence** did not. |
+| **Owner** | **A reader whose model id differs from `claude-opus-5[1m]`**, or a human reader. Not reassignable to a sub-task, because no sub-task in this package can satisfy it. |
+| **Revision trigger** | A party satisfying the independence condition re-runs `92_…`'s checks and records the review. **The passage of time closes nothing here**, and neither does a second run by the same model. |
+
+#### `OI-S12-3` — the package holds **no local ledger**, and every document defers its status to an empty folder · **structural, open**
+
+| | |
+| --- | --- |
+| **Open item** | `README.md` and all 38 documents state that **status lives in a ledger** and defer to `adjudication/`. **`adjudication/` contains `README.md` and nothing else.** No ledger file was ever created by any of the thirteen sub-tasks. |
+| **What it is, precisely** | **Not a discipline violation.** No status was set outside a ledger, no producing task promoted its own artifact, and the one ledger interaction the package made — `CH-F5-1`, appended to `../C005-dp-map-foundations/adjudication/01_selection-decision-ledger.md` §6 — **is a verified union with `D-F5` left unchanged and settled**. The discipline held. **What is missing is the status of record itself:** the package ships with nothing locally marked `settled`, `provisional` or `unresolved`. |
+| **Why this gate does not create it** | A ledger populated by this sub-task would be **this producing task recording statuses for twelve artifacts it did not author**, which `A4` forbids in substance if not in letter. The honest form is to record the absence with an owner. |
+| **Owner** | **The creator**, as the adjudicator the `A1`–`A5` discipline names; each sub-task for its own rows. |
+| **Revision trigger** | A ledger file is created under `adjudication/` and the first row is appended — **or** a recorded decision that this package's statuses live wholly in the two registers and the upstream C005 ledgers, in which case `README.md`'s deferral line is the thing that needs correcting. |
+
+#### `OI-S12-4` — SUB-1 §10's D-row and E-row scan outcomes are **superseded** at the gate's date · **discharges SUB-1's re-run trigger**
+
+| | |
+| --- | --- |
+| **Open item** | `01_…` §10 records scan **D** (fenced code blocks) as *"0 matches. No output — the package contains no fenced block at all"* and scan **E** as *"3 matches"*, at commit base `c558ff9` over the file set SUB-1 had landed. **Re-run over the whole package at commit base `4f89f2f` on 2026-08-11, D returns 80 delimiters — 40 blocks across 10 files — and E returns 14 matches across 8 files.** Scans **A**, **B** and **C** reproduce exactly at **0**. |
+| **The adjudication, and the outcome** | All 40 blocks were opened and classified in `92_…` §6.1: 21 form field-name skeletons, 10 dry-run `REFUSED` transcripts, 6 derivation/validator outputs, 2 quarantine record shapes, 1 local test-runner output. **Zero carry problem statement text, a sample case, an example from a source, or a serialised API response body.** All 14 scan-E matches are policy prose naming the endpoint as the subject of a prohibition. **The no-text rule and the retention disposition are not breached.** |
+| **What this closes and what it does not** | It **discharges `OI-S1-15`** — whose revision trigger was precisely *"the completeness gate re-runs both scans over the whole package"* — **with a changed outcome rather than a reproduced one**. `01_…` §10 is **not edited**: it is a dated scan result, and rewriting its counts to match a later file set would present a re-run that did not happen as though it had, which is `OI-S1-15`'s own stated reason for filing rather than patching. |
+| **Owner** | **SUB-1 (NEU-957)** as OUT-7's residual owner, for any decision to re-date §10; **SUB-12** for the re-run itself, which is complete. |
+| **Revision trigger** | Any sub-task adds a path that holds problem references, **or** §10 is re-dated by its owner against a later file set. |
+
+#### `OI-S12-5` — the charter's seven observable elements and SUB-11 §2.3's `E1`–`E7` are **not the same list** · **resolves SUB-11's reconciliation request**
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §2.3 fixed the charter's seven observable elements as `E1`–`E7`, on the stated premise that the charter *"does not enumerate them in a form this sub-task could copy verbatim"*, and filed the act at `OI-S11-1` for SUB-12 to reconcile. **The premise is contradicted by the durable source.** The published **NEU-890** umbrella body enumerates them **twice** — in OUT-11's success measure and in OUT-9's first acceptance scenario — as *purpose, curriculum placement, verified provenance, difficulty evidence, correctness checks, review record and assessment signal*. |
+| **The difference** | **`purpose` is not carried as a named element.** **`assessment signal` is folded inside `E2`** (the REQUIRED form set) rather than named. **`E3` (the discriminative pair) is an addition** not among the charter's seven. The other five map cleanly: curriculum placement → `E1`, verified provenance → `E4`, difficulty evidence → `E6`, correctness checks → `E5`, review record → `E7`. |
+| **The consequence, in `OI-S11-1`'s own words** | *"If the lists differ, every rubric row in §5 is mislabelled — the **elements** would be wrong even though the **observations** stand, because each observation is independently recorded."* **That is the disposition.** `11_…` §5's observations stand; their labelling against the charter's seven does not. |
+| **Why `11_…` is not edited** | It is SUB-11's file, and this gate rewrites no sub-task's entries. Re-labelling §5's rubric rows is SUB-11's write. |
+| **Owner** | **SUB-11 (NEU-967)** — the only party entitled to re-label its own rubric. |
+| **Revision trigger** | `11_…` §2.3 and §5 are re-expressed against the charter's seven names, **or** a recorded decision that `E1`–`E7` supersede the charter's enumeration — which would be a charter-level change, not a tidy-up. |
+
+#### `OI-S12-6` — SUB-11 §10.2's mechanism roll-up contradicts its own §10.1 rows · **confirms SUB-13's finding independently**
+
+| | |
+| --- | --- |
+| **Open item** | An independent `node -e` parse of `11_…` §10.1's 23 `EQ-S11-*` rows at commit base `4f89f2f` returns `deterministic` **15** · `schema` **4**. §10.2 publishes `deterministic` **14** · `schema` **5**. **Exactly one row is summarised as `schema` that its own row cell classifies `deterministic`.** The `server-side`, `automated` and `AI` cells, and both the blocking and placement roll-ups, **reproduce exactly**. |
+| **Status of the finding** | **Confirmed, by a second parse written independently of SUB-13's.** `deterministic`: `EQ-S11-1, 2, 4, 5, 6, 8, 12, 13, 14, 15, 16, 17, 18, 20, 23`. `schema`: `EQ-S11-3, 7, 11, 19`. |
+| **What is NOT established** | **Which row is mis-summarised.** An aggregate roll-up does not record which row it counted wrongly, and naming one on a hunch would replace a known error with an invented fact. Not guessed at here. |
+| **Package effect** | **None on the totals.** `13_…` §7.2's package roll-up already incorporates the corrected 15/4 and is reproduced exactly by this gate at 146 rows. The defect is confined to `11_…` §10.2's own summary line. |
+| **Owner** | **SUB-11 (NEU-967)** — the owner of the table and of its summary. |
+| **Revision trigger** | `11_…` §10.2's mechanism line is brought into agreement with §10.1's rows by the party entitled to edit them. |
+
+#### `OI-S12-7` — whether a scan hit is a genuine breach is an `AI` judgement with **no compensating gate** · **`EQ-S12-4`'s residual**
+
+| | |
+| --- | --- |
+| **Open item** | `92_…` §6.1 adjudicated 40 fenced blocks and 25 `[future-real-user]` occurrences and found every one benign. **Both determinations are reading judgements.** A lexical scan finds the shape; only a reader distinguishes a prohibition from a claim, or a field-name skeleton from a statement excerpt. |
+| **Compensating observable gate** | **`none — cap`** — carried as **`CAP-S12-1`**. A gate that decided whether a match is benign would be a gate deciding the semantic question the scan exists precisely because it cannot decide. |
+| **Owner** | **SUB-12 (NEU-969)** for the judgement made here; **the correctness-reviewer role** for an independent re-reading. |
+| **Revision trigger** | An independent reader re-adjudicates the 40 blocks and the 25 occurrences and agrees or disagrees, **or** a scan hit is found that the gate classified benign and is not. |
+
+#### `OI-S12-8` — SUB-12's residual clause is standing and unexercised · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | *"…and any quality requirement this sub-task creates that is not classified in `92_…` §10.1."* An unclassified requirement is **blocked until classified**, never admitted by default. Mirrors `09_…` §3.5, `10_…` §7.4, `11_…` §10.4 and `13_…` §7.4. |
+| **Also standing** | *"…and any obligation the charter allocates to C009 that no sub-task's residual clause reaches."* At this cutoff it is **unexercised**: the twelve topic documents plus this gate cover every outcome the charter allocates. **"No gap today" is not "no gap possible."** |
+| **Owner** | **SUB-12 (NEU-969) / the creator.** |
+| **Revision trigger** | A quality requirement of this sub-task is found unclassified, **or** a charter outcome is found with no owning sub-task. |
+
+#### `OI-S12-9` — SUB-9's `warns` residual was written over **two** rows; the package now has **four** · **scope drift, recorded by id**
+
+| | |
+| --- | --- |
+| **Open item** | `09_…` §11 files *"whether a `warns` verdict is ever acted on"* at `OI-S9-12` against `EQ-S1-14` and `EQ-S4-2`, compensated by `G-WARN-COUNT`. `10_…` §7.1 and `11_…` §10.1 have since each added one `warns` row. **The package-wide `warns` population is 4, and the residual names 2.** |
+| **What it is NOT** | **Not a gate failure.** Only rows classified `AI` require a §3.4 enforcement-gap entry, and all 23 `AI` rows package-wide carry one (`92_…` §11.3). The two later `warns` rows are **inside the residual's reasoning and outside its stated scope** — the residual under-describes its population rather than omitting a required entry. |
+| **Why it is filed rather than patched** | `09_…` is SUB-9's file. **Recording the disagreement by id is the reconciliation route; editing another sub-task's entry is not.** |
+| **Owner** | **SUB-9 (NEU-965)** — the owner of the residual and of `G-WARN-COUNT`. |
+| **Revision trigger** | `OI-S9-12`'s row list is widened to the package's `warns` population, **or** a further sub-task adds a `warns` row. |
+
+---
+
+## Reconciliation — SUB-12, across all thirteen sections
+
+**This section cites ids. It reflows, renumbers and rewrites nothing.** Every `### SUB-<n>` section above stands exactly
+as its owner wrote it. Where this gate disagrees with a prior entry, the disagreement is recorded **as a new entry citing
+that id** — `OI-S12-5` against `OI-S11-1`, `OI-S12-6` against `11_…` §10.2, `OI-S12-9` against `OI-S9-12` — and never by
+editing the entry disagreed with.
+
+**Derivation:** `node -e` parse of both registers at commit base `4f89f2f`, resolving each entry heading and each entry
+row, then diffing the defined set against every id cited anywhere in the package.
+
+### R.1 Package totals
+
+| | `90_` open items | `91_` caps |
+| --- | --: | --: |
+| `### SUB-<n>` sections **before** SUB-12 | 12 | 12 |
+| Entries **before** SUB-12 | **103** | **63** |
+| Entries added by SUB-12 | **9** | **1** |
+| **Entries package-wide** | **112** | **64** |
+| Duplicate entries requiring a merge | **0** | **0** |
+| Entries lost to a merge | **0** | **0** |
+| Cross-section id collisions | **0** | **0** |
+| Numbering gaps within any sub-task's run | **0** | **0** |
+| Dangling references (cited, never defined) | **0** | **0** |
+| Orphans (defined, never cited) | **0** | **0** |
+
+**The keep-both-sides convention cost this package nothing.** Thirteen writers, two merge-conflict magnets, **zero
+duplicates to merge**. A reconciliation that finds nothing to reconcile reads like one that was not performed, so the
+method and the null result are both recorded.
+
+### R.2 What this reconciliation closed
+
+**Four items, all by establishing a fact rather than by decision:**
+
+| Id | Closed how |
+| --- | --- |
+| **`OI-S11-1`** | **Resolved with a recorded difference.** The charter's seven were retrieved from the durable source (NEU-890) and compared. The lists differ; the residual is carried at `OI-S12-5` with SUB-11 as owner. `CAP-S11-1` closes as *resolved-with-difference*, not as *matched*. |
+| **`OI-S13-1`** | **Confirmed** by an independent second parse. Carried at `OI-S12-6` with SUB-11 as owner. |
+| **`OI-S13-2`** | **Closed.** `DR-C09-03` was **never allocated** — the string occurs nowhere in the package except inside `OI-S13-2`'s own entry. No artifact cites it; no cross-reference is broken. The band is left sparse, because renumbering `DR-C09-04` to close a cosmetic hole would break every reference already written against it. |
+| **`OI-S1-15`** | **Discharged with a changed outcome** by the whole-package scan re-run. See `OI-S12-4`. |
+
+**`OI-S13-5` — the `docs/GLOSSARY.md` deferral — is closed by decision, and the decision is to leave it untouched.**
+SUB-2, SUB-7, SUB-8, SUB-9, SUB-10, SUB-11 and SUB-13 each declined to register C009 vocabulary there; `11_…` §11 left
+the call to SUB-12 (*"If SUB-12 judges otherwise at reconciliation, the registration is a single append"*). **The gate
+judges the same way, for a stated reason rather than by inheritance:** `docs/GLOSSARY.md`'s columns resolve a term to its
+**definition, owning module, and defining source file**. C009's vocabulary — `EQ-S<n>-k`, `G-*`, cluster, exemplar,
+quarantine, provisional-load-index — has **no owning module and no defining source file**; every row would point at a
+`docs/research/` markdown file. Registering **59 specified-and-unbuilt gates** in the product's domain-term lookup would
+present specification as implementation, which is the exact false-green shape `13_…` §4.1 catalogues and this package
+spends thirteen sub-tasks refusing. **The registration becomes correct when the terms acquire owning modules** — that is,
+when something is built.
+
+### R.3 What remains open, by owner
+
+**112 open items and 64 caps package-wide. Four items closed by this reconciliation; one closed by decision.
+The remaining 107 open items and 64 caps stand, none of them silently.**
+
+| Owner | Open items | Caps | The load they carry |
+| --- | --: | --: | --- |
+| **the creator** (default or named) | ~34 | ~21 | The rights re-verification that would move all twelve sources off `Restricted`; the 179 provisional difficulty values; every gate build |
+| **SUB-9 (NEU-965)** | 17 | 7 | The classification's own unreviewed-ness (`OI-S9-15`), the 59 unbuilt gates (`OI-S9-16`, `CAP-S9-1`), the failed `C-3` (`CAP-S9-4`), the `warns` scope (`OI-S12-9`) |
+| **SUB-1 (NEU-957)** | 15 | 6 | Twelve unread source-terms records; `CH-F5-1`; the semantic-paraphrase residual (`CAP-S1-5`) |
+| **SUB-11 (NEU-967)** | 8 | 3 | The element re-labelling (`OI-S12-5`) and the roll-up correction (`OI-S12-6`) |
+| **SUB-13 (NEU-968)** | 8 | 1 | The four records' completeness judgement; `EQ-S13-7` uncompensated (`CAP-S13-1`, owner SUB-12) |
+| **SUB-6 (NEU-962)** | 9 | 6 | Assessment-signal reliability with no in-app judge |
+| **SUB-4 (NEU-960)** | 9 | 6 | Correctness standards specified against zero authored artifacts |
+| **SUB-2 (NEU-958)** | 8 | 6 | The unsatisfiable REQUIRED form (`OI-S11-2`) |
+| **SUB-7 (NEU-964)** | 8 | 6 | 179/179 provisional; no external anchor (`CAP-S7-1`) |
+| **SUB-10 (NEU-966)** | 6 | 6 | A revalidation design with an empty corpus and a budget of 0 |
+| **SUB-3 (NEU-959)** | 5 | 7 | `CAP-2` declined at V0; cluster coverage 0/4 |
+| **SUB-8 (NEU-963)** | 5 | 4 | A flip path performed by nobody (`CAP-S8-2`) |
+| **SUB-5 (NEU-961)** | 5 | 5 | Per-cluster conceptual 0/3 (`D-R6`) |
+| **SUB-12 (NEU-969)** | **9** | **1** | This gate's own findings, and `EQ-S12-4`'s uncompensated residual |
+| **a reader that is not `claude-opus-5[1m]`** | — | **9** | The nine independence-conditioned caps this gate could not close (`OI-S12-2`) |
+
+*Owner counts are by defining section; several entries name a second owner for an independent re-reading, and those are
+not double-counted here.*
+
+### R.4 The single sentence this reconciliation exists to make available
+
+**Nothing in this package is built.** 59 gates specified and 0 implemented; 1 serve-time gate specified and 0 serve
+surfaces; 179 of 179 difficulty values provisional and 0 creator-confirmed; 12 of 12 sources `Restricted` and 0 problems
+cited; class 3 evidence at n = 1 and classes 4–6 absent. **Every register entry above is an entry about a specification.**
+The registers are complete, internally consistent, fully cross-referenced and honestly owned — and that is a statement
+about the register, not about a system.

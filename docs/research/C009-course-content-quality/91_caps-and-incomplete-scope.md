@@ -714,3 +714,67 @@
 | **What is NOT claimed** | That every material decision, risk, metric and prototype this package produced appears in `13_…`. Only that everything that does appear is cited to a retrievable source, and that the charter's own 14-row risk set is carried **complete and inline** against a source (`NEU-890`, taken 2026-08-11) a later reader can retrieve without `_local/`. |
 | **Owner** | **SUB-12 (NEU-969)** at package reconciliation, as the only party that reads all thirteen sub-tasks against the charter's outcome list; **the correctness-reviewer role** for an independent re-read of the four records |
 | **Closes when** | A party other than the producing task reads the twelve predecessor documents against `13_…` §2, §3, §5 and §6 and finds no unenumerated material item — **or** finds one, which closes it in the other direction. |
+
+### SUB-12 — NEU-969, the package completeness gate and the register reconciliation (OUT-11 gate half, + the OUT-9 self-classification of its own requirements)
+
+#### `CAP-S12-1` — the gate's own scan adjudications are reading judgements with **no compensating observable gate**
+
+| | |
+| --- | --- |
+| **Cap** | `92_package-completeness-gate.md` re-ran both rights scans over the whole package and adjudicated every hit: **40 fenced blocks** (§6.1) and **25 `[future-real-user]` occurrences** (§3.1). All were found benign — no statement text, no sample case, no serialised response body, no class-7 claim. **Every one of those determinations is a reading judgement**, classified `AI` at `EQ-S12-4`. |
+| **The mitigation, and its limit** | Each adjudication is **published in a table with the block's file, line range and content class**, so a third party can re-open any single one without re-running the scan. That makes the judgement **auditable**; it does not make it **verified**. |
+| **The compensating observable gate** | **`none — cap`.** A gate that decided whether a lexical match is a genuine breach would be a gate deciding the semantic question the scan exists precisely because it cannot decide. Recorded as a gap with no compensating gate rather than assigned to one that would not detect it — the same honesty `CAP-S9-3` applies to `OI-S9-9` and `OI-S9-16`, and `CAP-S13-1` to `EQ-S13-7`. |
+| **What is NOT claimed** | That the package provably contains no semantically paraphrased problem statement. **No grep can prove that**, `01_provenance-and-rights.md` §5.1 says so in its own words, and this gate inherits the limitation rather than retiring it. What is claimed is the **structural** absence of stored statements, stored problem-level URLs, enumerated id lists, and example or response blocks — scans A, B and C at **0**, and D and E adjudicated. |
+| **Owner** | **SUB-12 (NEU-969)** for the judgements made here; **the correctness-reviewer role**, or any reader whose model id differs from `claude-opus-5[1m]`, for an independent re-adjudication. |
+| **Closes when** | A party other than the producing task re-opens the 40 blocks and the 25 occurrences and records agreement — **or** finds one the gate classified benign and is not, which closes it the other way and is the more useful outcome. **A second run by the same model closes nothing**, and neither does the passage of time. |
+
+---
+
+## Reconciliation — SUB-12, across all thirteen sections
+
+**This section cites ids. It reflows, renumbers and rewrites nothing.** Every `### SUB-<n>` section above stands exactly
+as its owner wrote it.
+
+### R.1 The caps register, re-derived
+
+**Derivation:** `node -e` parse at commit base `4f89f2f`. **63 caps across 12 sections before this one; 64 across 13
+after it.** Per section: SUB-1 **6**, SUB-2 **6**, SUB-4 **6**, SUB-3 **7**, SUB-6 **6**, SUB-5 **5**, SUB-7 **6**,
+SUB-8 **4**, SUB-9 **7**, SUB-10 **6**, SUB-11 **3**, SUB-13 **1**, **SUB-12 1**.
+
+**Zero duplicates. Zero entries lost. Zero cross-section id collisions. Zero numbering gaps. Zero dangling references —
+all 64 cap ids cited anywhere in the package resolve to a definition here, and all 64 defined here are cited somewhere.**
+
+### R.2 The nine caps this gate was expected to close, and did not
+
+`CAP-S1-4` · `CAP-S2-5` · `CAP-S3-7` · `CAP-S4-6` · `CAP-S5-5` · `CAP-S6-4` · `CAP-S7-5` · `CAP-S10-5` · `CAP-S11-2`
+
+Each names the `92_…` gate run as its closing occasion **under the condition that an independent reader re-runs the
+checks and reviews the judgment calls**. **The checks were re-run. The reader was not independent.** `92_…` carries
+`**Model:** claude-opus-5[1m]`, the same id as every document it audits, so `C-3` fails for it exactly as `CAP-S9-4`
+records it failing for the one AI correctness review.
+
+**All nine remain open**, re-owned at `OI-S12-2` to a reader whose model id differs. **This is the single largest
+difference between what this gate was scheduled to deliver and what it delivered**, and it is recorded rather than
+resolved by nine closures nobody could have checked.
+
+### R.3 The five obligations in this package that have no gate at all
+
+| Row | Cap carrying it | Owner |
+| --- | --- | --- |
+| `EQ-S5-5` — whether a candidate node's acquisition is a genuine S8 residual | `CAP-S9-3` (via `OI-S9-9`) | the map's owner |
+| `EQ-S10-22` — whether 90 days is the right staleness window | `CAP-S10-1` | the creator |
+| `EQ-S11-22` — whether §2.3's seven elements are the charter's seven | `CAP-S11-1` | **SUB-12 — now resolved with a recorded difference (`OI-S12-5`)** |
+| `EQ-S13-7` — whether a sentence *defines* a metric or merely *reports* one | `CAP-S13-1` | **SUB-12 — and this gate cannot compensate it either** |
+| **`EQ-S12-4`** — whether a scan hit is a genuine breach | **`CAP-S12-1`** | **SUB-12** |
+
+Plus `OI-S9-16` — *every gate is specified and none is built* — which carries `none — cap` at `CAP-S9-1` and is not an
+`EQ` row. **Six uncompensated residuals, each with a named owner, none of them silent.**
+
+### R.4 The caps this gate declines to narrow
+
+**`CAP-S8-1`'s "zero class-3 evidence" is scoped to SUB-8's creator-review loop, not to the package**, and this gate does
+not widen it: `13_…` §6 records one class-3 `[dogfooding]` datapoint at **n = 1**. **`CAP-S7-3` is not closed by
+`n = 4 of 179`** — four exemplar nodes are four, not a sample. **`CAP-2` remains declined** (`D-R5`): outbound network
+capability was confirmed against a neutral endpoint, firing `CAP-S1-1`'s trigger at `OI-S3-2`, and **capability is not
+authority — the rights gate stays shut.** SUB-10's request budget of **0**, derived rather than chosen to look
+reasonable, is the house style this reconciliation follows.
