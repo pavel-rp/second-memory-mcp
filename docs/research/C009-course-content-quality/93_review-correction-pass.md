@@ -38,7 +38,7 @@ these patterns; the engine is named because that difference matters below.
 | --- | --- | --: | --- | --- |
 | **A** — statement-section markers | `^(Input\|Output\|Constraints\|Sample Input\|Sample Output)\b` | **0** across all 38 files | 0 matches | **reproduces** |
 | **B** — problem-level URLs of the twelve sources | the five-source URL alternation | **0** | 0 matches | **reproduces** |
-| **C** — enumerated candidate set | `^(\s*[-*]\|\|)\s*.*\b(abc\|arc\|agc\|dp)[0-9]{2,4}_[a-z]\b` | **0** | 0 matches | **reproduces** (see §1.1) |
+| **C** — enumerated candidate set | `^(\s*[-*]\|\\|)\s*.*\b(abc\|arc\|agc\|dp)[0-9]{2,4}_[a-z]\b` — the corrected form this pass applies | **0** | 0 matches | **reproduces.** As published it rendered `^(\s*[-*]\|\|)…`, an empty alternative; both forms return the same 0 — see §1.1 |
 | **E** — the enumerating endpoint by name | `(problemset\.problems\|api\.codeforces\.com)` | **14** | 3 (`01_` era) · 7 (`traceability/03_` era) | **reproduces** — see §1.2 |
 | **`CK-S4-6`** | `9 of the 19 blocking\|9 blocking nodes\|7 blocking nodes\|2 blocking nodes` | not re-run | lines 36, 113, 132, 150 | valid alternation as rendered; the recorded command carries a `<C005>` placeholder in place of a path, so it is not runnable verbatim without substitution |
 
