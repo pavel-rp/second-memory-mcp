@@ -557,3 +557,183 @@
 | **What would discriminate** | A recorded comparison — the same set of transitions reviewed by both, with disagreements counted. **That is a class 4 or class 5 artifact that does not exist**, and inventing an expected agreement rate would be exactly the fabrication the package forbids. |
 | **Owner** | **SUB-9 (NEU-965)** as the gate owner and first party with a reason to know the allocation's cost — **or the creator by default** |
 | **Revision trigger** | **A recorded reviewer-comparison run exists**, or SUB-9's gate placement makes a limb's cost concrete enough to be worth measuring. **This entry does not close by a downstream reader finding the rubric reasonable.** |
+
+
+### SUB-9 — NEU-965, the enforceable quality system and the AI-judgment residuals (OUT-9, + the OUT-7 contamination carve-out)
+
+**Model:** claude-opus-5[1m]
+
+> **Sixteen of the seventeen entries below are AI-judgment-only residuals** — requirements whose verdict is a human judgement that nobody performs today. **The length of this section is the deliverable, not a shortfall.** `09_enforceable-quality-system.md` §11 carries each with a compensating observable gate, that gate's owner, and — mandatorily — **what the compensating gate does not catch**. A residual recorded without that last cell would be a judgement dressed as a check, which is the one thing this sub-task exists to prevent.
+
+#### `OI-S9-1` — the explanation depth obligation has no gate, and the compensating check produces a search space rather than a verdict · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-4 §2.1b's obligation — *"a learner holding exactly the node named in `prerequisite_recall` can reconstruct the applicability decision in both directions from the explanation alone"* — is classified **`AI`**, **`quarantines`**, authoring-time (`EQ-S4-3`). Confirming SUB-4's own provisional assignment, for the reason SUB-4 gave: *"This document does not invent a metric to make the depth obligation look enforceable."* |
+| **Compensating observable gate** | **`G-UNDEF-TERM`** (`automated`) — enumerate every term in the lesson body appearing neither in the `prerequisite_recall` node's vocabulary nor in the lesson's own defined-term list, and emit the candidate list; a non-empty list quarantines. |
+| **What the gate does not catch** | **It produces a search space, not a verdict.** It cannot decide *"explained in place"*, so a term correctly explained inline still appears. And it reaches **only the deep-enough limb** — the *not-deeper* limb, re-teaching an unlocked prerequisite, **has no gate at all**, and none is proposed. |
+| **Owner** | **The correctness-reviewer role** (`08_…` §4.2) for the judgement; **the creator** to build `G-UNDEF-TERM` |
+| **Revision trigger** | `G-UNDEF-TERM` is built and run against a real lesson corpus, at which point the residual's size becomes measurable for the first time. **Not closed by a reader finding the obligation clear.** |
+
+#### `OI-S9-2` — the soundness of a proof's exchange step is judged, never checked · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | Whether replacing a sub-part of an optimal solution with a better one *would* contradict the optimality of the whole (SUB-4 §2.3b, handed over in §3.2) is classified **`AI`**, **`quarantines`** (`EQ-S4-10`). |
+| **Compensating observable gate** | **`G-EXCHANGE-SLOT`** (`schema`) — `optimal_substructure` must name **the sub-part exchanged** and **the contradiction that follows**, as two identified spans; absence blocks. |
+| **What the gate does not catch** | **Whether the contradiction follows.** The gate confirms an exchange argument was *stated*. A fluent, wrong exchange step passes cleanly — demonstrated from the attacking side in `traceability/09_…` §3, **BU-3 step 5**, where three distinct but vacuous slots defeat every mechanical limb. |
+| **Owner** | **The correctness-reviewer role** |
+| **Revision trigger** | A mechanical soundness check for exchange arguments is proposed **and its false-negative behaviour is stated** — a checker that silently passes unsound arguments would be worse than the named residual. |
+
+#### `OI-S9-3` — whether a solution's stated invariant is the *right* invariant · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | Falsifiability and correctness-for-the-approach of the `invariant` slot (SUB-4 §2.2b) is classified **`AI`**, **`quarantines`** (`EQ-S4-5`). *"An invariant no input can violate is a tautology dressed as an argument."* |
+| **Compensating observable gate** | **`G-BOUNDARY`** (`automated`) — boundary confrontation over **every `test` instance on the node** (`EQ-S4-6`); a mismatch blocks. |
+| **What the gate does not catch** | **A wrong invariant no boundary input on the node reaches.** SUB-4 bounds it in its own words: boundary confrontation catches a wrong invariant *"that a node's own boundary inputs reach, and nothing beyond that is claimed."* SUB-6 §5.3's three required edge cases raise the floor **only for gate-bearing items**, so a node whose `test` set is entirely happy-path leaves this gate nothing to run. |
+| **Owner** | **The correctness-reviewer role** |
+| **Revision trigger** | SUB-6 §5.3's edge-case floor is extended to `test` instances generally, which would raise `G-BOUNDARY`'s coverage — **or** a node's real `test` set is observed and the residual measured against it. |
+
+#### `OI-S9-4` — separability is provable; held-ness is not · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | Whether a named `misconception_or_edge_case` is one a **learner actually holds** (SUB-4 §3.2, design routed to SUB-6) is classified **`AI`**, **`quarantines`** (`EQ-S6-6`). |
+| **Compensating observable gate** | **`G-DISCRIMINATION`** (`automated`) — SUB-6 §5.2 condition 2's substitution procedure; if the misconception's method produces the `expected_response`, the item blocks. |
+| **What the gate does not catch** | **It proves the misconception is *separable*, never that it is *held*.** A perfectly separable misconception nobody has still passes every check. |
+| **Owner** | **SUB-6 (NEU-962)** for the discrimination design; **the creator** for held-ness |
+| **Revision trigger** | In-app item statistics over real learners exist — class 5/6 evidence. **This entry does not close on a class-4 estimate of what learners probably believe, and under no circumstance on a class-7 claim**, which does not exist in this program. |
+
+#### `OI-S9-5` — no scan proves the absence of semantic paraphrase · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-1 §5.1's stated limitation, inherited as a classification: *no sentence anywhere is a disguised paraphrase of a protected statement* is **`AI`**, **`quarantines`** (`EQ-S1-4`). |
+| **Compensating observable gate** | **`G-NOTEXT-SCAN`** + **`G-ENUM-SCAN`** (`automated`) — the two lexical scan families run as blocking gates rather than as reports. |
+| **What the gate does not catch** | **Semantic paraphrase.** SUB-1's own words: the scans *"prove the structural absence of stored statements and stored lists"* and *"cannot prove that no sentence anywhere is a disguised paraphrase, which no grep can prove."* |
+| **Owner** | **SUB-1 (NEU-957)** as OUT-7's residual owner; **the creator** |
+| **Revision trigger** | A non-lexical detection method is proposed **with its false-negative rate stated**. `CAP-S1-5` closes or narrows. |
+
+#### `OI-S9-6` — retention in an agent's persisted context is unreachable by any gate in this system · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-1 §6's obligation that an enumerating response is *not retained in an agent's persisted context beyond the resolution it was fetched for* is classified **`AI`**, **`quarantines`** (`EQ-S1-7`) — separated from the artifact-side half (`EQ-S1-6`, `automated`) rather than absorbed into it. |
+| **Compensating observable gate** | **`G-ENUM-SCAN`** (artifact side) plus the SUB-3 §9.1 request-pattern audit. |
+| **What the gate does not catch** | **Everything that never becomes an artifact.** A scan reads files; it cannot read a context window, and **no gate in this system can.** The compensating gates catch retention *after* it lands somewhere durable — the harm's usual endpoint, not its whole. |
+| **Owner** | **The creator** |
+| **Revision trigger** | An agent-context retention control exists at the platform level. **Not closed by an assurance that context is not persisted.** |
+
+#### `OI-S9-7` — MAY NEVER 5 and MAY NEVER 7 are review obligations, exactly as SUB-1 said · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | Claiming a rights position from an access path (MAY NEVER 5) and presenting generated content as a source's or a source's as our own (MAY NEVER 7) are classified **`AI`**, **`quarantines`** (`EQ-S1-9`, `EQ-S1-13`). **This is not a new finding** — SUB-1 §8's Enforcement paragraph already names both: *"an obligation whose only enforcement is judgment is named as one (SUB-9 owns the enforcement-gap treatment)."* This entry is that treatment. |
+| **Compensating observable gate** | **`G-RIGHTS-CITE`** (`deterministic`) — every rights assertion resolves to a dated `01_…` §1/§3 row id and no rights claim cites an access-path fact; **`G-GENLABEL`** (`schema`) — every artifact carries its `generated` label and every source-attributed statement resolves to a §7.1 attribution row. |
+| **What the gate does not catch** | **A rights argument made in other words**, and **prose that reads as a source's without citing it**. The gates check that assertions *resolve*; they do not read tone. §7.3's five named phrasings are the shapes already known; the sixth is why this entry exists. |
+| **Owner** | **SUB-1 (NEU-957)**; **the creator** |
+| **Revision trigger** | A sixth inadmissible rights argument is observed and added to §7.3 — each addition narrows the residual without closing it. |
+
+#### `OI-S9-8` — "defining difficulty" is a judgement the depth bound only approximates · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-3 §6.1's `S1` — the problem exercises the node's technique **as its defining difficulty** — and `X2`, difficulty dominated by material the map does not own, are classified **`AI`**, **`quarantines`** (`EQ-S3-11`, `EQ-S3-16`). |
+| **Compensating observable gate** | **`G-DEPTH-BOUND`** (`server-side`) — `S3`'s prerequisite-depth bound. |
+| **What the gate does not catch** | **"Defining".** A problem within the node's prerequisite depth whose actual difficulty lies elsewhere passes the bound and fails the criterion. SUB-3 states the cost: *"a problem where the node's technique is a minor step teaches the learner that the node is easy or irrelevant."* |
+| **Owner** | **The correctness-reviewer role**; **the creator** |
+| **Revision trigger** | The access gate opens for at least one source and real candidates exist to judge — today `CAP-S3-1` makes this vacuous, and **a vacuous residual is still a residual.** |
+
+#### `OI-S9-9` — whether a candidate node is a genuine S8 residual is the map owner's, and no gate is proposed · **open — routed, not resolved**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-5 §6 route 1's judgement is classified **`AI`**, **`quarantines`** (`EQ-S5-5`), with compensating gate **`none — cap`**. |
+| **What is NOT decided here** | **SUB-9 does not choose among SUB-5's three routes, does not rank them, and does not treat any as more likely.** `09_…` §4.5 classifies the **default already in force** — `blocked`, by SUB-8 §9 case 3 — and stops. **Stated explicitly rather than silently picked:** a quality system that needed the routes resolved would be a reason to resolve them, and this one does not. |
+| **What the compensating gate does not catch** | **Everything.** `G-NO-RETYPE` blocks the *wrong* answer — a local retype — without producing the right one. `CAP-S9-3`. |
+| **Owner** | **The map's owner — the creator, and whichever task next writes `nodes/*.yaml`** |
+| **Revision trigger** | The map's owner adjudicates `05_…` §6's routes and records the disposition in the schema decision ledger. **No content authored under C009 closes it.** |
+
+#### `OI-S9-10` — "names a specific wrong model" is judged; the substitution test checks the input instead · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-6 §5.2 condition 1 — `misconception_or_edge_case` names a specific wrong model rather than a category — is classified **`AI`**, **`quarantines`** (`EQ-S6-5`). |
+| **Compensating observable gate** | **`G-DISCRIMINATION`** (`automated`) — condition 2's substitution procedure. |
+| **What the gate does not catch** | **A vague misconception that survives substitution.** Condition 2 tests the *input*, not the *naming*: an item reading *"misunderstanding the algorithm"* whose distractor genuinely separates passes the mechanical check and fails the stated rule. Reached from the attacking side in `traceability/09_…` §3, **BU-4**. |
+| **Owner** | **SUB-6 (NEU-962)**; **the creator** |
+| **Revision trigger** | A decidable test for specificity is proposed. A word count is not one. |
+
+#### `OI-S9-11` — the calibration label makes an unmeasured weighting visible without validating it · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | Whether PLI's equal weighting is right (`PR-7`), whether the six-dimension set is the right set (`OI-S7-1`), and whether an artifact's description of graph order respects `R1` (`EQ-S2-8`) are classified **`AI`**, **`quarantines`** (`EQ-S7-10`, `EQ-S2-8`). SUB-7's own statement is consumed untranslated: *"equal-weight because no evidence discriminates a weighting, not because the five dimensions were found to contribute equally."* |
+| **Compensating observable gate** | **`G-CALIB-LABEL`** (`deterministic`) — the §9.4 label **verbatim** on every calibrated output, absence blocks; **`G-R1-LABEL`** for the structural-claim label. |
+| **What the gate does not catch** | **Whether the weighting is right.** The label makes the unmeasured weighting visible on every value; it does not validate it, and a reader who skips labels is not reached by it. |
+| **Owner** | **The creator** — the only qualified reviewer of the map's provisional values |
+| **Revision trigger** | `OI-S7-1` resolves — the creator's plausibility review of the 179 deferred values. **Agreement with an external rating raises no input's class** (SUB-7 §5.4), so an anchor becoming available does not close this. |
+
+#### `OI-S9-12` — a `warns` verdict nobody reads is an unenforced requirement · **open**
+
+| | |
+| --- | --- |
+| **Open item** | Two rows are assigned **`warns`** (`EQ-S1-14`, the refusal-is-not-a-defect gate; `EQ-S4-2`, the restatement check). A warning is a finding a publisher may decline to read, and a system that counts warnings as enforcement has laundered a report into a gate. |
+| **Compensating observable gate** | **`G-WARN-COUNT`** (`deterministic`) — the `RR-PUBLISH` record carries the count of unresolved warnings at publication; a non-zero count is **recorded**, not blocked. |
+| **What the gate does not catch** | **Whether anybody reads the count.** The gate makes the warning population countable — strictly more than nothing, strictly less than enforcement. |
+| **Why the two rows were not escalated to `blocks`** | **Deliberate.** `09_…` §3.2's rule assigns `warns` where the verdict is decidable, the obligation is not rights-, correctness- or safety-critical, and false positives are expected at the margin — which is exactly SUB-4's own reading of the restatement check. **Escalating them to make the table read stronger is the laundering, not the fix.** |
+| **Owner** | **The publisher role** (`08_…` §4.2) |
+| **Revision trigger** | An unresolved-warning count is observed to be routinely non-zero at publication, which would make the `warns` assignment empirically wrong rather than theoretically weak. |
+
+#### `OI-S9-13` — the human/agent allocation is unmeasured, and the escalation register is the instrument that would measure it · **open — instrument built, measurement at zero**
+
+| | |
+| --- | --- |
+| **Open item** | **SUB-8 assigned this entry's owner to SUB-9** (`OI-S8-5`): §6's rubric resolves every transition by rule, and *"no measurement supports any of them."* Classified **`AI`**, **`quarantines`** (`EQ-S8-12`). |
+| **Disposition — the substantive part** | `OI-S8-5` names what would discriminate: *"a recorded comparison — the same set of transitions reviewed by both, with disagreements counted."* **`09_…` §9's `RR-ESCALATE` record *is* one such recorded comparison.** Every escalation retains both verdicts verbatim with both reviewer identities, so the escalation register accumulates exactly the missing artifact **as a by-product of running the workflow**, rather than as a study somebody must fund. |
+| **Compensating observable gate** | **`G-ESCALATION-COUNT`** (`deterministic`) — the register's disagreement count, by reviewer-kind pair. |
+| **What the gate does not catch** | **Everything, today.** The count is **zero**, and zero disagreements over zero reviews is not evidence of agreement. **The instrument exists; the measurement does not.** |
+| **Owner** | **SUB-9 (NEU-965)** for the instrument; **the creator** for the reading |
+| **Revision trigger** | The escalation register holds a non-zero number of human/agent comparisons. **Does not close on a reader finding the rubric reasonable** — SUB-8's own condition, carried unchanged. |
+
+#### `OI-S9-14` — contamination is not detectable in general, and the control says so rather than implying otherwise · **open by design**
+
+| | |
+| --- | --- |
+| **Open item** | `09_…` §10's `C-5`: whether a reviewing model's verdict rests on memorised editorial material is not decidable. **What is enforceable is the accounting — reviewer identity, evidence class, observation count — and the policy states that limit in its own body rather than in a footnote.** |
+| **Compensating observable gate** | **`G-SELF-REVIEW`** extended to model identity (`C-3`: `reviewer_identity.model ≠ author_identity.model` on `T-03`, `T-05`, `T-07`), plus the §10.3 probe. |
+| **What the gate does not catch** | **Contamination by a *different* model that saw the same material.** `C-3` catches identity overlap, a weak proxy for corpus overlap. Model attribution is also self-declared. |
+| **Probe result, reported** | **FAIL on the only instance available.** `08_…` §10.1 row 4 records the one AI correctness review in the package (`evidence_class: 4 [ai-critique]`), performed on an artifact authored by the same model — every C009 document carries `**Model:** claude-opus-5[1m]`. **No independent AI confirmation exists anywhere in C009.** The cross-model method does exist here (`dry-run/02_…`, `dry-run/03_…` ran a `claude-sonnet` cold agent as probe subject); it has never been pointed at a correctness review. |
+| **Owner** | **The creator** |
+| **Revision trigger** | A `C-3`-conforming cross-model review is recorded, or the tautological-invariant probe is executed by a model that authored nothing under review (`CAP-S9-4`). |
+
+#### `OI-S9-15` — the classification is one unreviewed pass by one model, and a misclassified row does not announce itself · **open — the residual most likely to be wrong**
+
+| | |
+| --- | --- |
+| **Open item** | `09_…` §4 assigns a mechanism, a blocking behaviour and a placement to **89 requirements**. Every one of those assignments is a judgement, made once, by one model, **reviewed zero times** (`A4`). Deciding that a requirement is `AI` rather than `automated` — or `automated` rather than `AI` — is itself the kind of judgement this document exists to name. |
+| **Compensating observable gate** | **`G-RESIDUAL`** (`deterministic`) — an unenumerated requirement is **blocked until classified** (`09_…` §3.5), so a **missing** requirement fails safe. |
+| **What the gate does not catch** | **A *mis*classified requirement, as opposed to a missing one.** A row wrongly assigned `automated` reads as enforced and is not; the residual clause never fires, because the requirement *is* enumerated. **This is the residual least likely to be discovered by the system that contains it.** |
+| **Owner** | **SUB-11** at standards-conformance review; **SUB-12 (NEU-969)** at package reconciliation |
+| **Revision trigger** | An independent pass re-derives the classification and its disagreements are counted — which is `G-ESCALATION-COUNT` applied to this document rather than to content units. |
+
+#### `OI-S9-16` — every gate is specified and none is built · **open**
+
+| | |
+| --- | --- |
+| **Open item** | **59 gates are named, classified and placed. Zero are implemented, and none has run against a real content unit.** Whether a specified gate is buildable *as specified* is a judgement no reader of the specification can settle. |
+| **Compensating observable gate** | **`none — cap`** — `CAP-S9-1`. |
+| **What the gate does not catch** | **Everything.** A specification never compiled against a real artifact has an unknown defect rate. This entry exists so that unknown is filed rather than implied away by the confidence of the tables. |
+| **Owner** | **The creator**, and whichever task first implements a gate |
+| **Revision trigger** | The first gate is implemented and run, at which point the specification's defect rate becomes observable rather than assumed. |
+
+#### `OI-S9-17` — two `RR-CORRECT.mechanism` values changed, and SUB-8's copy rule now reads from `09_…` §5.1 · **open — a filed reconciliation, not a divergence**
+
+| | |
+| --- | --- |
+| **Open item** | SUB-8 §4.3 requires `RR-CORRECT.mechanism` to be *"copied from SUB-4, never re-derived"*. **`09_…` §5.1 reassigns two of the four**: Proof `schema` → **`deterministic`**, Test `deterministic` → **`server-side`**. The rule is unchanged in substance — the field is still copied, never re-derived — but **its source of truth is now `09_…` §5.1**, because SUB-4 §3.1 declares its own table provisional and non-binding and names SUB-9's assignment as governing. |
+| **Why it is filed rather than left to be discovered** | Two merged documents would otherwise carry different values for the same field with no record of why, and the next reader would have to guess which governs. **This is the sub-task that changed them saying so.** |
+| **What is NOT changed** | **No standard, field, obligation, check or form.** SUB-4's four standards are consumed verbatim; only *which surface must own the check* moved — the one axis SUB-4 declared provisional. |
+| **Owner** | **SUB-8 (NEU-963)** for the record-shape reconciliation; **SUB-12 (NEU-969)** at package reconciliation |
+| **Revision trigger** | SUB-8's `RR-CORRECT` definition cites `09_…` §5.1 as its source, or SUB-12 reconciles the two documents at the package gate. |

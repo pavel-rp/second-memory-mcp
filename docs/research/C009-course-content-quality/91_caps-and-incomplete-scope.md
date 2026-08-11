@@ -510,3 +510,88 @@
 | **What it costs** | Friction that only appears in use — a role that turns out to be held by nobody, a record field that turns out to be uncapturable, a transition that turns out to need splitting — is invisible today. **A desk walk cannot find it**, and this cap is the honest statement that one was not attempted. |
 | **Owner** | **The creator**, as the party who authors the first real unit |
 | **Closes when** | **At least one real content unit reaches a terminal state through an enumerated transition**, leaving a persisted review record chain that an auditor can read without consulting the unit's author. |
+
+
+### SUB-9 — NEU-965, the enforceable quality system and the AI-judgment residuals (OUT-9, + the OUT-7 contamination carve-out)
+
+**Model:** claude-opus-5[1m]
+
+> **The shape of this sub-task's incompleteness, stated once so it is not re-derived from seven entries:** SUB-9 **specifies** a quality system — 89 classified requirements, 59 named gates, a quarantine definition, an escalation rule and a contamination control — and **builds none of it**. Every cap below is a consequence of that one boundary, and none of them is a reason to read the specification as weaker than it is or as stronger than it is.
+
+#### `CAP-S9-1` — **59 gates are specified and zero are implemented; `qa-execution:engine` is unconfigured** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **No gate named in `09_…` §4 or §7 exists as code, and none has ever run against a content unit.** The repository's capability registry resolves `git` and `linear` only; **no capability owns the `qa-execution:engine` surface**, so the QA-execution phase over this deliverable is a genuine **Core Article 8 no-op** — the extension point runs inert by design. |
+| **What was refused** | **Reporting a QA pass.** No engine ran, so no engine verdict is claimed, implied or summarised. The checks that were executed are real and are recorded for what they are in `traceability/09_…` §5 and §6: one `vitest` run of a committed adversarial batch, a direct `tsc --noEmit` whose green is **vacuous** here because this change touches no TypeScript, and shell-level `git diff --numstat` and grep checks. **Mechanical, hand-run, narrow.** |
+| **What it costs** | A specification never compiled against a real artifact has an **unknown defect rate**. The five gate-failure tests in `traceability/09_…` §3 are **desk-executed reasoning traces over rules**, not execution traces from a runner, and they inherit `CAP-S8-4`'s cause: no real content unit exists to run against. |
+| **Relationship to `CAP-S8-3`** | SUB-8 assigned the record-schema conformance check here, on both axes. **This entry discharges the specification half** — the check is `G-RECORD-SHAPE`, `schema`, `blocks`, authoring-time (`EQ-S8-1`) — **and carries the execution half open.** |
+| **Owner** | **The creator**, and whichever task first implements a gate |
+| **Closes when** | **The first gate is implemented and run against a real content unit**, and a `qa-execution` capability is registered. `CAP-S8-3` closes with it. |
+
+#### `CAP-S9-2` — **the one executed measurement bounds `MC-4`'s deterministic half only; the AI-grading stage is stubbed** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The bounded prototype run on 2026-08-10 measured a **0/10 = 0.000** false-accept rate against a configured `overValidationCeiling` of `0.1`, with **non-zero collection** (2 files, 10 tests, all passed) and 0/5 false rejections on the valid-but-unusual fixtures. **The fixture feeds hand-encoded rubric payloads to the deterministic mapper `mapRubricToQuality`, and the AI-grading stage is stubbed.** |
+| **What that means precisely** | It bounds **only `MC-4 v1.0`'s downstream deterministic half** — the half `RA5` already designates as the signal of record — and says **nothing** about whether a live AI grader would emit over-validating rubric payloads. **It is a bounded prototype, not a harness, and not an end-to-end `MC-4` measurement.** |
+| **What was refused** | **Quoting `0.000` as evidence about the `AI` residual.** The measurement never reached the `AI` stage, and a false-accept rate from a stubbed grader is a fact about a mapper, not about a judgement. |
+| **Why it was run early** | Whether the `AI` residual over-validates beyond `MC-4`'s ceiling is an **input** to the enforcement-gap analysis, not a footnote to it. The honest answer turned out to be that the available measurement does not reach the `AI` stage at all — **which is itself the finding**, and it is why `OI-S9-14` reads as it does. |
+| **Execution note** | Executed in the shared checkout rather than the worktree, after `git diff --stat` proved the five target files byte-identical to `origin/develop`. **Disclosed rather than presented as a worktree run.** |
+| **Owner** | **The creator** |
+| **Closes when** | **The adversarial batch runs with the AI-grading stage live**, producing an end-to-end `MC-4 v1.0` observation. |
+
+#### `CAP-S9-3` — **two of sixteen residuals carry no compensating gate at all** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `09_…` §3.4 requires every requirement classified `AI` to carry a compensating observable gate **or** the literal `none — cap` with a named owner. **Two carry `none — cap`:** `OI-S9-9` (whether a candidate node is a genuine S8 residual) and `OI-S9-16` (whether a specified gate is buildable as specified). |
+| **Why no gate is proposed for `OI-S9-9`** | The judgement is about whether SUB-5's `D-S1` cascade genuinely declines, which requires the **map owner's** view of the cascade. No gate on the content side can produce it, and inventing one would be this package deciding a map question. `G-NO-RETYPE` blocks the *wrong* answer without producing the right one. |
+| **What it costs** | Two obligations are held entirely by judgement with no mechanical bound whatsoever — not even a partial one. **They are the weakest points of the system, and they are named as such rather than given a decorative gate.** |
+| **What was refused** | **Attaching a plausible-sounding gate to make the table read complete.** A gate that does not bound the obligation it is listed against is worse than `none — cap`, because it removes the row from a reader's attention. |
+| **Owner** | **The map's owner** for `OI-S9-9`; **the creator** for `OI-S9-16` |
+| **Closes when** | The map owner adjudicates `05_…` §6's routes (`OI-S9-9`), and the first gate is implemented (`OI-S9-16`). |
+
+#### `CAP-S9-4` — **the contamination probe's only available instance is a single-model package, and the designed probe was not executed** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `09_…` §10.3 designs a tautological-invariant probe for a cold reviewing agent. **It was not executed.** Running it here would require the reviewing agent to be the authoring model — precisely the `C-3` violation the probe exists to detect — and a probe whose subject is its own author produces a result of **zero evidential value**. |
+| **What was refused** | **Running it anyway and reporting a pass.** |
+| **What was produced instead — a real, checkable, negative finding** | The `C-3` check applied to the one recorded AI correctness review in the package (`08_…` §10.1 row 4, `evidence_class: 4 [ai-critique]`) **FAILS**: author model and reviewer model are the same id, and all C009 documents carry `**Model:** claude-opus-5[1m]`. **No independent AI confirmation exists anywhere in C009.** |
+| **What it costs** | The contamination control's **accounting half is specified and its detection half is unexercised.** `C-5` states in the policy body — not in a footnote — that contamination is not detectable in general, so `C-1`–`C-4` are never read as a detection capability. Model attribution is also **self-declared**: the check compares declared identity, not training-corpus overlap. |
+| **Available method, unused** | `dry-run/02_…` and `dry-run/03_…` each ran a **`claude-sonnet` cold agent** as probe subject. **The cross-model method exists in this package; it has never been pointed at a correctness review.** |
+| **Owner** | **The creator** |
+| **Closes when** | The probe is executed by a model that authored nothing under review, or a `C-3`-conforming cross-model correctness review is recorded. |
+
+#### `CAP-S9-5` — **the request-budget rule has never been exercised, because the access gate shuts every source first** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `09_…` §6.3's rule — a re-check is sanctioned iff `now − last_verified_at ≥ per_citation_staleness_window` **and** the source's re-check count in the current budget period `< per_source_revalidation_budget` — **has never been evaluated against a real citation.** `G-ACCESS-GATE` condition 2 shuts all twelve sources before `G-BUDGET` is reached (`CAP-S3-1`), and **zero requests have been made to any source.** |
+| **The two parameters are read, not chosen** | `per_citation_staleness_window` is **SUB-10's (NEU-966)** — choosing it would decide drift's cadence on SUB-10's behalf, and cadence is most of drift detection. `per_source_revalidation_budget` is **the source's own stated rate limit, recorded in `01_…` §3**, which reads `unestablished at cutoff ⇒ restricted` for all twelve today; choosing it would be this package inventing a rate limit for a source whose terms nobody has read — a §7.3 invented-authority failure in the retention direction. |
+| **The placeholder pair is declared, not chosen** | `W = 90 days`, `B = 1 per source per day`, used **only** to demonstrate that the rule discriminates (one PASS case, one BLOCK case in `09_…` §6.3). **They bind nothing, and no artifact anywhere in this package carries them.** |
+| **What it costs** | A rule that has never fired is a rule whose failure modes are unknown. **The demonstration is a desk evaluation of two constructed cases, not two observed re-checks.** |
+| **Owner** | **SUB-10 (NEU-966)** for the staleness window; **SUB-1 (NEU-957)** for the per-source limits |
+| **Closes when** | **`CAP-S3-1` closes** — at least one source's access gate opens and one citation is verified, making a second look at it a real event. |
+
+#### `CAP-S9-6` — **no serve-time surface exists to place a gate on, and the attribution obligation's render half is not gated here** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `09_…` §7 places **exactly one** gate at serve-time — `G-DRIFT`, the citation-drift re-check, the single legitimate `both`. **No learner-facing serve surface exists**, so the placement is specified against a surface that has not been built. |
+| **What is deliberately not gated** | SUB-1 §7.2 item 1 requires attribution *"visible without interaction"* on every artifact reaching a learner. That is a **surface obligation** owned by the learner-facing surfaces (**NEU-891**, **NEU-892**), and **this sub-task declines to place a gate on a surface that does not exist and whose owner is another charter's.** The record-side half is gated at authoring time by `G-ATTRIB-RECORD` (`EQ-S1-8`); **the render-side half is this cap** — recorded rather than quietly counted as covered. |
+| **What is not designed here** | **Drift detection itself is SUB-10's (NEU-966).** `09_…` decides `G-DRIFT`'s *placement* and its cached-asynchronous form; it designs no detection, and SUB-10 is named as the gate's owner. |
+| **What it costs** | The one serve-time placement is untestable, and the attribution obligation's most learner-visible half has no gate in this package at all. |
+| **Owner** | **NEU-891 / NEU-892** for the surfaces; **SUB-10 (NEU-966)** for drift detection |
+| **Closes when** | A learner-facing serve surface exists and the two placements are realised on it. |
+
+#### `CAP-S9-7` — **the classification inherits the interim field set and does not test the wider one** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | Every citation gate is written against `stable_id` + `canonical_url` — the interim stored set in force while **`CH-F5-1`** is open (`DR-C09-01`, `CAP-S1-2`). **The wider disposition is specified in `09_…` §6.4 and has never been exercised.** |
+| **What was refused** | **Widening the set, arguing for widening it, or designing a gate that needs a field the interim set does not store.** No gate in `09_…` §4 requires such a field — that is a design constraint honoured deliberately, not a coincidence — and **this sub-task's need for a wider set is nil**, which is stated so it cannot be cited as pressure in either direction. |
+| **What it costs** | The both-dispositions clause is **desk-verified**: it states what changes under each resolution (`G-FIELDSET` widens by declaration, no citation is re-resolved, no gate is rewritten) without any of it having been run. **`CH-F5-1` is cited by id and is neither restated nor re-owned here.** |
+| **Owner** | **The ledger's owner (C005 schema)** for `CH-F5-1`; **SUB-1 (NEU-957)** for `CAP-S1-2` |
+| **Closes when** | **`CH-F5-1` resolves in either direction.** If it resolves against the wider set, nothing changes at all — the narrow record is already the produced shape (`03_…` §7.3). |
