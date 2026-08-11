@@ -694,3 +694,23 @@
 | **What was refused** | **Manufacturing a pass.** The charter asks for a proof; the honest deliverable was a per-limb class-labelled account of which limbs are exercised, which are simulated and which are unreachable — and the **finding**, not a pass, is what `11_…` reports. |
 | **Owner** | **The creator** for the build; **a later implementation charter** for the gates and the workflow machinery |
 | **Closes when** | At least one gate is implemented and at least one real content unit is passed through it end to end. |
+
+---
+
+### SUB-13 — NEU-968, the package's decision, risk, metric and prototype records (OUT-11, the four C005-shape records only, + the OUT-9 self-classification of its own requirements)
+
+**Model:** claude-opus-5[1m]
+
+**One cap is filed by this sub-task.** Every other limitation it encountered is either an existing cap **cited by id and not re-owned** (`13_…` §3.2, §3.3, §6), or an open item with a named owner in `90_…` § `SUB-13`.
+
+#### `CAP-S13-1` — **the four records' completeness is a judgment over prose, and no mechanism can prove an unenumerated item is absent** · not closable by any scan
+
+| | |
+| --- | --- |
+| **Cap** | `13_…` publishes four records — decisions, risks, metrics, prototypes — assembled by reading twelve merged topic documents, three `decision-records/`, three `dry-run/` specimens and the published `NEU-890` umbrella. **Completeness is asserted by a lexical-plus-judgment read, by the party that produced the read.** `CAP-S1-4`'s lineage applies in full: an author checking its own completeness shares the author's blind spots by construction. |
+| **The mitigation, and its limit** | Every row cites the artifact and section it was built from, so **any single row is checkable by a third party without re-reading the package**, and every figure the records publish was **re-derived mechanically** rather than copied from a predecessor's summary line — which is how `OI-S13-1` was found at all. That bounds how much a self-assembled register can flatter itself. **It does not make the set complete, and it is not independence.** |
+| **The specific residual it carries** | `13_…` §7.3 records **`EQ-S13-7`** — *"no metric is defined locally and no frozen contract is redefined"* — as an `AI`-judgment row with **no compensating observable gate that can be named today**. The boundary between reporting a derived number (`MET-11`, `MET-12`) and defining a metric is a reading judgment, and it is where an unnoticed local definition would sit. Recorded as an uncompensated residual rather than assigned to a gate that would not detect it, in the same shape as `CAP-S9-3`'s two uncompensated residuals. |
+| **What was refused** | **Reporting the four records as complete.** `13_…` §0 states what it found rather than that it found everything, §7.4 carries a standing residual clause, and `OI-S13-3` files the completeness question with an owner instead of closing it. **Also refused: correcting `11_…` §10.2 in place** — a unilateral edit of another sub-task's published table, even a correct one, is what the append-only convention exists to prevent, so the discrepancy is routed at `OI-S13-1`. |
+| **What is NOT claimed** | That every material decision, risk, metric and prototype this package produced appears in `13_…`. Only that everything that does appear is cited to a retrievable source, and that the charter's own 14-row risk set is carried **complete and inline** against a source (`NEU-890`, taken 2026-08-11) a later reader can retrieve without `_local/`. |
+| **Owner** | **SUB-12 (NEU-969)** at package reconciliation, as the only party that reads all thirteen sub-tasks against the charter's outcome list; **the correctness-reviewer role** for an independent re-read of the four records |
+| **Closes when** | A party other than the producing task reads the twelve predecessor documents against `13_…` §2, §3, §5 and §6 and finds no unenumerated material item — **or** finds one, which closes it in the other direction. |

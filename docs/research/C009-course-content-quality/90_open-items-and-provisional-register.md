@@ -881,3 +881,87 @@
 | **Also carried here** | The **`docs/GLOSSARY.md` deferral**. This sub-task leaves it untouched, following the SUB-2/7/8/9/10 precedent, on the ground that `exercised` / `simulated` / `unreachable`, `E1`–`E7` and `EQ-S11-k` are package-internal vocabulary with no owning module or defining source file. **Disclosed in `11_…` §11 rather than left silent.** If SUB-12 judges otherwise, the registration is a single append. |
 | **Owner** | **SUB-11 (NEU-967)** for the residual; **SUB-12 (NEU-969)** at package reconciliation for the misclassification half and the glossary question |
 | **Revision trigger** | A quality requirement of this sub-task is found outside §10.1's table, or SUB-12 re-reads a row's mechanism assignment. |
+
+---
+
+### SUB-13 — NEU-968, the package's decision, risk, metric and prototype records (OUT-11, the four C005-shape records only, + the OUT-9 self-classification of its own requirements)
+
+**Model:** claude-opus-5[1m]
+
+#### `OI-S13-1` — **`11_…` §10.2's mechanism roll-up disagrees with its own §10.1 rows** · recorded, not corrected
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §8. Re-deriving all 135 classification rows from the merged blobs on trunk with a `node -e` table parse returns, for `11_…`'s 23 `EQ-S11-*` rows, `deterministic` **15** · `schema` **4**. `11_…` §10.2 publishes `deterministic` **14** · `schema` **5**. The `server-side`, `automated` and `AI` counts agree, as do `11_…`'s blocking and placement roll-ups in full. **Exactly one row is summarised as `schema` that its own row cell classifies `deterministic`.** |
+| **What follows** | The package mechanism totals after SUB-11 are `deterministic` **50** · `schema` **28** over 135 rows — **not** the 49/29 the published roll-up would propagate. |
+| **What is NOT claimed** | That any operative row is wrong. **Every `EQ-S11-*` row's own mechanism cell is internally consistent and nothing downstream computes a wrong result unless it reads the summary line instead of the rows.** This is the same shape as `OI-S1-14` (the C005 baseline's summary-line arithmetic) and `OI-S4-8` (the `JS-E2` blocking subtotal) — a third instance, which is why `13_…` §3.3 files `RK-15` for the pattern rather than only for this instance. |
+| **Why it is routed rather than corrected** | `11_…` is SUB-11's document. The shared-register convention — *"no sub-task reflows, renumbers, or rewrites another sub-task's entries"* — protects a sibling's published table at least as strongly as it protects a register section, and a unilateral edit of another sub-task's file, **even a correct one**, is the failure mode the append-only convention exists to prevent. |
+| **Owner** | **SUB-11 (NEU-967)** for its own summary line; **SUB-12 (NEU-969)** at package reconciliation, as the party that publishes the package-level figure |
+| **Revision trigger** | Any party re-derives the `EQ-S11-*` mechanism distribution from the rows, **or** SUB-12 publishes a reconciled package total. |
+
+#### `OI-S13-2` — **the `DR-C09-NN` decision-record band has an unallocated hole at `DR-C09-03`** · procedural, for SUB-12
+
+| | |
+| --- | --- |
+| **Open item** | `decision-records/` contains `DR-C09-01`, `DR-C09-02` and `DR-C09-04`. **`DR-C09-03` is absent.** Whether it was claimed by a sub-task that did not publish it, skipped to avoid a concurrent collision, or simply never allocated is **not established by this sub-task and is not guessed at here**. |
+| **What is NOT claimed** | That a decision record is missing. A gap in a numbering band is not evidence that a document was lost; it is evidence that the band is not dense, which `OI-S4-9` already flags as a live risk for both the `00`–`89` topic band and this one. |
+| **Why it is filed** | A later reader who sees `01, 02, 04` will assume a lost record and go looking for it. One sentence in the register costs less than that search. |
+| **Owner** | **SUB-12 (NEU-969)** at package reconciliation |
+| **Revision trigger** | SUB-12 establishes whether `DR-C09-03` was allocated, **or** a further decision record is filed and the band is made dense. |
+
+#### `OI-S13-3` — **the residual clause on the four records, standing and undischarged** · open by design
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §7.4. *"…and any material decision, risk, metric or prototype this package produced that is not enumerated in the four records above."* The four records were assembled by reading twelve merged documents and three `dry-run/` specimens. **No mechanism proves that an unenumerated material item is absent** — the completeness of a synthesis over prose is exactly the class of claim a lexical scan cannot settle (`CAP-S1-5`, `CAP-S2-6`). |
+| **The rule the clause fixes** | **An unenumerated item never defaults to "not material".** It defaults to *unrecorded*, which is a gap with an owner. |
+| **What is NOT claimed** | That the four records are complete. Only that every item they do carry is cited to the artifact it was read from, so a reader can check any row without re-reading the package. |
+| **Owner** | **SUB-13 (NEU-968)** for the clause; **SUB-12 (NEU-969)** at package reconciliation, as the only party that reads all thirteen sub-tasks against the charter's own outcome list |
+| **Revision trigger** | A material decision, risk, metric or prototype is found in the package and is absent from `13_…` §2, §3, §5 or §6. |
+
+#### `OI-S13-4` — **charter assumption 25's primary path was observed to hold, and the hedge is retained anyway** · provisional
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §1. Charter assumption 25 (confirmed) provides that the full charter body is appended to the published `NEU-890` umbrella at publish. **On 2026-08-11 this was observed to hold**: the umbrella's description carries the charter body including a `## Risks` table of **14** rows, recorded as a dated class 2 `[code-evidence]` observation. |
+| **Why it is still filed as an open item** | The observation is dated and the record is mutable. A later edit to the umbrella could remove or reshape the body, and **nothing in this package would detect it**. The inline copy in `13_…` §3.2 is therefore retained rather than dropped in favour of the citation — assumption 25's own row names that fallback, and it is kept even though the path it hedges was working on the day it was checked. |
+| **What is NOT claimed** | That the umbrella will still carry the body at any later date, or that the 14 rows are the charter's final risk set. |
+| **Owner** | **The charter's owner** for the umbrella's contents; **SUB-12 (NEU-969)** at package reconciliation for the re-check |
+| **Revision trigger** | A reader finds the `NEU-890` umbrella without the appended charter body, **or** finds a risk-row count other than 14. |
+
+#### `OI-S13-5` — **the `docs/GLOSSARY.md` deferral, followed and disclosed rather than left silent** · standing
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §11. `docs/GLOSSARY.md` is **not modified** by this sub-task. The decision **follows** the precedent SUB-2, SUB-6, SUB-7, SUB-8, SUB-9, SUB-10 and SUB-11 each set and each disclosed, on the same ground: the glossary is the **product's** domain-term lookup, and `DEC-*`, `RK-*`, `MET-*`, `PROTO-*` and `EQ-S13-*` are register row labels local to one research document, with no owning module and no defining source file. |
+| **What is NOT claimed** | That the deferral is correct. It is consistent, disclosed, and reversible by a single append — which is the most this sub-task is positioned to say. `OI-S6-9` carries the standing deferral for the package's signal ids and is not re-owned here. |
+| **Owner** | **SUB-12 (NEU-969)** at package reconciliation |
+| **Revision trigger** | SUB-12 judges that any package-internal id class belongs in `docs/GLOSSARY.md`. |
+
+#### `OI-S13-6` — **the residual clause on this sub-task's own classification** · standing
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §7.4, mirroring `09_…` §3.5, `10_…` §7.4 and `11_…` §10.4. **Any quality requirement this sub-task creates that `13_…` §7.1 does not enumerate defaults to `blocked until classified`** — never to unenforced, never to `warns`, and never to "presumably like a neighbouring row". §7.1's 11 rows are the floor, not the boundary. |
+| **Why it is filed rather than read as discharged** | `OI-S9-15` records SUB-9's classification as one unreviewed pass by one model; `OI-S10-6` and `OI-S11-8` record the same of SUB-10's and SUB-11's tables. **This table is the fourth instance: one pass, one model, reviewed zero times.** A row wrongly assigned `deterministic` reads as enforced and is not, and **the residual clause does not fire for a *mis*classified requirement — only for a missing one.** |
+| **Owner** | **SUB-13 (NEU-968)** for the residual; **SUB-12 (NEU-969)** at package reconciliation for the misclassification half |
+| **Revision trigger** | A quality requirement of this sub-task is found outside §7.1's table, or SUB-12 re-reads a row's mechanism assignment. |
+
+#### `OI-S13-7` — **the metric register's "measured" column rests on runs this sub-task did not re-execute** · provisional
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §5.2. Of the twelve measured quantities, **only `MET-11` and `MET-12` were produced by this sub-task** (the `node -e` re-derivation of §8). `MET-1`–`MET-10` are **read from the documents that produced them and cited to those documents; none was re-executed here.** The validator run behind `MET-1`–`MET-4` and the `vitest` batch behind `MET-5` were not re-run. |
+| **Why it matters** | A metric register is the artifact most likely to be quoted without its provenance. If a cited run's number were wrong, this register would carry the error forward at higher visibility than the document that made it — which is precisely what `OI-S13-1` records happening one level down, on a summary line. |
+| **What is NOT claimed** | That `MET-1`–`MET-10` are unverified. Each is class 2 in its own document with its own stated instrument; what is unverified is only whether re-running it today reproduces it. |
+| **Owner** | **The producing sub-task** for each cited run; **SUB-12 (NEU-969)** at package reconciliation for the package-level figure |
+| **Revision trigger** | Any cited run is re-executed and returns a different value. |
+
+#### `OI-S13-8` — **two package-level patterns have no owner other than the reconciling sub-task** · open
+
+| | |
+| --- | --- |
+| **Open item** | `13_…` §4.1 (the false-green family — five vacuous, criterion-mismatched or scope-limited passes filed by five sub-tasks) and §4.2 (every execution-bearing surface at zero — seven caps, six sub-tasks, one fact). **Both are assembled from records that are individually correct and complete.** Neither corresponds to a defect any sub-task could have fixed, and neither has a natural owner: the party that could act on "the package's aggregate pass surface over-reads its row-level state" is the party that publishes the package-level statement. |
+| **What is NOT claimed** | That any sub-task recorded its own instance dishonestly. **The opposite** — each of the five false greens and each of the seven zeros is recorded, qualified and owned in the document that produced it. The pattern is invisible from inside any one of them, which is the finding. |
+| **Owner** | **SUB-12 (NEU-969)** — the only party that reads all thirteen sub-tasks together and publishes a package-level judgment |
+| **Revision trigger** | A sixth vacuous-or-mismatched pass is recorded, **or** any execution-bearing surface in `13_…` §4.2 moves off zero. |
