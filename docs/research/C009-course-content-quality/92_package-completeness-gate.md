@@ -446,7 +446,7 @@ axis**, including the corrected `11_` figures. SUB-13's package roll-up is **con
 **The exhaustiveness rule holds and the serve-time count is exactly 1** — 14 rows, one gate. `CAP-S9-6` records that
 **no serve surface exists** for that gate to run on, so serve-time enforcement is **specified at 1 and built at 0**.
 
-### 11.3 The enforcement-gap reconciliation — **PASS, 22 of 22**
+### 11.3 The enforcement-gap reconciliation — **PASS, 23 of 23**
 
 **Every row classified `AI` carries a §3.4 entry with all four fields, or the literal `none — cap` plus a cap with a
 named owner cited by id.** **Zero rows carry neither.**

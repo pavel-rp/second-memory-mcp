@@ -91,7 +91,7 @@ Five statements carry the document.
 
 **Three rules bind the assignment, and each closes a specific escape.**
 
-1. **No rights obligation may be assigned `warns`.** SUB-1's rules are the ones whose breach is not recoverable by a later pass, and a warning is a finding that a publisher may decline to read (see `OI-S9-16`).
+1. **No rights obligation may be assigned `warns`.** SUB-1's rules are the ones whose breach is not recoverable by a later pass, and a warning is a finding that a publisher may decline to read (see `OI-S9-12`).
 2. **A requirement classified `AI` may never be assigned `blocks` on the judgement itself.** A block asserts a decided failure; an unperformed judgement has not decided anything. The *compensating observable gate* (§3.4) blocks; the residual judgement quarantines.
 3. **A requirement classified `AI` with no compensating observable gate is assigned `quarantines` — never `warns`, and never nothing.** This is the rule that makes §11 load-bearing rather than decorative: an unenforceable requirement holds its units rather than passing them.
 

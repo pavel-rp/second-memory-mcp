@@ -5,7 +5,7 @@
 
 Eleven sub-tasks decided things, discovered things, measured a few things and declined to measure many more. Each recorded its own share inside the section that produced it. This document is the fourth C005-shape deliverable set the charter names as an output in its own right: **what this package decided and what it deliberately did not; what it is exposed to and how far each exposure was actually reduced; which of its numbers were measured, which were declared, and which are inadmissible outright; and which of its claims were settled by running something rather than by arguing.**
 
-**It is a report, not a revision.** Nothing here is re-decided, re-severity-ed, re-owned or resolved. A decision that looks wrong is a finding routed to its producing sub-task; a severity that looks wrong is a finding routed to the charter's owner; a cap is cited by id and nothing more.
+**It is a report, not a revision.** Nothing here is re-decided, re-graded for severity, re-owned or resolved. A decision that looks wrong is a finding routed to its producing sub-task; a severity that looks wrong is a finding routed to the charter's owner; a cap is cited by id and nothing more.
 
 ---
 

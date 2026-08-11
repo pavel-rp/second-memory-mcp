@@ -48,7 +48,7 @@ Reproduced so **SUB-9 (NEU-965)** binds without translation. Source: `../02_cont
 | Assertion | Source | Evidence class | Machine-verified? |
 | --- | --- | --- | --- |
 | `conceptual` is instantiated by exactly 3 nodes, all CL-1 (2 frozen roots + 1 non-root) | `../../C005-dp-map/nodes/cl-1-foundational.yaml`; `../../C005-dp-map-integrity/02_skill-type-union-completeness.md` §1, §3 | 2 `[code-evidence]` | Yes — read from committed YAML at the 2026-08-10 cutoff |
-| CL-2, CL-3, CL-4 instantiate `conceptual` zero times | `../../C005-dp-map/nodes/cl-2-combinatorial.yaml`, `cl-3-state-compression.yaml`, `cl-4-optimization/mainstream.yaml`, `cl-4-optimization/frontier.yaml`; audit §2 absence table | 2 `[code-evidence]` | Yes |
+| CL-2, CL-3, CL-4 instantiate `conceptual` zero times | `../../C005-dp-map/nodes/cl-2-combinatorial.yaml`, `../../C005-dp-map/nodes/cl-3-state-compression.yaml`, `../../C005-dp-map/nodes/cl-4-optimization/mainstream.yaml`, `../../C005-dp-map/nodes/cl-4-optimization/frontier.yaml`; audit §2 absence table | 2 `[code-evidence]` | Yes |
 | Each named near-candidate's current `skill_type` and its recorded rationale | the same node files, per-node `skill_type` / `skill_type_rationale` | 2 `[code-evidence]` | Yes |
 | Cluster ids, names and defining contributions | `../../C005-dp-map/manifest.yaml` | 2 `[code-evidence]` | Yes |
 | The `S1→S8` cascade, `settled` as `D-S1`, and its `>10` revision trigger (**not fired — count is 1**) | `../../C005-dp-map-schema/adjudication/01_schema-decision-ledger.md` §2; `../../C005-dp-map-schema/01_node-and-edge-schema.md` §3 | 1 `[literature]` | Read, not re-derived |
@@ -56,7 +56,7 @@ Reproduced so **SUB-9 (NEU-965)** binds without translation. Source: `../02_cont
 | `F-939-A`, `F-939-B` are confirmed genuine gaps under `INC-C1` | `../../C005-dp-map-integrity/05_findings-register.md` | 1 `[literature]` | Read, not re-derived |
 | Cluster citation coverage is `0/4`; `CAP-2` closure declined | `../03_problem-citation-verification-and-access-paths.md` §11, §12; `D-R5`; `CAP-S3-1` | 1 `[literature]` | Read, not re-derived |
 
-**No assertion in this package's SUB-5 output rests on a network fetch, because none was made.** No problem id, URL or identifier-shaped string appears in either file.
+**No assertion in this package's SUB-5 output rests on a network fetch, because none was made.** No problem id, problem URL, or source-native problem identifier appears in either file. (Map node ids, decision ids such as `D-R6`, and finding ids such as `F-939-A` are this package's own identifiers and are not in scope for that claim.)
 
 ---
 
@@ -68,7 +68,7 @@ Reproduced so **SUB-9 (NEU-965)** binds without translation. Source: `../02_cont
 | The schema ledger is append-only | **0 deletions** | `git diff --numstat <base> -- …/01_schema-decision-ledger.md` |
 | Both shared registers are append-only | **0 deletions** each | `git diff --numstat <base> -- …/90_…md …/91_…md` |
 | `D-R5` and `### 3.10` survive intact; exactly one `D-R6` is added | `D-R5` count unchanged; `### 3.11` present once | `grep -c` on the ledger |
-| `D-R7` onward left free for NEU-963 | **no `D-R7` row** — the id appears once, in §3.11's namespace note reserving it | `grep -c "D-R7"` is 1, and no line matches `^\|\s*\*\*`D-R7`\*\*\s*\|` |
+| `D-R7` onward left free for NEU-963 | **no `D-R7` row** — the id appears once, in §3.11's namespace note reserving it | `grep -c "D-R7"` is 1, and no line matches ``^\|\s*\*\*`D-R7`\*\*\s*\|`` |
 
 ---
 

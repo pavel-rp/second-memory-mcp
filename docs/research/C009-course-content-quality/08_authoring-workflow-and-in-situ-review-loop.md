@@ -7,8 +7,9 @@
 
 ## 0. The result, stated first
 
-**A workflow ships. It has three terminals, a named reviewer role on every transition, a durable
-record for every transition, and one in-situ loop whose only success condition is a correctly classed
+**A workflow ships. It has three terminals, a named reviewer role on every *defined* transition, a durable
+record for every *defined* transition — `T-13`, the exit from `quarantined`, is deliberately left undefined
+here and carries neither (§3.2) — and one in-situ loop whose only success condition is a correctly classed
 entry in a ledger. It enforces nothing, and it flips no flag today.**
 
 Four statements carry the whole document, and none of them is softened later:
@@ -79,7 +80,7 @@ carried without translation, exactly as `07_…` §12 requires of its own consum
 | **All twelve sources `Restricted`; cluster citation coverage `0/4`; `CAP-2` closure DECLINED** | **SUB-3 (NEU-959)** / **SUB-1 (NEU-957)** | The citation-review step's live outcome today is `none — gate` at `V0` for every unit. Recorded as a real value, never as a blank. **The twelve rows are `Restricted` by the restricted-default rule** (SUB-1 had no network access), **not verified-restricted**, and this document does not upgrade them. |
 | **The interim binding field set: `stable_id` + `canonical_url` ONLY** | `CH-F5-1` / `DR-C09-01` / `CAP-S1-2` | The hard ceiling on what any review record may store about a problem (§4.3). |
 | **The calibration triple `(structural_tier, provisional_load_index, stage_band)`; `prerequisite_depth` VERIFIED (class MD, 179/179 agree); the five load dimensions and `progression_stage` PROVISIONAL (class P) at `creator_review: "deferred-provisional"` ×179/179** | **SUB-7 (NEU-964)**, `07_…` §4, §5.1, §7 | The subject matter of the in-situ loop (§7), and the source of its **scope test** (§7.3): a judgement about a class-**P** dimension is a creator review; a judgement about class-**MD** `prerequisite_depth` is **not**, and routes elsewhere. |
-| **The seven evidence classes and the no-cross-class-laundering rule** | **NEU-887**, `../C005-product-foundation/01_evidence-taxonomy.md` | Every review record carries **exactly one** class. The creator's judgement is **3 `[dogfooding]`** and is never presented as class 7 (§7.2). |
+| **The seven evidence classes and the no-cross-class-laundering rule** | **NEU-887** OUT-4, published as NEU-897's `../C005-product-foundation/01_evidence-taxonomy.md` | Every review record carries **exactly one** class. The creator's judgement is **3 `[dogfooding]`** and is never presented as class 7 (§7.2). |
 | **`A1`–`A5`** — status flips only in the owning ledger, on correctly classed evidence, by union, never by replacement; conflicts and gaps preserved; **a producing task may not promote its own artifact to `settled`** | **NEU-887**, inherited via the C005 ledgers | The constitutional basis of §7 and §8, and the reason the `D-R7` row this document files ships **`unresolved`**. |
 | **The per-cluster non-root `conceptual` obligation — routed, three routes open, SUB-5 deliberately did not choose** | **SUB-5 (NEU-961)**, `05_…` §6 | **An open dependency, registered as `OI-S8-3`, not resolved here.** A unit authored against a `conceptual` node in CL-2/CL-3/CL-4 has no node to attach to; the workflow states that such a unit cannot enter `draft` at all, because §3's entry precondition requires an existing `node_id`. It does **not** pick one of SUB-5's three routes on SUB-5's behalf. |
 

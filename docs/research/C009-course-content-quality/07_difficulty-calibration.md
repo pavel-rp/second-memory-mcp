@@ -218,7 +218,7 @@ Stated as a property of the rule rather than as a promise about behaviour, becau
 | **PR-10** | **The completeness of the node set a calibration ranges over** | `INC-C1` — the 10-instance CL-4 gap class has **no nodes**; SUB-3's disqualifier `X3` names the same seam | *`INC-C1` — the 10-instance CL-4 gap class* | **the creator** | The CL-4 completion task lands, or a further CL-4-by-cascade technique surfaces |
 | **PR-11** | **The external cross-check's very availability** | `CAP-2` — problem-level ids unverified; and `CAP-S3-1` — seed set empty, coverage 0/4 | *`CAP-2` — problem-level ids unverified* | **the creator / SUB-1 (NEU-957)** for re-verification; **SUB-3's successor** for execution | Corpus access obtained and ids verified — then §5.4 executes for real. Recorded here as **`CAP-S7-1`** |
 
-**Two §9 rows are read and deliberately **not** relied on**, recorded so their absence is visible rather than accidental:
+**Two §9 rows are read and deliberately _not_ relied on**, recorded so their absence is visible rather than accidental:
 
 - **`F-943-3`** (`entry_gate` redundant) — **excluded by §4.3.** The standard consumes no information from `entry_gate`, so it inherits no reliance from this row.
 - **`F-943-1`** (26/179 depths wrong, 6 stage inversions) — **closed**, discharged by `D-R4`, and **independently re-confirmed** by this document's own validator run: 0 depth mismatches, 0 stage inversions. This is why `prerequisite_depth` is class **MD** rather than class **P**.

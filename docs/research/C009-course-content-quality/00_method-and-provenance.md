@@ -73,7 +73,7 @@ Two consequences bind downstream work:
 
 | Inherited | From | How this package uses it |
 | --- | --- | --- |
-| The **seven-class evidence taxonomy** | NEU-887, `../C005-product-foundation/01_evidence-taxonomy.md` | Every claim carries exactly one class. No class is redefined and none is added. |
+| The **seven-class evidence taxonomy** | NEU-887 OUT-4, published as NEU-897's `../C005-product-foundation/01_evidence-taxonomy.md` | Every claim carries exactly one class. No class is redefined and none is added. |
 | The **12 source dispositions** (`D-F5`) | NEU-932, `../C005-dp-map-foundations/05_provenance-and-rights.md` §1 | Re-verified at a new cutoff and **never edited in place**. The baseline stays visible in every row of `01_…` §1. |
 | The **§2 selection-and-curation bright line** | NEU-932, same file §2 | Restated in `01_…` §2 as covering the rights of **reproduction and retention**, and used as the ground for the enumerating-response retention disposition (`01_…` §6). |
 | The **`RC-1`…`RC-6` rights checks** | NEU-932, same file §4 | Extended in `01_…` §9 with `RC-7` and `RC-8`. Existing checks are restated with their passing conditions and re-resolved at this cutoff, not renumbered. |

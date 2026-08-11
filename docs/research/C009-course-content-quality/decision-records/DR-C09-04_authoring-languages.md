@@ -13,7 +13,7 @@ Follows the house decision-record shape of `DR-C09-01_permitted-field-set.md` (D
 
 ### 1. TypeScript on a Node runtime is the standard authoring language — settled
 
-Every explanation, solution, proof and test the course authors is written in **TypeScript on a Node runtime**, unless the selection rule in §3 sends it to the escape hatch. This is a **settled charter decision**. This record **records** it, with its rationale and its rejected alternatives, so a later reader can see it was chosen rather than defaulted into; **it does not reopen it.**
+Every explanation, solution, proof and test the course authors is written in **TypeScript on a Node runtime**, unless the selection rule in §3 sends it to the escape hatch. This is a **settled charter decision**. This record **records** it, with its rationale and its rejected alternatives, so a later reader can see that it was chosen rather than defaulted into; **it does not reopen it.**
 
 ### 2. C++17 is the escape-hatch language
 
