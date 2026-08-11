@@ -1,0 +1,5 @@
+# Research packages carry regex-bearing markdown tables whose escaped pipes (\|)
+# prettier mis-parses: it splits rows into phantom columns and injects escapes
+# inside code spans, corrupting the recorded commands. Excluded until that is
+# no longer true. See PR #721 for a worked example.
+docs/research/
