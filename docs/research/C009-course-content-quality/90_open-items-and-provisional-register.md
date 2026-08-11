@@ -800,3 +800,84 @@
 | **Why it is filed rather than read as discharged** | `OI-S9-15` records that SUB-9's classification is one unreviewed pass by one model; **this sub-task's 23 rows are the same** — one pass, one model, reviewed zero times. A row wrongly assigned `automated` reads as enforced and is not, and the residual clause does not fire for a *mis*classified requirement, only a missing one. |
 | **Owner** | **SUB-10 (NEU-966)** for the residual; **SUB-11** at standards-conformance review and **SUB-12 (NEU-969)** at package reconciliation for the misclassification half |
 | **Revision trigger** | A quality requirement of this sub-task is found outside §7.1's table, or SUB-11/SUB-12 re-reads a row's mechanism assignment. |
+
+### SUB-11 — NEU-967, the package end-to-end proof, four cluster exemplars and both acceptance scenarios (OUT-11, + the OUT-2 standards-conformance review and the OUT-9 self-classification of its own requirements)
+
+#### `OI-S11-1` — **the seven observable elements are fixed by this sub-task, not quoted from the charter** · open
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §2.3. The charter requires each exemplar to carry **seven observable elements** and does not enumerate them in a form this sub-task could copy verbatim. They are fixed here as **E1–E7**, derived from what the two acceptance scenarios actually demand. **They are not presented as quoted**, and the act of fixing them is filed rather than assumed correct. |
+| **What is NOT claimed** | That E1–E7 *are* the charter's seven. Only that each of the seven is independently observable and that every one was observed on all four exemplars. |
+| **What it costs if the lists differ** | **Every rubric row in `11_…` §5 would be mislabelled** — the *elements* would be wrong even though the *observations* stand, because each observation is recorded independently of the label above it. That bound is why this is filed and not treated as a defect. |
+| **Owner** | **SUB-12 (NEU-969)** at package reconciliation — the party that reads the charter's enumeration and this list side by side |
+| **Revision trigger** | The charter's own enumeration of the seven elements is read against `11_…` §2.3. |
+
+#### `OI-S11-2` — **two REQUIRED forms are unsatisfiable on six of the eight skill types while the access gate stands** · open
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §3.5. SUB-2 §6.3 marks `problem-reference` **R** for `implementation`, `strategic`, `optimization` and `transfer`, and `solution` **R** for those four plus `debugging`. **The only fillable shape of `problem-reference` at this cutoff is `REFUSED — not verifiable`** (`CAP-S3-1`, `CAP-S3-2`). So **six of the eight skill types carry at least one REQUIRED citation-bearing form that cannot be completed by any route available inside C009.** Only `conceptual`, `procedural` and `proof` escape — and CL-2, CL-3 and CL-4 instantiate `conceptual` **zero** times (`CAP-S5-1`). |
+| **Why it is filed rather than fixed** | It is the **compound** of two caps filed independently and never read together: `CAP-S3-1` (the access gate) and `CAP-S5-1` (no conceptual attachment point). Separately each is survivable; together they mean **no exemplar in CL-2, CL-3 or CL-4 can be completed at all**. Neither cap is restated or re-owned here — this row records only that they intersect. |
+| **What was refused** | Reporting *"21 of 27 forms instantiated, 78%"* as a coverage result. A percentage over a form set whose missing members are **all** the citation-bearing ones hides its own shape; `11_…` §3.5 reports which limbs are missing and why instead. |
+| **Owner** | **SUB-1 (NEU-957)** for the rights half; **the map's owner** for the conceptual half. **Not re-owned by SUB-11.** |
+| **Revision trigger** | `CAP-S3-1` closes (a citation is verified), **or** a non-root `conceptual` node exists in CL-2, CL-3 or CL-4. |
+
+#### `OI-S11-3` — **boundary confrontation is vacuous wherever `test` is `—` or simply unplaced** · open
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §4.2. SUB-4 §2.2's strongest check — the one SUB-4 names *"the one that matters"* and the catcher of a hidden failing case — draws its adversarial set from *"the `separating_distractor_or_boundary_input` of **every `test` instance placed on the same node**."* SUB-2 §6.3 marks `test` **`—`** for `conceptual` and `proof`, and merely **`O`** for `strategic`, `optimization` and `transfer`. **On a `conceptual` or `proof` node the check can never run** — the set is empty by construction and no author action can populate it. **Elsewhere it runs only if somebody chose to place an optional `test`, and nothing requires anyone to.** A node with a REQUIRED `solution` and zero `test` instances passes **vacuously**, which in a summary table is indistinguishable from surviving. |
+| **The worked cost** | `11_…` §6.2. In the adversarial acceptance scenario the specimen's **hidden failing case is not detected**: step 4 is `unreachable` because the node carries no `test` instances. The scenario passes on its stated criterion and fails on a criterion its own premise implies. |
+| **Also carried here** | SUB-4 §2.4's **set-level coverage count has no stated disposition for the empty set** — it is silent on whether an unplaced optional form is a coverage failure or out of scope. `11_…` §4.4 reads it as out of scope and **records that as a reading, not as the standard's**. |
+| **What was refused** | Placing an optional `test` on the exemplar nodes so the check would have something to fire on, then reporting it passed. That manufactures the adversarial set the check exists to draw **independently** — a self-oracle one level up from the one §2.4 already rejects. |
+| **Owner** | **SUB-4 (NEU-960)** for the standard; **SUB-9 (NEU-965)** for the gate (`G-BOUNDARY`). **SUB-4's standard is not amended by SUB-11** — a downstream consumer's discomfort is not an adjudication. |
+| **Revision trigger** | SUB-4 states a disposition for the empty adversarial set, or the placement matrix makes `test` REQUIRED wherever `solution` is. |
+
+#### `OI-S11-4` — **the proof standard is entirely unexercised by this package's exemplar set** · open
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §4.3. `proof` is **`O`** on `conceptual`, `strategic` and `transfer` — the types of all four exemplar nodes — and **`R`** only on nodes typed `proof`. No exemplar places a `proof` instance, so **all three of SUB-4 §2.3's checks (slot presence, the closure link, dependency resolution) are vacuous, and none is reported as passed.** The closure link is the standard's own gap-catcher and has never been run against anything. |
+| **Why SUB-11 did not simply author a fifth exemplar** | The charter allocates **one exemplar per cluster**; a fifth would be authoring beyond the allocation. CL-1 does own `proof`-typed nodes, but none appears in any cluster's *"nearest existing nodes"* table in `05_…` §4, so none was selectable under `11_…` §3.0's node-selection rule. |
+| **Owner** | **SUB-12 (NEU-969)** at package reconciliation, to decide whether the package needs a fifth exemplar on a `proof`-typed node |
+| **Revision trigger** | An exemplar is authored on a node whose recorded `skill_type` is `proof`. |
+
+#### `OI-S11-5` — **the explanation standard's depth check was refused, not run** · open
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §4.1. SUB-4 §2.1's third layer — *"name the first term in the lesson body that is neither in `prerequisite_recall` nor explained in place"* — is **judgment**, and SUB-4 proposes no mechanical proxy. Running it here means an author judging **its own** exposition for the terms it assumed. **`CAP-S9-4` already records the package's one AI correctness review FAILING `C-3`** because author and reviewer carry the same model id; running the depth check and reporting a pass would add a second `C-3` failure and dress it as a result. **Recorded `unreachable` on all four exemplars.** |
+| **Compensating observable gate** | **`G-DEPTH-BOUND`** — which exists in **specification only** (`OI-S9-1`, `CAP-S9-1`). There is no built gate compensating for this refusal. |
+| **What is NOT claimed** | That the four `lesson` bodies are free of undefined terms. Nothing here establishes that either way. |
+| **Owner** | **The correctness-reviewer role**, per SUB-4 §2.1 — a party other than the author |
+| **Revision trigger** | A reviewer who did not author the exemplars runs the depth check, **or** `G-DEPTH-BOUND` is built. |
+
+#### `OI-S11-6` — **the load dimensions are not 1-indexed, observed at n = 4** · open
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §5.1. `07_…` §3.3 states *"the per-dimension numeric range of D2–D6 is not asserted here. No pass audited it."* This sub-task computed four real triples and observed the five load dimensions taking values in **{0, 1, 2, 3, 4, 5}** — `proof_obligation_load: 0` on `cl-3.recognize-bitmask-state-applicability`, `recognition_load: 5` on two nodes. **The dimensions are therefore not 1-indexed.** |
+| **What is NOT claimed** | That `{0…5}` is the range over the 179 nodes. **This is four nodes' worth of observation.** It is filed so a future pass measures the range properly rather than generalising from this row, and it does **not** overturn `07_…` §3.3's refusal to assert a range. |
+| **Owner** | **SUB-7 (NEU-964)** for the dimension documentation; **the map's owner** for the values |
+| **Revision trigger** | A pass measures the per-dimension range over the full node set. |
+
+#### `OI-S11-7` — **whether an exemplar is a *good* exemplar is AI-judgment-only** · standing
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §10.3, the `EQ-S11-21` enforcement-gap entry. Whether the misconception named in `misconception_or_edge_case` is one a **real learner actually holds**, and whether the `separating_distractor_or_boundary_input` genuinely **separates** it rather than merely differing from it, is judgment. Classified `AI` / `quarantines`. |
+| **Compensating observable gate** | **`G-DISCRIMINATION`** (`schema`) — the REQUIRED pair is present and non-empty on every discriminative form, and SUB-6 §5.2's four-condition happy-path check is decidable by inspection. |
+| **What the gate does NOT catch** | **Whether the named misconception is real.** The gate proves a field is filled and the item is not happy-path-only. **An author who invents a misconception fills the field perfectly.** Worse, it over-fires on nothing — it produces no queue of suspicious items for a reviewer to work through, so a fabricated misconception is **invisible** rather than merely unconfirmed. |
+| **Owner** | **SUB-6 (NEU-962)** for the discrimination design; **the creator** as build owner |
+| **Revision trigger** | **Class 3 evidence from real learners exists** — which is `CAP-S8-1`'s territory and does not exist today. |
+
+#### `OI-S11-8` — **the residual clause on this sub-task's own classification** · standing
+
+| | |
+| --- | --- |
+| **Open item** | `11_…` §10.4, mirroring `09_…` §3.5 and `10_…` §7.4. **Any quality requirement produced by this sub-task that `11_…` §10.1 does not enumerate defaults to `blocked until classified`** — never to unenforced, never to `warns`, and never to "presumably like a neighbouring row". §10.1's 23 rows are **the floor, not the boundary**. |
+| **Why it is filed rather than read as discharged** | `OI-S9-15` records SUB-9's classification as one unreviewed pass by one model, and `OI-S10-6` records the same of SUB-10's 23 rows. **This table is the third instance: one pass, one model, reviewed zero times.** A row wrongly assigned `deterministic` reads as enforced and is not, and **the residual clause does not fire for a *mis*classified requirement — only for a missing one.** |
+| **Also carried here** | The **`docs/GLOSSARY.md` deferral**. This sub-task leaves it untouched, following the SUB-2/7/8/9/10 precedent, on the ground that `exercised` / `simulated` / `unreachable`, `E1`–`E7` and `EQ-S11-k` are package-internal vocabulary with no owning module or defining source file. **Disclosed in `11_…` §11 rather than left silent.** If SUB-12 judges otherwise, the registration is a single append. |
+| **Owner** | **SUB-11 (NEU-967)** for the residual; **SUB-12 (NEU-969)** at package reconciliation for the misclassification half and the glossary question |
+| **Revision trigger** | A quality requirement of this sub-task is found outside §10.1's table, or SUB-12 re-reads a row's mechanism assignment. |
