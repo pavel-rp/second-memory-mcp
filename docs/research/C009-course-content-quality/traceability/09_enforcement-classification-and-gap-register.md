@@ -45,8 +45,8 @@ Every `EQ-` row in `../09_…` §4 resolves to a section of an upstream C009 doc
 | Check | Result |
 | --- | --- |
 | Rows reaching `AI` where a cheaper mechanism was **not** tried and rejected in writing | **0.** Each of the 15 carries its rejection in the `../09_…` §11 row's *"what the gate does not catch"* cell, which names the cheaper gate that was tried. |
-| Rows assigned `automated` that a `deterministic` reading would have decided | **0.** Each of the 10 requires an execution or a re-run: `G-ENUM-SCAN`, `G-NOTEXT-SCAN`, `G-DRIFT`, `G-MATCH`, `G-TRANSPORT`, `G-BOUNDARY`, `G-DISCRIMINATION`, `G-UNDEF-TERM`, `G-MISFILING`, `G-CITE-RESOLVE`'s resolution limb. |
-| Rows assigned `server-side` that the artifact's own bytes would have decided | **0.** Each of the 14 reads the node record, sibling units, or a persisted chain. |
+| Rows assigned `automated` that a `deterministic` reading would have decided | **0.** Each of the **11** requires an execution or a re-run, across **10 distinct gates** — `EQ-S1-2` and `EQ-S1-6` both resolve to `G-ENUM-SCAN`: `G-ENUM-SCAN`, `G-NOTEXT-SCAN`, `G-DRIFT`, `G-MATCH`, `G-TRANSPORT`, `G-BOUNDARY`, `G-DISCRIMINATION`, `G-UNDEF-TERM`, `G-MISFILING`, `G-CITE-RESOLVE`'s resolution limb. |
+| Rows assigned `server-side` that the artifact's own bytes would have decided | **0.** Each of the **15** reads the node record, sibling units, or a persisted chain. |
 | Rows where two separable obligations were collapsed into one mechanism | **0 remaining.** Three were found and split: SUB-4's solution standard into `EQ-S4-4`/`EQ-S4-5`/`EQ-S4-6`; SUB-4's proof standard into `EQ-S4-8`/`EQ-S4-9`/`EQ-S4-10`; SUB-1 §6 into `EQ-S1-6` (artifact side, `automated`) and `EQ-S1-7` (context side, `AI`). |
 | **Rows where the compensating gate is described as discharging the obligation** | **0.** Enforced by the mandatory *"what the gate does not catch"* column; a row with that cell empty is inadmissible by `../09_…` §3.4. |
 
@@ -120,7 +120,7 @@ Every `EQ-` row in `../09_…` §4 resolves to a section of an upstream C009 doc
 **The two constraints every gate's payload is inspected against:**
 
 1. **`src/server/topic-tools.ts` serializes the structured `findings` array only on `error.type === 'content_quality'`.** On every other error type the array is **silently dropped** — no warning, no partial. **A gate that emits its findings under `validation` emits nothing**, which fails invisibly and would read as a clean pass.
-2. **`src/shared/logger.ts`'s `LOG_REDACT` set is `password`, `token`, `apiKey`, `api_key`, `authorization`, `secret`.** Learner `response` text is **not** in it, and the module's own doc comment records that it is *"intentionally NOT redacted."* SUB-6 §10 files this as `OI-S6-5`. **The consequence for gate design is a design constraint, not a warning:** no gate may place learner `response` text in any field that reaches a log.
+2. **`src/shared/logger.ts`'s `LOG_REDACT` set is `password`, `token`, `apiKey`, `apikey`, `api_key`, `authorization`, `secret`, each paired with a `*.`-prefixed wildcard variant (`*.password`, `*.token`, `*.apiKey`, `*.apikey`, `*.api_key`, `*.authorization`, `*.secret`) — 14 paths in total.** Learner `response` text is **not** in it, and the module's own doc comment records that it is *"intentionally NOT redacted."* SUB-6 §10 files this as `OI-S6-5`. **The consequence for gate design is a design constraint, not a warning:** no gate may place learner `response` text in any field that reaches a log.
 
 **The canonical payload shape, for every gate in `../09_…` §7:**
 

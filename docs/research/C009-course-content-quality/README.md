@@ -49,7 +49,7 @@ It is published under `docs/research/` in the **C005 house style** — the same 
 | Range | Meaning | Who writes it |
 | --- | --- | --- |
 | **`00`–`89`** | **Per-sub-task topic documents.** Each sub-task allocates its own numbers in this range and owns those files outright. **SUB-1 owns `00` and `01`.** No sub-task renumbers another's file, because a renumber breaks every cross-reference a concurrent sibling already wrote against the old number. | the owning sub-task |
-| **`90`–`99`** | **Reserved for shared package-level registers and the completeness gate.** No sub-task may allocate a topic document in this range. Currently: `90_open-items-and-provisional-register.md`, `91_caps-and-incomplete-scope.md`, `92_package-completeness-gate.md`. `93`–`99` stay free for further package-level registers, not for topic content. | all sub-tasks (registers, by append) / **NEU-969 (SUB-12)** (gate) |
+| **`90`–`99`** | **Reserved for shared package-level registers and the completeness gate.** No sub-task may allocate a topic document in this range. Currently: `90_open-items-and-provisional-register.md`, `91_caps-and-incomplete-scope.md`, `92_package-completeness-gate.md`, `93_review-correction-pass.md`. `94`–`99` stay free for further package-level registers, not for topic content. | all sub-tasks (registers, by append) / **NEU-969 (SUB-12)** (gate) / **NEU-970** (correction pass) |
 
 The split exists so a reader can tell, from the filename alone, whether a document is **one sub-task's finding** or **the package's aggregate state** — and so that the three concurrently-in-flight siblings never contend for the same number.
 
@@ -73,6 +73,6 @@ This repository's capability registry resolves to **`git, linear`** only; **no `
 
 ## Provenance
 
-**Binding upstream inputs, cited by version:** the NEU-889 DP-map package `../C005-dp-map-package/` (v1.0.0, gate 38/38); `../C005-dp-map-foundations/` (NEU-932 — `D-F1`…`D-F5`, `D-F3a`, verification cutoff 2026-07-16); `../C005-instructional-model/package/` (NEU-888 — mechanisms `M01`–`M10`, mastery gates A–E); NEU-887's seven-class evidence taxonomy at `../C005-product-foundation/01_evidence-taxonomy.md` and its frozen measurement-contract register `v1.0`.
+**Binding upstream inputs, cited by version:** the NEU-889 DP-map package `../C005-dp-map-package/` (v1.0.0, gate 38/38); `../C005-dp-map-foundations/` (NEU-932 — `D-F1`…`D-F5`, `D-F3a`, verification cutoff 2026-07-16); `../C005-instructional-model/package/` (NEU-888 — mechanisms `M01`–`M10`, mastery gates A–E); NEU-887's seven-class evidence taxonomy (**OUT-4**), published as NEU-897's `../C005-product-foundation/01_evidence-taxonomy.md` and its frozen measurement-contract register `v1.0`.
 
 **Consumers:** every C009 sub-task. **SUB-3 (NEU-959)** in particular consumes `01_provenance-and-rights.md` §3's access-permission record and §6's retention disposition as **preconditions** before it issues its first citation request, and re-decides neither.

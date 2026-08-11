@@ -7,7 +7,7 @@
 
 **Two structural rules this file obeys, both inherited and neither invented here:**
 
-1. **The access path is recorded here, never as a field of a citation record.** `01_provenance-and-rights.md` §4.1 admits exactly `stable_id` and `canonical_url`; an `access_path` field would be a third stored field admitted on local judgment. The charter states the same rule directly: the record *"lives in the package's own verification record, not as a field of any citation record."*
+1. **The access path is recorded here, never as a field of a citation record.** `../01_provenance-and-rights.md` §4.1 admits exactly `stable_id` and `canonical_url`; an `access_path` field would be a third stored field admitted on local judgment. The charter states the same rule directly: the record *"lives in the package's own verification record, not as a field of any citation record."*
 2. **This file names no problem identifier and no problem-level URL of any of the twelve sources**, because none was verified and because §2's bright line forbids recording which problems a source has.
 
 ---
@@ -84,7 +84,7 @@ Both scan families of `../01_provenance-and-rights.md` §5.1 (no statement text)
 | --- | --- | --- | --- |
 | **A** | Statement-section markers at line start | `grep -rnE '^(Input\|Output\|Constraints\|Sample Input\|Sample Output)\b' docs/research/C009-course-content-quality/` | **0 matches.** No output. |
 | **B** | Problem-level URLs of the twelve sources | `grep -rnE '(codeforces\.com/(problemset/problem\|contest)/\|cses\.fi/problemset/task/\|atcoder\.jp/contests/[A-Za-z0-9_-]+/tasks/\|usaco\.org/index\.php\?page=viewproblem\|judge\.yosupo\.jp/problem/)' docs/research/C009-course-content-quality/` | **0 matches.** No output. |
-| **C** | An enumerated candidate set — sibling rows carrying source-native problem identifiers | `grep -rnE '^(\s*[-*]\|\|)\s*.*\b(abc\|arc\|agc\|dp)[0-9]{2,4}_[a-z]\b' docs/research/C009-course-content-quality/` | **0 matches.** No output. |
+| **C** | An enumerated candidate set — sibling rows carrying source-native problem identifiers | `grep -rnE '^(\s*[-*]\|\\|)\s*.*\b(abc\|arc\|agc\|dp)[0-9]{2,4}_[a-z]\b' docs/research/C009-course-content-quality/` | **0 matches.** No output. |
 | **D** | Fenced blocks — where a sample, an example, or a serialised response body would sit | `grep -rn '^\`\`\`' docs/research/C009-course-content-quality/` | **43 fence markers across three files, all inspected line by line rather than merely counted:** `02_content-and-exercise-forms.md` (SUB-2's ten authoring templates — angle-bracketed **instruction text**, and by `C2`'s rule containing no example identifier, address or citation of any kind), `dry-run/02_…` (SUB-2's run-1 verbatim output — **refusals and prose**), and `dry-run/03_…` (**this sub-task's run-2 verbatim output — refusal strings and omission reasons**). **No identifier, no address, no problem statement text, and no serialised response body in any of them.** |
 | **E** | The enumerating endpoint by name | `grep -rniE '(problemset\.problems\|api\.codeforces\.com)' docs/research/C009-course-content-quality/` | **7 matches** — 3 pre-existing in `01_provenance-and-rights.md` (SUB-1's §3, §6, §7.3) and **4 new in `03_…`** (§3's hierarchy table, §4.1, §9's retention row, §8's caveat). **Every one names the endpoint as the subject of a prohibition or of a recorded non-event.** None carries, quotes or summarises a response. **Expected and correct** — a retention rule must be able to name the thing it bounds. |
 

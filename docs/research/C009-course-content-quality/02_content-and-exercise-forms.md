@@ -39,7 +39,7 @@ Each definition in §3 lists its fields with an explicit **REQUIRED** or **OPTIO
 - **REQUIRED** — a submission omitting the field is **not a valid instance of the form**. The form definition rejects it. This document specifies the rejection as a property of the form; it specifies no gate, severity tier or linter rule to enforce it — enforcement is SUB-9's (NEU-965).
 - **OPTIONAL** — the field may be absent without affecting validity.
 
-**Provisionality is surfaced, never laundered.** Any field reading a node's stage or difficulty inherits `creator_review: "deferred-provisional"` from the map (all 179 mapped nodes carry it) and says so. A form never presents provisional upstream data as settled.
+**Provisionality is surfaced, never laundered.** Any field reading a node's stage or difficulty inherits `creator_review: "deferred-provisional"` from the map (all 179 non-root nodes carry it) and says so. A form never presents provisional upstream data as settled.
 
 **Mechanisms are binding in shape, open in value.** The learning-critical set is **M03** (Retrieval Practice), **M04** (Spacing), **M06** (Feedback), **M08** (Assessment), **M09** (Remediation) and **M10** (Progression); **M01** (Sequencing), **M02** (Worked Examples), **M05** (Interleaving) and **M07** (Productive Struggle) are not learning-critical (`../C005-instructional-model/package/00_per-mechanism-index.md`). **No form below weakens a learning-critical control.** Calibrated numbers are open; observable behaviour and the control are not.
 
@@ -49,7 +49,7 @@ Each definition in §3 lists its fields with an explicit **REQUIRED** or **OPTIO
 
 Fields shared by the **nine content and exercise forms**, listed once and not repeated per form: `form` (REQUIRED — one of the ten names), `node_id` (REQUIRED — see §6 placement), `title` (REQUIRED), `body` (REQUIRED), `author_kind` (REQUIRED — human or agent), `provenance_note` (OPTIONAL).
 
-> **`problem-reference` is exempt from the shared-field block in its entirety.** It is a **citation record, not content**, and its field set is capped by `CH-F5-1`. It carries **`stable_id` and `canonical_url` and nothing else** — no `title`, no `body`, no `node_id`, no `author_kind`, no `provenance_note`. `title` in particular is **NOT-YET-STORABLE** for this form (§5.2). Nothing in this section may be read as admitting a field that §3.4 and §5 exclude: **where this block and §5 appear to differ, §5 governs.** A form instance that stores a field the interim disposition forbids is invalid regardless of which section an author read first.
+> **`problem-reference` is exempt from the shared-field block in its entirety.** It is a **citation record, not content**, and its field set is capped by `CH-F5-1`. Its **stored field set** is **`stable_id` and `canonical_url` and nothing else** — no `title`, no `body`, no `node_id`, no `author_kind`, no `provenance_note`. The `form:` key an instance carries is the **structural discriminator** that says which form the instance is; it is not a member of the `CH-F5-1`-capped stored field set, and naming it here neither widens the cap nor admits a third stored field. `title` in particular is **NOT-YET-STORABLE** for this form (§5.2). Nothing in this section may be read as admitting a field that §3.4 and §5 exclude: **where this block and §5 appear to differ, §5 governs.** A form instance that stores a field the interim disposition forbids is invalid regardless of which section an author read first.
 
 ### 3.1 lesson
 
@@ -187,7 +187,7 @@ Fields shared by the **nine content and exercise forms**, listed once and not re
 
 ### 5.1 Interim disposition — **this is the current form, and the only fillable one**
 
-A problem reference stores **`stable_id` and `canonical_url` — and nothing else.** This is the shape an author may actually fill. The template in §7.4 offers exactly these two fields and no others.
+A problem reference stores **`stable_id` and `canonical_url` — and nothing else.** This is the shape an author may actually fill. The template in §7.4 offers exactly these two fillable fields and no others, above the `form:` discriminator that identifies the form itself.
 
 ### 5.2 Wider disposition — **not-yet-storable, not a form an author may fill**
 
