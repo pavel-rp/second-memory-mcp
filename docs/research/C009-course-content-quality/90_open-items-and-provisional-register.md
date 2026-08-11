@@ -737,3 +737,66 @@
 | **What is NOT changed** | **No standard, field, obligation, check or form.** SUB-4's four standards are consumed verbatim; only *which surface must own the check* moved — the one axis SUB-4 declared provisional. |
 | **Owner** | **SUB-8 (NEU-963)** for the record-shape reconciliation; **SUB-12 (NEU-969)** at package reconciliation |
 | **Revision trigger** | SUB-8's `RR-CORRECT` definition cites `09_…` §5.1 as its source, or SUB-12 reconciles the two documents at the package gate. |
+
+### SUB-10 — NEU-966, citation drift detection and revalidation (OUT-10, + the OUT-9 self-classification of its own requirements)
+
+**One inherited item is discharged here, and is recorded as discharged rather than silently dropped.** `OI-S6-4` was filed by SUB-6 with **owner SUB-10** and the revision trigger *"SUB-10 landing drift detection, which supplies the missing half and may require this design to state what a detected-drift event does to an already-counted success."* **`10_…` §6.2 states that rule**: placement-level facts are suspended, node-level mastery history is retained unrecomputed, and SUB-6's corpus-swap result is **cited, not re-run**. The one part of the answer that is *not* reassuring is filed below as `OI-S10-3` rather than folded into the discharge.
+
+#### `OI-S10-1` — **materiality of an observed difference is a judgement, and the comparison only bounds it** · `AI`-judgment-only
+
+| | |
+| --- | --- |
+| **Open item** | `EQ-S10-21`. Whether a change observed at a source makes the cited problem a **different problem**, or is an editorial rewording leaving the learner's obligation identical, is decided by a reader. The mechanical comparison decides *whether bytes differ*, never *whether the difference matters*. |
+| **Compensating observable gate** | **`G-DRIFT`** (`automated`) — the `D1`–`D5` comparison against the dated baseline. Any difference fires a signal and the unit does not advance silently. |
+| **What the gate does NOT catch** | **Materiality, in both directions.** A typo fix or a re-formatted constraint block fires `D3`/`D4` and blocks a citation that is fine — the gate produces a **queue, not a verdict**. And more expensively: **a semantically material change that leaves the compared values byte-identical is invisible to it** — a tightened time limit stated only in an attached judge configuration, or a narrowed input domain in a table the comparison does not read, passes `D1`–`D5` cleanly. |
+| **Owner** | **The correctness-reviewer role** (SUB-8 §4.2); build owner **the creator** |
+| **Revision trigger** | The first re-check runs against a real source and a real dated observation, at which point the signal set's miss rate becomes observable rather than assumed. |
+
+#### `OI-S10-2` — **the 90-day staleness window is declared, not measured** · `AI`-judgment-only · `none — cap`
+
+| | |
+| --- | --- |
+| **Open item** | `EQ-S10-22`. `10_…` §5.2 sets `per_citation_staleness_window = 90 days` and states its derivation as a band — bounded below by the traffic a shorter window generates against sources whose rate limits nobody has read, bounded above by the exposure a longer one accepts. **90 days is a choice inside that band and nothing in this package establishes it is the right one.** |
+| **Compensating observable gate** | **`none — cap`** — see `CAP-S10-1`. |
+| **What is NOT claimed** | That the figure is validated, estimated, or corroborated. **`09_…` §6.3 used `90 days` as a declared placeholder that bound nothing**; this document adopts the same figure as a value, and the agreement is explicitly **not** treated as support — citing an illustration as evidence is the laundering the package exists to prevent. |
+| **Owner** | **The creator** — the only party who can authorise the rights re-verification whose output would make a measurement possible |
+| **Revision trigger** | A drift-rate observation exists for **any** source over **any** verified citation. |
+
+#### `OI-S10-3` — **a drifted `retrieval` item's stale `expected_response` is not corrected by the citation swap** · open
+
+| | |
+| --- | --- |
+| **Open item** | `10_…` §6.2. A success counted from `pasted_solution` or `assessment_item_result` stands after a detected drift — those are graded against **our** rubric criteria, which are properties of the learner's method. **A success (or failure) counted from a `retrieval_item_result` may be wrong**: the item's `expected_response` was authored against the pre-drift constraints, so a learner reasoning correctly about the *current* problem is marked incorrect and one reasoning about the *old* one is marked correct. **Replacing the citation does not re-grade that item, and this policy does not claim it does.** |
+| **Why it is filed rather than fixed** | Correcting it is a **re-authoring pass over the item**, not a swap — the item is authoring-time content that drifted with its citation. Claiming the swap repaired it would be exactly the over-claim `dry-run/06_…`'s 4/4 PASS must not be stretched into. |
+| **What is NOT claimed** | That accumulated mastery evidence is uniformly safe under drift. §6.2's retention table is correct **per field**; this entry is the exception at the item level. |
+| **Owner** | **The correctness-reviewer role** |
+| **Revision trigger** | `gate:G-DRIFT becomes evaluable` — until a drift verdict can be computed, nobody can identify *which* items were authored against a since-changed constraint. |
+
+#### `OI-S10-4` — **`D5` is a `warns`, and inherits `OI-S9-12` in full** · open
+
+| | |
+| --- | --- |
+| **Open item** | `EQ-S10-5`. A changed difficulty signal is recorded as a finding with both values and both dates (SUB-7 §5.4) and the unit advances. **`OI-S9-12` records the standing residual that a `warns` verdict may never be acted on** — *"a warning nobody reads is an unenforced requirement wearing an enforcement's clothes."* `D5` inherits that residual whole. |
+| **Compensating observable gate** | **`G-WARN-COUNT`** (`deterministic`) — the unresolved-warning count carried on `RR-PUBLISH`. |
+| **What the gate does NOT catch** | **Whether anybody reads the count.** It makes the warning population countable, which is strictly more than nothing and strictly less than enforcement. |
+| **What was refused** | **Escalating `D5` to `blocks` to make the table look stronger.** SUB-9 §3.2's rule produced `warns` — the verdict is decidable now, the obligation is not rights-, correctness- or learner-safety-critical, and the problem is still the same problem. Overriding that for appearance is the laundering the scheme exists to prevent. |
+| **Owner** | **The publisher role** (SUB-8 §4.2) for the count; **the creator** via `OI-S7-1` for the calibration reading |
+| **Revision trigger** | `OI-S9-12` closes, or a `D5` finding is demonstrably acted on. |
+
+#### `OI-S10-5` — **the enumerated signal set may be incomplete, and its miss rate is unknown** · open
+
+| | |
+| --- | --- |
+| **Open item** | `10_…` §2.2. Five signals are enumerated. **A signal set that has never been run against a real source cannot report how much it misses**, and this one never has. The residual clause routes an unmatched difference to `suspected drift` precisely so misses land somewhere visible instead of passing as unchanged. |
+| **What is NOT claimed** | That five signals are exhaustive. **A sixth is added by amending `10_…` §2.1 — never by a re-check deciding at runtime that a difference is benign** (`EQ-S10-6`), the same discipline SUB-6 §3.3 applies to an unenumerated evidence signal. |
+| **Owner** | **SUB-10 (NEU-966)** — enumerating a sixth signal is an amendment to this sub-task's own document. **This is the id every `suspected drift` quarantine's `exit_condition` names** (`register:OI-S10-5 closes`). |
+| **Revision trigger** | A real observed change matches no enumerated signal, or the first re-check against a real source returns a difference the set does not classify. |
+
+#### `OI-S10-6` — **the residual clause on this sub-task's own classification** · standing
+
+| | |
+| --- | --- |
+| **Open item** | `10_…` §7.4, mirroring `09_…` §3.5. **Any quality requirement produced by this sub-task that `10_…` §7.1 does not enumerate defaults to `blocked until classified`** — never to unenforced, never to `warns`. §7.1's 23 rows are **the floor, not the boundary**. |
+| **Why it is filed rather than read as discharged** | `OI-S9-15` records that SUB-9's classification is one unreviewed pass by one model; **this sub-task's 23 rows are the same** — one pass, one model, reviewed zero times. A row wrongly assigned `automated` reads as enforced and is not, and the residual clause does not fire for a *mis*classified requirement, only a missing one. |
+| **Owner** | **SUB-10 (NEU-966)** for the residual; **SUB-11** at standards-conformance review and **SUB-12 (NEU-969)** at package reconciliation for the misclassification half |
+| **Revision trigger** | A quality requirement of this sub-task is found outside §7.1's table, or SUB-11/SUB-12 re-reads a row's mechanism assignment. |

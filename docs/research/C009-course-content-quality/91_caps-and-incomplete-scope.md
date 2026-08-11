@@ -595,3 +595,67 @@
 | **What it costs** | The both-dispositions clause is **desk-verified**: it states what changes under each resolution (`G-FIELDSET` widens by declaration, no citation is re-resolved, no gate is rewritten) without any of it having been run. **`CH-F5-1` is cited by id and is neither restated nor re-owned here.** |
 | **Owner** | **The ledger's owner (C005 schema)** for `CH-F5-1`; **SUB-1 (NEU-957)** for `CAP-S1-2` |
 | **Closes when** | **`CH-F5-1` resolves in either direction.** If it resolves against the wider set, nothing changes at all — the narrow record is already the produced shape (`03_…` §7.3). |
+
+### SUB-10 — NEU-966, citation drift detection and revalidation (OUT-10, + the OUT-9 self-classification of its own requirements)
+
+#### `CAP-S10-1` — **the staleness window is declared, not measured** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `10_…` §5.2 sets **`per_citation_staleness_window` = 90 days**. The figure is derived as a **band** — bounded below by the repeat traffic a shorter window generates against sources whose rate limits nobody has read, bounded above by the exposure a longer one accepts — and then **chosen inside that band with no measurement of any kind**. |
+| **The cause** | Validating a window requires observing drift; observing drift requires re-checking real citations over time; **there are no citations** (`CAP-S10-2`) and no source may be requested (`CAP-S3-1`). The measurement is not merely unfunded, it is currently unperformable. |
+| **What was refused** | **Presenting the number as calibrated.** `09_…` §6.3 used `90 days` as a declared placeholder that bound nothing; this document adopts the same figure **as a value** and explicitly declines to cite the agreement as corroboration — an illustration re-read as evidence is the laundering this package exists to prevent. |
+| **What it costs** | **The window's error is unbounded and unknown.** Too long and a drifted citation keeps its placement for up to 90 days; too short and the re-check rate approaches a poll against sources whose limits are unread. Neither cost is quantified. |
+| **Owner** | **The creator** |
+| **Closes when** | A drift-rate observation exists for **any** source over **any** verified citation. **The passage of time closes nothing.** |
+
+#### `CAP-S10-2` — **the corpus is empty; the detector has never run against a real citation** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | **This sub-task specifies drift detection for a citation corpus that does not exist.** Verified citations in this package: **zero**. Cluster citation coverage: **0 of 4**. Dated `V5`/`V6` verification observations — the baseline three of the five signals compare against: **zero**. Requests issued by any C009 sub-task, ever: **zero**. |
+| **The cause** | **All twelve sources carry access disposition `Restricted`** (`01_…` §3, restricted-by-default) and the sanctioned access hierarchy **halts at `V0`** (`03_…` §5). `CAP-2` was declined. SUB-3 produced no seed set, not because its procedure is incomplete but because the gate beneath it is shut. |
+| **What was refused** | **Assuming citations exist to drift.** No specimen in `traceability/10_…` is presented as a real citation; every identifier is an explicit placeholder (`C2`, incident `EXC-1`). **And treating outbound network capability as authority** — capability was confirmed against a neutral, non-source endpoint (`03_…` §4.3), which fires `CAP-S1-1`'s revision trigger (`OI-S3-2`) and **does not open the gate**. Only SUB-1's dated rights re-verification does. |
+| **What it costs** | Every rule in `10_…` is **specified and unexercised**. The signal set's miss rate, the window's fitness and the retention discipline under a real response are all unknown, and `OI-S10-1`, `OI-S10-2` and `CAP-S10-3` carry those three separately. |
+| **Owner** | **SUB-1 (NEU-957)** for the rights re-verification that would reopen the gate; **SUB-3 (NEU-959)** for the seed set thereafter |
+| **Closes when** | At least one citation is verified under `03_…` §5 and carries a dated verification observation a re-check could compare against. |
+
+#### `CAP-S10-3` — **the retention audit is vacuous, not demonstrated** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `10_…` §3.3 binds a whole-list API response with SUB-1's retention disposition and specifies that **only the per-citation dated verdict** is retained. **No whole-list response was ever received**, because none was requested and none could be. The audit therefore passes **vacuously**. |
+| **What was refused** | **Reporting the vacuous pass as a demonstrated one.** Recorded in the same shape SUB-3 §8 recorded its own, deliberately, so the two read alike to a cold reader. |
+| **What it costs** | **Nothing here establishes that the retention discipline holds under a real enumerating response** — in particular that a verdict cache does not become a list cache under implementation pressure, which is `G-ENUM-SCAN`'s exact failure with a cache's name on it. |
+| **Owner** | **The creator**, and whichever task first issues a re-check on a recorded API path |
+| **Closes when** | A re-check runs against a real whole-list response and the retention check is executed for real. **A future pass must not cite `10_…` §9 as precedent that it passes.** |
+
+#### `CAP-S10-4` — **no serve surface, no verdict cache, no scheduler exists** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `10_…` places the drift check at serve time as the package's single legitimate `both` — **on a learner-facing surface that has not been built** (`CAP-S9-6`; NEU-891 / NEU-892). The cached-verdict rule (§5.1), the queue-and-degrade rule (§5.6) and the learner-visible degradation (§6.5) are likewise specified against **machinery that does not exist**: no verdict cache, no scheduler, no monitor. |
+| **What is NOT designed here** | **Implementing any of it**, which is out of scope by charter and belongs to a later implementation charter. This sub-task states the requirements the machinery must satisfy and stops. |
+| **What it costs** | An implementation that computed the drift verdict **on the serve path** rather than reading a cached one would violate `09_…` §3.3's bar on executions in a learner's latency path — and **the desk runs in `traceability/10_…` would not catch it**, because they exercise the specification, not an implementation. |
+| **Owner** | **NEU-891 / NEU-892** for the surfaces; **a later implementation charter** for the cache and scheduler |
+| **Closes when** | A serve surface and a verdict cache exist and the placement is realised on them. |
+
+#### `CAP-S10-5` — **the drift simulations are desk-executed by the producing task** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The ten cases in `traceability/10_…` are **manual construction and inspection against constructed specimens**, in the `03_requirement-decision-mapping-gate.md` §4 shape. **No code was written, no store was touched, no fetch was performed**, and **every baseline observation the specimens compare against is itself constructed.** |
+| **What it is evidence of** | That **the specified policy has the property** — every enumerated change fires a signal, every unmatched change routes to `suspected drift`, and no case passes silently. **Not** that an implementation of it does, and **not** that a real source's real change would fire the signal the specimen's did. |
+| **The mitigation, and its limit** | Each case was made **mechanical** — a fixed specimen, a fixed baseline, and a pass condition written **before** the result — which bounds how much a self-check can flatter itself. **It does not eliminate it.** One pass, by the producing task, inherited from `CAP-S1-4` / `CAP-S2-5`. |
+| **Owner** | **SUB-11** at standards-conformance review; **SUB-12 (NEU-969)** at package reconciliation |
+| **Closes when** | The simulations are re-run by a party other than the producing task, against a real citation. |
+
+#### `CAP-S10-6` — **the interim field set is inherited; the wider disposition is desk-verified only** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | Three of the five drift signals (`D3` title, `D4` constraints, `D5` difficulty) compare against values the **interim stored set does not hold**. `10_…` §4 specifies both `CH-F5-1` dispositions and enforces the narrow one, taking the baseline from **SUB-3's dated verification observations**. **The wider disposition has never been exercised.** |
+| **What was refused** | **Storing any additional field to make detection easier**, under any branch. The observation-based baseline was chosen *because* those observations already exist outside the stored record, exactly as `03_…` §7.2 designed them. **This sub-task's need for a wider set is nil**, stated so it cannot be cited as pressure in either direction. |
+| **What it costs** | The both-dispositions clause is **desk-verified**: `10_…` §4 states that the signals, thresholds and degradation rule are unchanged under either resolution without any of it having been run — and, since zero dated observations exist (`CAP-S10-2`), **the interim baseline has never been read either**. |
+| **Owner** | **The ledger's owner (C005 schema)** for `CH-F5-1`; **SUB-1 (NEU-957)** for `CAP-S1-2` |
+| **Closes when** | **`CH-F5-1` resolves in either direction.** If it resolves against the wider set, nothing changes at all — the observation-based baseline is already the produced shape. |
