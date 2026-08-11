@@ -659,3 +659,38 @@
 | **What it costs** | The both-dispositions clause is **desk-verified**: `10_…` §4 states that the signals, thresholds and degradation rule are unchanged under either resolution without any of it having been run — and, since zero dated observations exist (`CAP-S10-2`), **the interim baseline has never been read either**. |
 | **Owner** | **The ledger's owner (C005 schema)** for `CH-F5-1`; **SUB-1 (NEU-957)** for `CAP-S1-2` |
 | **Closes when** | **`CH-F5-1` resolves in either direction.** If it resolves against the wider set, nothing changes at all — the observation-based baseline is already the produced shape. |
+
+### SUB-11 — NEU-967, the package end-to-end proof, four cluster exemplars and both acceptance scenarios (OUT-11, + the OUT-2 standards-conformance review and the OUT-9 self-classification of its own requirements)
+
+#### `CAP-S11-1` — **the seven observable elements could not be verified against the charter's own enumeration** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `11_…` §2.3 fixes the rubric's **seven observable elements** as `E1`–`E7`, derived from what the two acceptance scenarios demand, because the charter's requirement for "seven observable elements" is not enumerated in a form this sub-task could copy verbatim. **No gate is possible from this side**: a gate checking `E1`–`E7` would check this document's own list against itself. The `EQ-S11-22` row therefore carries the literal **`none — cap`**, per SUB-9 §3.4. |
+| **What was refused** | **Inventing a plausible seven and presenting them as quoted.** `11_…` §2.3 states in its own words that the list is fixed here and not quoted, and files `OI-S11-1` for the reconciliation. |
+| **What it costs** | If the two lists differ, **every rubric row in `11_…` §5 is mislabelled** — though each observation beneath the labels stands on its own, having been recorded independently. That bound is the reason this is a cap and not a defect. |
+| **Owner** | **SUB-12 (NEU-969)** at package reconciliation — the only party positioned to read the charter's enumeration against `11_…` §2.3 |
+| **Closes when** | A reader holding the charter's own enumeration compares the two lists. |
+
+#### `CAP-S11-2` — **the standards-conformance review is run by the party that authored the artifacts it reviews** · bounded, not closable here
+
+| | |
+| --- | --- |
+| **Cap** | `11_…` §4 is the standards-conformance review `CAP-S4-3` assigns to SUB-11 — and it is run **against four exemplars SUB-11 wrote, to satisfy the standards it then applied.** Of 16 standard × exemplar cells, **8 produced a verdict, and all 8 are the two mechanical layers of a single standard.** `CAP-S1-4`'s lineage applies in full: an author checking its own completeness shares the author's blind spots by construction. |
+| **The mitigation, and its limit** | The 8 ran checks are **mechanical** — field presence, node-id resolution, string non-equality modulo a negation token — and every one is **re-runnable by a third party** from `traceability/11_…` §2–§4 at a stated commit base. That bounds how much a self-check can flatter itself. **It does not eliminate it, and it is not independence.** |
+| **What was refused** | **Reporting "0 violations detected" as a pass.** `11_…` §4.5 states the zero alongside what produced it, in the same breath, rather than in a summary row. |
+| **What is NOT claimed** | That the four exemplars conform to SUB-4's standards. Only that the mechanical layers that ran, ran clean — and that **two of the standards' twelve checks are structurally unable to run at all** (`OI-S11-3`, `OI-S11-4`). |
+| **Owner** | **The correctness-reviewer role** for an independent re-run; **SUB-12 (NEU-969)** at package reconciliation |
+| **Closes when** | The review is re-run against these four exemplars by a party other than the producing task. |
+
+#### `CAP-S11-3` — **the end-to-end proof is desk-executed; nothing passed through any pipeline** · not closable here
+
+| | |
+| --- | --- |
+| **Cap** | The charter's word is *prove*, and **there is nothing to run.** `CAP-S9-1` and `OI-S9-16` record 59 gates specified and **zero built**; `CAP-S8-4` records that the workflow has never run on a real content unit; `CAP-S3-1` records **zero verified citations**; `CAP-S8-2` records `creator_review: "deferred-provisional"` on **179/179** nodes. **No exemplar was passed through a pipeline, because no pipeline exists**, and `11_…` never says one was. Every `blocks` / `quarantines` verdict in `11_…` §6 is a **specification** verdict. |
+| **What it IS evidence of** | That the package's specifications **compose**: a node record, a placement matrix, ten form templates, four correctness standards, a difficulty rule, an evidence-signal map, a workflow and a 59-gate scheme were pointed at four real nodes **together**, and the seams they produce are enumerable. Three seams were found this way — `OI-S11-2`, `OI-S11-3`, `OI-S11-4` — none of which was visible to any sub-task alone. |
+| **What it is NOT evidence of** | **That any of it works in use.** No gate ran, no unit moved, no creator confirmed anything, and no learner saw anything. |
+| **Evidence class, stated honestly** | The four exemplars and both scenario walks are **3 `[dogfooding]`, n = 1, producing task** — the same class and the same n as `dry-run/06_corpus-swap-verification.md` §6, and **never** class 4, 5, 6 or 7. The node-record reads, id resolutions, triple computations and reference scans are **2 `[code-evidence]`** and are genuinely exercised. **Class 7 `[future-real-user]` does not exist for this package and no claim here is class 7.** |
+| **What was refused** | **Manufacturing a pass.** The charter asks for a proof; the honest deliverable was a per-limb class-labelled account of which limbs are exercised, which are simulated and which are unreachable — and the **finding**, not a pass, is what `11_…` reports. |
+| **Owner** | **The creator** for the build; **a later implementation charter** for the gates and the workflow machinery |
+| **Closes when** | At least one gate is implemented and at least one real content unit is passed through it end to end. |
