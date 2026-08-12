@@ -124,7 +124,7 @@ outcome, where NEU-887 is correct as written.
 - **NEU-897** where a **specific artifact path** is cited as that task's deliverable, and
   **NEU-899** for the C005 traceability README.
 
-**Status: applied.** All four path-form citations now read *"NEU-887 OUT-4, published as
+**Disposition: applied.** All four path-form citations now read *"NEU-887 OUT-4, published as
 NEU-897's `…/01_evidence-taxonomy.md`"* or the equivalent — `README.md` §Binding upstream
 inputs, `00_` §5, `08_` §3.1, and `traceability/01_` §header. The remaining 31 mentions are
 program-level and were deliberately left as they are.
