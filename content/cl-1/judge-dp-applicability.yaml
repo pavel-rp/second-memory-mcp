@@ -1,0 +1,349 @@
+# The first authored content unit.
+#
+# Node:       cl-1.judge-dp-applicability — "Judge whether a problem admits a DP formulation"
+# Skill type: conceptual
+# Required forms for `conceptual` (02_content-and-exercise-forms.md §6.3):
+#   lesson R · example R · visualization R · reflection R · retrieval R · assessment R
+#   problem-reference O · solution O · proof O · test —
+# `problem-reference` is OPTIONAL for this type and is omitted deliberately: zero problem
+# citations are verified (all twelve sources are access-gated, 03_ §4.1), and 02_ §7 requires
+# refusing rather than inventing one.
+#
+# Workflow state: draft (08_ §3.1). NOT `authored`.
+# The author is an agent; 08_ §6 makes form review a separate role, and A4 bars a producing
+# party from promoting its own artifact. The state advances when a reviewer says so, not here.
+#
+# The two misconceptions below are NOT invented for this unit. 05_ §4.1 names them as CL-1's
+# conceptual obligation and states both failure directions.
+
+unit:
+  node_id: "cl-1.judge-dp-applicability"
+  workflow_state: "draft"
+  author_kind: "agent"
+  author_model: "claude-opus-5"
+  authored_at: "2026-08-12"
+  inherits_provisional: >-
+    This node's difficulty dimensions carry creator_review "deferred-provisional" (179/179
+    non-root nodes). No field here presents that upstream data as settled.
+
+forms:
+  # ---------------------------------------------------------------- 1. lesson
+  - form: lesson
+    node_id: "cl-1.judge-dp-applicability"
+    title: "Deciding whether dynamic programming applies at all"
+
+    applies_when: >-
+      The problem asks for an optimum or a count over a space of choices; a solution can be
+      expressed as a sequence of decisions; AND both properties hold together — an optimal
+      solution to the whole is composed of optimal solutions to subproblems (optimal
+      substructure), and the same subproblem is reached along more than one decision path
+      (overlapping subproblems).
+
+    does_not_apply_when: >-
+      Either property fails on its own, and the two failures look nothing alike.
+      (1) Substructure without overlap — the decomposition is real but every subproblem is
+      reached once. This is divide and conquer. A memo table here is not wrong, it is dead
+      weight: every lookup misses. The cost is wasted memory and a slower constant, and the
+      answer is still correct, which is why this failure survives review.
+      (2) Overlap without substructure — subproblems repeat, but the optimum of the whole is
+      not assembled from optima of the parts. Memoization makes a wrong answer arrive faster.
+      This failure does not announce itself: the program runs, returns a number, and the
+      number is wrong on inputs nobody tested.
+
+    prerequisite_recall:
+      - "cl-1.root.recognize-optimal-substructure"
+      - "cl-1.root.recognize-overlapping-subproblems"
+      # Read from prerequisites.roots (02_ §6.4). Not inferred from cluster span. A prerequisite
+      # edge is a structural claim, not a validated teaching order (R1, non-downgradable).
+
+    claim_citations: >-
+      NONE, and this is a refusal rather than an omission. This lesson asserts no empirical
+      claim about learners, retention, or instructional effect, so there is no non-obvious
+      claim to source. The two failure directions are consequences of the definitions of the
+      two properties, argued in the body from the definitions themselves. Any sentence here
+      that would have required evidence about learner behaviour was removed rather than
+      attributed (02_ §7.1).
+
+    worked_pointer: "example: Three problems, three verdicts"
+
+    body: >-
+      Most of what goes wrong with dynamic programming goes wrong before a single line of it
+      is written, in the moment someone decides it is the right tool. The decision is not
+      "does this problem look like DP problems I have seen". It is a check of two properties,
+      and it is the conjunction that matters.
+
+      The first property, optimal substructure, says the best answer to the whole problem is
+      built out of best answers to smaller versions of the same problem. The second,
+      overlapping subproblems, says those smaller versions are not all distinct — the same
+      one comes back along different routes through the decision space.
+
+      Each property alone is common. Together they are what makes a table worth building.
+      Overlap without substructure means the table is full of answers that cannot be
+      combined. Substructure without overlap means the table is full of answers you will
+      never look at twice.
+
+      The reason to check both explicitly, rather than pattern-matching on the shape of the
+      problem, is that the two failures have opposite symptoms. The one where overlap is
+      missing is loud and harmless — you write the memo, it never hits, the code is slower
+      than the plain recursion and just as correct. The one where substructure is missing is
+      quiet and fatal — the memo hits constantly, the program is fast, and it returns the
+      wrong number. Speed is not evidence. A DP that runs quickly on a problem without
+      optimal substructure is a fast wrong answer, and it will pass every test whose input is
+      small enough for the wrong composition to coincide with the right one.
+
+      So the judgement runs in one order, always. Ask whether an optimal solution decomposes
+      before asking whether subproblems repeat. The second question is worth answering only
+      if the first one is yes.
+
+  # --------------------------------------------------------------- 2. example
+  - form: example
+    node_id: "cl-1.judge-dp-applicability"
+    title: "Three problems, three verdicts"
+    scaffold_fade_level: "full derivation"
+
+    derivation_steps:
+      - step: 1
+        situation: >-
+          Count the distinct ways to tile a 2×n board with 1×2 dominoes.
+        substructure: >-
+          Yes. Fix what covers the leftmost column: either one vertical domino, leaving a 2×(n−1)
+          board, or two horizontal dominoes, leaving a 2×(n−2) board. The count for n is the sum
+          of the counts for the two remainders — the whole is assembled from the parts, and each
+          part is the same kind of question.
+        overlap: >-
+          Yes. Both branches descend toward the same widths. The count for 2×(n−2) is reached
+          from the n−1 branch and again directly from the n branch. The number of distinct
+          subproblems is n; the number of paths reaching them is exponential.
+        verdict: >-
+          DP applies. Both properties hold. This is the case the two roots were built for.
+      - step: 2
+        situation: >-
+          Sort an array by splitting it in half, sorting each half, and merging the results.
+        substructure: >-
+          Yes, and this is the trap. A sorted whole genuinely is assembled from sorted halves.
+          The decomposition is real and the recursion is correct.
+        overlap: >-
+          No. Each subarray in the recursion is a distinct contiguous range. The range [0,4)
+          is examined exactly once; nothing else in the recursion ever asks for it again. The
+          recursion tree has n log n work and zero repeated subproblems.
+        verdict: >-
+          DP does not apply. This is divide and conquer. Adding a memo keyed on the range
+          would be correct and useless: every lookup is a miss, and the table grows to the
+          size of the recursion tree while saving nothing.
+      - step: 3
+        situation: >-
+          Find the longest simple path between two vertices in an undirected graph containing
+          cycles. A simple path may not repeat a vertex.
+        substructure: >-
+          No. Take a longest simple path from s to t passing through v. Its prefix from s to v
+          need not be a longest simple path from s to v — a longer s-to-v path may consume a
+          vertex that the remainder of the route requires, so the longer prefix cannot be
+          extended to a longer whole. The parts do not compose.
+        overlap: >-
+          Yes, abundantly. The recursion revisits the same (vertex, visited-set) pairs
+          constantly. This is exactly what makes the failure dangerous: the overlap is real,
+          so memoization "works" in the sense that it hits.
+        verdict: >-
+          DP does not apply, and the answer will be wrong rather than slow. Memoizing on
+          vertex alone returns a fast, confident, incorrect number. Memoizing on
+          (vertex, visited-set) is correct but is exponential-state search, not DP — the state
+          is the whole history, which is the definition of having no useful subproblem
+          structure.
+
+    misconception_or_edge_case: >-
+      "Any problem with a recursive decomposition is a DP problem." The learner treats the
+      presence of a self-similar breakdown as sufficient, and never separately checks whether
+      subproblems recur.
+
+    separating_distractor_or_boundary_input: >-
+      Step 2's mergesort recursion on an array of n DISTINCT elements. A learner holding the
+      misconception memoizes the recursion keyed on the subarray range. Run it: the memo
+      records exactly as many entries as there are recursive calls and returns a hit on none
+      of them, because each contiguous range is generated once. Correct understanding predicts
+      zero hits before the run; the misconception predicts a speedup. The two disagree on this
+      input, and the disagreement is observable rather than argued.
+      (06_ §5.2 separation test: substituting the misconception's method — "decomposition
+      exists, therefore memoize" — into step 2 produces a different outcome from the expected
+      response, so the input separates.)
+
+    problem_ref: >-
+      OMITTED BY REFUSAL. This form's problem_ref is OPTIONAL. Zero problem-level citations
+      are verified — all twelve sources carry access disposition Restricted and zero requests
+      were issued (03_ §4.1) — so there is no citation to attach. The three situations above
+      are stated in this document's own words as generic algorithmic settings; none is a
+      reference to a hosted problem, none carries an identifier or address, and none may be
+      converted into one by a later pass.
+
+  # -------------------------------------------------------- 3. visualization
+  - form: visualization
+    node_id: "cl-1.judge-dp-applicability"
+    title: "The memo table's hit rate, watched live"
+
+    renders_state: >-
+      The memoization table as it fills during a recursive descent: one row per distinct
+      subproblem key, in insertion order, with each lookup marked HIT or MISS at the moment it
+      occurs, and a running hit-rate counter beside the table.
+
+    invariant_shown: >-
+      A problem with overlapping subproblems produces repeated lookups against a table whose
+      row count stays far below the call count; a problem without overlap produces a table
+      whose row count tracks the call count exactly and whose hit rate stays at zero. The
+      learner should see the hit-rate counter separate the two cases within the first few
+      levels of the descent — before the recursion finishes, and without being told which case
+      they are watching.
+
+    misconception_or_edge_case: >-
+      "Any problem with a recursive decomposition is a DP problem" — the same wrong model the
+      worked example separates, rendered here so that it fails visibly rather than
+      argumentatively.
+
+    separating_distractor_or_boundary_input: >-
+      Run the same visualization on step 1's tiling recursion and step 2's mergesort recursion
+      side by side, both at n = 12. The tiling table stops growing at 12 rows while the call
+      count passes 200, and the hit counter climbs. The mergesort table grows one row per call
+      and the hit counter never leaves zero. A learner holding the misconception expects both
+      panels to behave alike, because both recursions decompose; the panels visibly do not.
+
+    interaction: "step"
+
+  # ----------------------------------------------------------- 4. reflection
+  - form: reflection
+    node_id: "cl-1.judge-dp-applicability"
+
+    prompt: >-
+      You added memoization to a working recursive solution and it ran no faster — the table
+      filled up and never returned a hit. Before you touch the code again: what does that
+      result tell you about the problem itself?
+
+    target_articulation: >-
+      A correct articulation says the absence of hits is INFORMATION ABOUT THE PROBLEM, not a
+      symptom of a bug: the subproblems do not recur, so the overlapping-subproblems property
+      fails, so DP was never the applicable tool here. It names the situation as divide and
+      conquer, and it concludes that the memo should be removed rather than repaired. A
+      complete articulation adds that the recursion was correct all along — nothing about the
+      answer was ever wrong, only the choice of technique.
+
+    misconception_or_edge_case: >-
+      "A memo that does not hit means the key is wrong." The learner treats a zero hit rate as
+      an implementation defect and starts redesigning the cache key, because the wrong model —
+      that a decomposable problem is necessarily a DP problem — makes "this is not a DP
+      problem" unavailable as a conclusion.
+
+    separating_distractor_or_boundary_input: >-
+      Any response that proposes a fix to the caching — normalizing the key, hashing the
+      subarray contents instead of its bounds, widening the key to include depth, switching to
+      bottom-up — reveals the wrong model is held. The response that reveals it most cleanly is
+      "the key must not be canonical, because identical subarrays should collide." That answer
+      is internally coherent and entirely wrong, and a learner who gives it has not considered
+      that the problem might simply lack overlap.
+
+    remediation_hook: >-
+      Reformulate to the visualization above, run on the learner's own recursion, with the row
+      count and call count shown together (M09 requires a flagged leech to emit a reformulation
+      action, never a silent suspend). If the wrong model persists after the rendering, route
+      back to cl-1.root.recognize-overlapping-subproblems rather than re-presenting this node.
+
+  # ------------------------------------------------------------ 5. retrieval
+  - form: retrieval
+    node_id: "cl-1.judge-dp-applicability"
+
+    stem: >-
+      A recursive solution revisits the same subproblem thousands of times. You also observe
+      that an optimal solution to the whole cannot be assembled from optimal solutions to
+      those subproblems. Is dynamic programming applicable, and which property decides it?
+
+    expected_response: >-
+      Not applicable. Optimal substructure fails, and it is the property that decides — the
+      repetition of subproblems is irrelevant once composition fails. Memoizing would produce a
+      faster wrong answer rather than a slower right one. Produced from memory, without the
+      lesson in view.
+
+    misconception_or_edge_case: >-
+      "Recurring subproblems are enough." The learner treats heavy overlap as the signal that
+      DP applies, and reads the substructure failure as a detail to work around rather than as
+      the disqualifying condition.
+
+    separating_distractor_or_boundary_input: >-
+      The distractor is "Yes — with that much repetition, memoize it; the repeats are exactly
+      what DP exists to exploit." It is the misconception's own answer, stated in its own
+      terms, and it is the answer the wrong model produces on this stem. Correct understanding
+      and the misconception disagree here because the stem supplies overlap and withholds
+      substructure — the one configuration on which the two methods diverge. A stem that
+      supplied both properties, or neither, would not separate them.
+
+    hint_ladder:
+      - level: 1
+        hint: >-
+          Two properties have to hold together. The stem states one of them explicitly and
+          denies the other. Which one is denied?
+      - level: 2
+        hint: >-
+          If the best answer to the whole is not built from best answers to the parts, what is
+          a table of best answers to the parts good for?
+      - level: 3
+        hint: >-
+          Overlap decides how EXPENSIVE the computation is. Substructure decides whether the
+          computation is CORRECT. Which failure can a faster run not rescue?
+      # M03 requires a real hint-scaffolded second attempt before a failure is recorded.
+
+    spacing_eligible: true
+    # Records eligibility only. M04 counts a correct recall only in a session separated from
+    # the prior counted recall; the schedule is not this field's business.
+
+  # ----------------------------------------------------------- 6. assessment
+  - form: assessment
+    node_id: "cl-1.judge-dp-applicability"
+
+    task: >-
+      You are given three problem descriptions. For each, state whether dynamic programming
+      applies, and justify by naming which of the two properties holds and which fails. Where a
+      property fails, state what would go wrong if DP were applied anyway — specifically,
+      whether the result would be slow or wrong. One of the three has overlap without
+      substructure; one has substructure without overlap; one has both. You are not told which
+      is which and you may not answer by elimination — each verdict must stand on its own
+      justification.
+
+    rubric_payload:
+      criteria:
+        substructure_judged: "boolean — the learner states, per problem, whether an optimal solution composes from subproblem optima, and is correct"
+        overlap_judged: "boolean — the learner states, per problem, whether subproblems recur, and is correct"
+        joint_conclusion: "boolean — the applicability verdict follows from the conjunction, not from one property alone"
+        failure_direction_named: "boolean — for each failing problem, the learner names whether the consequence is a slow-but-correct result or a fast-but-wrong one"
+      justifying_spans: "one verbatim span of the learner's answer per credited criterion; a criterion without a span is uncredited (06_ §5.4)"
+      weights_note: "unset — see the blocking note below"
+
+    # ---- BLOCKING NOTE: this payload cannot be graded by the shipped mapper ----
+    # src/domain/algorithms/grade-mapper.ts types RubricCriteria as exactly four required
+    # booleans — correct_recurrence, correct_base_case, correct_iteration_order,
+    # complexity_stated — with weights summing to 5, and mapRubricToQuality reads no other key.
+    #
+    # Those four grade a DP SOLUTION. This node is judged BEFORE any recurrence exists, and a
+    # learner who correctly answers "not applicable" produces no recurrence, no base case and
+    # no iteration order to credit. Grading this task through the shipped criteria would score
+    # a fully correct conceptual judgement at 0, and supplying the four keys anyway — mapping
+    # "named the property" onto "correct_recurrence" — is exactly the laundering 02_ §7 forbids.
+    #
+    # The criteria above are therefore the ones this node actually needs, and they are NOT
+    # gradeable by the deterministic mapper as shipped. This is recorded, not worked around.
+    # See ../FINDINGS-first-authoring-run.md, finding 1.
+
+    misconception_or_edge_case: >-
+      Both named misconceptions, tested in one task because the task's discriminating power
+      comes from the contrast: "any problem with a recursive decomposition is a DP problem"
+      (which mis-verdicts the substructure-without-overlap item) and "recurring subproblems are
+      enough" (which mis-verdicts the overlap-without-substructure item).
+
+    separating_distractor_or_boundary_input: >-
+      The overlap-without-substructure item is the separating input. A learner holding either
+      misconception returns "DP applies" on it; correct understanding returns "does not apply,
+      and applying it yields a fast wrong answer." The two methods disagree on this item, and
+      the disagreement is not recoverable by partial credit elsewhere — which is why
+      failure_direction_named carries independent weight rather than being folded into the
+      verdict.
+
+    gate_relevance: >-
+      Contributes to unlocking cl-1.select-linear-dp-pattern, cl-1.derive-recurrence-routine,
+      and cl-1.recognize-dp-formulation-under-unfamiliar-surface — the three nodes carrying
+      this one in prerequisites.roots. Records relevance only. M10 evaluates the durability
+      gate server-side from persisted multi-observation history; no threshold is stated here
+      and a single success unlocks nothing.
