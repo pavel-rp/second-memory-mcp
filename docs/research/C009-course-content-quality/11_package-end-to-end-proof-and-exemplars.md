@@ -565,11 +565,26 @@ complexity_claim:       "fast enough in practice"
 | | |
 | --- | --- |
 | **Rows** | **23** |
-| **Mechanism** | `deterministic` **14** · `schema` **5** · `server-side` **1** · `automated` **1** · `AI` **2** |
+| **Mechanism** | `deterministic` **15** · `schema` **4** · `server-side` **1** · `automated` **1** · `AI` **2** — *corrected; see the note below* |
 | **Blocking behaviour** | `blocks` **19** · `warns` **1** · `quarantines` **3** |
 | **Placement** | authoring-time **23** · serve-time **0** · both **0** |
 | **`AI`-judgment-only rows** | **2** — `EQ-S11-21`, `EQ-S11-22`. **Both carry a §3.4 enforcement-gap entry** (§10.3). |
 | **Rows with `none — cap`** | **1** — `EQ-S11-22` |
+
+> **Correction, and a bounded suspension of the append-only convention.** This roll-up published
+> `deterministic` **14** · `schema` **5**. A literal recount of §10.1's 23 rows returns **15** and
+> **4**; no §10.1 row supports the published split. The discrepancy was found by SUB-13, filed as
+> `OI-S13-1`, confirmed by `92_…` §9.2, confirmed again by `94_…` §A — an independent parse by a
+> model that authored nothing here — and confirmed a fourth time by `95_…` §5. **Four independent
+> counts agree, and the row-level partition is published at `94_…` §A for anyone to check.**
+>
+> Every prior party correctly declined to edit this table, because it belongs to SUB-11 and the
+> package's convention is that no sub-task rewrites another's entries. That refusal is right as a
+> default and wrong as a terminal state: a register whose stated purpose is to be quoted was
+> knowingly left wrong for as long as it took someone to have standing. **The convention is
+> suspended for this one cell**, on the creator's instruction, exactly as `93_…` suspended it for
+> that pass — bounded to this correction, recorded here and in the commit message, and **resumed
+> immediately afterwards.** `OI-S13-1` is discharged by this edit, not by a further routing.
 
 **Zero serve-time placements**, and that is correct rather than an omission: no learner-facing serve surface exists (`CAP-S9-6`; NEU-891 / NEU-892), and every requirement here is about how an exemplar is authored and reviewed. **Placing a gate on a surface that does not exist would be a placement this sub-task cannot honour.**
 
