@@ -276,7 +276,7 @@ place this row in a gate component's *read* set (clause 2). Status: `existing`.
 | Writes | `CMP-S4-9`, issued through `CMP-S4-7`: created at run start, `status` and `endTime` mutated, terminal on completion. |
 | Consistency | A run's terminal transition commits with the last state change it covers. A run marked complete whose child `SC-S3-6` rows are still in progress is an inconsistent state. |
 | Freshness | Read-your-writes within the run. Nothing outside the run requires sub-second visibility. |
-| Concurrency | One run has one writer in practice — the request path serving it. Two concurrent terminal transitions are last-writer-wins and benign (both write the same terminal status). |
+| Concurrency | One run has one writer in practice — the request path serving it. Two concurrent terminal transitions are last-writer-wins and benign (both write the same terminal status). **The one-active-learning-session rule is not database-enforced** — `F-S6-3` records that the check and the insert run on separate round trips in different transactions, with no partial unique index on `status = 'active'` behind them. Assigning this row a single authority is what makes that repairable: a second writer would make it unrepairable. |
 | Conflict handling | No merge. Status is a small state machine; an illegal transition is rejected, not reconciled. |
 | Recovery | Durable. A crash mid-run leaves a non-terminal run; there is **no reaper** in the inventory, so such runs persist until a later write closes them. |
 | Migration path | None required. |
@@ -989,6 +989,14 @@ component is the *authority* over the imported copy is SUB-13's to decide. It is
 durable multi-session composite; a value recomputed at read time could not demonstrate durability across
 sessions, only assert it.
 
+**`F-S4-6` warned that this row would need "a component that has to be created rather than located".**
+It does not. What has to be created is the **store**, not the component: clause 5 assigns the row to
+`CMP-S4-9`, which exists, and the new table it will hold is a store-topology question (`OI-S13-1`,
+SUB-10). That is worth stating plainly, because the finding anticipated a harder case than the rule
+actually produced — and because the same is true of every other `required-by-upstream` row in §8.6.
+`F-S4-6`'s substantive point stands untouched: `JNY-B1`'s BM-8 half still has nothing to read, and
+naming an authority does not create the signal.
+
 | Attribute | Value |
 | --- | --- |
 | Reads | NEU-888's durability gate; `CMP-S4-7` when deciding whether a learner has passed a mastery gate. |
@@ -1373,7 +1381,26 @@ originate or execute writes without holding authority over them. **That separati
 whole chapter exists to establish**, and `CMP-S4-18` is its cleanest illustration: it *holds* `SC-S3-33`
 and has authority over nothing, exactly as `03_…md` §4.3 specifies.
 
-### 11.1 Two rows in one table, two different authorities
+### 11.1 An independent cross-check of clause 5's count
+
+`06_…md` §3.3 census the `Learner-scoped` column at this same cutoff and reports **19 `no` / 18
+`question — open` / 8 `yes` = 45**, giving **26 in-domain** categories (`yes` + `question — open`), and
+hands SUB-13 the rule that "`question — open` is **in domain** — so the 18 open rows are questions to
+answer, never exemptions". That census was taken independently of this matrix and it reconciles exactly:
+
+| Step | Count |
+| --- | --- |
+| In-domain categories per `06_…md` §3.3 (`yes` + `question — open`) | **26** |
+| less: in-domain rows taken by clause 1 first (`SC-S3-19`, `SC-S3-20`, `SC-S3-28`, `SC-S3-29`, `SC-S3-30`) | **−5** |
+| less: in-domain row taken by clause 4 first (`SC-S3-45`) | **−1** |
+| less: in-domain rows taken by clause 2 first | **−0** — all three clause-2 rows are `Learner-scoped: no` |
+| **= rows reaching clause 5** | **20** |
+
+Twenty is exactly §11's clause-5 count, derived from a completely different direction. This is the
+strongest single piece of evidence that the rule was applied consistently across all 45 rows, and it is
+published so SUB-14 can re-run it rather than take the assignment on trust.
+
+### 11.2 Two rows in one table, two different authorities
 
 Worth naming so it is not read as an inconsistency. `SC-S3-2` (chunk content, `question — open` → clause
 5 → `CMP-S4-9`) and `SC-S3-4` (content-audit verdict, `no` → clause 6 → `CMP-S4-7`) both live in
@@ -1382,7 +1409,7 @@ co-located categories can and do diverge. `04_…md` split that table into three
 this reason — a one-row-per-table inventory would have produced a row needing two or three authorities,
 which `OUT-3`'s exactly-one audit forbids.
 
-### 11.2 Categories that could not take a single authority
+### 11.3 Categories that could not take a single authority
 
 **None.** All 45 took one. Two rows required a tie-break to get there, and both are disclosed at the row
 and routed to SUB-6 as `F-S13-1` and `F-S13-2` respectively. **No category was split, shared, or left
@@ -1438,6 +1465,14 @@ assignments rather than substituting for them.
   duplicated.
 - **`CAP-S3-1`** carries `SC-S3-32`'s unresolved field set under `CH-F5-1`; this chapter does not widen
   the field set and does not re-file the cap.
+- **`F-S4-4`** — no disjointness demonstration is owed. The finding records that a **hybrid** selection
+  would give three walked hops a second candidate authority, and that a hybrid "owes a demonstration that
+  the categories the web tier writes are disjoint from those the MCP core writes". SUB-6 selected `M-A`,
+  not a hybrid, and `07_…md` resolves `BND-S4-16` as **"the write edge does not exist"**. §11's
+  distribution is the constructive form of the same statement: the web tier (`CMP-S4-3`) holds authority
+  over **zero** categories, so there is no set to demonstrate disjointness *from*. The finding is
+  discharged by the model selection, not by this matrix — recorded here only because this is where a
+  reader would look for the disjointness demonstration and should learn that none is owed.
 - **`OI-S6-1`** (the store reversal, which reverses by only 2/500 and is fragile) is SUB-6's, evaluated
   by SUB-10. This matrix is written against the selected model `M-A` as it stands. Were the reversal to
   land, §11's distribution shows the blast radius precisely: `07_…md` §6.3 would gain one entry and
