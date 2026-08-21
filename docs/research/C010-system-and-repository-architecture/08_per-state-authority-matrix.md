@@ -778,4 +778,274 @@ reads and hands the domain core values to compute over.
 | Migration path | None. Materialising a rollup would create a new durable category — the most likely future candidate in §8.5, and the one whose introduction would most need its own freshness bound. |
 | Observability | Computation cost per request; not instrumented. |
 
+### 8.6 Required by an upstream package — no store today
+
+Every row in this section is a thing this system **does not hold today**. Two consequences follow, and
+both are deliberate:
+
+- **The *migration path* attribute is the load-bearing one.** For an `existing` row it usually reads
+  "none required"; here it is the whole content of the assignment. What the row records is where the
+  category has to arrive and under whose authority — not how the DDL gets written, which is SUB-10's.
+- **Several cells read "to be defined" in `04_…md`.** Where a cell's value is genuinely not determined by
+  any merged input, this matrix says so and names what would determine it. It does not invent a value.
+  Per clause 1's own proviso, a `to be defined` volatility cell is **not** `derived-on-read` and does not
+  match clause 1 — SUB-6 states this explicitly in its `SC-S3-37` demonstration.
+
+#### `SC-S3-31` — Corpus-neutral assessment-evidence record
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: question — open`. Status: `required-by-upstream`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-7` when assessing and when computing progression; NEU-888's mastery model downstream. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`, on each assessment event. |
+| Consistency | **Identity is `node_id` + `skill_type`.** The `citation` is an optional, replaceable, non-key attribute — a record whose citation changes is the same record, and swapping the citation must not create a second row or invalidate the evidence. This is the property the corpus-neutrality requirement exists to protect. |
+| Freshness | Read-your-writes for progression computation. |
+| Concurrency | Two assessments of the same `node_id` + `skill_type` must serialize if the record is an aggregate; append-per-event has no race. Which of the two shapes applies is not determined by any merged input — SUB-10 decides it with the store. |
+| Conflict handling | No merge on the key. A citation replacement overwrites a non-key attribute and is not a conflict. |
+| Recovery | Durable once stored. Reconstructible only from `SC-S3-9` if the assessment events are themselves retained. |
+| Migration path | New category. Arrives in the `public` schema under `CMP-S4-9`, written through `CMP-S4-7` — the same path every learner-scoped record already takes, so no new write edge is introduced. Store shape is **`OI-S13-1`** (SUB-10). |
+| Observability | Write volume per node and skill type; nothing exists yet. |
+
+#### `SC-S3-32` — Problem-citation record
+
+**Authority: `CMP-S4-7`**, written to the store by `CMP-S4-9`; originated by `CMP-S4-13`.
+**Clause 6** — `Learner-scoped: no`, and §6's lookup does not place it in a gate read set. Status: `required-by-upstream`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-13` at authoring; `CMP-S4-17` when checking a citation for drift; `CMP-S4-16` when serving a unit that cites it. |
+| Writes | `CMP-S4-7`, issued to `CMP-S4-9`, on admission of a cited problem. |
+| Consistency | **The stored field set is `stable_id` + `canonical_url` only.** `DR-C09-01` (NEU-890) fixes this interim set and routes `title`, numeric `constraints`, difficulty signal and curriculum placement to ledger challenge **`CH-F5-1`**. This matrix does not widen the set; `CAP-S3-1` already carries the unresolved fields with a named owner, and is cited here rather than duplicated. |
+| Freshness | The `canonical_url` is a pointer to an external site (`CMP-S4-12`). Its *freshness* is not this record's property — it is `SC-S3-34`'s verdict about it. That separation is why the two are different categories. |
+| Concurrency | Keyed on `stable_id`; a re-admission of the same citation is an upsert on that key, not a second row. |
+| Conflict handling | No merge; the two fields are replaced together. |
+| Recovery | Durable once stored; recoverable by re-import from the authoring source. |
+| Migration path | New category, `public` schema, under `CMP-S4-7`'s authority via `CMP-S4-9`. **The field set may not be widened on the way** — widening requires citing `CH-F5-1` and carrying the gap as a cap, which is what `CAP-S3-1` already does. |
+| Observability | Citation count and admission failures; nothing exists yet. |
+
+#### `SC-S3-33` — Cached citation-drift verdict
+
+**Authority: `CMP-S4-17`** (citation-drift verdict producer). Held by `CMP-S4-18` (the drift-verdict cache).
+**Clause 2 matched, resolved by tie-break (c)** — see the note below. Status: `required-by-upstream`.
+`Derived: yes`, from `SC-S3-34`. `Learner-scoped: no`. **One of the three rows that close `OI-S2-2`.**
+
+**Why this row needed a tie-break.** §6's lookup places `SC-S3-33` in a gate path — `05_…md` §7.3's
+four-row disposition reads the cache on every content serve — so clause 2 matches. But clause 2's named
+authority is "the MCP core, caller-side per `BND-S4-4`", and on the request path that is `CMP-S4-7`.
+**That authority is unexercisable.** `03_…md` §4.3 specifies the cache as internal, keyed-read-only, with
+no egress, computing nothing, and states that it "never derives, refreshes or ages" a verdict; `05_…md`
+`FL-S4-13` names **`CMP-S4-17` the cache's only writer**. A rule output that requires `CMP-S4-7` to write
+a store two merged predecessors say only `CMP-S4-17` writes is not an assignment this chapter may make.
+
+Two components are therefore plausible and the tie-breaks apply. Tie-break (b) — "out of domain but read
+on a gate path → core wins" — is read **narrowly**, as adjudicating core-versus-web candidacy: it is the
+companion to clause 2's "the web tier never holds gate authority", and `CMP-S4-17` is neither core nor
+web but a `Z-CONT` producer. On that reading (b) does not select, and **tie-break (c) applies: the
+component that produces the row wins → `CMP-S4-17`.** The narrow reading is disclosed rather than
+assumed, and both the under-determination and the reading are routed to SUB-6 as **`F-S13-1`**. Exactly
+one authority is recorded either way; SUB-14 or SUB-16 may overturn the reading without the matrix ever
+having held two.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-16` (content serve path) — **one keyed read per unit**, per `05_…md` §7.3 hop 3. `CMP-S4-18` is authoritative for the stored verdict and its date; `CMP-S4-16` is authoritative for what to do about it. No other reader. |
+| Writes | `CMP-S4-17`, out of band, on the producer's own schedule. Never on the serve path. |
+| Consistency | A cached entry carries a verdict **and its date**, together. A verdict without a date cannot be aged and is therefore useless to the disposition; the pair is the unit of write. |
+| Freshness | **The defining attribute of this row.** An entry is fresh only within `per_citation_staleness_window` — declared at **90 days**, not measured (`03_…md` §4.2). Beyond it the entry is *stale*, which is a recorded state, never a partial verdict. |
+| Concurrency | Single writer by specification, so no write race exists. Reads are keyed and never block. |
+| Conflict handling | None possible — one writer, keyed replacement. |
+| Recovery | A lost cache degrades to *verdict absent*, which the disposition already handles by quarantining. **Loss is safe by construction**, which is the strongest argument for the cache being separate from `SC-S3-34`. |
+| Migration path | New category. Arrives inside the drift component's own deployment, written by `CMP-S4-17` and read by `CMP-S4-16` across `BND-S4-11` — a boundary `05_…md` classifies as **neither trust nor process**. No new write edge crosses into the core. |
+| **Quarantine-on-stale** | Per `05_…md` §7.3 and `03_…md` §4.4: verdict `blocked` → quarantine; residual `quarantined` → quarantine; verdict **stale** → quarantine; verdict **absent** → quarantine. **All four: the learner's request still completes.** Because `per_source_revalidation_budget` is **0 for all twelve sources**, stale-or-absent is the state every citation would be in — so `CMP-S4-16` must treat quarantine as its **ordinary** operating mode, not its exception. A serve path that only works when a fresh verdict exists is mis-built. |
+| Observability | Cache hit/miss and stale-fraction are the operationally meaningful signals. At budget 0 the stale fraction is expected to be ~100%, so an alert on it would fire permanently and must not be configured naively. |
+
+#### `SC-S3-34` — Citation-drift verdict store
+
+**Authority: `CMP-S4-17`**. **Clause 6 matched, resolved by tie-break (c)** — see `F-S13-1`.
+Status: `required-by-upstream`. `Learner-scoped: no`. **One of the three rows that close `OI-S2-2`.**
+
+Clause 2 does **not** match: §6's lookup places `SC-S3-33`, not `SC-S3-34`, in a gate path — the serve
+path reads the cache, never the producer's store. Clauses 3, 4 and 5 do not match either, so clause 6's
+default names `CMP-S4-7`. That collides with `03_…md` §4.2, which specifies the store as written **only**
+by the producer. Here tie-break (b) does not even arise (the row is not read on a gate path), so
+**tie-break (c) applies cleanly: the producer wins → `CMP-S4-17`.**
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-17` itself, to decide what to re-check. Nothing else in this system reads it — the serve path reads `SC-S3-33`. |
+| Writes | `CMP-S4-17`, exclusively. This component is **the system's only component with egress to a party outside the operator's control**, which is precisely why its write set is drawn this tightly. |
+| Consistency | One tuple per check: `{ citation_id, checked_at, path, verdict, signals_fired, window_admitted_under, budget_admitted_under }`. The tuple commits whole. Recording which window and which budget a verdict was admitted under is what makes a later verdict comparable to an earlier one. |
+| Freshness | Governed by `per_citation_staleness_window` (**90 days, declared not measured**) and `per_source_revalidation_budget` (**0 for all twelve sources**). At budget 0 no re-check is admitted, so in steady state the store does not refresh — that is the specified behaviour, not a defect. |
+| Concurrency | **Exactly one request per citation**; a corpus walk is prohibited. That prohibition is a property of the producer's egress discipline and constrains its writes as much as its reads. |
+| Conflict handling | None possible — single writer, keyed on `citation_id`. |
+| Recovery | A re-check that cannot complete produces **`verdict stale` — a recorded state, never a partial verdict**. There is no half-written verdict to recover from. |
+| Migration path | New category, inside the drift component's own deployment. It must **not** be co-located under an authority that would give any other component a write path to it, because that would put egress-derived state under a writer with no egress discipline. |
+| Observability | Checks attempted, checks admitted, and admissions refused by budget. At budget 0 the third is expected to be every check. |
+
+#### `SC-S3-35` — Gate-verdict record
+
+**Authority: `CMP-S4-14`** (quality-gate battery), written through `CMP-S4-15` (the authoring-time gate
+runner). **Clause 2** — `CMP-S4-14`'s "Demanded by" names this row; authoring path, so `BND-S4-4`'s
+authoring half applies. Status: `required-by-upstream`. **One of the three rows that close `OI-S2-2`.**
+
+Clause 2's answer is exercisable here, and no tie-break is needed. `03_…md` §3.5 specifies that the gate
+runner writes **one gate verdict per executed unit, on that unit's review record**, and raises the
+authority question as `OI-S2-2`. The answer is that `CMP-S4-15` *executes* the write inside its terminable
+isolate; `CMP-S4-14` is the battery that owns `BND-S4-9` and the calling half of `BND-S4-4`, and is the
+authority. This also resolves `FL-S4-16`'s "Undetermined" authority column and discharges **`F-S4-3`**.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-14` on re-run and when deciding blocking behaviour; `CMP-S4-13` before admitting content; authoring review. |
+| Writes | `CMP-S4-14`, issued through `CMP-S4-15`, **inside a terminable isolate under a host-enforced wall-clock bound**. One verdict per executed unit. |
+| Consistency | Each verdict names its **gate id** and its **blocking behaviour**, and identifies the content version (`SC-S3-2`'s `contentVersion`) it was computed against. A verdict that cannot name its gate or its input is not admissible evidence for an admission decision. |
+| Freshness | Valid only for the content version it names. A content edit invalidates every verdict against the prior version. |
+| Concurrency | One runner per unit per run. A unit terminated by the wall-clock bound produces **no verdict**, not a partial one — the isolate's terminability is what makes that guarantee available. |
+| Conflict handling | No merge. A re-run supersedes; whether prior verdicts are retained is a store-shape question (**`OI-S13-1`**, SUB-10). |
+| Recovery | A terminated or crashed run leaves the unit **without** a verdict, which the quarantine path (`SC-S3-36`) already handles. Absence is a modelled state, so there is nothing to repair. |
+| Migration path | New category. Arrives on the authoring side, written by `CMP-S4-14` through `CMP-S4-15` across `BND-S4-15` — the boundary `CMP-S4-13` owns, and one that is already a process boundary. Tier-2 remains post-commit. |
+| Observability | Verdicts per gate id, and terminations by wall-clock bound. The termination count is the signal that distinguishes "gate passed" from "gate never finished", and losing it would make a silently-degrading gate battery look healthy. |
+
+#### `SC-S3-36` — Quarantine record
+
+**Authority: `CMP-S4-14`**. **Clause 2** — named in `CMP-S4-14`'s "Demanded by"; authoring path.
+Status: `required-by-upstream`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-14` when a requirement is re-evaluated; `CMP-S4-16` indirectly, in that a quarantined requirement is not served as decided; operators and owners. |
+| Writes | `CMP-S4-14`. Opened when a gate quarantines, closed by its stated exit condition. |
+| Consistency | **All three slots — `reason`, `owner`, `exit_condition` — commit together.** A quarantine with no named owner or no exit condition is a permanent quarantine wearing a temporary label, and the three-slot shape exists specifically to make that unrepresentable. |
+| Freshness | Read-your-writes on the authoring path. |
+| Concurrency | One quarantine per requirement; re-quarantining an open record updates it rather than opening a second. |
+| Conflict handling | No merge. A close and a re-open must serialize, or the exit condition of one is lost. |
+| Recovery | Durable once stored. An open quarantine is the safe state, so loss-toward-closed is the dangerous direction and the store must not silently drop open records. |
+| Migration path | New category, authoring side, under `CMP-S4-14`. Note the interaction with `SC-S3-33`: at revalidation budget 0 the drift path quarantines *serve-side* on every citation, and that is `CMP-S4-16`'s disposition, **not** a `SC-S3-36` record. The two quarantine notions must not be fused — one is an authoring decision with an owner, the other is a serve-time disposition with none. |
+| Observability | Open quarantines by owner and by age. Age is the only signal that distinguishes a working exit condition from a decorative one. |
+
+#### `SC-S3-37` — DP-map node and prerequisite-edge records
+
+**Authority: `CMP-S4-7`**. Imported by `CMP-S4-13`. **Clause 6** — this is SUB-6's own second worked
+demonstration (`07_…md` §6.2). Status: `required-by-upstream`. **This row closes `OI-S4-1`.**
+
+**The clause walk, reproduced because SUB-6 published it.** Clause 1 does not match — the volatility cell
+reads `to be defined`, and `to be defined` is not `derived-on-read`. Clause 2 does not match at this
+cutoff: §6's lookup does not place the graph in `CMP-S4-14`'s or `CMP-S4-15`'s read set. Clause 3 cannot
+match (§6.3 is empty). Clause 4 does not match. Clause 5 does not match — `Learner-scoped` is an explicit
+**`no`**, the graph being learner-independent by construction, and only an explicit `no` leaves the
+domain. **Clause 6 matches: `CMP-S4-7`.** SUB-6 also records that this answer is robust to `OI-S4-1`:
+if the import lands and a gate reads the graph, clause 2 fires instead of clause 6 and the answer is
+unchanged.
+
+**The re-import, attributed.** `05_…md` §8.1 places the graph as **imported by `CMP-S4-13`**, read by
+`CMP-S4-13` and `CMP-S4-16`, with **one in-system copy held** — and states explicitly that which
+component is the *authority* over the imported copy is SUB-13's to decide. It is decided here:
+
+> **A re-import is `CMP-S4-7`'s write, executed through `CMP-S4-13`.** `CMP-S4-13` is the importer and
+> the only component that may originate an admission (`BND-S4-15`), but the authority over the in-system
+> copy is `CMP-S4-7`. **No other component may refresh the copy**, and a refresh performed by anything
+> else is a second writer by another name — which is exactly the failure `OI-S4-1` was opened to prevent.
+> Upstream NEU-889 remains authoritative for the graph *itself*; this row is about the imported copy only
+> (`FL-S4-21`).
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-13` at import and re-import; `CMP-S4-16` when placing content against the progression. |
+| Writes | `CMP-S4-7`, executed through `CMP-S4-13`, at import **and at every re-import**. Exactly one in-system copy exists. |
+| Consistency | Nodes and their edge set commit as one unit — the edge set must be **acyclic** over the nodes it references, and a partially-applied import that leaves a dangling edge or a cycle is not a valid state. Node attributes (`progression_stage`, `prerequisite_depth`, `difficulty`, `status`, `creator_review`) commit with their node. |
+| Freshness | The in-system copy may lag NEU-889's artifact. **The copy's version must be identifiable**, or nothing downstream can tell which graph a progression decision was made against. |
+| Concurrency | One import at a time. Two concurrent imports of different upstream versions would interleave into a graph that never existed upstream — the whole-unit commit above is what prevents it. |
+| Conflict handling | No merge. A re-import **replaces** the copy; it does not reconcile it node-by-node against the previous version. |
+| Recovery | Recoverable by re-import, since the upstream artifact is committed and gate-verified in NEU-889's package. This is the only `required-by-upstream` row with a trustworthy external source of truth. |
+| Migration path | New category. Arrives as an imported copy under `CMP-S4-7`, written through `CMP-S4-13`. The import mechanism is SUB-10's and SUB-8's; the **authority and the re-import attribution are settled here** and are not theirs to revisit. |
+| Observability | The copy's upstream version identifier, and the timestamp of the last import. Without the version identifier the freshness requirement above is unenforceable. |
+
+#### `SC-S3-38` — Per-learner per-node progression
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: yes`. Status: `required-by-upstream`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-7` when selecting the next node; NEU-888's mastery model; `CMP-S4-16` when placing content. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`, as assessment evidence accumulates. |
+| Consistency | A learner's position must reference nodes that exist in the current `SC-S3-37` copy. A re-import that removes a node leaves progression rows pointing at nothing — the interaction is real and is **`OI-S13-1`**'s to resolve with the store shape. |
+| Freshness | Read-your-writes. A progression read that misses the learner's last completed node re-serves work already done. |
+| Concurrency | Two concurrent completions against one node must serialize, or a progression advance is lost — the same running-aggregate hazard as `SC-S3-3`. |
+| Conflict handling | No merge; progression is order-dependent. |
+| Recovery | Durable. Reconstructible from `SC-S3-31` if the evidence records are retained, which is the argument for retaining them. |
+| Migration path | New category, `public` schema, under `CMP-S4-9` via `CMP-S4-7` — the standard learner-scoped path, no new write edge. |
+| Observability | Advance rate per learner; nothing exists yet. |
+
+#### `SC-S3-39` — Per-learner mastery-gate state
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: yes`. Status: `required-by-upstream`.
+
+`04_…md` records this as **persisted, not recomputed per read** — that is what distinguishes it from
+`SC-S3-28`, and it is why it takes clause 5 rather than clause 1. NEU-888's durability gate reads a
+durable multi-session composite; a value recomputed at read time could not demonstrate durability across
+sessions, only assert it.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | NEU-888's durability gate; `CMP-S4-7` when deciding whether a learner has passed a mastery gate. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`, as the composite advances. |
+| Consistency | The composite must be updated in the same unit of work as the attempt that advances it, or a mastery claim exists that no recorded attempt supports. |
+| Freshness | Read-your-writes across learning runs. Cross-run durability is the property being measured, so a per-run cache would defeat the purpose. |
+| Concurrency | Serialized per learner per gate. |
+| Conflict handling | No merge; order-dependent, like `SC-S3-3` and `SC-S3-38`. |
+| Recovery | Durable. **Partly derived** (a composite over recorded history) but **persisted**, so it is reconstructible from `SC-S3-9` and `SC-S3-31` only if those are retained across the full window the gate spans. |
+| Migration path | New category, `public` schema, standard learner-scoped path. **It must be persisted, not materialised as a view over `SC-S3-28`** — the durability property is exactly what a read-time derivation cannot supply. |
+| Observability | Gate pass/fail rates over time; nothing exists yet. |
+
+#### `SC-S3-40` — Measurement-contract register
+
+**Authority: `CMP-S4-7`**. **Clause 6** — `Learner-scoped: no`; not in a gate read set. Status: `required-by-upstream`. Volatility `durable` **by requirement**.
+
+`05_…md` §8.2 places this precisely: the register is read **in place** by `CMP-S4-20` and by no other
+component, **no copy is held in this system**, and only the contract *version identifier* crosses
+(`FL-S4-22`). The authority recorded here is therefore an authority over something this system does not
+currently hold — which is exactly what `required-by-upstream` means, and why the migration-path cell
+below is the substantive one.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-20` (operational-log derived-extract producer), in place, and no other component. `05_…md` records `CMP-S4-20` as `[unconfirmed]` — nothing implements it today. |
+| Writes | `CMP-S4-7`, if and when a copy is ever held. **Today there is no in-system write**, because there is no in-system copy. |
+| Consistency | Contracts are `MC-<n> v<major>.<minor>`, **frozen at a version, superseded by a new version, and never edited in place**. Prior versions are retained. Any store that permits an in-place edit of a frozen contract is the wrong store for this category. |
+| Freshness | A consumer must be able to name the exact contract version a measurement was taken under. Freshness of the *register* is irrelevant; identifiability of the *version* is everything. |
+| Concurrency | Version publication is serial by construction — a new version is a new row, never an update. |
+| Conflict handling | None possible under append-and-supersede. |
+| Recovery | The authoritative artifact is committed in NEU-887's package; any in-system copy is recoverable from it. |
+| Migration path | **The decision is to not hold a copy.** `05_…md` §8.2 establishes that only the version identifier crosses; holding a copy would create a second source of truth for a register whose entire value is that it is frozen upstream. If a future requirement forces a copy, it arrives under `CMP-S4-7` and inherits the never-edit-in-place invariant — and that would be a new decision, not an application of this row. |
+| Observability | Which contract version each measurement cites. Nothing exists yet, because `CMP-S4-20` does not exist yet. |
+
+#### `SC-S3-41` — Operational-log derived extract (`PLA-*`)
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-20`.
+**Clause 5** — `Learner-scoped: question — open`. Status: `required-by-upstream`. `Derived: yes`, from
+`SC-S3-16` and `SC-S3-17`.
+
+This row is the constructive counterpart to `CAP-S4-1`. `05_…md` §9.2 records that **no component can be
+named the deletion owner for `SC-S3-16` or `SC-S3-17`, and that the obstruction is structural** — the
+tables have no principal field, so there is nobody to delete for. `CAP-S4-1` **stays open**; this chapter
+does not close it and could not. What `SC-S3-41` does is different: the extract is specified to carry
+**its own retention window and its own named deletion owner**, so a log-derived claim can be made without
+inheriting the gap. `05_…md` names `CMP-S4-20` as the component this eventually attaches to.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Whoever makes a log-derived claim. `04_…md` is explicit that **any** log-derived claim must go through this extract rather than the raw tables. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-20`. Derived under an allowlist, retained for a stated window, **deleted by a named owner**. |
+| Consistency | The extract is **minimized, allowlisted and payload-free**. A field not on the allowlist must be unrepresentable in the extract, not merely absent from it — otherwise the payload-free property is a convention rather than a guarantee, and the whole point is that it is a guarantee. |
+| Freshness | Derived on a schedule; the window it covers must be stated with the extract. Nothing reads it synchronously. |
+| Concurrency | Single producer. Overlapping derivation runs would double-count, so runs must not overlap for a given window. |
+| Conflict handling | None; each run produces its own extract for its own window. |
+| Recovery | Re-derivable from `SC-S3-16`/`SC-S3-17` **only while those rows still exist** — and they have no retention window (`F-S3-3`), so today they always exist. If a retention window is ever added upstream of the extract, re-derivation stops being available and the extract becomes the record of last resort. |
+| Migration path | New category. **The retention window and the named deletion owner are not optional attributes to be added later** — they are the reason the category exists, and an extract shipped without them reproduces `CAP-S4-1`'s gap one layer up instead of resolving it. `CMP-S4-20` is `[unconfirmed]`: nothing implements it, so this path has not started. |
+| Observability | Extract runs, rows emitted, and deletions performed against the retention window. The deletion count is the only evidence that the named owner is actually deleting. |
+
 <!-- BATCH-CURSOR -->
