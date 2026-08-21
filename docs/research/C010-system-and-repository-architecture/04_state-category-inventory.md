@@ -564,8 +564,8 @@ document: an inventory keyed on persistence would have reported 17 entries and l
 - **`SUB-11 (NEU-985)`** — receives the correspondence check (every `SC-S3-*` in the matrix, every matrix
   row in `SC-S3-*`), the falsifier list in §7.3, and **`F-S3-1`** and **`F-S3-2`** as mechanical audits it
   can run directly.
-- **`SUB-12 (NEU-986)`** — receives **`CAP-S3-1`** and **`CAP-S3-2`** for reconciliation at the
-  completeness gate.
+- **`SUB-12 (NEU-986)`** — receives **`CAP-S3-1`**, **`CAP-S3-2`** and **`CAP-S3-3`** for reconciliation at
+  the completeness gate, and **`OI-S3-1`**/**`OI-S3-2`** as open items owned elsewhere in the charter.
 
 ---
 
