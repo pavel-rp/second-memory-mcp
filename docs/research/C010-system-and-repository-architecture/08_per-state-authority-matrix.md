@@ -1048,4 +1048,156 @@ inheriting the gap. `05_…md` names `CMP-S4-20` as the component this eventuall
 | Migration path | New category. **The retention window and the named deletion owner are not optional attributes to be added later** — they are the reason the category exists, and an extract shipped without them reproduces `CAP-S4-1`'s gap one layer up instead of resolving it. `CMP-S4-20` is `[unconfirmed]`: nothing implements it, so this path has not started. |
 | Observability | Extract runs, rows emitted, and deletions performed against the retention window. The deletion count is the only evidence that the named owner is actually deleting. |
 
+### 8.7 Assumed — predicted only by a SUB-1 stand-in
+
+These four rows are `assumed`, never `existing`, and are never silently promoted to
+`required-by-upstream`. Each names its stand-in **in the entry**, and — per the register's own citing rule
+— the assignment that rests on a stand-in **names it in the sentence**, together with the envelope that
+tolerates the assignment and the outcome that would invalidate it. An appendix reference is not a
+citation.
+
+`93_…md` is **closed** at five entries, `A-25` … `A-29`. This chapter adds no sixth stand-in. `A-26`
+introduces no state category — an assumption about the *absence* of AI budgets is not a thing the system
+stores — which is why five stand-ins map to four assumed rows.
+
+#### `SC-S3-42` — Tutoring / hint interaction state
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: yes`. Status: **`assumed` — `A-25`**.
+
+**This assignment rests on `A-25`.** `A-25`'s **tolerance envelope** admits any hint model in which the
+AI call is made **outside a gate-bearing write path** — synchronous on a read path, asynchronous
+anywhere, or batched ahead of time — at any learner/node granularity, any number of escalation levels,
+and with the hint store being either a new category with its own authority under `OUT-3` or an extension
+of an existing one. Assigning this row to `CMP-S4-9` through `CMP-S4-7`, as a category of its own, sits
+squarely inside that envelope. `A-25`'s **invalidating outcome** is a hint model requiring **synchronous
+multi-turn AI orchestration inside a gate-bearing write path**, which would put a variable-latency
+external dependency inside the transaction that decides mastery. If that lands, this row's authority does
+not merely need re-checking — the boundary `OUT-1` draws has to move first.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-7` on the learner path when composing a hint; the tutoring surface via `CMP-S4-6`. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`, as the learner escalates through hint levels. |
+| Consistency | The hint state and the attempt it relates to (`SC-S3-9`) must be attributable to each other, or hint usage cannot be excluded from — or included in — a mastery judgement. Which of those it is, is NEU-891's decision, not this matrix's. |
+| Freshness | **Sub-second read latency on the learner path** is `A-25`'s stated requirement. `SPK-S6-1` measured the MCP tool boundary at p50 **0.077 ms** and p95 **0.189 ms** at 714 B — **≤0.02 % of `A-25`'s 1000 ms budget** — so the crossing itself is not the risk. Its residuals apply: the measurement excludes the network hop and is per-call, so *k* reads pay *k* crossings. `SPK-S6-1` expires **2027-08-21**. |
+| Concurrency | Escalations are serial per learner per node by nature; a race would only duplicate a level. |
+| Conflict handling | No merge; last write wins on the level. |
+| Recovery | Durable once stored. Loss re-starts the learner at hint level zero — recoverable, mildly annoying, not a correctness failure. |
+| Migration path | New category, `public` schema, standard learner-scoped path via `CMP-S4-9`/`CMP-S4-7`. **The AI call must stay outside a gate-bearing write path**, per `A-25`'s envelope; that is a constraint on NEU-891's implementation, and this row records it because the authority assignment depends on it. |
+| Observability | Hint escalations per node, and AI-call latency at the boundary. Nothing exists yet. |
+
+#### `SC-S3-43` — Web-session and UI interaction state
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: yes`. Status: **`assumed` — `A-27`**. *Web session* here is a browser
+session, **not** the learning run of `SC-S3-5`.
+
+**This is the row most likely to be assigned wrongly, and the reason `07_…md` §6.3 exists.** All four of
+clause 3's tests pass on the merits: (i) clause 2 did not match — §6's lookup does not place this row in
+a gate component's read set; (ii) classification is `assumed` and the stand-in is `A-27`; (iii) the value
+cannot change a schedule, a mastery record, an assessment-evidence record or a serve verdict — `04_…md`
+records it as **explicitly not gate-bearing**; (iv) the store cell is `none`. **Clause 3 still does not
+fire**, because the clause applies "only for a row on the closed list in §6.3", and under the selected
+model `M-A` **that list is empty**. Four-of-four on the merits is not an exception if the row is not on
+the list. The row therefore falls to clause 5, and the authority is `CMP-S4-9` — not the web tier.
+
+SUB-6 retained the empty list rather than deleting it precisely so that a reversal to `M-C` would change
+only its *contents* — this single row — and never the rule's structure. Recording `CMP-S4-3` here would
+be the single highest-consequence error available in this chapter: it would make the browser an authority
+for a state category, which is `A-27`'s invalidating outcome exactly.
+
+**This assignment rests on `A-27`.** Its **tolerance envelope** admits any rendering model, arbitrarily
+rich client-side interaction state, arbitrary client-side caching of read data, and optimistic UI —
+**provided the server re-evaluates every gate from server-held state**. Assigning the authority to
+`CMP-S4-9` is what makes that proviso structurally true rather than a convention. `A-27`'s
+**invalidating outcome** is a UI direction requiring **offline-capable or client-authoritative learning
+state**, because that makes the browser an authority for a state category under `OUT-3` and contradicts
+both the trust property `OUT-1` asserts and the isolation invariant `OUT-4` states.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-3` (web tier) when rendering; `CMP-S4-7` when restoring a learner's place. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`. **`CMP-S4-3` never writes it directly** — that is the whole content of this assignment. |
+| Consistency | Best-effort. Nothing downstream is invalidated by an inconsistent scroll position or a stale panel state. |
+| Freshness | Loose. `A-27`'s envelope explicitly tolerates arbitrary client-side caching of read data, so a stale read here is inside the assumption rather than a defect. |
+| Concurrency | Two browser tabs for one learner is the ordinary case; last-writer-wins is acceptable and expected. |
+| Conflict handling | No merge. |
+| Recovery | Durable if stored; entirely disposable. Loss costs the learner a re-orientation, nothing more. |
+| Migration path | New category, standard learner-scoped path. **If `07_…md` §6.3's list is ever populated with this row under a reversal to `M-C`, this is the row that moves** — and it is the only one. Nothing else in this matrix would change. |
+| Observability | Not needed. This is the one row where the absence of instrumentation is a correct decision rather than a gap. |
+
+#### `SC-S3-44` — Handoff authorization envelope
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`; enforced at `CMP-S4-4`.
+**Clause 5** — `Learner-scoped: yes`. Status: **`assumed` — `A-29`**. Volatility **`TTL` by assumption**.
+
+This row is the structural twin of `SC-S3-13` (context tokens): minted on the request path, stored under
+the persistence authority, and enforced at the transport edge. The parallel is deliberate — a handoff
+envelope that were minted or held anywhere else would be a second credential system.
+
+**This assignment rests on `A-29`.** Its **tolerance envelope** admits any envelope shape — a token, a
+scoped grant, a signed context blob — and any lifetime, **provided it expires and can be revoked**; it
+admits the external client reading any state category the envelope's scope permits, at any freshness; it
+admits one-way push of context at handoff time; and it admits the external client writing back **through
+an existing gated MCP tool under its own authorization**. `A-29`'s **invalidating outcome** is a handoff
+design requiring **the external client to hold write authority over any state category** — because
+`OUT-3` gives each category exactly one authority, and an external client holding write authority puts a
+component outside the trust boundary inside this matrix, which no isolation invariant under `OUT-4` can
+then enforce. That outcome would not just change this row; it would make the matrix unenforceable.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-4` on every request bearing the envelope, to admit or reject; `CMP-S4-2` (external MCP client) holds its own copy outside the boundary. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`, at mint and at revoke. **`CMP-S4-2` never writes it** — an external client that could mint or extend its own envelope is `A-29`'s invalidating outcome in miniature. |
+| Consistency | The envelope's scope and its expiry commit together. A scope without an expiry is not revocable in practice, whatever the revoke path claims. |
+| Freshness | Strictly current at check: a revoked envelope must be rejected on the next request, not at the next sweep. This is a stronger requirement than `SC-S3-13`'s, because revocation is an explicit security action rather than passive expiry. |
+| Concurrency | Mint and revoke against one envelope must serialize; a revoke that races a refresh must lose the refresh, not the revoke. |
+| Conflict handling | No merge. Revocation is terminal and beats every concurrent operation. |
+| Recovery | Durable. Loss of the store means every envelope is unverifiable, which must **fail closed** — the opposite of `SC-S3-24`'s fail-open logging posture, and the distinction matters. |
+| Migration path | New category, `public` schema, standard learner-scoped path. **Expiry and revocability are not features to add in a later iteration** — `A-29`'s envelope is conditioned on both, so an envelope shipped without them falls outside the assumption this row's authority rests on. |
+| Observability | Mints, revocations, and rejections by reason. Rejection-by-revocation must be distinguishable from rejection-by-expiry, or a revocation cannot be shown to have taken effect. |
+
+#### `SC-S3-45` — Learner-identity → owner mapping
+
+**Authority: `CMP-S4-10`** (identity provider), projected — never authored — by every other zone.
+**Clause 4**, resolved per **`F-S13-2`** (see below). Status: **`assumed` — `A-28`**.
+`Learner-scoped: yes, by definition`.
+
+**No ownership column exists on any table today.** `04_…md` §6 searched `schema.ts` for `user_id`,
+`userId`, `learner_id` and `learnerId` and found **zero matches** — none of the twelve Drizzle tables and
+neither raw-SQL log table carries one. NEU-850's `OUT-2` is a **decision to honour, never an existing
+schema fact**, and this row describes a category that is `assumed`, not present. Nothing in this chapter
+states or implies that an ownership column exists.
+
+**Why the authority is `CMP-S4-10` and not `CMP-S4-2` — `F-S13-2`.** Clause 4 reads: a `SC-S3-45`-class
+row is "authored in `Z-IDP` (`CMP-S4-2`)". Those two identifiers do not denote the same thing. `05_…md`
+§3.1 places **`CMP-S4-2` in `Z-EXT`** — it is the external MCP client, a third party — and names
+**`CMP-S4-10`** as `Z-IDP`'s only component. Applied to the literal id, clause 4 would hand the identity
+mapping to a third party outside the trust boundary, which is `A-29`'s invalidating outcome arriving by a
+different door. This matrix records the authority for **the zone clause 4 names**, resolved to that
+zone's actual component, `CMP-S4-10`; the id error is routed to SUB-6 as `F-S13-2`. Exactly one authority
+is recorded, and the reasoning is on the page so SUB-14 can overturn it if SUB-6 meant something else.
+
+**This assignment rests on `A-28`.** Its **tolerance envelope** admits isolation enforced at the
+repository-port layer, in the database schema (row-level or predicate-based), or at both; a migration
+that is staged, reversible, or run in a single step; existing global rows backfilled to a single owner,
+quarantined, or archived; and the production Postgres being shared with a new web tier or fronted by one.
+`A-28`'s **invalidating outcome** is a finding that **safe isolation requires a separate deployment or a
+separate datastore** — which would relocate the authority assignments this whole chapter makes and move
+the boundary `OUT-1` draws between the web tier and the MCP core. This row is the one place where that
+outcome would not be a local correction.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Every component that projects an owner onto a row it handles — `CMP-S4-4` at authentication, `CMP-S4-7` on every learner-scoped operation, `CMP-S4-9` when enforcing isolation at or below the port boundary. |
+| Writes | `CMP-S4-10`. **Authored in `Z-IDP` and projected, never authored, by every other zone** — that is clause 4's whole content, and it is what keeps identity from acquiring a second source of truth inside this system. |
+| Consistency | The mapping must resolve every authenticated principal to exactly one owner. A principal resolving to two owners, or to none, breaks isolation rather than degrading it. |
+| Freshness | A revoked or re-assigned identity must take effect on the next request. The only thing this system caches from `Z-IDP` today is `SC-S3-26` (the JWKS key set), whose refresh policy is the issuer's — so the freshness of identity *facts* is an inherited dependency, not a local guarantee. |
+| Concurrency | Not this system's concern; the mapping is authored upstream. |
+| Conflict handling | Not this system's concern. A projection never merges. |
+| Recovery | Not this system's to recover — the authority is external. What *is* this system's concern is that a projection failure must fail closed, not default to an unowned row. |
+| Migration path | **This is the migration path that unblocks the most other rows in this matrix.** Today the only server-side learner-identity binding anywhere in the system is `SC-S3-19` — process-local, per-session, lost on restart. `A-28`'s envelope tolerates enforcement at the port layer, in the schema, or both, and tolerates existing global rows being backfilled to a single owner, quarantined, or archived. Giving this category a store is also, per `05_…md` §9.2, one of the two things that would turn the deletion owner for `SC-S3-16`/`SC-S3-17` **from unassignable into merely unassigned** — at which point `CAP-S4-1` becomes liftable and this matrix could assign it. Not before. |
+| Observability | Projection failures, and rows encountered with no resolvable owner. The second count is the migration's completion signal: it must reach zero and stay there. |
+
 <!-- BATCH-CURSOR -->
