@@ -460,3 +460,176 @@ from unassignable into merely unassigned. Only then can SUB-13 (NEU-977) assign 
 inventory that already carries "a named deletion owner" as part of its own definition.
 
 ---
+
+## 10. Walking the benchmark journeys
+
+### 10.0 Which three — resolving the F5.5 referent in place
+
+`OUT-1`'s "Verified by" requires *"a walkthrough of the three C005 benchmark journey shapes"*, but C005
+records **five** journeys. The three are resolved **mechanically, not chosen**: the vehicle-and-fidelity
+summary table at
+`../C005-product-foundation/benchmark-suite/01_journey-vehicles-and-fidelity.md:60`–`:66` assigns exactly
+three of the five an **Existing MCP** vehicle — `JNY-B1` (`:62`), `JNY-F1` (`:64`) and `JNY-F3` (`:66`).
+`JNY-B2` (`:63`) and `JNY-F2` (`:65`) are Paper / Wizard-of-Oz artifacts; they exercise no component of
+this system, so there is nothing to walk them across. That is the whole referent. It is recorded here so
+no later sub-task re-opens it, and the accepted warning F5.5 closes with it.
+
+**Notation.** Each hop names the flow it is, the boundary it crosses, and the side that is authoritative
+for what crosses. A hop whose authority is undetermined gets a finding id, never a narration.
+
+### 10.1 `JNY-B1` — spaced-retention baseline and measurement feasibility
+
+Vehicle: the teaching / rolling-session loop `start_learning` → `submit_answer` → `teach_next`
+(`src/server/teaching-tools.ts:159`, `:112`, `:20`), plus a static database-schema and code inspection for
+the BM-8 half.
+
+| # | Hop | Flow | Boundary | Authoritative side |
+| --- | --- | --- | --- | --- |
+| B1-1 | The learner acts; the surface reports the action | `FL-S4-1` | `BND-S4-1` (trust) | **`CMP-S4-3`** — `[unconfirmed]`, `A-27`. As the vehicle is *actually run today* this hop is a local MCP client into `CMP-S4-5`, crossing `BND-S4-17` — a trust boundary **no component enforces** (`F-S4-5`). |
+| B1-2 | `start_learning` admitted | `FL-S4-5` | `BND-S4-2` (trust, **HTTP only**) | **`CMP-S4-4`** on HTTP. On STDIO: **nobody** — no auth, no origin check, no rate limit, no context-token gate. |
+| B1-3 | Parse, validate, delegate | `FL-S4-5` | `BND-S4-7` (neither) | **`CMP-S4-6`** |
+| B1-4 | A learning session is opened and its row written | `FL-S4-7` | `BND-S4-12` (process) | **`CMP-S4-7`** for whether the unit of work commits; **`CMP-S4-9`** for the stored row |
+| B1-5 | `submit_answer` — the caller supplies a grading rubric, the server derives a quality | `FL-S4-5`, `FL-S4-7` | `BND-S4-2` / `BND-S4-17` | **`CMP-S4-8`** for the derived quality (`src/domain/algorithms/grade-mapper.ts:71`, called at `src/orchestration/teaching-workflows.ts:1213`). The rubric arrives from the far side of the trust boundary — see §10.3. |
+| B1-6 | The SM-2 scheduling values are written (`ease_factor`, `interval_days`, `next_review_date`) | `FL-S4-7` | `BND-S4-12` (process) | **`CMP-S4-8`** computes, **`CMP-S4-7`** commits, **`CMP-S4-9`** stores. Gate-bearing and entirely server-held — §6.1 exercised on a real hop. |
+| B1-7 | `teach_next` selects the next unit and serves it | `FL-S4-18`, `FL-S4-14` | `BND-S4-8`, `BND-S4-11` (neither) | **`CMP-S4-16`** for serve-or-quarantine. `[unconfirmed]` — the drift-verdict read does not exist on this path today. |
+| B1-8 | The request line lands in the log | `FL-S4-8` | `BND-S4-13` (process) | **`CMP-S4-19`** for what is stored; **nobody** for what is retained or deleted (§9.2). The learner's answer text is stored unredacted. |
+| B1-9 | The loop repeats after the interval read from `interval_days` | `FL-S4-7` | `BND-S4-12` | **`CMP-S4-9`** |
+| B1-10 | The BM-8 half: read a per-DP-pattern mastery signal | — | — | **Undetermined.** `SC-S3-39` (the durable multi-session mastery composite) has no store, and no component in this inventory holds it. Recorded as `F-S4-6`. |
+
+**Nine hops with a named authoritative side; one undetermined and filed.**
+
+### 10.2 `JNY-F1` — schema formation versus surface memorization
+
+Vehicle: content creation via `create_topic_with_chunks` (`src/server/topic-tools.ts:32`) → the teaching
+flow, run at two fixed prerequisite positions with a transfer probe.
+
+| # | Hop | Flow | Boundary | Authoritative side |
+| --- | --- | --- | --- | --- |
+| F1-1 | The authoring call is admitted | `FL-S4-5` | `BND-S4-2` / `BND-S4-17` | **`CMP-S4-4`** on HTTP; **nobody** on STDIO |
+| F1-2 | `CMP-S4-13` admits the unit into the store of record | `FL-S4-17` | `BND-S4-12` (process) | **`CMP-S4-13`** — the only component that admits content |
+| F1-3 | The Tier-1 linter suite runs and its findings are shaped into the unit's validator report | — | `BND-S4-15` (process) | **`CMP-S4-14`** (`src/orchestration/audit-pipeline.ts:94`; tier1a/tier1b split at `:129`–`:137`) |
+| F1-4 | A gate unit executes inside a terminable isolate under a wall-clock bound | `FL-S4-15` | `BND-S4-9` (process, **not** trust) | **`CMP-S4-14`** sets the bound and decides what a killed isolate means. `[unconfirmed]` — `CMP-S4-15` does not exist today. |
+| F1-5 | The gate verdict is written to the unit's record | `FL-S4-16` | `BND-S4-9`, `BND-S4-15` | **Undetermined.** `OI-S2-2`'s authority requirement is open; owner **SUB-13 (NEU-977)**. Recorded as `F-S4-3`. |
+| F1-6 | The Tier-2 classifier pass runs post-commit, crossing to the AI provider | `FL-S4-10` | `BND-S4-4` (trust) | **The caller.** A provider failure leaves the blocking set unchanged (`audit-pipeline.ts:165`–`:191`). The unit is already written by this point (`:174`) — which is exactly why `BND-S4-15` is a process boundary. |
+| F1-7 | The teaching flow serves the unit at a fixed prerequisite position | `FL-S4-18`, `FL-S4-21` | `BND-S4-8`, `BND-S4-12` | **`CMP-S4-16`** for serve-or-quarantine; the prerequisite position resolves against the imported `SC-S3-37` copy (§8.1) |
+| F1-8 | The transfer probe: a novel instance is served and answered | `FL-S4-5`, `FL-S4-7` | as B1-5 | **`CMP-S4-8`** |
+
+**Seven hops with a named authoritative side; one undetermined and filed.**
+
+### 10.3 `JNY-F3` — AI grading over-validation
+
+Vehicle: the real `submit_answer` grading path with adversarial shallow or wrong answers.
+
+| # | Hop | Flow | Boundary | Authoritative side |
+| --- | --- | --- | --- | --- |
+| F3-1 | An adversarial answer **and a grading rubric** are submitted | `FL-S4-5` | `BND-S4-2` (HTTP) / `BND-S4-17` (STDIO) | **`CMP-S4-4`** on HTTP; **nobody** on STDIO. Note the shape: the tool takes `input.grading` and the server maps it (`teaching-workflows.ts:1475` → `grade-mapper.ts:71`). |
+| F3-2 | The quality is derived from the rubric | — | `BND-S4-8` (neither) | **`CMP-S4-8`** — pure, deterministic, no model call |
+| F3-3 | The derived quality drives the scheduling write | `FL-S4-7` | `BND-S4-12` (process) | **`CMP-S4-7`** / **`CMP-S4-9`**. Gate-bearing, server-held. |
+| F3-4 | The response returns; the derived quality and `action` are read from it, never fabricated | `FL-S4-6` | `BND-S4-2`, `BND-S4-1` | **`CMP-S4-6`** |
+| F3-5 | The raw answer and the raw response body land in `infrastructure.mcp_request_log` | `FL-S4-8` | `BND-S4-13` (process) | **`CMP-S4-19`** stores; **nobody** retains or deletes (§9.2) |
+
+**Five hops, all with a named authoritative side.**
+
+**What the walk makes visible.** FM4 — AI grading over-validating a shallow answer — cannot be a defect of
+`CMP-S4-8`: that component is pure and deterministic and computes exactly what the rubric it is handed
+implies. The failure lives in whatever *produces* `input.grading`, and that producer sits on the far side
+of `BND-S4-2` (or, on STDIO, of the unenforced `BND-S4-17`). Applying `BND-S4-4`'s rule — the AI provider
+is authoritative for no verdict — to this hop yields: **the grading rubric is an assertion crossing a
+trust boundary, not a fact.** C005's retained assumption RA5 ("AI grading is not trusted as the signal of
+record") and this model's boundary classification are the same statement reached from two directions.
+
+### 10.4 Walk result, and what a walk is not
+
+| | Hops | With a named authoritative side | Undetermined, filed as a finding |
+| --- | --- | --- | --- |
+| `JNY-B1` | 10 | 9 | 1 (`F-S4-6`) |
+| `JNY-F1` | 8 | 7 | 1 (`F-S4-3`) |
+| `JNY-F3` | 5 | 5 | 0 |
+| **Total** | **23** | **21** | **2** |
+
+Two riders that are not undetermined hops but must not be lost:
+
+- **`F-S4-4` — conditional authority.** B1-1, B1-2 and F3-1 have a determined authority **today**, under
+  the reading in which the MCP core is the only writer of learning state. If SUB-6 (NEU-976) selects a
+  hybrid ownership model, those three hops acquire a second candidate authority and `BND-S4-16` becomes
+  real. The authority is determined; the *ownership model it is determined under* is not selected.
+- **`F-S4-5` — the walked path is the unenforced path.** All three journeys are dogfooded through a local
+  MCP client, i.e. through `CMP-S4-5`. Every protection named at B1-2 / F1-1 / F3-1 is mounted only on the
+  HTTP path, so an observation made while running these journeys is an observation of the **unprotected**
+  transport. This does not invalidate the journeys — their hypotheses are pedagogical — but a later
+  sub-task must not read "the journey ran fine" as evidence about the gated path.
+
+**What a walk is.** Walking a journey across a component model is **file inspection**
+(`00_method-and-provenance.md` §5). It produces no evidence about any journey's hypothesis, no fidelity
+claim, and no status upgrade for any C005 cell. It produces exactly one thing per hop: a named
+authoritative side, or a finding.
+
+---
+
+## 11. Traceability, in both directions
+
+| Direction | Question | Count | Where checked |
+| --- | --- | --- | --- |
+| Boundary → forcing input | Does every boundary cite the upstream requirement or codebase fact that forced it? | **17 / 17** | §4.2, "Forced by" column |
+| Component → demanding requirement | Does every component carry a requirement that demands it, so that none appears unbidden? | **20 / 20** | §3.2, "Demanded by" column |
+
+Two supporting counts, reported because a reader will otherwise recompute them:
+
+- **Flows with a named authoritative side: 21 / 22.** The one exception, `FL-S4-16`, is filed as `F-S4-3`.
+- **Journey hops with a named authoritative side: 21 / 23** (§10.4), the two exceptions filed as `F-S4-3`
+  and `F-S4-6`.
+
+The row-by-row audit is `traceability/S4_component-and-boundary-coverage.md`. Every row there resolves
+inside `docs/research/`; none resolves into `_local/` or `docs/wf-plans/`.
+
+---
+
+## 12. What this document does not decide
+
+Sub-task-to-tracker-id mapping is `F-S3-2`'s (`02_findings-register.md:131`); **SUB-13 is NEU-977, and
+`NEU-987` is not a child of this charter at all.**
+
+| Question this model deliberately leaves open | Owner |
+| --- | --- |
+| The per-state-category authority matrix — which single component is the authority for each `SC-S3-*`, including the imported `SC-S3-37` copy and the gate verdict at `FL-S4-16` | **SUB-13 (NEU-977)** |
+| The all-MCP-versus-hybrid ownership-model selection, and with it whether `BND-S4-16` exists at all (§4.4) | **SUB-6 (NEU-976)** |
+| AI-orchestration placement. This model states only `BND-S4-4`'s classification and `FL-S4-10`'s authority rule — that the provider is authoritative for no verdict — and selects no placement | **SUB-10 (NEU-984)** |
+| The web API's resource inventory and its negative boundary | **SUB-7 (NEU-980)** |
+| The rendering model. §6.3 hands five forced constraints as **inputs**; no selection is made or implied, and R-5 forbids citing the trust property as an argument for one | **SUB-15 (NEU-982)** |
+| Repository topology | **SUB-9 (NEU-983)** |
+| Deployment shape, and the **isolation primitive** behind `BND-S4-9` (`03_…` §3.4–§3.5 leaves the primitive unselected) | **SUB-10 (NEU-984)** |
+| The scheduling mechanism behind `CMP-S4-17`, which is why `BND-S4-10`'s process classification is stated without naming a mechanism | `OI-S2-1` |
+| Whether the post-commit Tier-2 shape (`BND-S4-15`, `audit-pipeline.ts:174`) should change. This model records it; it does not bless it (§7.2) | not this package's |
+| What happens to the imported `SC-S3-37` copy when the upstream graph changes | `OI-S4-1` (filed by this sub-task) |
+| Detailed component design, endpoint paths, database schemas, and any interface signature | out of scope by the charter |
+
+---
+
+## 13. Verification note
+
+Per `00_method-and-provenance.md` §5, this document's claims are verified by **file inspection** and
+`git diff`; the type-check is a no-regression signal only.
+
+| Check | Method | Result |
+| --- | --- | --- |
+| Every boundary cites a forcing input | Read §4.2 row by row | 17 / 17 |
+| Every component cites a demanding requirement | Read §3.2 row by row | 20 / 20 |
+| SUB-2's three components appear with egress **and** isolation | Read §3.3 | present, three separate rows, not merged (`F-S2-2` honoured) |
+| The three content-orchestration components are **named** components, not implications | Read §7.1 | present, each with owner, responsibility statement and boundary classification |
+| The serve path carries no reviewer, no model call, no execution, reads the cached verdict, quarantines on stale-or-absent | Read §7.2–§7.3 | confirmed, four-row disposition consumed from `03_…` §4.4 unchanged |
+| No rendering-model selection | Grep the document for rendering vocabulary | every occurrence sits in §6.2's "satisfied by all of them" argument or §6.3's handed-to-SUB-15 list; none in a decision |
+| No AI-orchestration placement selection | Read §9.1 and §12 | the boundary and the authority rule are stated; no placement is chosen |
+| `NEU-987` does not appear | Grep | zero hits; SUB-13 is cited as NEU-977 throughout |
+| Register changes are pure appends | `git diff --numstat` on the four append-only paths | recorded in the pull request |
+| No regression | `pnpm run type-check` | recorded in the pull request; **zero TypeScript is touched by this change** |
+
+**The automated QA phase is a genuine no-op for this sub-task, and no cap is filed for it.** The
+`qa-execution:engine` and `qa-execution:host` surfaces are unconfigured in this repository's capability
+registry, and per `00_method-and-provenance.md` §5.1 a sub-task does not file a cap for a check that was
+never applicable. `CAP-S1-3` already carries the package-level statement; this is the same no-op, not a
+second one. The precedent is SUB-2's, which recorded it under "Deliberately not filed here".
+
+**A cold read is the acceptance test this document cannot run on itself.** `OUT-1` requires that an
+independent implementation agent name the owner of every boundary unaided. §4.2's "Owner" column and
+§4.1's one-line ownership rule are what that read is against; a boundary whose owner a cold reader cannot
+name is a defect in §4.2, not in the reader.
