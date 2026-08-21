@@ -100,3 +100,40 @@ Later sub-tasks: append your own `### SUB-<n>` section BELOW this comment, in su
 where that is convenient and anywhere below it where it is not. Do not edit any section above
 your own. On conflict, keep both sides.
 -->
+
+### SUB-2
+
+*Two entries, plus the recorded disposition of **`OI-S1-1`** — the item SUB-1 filed with SUB-2 as its named consumer and owner. **SUB-1's section above is untouched.** The closure is recorded here, inside SUB-2's own section, because the append convention permits a sub-task to add its own section and nothing else; editing SUB-1's entry to mark it closed would be exactly the rewrite the convention forbids.*
+
+#### Disposition of `OI-S1-1` — **resolved**
+
+**This block is a disposition record, not an entry.** It carries no `OI-S2-<k>` id and is not counted as an open item; it exists so that a reader of SUB-1's `OI-S1-1` can find its outcome without opening a tracker.
+
+- **Item, as SUB-1 filed it:** *"Whether an authoring-time execution environment is an architectural component of the selected system — and with what isolation, trust and resource boundary — is unresolved."*
+- **Disposition:** **Resolved.** It **is** an architectural component. Its isolation boundary is a **terminable isolate per executed unit** with a **host-enforced wall-clock bound**; its trust boundary is **first-party, creator-authored code**, and the isolation exists for **liveness and resource reclamation**, not for containment of hostile code.
+- **Where the resolution lives:** `../03_execution-environment-and-citation-drift-component.md` §3.4–§3.5 and `../decision-records/DR-C10-S2-2_authoring-time-execution-boundary.md`, resting on **`SPK-S2-1`**.
+- **Resolving event, as SUB-1 stated it:** *"SUB-2 publishes its topic document … recording … whether an authoring-time execution environment is an architectural component … The item closes on that document landing on `origin/develop`."* **That is the event this change performs.** Until the merge lands, the item is resolved-pending-merge, not closed.
+- **Owner after closure:** none — the item is closed, not transferred. **But the resolution is only as fresh as `SPK-S2-1`**: on that record's expiry the conclusion is stale and must be re-run or re-labelled (`../92_spike-register.md` §6). A stale conclusion does not reopen this item; it makes every document citing it stale, which is a defect in the citing document.
+- **What was *not* resolved here, and is filed as its own entry:** which authority owns the gate-verdict state the component writes (**`OI-S2-2`**), and what scheduling mechanism drives the out-of-band producer (**`OI-S2-1`**). Neither was in `OI-S1-1`'s statement.
+
+#### `OI-S2-1` — The scheduling mechanism that drives the out-of-band drift-verdict producer is unselected
+
+- **Id:** `OI-S2-1`
+- **Item:** `../03_execution-environment-and-citation-drift-component.md` §4.2 specifies a component whose trigger is **out of band, always** — the serve-time trigger *enqueues* per served citation and never executes inline. **What performs the dequeue is unselected.** A cron-style periodic pass, a queue worker, a job runner co-located with the MCP core process, and an operator-triggered batch are all consistent with the specification, and they differ materially in what the deployment substrate must provide. The component's *specification* is settled; its *scheduling mechanism* is not.
+- **Status:** `provisional` — the component specification is published and stable; this is a reliance on a substrate decision that has not been taken.
+- **Source:** `../03_execution-environment-and-citation-drift-component.md` §4.2 (Trigger); `../C009-course-content-quality/10_citation-drift-detection-and-revalidation.md:103` (NEU-890, compiled 2026-08-11) — *"the serve-time trigger fires **per served citation**, never as a corpus-wide walk"*, which fixes the trigger's granularity and says nothing about its mechanism.
+- **Consumer:** **SUB-10 (NEU-984)**
+- **Owner:** SUB-10 (NEU-984)
+- **Resolving event:** **SUB-10 publishes its substrate document naming the scheduling mechanism** — or filing a `CAP-S10-<k>` stating that it does not select one and what that leaves unsupported. The item closes on that document landing on `origin/develop`, whichever way it goes. A plausible guess at a mechanism is not a resolution.
+- **Why not a stand-in:** It stands in for nothing. No unbuilt upstream package would answer it: NEU-891, NEU-892, NEU-893 and NEU-894 decide tutoring, UI, production integration and handoff respectively, and none of them selects this package's own scheduling substrate. It is a decision **this** package owes, allocated to the sub-task that owns the substrate.
+
+#### `OI-S2-2` — The gate-verdict state the authoring-time execution component writes has no assigned authority
+
+- **Id:** `OI-S2-2`
+- **Item:** `../03_execution-environment-and-citation-drift-component.md` §3.5 specifies that the authoring-time gate runner writes **one gate verdict per executed unit** onto that unit's review record. **Which authority owns that state category is unassigned.** The same gap exists for the drift-verdict store of §4.2 and the cache of §4.3 — three state categories, each requiring **exactly one** authority. This sub-task states the requirement and assigns none; assigning one here would pre-empt the authority matrix and risk two owners for one category.
+- **Status:** `[unconfirmed]` — the requirement (*exactly one authority*) is stated and load-bearing; the assignment is not made.
+- **Source:** `../03_execution-environment-and-citation-drift-component.md` §3.5 (Authority requirement), §4.2 and §4.3 (same field); `../01_outcome-register.md` `OUT-9`'s verified-by line, which names *"its verdict store in the `OUT-3` authority matrix"* as part of this outcome's verification.
+- **Consumer:** **SUB-13 (NEU-987)**
+- **Owner:** SUB-13 (NEU-987)
+- **Resolving event:** **SUB-13 publishes the `OUT-3` authority matrix with exactly one authority named for each of the three state categories** — the gate-verdict record, the drift-verdict store, and the drift-verdict cache. The item closes on that matrix landing on `origin/develop`. A matrix that omits one of the three, or names two owners for one, does not close it.
+- **Why not a stand-in:** It is a decision **this** package owes and has explicitly allocated, not a placeholder for an unbuilt package. `OUT-3` is a C010 outcome with a named sub-task; nothing about NEU-891/892/893/894 landing would assign it, and filing it in `93_…` would put a resolvable in-package allocation into a register whose contract is four unbuilt packages.
