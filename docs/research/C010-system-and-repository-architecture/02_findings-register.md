@@ -148,3 +148,73 @@ section above your own. On conflict, keep both sides.
   - **`SUB-13 (NEU-977)`**, which assigns authority over `SC-S3-16` and `SC-S3-17` and must record that the rows are learner-payload-bearing.
   - **`SUB-14 (NEU-978)`**, which applies `SUB-5`'s isolation invariant per row and will find no column to apply it to on either.
   - **`NEU-986 (SUB-12)`**, via `CAP-S3-3`, which carries the unmet requirement to the package completeness gate.
+
+### SUB-4
+
+*Six entries. Two are numbers a later sub-task would otherwise inherit stale — one re-verified against `src/` under `CAP-S1-2`'s own obligation, one an internal inconsistency inside a merged sibling's file that append-only discipline forbids repairing in place. Four come out of walking the model: two hops whose authority is genuinely undetermined, one trust boundary that meets the test and that nothing enforces, and one authority that is determined only under an ownership model nobody has selected. None is a decision this sub-task declined to take.*
+
+#### `F-S4-1` — The registered tool count is 46 across 16 modules, not the 45 the charter consumed
+
+- **Id:** `F-S4-1`
+- **Finding:** The charter's consumed figure is **45 tools (42 gated / 3 exempt)**. Counted against `src/` at this sub-task's own cutoff, the figure is **46 registered tools across 16 non-empty modules**, which with the three exempt tools makes the current split **43 gated / 3 exempt**. The divergence is one tool, in the gated half. `CAP-S1-2` obliges the sub-task that depends on the number to re-verify it against `src/` at its own cutoff and cite its own command; this entry is that re-verification.
+- **Evidence:** `grep -rc "server.registerTool(" src/server/` on `origin/develop` at the **2026-08-21** cutoff returns per-file counts summing to 46 over 20 scanned files, 16 of them non-zero: session-lifecycle 4, session 1, server-context 1, analytics 3, teaching 5, remediation 1, spaced-repetition 7, query 3, topic 3, server-workflow 1, search 1, session-progress 3, server-info 1, notes 3, content 3, chunk 6; `tools.ts`, `persistence-tools.ts`, `session-management-tools.ts` and `tool-helpers.ts` register none. The three exempt tools are `init_agent_context`, `get_server_info` and `get_server_workflow`, fixed at `src/transport/context-token-middleware.ts:5`–`:9`.
+- **Consequence:** Any sub-task sizing a surface, an audit or a migration from the charter's 45 sizes it one tool short, and — more importantly — sizes it against a number that has already moved once and will move again. **The count is a moving target, not a constant**, and the right treatment downstream is to re-run the command rather than to cite either figure. `SUB-8 (NEU-981)`, whose work is keyed to the tool surface, is the sub-task most exposed to inheriting a stale value.
+- **What is assumed rather than derived:** Nothing about the count — it is one command over one tree at one cutoff, reported per file so it can be re-run and disagreed with. What is **not** established is that the count is stable, or that the divergence from 45 reflects a deliberate addition rather than a miscount upstream; this entry does not adjudicate which figure was right when the charter was written.
+- **Handed to:**
+  - **`SUB-8 (NEU-981)`**, which must re-run the command at its own cutoff rather than citing 45 or 46.
+  - **`NEU-986 (SUB-12)`**, which reconciles the package against a charter figure that no longer matches the tree.
+
+#### `F-S4-2` — `04_state-category-inventory.md` announces 41 entries and counts 45
+
+- **Id:** `F-S4-2`
+- **Finding:** The inventory's §3 heading reads *"The inventory — **41 entries**, each appearing exactly once"*, while §8's own count table totals **45** (30 `existing` + 11 `required-by-upstream` + 4 `assumed`), and the entry ids run continuously from `SC-S3-1` to `SC-S3-45`. **45 is the correct figure**; the 41 in the heading is stale. The document is internally inconsistent in the one place a reader is most likely to stop reading.
+- **Evidence:** `../04_state-category-inventory.md:70` (the heading) against `:528`–`:534` (the count table) and `:194`–`:205` (`SC-S3-42` … `SC-S3-45`, the four `assumed` entries). Read on `origin/develop` at the 2026-08-21 cutoff. The §4.5 walk result and §8's per-class rows agree with 45; only the §3 heading does not.
+- **Consequence:** A reader who takes the heading at face value concludes four entries are missing and either re-derives the inventory or files a spurious gap. **Nothing here is corrected in place:** `../04_state-category-inventory.md` is a merged sibling's file, the registers and topic documents are append-only, and no sub-task rewrites another's entries — so the correction is this finding, not an edit. The practical rule for every downstream reader is: **§8's table is the count; §3's heading is not.**
+- **What is assumed rather than derived:** Nothing. Both figures are read at cited lines and the id range is continuous and checkable. This entry does not infer *why* the heading is stale — a late-added §3.7 is the obvious explanation and is not asserted.
+- **Handed to:**
+  - **`SUB-13 (NEU-977)`** and **`SUB-14 (NEU-978)`**, which iterate the entry set and must iterate 45 rows.
+  - **`NEU-985 (SUB-11)`**, whose cross-cutting audit can check announced-versus-actual counts mechanically across every package document.
+
+#### `F-S4-3` — The gate-verdict write is the one flow in the model with no authoritative side
+
+- **Id:** `F-S4-3`
+- **Finding:** Of the 22 flows in `../05_system-context-and-responsibility-boundaries.md` §5, exactly one — `FL-S4-16`, the gate verdict travelling from the authoring-time gate runner through the battery onto the unit's record — **has no named authoritative side.** It is also the one undetermined hop in the `JNY-F1` walkthrough (hop F1-5). The model records it as a finding rather than narrating past it or nominating a plausible owner.
+- **Evidence:** `../05_…` §5 (`FL-S4-16`), §10.2 (hop F1-5), §10.4 (the walk result: 21 of 23 hops with a named authority). The underlying gap is `../90_open-items-and-provisional-register.md` `OI-S2-2`, whose resolving event is **SUB-13** publishing the `OUT-3` authority matrix with exactly one authority for each of the gate-verdict record, the drift-verdict store and the drift-verdict cache. Note that `OI-S2-2` names its consumer and owner as `NEU-987` — the wrong id recorded by `F-S3-2`; the owner is **SUB-13 (NEU-977)**.
+- **Consequence:** A component-and-boundary model with one unattributed write is exactly as useful as one with none *provided the gap is visible*, and invisible-and-plausible is the failure mode this entry exists to prevent. Concretely: an implementation charter reading §5 and finding no authority for `FL-S4-16` must go to `OI-S2-2`, not invent one. **This sub-task does not assign the authority**; assigning it here would put two owners on one state category, which is the precise thing `OUT-3` forbids.
+- **What is assumed rather than derived:** Nothing. The absence is a property of the published flow table, checkable by reading it, and the underlying open item is cited by id.
+- **Handed to:**
+  - **`SUB-13 (NEU-977)`**, which closes it by publishing the authority matrix, and which must reach `OI-S2-2` through `F-S3-2`'s cited locations rather than by grepping its own id.
+
+#### `F-S4-4` — Three walked hops have an authority that is determined only under an unselected ownership model
+
+- **Id:** `F-S4-4`
+- **Finding:** Hops B1-1, B1-2 and F3-1 have a determined authoritative side **today**, under the reading in which the MCP core is the only writer of learning state. That reading is not a selected ownership model — the all-MCP-versus-hybrid selection belongs to `SUB-6 (NEU-976)` and has not been made. **If SUB-6 selects hybrid, those three hops acquire a second candidate authority** and `BND-S4-16` (web tier ↔ Postgres) turns from an undecided edge into a real boundary row.
+- **Evidence:** `../05_…` §10.1 (hops B1-1, B1-2), §10.3 (hop F3-1), §4.4 (`BND-S4-16` and the constraint its resolution must satisfy), §10.4 (the rider). The state facts the today-reading rests on are `../04_state-category-inventory.md` §4.1's fourteen tables, all written from `src/adapters/drizzle/`.
+- **Consequence:** The three hops must not be cited as settled authority in a document that outlives SUB-6's selection. The model states the constraint instead of the answer: **whichever way SUB-6 decides, `OUT-3` requires exactly one authority per category, so a hybrid selection owes a demonstration that the categories the web tier writes are disjoint from those the MCP core writes.** Disjointness is a condition to be demonstrated, not assumed. This entry is not an open item — `OI-S3-1` and the `OUT-3` matrix already carry the resolving event — it is the placement-side consequence of that open item, recorded where a reader of the walkthrough will hit it.
+- **What is assumed rather than derived:** That the MCP core is today the only writer of the durable learning-state tables. That is read from `src/` at the 2026-08-21 cutoff and is a statement about the code as it stands, not a commitment about what SUB-6 may select.
+- **Handed to:**
+  - **`SUB-6 (NEU-976)`**, which selects the ownership model and, if it selects hybrid, owes the disjointness demonstration and a classified `BND-S4-16` row.
+  - **`SUB-13 (NEU-977)`**, whose authority matrix is where the second candidate authority would have to be resolved.
+
+#### `F-S4-5` — STDIO is a trust boundary nothing enforces, and all three benchmark journeys are walked across it
+
+- **Id:** `F-S4-5`
+- **Finding:** The STDIO transport edge meets the trust-boundary test — it is reachable by a principal other than the operator — and **no component enforces it.** `src/transport/main.ts:46` mounts origin checking, JWT verification, per-JWT-subject rate limiting, MCP-session-to-subject binding, the context-token gate and audit capture; the `else` branch at `:55`–`:59` connects a bare `StdioServerTransport` with none of them. The model publishes it as `BND-S4-17`, classified **trust — unenforced**, owner **nobody**. Compounding it: the three C005 benchmark journeys that have an Existing-MCP vehicle are dogfooded through a local MCP client, i.e. through exactly this edge — **so every observation made while running them is an observation of the unprotected transport.**
+- **Evidence:** `src/transport/main.ts:46`, `:55`–`:59`; `src/transport/http.ts:99`–`:111` (origin allowlist), `:48`–`:65` (MCP-session-to-subject binding), `:167`–`:170` (per-JWT-subject rate limiting, mounted only when auth is enabled); `src/transport/context-token-middleware.ts` (the gate, mounted on the HTTP path). Vehicle assignment: `../C005-product-foundation/benchmark-suite/01_journey-vehicles-and-fidelity.md:62`, `:64`, `:66` (NEU-900, compiled 2026-07-11). Read at the 2026-08-21 cutoff.
+- **Consequence:** Two things a later sub-task must not do. **First**, write "the tool surface is authenticated" without a transport qualifier — it is false for half the surface, which is why `DR-C10-S4-2` makes the qualifier part of the decision rather than a note. **Second**, read "the journey ran fine" as evidence about the gated path; the journeys' hypotheses are pedagogical and are untouched by this, but no protection claim can be supported by them. This is a **finding about the system as it stands**, not a design proposal: this sub-task neither hardens STDIO nor recommends removing it.
+- **What is assumed rather than derived:** Nothing about the mounting — each middleware is cited at its line and the two branches are read directly. Not established: whether any deployment actually exposes the STDIO path to a principal other than the operator. The finding is about what the code permits, not about a measured exposure.
+- **Handed to:**
+  - **`SUB-7 (NEU-980)`**, whose web-API resource inventory and negative boundary must not assume a uniformly gated surface.
+  - **`SUB-10 (NEU-984)`**, which selects the deployment shape and therefore decides whether the unenforced edge is reachable in practice.
+  - **`NEU-985 (SUB-11)`**, whose audit can check mechanically that every protection claim in the package carries a transport qualifier.
+
+#### `F-S4-6` — No component is authoritative for a per-DP-pattern mastery signal, and the journey that needs one has nowhere to read it
+
+- **Id:** `F-S4-6`
+- **Finding:** `JNY-B1`'s BM-8 half requires reading a per-DP-pattern mastery signal. Walking it across the model, that hop (B1-10) has **no authoritative side**: the durable multi-session mastery composite is `SC-S3-39`, a `required-by-upstream` category with **no store**, and no component in the twenty-component inventory holds it. C005 reached the same wall from the other direction and marked it `INC-2`, UNRESOLVED. **The gap in the state inventory and the gap in the journey are the same gap seen from two sides.**
+- **Evidence:** `../05_…` §10.1 (hop B1-10), §10.4; `../04_state-category-inventory.md:175` (`SC-S3-39`, store `none`, `required-by-upstream`), and its §5.2 provenance in NEU-888's operational mastery model; `../C005-product-foundation/benchmark-suite/01_journey-vehicles-and-fidelity.md:16` (the BM-8 half is *"capability inspection only"*, `INC-2` UNRESOLVED) and `:62`. Read at the 2026-08-21 cutoff.
+- **Consequence:** `JNY-B1`'s BM-8 half cannot be walked to a named authority, and a sub-task that assumed it could would have to invent either a component or a store. It also means the mastery signal is one of the categories `SUB-13`'s authority matrix must assign to a component **that does not exist yet** — which is a different and harder case than assigning an existing category, and worth flagging before the matrix is written. This entry neither designs the component nor selects a store.
+- **What is assumed rather than derived:** Nothing. Both the empty store and the journey's own incompleteness marker are read at cited lines. Not asserted: that `SC-S3-39` *should* be held by any particular component — that is precisely what is undetermined.
+- **Handed to:**
+  - **`SUB-13 (NEU-977)`**, which must assign an authority for `SC-S3-39` and will be assigning it to a component that has to be created rather than located.
+  - **`NEU-986 (SUB-12)`**, at the completeness gate, as an upstream-required category with neither a store nor a holder.
