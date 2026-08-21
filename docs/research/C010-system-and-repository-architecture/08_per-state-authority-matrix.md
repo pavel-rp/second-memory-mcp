@@ -1200,4 +1200,286 @@ outcome would not be a local correction.
 | Migration path | **This is the migration path that unblocks the most other rows in this matrix.** Today the only server-side learner-identity binding anywhere in the system is `SC-S3-19` — process-local, per-session, lost on restart. `A-28`'s envelope tolerates enforcement at the port layer, in the schema, or both, and tolerates existing global rows being backfilled to a single owner, quarantined, or archived. Giving this category a store is also, per `05_…md` §9.2, one of the two things that would turn the deletion owner for `SC-S3-16`/`SC-S3-17` **from unassignable into merely unassigned** — at which point `CAP-S4-1` becomes liftable and this matrix could assign it. Not before. |
 | Observability | Projection failures, and rows encountered with no resolvable owner. The second count is the migration's completion signal: it must reach zero and stay there. |
 
-<!-- BATCH-CURSOR -->
+---
+
+## 9. The matrix in one table
+
+The audits in §10 run against this table. `W` names the write path where §8 records one; it is an
+annotation, never a second authority.
+
+| Id | Category | **Authority** | W | Clause | Status |
+| --- | --- | --- | --- | --- | --- |
+| `SC-S3-1` | Topic record | `CMP-S4-9` | `CMP-S4-13` / `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-2` | Chunk content record | `CMP-S4-9` | `CMP-S4-13` / `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-3` | Per-chunk SM-2 scheduling state | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-4` | Content-audit verdict | `CMP-S4-7` | `CMP-S4-14` → `CMP-S4-9` | 6 | `existing` |
+| `SC-S3-5` | Learning-session record | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-6` | Session-chunk teaching state | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-7` | Session question | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-8` | Question→chunk assessment mapping | `CMP-S4-7` | `CMP-S4-9` | 6 | `existing` |
+| `SC-S3-9` | Attempt and grade record | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-10` | Pre-review scheduling snapshot (NEU-844) | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-11` | Grade-revision audit trail | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-12` | Notes | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` |
+| `SC-S3-13` | Context tokens | `CMP-S4-9` | `CMP-S4-7`; enforced at `CMP-S4-4` | 5 | `existing` |
+| `SC-S3-14` | Linter validation corpus | `CMP-S4-7` | `CMP-S4-9` | 6 | `existing` |
+| `SC-S3-15` | Per-rule validation report | `CMP-S4-7` | `CMP-S4-9` | 6 | `existing` |
+| `SC-S3-16` | MCP request log | `CMP-S4-9` | `CMP-S4-19` | 5 | `existing` |
+| `SC-S3-17` | Operation event log | `CMP-S4-9` | `CMP-S4-19` | 5 | `existing` |
+| `SC-S3-18` | MCP transport registry | `CMP-S4-4` | — non-durable | 1 | `existing` |
+| `SC-S3-19` | Subject-binding map | `CMP-S4-4` | — non-durable | 1 | `existing` |
+| `SC-S3-20` | Rate-limit windows | `CMP-S4-4` | — non-durable | 1 | `existing` |
+| `SC-S3-21` | Tier-2 breaker trip set + stats cache | `CMP-S4-14` | — non-durable | 1 | `existing` |
+| `SC-S3-22` | Request context and correlation id | `CMP-S4-4` | — non-durable | 1 | `existing` |
+| `SC-S3-23` | Database client singletons | `CMP-S4-9` | — non-durable | 1 | `existing` |
+| `SC-S3-24` | Event-logger sink toggle | `CMP-S4-19` | — non-durable | 1 | `existing` |
+| `SC-S3-25` | Transport batch buffers + per-sink breakers | `CMP-S4-19` | — non-durable | 1 | `existing` |
+| `SC-S3-26` | JWKS remote key set | `CMP-S4-4` | — non-durable | 1 | `existing` |
+| `SC-S3-27` | Classifier per-field model cache | `CMP-S4-14` | — non-durable | 1 | `existing` |
+| `SC-S3-28` | Mastery level | `CMP-S4-7` | — non-durable | 1 | `existing` |
+| `SC-S3-29` | `LearnerContext` aggregate | `CMP-S4-7` | — non-durable | 1 | `existing` |
+| `SC-S3-30` | Analytics KPIs and window rollups | `CMP-S4-8` | — non-durable | 1 | `existing` |
+| `SC-S3-31` | Assessment-evidence record | `CMP-S4-9` | `CMP-S4-7` | 5 | `required-by-upstream` |
+| `SC-S3-32` | Problem-citation record | `CMP-S4-7` | `CMP-S4-13` → `CMP-S4-9` | 6 | `required-by-upstream` |
+| `SC-S3-33` | **Cached citation-drift verdict** | **`CMP-S4-17`** | held by `CMP-S4-18` | 2 → tb(c) | `required-by-upstream` |
+| `SC-S3-34` | **Citation-drift verdict store** | **`CMP-S4-17`** | — | 6 → tb(c) | `required-by-upstream` |
+| `SC-S3-35` | **Gate-verdict record** | **`CMP-S4-14`** | `CMP-S4-15` | 2 | `required-by-upstream` |
+| `SC-S3-36` | Quarantine record | `CMP-S4-14` | — | 2 | `required-by-upstream` |
+| `SC-S3-37` | DP-map node + prerequisite-edge records | `CMP-S4-7` | `CMP-S4-13` (import **and re-import**) | 6 | `required-by-upstream` |
+| `SC-S3-38` | Per-learner per-node progression | `CMP-S4-9` | `CMP-S4-7` | 5 | `required-by-upstream` |
+| `SC-S3-39` | Per-learner mastery-gate state | `CMP-S4-9` | `CMP-S4-7` | 5 | `required-by-upstream` |
+| `SC-S3-40` | Measurement-contract register | `CMP-S4-7` | no in-system copy held | 6 | `required-by-upstream` |
+| `SC-S3-41` | Operational-log derived extract `PLA-*` | `CMP-S4-9` | `CMP-S4-20` | 5 | `required-by-upstream` |
+| `SC-S3-42` | Tutoring / hint interaction state | `CMP-S4-9` | `CMP-S4-7` | 5 | `assumed` — `A-25` |
+| `SC-S3-43` | Web-session / UI interaction state | `CMP-S4-9` | `CMP-S4-7` | 5 | `assumed` — `A-27` |
+| `SC-S3-44` | Handoff authorization envelope | `CMP-S4-9` | `CMP-S4-7`; enforced at `CMP-S4-4` | 5 | `assumed` — `A-29` |
+| `SC-S3-45` | Learner-identity → owner mapping | **`CMP-S4-10`** | projected, never authored, elsewhere | 4 → `F-S13-2` | `assumed` — `A-28` |
+
+---
+
+## 10. The audits
+
+Both audits below were run mechanically against §8's `####` blocks — parsing each block's id, its
+`**Authority: `CMP-S4-<n>`**` marker and its clause citation — not asserted from the authoring notes.
+SUB-14 can reproduce them by re-parsing the same blocks.
+
+### 10.1 The exactly-one-authority audit
+
+This is `OUT-3`'s first required audit.
+
+| Measure | Count |
+| --- | --- |
+| Category rows in the matrix | **45** |
+| Rows with **zero** authorities | **0** |
+| Rows with **two or more** authorities | **0** |
+| Rows with **exactly one** authority | **45** |
+| Distinct `SC-S3-*` ids | **45** (duplicates: 0) |
+| Rows whose authority is not a `CMP-S4-*` id | **0** |
+
+**Verdict: pass.** Every one of the 45 categories names exactly one authority, and every authority is a
+component id from `05_…md` §3 — no role names, no zone-only owners, no shared authorities.
+
+**Scope note, stated explicitly so the two numbers are not confused.** The audit above runs over **all
+45** rows. Clause 1 additionally removes its rows from the audit's *write* scope, because a process-local
+or derived-on-read category has no durable write to attribute:
+
+| Measure | Count |
+| --- | --- |
+| Rows recording `n/a — non-durable` in *writes* (clause 1) | **13** — `SC-S3-18` … `SC-S3-30` |
+| Rows with a durable write to attribute | **32** |
+
+Both numbers are published because reporting only the second would look like a matrix of 32 rows, and
+reporting only the first would suggest 13 rows have no authority. Neither is true: **45 rows, 45
+authorities, 32 durable writes.**
+
+### 10.2 The state-inventory ↔ matrix audit
+
+This is `OUT-3`'s second required audit — "that every `OUT-2` row appears in the matrix and every matrix
+row appears in `OUT-2`". It is run in **both directions** and both counts are published, because a
+one-directional check would pass on a matrix that silently invented a category.
+
+This audit is **distinct from** SUB-7's resource-inventory ↔ matrix cross-check under `OUT-5`. That one
+compares this matrix against a *resource* inventory that does not exist yet; this one compares it against
+`04_…md`'s *state-category* inventory. They are named differently on purpose and neither substitutes for
+the other.
+
+| Direction | Unmatched count | Routing rule if non-zero |
+| --- | --- | --- |
+| `04_…md` §3 → this matrix (an inventory category with no row) | **0** | Held here. A missing row is this chapter's defect, and the remedy is to author it — never to narrow the domain. |
+| This matrix → `04_…md` §3 (a matrix row with no inventory category) | **0** | Routed to SUB-3 (NEU-973) as a finding against `04_…md`. A row this matrix believes exists but the inventory does not carry is an inventory-completeness question, and `04_…md` §7.3 already states what would falsify its completeness claim. |
+
+**Verdict: pass, both directions, zero unmatched.** The domain was verified independently of the matrix
+by extracting every `SC-S3-<n>` token from `04_…md` and filtering to the numeric form: **45 distinct ids,
+minimum 1, maximum 45, no gaps** — which agrees with `04_…md` §8's own counts table (30 + 11 + 4 = 45).
+There is therefore **no unmatched item in either direction, and consequently no item to route** — the
+routing rules above are recorded so that the audit is reproducible rather than merely reported.
+
+One mechanical caveat for whoever re-runs this: `04_…md` §2 contains the bare template token
+`SC-S3-<k>`, which a naive `SC-S3-` extraction picks up as a valueless match and which will corrupt a
+numeric sort. Filter to the strictly numeric form before counting.
+
+### 10.3 What neither audit checks
+
+Stated so the pass verdicts are not over-read. Neither audit checks that the recorded authority is the
+*right* one — only that there is exactly one, that it is a real component id, and that the row set
+matches the inventory. Whether `SC-S3-33`'s authority should be `CMP-S4-17` or `CMP-S4-7`, for example, is
+a question these audits cannot answer and `F-S13-1` routes to SUB-6. Validation is SUB-14's, per §2.
+
+---
+
+## 11. Distributions
+
+Published so SUB-14 can re-derive them, and because the shape of the distribution is itself evidence
+about the rule.
+
+**By clause** (first match wins; every row cites exactly one):
+
+| Clause | Rows | Share |
+| --- | --- | --- |
+| 1 — non-durable | **13** | 29 % |
+| 2 — gate-bearing | **3** | 7 % |
+| 3 — enumerated presentation exception | **0** | 0 % |
+| 4 — identity mapping | **1** | 2 % |
+| 5 — in the isolation invariant's domain | **20** | 44 % |
+| 6 — default | **8** | 18 % |
+| **Total** | **45** | 100 % |
+
+**Clause 3's zero is the single most informative number in this table.** It is not an accident of the
+inventory: it is the direct consequence of `07_…md` §6.3 being empty under the selected model `M-A`. The
+web tier holds authority over **nothing**. That is what selecting `M-A` *means*, expressed as a count —
+and it is the property SUB-14 should test hardest, because `SC-S3-43` would satisfy the exception on the
+merits if the list were populated (see §8.7).
+
+**By authority:**
+
+| Authority | Component | Rows |
+| --- | --- | --- |
+| `CMP-S4-9` | Persistence adapters and Postgres | **21** |
+| `CMP-S4-7` | Orchestration workflows | **9** |
+| `CMP-S4-4` | HTTP transport edge | **5** |
+| `CMP-S4-14` | Quality-gate battery | **4** |
+| `CMP-S4-17` | Citation-drift verdict producer | **2** |
+| `CMP-S4-19` | Operational logging sinks | **2** |
+| `CMP-S4-8` | Domain core | **1** |
+| `CMP-S4-10` | Identity provider | **1** |
+| **Total** | 8 of 20 components | **45** |
+
+**Twelve of `05_…md`'s twenty components hold authority over nothing**, including every `Z-EXT` component
+(`CMP-S4-1`, `CMP-S4-2`, `CMP-S4-11`, `CMP-S4-12`), the web tier (`CMP-S4-3`), the STDIO transport edge
+(`CMP-S4-5`), the MCP tool surface (`CMP-S4-6`), the authoring pipeline (`CMP-S4-13`), the gate runner
+(`CMP-S4-15`), the content serve path (`CMP-S4-16`), the drift-verdict cache (`CMP-S4-18`) and the
+derived-extract producer (`CMP-S4-20`). Several of those appear repeatedly in the `W` column — they
+originate or execute writes without holding authority over them. **That separation is the mechanism this
+whole chapter exists to establish**, and `CMP-S4-18` is its cleanest illustration: it *holds* `SC-S3-33`
+and has authority over nothing, exactly as `03_…md` §4.3 specifies.
+
+### 11.1 Two rows in one table, two different authorities
+
+Worth naming so it is not read as an inconsistency. `SC-S3-2` (chunk content, `question — open` → clause
+5 → `CMP-S4-9`) and `SC-S3-4` (content-audit verdict, `no` → clause 6 → `CMP-S4-7`) both live in
+`public.learning_chunks`. The rule keys on the **isolation domain**, not on physical co-location, so
+co-located categories can and do diverge. `04_…md` split that table into three categories for precisely
+this reason — a one-row-per-table inventory would have produced a row needing two or three authorities,
+which `OUT-3`'s exactly-one audit forbids.
+
+### 11.2 Categories that could not take a single authority
+
+**None.** All 45 took one. Two rows required a tie-break to get there, and both are disclosed at the row
+and routed to SUB-6 as `F-S13-1` and `F-S13-2` respectively. **No category was split, shared, or left
+unassigned**, and no category was routed to SUB-6 *instead of* being assigned — the findings accompany
+assignments rather than substituting for them.
+
+---
+
+## 12. What this chapter closes, and what it does not
+
+### 12.1 Closed
+
+- **`OI-S2-2`** — closed. Its condition is that the matrix names exactly one authority for each of three
+  categories, and that "a matrix that omits one of the three, or names two owners for one, does not close
+  it". All three have their own row and exactly one authority: the **gate-verdict record** `SC-S3-35` →
+  `CMP-S4-14`; the **drift-verdict store** `SC-S3-34` → `CMP-S4-17`; the **drift-verdict cache**
+  `SC-S3-33` → `CMP-S4-17`. Closing it also resolves `FL-S4-16`'s "Undetermined" authority column and
+  discharges **`F-S4-3`**. *(The item is recorded in `90_…md` against "SUB-13 (NEU-987)". `NEU-987` is a
+  known merged typo — `F-S3-2` — and `05_…md` §12 states plainly that "SUB-13 is NEU-977, and `NEU-987`
+  is not a child of this charter at all". This chapter is NEU-977's.)*
+- **`OI-S4-1`** — closed. Its condition is that the matrix names exactly one authority for the imported
+  `SC-S3-37` copy **and** states whether a re-import is that authority's write, "because an unattributed
+  re-import is a second writer by another name". `SC-S3-37` → `CMP-S4-7`, and a re-import is
+  **`CMP-S4-7`'s write, executed through `CMP-S4-13`**; no other component may refresh the copy. See
+  §8.6.
+- **`OUT-9`'s second half** — the drift-verdict store now has a place in the authority matrix.
+
+### 12.2 Half-discharged, and staying open
+
+- **`OI-S3-1`** — **not closed.** Its closure condition requires a resolved learner-scoping value for
+  every `SC-S3-*` row and states that "a matrix that carries the column forward still marked
+  `question — open` does not close it"; it also names SUB-14 as a co-consumer, so it could not close on
+  SUB-13 alone in any case. What this chapter *can* resolve, it has: every row's **isolation-domain
+  membership** and hence its clause is now settled, and clause 5's "only an explicit `no` leaves the
+  domain" means an unresolved question is treated conservatively rather than optimistically.
+  What it must not do is assert the value itself — `04_…md` §2 defines the column as recording the
+  **question**, §6 confirms no ownership column exists on any table, and NEU-850's `OUT-2` is a decision
+  to honour rather than a fact to report. The closure condition as written is therefore unsatisfiable by
+  any document that respects `04_…md` §6, and that tension is filed as **`F-S13-3`** and routed to
+  SUB-12.
+
+### 12.3 Explicitly not closed
+
+- **`CAP-S4-1`** — **stays open.** No component in `05_…md`'s inventory can be named the deletion owner
+  for `SC-S3-16` or `SC-S3-17`, and `05_…md` §9.2 records the obstruction as **structural**: the tables
+  have no principal field, so there is nobody to delete for. Deletion ownership is not write authority;
+  this chapter assigns the latter to both rows (`CMP-S4-9`) and leaves the former exactly where it found
+  it. `05_…md` names the unblocking condition — a principal field on both tables, or a store for
+  `SC-S3-45` — and only then can this be assigned.
+- **`F-S3-3`** (no retention window and no deletion owner on either log table) is cited at both rows and
+  is not re-filed.
+- **`CAP-S1-3`** already records that no QA pass exists for this package; it is cited here, not
+  duplicated.
+- **`CAP-S3-1`** carries `SC-S3-32`'s unresolved field set under `CH-F5-1`; this chapter does not widen
+  the field set and does not re-file the cap.
+- **`OI-S6-1`** (the store reversal, which reverses by only 2/500 and is fragile) is SUB-6's, evaluated
+  by SUB-10. This matrix is written against the selected model `M-A` as it stands. Were the reversal to
+  land, §11's distribution shows the blast radius precisely: `07_…md` §6.3 would gain one entry and
+  `SC-S3-43` would move to `CMP-S4-3`. Nothing else in this matrix would change.
+
+### 12.4 Findings raised here
+
+| Id | In one line | Routed to |
+| --- | --- | --- |
+| `F-S13-1` | No clause keys on "this row's sole writer is already fixed by a merged predecessor contract", so clause 2 and clause 6 both name an authority that `03_…md` §4.2–§4.3 forbids exercising for `SC-S3-33`/`SC-S3-34`; resolved by tie-break (c) under a disclosed narrow reading of tie-break (b). | SUB-6 |
+| `F-S13-2` | Clause 4 names `CMP-S4-2` as `Z-IDP`'s component; `05_…md` §3.1 places `CMP-S4-2` in `Z-EXT` and names `CMP-S4-10` as `Z-IDP`'s only component. Applied literally, clause 4 hands the identity mapping to a third party outside the trust boundary. | SUB-6 |
+| `F-S13-3` | `OI-S3-1`'s closure condition demands a resolved learner-scoping value for every row, which `04_…md` §2 and §6 forbid any document from asserting. The condition is unsatisfiable as written. | SUB-12 |
+| `F-S13-4` | The charter and tracker size this sub-task at 25–30 categories and 250–300 cells; the merged inventory publishes 45 and this chapter authors 450. Distinct from `F-S4-2`, which is about `04_…md`'s own stale §3 heading rather than the charter's stale sizing. | SUB-12 |
+
+### 12.5 The one open item raised here
+
+`OI-S13-1` — the *migration path* attribute for the store-`none` rows is a **shape**, not a destination,
+until `OUT-8`'s store topology lands. Owner SUB-10, which causes the resolving event. Recorded once, in
+`90_…md`, rather than repeated at each row that names it.
+
+---
+
+## 13. What this chapter hands on
+
+| To | What it takes | With what caveat |
+| --- | --- | --- |
+| **SUB-14 (NEU-978)** | This matrix, in full. It is SUB-14's primary input. | Apply the isolation invariant, walk the scenarios, cross-check `05_…md`'s flows, re-run both audits. §10.3 names what the audits do **not** check; `F-S13-1` and `F-S13-2` name the two rows whose reasoning is most worth attacking. |
+| **SUB-16** | This matrix plus SUB-14's findings. | SUB-16 dispositions and republishes. **That revision supersedes this one.** |
+| **SUB-7, SUB-8, SUB-10** | Nothing yet. | Resolve against **SUB-16's** post-absorption revision, not this pre-validation one (§2). A consumer that reads this revision early owes itself a re-check when SUB-16 lands. |
+| **SUB-12** | `F-S13-3` and `F-S13-4`. | `91_…md` records that this chapter raises **no new cap**; the four existing caps that bound it are cited there. |
+| **SUB-6 (NEU-976)** | `F-S13-1` and `F-S13-2`. | Both are defects in the rule, not in its application. Neither was repaired locally; both rows still carry exactly one authority. |
+| **SUB-3 (NEU-973)** | Nothing. | The inventory ↔ matrix audit found zero unmatched items in either direction (§10.2). |
+
+---
+
+## 14. Verification note
+
+Every count in §10 and §11 was produced by parsing §8's `####` blocks mechanically — id, authority marker
+and clause citation per block — rather than tallied by hand. The row domain was verified independently
+against the merged `04_…md` before authoring began, and again after: **45 distinct `SC-S3-*` ids, minimum
+1, maximum 45, no gaps**, agreeing with `04_…md` §8's own counts.
+
+`NEU-987` appears in this chapter exactly once, in §12.1, and only to record that it is a known merged
+typo for this sub-task's real id. This sub-task is **NEU-977**.
+
