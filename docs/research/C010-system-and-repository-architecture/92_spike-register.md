@@ -140,3 +140,47 @@ Later sub-tasks: append your own `### SUB-<n>` section BELOW this comment, conta
 `#### SPK-S<n>-<k>` block per spike, copied from the §9 template with every field filled.
 Do not edit any section above your own. On conflict, keep both sides.
 -->
+
+### SUB-2
+
+*One record — the first written into this register. SUB-1 published the rules above and ran nothing under them; this is the first exercise of them.*
+
+#### `SPK-S2-1` — Does an authoring-time execution of a creator-authored approach need an isolation and resource boundary, or is it an unremarkable in-process function call?
+
+- **Id:** `SPK-S2-1`
+- **Sub-task:** SUB-2 (NEU-972)
+- **Question:** When the authoring-time gate battery executes a creator's approach — `EQ-S4-6`, boundary confrontation — **can a bound be enforced without an isolation boundary?** Concretely: if the executed unit does not terminate, can a guard armed inside the same process fire, report a verdict, and let the pipeline continue? A **yes** makes the execution an unremarkable function call inside whatever process the authoring pipeline occupies, with no component to place. A **no** makes it a component with a boundary, a failure mode and a resource budget, which `SUB-4 (NEU-974)` must place and `SUB-13 (NEU-987)` must give an authority. The question has a wrong answer either way.
+- **Why reading could not settle it:** Four sources were read at the 2026-08-21 cutoff and each failed on the same point.
+  - `../C009-course-content-quality/09_enforceable-quality-system.md:70` (NEU-890, compiled 2026-08-10) names the `automated` class's cost as *"An execution environment, and a re-run budget"* — and **stops**. It establishes that an execution is required; it says nothing about whether that execution needs a boundary or what enforces the budget.
+  - `../C009-course-content-quality/09_enforceable-quality-system.md:216`, `:325` establish that `EQ-S4-6` is `automated`, **`blocks`**, and authoring-time, and that all four standards are authoring-time. They fix **when** the execution runs, not **how it is contained**.
+  - `../C009-course-content-quality/decision-records/DR-C09-04_authoring-languages.md:92` states in as many words that NEU-890 *"selects no runtime, no compiler, no sandbox and no execution environment"* — an explicit refusal to answer, not an answer.
+  - `../C009-course-content-quality/06_assessment-evidence-out-of-band.md:409` states NEU-890 *"implements no grader, judge, or submission surface"*, so there is no upstream implementation to inspect either.
+  - **The repository was read too, and had nothing to offer:** a scan of `src/` for `child_process`, `worker_threads`, `vm`, `vm2`, `isolated-vm`, `execSync` and `spawnSync` returns **zero** hits. There is no existing execution machinery whose shape could have answered the question by precedent.
+  - `OI-S1-1` records exactly this gap and names SUB-2 as its owner. **What every source failed to answer is the same thing: whether the guard the budget implies can be enforced from inside the executing process.** That is an empirical property of a runtime, not a claim in a document.
+- **Exit condition:** *(stated before the harness was written)* **When the harness has been run once in each of the three arrangements and the three outcomes — host survived, guard fired, control reclaimed — are recorded side by side in this register.** Three runs, three recorded triples. Not a date, not anyone's judgement about whether the answer feels settled.
+- **Method:** A throwaway Node harness, five `.mjs` files, run under **Node v22.23.1** on the development host. A stand-in authored unit exposes two approaches: a well-behaved one that returns, and a non-terminating one whose loop increments only under a condition that is never true — an **ordinary authoring mistake**, chosen deliberately over an adversarial construct because no adversary supplies code to this component (`DR-C10-S2-1`). Three arrangements, each with a **1000 ms guard armed before the unit started**:
+  - **A** — the well-behaved unit, called in-process.
+  - **B** — the non-terminating unit, called in-process, guard armed as a same-thread `setTimeout`. Run under an external 6000 ms `SIGKILL` so the experiment itself could not hang.
+  - **C** — the **same** non-terminating unit inside a `worker_threads` `Worker`; at 1000 ms the host calls `worker.terminate()` and awaits it.
+  Repeatable by anyone with Node: two approaches, three call sites, one timer per arrangement.
+- **Quarantine path:** `_local/scratch/NEU-972/` — five files, gitignored at `.gitignore:100`. Confirmed after the runs: `git status --untracked-files=all` returned **empty**, so **nothing landed under `src/`, `tests/` or `drizzle/`**, nothing was staged, and **nothing is merged as product code**. The harness is not a prototype and does not graduate; if code like it is ever needed, the charter that owns the gate runner writes it from `DR-C10-S2-2`, not from this tree.
+- **Result:** *Stated in full, because `_local/scratch/` is gitignored and no later reader can open it.*
+
+  | Arrangement | Observed output | Host survived | Guard fired | Control reclaimed |
+  | --- | --- | --- | --- | --- |
+  | **A** — well-behaved, in-process | `A: result=499500` then `A: HOST SURVIVED=yes GUARD FIRED=no CONTROL RECLAIMED=yes`. Exit 0. | **yes** | not needed | **yes** |
+  | **B** — non-terminating, in-process, same-thread guard | `B: guard armed at 1000ms; entering authored unit` — **and nothing further.** No `GUARD FIRED` line was ever printed. The process produced no more output and was killed by the external `SIGKILL` at 6000 ms; the shell reported **exit 137**. | **no** | **no** | **no** |
+  | **C** — non-terminating, inside a terminable worker | `C: guard armed at 1000ms; worker started`, then `C: GUARD FIRED; worker.terminate() resolved code=1 at 1007ms`, then `C: HOST SURVIVED=yes GUARD FIRED=yes CONTROL RECLAIMED=yes`, then `C: node=v22.23.1`. Exit 0. | **yes** | **yes** | **yes** — at **1007 ms**, 7 ms after the deadline |
+
+  **The answer is no: a bound cannot be enforced without an isolation boundary.** Arrangement B is the finding. The runaway holds the very thread the guard would run on, so the guard is not merely late — **it never runs at all**, and the gate runner cannot even *observe* the failure it exists to report. The process must be killed from outside, and every gate queued behind it dies with it. Arrangement C shows the boundary is sufficient as well as necessary: a host-side `terminate()` reclaimed a tight synchronous loop within 7 ms of the deadline.
+
+  **What the result does not show.** It does not show that the failure is frequent (`CAP-S2-2`), it does not establish a value for the bound (`CAP-S2-1`), and it does not select `worker_threads` as the primitive — that was the cheapest way to get an isolate, not a technology selection (`SUB-10 (NEU-984)` owns the substrate).
+- **Confidence:** **high** — for the qualitative conclusion, and only that. The mechanism is not subtle: a synchronous loop starves the event loop the timer lives on, which is a property of the runtime's execution model rather than of this harness. Three runs agreed with no ambiguity, and arrangement C's `terminate()` resolved on the first attempt. **What would lower it:** a substrate on which a host-side terminate of a running isolate is unavailable or does not preempt a tight loop — which is precisely `DR-C10-S2-2`'s third revision trigger. **What would raise it:** re-running the three arrangements on the substrate `SUB-10 (NEU-984)` actually selects.
+- **Expiry:** **2027-04-30** — mandatory field, and a real date.
+- **Expiry rationale:** What would make this answer wrong is a change in the runtime, not the passage of time. The result was observed on **Node v22.23.1**, and the published Node release schedule ends the 22.x line at the end of April 2027, after which this repository will be on a later major. `Worker.terminate()`'s ability to preempt a tight synchronous loop, and the same-thread timer's inability to fire, are both behaviours of a specific runtime's execution model — stable in practice, but not guaranteed across a major-version boundary. The date is therefore set at the point where the observed runtime stops being the one the project runs on.
+- **On expiry:** re-run, or re-label the conclusion. **The record does not close on this date**, and the item it resolved (`OI-S1-1`) does not reopen; what goes stale is every document citing it — see §6.
+- **Cited by:**
+  - `../decision-records/DR-C10-S2-2_authoring-time-execution-boundary.md` — the decision rests on this record and states the inherited expiry in place.
+  - `../03_execution-environment-and-citation-drift-component.md` §3.3, §3.4 — the chapter's authoring-time conclusion.
+  - `../90_open-items-and-provisional-register.md` `### SUB-2` — the disposition of `OI-S1-1`.
+  - `../traceability/S2_execution-environment-and-drift-coverage.md` — `OUT-9` and `OUT-10` coverage rows.
