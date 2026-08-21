@@ -40,11 +40,15 @@ A candidate that fails the admission rule is **rejected from this register and r
 
 Every entry below carries all of these. An entry missing any one of them fails `OUT-11`'s completeness audit:
 
-1. **Status** — always `[unconfirmed]`. Nothing in this register is confirmed; that is what makes it this register.
-2. **Stands in for** — exactly one of NEU-891 / NEU-892 / NEU-893 / NEU-894.
-3. **Tolerance envelope** — the range of outcomes the architecture tolerates without being invalidated.
-4. **Invalidating outcome** — the specific, named outcome that breaks the decisions resting on this entry.
-5. **Re-validation trigger** — the observable event that fires the re-check.
+| # | Literal label | What it records |
+| --- | --- | --- |
+| 1 | `**Status:**` | Always `[unconfirmed]`. Nothing in this register is confirmed; that is what makes it this register. |
+| 2 | `**Stands in for:**` | Exactly one of NEU-891 / NEU-892 / NEU-893 / NEU-894. |
+| 3 | `**Tolerance envelope:**` | The range of outcomes the architecture tolerates without being invalidated. |
+| 4 | `**Invalidating outcome:**` | The specific, named outcome that breaks the decisions resting on this entry. |
+| 5 | `**Re-validation trigger:**` | The **observable event** that fires the re-check — never a date, never a party's satisfaction. |
+
+**The labels are literal, and the exact strings above are load-bearing.** `NEU-985 (SUB-11)` audits this register mechanically by counting label occurrences against the entry count; a label written as `**Tolerance envelope.**` or `**Envelope:**` is invisible to that count and reads as a missing field. Each entry additionally carries an `**Assumption:**` field stating the claim itself.
 
 **Citing an entry.** A decision resting on one of these **names it in the decision**, in the sentence — `…tolerable under A-27…` — not only in an appendix or a summary table. `OUT-11`'s decision-level check looks for exactly that.
 
@@ -57,13 +61,13 @@ Every entry below carries all of these. An entry missing any one of them fails `
 **Status:** `[unconfirmed]`
 **Stands in for:** **NEU-891** (tutoring). Program-level source: **C005's OUT-5**, unbuilt.
 
-**Assumption.** Adaptive hinting needs per-learner, per-node interaction state, with sub-second read latency on the learner's path, and at least one AI provider call per hint escalation.
+**Assumption:** Adaptive hinting needs per-learner, per-node interaction state, with sub-second read latency on the learner's path, and at least one AI provider call per hint escalation.
 
-**Tolerance envelope.** The architecture tolerates any hint model in which the AI call is made **outside a gate-bearing write path** — synchronous on a read path, asynchronous anywhere, or batched ahead of time. It tolerates hint state being learner-scoped and node-scoped at any granularity, and it tolerates any number of escalation levels. It tolerates the hint store being a new category with its own authority under `OUT-3`, or an extension of an existing one.
+**Tolerance envelope:** The architecture tolerates any hint model in which the AI call is made **outside a gate-bearing write path** — synchronous on a read path, asynchronous anywhere, or batched ahead of time. It tolerates hint state being learner-scoped and node-scoped at any granularity, and it tolerates any number of escalation levels. It tolerates the hint store being a new category with its own authority under `OUT-3`, or an extension of an existing one.
 
-**Invalidating outcome.** A hint model requiring **synchronous multi-turn AI orchestration inside a gate-bearing write path** — because that puts a variable-latency external dependency inside the transaction that decides mastery, which no authority assignment in `OUT-3` can make safe without changing the boundary `OUT-1` draws.
+**Invalidating outcome:** A hint model requiring **synchronous multi-turn AI orchestration inside a gate-bearing write path** — because that puts a variable-latency external dependency inside the transaction that decides mastery, which no authority assignment in `OUT-3` can make safe without changing the boundary `OUT-1` draws.
 
-**Re-validation trigger.** **NEU-891 lands** — its package is published under `docs/research/`. On that event, every decision citing `A-25` is re-checked against the envelope above, and the result is recorded.
+**Re-validation trigger:** **NEU-891 lands** — its package is published under `docs/research/`. On that event, every decision citing `A-25` is re-checked against the envelope above, and the result is recorded.
 
 ---
 
@@ -72,13 +76,13 @@ Every entry below carries all of these. An entry missing any one of them fails `
 **Status:** `[unconfirmed]`
 **Stands in for:** **NEU-891** (AI budgets). Program-level source: C005 routes these budgets to **C005's OUT-5**, which is unbuilt; the charter's intake recorded them as deferred.
 
-**Assumption.** **No latency, privacy or cost budget for AI orchestration exists.** This entry deliberately does **not** assume one. The architecture states the envelope it tolerates and names the outcome that would invalidate its AI-placement decision, rather than inventing a budget and presenting it as grounded.
+**Assumption:** **No latency, privacy or cost budget for AI orchestration exists.** This entry deliberately does **not** assume one. The architecture states the envelope it tolerates and names the outcome that would invalidate its AI-placement decision, rather than inventing a budget and presenting it as grounded.
 
-**Tolerance envelope.** The `OUT-8` AI-orchestration placement tolerates any budget under which (a) at least one AI provider call may be made **server-side**, from our infrastructure, with learner-derived content in the request; (b) AI work may be moved **off** the learner's synchronous path without changing which component owns it; and (c) cost is bounded per call rather than per learner-session, so an escalation is priced by the call. Within that envelope the placement decision is unchanged whatever the numbers turn out to be.
+**Tolerance envelope:** The `OUT-8` AI-orchestration placement tolerates any budget under which (a) at least one AI provider call may be made **server-side**, from our infrastructure, with learner-derived content in the request; (b) AI work may be moved **off** the learner's synchronous path without changing which component owns it; and (c) cost is bounded per call rather than per learner-session, so an escalation is priced by the call. Within that envelope the placement decision is unchanged whatever the numbers turn out to be.
 
-**Invalidating outcome.** *(Field derived by SUB-1 — the charter states the obligation to name one but leaves the naming to this package.)* A budget under which **learner-derived content may not leave our infrastructure at all**, or under which **no AI provider call may be made server-side on any path**. Either forces AI orchestration out of the placement `OUT-8` selects and into a component — on-device, or a separately-governed processor — that `OUT-1` does not currently draw a boundary for.
+**Invalidating outcome:** *(Field derived by SUB-1 — the charter states the obligation to name one but leaves the naming to this package.)* A budget under which **learner-derived content may not leave our infrastructure at all**, or under which **no AI provider call may be made server-side on any path**. Either forces AI orchestration out of the placement `OUT-8` selects and into a component — on-device, or a separately-governed processor — that `OUT-1` does not currently draw a boundary for.
 
-**Re-validation trigger.** **NEU-891 lands** and publishes budgets. On that event the stated envelope is compared against the published numbers and the `OUT-8` AI-placement decision is re-checked.
+**Re-validation trigger:** **NEU-891 lands** and publishes budgets. On that event the stated envelope is compared against the published numbers and the `OUT-8` AI-placement decision is re-checked.
 
 ---
 
@@ -87,13 +91,13 @@ Every entry below carries all of these. An entry missing any one of them fails `
 **Status:** `[unconfirmed]`
 **Stands in for:** **NEU-892** (UI). Program-level source: **C005's OUT-6**, unbuilt.
 
-**Assumption.** A rich, stateful, authenticated learner-facing web surface, with interaction state that is *not* gate-bearing — **no mastery gate depends on browser-held state**.
+**Assumption:** A rich, stateful, authenticated learner-facing web surface, with interaction state that is *not* gate-bearing — **no mastery gate depends on browser-held state**.
 
-**Tolerance envelope.** The architecture tolerates any rendering model — server-rendered, client-rendered, or a mix — because `OUT-1` states the browser-trust property as one that must hold under **every** rendering model, and *which* surface renders where is `OUT-8`'s decision. It tolerates arbitrarily rich client-side interaction state, arbitrary client-side caching of read data, and optimistic UI, **provided the server re-evaluates every gate from server-held state**.
+**Tolerance envelope:** The architecture tolerates any rendering model — server-rendered, client-rendered, or a mix — because `OUT-1` states the browser-trust property as one that must hold under **every** rendering model, and *which* surface renders where is `OUT-8`'s decision. It tolerates arbitrarily rich client-side interaction state, arbitrary client-side caching of read data, and optimistic UI, **provided the server re-evaluates every gate from server-held state**.
 
-**Invalidating outcome.** A UI direction requiring **offline-capable or client-authoritative learning state** — because that makes the browser an authority for a state category under `OUT-3`, which contradicts the trust property `OUT-1` asserts and the isolation invariant `OUT-4` states.
+**Invalidating outcome:** A UI direction requiring **offline-capable or client-authoritative learning state** — because that makes the browser an authority for a state category under `OUT-3`, which contradicts the trust property `OUT-1` asserts and the isolation invariant `OUT-4` states.
 
-**Re-validation trigger.** **NEU-892 lands** — its package is published under `docs/research/`. On that event, the browser-trust property in `OUT-1` and the rendering-model decision in `OUT-8` are both re-checked against the published direction.
+**Re-validation trigger:** **NEU-892 lands** — its package is published under `docs/research/`. On that event, the browser-trust property in `OUT-1` and the rendering-model decision in `OUT-8` are both re-checked against the published direction.
 
 ---
 
@@ -102,13 +106,13 @@ Every entry below carries all of these. An entry missing any one of them fails `
 **Status:** `[unconfirmed]`
 **Stands in for:** **NEU-893** (production integration and learner isolation). Program-level source: **C005's OUT-9**, unbuilt. **See also `F-S1-1`** in `02_findings-register.md` — the circularity that makes this entry necessary.
 
-**Assumption.** Learner isolation will be enforced **server-side at or below the port boundary**; the **existing production deployment continues to back the product**; and a **backward-compatible migration path for existing global rows** exists.
+**Assumption:** Learner isolation will be enforced **server-side at or below the port boundary**; the **existing production deployment continues to back the product**; and a **backward-compatible migration path for existing global rows** exists.
 
-**Tolerance envelope.** The architecture tolerates isolation enforced at the repository-port layer, in the database schema (row-level or predicate-based), or at both. It tolerates the migration being staged, reversible, or run in a single step. It tolerates existing global rows being backfilled to a single owner, quarantined, or archived. It tolerates the production Postgres being shared with a new web tier or fronted by one, since `OUT-8` decides data-store topology within this envelope.
+**Tolerance envelope:** The architecture tolerates isolation enforced at the repository-port layer, in the database schema (row-level or predicate-based), or at both. It tolerates the migration being staged, reversible, or run in a single step. It tolerates existing global rows being backfilled to a single owner, quarantined, or archived. It tolerates the production Postgres being shared with a new web tier or fronted by one, since `OUT-8` decides data-store topology within this envelope.
 
-**Invalidating outcome.** A finding that **safe isolation requires a separate deployment or a separate datastore** — because that relocates the authority assignments `OUT-3` makes and the boundary `OUT-1` draws between the web tier and the MCP core, and it invalidates the deployment-shape decision in `OUT-8`.
+**Invalidating outcome:** A finding that **safe isolation requires a separate deployment or a separate datastore** — because that relocates the authority assignments `OUT-3` makes and the boundary `OUT-1` draws between the web tier and the MCP core, and it invalidates the deployment-shape decision in `OUT-8`.
 
-**Re-validation trigger.** **NEU-893 lands** — its package is published under `docs/research/`. On that event the `OUT-4` disjointness contract is re-checked for gaps and overlaps against what NEU-893 actually decided, and every decision citing `A-28` is re-checked against the envelope.
+**Re-validation trigger:** **NEU-893 lands** — its package is published under `docs/research/`. On that event the `OUT-4` disjointness contract is re-checked for gaps and overlaps against what NEU-893 actually decided, and every decision citing `A-28` is re-checked against the envelope.
 
 ---
 
@@ -117,13 +121,13 @@ Every entry below carries all of these. An entry missing any one of them fails `
 **Status:** `[unconfirmed]`
 **Stands in for:** **NEU-894** (chat handoff). Program-level source: **C005's OUT-7**, unbuilt.
 
-**Assumption.** Course-to-chat handoff needs a **bounded, expiring, revocable authorization and context envelope** crossing the trust boundary to an external MCP client, and **no continuous bidirectional state sync**.
+**Assumption:** Course-to-chat handoff needs a **bounded, expiring, revocable authorization and context envelope** crossing the trust boundary to an external MCP client, and **no continuous bidirectional state sync**.
 
-**Tolerance envelope.** The architecture tolerates any envelope shape — a token, a scoped grant, a signed context blob — and any lifetime, provided it **expires** and can be **revoked**. It tolerates the external client reading any state category the envelope's scope permits, at any freshness. It tolerates one-way push of context at handoff time, and it tolerates the external client writing back through an existing gated MCP tool under its own authorization.
+**Tolerance envelope:** The architecture tolerates any envelope shape — a token, a scoped grant, a signed context blob — and any lifetime, provided it **expires** and can be **revoked**. It tolerates the external client reading any state category the envelope's scope permits, at any freshness. It tolerates one-way push of context at handoff time, and it tolerates the external client writing back through an existing gated MCP tool under its own authorization.
 
-**Invalidating outcome.** A handoff design requiring the **external client to hold write authority over any state category** — because `OUT-3` gives each category exactly one authority, and an external client holding write authority puts a component outside our trust boundary inside the authority matrix, which no isolation invariant under `OUT-4` can then enforce.
+**Invalidating outcome:** A handoff design requiring the **external client to hold write authority over any state category** — because `OUT-3` gives each category exactly one authority, and an external client holding write authority puts a component outside our trust boundary inside the authority matrix, which no isolation invariant under `OUT-4` can then enforce.
 
-**Re-validation trigger.** **NEU-894 lands** — its package is published under `docs/research/`. On that event the trust boundary in `OUT-1` and the authority matrix in `OUT-3` are both re-checked against the published handoff design.
+**Re-validation trigger:** **NEU-894 lands** — its package is published under `docs/research/`. On that event the trust boundary in `OUT-1` and the authority matrix in `OUT-3` are both re-checked against the published handoff design.
 
 ---
 
