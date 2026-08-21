@@ -333,4 +333,180 @@ place this row in a gate component's *read* set (clause 2). Status: `existing`.
 | Migration path | None required. |
 | Observability | Absence of a mapping for a graded question is the only failure mode, and is detectable by join. |
 
+#### `SC-S3-9` — Attempt and grade record
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: question — open`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-7` when grading and when deriving `SC-S3-29`; `CMP-S4-8` as scheduler input; analytics via `SC-S3-30`. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`. Created on answer and **mutated in place by `revise_grade`** (`src/adapters/drizzle/session-question-repository.ts:194`–`:223`). |
+| Consistency | A revision commits atomically with the `SC-S3-11` audit row that preserves the pre-revision values, and with the `SC-S3-3` scheduling update it causes. A revised grade whose audit row is missing is an unreconstructible history. |
+| Freshness | Strictly current — the grade is the scheduler's input. |
+| Concurrency | A revision and a fresh attempt against the same question must serialize; the revision reads the row it rewrites. |
+| Conflict handling | No merge. The revision replaces the graded fields wholesale and preserves the prior values in `SC-S3-11`. |
+| Recovery | Durable. The `SC-S3-11` trail makes any revision reversible in principle; the original attempt values are never lost. |
+| Migration path | None required. |
+| Observability | The `SC-S3-11` trail is the audit signal. `SC-S3-10` records what the scheduler predicted at answer time, which survives the revision unchanged. |
+
+#### `SC-S3-10` — Pre-review scheduling snapshot (the NEU-844 quad)
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: question — open`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Analytics and scheduler-calibration work; `CMP-S4-8` when comparing predicted against actual. Not read on the serve path. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`. **Write-once at answer time, never revised** — explicitly including the case where `revise_grade` mutates the surrounding `SC-S3-9` row. |
+| Consistency | Written in the same transaction as the attempt it describes. The four fields (`snapshot_band`, `snapshot_predicted_recall`, `snapshot_interval_days`, `snapshot_days_overdue`) commit as one group. |
+| Freshness | Not applicable — the value is a historical record of a prediction, and is correct forever by construction. |
+| Concurrency | Single write. No race. |
+| Conflict handling | None possible. The write-once property is the whole point: a revised snapshot would destroy the evidence that the scheduler's prediction was wrong. |
+| Recovery | Durable. Not recomputable — the scheduler state that produced it has since advanced. Loss is permanent. |
+| Migration path | None required. |
+| Observability | This category *is* the observability substrate for `SC-S3-3`. Nothing observes it in turn. |
+
+#### `SC-S3-11` — Grade-revision audit trail
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: question — open`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Operators and audit review; `CMP-S4-7` when reporting revision history. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`. **Appended inside the revision transaction, never mutated.** |
+| Consistency | Append and revision commit together or neither commits. This is the strongest consistency requirement in the `public` schema, because the trail's only value is that it cannot be absent when a revision happened. |
+| Freshness | Not applicable — append-only history. |
+| Concurrency | Appends do not conflict. |
+| Conflict handling | None possible; there is no update path. |
+| Recovery | Durable. Not recomputable — the pre-revision values exist nowhere else once `SC-S3-9` is rewritten. |
+| Migration path | None required. |
+| Observability | The trail is itself an observability artifact. A revision without a trail row is the failure mode, detectable by join against `SC-S3-9`'s revised rows. |
+
+#### `SC-S3-12` — Notes
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`.
+**Clause 5** — `Learner-scoped: question — open`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-7` when serving a chunk, topic or run with its annotations. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`. Created, **never updated in place** (no `updatedAt`; `schema.ts:287` comment; no update path in `src/adapters/drizzle/notes-repository.ts`), deleted and re-added instead. |
+| Consistency | The referenced chunk, topic or run must exist at write time. |
+| Freshness | Read-your-writes. A note is a learner-facing artifact with no downstream consumer that could be misled by staleness. |
+| Concurrency | Creates do not conflict. A delete-and-re-add pair from two callers can interleave into a lost note; there is no compare-and-set. |
+| Conflict handling | None. The delete-and-re-add idiom means the last add wins and the intermediate content is simply gone. |
+| Recovery | Durable; deleted with its referent. |
+| Migration path | None required. |
+| Observability | None specific. Note churn is visible only in `SC-S3-16`. |
+
+#### `SC-S3-13` — Context tokens
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-7`; the gate they enforce is applied at `CMP-S4-4`.
+**Clause 5** — `Learner-scoped: question — open`, and `04_…md` records explicitly that the table carries
+**no authenticated subject**. Status: `existing`. Volatility `TTL`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-4`/`CMP-S4-6` on every non-bootstrap MCP tool call, to admit or reject the call. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-7`. Minted at bootstrap, **never mutated**, expires by `expiresAt` and is swept by the repository. |
+| Consistency | A token is valid from commit; there is no window in which a minted token is unusable. Expiry is evaluated against `expiresAt` at read, so the sweep is reclamation, not enforcement. |
+| Freshness | Strictly current: a token read after its expiry must be rejected even if the sweep has not run. |
+| Concurrency | Mint and sweep do not conflict — the sweep only removes rows already past `expiresAt`. |
+| Conflict handling | None; no update path. |
+| Recovery | Durable, but disposable: a lost token set forces re-bootstrap, which is a recoverable inconvenience, not data loss. |
+| Migration path | None required for the store. **The absence of an authenticated subject is a design gap this matrix does not close** — the row is inside the invariant's domain by clause 5, but the table has nothing to scope *by* until NEU-893 lands (`A-28`). |
+| Observability | Sweep activity and admission failures appear in `SC-S3-16`. There is no signal distinguishing "expired" from "never existed". |
+
+### 8.2 Existing, persisted — `infrastructure` schema, Drizzle-defined
+
+#### `SC-S3-14` — Linter validation corpus
+
+**Authority: `CMP-S4-7`**, written to the store by `CMP-S4-9`.
+**Clause 6** — `Learner-scoped: no`; §6's lookup does not place it in a gate component's read set (it is
+an input to *validating* a rule, not to running one). Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | The Tier-1b rule-validation process, on the authoring side of `CMP-S4-14`; maintainers. |
+| Writes | `CMP-S4-7`, issued to `CMP-S4-9`. Curated by the maintainer, mutated by re-labelling, durable. |
+| Consistency | The split assignment and the expected verdict commit together; a corpus item whose split is unknown cannot be scored. |
+| Freshness | No bound. The corpus is a slowly-curated asset, not a runtime input. |
+| Concurrency | Maintainer-serial in practice. Two re-labellings of one item are last-writer-wins. |
+| Conflict handling | No merge; the label is replaced. |
+| Recovery | Durable. **Not recomputable** — the labels are human judgement, so loss requires re-labelling from scratch. |
+| Migration path | None required. |
+| Observability | `SC-S3-15` is the downstream signal: a corpus change shows up as a shift in the next validation report. |
+
+#### `SC-S3-15` — Per-rule validation report
+
+**Authority: `CMP-S4-7`**, written to the store by `CMP-S4-9`.
+**Clause 6** — `Learner-scoped: no`; not in a gate read set. The report *supports* a
+blocking-eligibility decision but is not consulted by `CMP-S4-14` when running a gate. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Maintainers deciding whether a rule may block; rule-promotion review. |
+| Writes | `CMP-S4-7`, issued to `CMP-S4-9`. Written per validation run, superseded by the next run. |
+| Consistency | Held-out and adversarial precision/recall commit together with the rule identity and the corpus version they were measured against. A metric that cannot name its corpus is not evidence. |
+| Freshness | Valid until the rule or the corpus changes. Either change invalidates the report. |
+| Concurrency | One validation run at a time in practice; concurrent runs are last-writer-wins. |
+| Conflict handling | No merge; the report row is superseded wholesale. |
+| Recovery | Durable and fully recomputable by re-running validation against the corpus. |
+| Migration path | None required. |
+| Observability | The report is itself the observability artifact for gate strictness. |
+
+### 8.3 Existing, persisted — `infrastructure`, raw-SQL only
+
+Both rows below are written from a pino transport worker thread through hand-built parameterized
+`INSERT` strings. **Neither has a Drizzle schema object and neither is reached through a repository
+port** — which is exactly why a port-keyed inventory would have omitted both (`DR-C10-S3-1`).
+
+Both carry the same structural gap, and it is important to state precisely what this matrix does and does
+not do about it. **Deletion ownership is not write authority.** `CAP-S4-1` records that *no component in
+`05_…md`'s inventory can be named the deletion owner* for either table, and that the obstruction is
+**structural**: neither table has a principal field, so there is no one to delete *for*. That cap is
+cited here and **stays open** — this chapter does not close it, and could not. What this chapter does is
+narrower and still worth doing: it names the single component permitted to **write** each table, which is
+a different question and one the rule answers cleanly.
+
+#### `SC-S3-16` — MCP request log
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-19` (operational logging sinks).
+**Clause 5** — `Learner-scoped: question — open`. `04_…md` records that the table **holds learner
+payload** (`response_body` and `params` carry learner-facing text and learner free-text answers) while
+carrying **no principal field**, which is precisely why the scoping question is open rather than `no`.
+Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Operators, for incident investigation. No component reads it on the request path. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-19` — the sink batches and flushes; the store write is the persistence authority's. Appended per request, never mutated. |
+| Consistency | Best-effort by design. `CMP-S4-19` fails open: an unavailable log sink must never fail a learner's request. A missing log line is acceptable; a failed request because of logging is not. |
+| Freshness | No bound. Nothing reads it synchronously. |
+| Concurrency | Appends do not conflict. |
+| Conflict handling | None; append-only with no update path. |
+| Recovery | **Lossy.** Entries buffered in `SC-S3-25` and not yet flushed are lost on crash, and are dropped outright while that sink's breaker is open. The log is evidence, not a ledger, and must not be treated as complete. |
+| Migration path | The category stays where it is. **The gap that needs a path is a principal field**: `05_…md` §9.2 states that adding one (or giving `SC-S3-45` a store) is what turns the deletion owner from *unassignable* into merely *unassigned*, and only then can it be assigned. Until then, `CAP-S4-1` stands and `F-S3-3`'s retention gap has no owner. |
+| Observability | The table is itself the primary observability substrate. It has **no** observability of its own: there is no counter for entries dropped while the breaker was open, so the lossiness above is invisible in production. |
+
+#### `SC-S3-17` — Operation event log
+
+**Authority: `CMP-S4-9`**, written through `CMP-S4-19`.
+**Clause 5** — `Learner-scoped: question — open`; the `data` payload column is potentially learner
+payload. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-14`'s Tier-2 blocking-stats query, by raw SQL at `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`, feeding `SC-S3-21`; operators. |
+| Writes | `CMP-S4-9`, issued through `CMP-S4-19` (`src/transport/pg-event-transport.ts:109`). Appended per event, never mutated. |
+| Consistency | Best-effort, fails open, exactly as `SC-S3-16`. |
+| Freshness | The Tier-2 breaker's read tolerates **60 seconds** of staleness — that is `SC-S3-21`'s cache window, and it is the only freshness requirement any consumer places on this table. |
+| Concurrency | Appends do not conflict. The breaker's read is a snapshot query and does not coordinate with writers. |
+| Conflict handling | None; append-only. |
+| Recovery | **Lossy**, on the same terms as `SC-S3-16`. This matters more here: a gap in the event log biases the Tier-2 blocking statistics computed from it, and the bias is silent. |
+| Migration path | As `SC-S3-16` — the missing principal field is the blocker, per `05_…md` §9.2 and `CAP-S4-1`. |
+| Observability | Consumed by `SC-S3-21`, which is the only automated consumer. No signal exists for dropped events, so a breaker-open window looks identical to a quiet period. |
+
 <!-- BATCH-CURSOR -->
