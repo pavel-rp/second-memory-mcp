@@ -619,9 +619,9 @@ Per `00_method-and-provenance.md` §5, this document's claims are verified by **
 | The serve path carries no reviewer, no model call, no execution, reads the cached verdict, quarantines on stale-or-absent | Read §7.2–§7.3 | confirmed, four-row disposition consumed from `03_…` §4.4 unchanged |
 | No rendering-model selection | Grep the document for rendering vocabulary | every occurrence sits in §6.2's "satisfied by all of them" argument or §6.3's handed-to-SUB-15 list; none in a decision |
 | No AI-orchestration placement selection | Read §9.1 and §12 | the boundary and the authority rule are stated; no placement is chosen |
-| `NEU-987` does not appear | Grep | zero hits; SUB-13 is cited as NEU-977 throughout |
-| Register changes are pure appends | `git diff --numstat` on the four append-only paths | recorded in the pull request |
-| No regression | `pnpm run type-check` | recorded in the pull request; **zero TypeScript is touched by this change** |
+| `NEU-987` is not propagated | Grep across every file this sub-task adds | SUB-13 is cited as **NEU-977** at every point of use. The only occurrences of the wrong id are the two that name it *as wrong* — §12's correction sentence and this row — plus `F-S4-3`'s note that `OI-S2-2` records it. Zero propagated uses. |
+| Register changes are pure appends | `git diff --numstat` on the four append-only paths | **0 deletions on every one** — `docs/GLOSSARY.md` `5 0`, `02_findings-register.md` `70 0`, `90_open-items-and-provisional-register.md` `23 0`, `91_caps-and-incomplete-scope.md` `17 0` |
+| No regression | the project's type-check | **`tsc --noEmit` exits 0 with no diagnostics.** The `pnpm run type-check` wrapper could not be run to completion in this environment: its dependency preflight aborts on `ERR_PNPM_IGNORED_BUILDS` before reaching the script, an environment condition unrelated to this change. The underlying command the script wraps was run directly and is clean. **Zero TypeScript is touched by this change.** |
 
 **The automated QA phase is a genuine no-op for this sub-task, and no cap is filed for it.** The
 `qa-execution:engine` and `qa-execution:host` surfaces are unconfigured in this repository's capability
