@@ -137,3 +137,29 @@ your own. On conflict, keep both sides.
 - **Owner:** SUB-13 (NEU-987)
 - **Resolving event:** **SUB-13 publishes the `OUT-3` authority matrix with exactly one authority named for each of the three state categories** — the gate-verdict record, the drift-verdict store, and the drift-verdict cache. The item closes on that matrix landing on `origin/develop`. A matrix that omits one of the three, or names two owners for one, does not close it.
 - **Why not a stand-in:** It is a decision **this** package owes and has explicitly allocated, not a placeholder for an unbuilt package. `OUT-3` is a C010 outcome with a named sub-task; nothing about NEU-891/892/893/894 landing would assign it, and filing it in `93_…` would put a resolvable in-package allocation into a register whose contract is four unbuilt packages.
+
+### SUB-3
+
+*Two entries. Both are questions this inventory deliberately poses and does not answer, because answering either would pre-empt a sub-task that owns the answer. Neither stands in for an unbuilt upstream package.*
+
+#### `OI-S3-1` — The learner-scoping answer is open for most of the inventory, and the inventory records the question rather than guessing
+
+- **Id:** `OI-S3-1`
+- **Item:** `../04_state-category-inventory.md` §2 defines `Learner-scoped` as a column that records the scoping **question**, never a schema fact, and §6 establishes why: a search of `src/infrastructure/db/schema.ts` for `user_id`/`userId`/`learner_id`/`learnerId` returns **zero matches** at the 2026-08-21 cutoff, so no ownership column exists to read an answer off. **The majority of entries therefore carry `question — open`.** `NEU-850's OUT-2` commits learner ownership to the MCP core database schema keyed to the **JWT subject**, and this package consumes that commitment — but a commitment about *where* ownership lives is not an answer about *which* categories are learner-scoped.
+- **Status:** `[unconfirmed]` — the question is posed per entry and is load-bearing; no entry's answer is asserted.
+- **Source:** `../04_state-category-inventory.md` §2 (the column's definition), §3 (the per-entry values), §6 (the zero-match schema check and the consumed `NEU-850's OUT-2`).
+- **Consumer:** **SUB-13 (NEU-977)** and **SUB-14 (NEU-978)**
+- **Owner:** SUB-13 (NEU-977)
+- **Resolving event:** **SUB-13 publishes the `OUT-3` authority matrix carrying a resolved learner-scoping value for every `SC-S3-*` row**, and **SUB-14 publishes its per-row judgement against `SUB-5`'s isolation invariant**. The item closes when both land on `origin/develop`. A matrix that carries the column forward still marked `question — open` does not close it; neither does a general statement that the system is single-tenant or multi-tenant.
+- **Why not a stand-in:** It is not waiting on an unbuilt package. `A-28` already stands in for the *enforceability* of a learner-identity mapping, and `SC-S3-45` carries that as an `assumed` entry — this item is the separate, in-package question of which **existing** categories fall under it, which `OUT-3` allocates to a named C010 sub-task. Filing it in `93_…` would move a resolvable in-package allocation into a register whose contract is four unbuilt packages, and `93_…` is closed at five entries in any case.
+
+#### `OI-S3-2` — Whether the two upstream-owned artifacts become state in this system, or stay upstream documents, is unassigned
+
+- **Id:** `OI-S3-2`
+- **Item:** Two `required-by-upstream` entries are unlike the other nine. `SC-S3-37` (the DP-map node and prerequisite-edge records) and `SC-S3-40` (the frozen measurement-contract register) **already exist as committed, gate-verified artifacts in their own upstream packages** — they are absent from *this* system's stores, not absent from the programme. **Whether either is imported into a store here, read in place as a versioned document, or never held by this system at all is undecided.** The inventory records them as categories because a component in this system reads them; it does not decide how.
+- **Status:** `[unconfirmed]` — the categories are established and cited; the disposition is not chosen.
+- **Source:** `../04_state-category-inventory.md` §3.6 (the two entries and the note distinguishing them), §5.3 and §5.1 (their upstream provenance: `../C005-dp-map-package/README.md:3`, v1.0.0, compiled 2026-07-16; `../C005-product-foundation/README.md:3`, dated 2026-07-12).
+- **Consumer:** **SUB-4 (NEU-974)** and **SUB-10 (NEU-984)**
+- **Owner:** SUB-4 (NEU-974)
+- **Resolving event:** **SUB-4 publishes its component placement naming, for each of the two categories, which component reads it and whether that component holds a copy** — or files a `CAP-S4-<k>` recording that it does not decide and what that leaves unsupported. The item closes on that document landing on `origin/develop`, whichever way it goes.
+- **Why not a stand-in:** Both upstream packages are **built and published**, not unbuilt — `93_…`'s entire contract is the four unbuilt packages NEU-891…NEU-894, and neither of these is one of them. Nothing about those four landing would answer this; it is a placement decision this package owes and has allocated to the sub-task that owns placement.
