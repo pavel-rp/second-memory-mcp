@@ -509,4 +509,273 @@ payload. Status: `existing`.
 | Migration path | As `SC-S3-16` — the missing principal field is the blocker, per `05_…md` §9.2 and `CAP-S4-1`. |
 | Observability | Consumed by `SC-S3-21`, which is the only automated consumer. No signal exists for dropped events, so a breaker-open window looks identical to a quiet period. |
 
+### 8.4 Existing, process-local in-memory — all clause 1
+
+Every row in this section matches **clause 1**: its persistence cell is process-local, so authority is
+the component whose process computes it, read off the row's own store cell. Each records
+`n/a — non-durable` in its *writes* attribute and leaves the exactly-one-authority audit's **write**
+scope — but **each still carries exactly one authority**, because clause 1 names one. See §10's scope
+note, which reports both counts separately so the distinction is not lost.
+
+This is also, in `04_…md`'s words, "the section that makes the current deployment single-instance". Every
+row's *migration path* below is therefore the same question in a different costume: what happens to this
+structure when there is more than one process. The matrix records the shape of that answer per row; the
+topology that decides it is SUB-10's.
+
+#### `SC-S3-18` — MCP transport registry
+
+**Authority: `CMP-S4-4`** (HTTP transport edge). **Clause 1** — `process-lifetime`, held at
+`src/transport/http.ts:82`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-4` on every request, to route to the live transport for an MCP session id. |
+| Writes | `n/a — non-durable`. `CMP-S4-4` computes and holds it: created on `initialize`, removed on `onclose` (`:212`–`:218`) or shutdown (`:304`–`:311`). |
+| Consistency | Process-local and therefore trivially consistent within its process. Across processes it is **not shared**, which is the single-instance constraint stated plainly. |
+| Freshness | Always current within the process; meaningless across processes. |
+| Concurrency | Node's single-threaded event loop serializes access. No lock is needed or present. |
+| Conflict handling | None possible — one process, one map. |
+| Recovery | Lost on restart. Clients re-`initialize`; the loss is a reconnect, not data loss. |
+| Migration path | A second process makes an MCP session usable only on the instance that created it. Either sessions become sticky at the load balancer or the registry moves to a shared store — **`OI-S13-1`**; the decision is SUB-10's, not this matrix's. |
+| Observability | Registry size is the natural gauge; none is currently exported. |
+
+#### `SC-S3-19` — Subject-binding map
+
+**Authority: `CMP-S4-4`**. **Clause 1** — `process-lifetime`, `src/transport/http.ts:83`.
+`Learner-scoped: yes`. Status: `existing`.
+
+`04_…md` records this as **the only server-side learner-identity binding that exists anywhere in the
+system**. That fact does not change its clause — clause 1 precedes clause 5 and this row is process-local
+— but it is the reason the row's migration path is the most consequential in §8.4.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-4` per request, via `verifySessionBinding` (`:52`–`:72`), to reject session hijack. |
+| Writes | `n/a — non-durable`. `CMP-S4-4` computes and holds it: written at `onsessioninitialized` (`:204`–`:210`), dropped with the transport. |
+| Consistency | The binding must exist before the first non-`initialize` request on that session is admitted; there is no window in which a session is live and unbound. |
+| Freshness | Always current in-process. |
+| Concurrency | Event-loop serialized. |
+| Conflict handling | None possible. A re-bind of a live session is not a modelled operation. |
+| Recovery | Lost on restart together with `SC-S3-18`; the session dies with it, so the binding and the thing it protects are lost atomically. That coupling is what makes the loss safe. |
+| Migration path | This is the row that decides whether the identity work in NEU-893 (`A-28`) can rest on anything that exists today. It cannot: the binding is per-process and per-session, so it can carry a subject through one connection and no further. `A-28` assumes isolation is enforced **server-side at or below the port boundary** — this structure sits *above* it. `A-28`'s invalidating outcome is that safe isolation requires a separate deployment or datastore; a durable, shared identity binding is what avoids that outcome. |
+| Observability | Rejection counts on `verifySessionBinding` would be the security-relevant signal. None is exported. |
+
+#### `SC-S3-20` — Rate-limit windows
+
+**Authority: `CMP-S4-4`**. **Clause 1** — process-local, `TTL`,
+`src/transport/rate-limit-middleware.ts:58`–`:59`. `Learner-scoped: yes` (keyed per JWT subject,
+`:76`–`:77`). Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-4` per request, to admit or reject. |
+| Writes | `n/a — non-durable`. `CMP-S4-4` computes and holds it: created on the first request in a window, swept lazily (`:63`–`:68`), expires at `resetAt`. |
+| Consistency | Counter increments are read-modify-write on the event loop, so they are atomic in practice. |
+| Freshness | Current by construction. |
+| Concurrency | Event-loop serialized. |
+| Conflict handling | None possible in one process. |
+| Recovery | Lost on restart, which **resets every learner's window to zero**. A restart loop is therefore a rate-limit bypass. |
+| Migration path | Per-process counters mean *n* processes multiply the effective limit by *n*. Either the limiter moves to a shared store or the configured limit is divided by the instance count — **`OI-S13-1`**, decided by SUB-10's topology. |
+| Observability | Rejection counts are the signal; none is exported, so a bypass caused by restart churn is currently undetectable. |
+
+#### `SC-S3-21` — Tier-2 circuit-breaker trip set and stats cache
+
+**Authority: `CMP-S4-14`** (quality-gate battery). **Clause 1** — `process-lifetime`,
+`src/orchestration/tier2-circuit-breaker.ts:68`, `:69`, `:76`. Status: `existing`.
+
+The authority is `CMP-S4-14` rather than `CMP-S4-7` because clause 1 asks which component's process
+*computes* the structure, and `05_…md` gives `CMP-S4-14` every content gate except citation drift. The
+Tier-2 blocking decision is such a gate; the breaker is that gate's own machinery.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-14` on each Tier-2 blocking decision. |
+| Writes | `n/a — non-durable`. `CMP-S4-14` computes and holds it. The trip is one-shot per process and per field; the cache expires at 60 s; both are **re-derived from scratch after restart, intentionally** (`:4`–`:11`). |
+| Consistency | The trip set is derived from `SC-S3-17` and then held. It is deliberately *not* kept consistent with its source afterwards — a trip is sticky for the life of the process by design. |
+| Freshness | **60 seconds** for the stats cache. This is the only freshness bound any consumer places on `SC-S3-17`. |
+| Concurrency | Event-loop serialized. Two concurrent gate evaluations during a cache miss can both issue the underlying query; the result is duplicate work, not an incorrect verdict. |
+| Conflict handling | None. Both writers would compute the same trip state from the same query. |
+| Recovery | Re-derived after restart, intentionally. A restart therefore **un-trips** a tripped breaker — deliberate, but it means restart frequency is a hidden input to gate strictness. |
+| Migration path | Per-process trip state means *n* processes can hold *n* different opinions about whether Tier-2 blocking is tripped. Shared-store or accept-divergence is `OI-S13-1`. `CAP-S6-1` is relevant here: SUB-6 could not observe two-writer divergence, so the cost of divergence is capped evidence, not a measured quantity. |
+| Observability | Trip transitions are the signal; they reach `SC-S3-17`, whose own lossiness (see `SC-S3-17` recovery) means a trip during a breaker-open logging window may not be recorded. |
+
+#### `SC-S3-22` — Request context and correlation id
+
+**Authority: `CMP-S4-4`**. **Clause 1** — `request-scoped`; two `AsyncLocalStorage` stores at
+`src/shared/logger.ts:115`–`:116`, seeded at `src/transport/http.ts:153`–`:160`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Every logging call, throughout the process, for the duration of the request or tool call. |
+| Writes | `n/a — non-durable`. `CMP-S4-4` seeds it; the store is entered per HTTP request or per tool call and exits with the call. |
+| Consistency | The correlation id must be established before the first log line of a request, or that line is unattributable. |
+| Freshness | Not applicable — the value is constant for the life of the call. |
+| Concurrency | `AsyncLocalStorage` isolates concurrent calls by construction; this is the mechanism that makes concurrent requests loggable at all. |
+| Conflict handling | None possible — each async context is private. |
+| Recovery | Lost with the call, which is its whole lifetime. |
+| Migration path | None. Request-scoped context is per-process by definition and is unaffected by topology. |
+| Observability | The correlation id is itself the observability primitive: it is what joins `SC-S3-16` to `SC-S3-17`. |
+
+#### `SC-S3-23` — Database client singletons
+
+**Authority: `CMP-S4-9`**. **Clause 1** — `process-lifetime`, `src/infrastructure/db/client.ts:5` and
+`src/infrastructure/db/operations.ts:5`. Status: `existing`. `04_…md` §4.3 records this as one of the two
+structure merges (two handles, one category).
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Every repository call in the process. |
+| Writes | `n/a — non-durable`. `CMP-S4-9` computes and holds it: lazily created, reset only in tests, process lifetime. |
+| Consistency | Not applicable — the value is a connection handle, not data. |
+| Freshness | Not applicable. |
+| Concurrency | The pool is the concurrency mechanism, not a subject of it. |
+| Conflict handling | None. |
+| Recovery | Re-established on restart. A pool exhausted or broken mid-life has no in-process reset path outside tests, so recovery is a restart. |
+| Migration path | None. Per-process pooling is correct at any instance count; only the aggregate connection budget scales, which is a deployment parameter and not an authority question. |
+| Observability | Pool saturation is the operationally important signal and is not exported. |
+
+#### `SC-S3-24` — Event-logger sink toggle
+
+**Authority: `CMP-S4-19`** (operational logging sinks). **Clause 1** — `process-lifetime`,
+`src/shared/logger.ts:214`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-19` on every log emission, to choose a durable sink or stderr. |
+| Writes | `n/a — non-durable`. `CMP-S4-19` computes and holds it: set at boot when an audit/event database URL is configured. |
+| Consistency | Set once at boot; never changes during the process's life. |
+| Freshness | Not applicable. |
+| Concurrency | Single write at boot. |
+| Conflict handling | None. |
+| Recovery | **Fails open** to stderr when unset (`:247`–`:250`) — a misconfigured process logs to stderr and serves learners normally. That is the intended behaviour and the reason a logging outage never becomes a serve outage. |
+| Migration path | None. Per-process configuration is correct at any instance count. |
+| Observability | The failure mode — a process silently logging to stderr because the URL was absent — is **not** observable from the durable logs, since by definition nothing reaches them. |
+
+#### `SC-S3-25` — Audit/event transport batch buffers and per-sink breakers
+
+**Authority: `CMP-S4-19`**. **Clause 1** — `process-lifetime`, in transport worker threads at
+`src/transport/pg-audit-transport.ts:45`–`:52` and `src/transport/pg-event-transport.ts:41`–`:48`.
+Status: `existing`. `04_…md` §4.3 records this as the second structure merge (two instances, one
+category).
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-19` on flush. |
+| Writes | `n/a — non-durable`. `CMP-S4-19` computes and holds it: appended per log line, flushed on interval or batch size. |
+| Consistency | Best-effort. The buffer is explicitly not a durable queue. |
+| Freshness | Bounded by the flush interval and batch size — the delay between an event happening and its being visible in `SC-S3-16`/`SC-S3-17`. |
+| Concurrency | Per-worker-thread, so no cross-thread contention on one buffer. |
+| Conflict handling | None. |
+| Recovery | **Unflushed entries are lost on crash, and dropped outright while a breaker is open.** This is the mechanism behind `SC-S3-16`'s and `SC-S3-17`'s lossiness, and it is the reason neither log may be treated as a complete record. |
+| Migration path | None required for correctness; each process buffers its own lines. |
+| Observability | **The gap that matters most in §8.4.** There is no counter for entries dropped while a breaker is open, so the drop is invisible — a quiet log looks the same as a broken one. |
+
+#### `SC-S3-26` — JWKS remote key set
+
+**Authority: `CMP-S4-4`**. **Clause 1** — `process-lifetime`,
+`src/transport/jwt-middleware.ts:90`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-4` on every JWT verification. |
+| Writes | `n/a — non-durable`. `CMP-S4-4` computes and holds it: fetched on first verification, refreshed by the library. |
+| Consistency | The cached key set must admit any key the issuer (`CMP-S4-10`) currently publishes; a stale set rejects valid tokens after a key rotation. |
+| Freshness | Whatever the library's refresh policy provides. `05_…md` places the issuer in `Z-IDP` and outside this system's control, so the refresh policy is a dependency, not a decision here. |
+| Concurrency | Concurrent first verifications may each trigger a fetch; the outcome is duplicate fetches, not an incorrect verification. |
+| Conflict handling | None — all fetches return the same issuer-published set. |
+| Recovery | Re-fetched on restart or refresh. An issuer outage during a cold start means no token verifies until it returns. |
+| Migration path | None. Per-process caching is correct at any instance count. |
+| Observability | Verification failure counts would distinguish "bad token" from "stale key set"; none is exported. |
+
+#### `SC-S3-27` — Classifier per-field model cache
+
+**Authority: `CMP-S4-14`**. **Clause 1** — `process-lifetime`,
+`src/adapters/langchain/content-classifier-adapter.ts:47`. Status: `existing`.
+
+The authority is `CMP-S4-14`, not `CMP-S4-11`. `05_…md` places the AI provider (`CMP-S4-11`) in `Z-EXT`
+and records that it is **authoritative for no verdict**; the cache is an in-process structure held by the
+gate battery that calls it. Clause 1 asks whose process computes it, and it is this system's.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-14` on each classification. |
+| Writes | `n/a — non-durable`. `CMP-S4-14` computes and holds it: lazily initialised on first classify, process lifetime. |
+| Consistency | Not applicable — the value is a seeded runnable, not data. |
+| Freshness | Not applicable within a process. Across a deploy, a model or prompt change takes effect only on restart, which is the intended release mechanism. |
+| Concurrency | Concurrent first classifications may each seed a runnable; the loss is duplicate initialisation. |
+| Conflict handling | None. |
+| Recovery | Re-initialised on restart. |
+| Migration path | None. Per-process caching is correct at any instance count. |
+| Observability | Classification latency and failure rate reach `SC-S3-17`; the cache itself is not instrumented. |
+
+### 8.5 Existing, derived-never-persisted — all clause 1
+
+No table backs any of these three; each is recomputed on every read. `04_…md` records them as categories
+anyway, because this matrix must still say which component may compute and serve them — and that is
+exactly what clause 1 provides.
+
+Note that all three are `Learner-scoped: question — open`. Under clause 5 that would place them in the
+invariant's domain and hand them to `CMP-S4-9`. **Clause 1 precedes clause 5 and wins**, which is correct:
+a value with no store has no write for a persistence adapter to own. What the isolation invariant has to
+say about them is about their *inputs* — `SC-S3-3`, `SC-S3-5`, `SC-S3-9` — which are clause-5 rows and
+carry the requirement there.
+
+#### `SC-S3-28` — Mastery level
+
+**Authority: `CMP-S4-7`** (orchestration workflows). **Clause 1** — `derived-on-read`, store `none`,
+computed at `src/orchestration/teaching-workflows.ts:602`. `Derived: yes`, from `SC-S3-3`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | The prompt-render step of the teaching call that computed it, and nothing else — it is carried only on the ephemeral prompt context (`:595`–`:609`). |
+| Writes | `n/a — non-durable`. `CMP-S4-7` computes it per teaching call and discards it. |
+| Consistency | Must be computed from the `SC-S3-3` values current at that call. `min(repetitions, 5)` is a pure function, so consistency is entirely inherited from its input. |
+| Freshness | Recomputed per call; cannot be stale. |
+| Concurrency | No shared state; each call computes its own. |
+| Conflict handling | None possible. |
+| Recovery | Not applicable — recomputed on the next call. |
+| Migration path | None. A derived value has nothing to migrate. Were it ever cached, it would become a new category needing its own row — not an amendment to this one. |
+| Observability | Not instrumented. A regression would surface as a change in prompt behaviour, not as a signal. |
+
+#### `SC-S3-29` — `LearnerContext` aggregate
+
+**Authority: `CMP-S4-7`**. **Clause 1** — `derived-on-read`, store `none`; type at
+`src/orchestration/learner-context-workflows.ts:16`–`:34`, built by `buildLearnerContext` `:84`–`:228`.
+`Derived: yes`, from `SC-S3-3`, `SC-S3-5`, `SC-S3-9`. Status: `existing`.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | The request that computed it; discarded afterwards. |
+| Writes | `n/a — non-durable`. `CMP-S4-7` computes it per request from **five parallel repository reads** (`:95`–`:103`). |
+| Consistency | **The one genuine consistency requirement among the derived rows.** Five parallel reads are not a snapshot: due counts, overdue topics, streak and leech count can each reflect a different instant if a write lands mid-assembly. The aggregate is presented to the learner as one coherent picture, so a torn read is a real, if low-severity, defect. |
+| Freshness | Recomputed per request. Its components inherit whatever staleness their sources have — here, none, since all five read the store directly. |
+| Concurrency | No shared state. The hazard is the interleaving above, not contention. |
+| Conflict handling | None possible. |
+| Recovery | Not applicable — recomputed. |
+| Migration path | None. If it were ever materialised for cost reasons it would become a new durable category with its own authority and its own freshness bound — a new row, not an edit to this one. |
+| Observability | Assembly cost is the operational signal (five reads per request); not currently instrumented. |
+
+#### `SC-S3-30` — Analytics KPIs and window rollups
+
+**Authority: `CMP-S4-8`** (domain core). **Clause 1** — `derived-on-read`, store `none`; computed at
+`src/domain/services/analytics-calculator.ts:112`–`:143` and `:191`–`:246`. `Derived: yes`. Status: `existing`.
+
+The authority is `CMP-S4-8`, not `CMP-S4-7`: clause 1 names the component whose process *computes* the
+value, and the calculator is in the domain core. `CMP-S4-7` is its sole caller
+(`src/orchestration/analytics-workflows.ts:43`), which makes it the invoker, not the computer. `05_…md`
+records `CMP-S4-8` as pure with zero I/O, which is consistent — the orchestration layer performs the
+reads and hands the domain core values to compute over.
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Returned in the tool response to the caller and discarded. |
+| Writes | `n/a — non-durable`. `CMP-S4-8` computes it per request. |
+| Consistency | Inherited from the reads `CMP-S4-7` performs on its behalf. The rollups are reported as a coherent window, so the same torn-read caveat as `SC-S3-29` applies. |
+| Freshness | Recomputed per request; cannot be stale. |
+| Concurrency | Pure computation over supplied values; no shared state. |
+| Conflict handling | None possible. |
+| Recovery | Not applicable — recomputed. |
+| Migration path | None. Materialising a rollup would create a new durable category — the most likely future candidate in §8.5, and the one whose introduction would most need its own freshness bound. |
+| Observability | Computation cost per request; not instrumented. |
+
 <!-- BATCH-CURSOR -->
