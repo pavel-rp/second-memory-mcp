@@ -882,6 +882,7 @@ by the producer. Here tie-break (b) does not even arise (the row is not read on 
 | Conflict handling | None possible — single writer, keyed on `citation_id`. |
 | Recovery | A re-check that cannot complete produces **`verdict stale` — a recorded state, never a partial verdict**. There is no half-written verdict to recover from. |
 | Migration path | New category, inside the drift component's own deployment. It must **not** be co-located under an authority that would give any other component a write path to it, because that would put egress-derived state under a writer with no egress discipline. |
+| **Quarantine-on-stale** | **Indirect, and deliberately so.** Nothing on the serve path reads this row, so a stale entry here quarantines nothing by itself; it quarantines by *propagation*, when `CMP-S4-17` writes the same `verdict stale` into `SC-S3-33` and `05_…md` §7.3's disposition quarantines on it there. The store's own obligation is narrower and absolute: **a check that cannot complete is recorded as `verdict stale`, never omitted and never left as a partial tuple** — because an omitted verdict and a stale verdict reach the serve path as the same quarantine, whereas a *partial* one would reach it as a decision. At `per_source_revalidation_budget: 0` this is the steady state for every one of the twelve sources, not an error path. |
 | Observability | Checks attempted, checks admitted, and admissions refused by budget. At budget 0 the third is expected to be every check. |
 
 #### `SC-S3-35` — Gate-verdict record
@@ -906,6 +907,7 @@ authority. This also resolves `FL-S4-16`'s "Undetermined" authority column and d
 | Conflict handling | No merge. A re-run supersedes; whether prior verdicts are retained is a store-shape question (**`OI-S13-1`**, SUB-10). |
 | Recovery | A terminated or crashed run leaves the unit **without** a verdict, which the quarantine path (`SC-S3-36`) already handles. Absence is a modelled state, so there is nothing to repair. |
 | Migration path | New category. Arrives on the authoring side, written by `CMP-S4-14` through `CMP-S4-15` across `BND-S4-15` — the boundary `CMP-S4-13` owns, and one that is already a process boundary. Tier-2 remains post-commit. |
+| **Quarantine-on-stale** | **Stale here means version-stale, not clock-stale** — this row has no staleness window, so its Freshness rule is the whole test: a verdict is stale the moment the content version it names is superseded. A stale verdict and an absent verdict are treated **identically**: `CMP-S4-13` must not admit content on either, and `CMP-S4-14` opens a `SC-S3-36` quarantine record naming reason, owner and exit condition. This is the authoring-side quarantine and must not be fused with `SC-S3-33`'s serve-side disposition — see `SC-S3-36`'s migration-path note. The dangerous failure is a verdict that is *reused* across a content edit, which is why Consistency requires every verdict to name its input version. |
 | Observability | Verdicts per gate id, and terminations by wall-clock bound. The termination count is the signal that distinguishes "gate passed" from "gate never finished", and losing it would make a silently-degrading gate battery look healthy. |
 
 #### `SC-S3-36` — Quarantine record
@@ -1515,6 +1517,8 @@ and clause citation per block — rather than tallied by hand. The row domain wa
 against the merged `04_…md` before authoring began, and again after: **45 distinct `SC-S3-*` ids, minimum
 1, maximum 45, no gaps**, agreeing with `04_…md` §8's own counts.
 
-`NEU-987` appears in this chapter exactly once, in §12.1, and only to record that it is a known merged
-typo for this sub-task's real id. This sub-task is **NEU-977**.
+`NEU-987` is named in this chapter in exactly two places — §12.1's parenthetical and this note — and in
+both only to record that it is a known merged typo for this sub-task's real id. It is never used to
+attribute anything. This sub-task is **NEU-977**, and every attribution in this chapter, in the three
+register sections it appends, in `DR-C10-S13-1` and in `traceability/S13_…md` reads `NEU-977`.
 
