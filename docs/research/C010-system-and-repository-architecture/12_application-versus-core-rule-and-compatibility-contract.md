@@ -58,7 +58,7 @@ statement — including this charter's own (§7.4 records why, and what the re-d
 | **Application-specific** | A capability that cannot be stated without naming an artifact of a **particular** course — a syllabus, a qualification, a subject taxonomy, a grade scale, a content map, or a node within one. |
 | **Reusable core** | A capability a second operator, running this server with **no** relationship to any course of ours, would want and could use with the vocabulary the public surface already publishes. |
 | **Split** | The rule's third outcome, not a hedge: the capability **decomposes** into a course-noun-free mechanism and a course-specific policy value supplied to it. Both halves are classified, and both land on a stated side of the line. |
-| **The distribution line** | The boundary charter assumption 32 fixes: **the general-purpose MCP core is public MIT; the DP course application is private and closed.** Crossing it is a publication event in one direction and a withholding event in the other. |
+| **The distribution line** | The boundary charter assumption 32 (**`confirmed`**, cited not re-decided — `../93_…md` is closed) fixes: **the general-purpose MCP core is public MIT; the DP course application is private and closed.** Crossing it is a publication event in one direction and a withholding event in the other. |
 | **Regression boundary** | The set of published surface properties that this architecture undertakes not to break, enumerated in §8.1. A change that alters one of them is *contract-changed* and owes a detection method. |
 | **`DP`** — **read this before grepping** | In the **charter** and in this chapter, `DP` is the **IB Diploma Programme** — the course application on the private side of the line. In `src/`, the only two `DP` tokens (`src/domain/types/teaching.ts:285`, `src/domain/algorithms/grade-mapper.ts:10`) are **Dynamic Programming**, a computer-science teaching concept, evidenced by the surrounding fields `correct_recurrence`, `correct_base_case`, `correct_iteration_order`, `complexity_stated`. They are a naming collision, **not** course leakage. Filed as `F-S8-4` so a future reviewer's grep does not report them as a finding. |
 | **Gated tool** | A registered tool whose input schema is not `z.object({}).shape`, and which the HTTP context-token middleware therefore requires a `context_token` from. |
@@ -151,7 +151,8 @@ is not classifiable yet — and that is a better output than a confident wrong a
 
 **Why this clause exists at all.** Without it the rule would be forced to send whole capabilities one way
 or the other, and the most common real capability in this system is neither: it is a general check
-parameterised by a course-specific value. §7 of `../11_…md` shows the same shape from the other side —
+parameterised by a course-specific value. §9 of `../11_…md` — its resource inventory of
+read-projections and write-intents — shows the same shape from the other side:
 the API is general, the values it projects are not. `R8-3` is what stops the rule from either publishing
 the course's policy or withholding a general mechanism.
 
@@ -244,6 +245,17 @@ policy value to peel off; "the principal" is not course-specific. `R8-4` fires o
 multi-tenant operator of this server wants per-principal row confinement, and `authenticated principal`
 is already public vocabulary in `docs/GLOSSARY.md`. **Reusable, backward-compatible (§8.3), and
 non-DP-specific** — which is exactly the three-part claim the scope required of this change.
+
+**NEU-850 is a decision to honour, not an existing schema fact — and the distinction is load-bearing.**
+At this chapter's cutoff `ad5eebb`, **no `user_id` column exists on any table**, and no tool input schema
+carries a learner, user, subject or principal field. `CC-S8-1` therefore restates an **obligation**
+inherited through SUB-5's handover from NEU-850's `OUT-2`; it does not describe running code. Reading it
+as an existing schema fact would make §8.3's backfill obligation look already-discharged and would let a
+reviewer conclude the confinement property already holds. It does not hold anywhere today. **The keying
+is to the authenticated principal** — under HTTP that resolves to the JWT `sub`, falling back to `azp`
+under a client-credentials grant, with the consequence SUB-5 filed as `F-S5-4` that the principal is then
+an OAuth client rather than a person (§11). Under STDIO no principal is produced at all, so the keying has
+no source there (`CC-S8-3`, `OI-S8-2`).
 
 **`CC-S8-2` — principal bound to the token.** Same evaluation through `R8-1`–`R8-3`. `R8-4` fires: the
 capability is *"the server, not the caller, decides whose data a session may reach"*, which every
@@ -435,7 +447,7 @@ brace-matching the declaration block:
 | Where the declaring shape is defined | Gated tools |
 | --- | --- |
 | `src/domain/types/*.ts`, via a named `*InputShape` constant | **41** |
-| `src/server/*.ts` | **2** — `teach_next` (inline `z.object({…}).shape`, `src/server/teaching-tools.ts:19`) and `get_historical_feedback` (locally-defined `GetHistoricalFeedbackInputShape`, `src/server/session-progress-tools.ts:131`, consumed at `:144`) |
+| `src/server/*.ts` | **2** — `teach_next` (inline `z.object({…}).shape` at `src/server/teaching-tools.ts:34`, registered at `:19`) and `get_historical_feedback` (locally-defined `GetHistoricalFeedbackInputShape` declared at `src/server/session-progress-tools.ts:128`, consumed at `:141` and `:153`) |
 | **Declaring `context_token`** | **43 of 43** |
 | **Gated tools lacking it** | **0** |
 
@@ -566,7 +578,7 @@ declared field would change meaning without changing shape — invisible to `RD-
 client's generated types, invisible in review to anyone reading the diff.
 
 **The exempt three are a separately recorded decision, and it is not uniform.** `init_agent_context` is
-the **mint point** — `src/server/server-context-tools.ts:11` calls `ctx.createContextToken()` and returns
+the **mint point** — `src/server/server-context-tools.ts:34` calls `ctx.createContextToken()` and returns
 the token to the caller. Any identity scheme changes its contract, whichever option is chosen.
 `get_server_info` and `get_server_workflow` return static server metadata, touch no learner state, and
 change under neither option. **1 of 3 changes; 2 of 3 do not.** Folding all three into the gated count
@@ -624,7 +636,7 @@ to match a figure the same evidence procedure disproves. **49 entries; zero cond
 | Verdict | Count | Entries |
 | --- | --- | --- |
 | **contract-changed — semantics only, zero schema delta** | **43** | All 43 gated tools (§7.3). The declared `context_token` field is unchanged in name, type and requiredness; what changes is that the server resolves it to a principal and confines the call. **Detection: `RD-S8-1`** (cross-principal replay) — a schema diff returns zero delta by design, confirmed by `RD-S8-4`. |
-| **contract-changed — mint point** | **1** | `init_agent_context`. It issues the token (`ctx.createContextToken()`, `src/server/server-context-tools.ts:11`) and must bind a principal at issue time, refusing to mint when none exists. Its **input** schema stays empty; its **behaviour** and its failure modes change. **Detection: `RD-S8-2`.** |
+| **contract-changed — mint point** | **1** | `init_agent_context`. It issues the token (`ctx.createContextToken()`, `src/server/server-context-tools.ts:34`, registered at `:11`) and must bind a principal at issue time, refusing to mint when none exists. Its **input** schema stays empty; its **behaviour** and its failure modes change. **Detection: `RD-S8-2`.** |
 | **unchanged** | **5** | `get_server_info`, `get_server_workflow` (static metadata, no learner state, no token); the 3 prompts (`scaffolding`, `chunk_generation`, `chunk_management` — no `context_token`, not middleware-reached). |
 | **conditional on a later sub-task** | **0** | — |
 
@@ -683,7 +695,7 @@ qualification is repeated at every use rather than declared once:
 
 | Claim | Holds under HTTP | Holds under STDIO |
 | --- | --- | --- |
-| Gated tools require a `context_token` | **Yes** — `app.use('/mcp', createContextTokenMiddleware(…))`, `src/transport/http.ts:186`, and only when `contextTokenRepo` is configured | **No** — zero references to the middleware or to `context_token` in `src/transport/main.ts` or `create-server.ts` |
+| Gated tools require a `context_token` | **Yes** — `app.use('/mcp', createContextTokenMiddleware(…))`, `src/transport/http.ts:185`, and only when `contextTokenRepo` is configured | **No** — zero references to the middleware or to `context_token` in `src/transport/main.ts` or `create-server.ts` |
 | An authenticated principal exists per request | **Yes, optionally** — `createJwtMiddleware` resolves `payload.sub`, falling back to `azp`, into `res.locals.auth`; mounted only when `authConfig` is set | **No** — none is produced at all |
 | Per-principal rate limiting | **Yes** — keyed off `res.locals.auth.sub` | **No** |
 | Origin allowlist, audit capture, correlation id | **Yes** — `CMP-S4-4` | **No** — `CMP-S4-5` mounts none of it (`src/transport/main.ts:55`–`:59`) |
@@ -737,7 +749,8 @@ correct-by-convention until SUB-12 reconciles, and that two sub-tasks independen
 is *signal*. It is avoided here because in both cases the duplicate would have been **less precise than
 the original**, not merely redundant.
 
-**Two of the four route to a closed owner.** That is the accepted **F5.7** warning, shared with SUB-6,
+**One of the four routes to a closed owner** — `F-S8-2`, to SUB-4 (NEU-974). The other three route to
+owners still open at this revision (NEU-896, SUB-9, SUB-11, SUB-12). That is the accepted **F5.7** warning, shared with SUB-6,
 SUB-7 and SUB-15: four sub-tasks route findings backwards to an already-shipped sub-task and nothing
 re-dispatches the owner. Each is co-routed to NEU-896 or SUB-12 so no finding is addressed **solely** to
 a closed party. The residual — that a back-routed finding goes unactioned — is **carried, not fixed**.
@@ -774,8 +787,8 @@ the five surfaces means a reader who disagrees can disagree about a specific one
 ### 14.1 Closes
 
 1. **`OUT-6`.** The rule is stated as an applicable ordered procedure (§5), demonstrated against every
-   implied core change (§6) and against NEU-890's enforcement points **both ways** (see
-   `DR-C10-S8-1` §"Demonstration"), and the compatibility contract fixes the regression boundary with a
+   implied core change (§6.1) and against NEU-890's enforcement points **both ways** (§6.2; the rule
+   itself is recorded as `DR-C10-S8-1`), and the compatibility contract fixes the regression boundary with a
    per-change obligation and detection method (§8).
 2. **The identity option.** Token-bound binding is **chosen**, not merely preferred (§9.3,
    `DR-C10-S8-2`).
@@ -793,7 +806,7 @@ the five surfaces means a reader who disagrees can disagree about a specific one
 4. **Whether the detection methods pass.** They are **specified, not run** — no implementation exists to
    run them against and no regression suite exists to host them (`CAP-S8-1`). This chapter's green
    type-check and lint lines are **not** evidence about any claim in it, per `../00_…md` §1.1.
-5. **Anything upstream.** Five findings routed (§12); zero merged artifacts amended.
+5. **Anything upstream.** Four findings routed (§12); zero merged artifacts amended.
 
 ---
 
@@ -805,7 +818,7 @@ the five surfaces means a reader who disagrees can disagree about a specific one
 | **SUB-10 (NEU-984)** | `CC-S8-1`–`CC-S8-3` with obligations and detection methods (§8.3); and §11's note that the existing HTTP identity plumbing is decoupled from both the gate and the schema, which changes the implementation cost. |
 | **SUB-11 (NEU-985)** | §10's audit as **49 entries, 44 + 0 changed across two drivers, 0 conditional**; `F-S8-3`'s vacuous discharge with its derivation; `F-S8-4`'s grep collision. |
 | **SUB-12 (NEU-986)** | `F-S8-1` (a `confirmed` charter assumption whose re-run yields a different figure), `OI-S8-1`, `OI-S8-2`, `CAP-S8-1`. |
-| **NEU-896** | `F-S8-1`, and the three findings routed to closed owners under F5.7. |
+| **NEU-896** | `F-S8-1`, and the one finding routed to a closed owner under F5.7 (`F-S8-2` → SUB-4). |
 
 ---
 
