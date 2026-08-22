@@ -35,7 +35,7 @@ rather than reopening it.
 | Web-tier runtime and language | `13_…md` §6, `DR-C10-S15-2` (SUB-15 / NEU-982) | Criterion input **(d)**, §3.4 |
 | Application-versus-reusable-core rule, incl. the distribution-line finding | `12_…md` (SUB-8 / NEU-981) | The criterion for what may live alongside the core, §3.5 |
 | Compatibility surface | **46 tools / 43 gated / 3 exempt**, and **49 audit entries** (46 tools + 3 prompts) — `F-S8-1` | Criterion `K4`, §5.4 |
-| Authority matrix | `08_…md` + `10_…md`, revision **`post-validation`** (SUB-16 / NEU-979) | Not re-resolved here; no Authority cell moves, §9.2 |
+| Authority matrix | `08_…md` + `10_…md`, revision **`post-validation`** (SUB-16 / NEU-979) | Not re-resolved here; no Authority cell moves, §10.2 |
 | Ownership model | `M-A` (all-MCP), `07_…md` (SUB-6 / NEU-976) | Background to `K2`; not re-decided |
 | Repository facts | This checkout at **`0962279`**, measured 2026-08-22 | §6, §8 |
 
@@ -729,3 +729,229 @@ private repository (§7). Nothing in `M1`–`M9` touches it.
 to have been executed — **this chapter creates no repository, workspace file, directory or scaffold, and
 changes no `package.json`.** `M8`'s operability is the open question, and it is capped rather than
 asserted.
+
+---
+
+## 9. Spikes, caps and the open items this chapter allocates
+
+### 9.1 The obligations `T2` must carry to recover what `T1` won
+
+`T1` beat `T2` on two criteria on the merits (§5.2, §5.3). The selection does not make those wins
+disappear; it makes them **obligations the selected topology must discharge by other means**. Both are
+filed as open items with resolving events rather than left as prose.
+
+**`OI-S9-1` — the published core artifact must be consumed as a published artifact at some gate before
+release.** This recovers `K3`. Under `T1` the maintainer necessarily eats their own published dogfood;
+under `T2` they do not, and `F-S9-3` shows the resulting failure mode is **already latent and already
+undetected** — the core has declared no entry point for its entire history and nothing noticed, because
+nothing consumes it as a dependency. Owner: **NEU-896**. Resolving event: a gate that resolves the core
+from its **published or packed artifact** — not from the workspace link — fails when the entry point is
+absent.
+
+**`OI-S9-2` — the publish filter must be an explicit allowlist.** This recovers what it can of `K2`. `T2`
+holds the distribution line by configuration rather than structure, and `F-S9-4` measures the gap:
+**no `files` field**, so a publish today ships everything not gitignored. Owner: **NEU-896**. Resolving
+event: a packed core artifact is inspected and contains **no file from the private application tree**.
+Note honestly what this does **not** do: an allowlist reduces the risk `T1` eliminates; it does not
+convert a configured guarantee into a structural one, and `K2`'s `−` stands.
+
+**`OI-S9-3` — which `package.json` NEU-850's `OUT-6` means.** §7.2. Owner: **NEU-850**. Resolving event:
+NEU-850's record names the core member manifest rather than the workspace root.
+
+**`OI-S9-4` — SUB-10 must check its chosen deployment shape against §6.4's reversal condition.** Owner:
+**SUB-10 (NEU-984)**. Resolving event: SUB-10's deployment-shape record answers, explicitly, whether the
+chosen shape requires the application to be built from a public repository.
+
+### 9.2 What is capped
+
+**`CAP-S9-1` — whether one maintainer can operate a split-visibility release pipeline on the current
+CI is not settled here.** `K9` scores `T2`'s single pipeline as better than `T1`'s two (§5.9), and that
+score is about **pipeline count**, which is countable. What is **not** settled is whether the resulting
+single pipeline — publishing one subtree publicly while never publishing another, and retargeting a
+`version-bump` job that today writes the root manifest — is **operable by one person**.
+
+It is capped rather than spiked because settling it requires **designing the CI pipeline**, which this
+chapter is explicitly scoped out of (§1), and because the design would have to be validated against a
+workspace that does not exist. **Asserting it was not an available option** (`00_…md` §1.2), so it is
+capped with a named owner. Owner: **NEU-896**, which owns the implementation. What would lift it: a
+workspace on `origin/develop` with both member trees present and a pipeline that publishes the core
+while withholding the application, observed over at least one real release.
+
+What the cap leaves unsupported, stated precisely: `K9`'s **margin**, not its direction. `T1`
+unambiguously requires two pipelines and a cross-repository release ordering; that comparison holds
+regardless of how the cap resolves. If the cap resolved badly — a single pipeline proving unworkable for
+one maintainer — `K9` would narrow toward level. It would not invert, and `K4` decides regardless
+(§6.4).
+
+### 9.3 What is inherited, not originated
+
+**`CAP-S15-2`** — all three of SUB-15's decisions rest on **`A-27`, `[unconfirmed]`**, and go stale
+together if NEU-892 lands requiring offline-capable or client-authoritative learning state. Criterion
+input **(d)** is one of those three decisions. **`K1`, `K5`, `K8` and `K9` therefore inherit
+`CAP-S15-2`** and are no better supported than the runtime decision beneath them. This chapter does not
+re-file the cap, does not resolve it, and does not present the runtime as settled beyond its own recorded
+caveat.
+
+**What that inheritance costs, bounded honestly.** If `CAP-S15-2` fires and the runtime is re-decided
+divergently, `K8`'s measured mechanism disappears (variant E requires a shared language) and `K1`, `K5`
+and `K9` lose most of their margin — `13_…md` §6.5 says exactly this. `K4` would also change shape, since
+mechanical contract-sharing is what a shared runtime buys. **A fired `CAP-S15-2` therefore reopens
+`DR-C10-S9-1`, and re-deciding it is the correct response — not patching this chapter.** That is
+recorded as `DR-C10-S9-1`'s first revision trigger.
+
+**`CAP-S8-1`** — `RD-S8-1`…`RD-S8-5` are specified, never executed. §5.4 is scored on typechecker
+behaviour and assumes **no** `RD-S8-*` method is running, so the cap does not weaken `K4`; it is named so
+a reader does not credit `K4` with detection machinery that has not been built.
+
+### 9.4 The spike executed, and the candidates withdrawn
+
+**`SPK-S9-1`** was filed and executed; its full record — question, why reading could not settle it, exit
+condition, method, quarantine path, result, confidence, expiry and expiry rationale — is in
+`92_spike-register.md`. It is **cited by id at the criteria it decided**: `K4` (§5.4), `K8` (§5.8), `K3`
+(§5.3, variant A), and migration steps `M5` and `M7` (§8). Per `00_…md` §2.6 those citations inherit the
+record's expiry.
+
+Its result in one line: **consuming the core as a package requires an entry-point declaration the core
+does not have, and whether local development stays live depends entirely on whether that entry point
+resolves to built output or to source** — the first is what a published dependency can offer, the second
+is what a workspace link can.
+
+**Two candidates were withdrawn under the "could this have been read instead?" test**, recorded so the
+withdrawals are visible rather than silent:
+
+| Withdrawn candidate | What was read instead | What it answered |
+| --- | --- | --- |
+| *Does this repository declare a pnpm workspace today?* | `pnpm-workspace.yaml` at `0962279` | Fully. The file carries only `onlyBuiltDependencies: [esbuild]` and **no `packages:` key**. Reading settled it; a spike would have measured a fact already on disk. |
+| *Is there a publish workflow?* | All four files under `.github/workflows/` at `0962279` | Fully. A search for `publish`, `registry`, `NPM_TOKEN` and `npmjs` across `ci.yml`, `cd-prod.yml`, `cd-test.yml` and `claude.yml` returns **zero matches**. |
+
+A third question — *does `"private": true` prevent the core from being consumed?* — was **not** separately
+justified as a spike. It rode along inside `SPK-S9-1` as a sub-result (variants B, C and E all resolved
+cleanly with the flag still set) and is reported as such at `F-S9-3` rather than claimed as its own
+spike.
+
+### 9.5 The ids this chapter allocates
+
+| Id | Kind | One line |
+| --- | --- | --- |
+| `F-S9-1` | finding | Repository history re-measured at `0962279`: 720 commits, 468 human on one address, 252 automated; reconciles with the charter's 431/648/217. |
+| `F-S9-2` | finding | Repository scale re-measured: 169 source files, 26,816 lines, 202 test files; 25 migrations unchanged. |
+| `F-S9-3` | finding | The core is not consumable as a dependency today — no `main`/`exports`/`types`/`bin`; `"private": true` is not the cause. |
+| `F-S9-4` | finding | No `files` field, so a publish would ship everything not gitignored. |
+| `OI-S9-1` | open item | `T2` must consume the published artifact at a gate before release. |
+| `OI-S9-2` | open item | The publish filter must be an explicit allowlist. |
+| `OI-S9-3` | open item | Which `package.json` NEU-850's `OUT-6` means. |
+| `OI-S9-4` | open item | SUB-10 must check its shape against §6.4's reversal condition. |
+| `CAP-S9-1` | cap | Split-visibility release-pipeline operability by one maintainer is not settled here. |
+| `SPK-S9-1` | spike | Package-consumption and local-development resolution, five variants. |
+| `DR-C10-S9-1` | decision record | The repository topology decision. |
+
+**No finding is routed to SUB-15** (§3.4). **No amendment is routed to NEU-850** (§7.2). **No entry is
+added to `93_…md`, which is closed** — charter assumptions 11, 12, 16, 24 and 32 are all **confirmed** and
+are cited at the decision, so none of them is a stand-in.
+
+---
+
+## 10. The scope audit
+
+### 10.1 The stops, honoured
+
+| Out of scope | Where the stop held |
+| --- | --- |
+| Creating any repository, workspace file, directory or scaffold | §8 states target **states**, never configuration; nothing was created. |
+| Build tooling, package-manager configuration, CI pipeline design | §3.6 derives the exclusion from the architecture-material rule; `M1`, `M7` and `M8` name what must become true and stop. `CAP-S9-1` exists **because** the stop held. |
+| Deciding the web tier's runtime or language | §3.4 consumes `DR-C10-S15-2`. No finding routed to SUB-15, because none arose. |
+| The architecture-material rule, protocol style, rendering model | §3.6 **applies** the rule; `DR-C10-S15-3` and `DR-C10-S15-4` are cited nowhere as inputs and re-decided nowhere. |
+| Deployment shape, data-store topology, AI-orchestration placement | §6 declares an **assumption** about deployment shape and hands SUB-10 a check (`OI-S9-4`). It chooses no shape, and §6.4 says explicitly that shape does not decide the topology. |
+| Publishing the core or changing `package.json` | `M5`/`M6` describe what `OUT-6`'s execution requires. No manifest is changed by this chapter. |
+| Re-deciding NEU-850's `OUT-6` or `OUT-7` | §7 consumes both; §7.2 records **no amendment routed**. |
+
+### 10.2 What did not move
+
+**No `BND-S4-*` row moves.** The topology decides where source files live, not where trust boundaries
+sit; `BND-S4-2` is *cited* in §6.3 as the reason SUB-15 rejected a single-process shape, and is not
+altered here. **`BND-S4-17`** — STDIO as a trust boundary that nothing enforces, owner `nobody` — is
+untouched, and this chapter makes **no security claim** of any kind, so the obligation to name a
+transport does not arise. **`CAP-S4-1` remains open** and is not closed here; **`BND-S4-16` remains
+`undecided`** and was not resolved here.
+
+**No Authority cell moves.** The matrix is 45 rows, `SC-S3-1`…`SC-S3-45`, no gaps, at revision
+**`post-validation`** (`08_…md` + `10_…md`, SUB-16 / NEU-979). This chapter resolves nothing against it
+and changes nothing in it. `M-A` (all-MCP) remains the selected ownership model.
+
+**No `CC-S8-*` clause changes, and the gated-tool count is unchanged at 43.** §5.4 compares *when* a
+change to a gated schema is detected under two topologies; it adds no tool, changes no schema, and
+extends no obligation. **`F-S5-4`** stands unqualified: at this cutoff no state category can reach
+`holds`, and the binding constraint is the **transport**, not the schema — nothing in this chapter
+changes that, and no score here claims otherwise.
+
+**NEU-850's `OUT-2` is untouched.** SUB-5's identity placement and backward-compatibility obligation are
+unchanged; NEU-850 is **converged but unimplemented**, so its `user_id` commitment remains a decision to
+honour and never an existing schema fact. **NEU-35 "Multi-user support"** is noted as the pre-existing
+duplicate so the backlog keeps one source of truth; nothing here files against it.
+
+---
+
+## 11. What this chapter closes, and what it does not
+
+### 11.1 Closes
+
+1. **The repository topology.** `T2`, the split-visibility workspace, selected on `K4` and recorded as
+   `DR-C10-S9-1`. This package's `OUT-7` is discharged.
+2. **The alternative set's disposition.** `T0` eliminated with recorded rationale; `T1` and `T3` rejected,
+   each with the consequence that decided it.
+3. **The migration path** from today's single-package repository, stated against measured facts.
+4. **The C003 reconciliation** for NEU-850's `OUT-6` and `OUT-7`: consumed, overlap **partial**, **no
+   amendment routed**.
+5. **The `F5.8` declaration** — the deployment-shape assumption `DS-1` and the single reversal condition,
+   handed to SUB-10 as `OI-S9-4`.
+
+### 11.2 Does not close, explicitly
+
+- **Whether one maintainer can operate the resulting pipeline** — `CAP-S9-1`, owner NEU-896.
+- **Whether the published artifact is ever consumed as one** — `OI-S9-1`, owner NEU-896.
+- **Whether the publish filter is correct** — `OI-S9-2`, owner NEU-896.
+- **Which manifest `OUT-6` means** — `OI-S9-3`, owner NEU-850.
+- **The deployment shape itself** — SUB-10 (NEU-984). This chapter assumes `DS-1` and declares it; it
+  does not decide it.
+- **`A-27`'s status**, and therefore the durability of criterion input (d) — `CAP-S15-2`, owner NEU-896.
+- **The compatibility contract's detection machinery** — `CAP-S8-1`; `K4` assumes none of it runs.
+
+---
+
+## 12. Handoff
+
+| To | What it receives |
+| --- | --- |
+| **SUB-10 (NEU-984)** | The selected topology `T2` as a decided input. **`OI-S9-4`** — the one-line check at §6.4, which is the only place the `F5.8` coupling is declared. `F-S15-2` remains SUB-10's; this chapter makes no latency claim. |
+| **SUB-11 (NEU-985)** | `traceability/S9_repository-topology.md` for the mechanical audit rows, and this chapter's id ledger (§9.5). |
+| **SUB-12 (NEU-986)** | Four findings, four open items, one cap and one spike for reconciliation. `94_…md` is SUB-12's alone and is untouched here. The C003/NEU-850 decision-ownership collision finding remains **SUB-12's to file**; this chapter does not pre-empt it. |
+| **NEU-850** | **`OI-S9-3`** — which manifest `OUT-6` means under a workspace. **No amendment is routed**; `OUT-6` and `OUT-7` are consumed as decided. |
+| **NEU-896** | `CAP-S9-1`, `OI-S9-1`, `OI-S9-2`, and the migration path `M1`–`M10` as the sequence the implementation must realise. Inherits `CAP-S15-2` through criterion input (d). |
+| **SUB-15 (NEU-982)** | **Nothing.** No topology conclusion required a different runtime, so the routing rule at `13_…md` §6.5 did not fire. |
+
+---
+
+## 13. Verification note
+
+| Claim | How to check it | Expected |
+| --- | --- | --- |
+| Weights were fixed before scoring | §5's criteria table precedes every score; the tie-break at §5.10 changes no weight | Weights derived from §3's inputs, unchanged |
+| Four criterion inputs carry weights and sources | §3 table | Four rows, each with status, weight, source |
+| Assumption 32 is **confirmed**, not `[unconfirmed]` | §3 table row **(c)**, §3.3 | `confirmed`; no entry added to `93_…md` |
+| Every build / testing / local-dev / release score names the runtime | §5.1, §5.5, §5.8, §5.9 opening sentences | Each names TypeScript-on-Node and cites `DR-C10-S15-2`; none conditional |
+| The eliminated monorepo carries a rationale | §4.1, §5.10 matrix row `T0` | Marked **eliminated**, rationale recorded |
+| Every rejected alternative names its deciding consequence | §5.10 rejection table | Three rows, one consequence each |
+| Migration steps rest on measured facts | §8 comparison table, then `M1`–`M10` | Six facts measured at `0962279`; three differ from assumption 16 and are filed at `F-S9-2` |
+| `F5.8` is declared, not hedged | §6.3 `DS-1`, §6.4 reversal condition | Three scores unconditional; one named reversal condition; `OI-S9-4` raised |
+| NEU-850 overlap stated as partial | §7.1, §7.2 | **partial**; **no amendment routed** |
+| Spike cited by id at the criteria it decided | §5.3, §5.4, §5.8, §8 `M5`/`M7` | `SPK-S9-1` cited at each |
+| Register deletions | `git diff` on `02_`, `90_`, `91_`, `92_` | **Zero deletions**; appended sections only |
+
+Per `00_…md` §5, verification here is by **file inspection**, not execution: this is a documentation
+deliverable, and a green type-check or lint line is **not evidence about this chapter's content** — those
+are no-regression checks only. The one exception is `SPK-S9-1`, whose result **is** execution evidence,
+which is why its full method and output are recorded in `92_spike-register.md` rather than summarised:
+the spike's scratch tree is gitignored and no later reader can open it.
+
+**`qa-execution:engine` is unconfigured** in this project, so **no QA pass is claimed anywhere in this
+chapter** or in any artifact it produced.
