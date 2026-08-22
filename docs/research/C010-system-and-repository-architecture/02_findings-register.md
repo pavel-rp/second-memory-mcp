@@ -377,3 +377,118 @@ section above your own. On conflict, keep both sides.
 - **Handed to:**
   - **`NEU-986 (SUB-12)`**, at the completeness gate, which reconciles the package against the charter and is where a stale charter figure should be recorded.
   - **`SUB-14 (NEU-978)`** and **SUB-16**, both of which iterate the same 45 rows and inherit the same estimate.
+
+### SUB-14
+
+*Eleven findings from validating `08_per-state-authority-matrix.md` at its `pre-validation` revision. **Every one names an owning sub-task.** The headline is stated once, here, so it is not lost among them: **zero of the eleven is a defect in SUB-13's authority assignment.** The invariant's frontier is the transport, the absent principal-attribution mechanism and the absent access-path enumeration — exactly what `F-S5-4` recorded before this validation ran. No routable defect was invented to make the census look productive.*
+
+#### `F-S14-1` — `I3`'s "at or below the port boundary" is unsatisfiable as written for the 15 categories that sit behind no port
+
+- **Id:** `F-S14-1`
+- **Finding:** `06_isolation-invariant-and-the-neu-893-split.md` §3 phrases `I3` as confinement enforced **"at or below the port boundary"**. **Fifteen categories have no port between the caller and the state** — the 13 clause-1 process-local rows (`SC-S3-18`…`SC-S3-30` less the two derived-in-core rows, plus `SC-S3-21`/`SC-S3-27`), and the two raw-SQL log tables `SC-S3-16`/`SC-S3-17` that `OI-S5-1` already records as sitting behind no port. For these, the check's locus does not exist, so `I3` is not *failed* — it is **unaskable as written**. This chapter read the clause **purposively**: §3.6 case 3 introduces it to exclude guards sitting *above* the ports that a port-scoping mechanism would leave untouched, and where no port mediates the category there is no port-scoping mechanism to miss it. **The ruling is disclosed here rather than made silently in a verdict cell.**
+- **Evidence:** `06_…md` §3 (`I3`'s statement), §3.4.1 (the asymmetry rule), §3.6 case 3 (the worked case the clause is drawn from), and §3.5's ordering→owner table placing `I3` with SUB-8 (NEU-981). `OI-S5-1` in `90_open-items-and-provisional-register.md` (the two log tables sit behind no port, so `OUT-2`'s mechanism cannot reach them). The 15 portless categories are identified in `09_authority-matrix-validation.md` §4.3.
+- **Consequence:** **None of the 15 changes disposition under either reading** — each fails at `I2` or `I3` regardless, in both censuses — so the ruling moves no verdict and inflates no count. It is recorded because a later reader applying `I3` literally to a portless category would either invent a sixth outcome or silently return `holds`, and §3.4.1 forbids the second absolutely. What the finding asks for is a **stated rule in the procedure**, not a repair to any row.
+- **What is assumed rather than derived:** The purposive reading itself. SUB-5 did not state what `I3` means for a category with no port, because its five worked cases do not include one. The reading is inferred from the clause's own worked origin and is offered to be overturned, not relied upon.
+- **Handed to:**
+  - **`SUB-5 (NEU-975)` / `NEU-893`**, which own the procedure and are the only parties that can add the rule to `I3`.
+  - **`SUB-16 (NEU-980)`**, to disposition the reading when it absorbs this validation.
+
+#### `F-S14-2` — `fails-principal: 0` is a consequence of the adjudication order, not a clean bill on principal integrity
+
+- **Id:** `F-S14-2`
+- **Finding:** Both censuses return **zero** `fails-principal` verdicts. That is **not** evidence that principal integrity is sound. `06_…md` §3's adjudication rule is *"the first failing check names the verdict, stop there"*, and `I5` is **last**. Every in-domain row fails at `I2`, `I3` or `I4` first, so **`I5` is never reached and principal integrity is never actually tested by this census.** Meanwhile the defect `I5` exists to catch is real and merged: `06_…md` §3.6 case 5 records `jwt-middleware.ts:127`'s `const subject = (typeof payload.sub === 'string' && payload.sub) || azp || undefined;` — an `azp` fallback that lets a client-credentials token resolve to a principal. **A reader who takes `fails-principal: 0` at face value would conclude the opposite of the truth.**
+- **Evidence:** `06_…md` §3.4 (the closed six-verdict set), §3's ordered checks and the first-failing-check rule, §3.6 case 5 (the `sub`-vs-`azp` case reaching `fails-principal` **only because** that worked case's earlier checks were assumed satisfied), §3.5 (`I5` → NEU-893 against `OI-S1-2`). The distributions in `09_authority-matrix-validation.md` §15.2.
+- **Consequence:** Any downstream audit or gate that consumes the verdict distribution must read `fails-principal: 0` as **"unreached"**, never as **"passed"**. This is the single most misreadable number in the record, which is why it is a finding rather than a footnote. It also means the `I5` workload is **not** sized by this chapter: the count of rows that *would* fail `I5` is unknown and will stay unknown until `I2`–`I4` are satisfiable.
+- **What is assumed rather than derived:** Nothing. The order, the rule and the census are each read or computed at a cited location.
+- **Handed to:**
+  - **`SUB-16 (NEU-980)`**, to carry the qualification into the republished matrix rather than the bare count.
+  - **`NEU-983 (SUB-11)`**, whose audits consume the distribution and are the most likely to misread it.
+
+#### `F-S14-3` — `SC-S3-45` is structurally incapable of reaching `holds` under any target state, because its authority is external
+
+- **Id:** `F-S14-3`
+- **Finding:** `08_…md` assigns `SC-S3-45` (learner-identity → owner mapping) to **`CMP-S4-10`**, the identity provider — a component in `Z-IDP`, outside this system. `I3` requires an **enumerated access-path set covering reads and writes** for the category (`06_…md` §3.4.1). **No such set can be enumerated for a store this system does not own**, in any target state, including one that assumes `OUT-2` fully implemented — `OUT-2` adds ownership keys to *this system's* tables. So `SC-S3-45` returns `fails-confinement` **permanently**, not pending a change. This is not an assignment defect: the assignment is correct and follows `07_…md` §6.1 clause 4 (as resolved by `F-S13-2`). It is a **consequence of the model** that the row's own verdict can never improve.
+- **Evidence:** `08_…md` §9 row `SC-S3-45` (authority `CMP-S4-10`, clause 4, `assumed` under `A-28`). `07_…md` §6.1 clause 4. `F-S13-2` (the `Z-IDP`/`CMP-S4-2` id mismatch and its resolution to `CMP-S4-10`). `06_…md` §3.4.1. `A-28` in `93_stand-in-assumption-register.md` — *"isolation enforced server-side at or below the port boundary"* — whose **tolerance envelope** covers a server-side mechanism and whose **invalidating outcome** is enforcement that is not server-side; an external authority is outside that envelope in both directions, which is why the row cannot be rescued by assuming `A-28` holds.
+- **Consequence:** The category's isolation guarantee is **inherited, not enforced** — this system can only fail closed on a projection failure, which is exactly what its Recovery cell requires. Recorded so that a later reader does not schedule work to "fix" `SC-S3-45`'s verdict; there is no local work that changes it. The row's **one** local obligation (fail closed rather than default to an unowned row) is separately verifiable and is not covered by this finding.
+- **What is assumed rather than derived:** That clause 4's intended authority is `CMP-S4-10` — inherited from `F-S13-2`'s resolution, not re-derived here.
+- **Handed to:**
+  - **`SUB-6 (NEU-976)`**, which owns clause 4 and is the only party that can decide whether a row with an external authority should be in the invariant's domain at all.
+  - **`SUB-16 (NEU-980)`**, to disposition.
+
+#### `F-S14-4` — `SC-S3-42`'s divergence outcome is undefined: the hint-usage/mastery rule exists in no merged input
+
+- **Id:** `F-S14-4`
+- **Finding:** The divergence walk (`09_…md` §8) reaches a **defined** outcome for 44 of 45 rows. `SC-S3-42` (tutoring / hint interaction state) does not. Its Consistency cell requires the hint state and its attempt (`SC-S3-9`) to be *"attributable to each other, or hint usage cannot be excluded from — or included in — a mastery judgement"*, and then states that **"which of those it is, is NEU-891's decision, not this matrix's."** The two candidate resolutions produce **opposite** mastery verdicts for the same divergence, and no merged artifact picks between them.
+- **Evidence:** `08_…md` §8's `SC-S3-42` block (Consistency and Freshness cells, quoted above). `A-25` in `93_…md` — the sub-second read-latency stand-in for tutoring state — whose **tolerance envelope** explicitly admits *"any number of escalation levels"* and any granularity, so **no point inside the envelope resolves this**; and whose **invalidating outcome** (synchronous multi-turn AI orchestration inside a gate-bearing write path) would make it worse, by placing the undetermined interaction inside the mastery transaction. Cited here at the verdict it decided.
+- **Consequence:** `OUT-3` requires a defined scenario outcome per row and this one is not defined **yet**. It is routed, not narrated. **This is not a matrix defect**: SUB-13 recorded the indeterminacy honestly and named the deciding party, which is the correct behaviour for a cell that cannot be answered from merged inputs. A matrix that guessed would be worse.
+- **What is assumed rather than derived:** Nothing. The indeterminacy is quoted from the row.
+- **Handed to:**
+  - **`NEU-891`**, which owns the hint model and is the only party that can state the inclusion rule.
+  - **`SUB-16 (NEU-980)`**, to carry the residual at the row when it republishes.
+
+#### `F-S14-5` — `SC-S3-31`'s conflicting-write outcome is undefined: aggregate-vs-append is a store-shape decision no merged artifact makes
+
+- **Id:** `F-S14-5`
+- **Finding:** The conflicting-concurrent-write walk (`09_…md` §9) reaches a **defined** outcome for 44 of 45 rows. `SC-S3-31` (corpus-neutral assessment-evidence record) does not. Its Concurrency cell reads: *"Two assessments of the same `node_id` + `skill_type` must serialize **if the record is an aggregate**; append-per-event has **no race**. Which of the two shapes applies is not determined by any merged input — SUB-10 decides it with the store."* The two shapes give **opposite** outcomes: a mandatory serialization requirement versus no race at all.
+- **Evidence:** `08_…md` §8's `SC-S3-31` block. `04_state-category-inventory.md` §3 row `SC-S3-31` (identity `node_id` + `skill_type`; store `none`; `required-by-upstream`). `CAP-S6-1`, which bounds what may be said about two-writer behaviour at all. `OI-S13-1`, the adjacent open store-shape question, same owner.
+- **Consequence:** Material, because `SC-S3-31` is the load-bearing row of NEU-890's durability property. **Checked deliberately: the durability property survives either resolution** (`09_…md` §13.2), so the indeterminacy does not propagate into `SC-S3-38`/`SC-S3-39`. What it does block is a definite statement of the row's concurrency obligation, which SUB-8's confinement work and SUB-10's topology work both need.
+- **What is assumed rather than derived:** Nothing. The indeterminacy is quoted from the row; the durability-property robustness is derived in `09_…md` §13.
+- **Handed to:**
+  - **`SUB-10 (NEU-984)`**, which selects the data-store topology under `OUT-8` and is named in the cell itself.
+  - **`SUB-16 (NEU-980)`**, to disposition and carry the residual.
+
+#### `F-S14-6` — `FL-S4-2` names `CMP-S4-3` authoritative; the matrix gives `CMP-S4-3` authority over zero of 45 rows
+
+- **Id:** `F-S14-6`
+- **Finding:** `05_system-context-and-responsibility-boundaries.md` §5 `FL-S4-2` names **`CMP-S4-3`** (the web tier) the authoritative side for *"learner-facing content and derived state for display"*. `08_…md`'s authority distribution gives `CMP-S4-3` **zero rows out of 45**. **Direction: the flow names a component the matrix holds empty.** This is not an oversight — it is the direct consequence of `07_…md` §6.3's presentation-exception list (clause 3's enumerated set) being **empty under the selected model `M-A`**, which is precisely the property distinguishing `M-A` from `M-B`.
+- **Evidence:** `05_…md` §5 `FL-S4-2`. `08_…md` §11's authority distribution (`CMP-S4-9` 21, `CMP-S4-7` 9, `CMP-S4-4` 5, `CMP-S4-14` 4, `CMP-S4-17` 2, `CMP-S4-19` 2, `CMP-S4-8` 1, `CMP-S4-10` 1 — no `CMP-S4-3`) and §11's clause distribution showing **clause 3 → 0 rows**. `07_…md` §6.3 (the empty list) and §6.1 clause 3.
+- **Consequence:** The matrix's answer is `M-A`'s answer and is correct. The flow's annotation describes a **display relationship**, not a state authority. Recorded because the reading is not self-evident: a consumer who assumes `CMP-S4-3` holds *something* would mis-scope any web-tier work, and the clause-3-zero property is exactly the kind of structural result that gets quietly re-litigated. **Expected disposition: record the reading, amend nothing.**
+- **What is assumed rather than derived:** Nothing. Both counts are read at cited locations.
+- **Handed to:** **`SUB-16 (NEU-980)`**.
+
+#### `F-S14-7` — `FL-S4-4` and `SC-S3-26` disagree about JWKS, and the matrix answers it the opposite way from `SC-S3-45`
+
+- **Id:** `F-S14-7`
+- **Finding:** `FL-S4-4` names **`CMP-S4-10`** authoritative for the JWKS, *"and only for signature material under the issuer allowlist"*. `08_…md` assigns `SC-S3-26` (the JWKS remote key set) to **`CMP-S4-4`** on clause 1 (non-durable → the component whose process computes it). **Direction: the flow names the upstream issuer; the matrix names the downstream in-process cache holder.** The substance is not either assignment in isolation — it is that **the matrix answers the same structural question the opposite way at `SC-S3-45`**, where clause 4 *did* yield to the external authority `CMP-S4-10` for a category this system merely projects. `SC-S3-26` and `SC-S3-45` are the only two rows where the question arises, and they are answered inconsistently.
+- **Evidence:** `05_…md` §5 `FL-S4-4`. `08_…md` §9 rows `SC-S3-26` (`CMP-S4-4`, clause 1) and `SC-S3-45` (`CMP-S4-10`, clause 4). `08_…md` §8's `SC-S3-26` block, whose Freshness cell states *"the issuer's set wins… the refresh policy is `Z-IDP`'s"* — the flow's answer, inside a row assigned to `CMP-S4-4`. `07_…md` §6.1 clauses 1 and 4.
+- **Consequence:** A consumer reasoning about **projected external state** gets different guidance depending on which row it reads. The isolation consequence is nil either way — neither assignment changes `SC-S3-26`'s verdict — so this is a **modelling-consistency** finding, not a security one. The disposition SUB-16 must make is whether clause 1 should yield to an external authority when the cached thing is a projection of it.
+- **What is assumed rather than derived:** That `FL-S4-4` and `SC-S3-26` are about the same value. They are: the flow's value is the key set, and the category is the key set as held in process.
+- **Handed to:** **`SUB-16 (NEU-980)`**, with **`SUB-6 (NEU-976)`** named for the clause question.
+
+#### `F-S14-8` — `FL-S4-8`/`FL-S4-9` and `FL-S4-20` contradict each other about the two log tables, inside one merged document
+
+- **Id:** `F-S14-8`
+- **Finding:** `FL-S4-8` and `FL-S4-9` name **`CMP-S4-19`** authoritative for what is stored in `SC-S3-16` and `SC-S3-17`. **`FL-S4-20`, in the same section of the same document, names `CMP-S4-9` authoritative "for the source rows"** — and the source rows *are* `SC-S3-16` and `SC-S3-17`. `08_…md` assigns both categories to **`CMP-S4-9`** with `CMP-S4-19` as the `W` annotation, **agreeing with `FL-S4-20`**. **Direction: `FL-S4-8`/`FL-S4-9` name the writer; the matrix and `FL-S4-20` name the store.** So the primary defect is **internal to `05_…md`**, and the matrix merely exposes it.
+- **Evidence:** `05_…md` §5 `FL-S4-8`, `FL-S4-9`, `FL-S4-20`. `08_…md` §9 rows `SC-S3-16`, `SC-S3-17` (authority `CMP-S4-9`, `W` `CMP-S4-19`, clause 5). `05_…md` §3.2's own statement that `CMP-S4-9` is *"the only writer of the `public` and `infrastructure` database schemas **on the request path**"* — while these tables are written from **transport worker threads**, which is not the request path, so the matrix's assignment stretches `CMP-S4-9`'s stated charter and `FL-S4-8`/`FL-S4-9`'s does not. `OI-S5-1` (both tables sit behind no port).
+- **Consequence:** Whichever component is named, **the isolation consequence is identical** — `OUT-2`'s mechanism cannot reach either table under either assignment (`OI-S5-1`) — so this is a modelling finding, not a security one. But it is the cross-check's strongest, because it is the only place where a merged artifact contradicts **itself** about a category, and because `SC-S3-17` is **read by the Tier-2 blocking gate**: a reader who has to guess which flow is authoritative is guessing about a gate input.
+- **What is assumed rather than derived:** That `FL-S4-20`'s *"source rows"* denotes `SC-S3-16`/`SC-S3-17`. It does — the flow's own value column reads *"Batch read of `SC-S3-16`/`SC-S3-17` under an allowlist"*.
+- **Handed to:**
+  - **`SUB-16 (NEU-980)`**, which republishes and is the only party that can amend `05_…md` without violating the append convention. **This chapter amended neither artifact.**
+  - **`NEU-983 (SUB-11)`**, whose cross-cutting audit can check flow-vs-flow consistency mechanically; this is the first intra-document authority contradiction found in the package.
+
+#### `F-S14-9` — `FL-S4-14` names the cache's holder authoritative; `FL-S4-13` and the matrix name its producer
+
+- **Id:** `F-S14-9`
+- **Finding:** `FL-S4-14` names **`CMP-S4-18`** authoritative *"for the stored verdict and its date"*. `08_…md` assigns `SC-S3-33` (the cached citation-drift verdict) to **`CMP-S4-17`**, with `CMP-S4-18` demoted to *holder*. **Direction: the flow names the holder; the matrix names the producer.** And `FL-S4-13` — same document, same section — already calls **`CMP-S4-17` the cache's *only* writer**, so the matrix is the reading consistent with `05_…md`'s own §5 and `FL-S4-14` is the outlier.
+- **Evidence:** `05_…md` §5 `FL-S4-13`, `FL-S4-14`, and §7.3 hop 3. `08_…md` §8.6 and §9 row `SC-S3-33` (`CMP-S4-17`, clause 2 → tie-break (c)). `03_execution-environment-and-citation-drift-component.md` §4.3 (the cache is internal, keyed-read-only, computes nothing, *"never derives, refreshes or ages"* a verdict). `F-S13-1`, which is the same tension seen from the assignment side.
+- **Consequence:** Concrete if left unreconciled: a reader taking `FL-S4-14` at face value concludes the cache may be written by whoever holds it — **exactly the property `FL-S4-13`'s single-writer rule exists to deny**, and the property that keeps the drift verdict's provenance intact. Note this is the second finding (with `F-S14-8`) where `05_…md` §5 disagrees with itself; the class is worth a mechanical check rather than two point fixes.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **`SUB-16 (NEU-980)`**, with **`NEU-983 (SUB-11)`** for the mechanical class check.
+
+#### `F-S14-10` — `FL-S4-16` still records "Undetermined" for a question the matrix has since resolved
+
+- **Id:** `F-S14-10`
+- **Finding:** `05_…md` §5 `FL-S4-16` records the gate-verdict authority as **"Undetermined"**, citing `OI-S2-2` as open and owned by SUB-13, and filing `F-S4-3`. **`08_…md` resolves it**: `SC-S3-35` → **`CMP-S4-14`**, clause 2, with `CMP-S4-15` as `W`; SUB-13's §12 records this as discharging `F-S4-3` and closing `OI-S2-2`. **Direction: matrix → flow.** `05_…md` is stale on this one row.
+- **Evidence:** `05_…md` §5 `FL-S4-16` and §7.2 hop F1-5. `08_…md` §9 row `SC-S3-35` and §12's disposition of `F-S4-3`/`OI-S2-2`. `90_open-items-and-provisional-register.md`'s SUB-13 section.
+- **Consequence:** Low severity and high nuisance: the flow document was **correct when written** — it named the party that would resolve it and refused to narrate past the gap, which is the behaviour the package wants. Recorded so the amendment is **owned and scheduled** rather than left as a silent inconsistency that a later reader resolves by assuming the older document is authoritative.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **`SUB-16 (NEU-980)`**, which republishes.
+
+#### `F-S14-11` — Five flows name an enforcing, admitting or producing component where the matrix names the holding one; the two documents lack a stated vocabulary mapping
+
+- **Id:** `F-S14-11`
+- **Finding:** `FL-S4-5`, `FL-S4-17`, `FL-S4-19`, `FL-S4-20` (its extract half) and `FL-S4-21` each name a component the matrix records in its **`W`** annotation rather than as the authority. **These are not disagreements about fact.** `05_…md` defines "authoritative side" as *"if the two sides disagree about this value, whose value is the fact"* — on an enforcement or admission hop that is the enforcing component. `08_…md` defines "authority" as *"the single writer of the category"* and states that `W` *"is an annotation, never a second authority"*. Both are correct in their own document; **what is missing is a stated mapping between the two vocabularies.**
+- **Evidence:** `05_…md` §5 `FL-S4-5` (`CMP-S4-4`), `FL-S4-17` (`CMP-S4-13`), `FL-S4-19` (`CMP-S4-4`), `FL-S4-20` (`CMP-S4-20`), `FL-S4-21` (`CMP-S4-13`), against `08_…md` §9 rows `SC-S3-13`, `SC-S3-1`/`2`/`32`, `SC-S3-44`, `SC-S3-41`, `SC-S3-37` — in every case the flow's component is the matrix's `W`, and in two cases (`SC-S3-13`, `SC-S3-44`) the matrix's own `W` cell literally reads *"enforced at `CMP-S4-4`"*. The full comparison is `09_authority-matrix-validation.md` §12.2.
+- **Consequence:** **None of the five threatens the exactly-one-authority audit**, and none is a defect in either artifact. The risk is a mechanical cross-check by a later audit reporting five false positives, or a consumer treating `W` as a second authority. **Recommendation carried with the finding: publish the vocabulary mapping; amend neither artifact.** This chapter amended neither.
+- **What is assumed rather than derived:** Nothing — each pairing is read at a cited location in both documents.
+- **Handed to:** **`SUB-16 (NEU-980)`**, with **`NEU-983 (SUB-11)`** so its mechanical audits do not re-report these five.

@@ -475,8 +475,11 @@ unit of work does not span components).
   matrix *requires* and what the code *fails to prevent* — and asserts nothing about what was observed.
 - **`SPK-S2-1`.** A 1000 ms same-thread guard armed before a non-terminating unit **never fired**; the
   process needed an external `SIGKILL` (exit 137). **An authoring-time bound is a liveness boundary, not
-  containment.** §10 turns on this and does not assume past it — see `SPK-S14-1`, which settles the
-  remaining half of the question.
+  containment.** §10 turns on this and does not assume past it. The complementary half — whether a
+  **worker-thread isolate** is terminable mid-synchronous-CPU-loop — is settled by the **same merged
+  record**, arrangement **C**, and is cited from it rather than re-spiked. See §14.2, which discloses
+  that this chapter measured it independently *before* re-reading the register, and reports the run as a
+  **replication of a merged result, not a new spike**.
 
 **And one piece of evidence is explicitly not used.** `F-S4-5` records that all three benchmark journeys
 are dogfooded across STDIO, where `BND-S4-17` places a trust boundary **nothing enforces, owner
@@ -676,9 +679,11 @@ is named at `SC-S3-3` below rather than assumed away.
 **And the liveness/containment distinction is honoured throughout.** `SPK-S2-1` measured a 1000 ms
 same-thread guard armed before a non-terminating unit and found it **never fired** — the process needed
 an external `SIGKILL` (exit 137). **An authoring-time bound is a liveness boundary, not containment.**
-The complementary half — whether a *worker-thread* isolate is terminable mid-synchronous-CPU-loop — was
-unreadable and material, so it was **measured**: `SPK-S14-1` (§14). Both are cited at the rows they
-decide, and no interruption outcome below assumes a bound fires that was not shown to fire.
+The complementary half — whether a *worker-thread* isolate is terminable mid-synchronous-CPU-loop — is
+answered by the **same** record, arrangement **C**, which measured `worker.terminate()` reclaiming a
+tight synchronous loop at **1007 ms**, 7 ms after the deadline, with the host surviving. **No new spike
+was warranted and none is filed** (§14.2). Both halves are cited at the rows they decide, and no
+interruption outcome below assumes a bound fires that was not shown to fire.
 
 | Id | Defined outcome under mid-operation interruption |
 | --- | --- |
@@ -716,7 +721,7 @@ decide, and no interruption outcome below assumes a bound fires that was not sho
 | `SC-S3-32` | Last committed state; recoverable by re-import from the authoring source. |
 | `SC-S3-33` | **Loss is safe by construction**: a lost cache degrades to *verdict absent*, which the disposition already handles by quarantining. An interruption therefore cannot produce an unsafe serve. This is the strongest argument for the cache being a separate category from `SC-S3-34`. |
 | `SC-S3-34` | A re-check that cannot complete produces **`verdict stale` — a recorded state, never a partial verdict.** There is no half-written verdict to recover from. |
-| `SC-S3-35` | A terminated or crashed run leaves the unit **without** a verdict, which `SC-S3-36`'s quarantine path already handles: **absence is a modelled state, so there is nothing to repair.** This outcome is exactly what `SPK-S14-1` was run to underwrite — see §14: a `worker_threads` isolate **was** terminable mid-synchronous-CPU-loop (5/5, 4–9 ms), so "a terminated unit produces no verdict" is measured rather than asserted. `SPK-S2-1` is cited alongside it: the **same-thread** authoring bound never fired, so the isolate is doing the work the timer cannot. |
+| `SC-S3-35` | A terminated or crashed run leaves the unit **without** a verdict, which `SC-S3-36`'s quarantine path already handles: **absence is a modelled state, so there is nothing to repair.** The mechanism this rests on is **measured and merged**: `SPK-S2-1` arrangement **C** reclaimed a tight synchronous loop inside a `worker_threads` isolate at **1007 ms**, host surviving — so *"a terminated unit produces no verdict"* is measured rather than asserted. Arrangement **B** of the same record is cited alongside it: the **same-thread** authoring bound **never fired**, so the isolate is doing work the timer provably cannot. Independently replicated here, 5/5 at 4–9 ms (§14.2) — a replication, not a new spike. |
 | `SC-S3-36` | Last committed state, and **all three slots commit together**, so a half-written quarantine is unrepresentable. **An open quarantine is the safe state**, so an interruption that leaves one open is safe; the dangerous direction is loss-toward-closed. |
 | `SC-S3-37` | An interrupted import leaves the last committed graph. **The whole-unit commit is what prevents a graph that never existed upstream**, and re-import from NEU-889's committed artifact restores it. |
 | `SC-S3-38` | Last committed state. An interruption between the attempt and the progression advance loses the advance — the same non-transactional hazard as `SC-S3-3` — but it is **reconstructible from `SC-S3-31` if the evidence records are retained**, which is the argument for retaining them. |
@@ -1063,43 +1068,55 @@ were, and are recorded here so that the absence of a spike for each is visible r
 | The two log tables are lossy on crash and while a breaker is open | `SC-S3-25`'s own attribute cells plus the batching transport's breaker | Readable |
 | The MCP session registry is not shared across processes | Node's single-threaded event loop plus the in-process map | Readable |
 
-### 14.2 `SPK-S14-1` — the one claim that could not be read
+### 14.2 The one candidate claim — and why it is **not** a new spike
 
-**The gap.** `SC-S3-35`'s Recovery cell — load-bearing for §10 — asserts that *"a terminated or crashed
-run leaves the unit **without** a verdict"*, never a partial one. That rests on the gate runner's
-**terminable isolate under a host-enforced wall-clock bound** (`FL-S4-15`, `BND-S4-9`). `SPK-S2-1`
-already measured the **same-thread** case and found the opposite of comfort: a 1000 ms guard armed
-before a non-terminating unit **never fired**, and the process needed an external `SIGKILL`. The
-worker-thread half was **unmeasured**, **material** (it decides whether §10's `SC-S3-35` outcome is a
-mechanism or a wish), and **unreadable** — `CMP-S4-15` does not exist in this codebase to read, and
-Node's own contract for `worker.terminate()` says execution stops *"as soon as possible"*, which is not
-a guarantee about a tight synchronous loop with no yield point. **So it was measured.**
+**The gap that looked like a spike.** `SC-S3-35`'s Recovery cell — load-bearing for §10 — asserts that
+*"a terminated or crashed run leaves the unit **without** a verdict"*, never a partial one. That rests on
+the gate runner's **terminable isolate under a host-enforced wall-clock bound** (`FL-S4-15`,
+`BND-S4-9`). It is material: it decides whether §10's `SC-S3-35` outcome is a mechanism or a wish. And it
+looked unreadable — `CMP-S4-15` does not exist in this codebase, and Node's contract for
+`worker.terminate()` says execution stops *"as soon as possible"*, which is not a guarantee about a tight
+synchronous loop with no yield point.
 
-Full record with all thirteen template fields is appended to `92_spike-register.md` under `### SUB-14`.
-The result, stated here because §10 cites it:
+**It is not unreadable. `SPK-S2-1` already measured it, and the record is merged.** SUB-2's spike ran
+three arrangements, and **arrangement C is exactly this question**: the same non-terminating unit inside
+a `worker_threads` `Worker`, with `worker.terminate()` called at the 1000 ms deadline. Its recorded
+result is `C: GUARD FIRED; worker.terminate() resolved code=1 at 1007ms` with `HOST SURVIVED=yes`, on
+**Node v22.23.1**. Applying §14.1's test honestly, **this claim could have been read instead** — in
+`92_spike-register.md` §10, one document away.
 
-- **Method.** Two files under `_local/scratch/NEU-978-spike/` — `worker-spin.mjs` (an unbounded
-  synchronous `for (;;)` loop with no `await`, no I/O and no yield point) and `probe.mjs` (spawns the
-  worker, calls `terminate()` at t = 1000 ms, records the resolution time and the worker's exit code,
-  then confirms the **host** event loop is still alive 200 ms later; a 6000 ms watchdog exits non-zero
-  if `terminate()` never resolves). Five runs.
-- **Result. 5/5 terminated.** `terminate()` resolved **4–9 ms** after the call (t ≈ 1006–1009 ms), the
-  worker reported `EXIT code=1`, and the host was alive at t ≈ 1207 ms in every run. The watchdog never
-  fired. Runtime: **Node v22.23.1**.
-- **Confidence: high** for the runtime measured; **medium** as a claim about `CMP-S4-15`, which does not
-  exist. The probe shows the **mechanism is available**, not that the unbuilt gate runner will use it.
-  That distinction is preserved at the citation in §10 and is not softened here.
-- **Expiry: 2027-08-22**, one year — matching `SPK-S6-1`'s precedent. A Node major-version bump changes
-  the V8 termination path, and the project's floor is Node 20+, so a runtime change inside the window is
-  plausible.
-- **Quarantine.** Both files live under `_local/scratch/NEU-978-spike/`, which is gitignored and swept
-  at task-finish. **No spike artifact is under `src/`, `tests/` or `drizzle/`, and none is merged as
-  product code.**
+**Disclosure, because smoothing it over would be worse than the error.** This chapter ran the probe
+**before** re-reading SUB-2's record in full, and so measured a question that was already answered. The
+run is reported below as what it actually is — an **independent replication of a merged result** — and
+**no `SPK-S14-*` record is filed.** Filing one would inflate the spike register with a duplicate and
+misrepresent `OUT-10`'s coverage; the owner of the underlying question is **SUB-2**, whose record stands.
 
-**What this settles and what it does not.** It settles that *containment* is achievable for the gate
-battery in a way `SPK-S2-1` showed a same-thread timer cannot achieve. It does **not** settle that the
-bound is set correctly, that `CMP-S4-15` exists, or that a killed isolate's meaning is agreed —
-`FL-S4-15` assigns that last decision to `CMP-S4-14` and the matrix agrees (§12).
+**The replication, stated in full because `_local/scratch/` is gitignored and no later reader can open
+it.** Two files under `_local/scratch/NEU-978-spike/` — `worker-spin.mjs` (an unbounded synchronous
+`for (;;)` loop, no `await`, no I/O, no yield point) and `probe.mjs` (spawns the worker, calls
+`terminate()` at t = 1000 ms, records the resolution time and the worker's exit code, confirms the
+**host** event loop is alive 200 ms later, and arms a 6000 ms watchdog that exits non-zero if
+`terminate()` never resolves). **Five runs, 5/5 terminated**: `terminate()` resolved **4–9 ms** after the
+call (t ≈ 1006–1009 ms), the worker reported `EXIT code=1`, the host was alive at t ≈ 1207 ms every time,
+and the watchdog never fired. Runtime: **Node v22.23.1** — the same runtime SUB-2 measured, which is why
+this is a replication rather than an extension. SUB-2 recorded 7 ms on one run; this chapter recorded
+4–9 ms across five. **The two agree.**
+
+**What the replication adds, and it is small.** SUB-2's arrangement C is a **single** run; five
+consistent repeats raise confidence that the 7 ms was not a fortunate scheduling artifact. That is the
+whole of the contribution, and it does not warrant a register entry. It is recorded **here**, at the row
+it supports, and in `92_spike-register.md`'s `### SUB-14` section as a no-new-spike note.
+
+**Quarantine, unchanged by the reclassification.** Both files live under `_local/scratch/NEU-978-spike/`,
+which is gitignored and swept at task-finish. **No probe artifact is under `src/`, `tests/` or
+`drizzle/`, and none is merged as product code.**
+
+**What the merged result settles and what it does not.** It settles that *containment* is achievable for
+the gate battery in a way arrangement B showed a same-thread timer provably cannot achieve. It does
+**not** settle that the bound is set correctly (`CAP-S2-1`), that the failure is frequent (`CAP-S2-2`),
+that `CMP-S4-15` exists, that `worker_threads` is the selected substrate (SUB-10's), or what a killed
+isolate *means* — `FL-S4-15` assigns that last decision to `CMP-S4-14` and the matrix agrees (§12).
+`SPK-S2-1`'s **expiry of 2027-04-30** is inherited unchanged by every citation in this chapter.
 
 ### 14.3 The caps that stand in place of a spike — each with a named owner
 
@@ -1282,9 +1299,13 @@ decided nothing.**
 - **`OUT-4`'s validation obligation** — the invariant is applied per row, every failure names its cause
   and owner, and the count of assignment-caused failures is **zero**.
 - **`OUT-3`'s scenario-evidence obligation** — four walks, 180 row-walks, 178 defined, 2 routed.
-- **`OUT-10`'s spike obligation** — one spike filed with all thirteen template fields and an expiry;
-  three uncertain-and-material claims covered by existing caps with named owners; the
-  "could-this-have-been-read" test recorded for five claims that were read instead.
+- **`OUT-10`'s spike obligation** — discharged, and **with zero new spike records**, which is the honest
+  outcome rather than a shortfall. Six claims were settled by **reading** (§14.1's five, plus the
+  worker-terminability claim, which `SPK-S2-1` arrangement C had already measured — **disclosed in §14.2
+  together with the fact that this chapter measured it before re-reading the register, and that the run
+  is reported as a replication, not a spike**). Three uncertain-and-material claims are covered by
+  **existing caps with named owners** (`CAP-S6-1` → SUB-10/NEU-896; `CAP-S5-1` → SUB-5/NEU-893;
+  `CAP-S4-1` → SUB-4, structural). **No claim was asserted in place of a spike or a cap.**
 
 **Does not close.**
 
