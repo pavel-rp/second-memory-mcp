@@ -838,3 +838,289 @@ assessment-record shape. A matrix that guessed at either would be worse. They ar
 requires a defined outcome and these two are not defined *yet* — **not because the matrix was wrong to
 leave them open.** That distinction is carried into the finding text so SUB-16 dispositions them as
 pending decisions rather than as defects.
+
+---
+
+## 12. The flow cross-check — all 22 of SUB-4's authority annotations
+
+**What is compared, and what "discrepancy" means here.** `05_…md` §5 annotates each of 22 flows with an
+**authoritative side** — *"if the two sides disagree about this value, whose value is the fact"*. The
+matrix names, per **state category**, the single component that is its authority. Where a flow carries a
+value that is (or lands in) a state category, the two must agree. **Where they do not, the direction is
+named** — which artifact says what — and **neither artifact is amended.** That prohibition is not
+stylistic: `05_…md` is merged and `08_…md` is merged, and silently reconciling one to the other would
+destroy the record of which one was written first and on what evidence. **SUB-16 dispositions every row
+below.**
+
+**A flow is `not comparable` when the value it carries is not a state category** — an in-flight report,
+a response payload, a request budget — and no matrix row exists to compare against. That is a fourth
+outcome, distinct from agreement, and it is counted separately so the agreement figure is not inflated.
+
+| Flow | Value carried | Flow's authoritative side | Category | Matrix's authority | Result |
+| --- | --- | --- | --- | --- | --- |
+| `FL-S4-1` | Learner interaction events | `CMP-S4-3` | — (in-flight report) | — | **not comparable** |
+| `FL-S4-2` | Learner-facing content / derived state for display | `CMP-S4-3` | — (`CMP-S4-3` holds no row) | **zero rows** | **discrepancy — B** |
+| `FL-S4-3` | Bearer token asserting the JWT subject | `CMP-S4-10` issues; `CMP-S4-4` decides validity | `SC-S3-45` | `CMP-S4-10` | **agree** |
+| `FL-S4-4` | JWKS | `CMP-S4-10` | `SC-S3-26` | `CMP-S4-4` | **discrepancy — A** |
+| `FL-S4-5` | `tools/call` + context token | `CMP-S4-4` | `SC-S3-13` | `CMP-S4-9` (W `CMP-S4-7`; enforced at `CMP-S4-4`) | **discrepancy — B** |
+| `FL-S4-6` | Tool result | `CMP-S4-6`, deriving from `CMP-S4-8` | — (response payload) | — | **not comparable** |
+| `FL-S4-7` | Domain read/write in one unit of work | `CMP-S4-9` stored value; `CMP-S4-7` commit | the 20 clause-5 rows | `CMP-S4-9`, W `CMP-S4-7` | **agree** |
+| `FL-S4-8` | Request line → the log | `CMP-S4-19` | `SC-S3-16` | `CMP-S4-9` (W `CMP-S4-19`) | **discrepancy — A** |
+| `FL-S4-9` | Operation event → the log | `CMP-S4-19` | `SC-S3-17` | `CMP-S4-9` (W `CMP-S4-19`) | **discrepancy — A** |
+| `FL-S4-10` | Embedding / classification request | the caller | — (provider authoritative for nothing) | — | **not comparable** |
+| `FL-S4-11` | One sanctioned page request per citation | `CMP-S4-17` owns the budget | `SC-S3-34` | `CMP-S4-17` | **agree** |
+| `FL-S4-12` | Page response | `CMP-S4-17`; the site is never authoritative | `SC-S3-34` | `CMP-S4-17` | **agree** |
+| `FL-S4-13` | One verdict tuple | `CMP-S4-17` — *"the cache's only writer"* | `SC-S3-33` | `CMP-S4-17` | **agree** |
+| `FL-S4-14` | Keyed verdict read | **`CMP-S4-18`** for the stored verdict and its date | `SC-S3-33` | **`CMP-S4-17`**, `CMP-S4-18` demoted to *holder* | **discrepancy — A** |
+| `FL-S4-15` | Unit under gate + `test` instances | `CMP-S4-14` sets the bound | `SC-S3-35` | `CMP-S4-14` (W `CMP-S4-15`) | **agree** |
+| `FL-S4-16` | One gate verdict per executed unit | **"Undetermined"** (`F-S4-3`) | `SC-S3-35` | `CMP-S4-14` | **discrepancy — C** |
+| `FL-S4-17` | Content unit admitted to the store of record | `CMP-S4-13` — *"the only component that admits content"* | `SC-S3-1`, `SC-S3-2`, `SC-S3-32` | `CMP-S4-9` / `CMP-S4-9` / `CMP-S4-7`, each W `CMP-S4-13` | **discrepancy — B** |
+| `FL-S4-18` | Gated content unit served | `CMP-S4-16` serve-or-quarantine; `CMP-S4-9` content | `SC-S3-2` | `CMP-S4-9` | **agree** |
+| `FL-S4-19` | Handoff envelope | `CMP-S4-4` | `SC-S3-44` | `CMP-S4-9` (W `CMP-S4-7`; enforced at `CMP-S4-4`) | **discrepancy — B** |
+| `FL-S4-20` | Batch read of the logs under an allowlist | `CMP-S4-20` extract; **`CMP-S4-9` source rows** | `SC-S3-41` / `SC-S3-16`+`17` | `CMP-S4-9` (W `CMP-S4-20`) / `CMP-S4-9` | **discrepancy — B** (extract half); **agree** (source half) |
+| `FL-S4-21` | DP-map nodes and prerequisite edges | `CMP-S4-13` for the imported copy | `SC-S3-37` | `CMP-S4-7` (W `CMP-S4-13`) | **discrepancy — B** |
+| `FL-S4-22` | Measurement-contract **version identifier** | the upstream NEU-887 register | — (an attribute of an extract) | — | **not comparable** |
+
+**Totals: 22 flows — 7 agree, 4 not comparable, 11 discrepancies (4 class A, 6 class B, 1 class C).**
+The three classes are defined by what would have to change to reconcile them, which is what SUB-16 needs
+in order to disposition each one.
+
+### 12.1 Class A — substantive: the two artifacts name different components
+
+Four flows. In each, the flow and the matrix name **different** components as authoritative for **the
+same value**, and no reading of either makes them the same claim. These are the real findings of the
+cross-check.
+
+**`FL-S4-4` vs `SC-S3-26` (JWKS) — direction: the flow names the *upstream issuer*, the matrix names the
+*downstream cache holder*.** The flow says `CMP-S4-10`, *"and only for signature material under the
+issuer allowlist"*; the matrix says `CMP-S4-4`, on clause 1 (non-durable → the component whose process
+computes it). Both are defensible and they are answering **different questions**: the flow asks who is
+authoritative for the *key material*, the matrix asks who owns the *in-process cached copy*. The
+category's own Freshness cell settles which reading the row needs — *"the issuer's set wins… the refresh
+policy is `Z-IDP`'s"* — and that is the flow's answer, inside a row the matrix assigns to `CMP-S4-4`.
+**Routed as `F-S14-7`.** The disposition SUB-16 must make is whether clause 1 should yield to an
+external authority when the cached thing is a projection of it — which is **the same question `F-S13-2`
+already raised for `SC-S3-45`**, where clause 4 did yield. `SC-S3-26` and `SC-S3-45` are the only two
+rows where it arises, and the matrix currently answers them **differently**. That inconsistency, not
+either individual assignment, is the substance of the finding.
+
+**`FL-S4-8` and `FL-S4-9` vs `SC-S3-16` and `SC-S3-17` (the two log tables) — direction: the flows name
+the *writer* `CMP-S4-19`, the matrix names the *store* `CMP-S4-9` and demotes `CMP-S4-19` to the `W`
+annotation.** This is the cross-check's strongest finding, for three reasons.
+
+1. **It is flow-vs-flow inconsistent, independently of the matrix.** `FL-S4-20` names **`CMP-S4-9`**
+   authoritative *"for the source rows"* — and the source rows **are** `SC-S3-16` and `SC-S3-17`, the
+   very categories `FL-S4-8`/`FL-S4-9` assign to `CMP-S4-19`. `05_…md` contradicts itself about two
+   categories, and **the matrix agrees with `FL-S4-20`.**
+2. **`CMP-S4-9`'s own responsibility statement scopes it to the request path** — it is *"the only writer
+   of the `public` and `infrastructure` database schemas **on the request path**"* — and these tables
+   are written from **transport worker threads**, which is not the request path. So the matrix's
+   assignment stretches `CMP-S4-9`'s own charter, while `FL-S4-8`/`FL-S4-9`'s does not.
+3. **`OI-S5-1` records that both tables sit behind no port**, so `OUT-2`'s ownership mechanism cannot
+   reach them under either assignment. Whichever component is named, the isolation consequence is
+   identical — which is why this is a **modelling** finding and not a security one.
+
+**Routed as `F-S14-8`**, to SUB-16, and named for SUB-4's flow half as well: the `FL-S4-8`/`FL-S4-9`
+vs `FL-S4-20` contradiction is **internal to `05_…md`** and is not this chapter's to fix. `05_…md` is
+merged and its registers are append-only, so the amendment is SUB-16's to make when it republishes.
+
+**`FL-S4-14` vs `SC-S3-33` (the drift-verdict cache) — direction: the flow names the *holder*
+`CMP-S4-18`, the matrix names the *producer* `CMP-S4-17` and demotes `CMP-S4-18` to a holder.** The flow
+says `CMP-S4-18` is authoritative *"for the stored verdict and its date"*; the matrix, applying clause 2
+(gate-bearing → the gate-side component) with tie-break (c), assigns `CMP-S4-17`. Note that
+**`FL-S4-13` — by the same document — already calls `CMP-S4-17` the cache's *only writer*.** So the
+matrix's assignment is the one consistent with `05_…md`'s own §5, and `FL-S4-14`'s annotation is the
+outlier. **Routed as `F-S14-9`.** The consequence if left unreconciled is concrete: a reader who takes
+`FL-S4-14` at face value would conclude the cache may be written by whoever holds it, which is exactly
+the property `FL-S4-13`'s single-writer rule exists to deny.
+
+### 12.2 Class B — granularity: the two artifacts name different *roles* over the same value
+
+Six flows. Here the two do **not** actually disagree about the facts — the flow names the component that
+**enforces, admits or produces**, and the matrix names the component that **holds the row**, with the
+flow's component recorded in the matrix's own `W` annotation. `08_…md` §9 is explicit that `W` *"is an
+annotation, never a second authority"*, so these are **not** two-authority rows and none of them
+threatens the exactly-one-authority audit.
+
+| Flow | The flow names… | The matrix names… | Reconciled by |
+| --- | --- | --- | --- |
+| `FL-S4-2` | `CMP-S4-3` (the presenting tier) | **no row at all** | clause 3's list being **empty under `M-A`** |
+| `FL-S4-5` | `CMP-S4-4` (the gate that fires) | `CMP-S4-9` (the store) | the matrix's own *"enforced at `CMP-S4-4`"* annotation |
+| `FL-S4-17` | `CMP-S4-13` (the admitting pipeline) | `CMP-S4-9` / `CMP-S4-7` | `W = CMP-S4-13` on all three rows |
+| `FL-S4-19` | `CMP-S4-4` (the minting edge) | `CMP-S4-9` (the store) | the matrix's own *"enforced at `CMP-S4-4`"* annotation |
+| `FL-S4-20` | `CMP-S4-20` (the extract's producer) | `CMP-S4-9` (the store) | `W = CMP-S4-20` |
+| `FL-S4-21` | `CMP-S4-13` (the importer) | `CMP-S4-7` | `W = CMP-S4-13` (*"import and re-import"*) |
+
+**`FL-S4-2` is the one worth separating from the other five, and it is separated.** It is the
+**clause-3-zero test**: the flow names `CMP-S4-3` authoritative for learner-facing content and derived
+state, and the matrix gives `CMP-S4-3` authority over **zero of 45 rows**. That is not an oversight —
+it is the direct consequence of `07_…md` §6.3's presentation-exception list being **empty under `M-A`**,
+which is precisely the property that distinguishes `M-A` from `M-B`. So the matrix's answer here is
+`M-A`'s answer, and the flow's annotation describes a display relationship rather than a state
+authority. **Routed as `F-S14-6`** because the reading is not self-evident and a consumer who assumes
+`CMP-S4-3` holds *something* would mis-scope any web-tier work; the finding's disposition is expected
+to be *"record the reading, amend nothing"*.
+
+**The remaining five are routed together as `F-S14-11`, with an explicit recommendation to amend
+nothing.** They are a **vocabulary** gap: `05_…md` uses "authoritative side" for *"whose value is the
+fact when the two sides disagree"*, which on an enforcement hop is the enforcing component, while
+`08_…md` uses "authority" for *"the single writer of the category"*. Both are correct in their own
+document. What is missing is a stated mapping between them, and that is what the finding asks SUB-16 to
+publish. **This chapter does not amend either artifact and does not propose that either be amended.**
+
+### 12.3 Class C — resolution: the matrix answers a question the flow left open
+
+One flow. **`FL-S4-16` records "Undetermined"** — *"`OI-S2-2` (the gate-verdict authority requirement) is
+open and owned by SUB-13 (NEU-977). Recorded as `F-S4-3`, not narrated past."* **The matrix resolves it:
+`SC-S3-35` → `CMP-S4-14`, clause 2, with `CMP-S4-15` as `W`.** SUB-13's own §12 records this as
+discharging `F-S4-3` and closing `OI-S2-2`.
+
+**Direction: matrix → flow.** The matrix is ahead; `05_…md` is stale on this one row, and it is stale
+*correctly* — it was written before the resolution existed and it named the party that would resolve it.
+**Routed as `F-S14-10`** so that the amendment to `05_…md` §5 is owned and scheduled rather than left as
+a silent inconsistency. **This chapter does not make that amendment**: `05_…md` is merged, this
+sub-task's boundary forbids editing a sibling's artifact, and SUB-16 republishes.
+
+### 12.4 The explicit non-zero statement
+
+**There is no zero here.** Eleven of 22 flows differ from the matrix in some way, and every one is named
+above with its direction. Four are substantive and routed individually (`F-S14-7`, `F-S14-8`,
+`F-S14-9`); one is a resolution the flow document has not caught up with (`F-S14-10`); six are
+granularity or vocabulary (`F-S14-6`, `F-S14-11`). **Zero of the eleven is a case where the matrix
+assigned an authority that no reading of `05_…md` supports** — which is the finding that would have
+indicted SUB-13's assignment, and it did not occur.
+
+---
+
+## 13. NEU-890's durability property, applied to the rows it runs over
+
+**The property, quoted rather than paraphrased** (`07_…md` §7): *"A retired citation degrades a
+placement **without stranding mastery history** — because assessment evidence is corpus-neutral and the
+cited problem is a replaceable attribute."* Its chain is four rows: `SC-S3-32` → `SC-S3-31` →
+`SC-S3-38` / `SC-S3-39`.
+
+**Stated before the walk: all four are `required-by-upstream`.** None exists in this system today. This
+is therefore a walk over a **specification** — the question is whether the matrix's assignments *permit*
+the property, not whether a running system exhibits it. A row that could not show the property would be
+a routed finding; none is.
+
+| Row | What the property needs from it | Matrix authority (`W`) | Result |
+| --- | --- | --- | --- |
+| `SC-S3-32` — problem-citation record | The retirement happens **here**, and nowhere else | `CMP-S4-7` (`CMP-S4-13` → `CMP-S4-9`) | **Holds.** Single authority; keyed on `stable_id`; the record's whole content is `stable_id` + `canonical_url` while `CH-F5-1` is open, so a retirement cannot carry collateral state with it. |
+| `SC-S3-31` — assessment-evidence record | The citation must be a **replaceable, non-key attribute**, so the retirement cannot reach the evidence's identity | `CMP-S4-9` (`CMP-S4-7`) | **Holds.** `04_…md` §3 fixes the identity as **`node_id` + `skill_type`**, with the citation *"an optional, replaceable, non-key attribute"*. The retirement is a mutation of a non-key field, not of the record. |
+| `SC-S3-38` — per-learner per-node progression | Must be recoverable from `SC-S3-31` after the retirement | `CMP-S4-9` (`CMP-S4-7`) | **Holds**, conditionally: *"reconstructible from `SC-S3-31` if the evidence records are retained"*. The condition is on retention, not on the citation. |
+| `SC-S3-39` — per-learner mastery-gate state | Must survive as a composite over recorded history | `CMP-S4-9` (`CMP-S4-7`) | **Holds**, under a **stronger** condition: reconstructible from `SC-S3-9` and `SC-S3-31` *"only if those are retained across the full window the gate spans"*. |
+
+**Why it holds, structurally.** Under `M-A` every row in the chain has exactly one authority, and three
+of the four share **`CMP-S4-9`**. The retirement is a single-authority mutation of a **non-key attribute
+of a different row** (`SC-S3-32`) that the evidence record merely references. There is no path by which
+it can reach `SC-S3-31`'s identity, and therefore none by which it can reach `SC-S3-38` or `SC-S3-39`,
+which are computed over that identity. **The placement degrades — the problem the learner would have
+been given is gone — and the mastery history does not move.** That is the property, and the matrix's
+assignments permit it without qualification.
+
+**Three honest qualifications, none of which is a failure.**
+
+1. **The retirement crosses an authority line.** `SC-S3-32` is `CMP-S4-7`'s; the evidence chain is
+   `CMP-S4-9`'s. There is no transaction spanning them — `src/ports/unit-of-work-port.ts:26`–`:28`
+   confirms the unit of work does not span components. **This does not threaten the property**, because
+   the property's whole content is that the two are *decoupled*: a dangling reference from a retained
+   evidence record to a retired citation is precisely the tolerated state, not a defect. Under a model
+   where the citation were part of the evidence key, the missing cross-authority transaction *would*
+   matter. Under `M-A` with this identity, it does not. Worth stating because the reasoning is not
+   obvious from the row alone.
+2. **The property is robust to `F-S14-5`'s undetermined shape.** §9.2 routed `SC-S3-31`'s
+   aggregate-vs-append-per-event shape as undefined. The durability property survives **either**
+   resolution: under *aggregate*, the citation is a current non-key attribute and the retirement
+   replaces it; under *append-per-event*, historical events keep referring to a retired citation, which
+   is a correct historical fact. **Checked deliberately, because a property that depended on an
+   undetermined shape would be a finding.** It does not.
+3. **The conditions are retention conditions, and they are real.** `SC-S3-38` and `SC-S3-39` hold *if*
+   the evidence is retained; `SC-S3-39`'s window is the longer of the two. Neither category exists, so
+   **no retention policy exists to check against**, and `F-S3-3` records that the deletion owner is
+   structurally unassignable at this cutoff (`CAP-S4-1`). The property therefore holds **as specified**
+   and its precondition is **unowned**. That is recorded here, at the verdict it qualifies, rather than
+   filed as a new finding — `F-S3-3` and `CAP-S4-1` already carry it, and duplicating a structural cap
+   would misrepresent the register.
+
+**Durability-property result: 4 of 4 rows show the property. Zero routed findings.**
+
+---
+
+## 14. Spikes, and the caps that stand in place of spikes
+
+### 14.1 The "could this have been read instead?" test, applied first
+
+Every uncertain claim the four walks surfaced was tested against one question before any spike was
+considered: **could this be settled by reading this codebase or an upstream package?** Five could, and
+were, and are recorded here so that the absence of a spike for each is visible rather than silent.
+
+| Claim the walks leaned on | Settled by reading | Not spiked because |
+| --- | --- | --- |
+| A single-row write is atomic under interruption | Postgres's documented write atomicity; `src/infrastructure/db/operations.ts:21`–`:24` sets no isolation level | Documented behaviour of a dependency, readable |
+| `SC-S3-3`'s read-compute-write has no transactional envelope | `src/ports/unit-of-work-port.ts:26`–`:28` — `reviewPersistence` absent from `TransactionPorts` (`F-S6-2`) | Readable in one file |
+| The one-active-learning-run rule is not database-enforced | Application-code check across two round trips; no partial unique index in `drizzle/` (`F-S6-3`) | Readable in the schema |
+| The two log tables are lossy on crash and while a breaker is open | `SC-S3-25`'s own attribute cells plus the batching transport's breaker | Readable |
+| The MCP session registry is not shared across processes | Node's single-threaded event loop plus the in-process map | Readable |
+
+### 14.2 `SPK-S14-1` — the one claim that could not be read
+
+**The gap.** `SC-S3-35`'s Recovery cell — load-bearing for §10 — asserts that *"a terminated or crashed
+run leaves the unit **without** a verdict"*, never a partial one. That rests on the gate runner's
+**terminable isolate under a host-enforced wall-clock bound** (`FL-S4-15`, `BND-S4-9`). `SPK-S2-1`
+already measured the **same-thread** case and found the opposite of comfort: a 1000 ms guard armed
+before a non-terminating unit **never fired**, and the process needed an external `SIGKILL`. The
+worker-thread half was **unmeasured**, **material** (it decides whether §10's `SC-S3-35` outcome is a
+mechanism or a wish), and **unreadable** — `CMP-S4-15` does not exist in this codebase to read, and
+Node's own contract for `worker.terminate()` says execution stops *"as soon as possible"*, which is not
+a guarantee about a tight synchronous loop with no yield point. **So it was measured.**
+
+Full record with all thirteen template fields is appended to `92_spike-register.md` under `### SUB-14`.
+The result, stated here because §10 cites it:
+
+- **Method.** Two files under `_local/scratch/NEU-978-spike/` — `worker-spin.mjs` (an unbounded
+  synchronous `for (;;)` loop with no `await`, no I/O and no yield point) and `probe.mjs` (spawns the
+  worker, calls `terminate()` at t = 1000 ms, records the resolution time and the worker's exit code,
+  then confirms the **host** event loop is still alive 200 ms later; a 6000 ms watchdog exits non-zero
+  if `terminate()` never resolves). Five runs.
+- **Result. 5/5 terminated.** `terminate()` resolved **4–9 ms** after the call (t ≈ 1006–1009 ms), the
+  worker reported `EXIT code=1`, and the host was alive at t ≈ 1207 ms in every run. The watchdog never
+  fired. Runtime: **Node v22.23.1**.
+- **Confidence: high** for the runtime measured; **medium** as a claim about `CMP-S4-15`, which does not
+  exist. The probe shows the **mechanism is available**, not that the unbuilt gate runner will use it.
+  That distinction is preserved at the citation in §10 and is not softened here.
+- **Expiry: 2027-08-22**, one year — matching `SPK-S6-1`'s precedent. A Node major-version bump changes
+  the V8 termination path, and the project's floor is Node 20+, so a runtime change inside the window is
+  plausible.
+- **Quarantine.** Both files live under `_local/scratch/NEU-978-spike/`, which is gitignored and swept
+  at task-finish. **No spike artifact is under `src/`, `tests/` or `drizzle/`, and none is merged as
+  product code.**
+
+**What this settles and what it does not.** It settles that *containment* is achievable for the gate
+battery in a way `SPK-S2-1` showed a same-thread timer cannot achieve. It does **not** settle that the
+bound is set correctly, that `CMP-S4-15` exists, or that a killed isolate's meaning is agreed —
+`FL-S4-15` assigns that last decision to `CMP-S4-14` and the matrix agrees (§12).
+
+### 14.3 The caps that stand in place of a spike — each with a named owner
+
+Three claims were uncertain and material and were **not** spiked, because a cap with a named owner
+already exists. **Asserting them was not an available option, and none is asserted.**
+
+| Claim | Why not spiked | Standing cap | Named owner |
+| --- | --- | --- | --- |
+| Two independent writer processes racing `SC-S3-3`'s pattern **do** lose an update against a live Postgres | Five connection probes refused or timed out at SUB-6's cutoff; no `DATABASE_URL` exists in this environment either. Re-running a probe already recorded as unrunnable adds nothing | **`CAP-S6-1`** — a cap on **evidence strength, not on the conclusion** | **SUB-10 (NEU-984)**, alongside **NEU-896** |
+| The invariant is **satisfiable** — that some reachable system state returns `holds` for some category | SUB-5 recorded it untested and it is not this sub-task's to settle; §6 confirms the frontier empirically (zero `holds` under either target state) but confirming a negative is not a satisfiability proof | **`CAP-S5-1`** | **SUB-5 / NEU-893**, per `06_…md` §3.5 |
+| A deletion owner can be assigned for the log tables and the derived extract | **Structurally** unassignable at this cutoff; a spike cannot manufacture an owner | **`CAP-S4-1`**, with `F-S3-3` | **SUB-4**, structural — **must not be closed** |
+
+**No new cap is filed by this sub-task.** That is stated explicitly rather than by omission, following
+SUB-13's precedent. The four caps above (plus **`CAP-S1-3`**, which records that **no QA pass exists for
+this package** — the `qa-execution:engine` surface is unconfigured, so scenario execution is a genuine
+Core Article 8 no-op) **bound this chapter's conclusions** and are cited, not re-filed.
+
+**`CAP-S4-1` is at its fifth sighting** — SUB-3, SUB-4, SUB-6, SUB-13, and now here, where §11's R5
+class and §13's retention qualification both run into it. Per SUB-3's instruction the consequence is
+**recorded, and no new cap is filed**: the two categories this chapter found to be **unrecoverable by
+construction and read by a gate** (`SC-S3-16`, `SC-S3-17`) are the same two whose deletion owner is
+structurally unassignable. That conjunction — a record that cannot be completed, cannot be deleted by
+anyone in particular, and is read by a blocking gate — is the sharpest form the cap has taken so far,
+and it is recorded as a consequence of the cap rather than as a new one.
