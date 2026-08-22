@@ -656,3 +656,185 @@ and names the deciding party, which is the correct behaviour for a cell that can
 merged inputs.
 
 **Walk 2 result: 44 of 45 rows produce a defined outcome; 1 undefined, routed.**
+
+---
+
+## 10. Walk 3 — mid-operation interruption
+
+**Scenario.** The process holding the authority is terminated part-way through an operation on the
+category. The question is **what state is left behind**, and whether it is a state the system models.
+Decided by the row's **Recovery** cell, with **Consistency** naming what a partial state would violate.
+
+**The transactional premise this walk depends on, stated once.** Every durable-write outcome below that
+says "the row is left at its last committed state" rests on Postgres's write atomicity, which is
+readable and therefore not spiked. **What is *not* covered by it is a multi-statement operation whose
+statements are not inside one transaction** — and `F-S6-2` records exactly such a hole:
+`reviewPersistence` is **absent** from `UnitOfWorkPort`'s `TransactionPorts`
+(`src/ports/unit-of-work-port.ts:26`–`:28`), so `SC-S3-3`'s read-compute-write is **not** wrapped. That
+is named at `SC-S3-3` below rather than assumed away.
+
+**And the liveness/containment distinction is honoured throughout.** `SPK-S2-1` measured a 1000 ms
+same-thread guard armed before a non-terminating unit and found it **never fired** — the process needed
+an external `SIGKILL` (exit 137). **An authoring-time bound is a liveness boundary, not containment.**
+The complementary half — whether a *worker-thread* isolate is terminable mid-synchronous-CPU-loop — was
+unreadable and material, so it was **measured**: `SPK-S14-1` (§14). Both are cited at the rows they
+decide, and no interruption outcome below assumes a bound fires that was not shown to fire.
+
+| Id | Defined outcome under mid-operation interruption |
+| --- | --- |
+| `SC-S3-1` | Row left at its last committed state. **No delete path exists in the repository**, so an interrupted authoring run leaves an orphan topic that only re-authoring resolves — no in-system remediation. |
+| `SC-S3-2` | Last committed state. Chunks are deleted with their topic, so an interrupted partial insert leaves a topic with fewer chunks than intended — visible and re-runnable. |
+| `SC-S3-3` | **The one durable row where the interruption outcome is not clean.** The read-compute-write has **no transactional envelope** (`F-S6-2`), so an interruption between the read and the write leaves the scheduling state **un-advanced while the attempt (`SC-S3-9`) may already be recorded** — a learner who answered and whose schedule did not move. The state is nonetheless **reconstructible in principle** by replaying `SC-S3-9` + `SC-S3-10` in order, which is exactly what NEU-844's snapshot quad exists for. Defined, and defective; the defect is `F-S6-2`'s, already routed. |
+| `SC-S3-4` | Last committed state; the verdict is either present for its `contentVersion` or absent. Fully recomputable by re-running the audit — **loss is recoverable at cost, not fatal**. |
+| `SC-S3-5` | **A non-terminal learning run persists indefinitely: there is no reaper in the inventory.** Combined with `F-S6-3` — the one-active-run rule is enforced only in application code across two round trips with no partial unique index — an interrupted run can block the learner's next run until a later write closes it. Defined, and it is a live operational hazard rather than a modelling gap. |
+| `SC-S3-6` | Row left at its last committed state, which *"is a correct partial record"* — teaching progress up to the interruption is exactly what happened. |
+| `SC-S3-7` | Last committed state; the status machine's states are all legal resting places, so an interrupted question is simply un-answered. |
+| `SC-S3-8` | Written in the same transaction as `SC-S3-7`, so **a half-written mapping is unrepresentable**. |
+| `SC-S3-9` | Last committed state. Either the attempt is recorded or it is not; the `SC-S3-11` trail means no revision is silently lost. |
+| `SC-S3-10` | Present or absent — never partial. **Absent is permanent**: the scheduler state that produced the quad has since advanced, so an interrupted write leaves a permanent hole in the prediction record. Defined, and irrecoverable by design. |
+| `SC-S3-11` | Append-only; an interrupted append leaves the trail short by one entry, and **the pre-revision values then exist nowhere else** — the same permanence as `SC-S3-10`. |
+| `SC-S3-12` | Last committed state. The delete-and-re-add hazard of §9 becomes worse here: an interruption **between** the delete and the add loses the note outright, with no compare-and-set to detect it. |
+| `SC-S3-13` | Last committed state. Expiry is evaluated **at read**, so an interrupted sweep leaves expired rows present-but-rejected — inert, not dangerous. |
+| `SC-S3-14` | Last committed state. Loss is **not recomputable** — the labels are human judgement — so an interrupted bulk re-label leaves a partially-relabelled corpus that only a human can reconcile. |
+| `SC-S3-15` | Last committed state; fully recomputable by re-running validation. Interruption costs a re-run. |
+| `SC-S3-16` | **Lossy by design.** Entries buffered in `SC-S3-25` and not yet flushed are **lost**, and dropped outright while that sink's breaker is open. *"The log is evidence, not a ledger, and must not be treated as complete."* Defined — and the definition is that the record is incomplete. |
+| `SC-S3-17` | Lossy on the same terms, and **it matters more here**: a gap biases the Tier-2 blocking statistics computed from it, **and the bias is silent**. Defined, and this is the most consequential interruption outcome in the inventory, because a gate reads it. |
+| `SC-S3-18` | Lost on restart. Clients re-`initialize`; a reconnect, not data loss. |
+| `SC-S3-19` | Lost on restart **together with `SC-S3-18`** — *"the session dies with it, so the binding and the thing it protects are lost atomically. That coupling is what makes the loss safe."* The single cleanest interruption outcome in the inventory. |
+| `SC-S3-20` | Lost on restart, which **resets every learner's window to zero**. **A restart loop is a rate-limit bypass.** Defined, and a security-relevant consequence rather than a data one. |
+| `SC-S3-21` | Re-derived after restart — so **a restart un-trips a tripped breaker**. Deliberate, and it makes restart frequency a hidden input to gate strictness. |
+| `SC-S3-22` | Lost with the call, which is its whole lifetime. Nothing to recover. |
+| `SC-S3-23` | Re-established on restart. **A pool exhausted or broken mid-life has no in-process reset path outside tests**, so recovery *is* the restart — an interruption is the remedy, not the problem. |
+| `SC-S3-24` | Set once at boot; an interruption cannot leave it half-set. |
+| `SC-S3-25` | **The mechanism behind two rows' lossiness**: unflushed entries are lost on crash and dropped while a breaker is open. Defined, deliberate, and the reason neither log is a complete record. |
+| `SC-S3-26` | Re-fetched on restart. **An issuer outage during a cold start means no token verifies until it returns** — a defined, total, external-dependency failure mode, and the one place `Z-IDP`'s availability is this system's availability. |
+| `SC-S3-27` | Re-initialised on restart; an interrupted first classification simply re-runs. |
+| `SC-S3-28` | Nothing to interrupt — recomputed on the next call. |
+| `SC-S3-29` | Nothing durable to interrupt. An interrupted aggregate is simply not returned; the torn-read hazard of §8 is a *successful* read's problem, not an interrupted one. |
+| `SC-S3-30` | Nothing to interrupt — recomputed. |
+| `SC-S3-31` | Last committed state. **Reconstructible only from `SC-S3-9` if the assessment events are themselves retained** — the retention condition is stated at the row, not assumed. |
+| `SC-S3-32` | Last committed state; recoverable by re-import from the authoring source. |
+| `SC-S3-33` | **Loss is safe by construction**: a lost cache degrades to *verdict absent*, which the disposition already handles by quarantining. An interruption therefore cannot produce an unsafe serve. This is the strongest argument for the cache being a separate category from `SC-S3-34`. |
+| `SC-S3-34` | A re-check that cannot complete produces **`verdict stale` — a recorded state, never a partial verdict.** There is no half-written verdict to recover from. |
+| `SC-S3-35` | A terminated or crashed run leaves the unit **without** a verdict, which `SC-S3-36`'s quarantine path already handles: **absence is a modelled state, so there is nothing to repair.** This outcome is exactly what `SPK-S14-1` was run to underwrite — see §14: a `worker_threads` isolate **was** terminable mid-synchronous-CPU-loop (5/5, 4–9 ms), so "a terminated unit produces no verdict" is measured rather than asserted. `SPK-S2-1` is cited alongside it: the **same-thread** authoring bound never fired, so the isolate is doing the work the timer cannot. |
+| `SC-S3-36` | Last committed state, and **all three slots commit together**, so a half-written quarantine is unrepresentable. **An open quarantine is the safe state**, so an interruption that leaves one open is safe; the dangerous direction is loss-toward-closed. |
+| `SC-S3-37` | An interrupted import leaves the last committed graph. **The whole-unit commit is what prevents a graph that never existed upstream**, and re-import from NEU-889's committed artifact restores it. |
+| `SC-S3-38` | Last committed state. An interruption between the attempt and the progression advance loses the advance — the same non-transactional hazard as `SC-S3-3` — but it is **reconstructible from `SC-S3-31` if the evidence records are retained**, which is the argument for retaining them. |
+| `SC-S3-39` | Last committed state. **Partly derived but persisted**, so it is reconstructible from `SC-S3-9` and `SC-S3-31` **only if those are retained across the full window the gate spans** — a stronger retention condition than `SC-S3-38`'s, and stated as such. |
+| `SC-S3-40` | Append-and-supersede; an interrupted append leaves the prior version authoritative, which is correct. The register's authoritative copy is committed in NEU-887's package. |
+| `SC-S3-41` | An interrupted derivation leaves no extract for that window, and **the window is re-derivable from `SC-S3-16`/`SC-S3-17` only while those rows still exist**. They have **no retention window** (`F-S3-3`), so today they always do. **If a retention window is ever added upstream, re-derivation stops being available and the extract becomes the record of last resort** — a conditional that must travel with the row. |
+| `SC-S3-42` | Last committed state; loss re-starts the learner at hint level zero. Recoverable, mildly annoying, **not a correctness failure** — inside `A-25`'s envelope, which tolerates any number of escalation levels. Note this is a *different* question from §8.1's undefined one: **where the hint state lands is defined; what it means for mastery is not.** |
+| `SC-S3-43` | Loss costs a re-orientation, nothing more — squarely inside `A-27`'s envelope (*"UI interaction state is not gate-bearing"*), whose invalidating outcome would be a gate that reads UI state. None does. |
+| `SC-S3-44` | Last committed state. **Loss of the store means every envelope is unverifiable, which must fail closed** — the explicit opposite of `SC-S3-24`'s fail-open logging posture. Defined **as a requirement on a category that does not exist yet**; see §11. |
+| `SC-S3-45` | **Not this system's to interrupt** — the authority is external and the mapping is authored upstream. What *is* this system's concern is that a projection failure **fails closed rather than defaulting to an unowned row.** Defined, by delegation plus a local obligation, and the delegation is named. |
+
+**Walk 3 result: 45 of 45 rows produce a defined outcome; 0 undefined.**
+
+Three of those defined outcomes are operational hazards rather than clean behaviours, and they are
+listed here so a reader of the consolidated record (§15) does not have to re-read the table to find
+them: **`SC-S3-5`** (no reaper — a permanently non-terminal learning run, interacting with `F-S6-3`),
+**`SC-S3-20`** (a restart loop is a rate-limit bypass), and **`SC-S3-21`** (a restart un-trips a tripped
+breaker). None of the three is a matrix defect — the matrix names all three correctly — so none is
+routed to SUB-13. They are recorded as **consequences of the assignment**, which is what a validation
+chapter owes its consumers.
+
+---
+
+## 11. Walk 4 — recovery
+
+**Scenario.** After the interruption of §10, the category is brought back. The question is **from what**,
+and **what the system is obliged to do if it cannot be**. Decided by the same **Recovery** cell read
+forwards rather than backwards.
+
+Five recovery classes cover all 45 rows, and every row is assigned to exactly one. The classes are the
+result of the walk, not a taxonomy imposed before it.
+
+| Class | Meaning | Rows | Count |
+| --- | --- | --- | --- |
+| **R1 — recovered with the database** | Durable, restored by a database restore, nothing further required | `SC-S3-1`, `2`, `5`, `6`, `7`, `8`, `9`, `12`, `13`, `31`, `32`, `36`, `38`, `39`, `42`, `43`, `44` | 17 |
+| **R2 — recomputable** | Can be regenerated from inputs that survive | `SC-S3-3`, `4`, `15`, `28`, `29`, `30`, `41` | 7 |
+| **R3 — re-established on restart** | Process-local; comes back by being rebuilt, and the rebuild is the design | `SC-S3-18`, `19`, `20`, `21`, `22`, `23`, `24`, `25`, `26`, `27` | 10 |
+| **R4 — re-imported from an external source of truth** | Recovered from an artifact this system does not own | `SC-S3-33`, `34`, `35`, `37`, `40`, `45` | 6 |
+| **R5 — not recoverable** | Once lost, gone; no input reconstructs it | `SC-S3-10`, `11`, `14`, `16`, `17` | 5 |
+
+17 + 7 + 10 + 6 + 5 = **45**. Every row is classified; none is in two classes.
+
+**R1 — recovered with the database (17 rows).** The outcome is uniform and uninteresting, which is the
+point: a Postgres restore returns each row to its last committed state, and §10 established that every
+such state is a legal resting place. Two rows carry a rider. **`SC-S3-5`** recovers into a
+**non-terminal run** if it was interrupted mid-run, so recovery does not by itself clear the
+`F-S6-3` interaction. **`SC-S3-44`** recovers only if the store survived; if it did not, §10's
+fail-closed obligation applies and **every envelope is unverifiable** — recovery of the *store* is the
+only recovery path, and there is no degraded mode.
+
+**R2 — recomputable (7 rows).** `SC-S3-28`, `29` and `30` are recomputed on the next call and have no
+recovery step at all. `SC-S3-4` and `15` recover by re-running their producer — **loss is recoverable at
+cost**. `SC-S3-41` recovers by re-deriving from the logs, **conditionally**, per §10's retention rider.
+`SC-S3-3` is the interesting one: it is R1 in practice (durable) and R2 in principle — *"reconstructible
+by replaying `SC-S3-9` + `SC-S3-10` in order"*. It is classed **R2** here deliberately, because the
+replay path is the only remedy for §10's non-transactional gap, and classing it R1 would hide that. **No
+code implements the replay**; it is a property of the data, not a facility. Recorded as such rather than
+presented as a recovery mechanism that exists.
+
+**R3 — re-established on restart (10 rows).** The recovery is the restart, and for `SC-S3-23` the
+restart is the *only* reset path outside tests. Three rows recover into a **materially different state**
+than they left, and these are recovery outcomes, not merely interruption ones: **`SC-S3-20`** recovers
+with **every window at zero**; **`SC-S3-21`** recovers **un-tripped**; **`SC-S3-26`** recovers only if
+the issuer is reachable, and until it is, **nothing verifies**. Recovery here is not restoration — it is
+re-initialisation, and the matrix says so.
+
+**R4 — re-imported from an external source of truth (6 rows).** `SC-S3-37` is *"the only
+`required-by-upstream` row with a trustworthy external source of truth"* — NEU-889's committed,
+gate-verified artifact — and `SC-S3-40` recovers from NEU-887's package on the same terms. `SC-S3-33`,
+`34` and `35` recover by **not needing to**: absence is a modelled state that the quarantine path
+already handles, so the recovery obligation is discharged by the disposition rather than by a restore.
+`SC-S3-45` is recovered upstream entirely; this system's only obligation is the fail-closed projection.
+
+**R5 — not recoverable (5 rows), and this is the walk's most important result.** `SC-S3-10` and
+`SC-S3-11` are permanently lost because the state that produced them has advanced — the audit trail's
+whole purpose is to hold values that exist nowhere else. `SC-S3-14`'s labels are **human judgement**, so
+recovery means re-labelling from scratch. **`SC-S3-16` and `SC-S3-17` are the ones that matter**: they
+are not merely lossy on crash, they are **unrecoverable by construction**, because the only source that
+could reconstruct them is themselves. And `SC-S3-17` is **read by a gate**. So the Tier-2 blocking
+statistic is computed from a record that is silently incomplete and cannot be made complete — a
+property the matrix states plainly and which no ownership decision, in any model, changes.
+
+**Two rows must fail closed and one must fail open, and the contrast is deliberate.** `SC-S3-44` and
+`SC-S3-45` **must fail closed** on a recovery failure — an unverifiable envelope and an unresolvable
+owner are both isolation failures. `SC-S3-24` **must fail open** — a logging-sink misconfiguration falls
+back to stderr and *"a logging outage never becomes a serve outage"*. The matrix gets both directions
+right, and the pairing is worth stating because getting either backwards is a single-line change with
+opposite consequences.
+
+**A qualification that must travel with most of this walk.** Only **30** of the 45 categories are
+`existing`. **11** are `required-by-upstream` (`SC-S3-31`…`SC-S3-41`) and **4** are `assumed`
+(`SC-S3-42`…`SC-S3-45`, each `[unconfirmed]` and each carrying its own re-validation trigger). So the
+fail-closed pair `SC-S3-44` / `SC-S3-45` are **assumed** categories and the whole R4 class except
+`SC-S3-45` is `required-by-upstream`: **a recovery walk over these is a walk over a specification, not
+over behaviour.** The fail-**open** counterpart `SC-S3-24` is the exception — it is `existing`, and its
+stderr fallback is readable at `:247`–`:250`, so that half of the contrast is observed rather than
+specified. Every outcome above that concerns a non-`existing` category is a **requirement this chapter
+records as defined**, never a behaviour it claims to have seen. That is the same distinction §6 draws
+for the `not-evaluable` rows, drawn the same way here on purpose.
+
+**Walk 4 result: 45 of 45 rows produce a defined outcome; 0 undefined.**
+
+---
+
+## 11.1 The four walks, totalled
+
+| Walk | Rows walked | Defined | Undefined | Routed to |
+| --- | --- | --- | --- | --- |
+| §8 Divergence | 45 | 44 | **1** — `SC-S3-42` | `F-S14-4` → NEU-891, SUB-16 |
+| §9 Conflicting concurrent writes | 45 | 44 | **1** — `SC-S3-31` | `F-S14-5` → SUB-10 (NEU-984), SUB-16 |
+| §10 Mid-operation interruption | 45 | 45 | 0 | — |
+| §11 Recovery | 45 | 45 | 0 | — |
+| **Total** | **180** | **178** | **2** | both routed, neither narrated |
+
+**Both undefined outcomes are undefined for the same structural reason and it is not a matrix defect.**
+Each is a cell where SUB-13 correctly recorded that the answer is **not determined by any merged input**
+and **named the party that decides it** — NEU-891 for the hint/mastery rule, SUB-10 for the
+assessment-record shape. A matrix that guessed at either would be worse. They are routed because OUT-3
+requires a defined outcome and these two are not defined *yet* — **not because the matrix was wrong to
+leave them open.** That distinction is carried into the finding text so SUB-16 dispositions them as
+pending decisions rather than as defects.
