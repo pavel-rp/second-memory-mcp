@@ -953,9 +953,13 @@ replicated. **`93_stand-in-assumption-register.md` is CLOSED and is cited, never
 - **No QA pass is claimed.** `qa-execution:engine` and `qa-execution:host` are unconfigured, so the
   scenarios authored for this item are marked **`NOT RUN`**. `CAP-S1-3`; a genuine Core Article 8 no-op,
   reported as such and never as a pass.
-- **Every id in this chapter was checked against the tracker.** SUB-16 is **NEU-979**; NEU-980 is
-  **SUB-7**. The string `NEU-987` (`F-S3-2`'s wrong id) appears **nowhere** in this chapter, and neither
-  does the pairing `SUB-16 (NEU-980)`.
+- **Every id in this chapter was checked against the tracker**, individually, not by pattern: SUB-4 is
+  **NEU-974**, SUB-5 **NEU-975**, SUB-6 **NEU-976**, SUB-7 **NEU-980**, SUB-8 **NEU-981**, SUB-9
+  **NEU-983**, SUB-10 **NEU-984**, SUB-11 **NEU-985**, SUB-12 **NEU-986**, SUB-13 **NEU-977**, SUB-14
+  **NEU-978**, SUB-16 **NEU-979**. **The wrong pairings `SUB-16 (NEU-980)`, `NEU-983 (SUB-11)`,
+  `SUB-12 (NEU-985)` and `NEU-987`/`NEU-977` appear in this chapter *only* inside §5.7's citation of
+  `F-S16-1` and `F-S3-2`, where naming the wrong string is the point** — never as an assertion, never in
+  a handoff, and never in a register entry. Every operative id in §5, §6, §7, §8, §9 and §11 is correct.
 - **Nothing in this chapter rests on a benchmark journey.** `F-S4-5` records that all three are
   dogfooded across `BND-S4-17`, whose owner is **`nobody`** — so *"the journey ran fine"* is not
   evidence about a gated path, and none is offered as such.
