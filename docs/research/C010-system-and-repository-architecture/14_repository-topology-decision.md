@@ -502,3 +502,230 @@ detection reach over the 43 gated schemas.**
 inputs of §3, and were not adjusted afterwards. The tie-break in this section resolves a **conflict
 between two decisive criteria** by reference to how `K2` was defined at the outset — as an eliminator
 whose decisive weight is spent on feasibility — and **not** by changing any weight.
+
+The decision is recorded as **`DR-C10-S9-1`**.
+
+---
+
+## 6. The deployment-shape coupling, declared — accepted warning `F5.8`
+
+### 6.1 What the warning is
+
+`03_review-log.md` § Accepted warnings carries **`F5.8`**: this sub-task runs thirteenth and scores
+three of its criteria — **deployment (`K6`), observability (`K7`) and release (`K9`)** — while the
+deployment shape those scores are conditioned on is decided **afterwards**, by SUB-10 (NEU-984,
+fourteenth). Unlike the runtime/topology coupling, **this one cannot be repaired by reordering, because
+SUB-10 depends on this sub-task.** It was accepted as a warning rather than fixed. The residual: a
+deployment-shape choice at SUB-10 may **silently invalidate three of this chapter's criterion scores**.
+
+**SUB-10 carries no obligation to check its chosen shape back against these scores.** This section is
+therefore the only place a reader can find the coupling, and it is written to be checkable in one step
+rather than merely acknowledged.
+
+### 6.2 What this chapter did *not* do about it
+
+Three responses were available and all three were rejected:
+
+1. **Leave it undeclared.** That is the warning itself.
+2. **Make `K6`, `K7` and `K9` conditional on the shape.** Rejected: a conditional score is exactly what
+   the package reordered SUB-15 ahead of this chapter to avoid (§3.4), and it would hand SUB-10 an
+   unresolved conditional to close rather than a usable input. **The three scores in §5.6, §5.7 and §5.9
+   are stated unconditionally and are meant to be read that way.**
+3. **Re-scope or reorder to dodge it.** Rejected: SUB-10 depends on this chapter, so there is no
+   ordering that removes the coupling, and narrowing the criteria set to avoid scoring deployment would
+   drop three criteria the outcome requires.
+
+**What this chapter did instead:** scored the three criteria honestly and unconditionally, then declared
+the assumption they rest on (§6.3) and named the shape outcome that would reverse the selection (§6.4).
+
+### 6.3 The deployment-shape assumption these three scores rest on, declared
+
+> **Assumption `DS-1`.** The web tier is deployed as a **process separate from the MCP core process**,
+> and both are deployed from artifacts the maintainer's own CI produces — not by a platform that builds
+> directly from a hosted repository under a visibility requirement of its own.
+
+**`DS-1` is inherited, not invented.** Its first clause is already fixed by a merged decision: SUB-15's
+rejected alternative 3 was *"serve the learner surface from the existing MCP process"*, rejected because
+it collapses **`BND-S4-2`** (`CMP-S4-3` ↔ `CMP-S4-4`), which `05_…md` §4.2 records as a trust boundary.
+SUB-10 therefore **cannot** choose a single-process shape without re-opening `DR-C10-S15-2`, which is
+routed to SUB-15 rather than decided at SUB-10.
+
+Its second clause is **not** decided anywhere, and it is the live part of the assumption. It is
+consistent with the deployment substrate as it exists at `0962279`:
+`.github/workflows/cd-prod.yml` deploys by **SSH to a single host** (`appleboy/ssh-action` against
+`secrets.VPS_HOST`), then runs `docker compose up -d --build` from an **off-repo** compose directory
+(`/home/deploy/docker-services/second-memory-mcp`). There is **no `Dockerfile` in the repository**, no
+IaC, and no rollback step — the job health-polls the container after `up -d` and nothing more. **The
+deployment target never sees the repository**; the push is initiated by CI.
+
+### 6.4 The shape outcome that would reverse the selection, named
+
+**The decisive criterion is a source-time property, and no deployment shape changes it.** `K4` compares
+*when a change to a gated schema becomes visible to the application that consumes it* — a function of
+where source lives and how it resolves (`SPK-S9-1` variants D and E). Deployment shape governs where
+*processes run*. **No choice of deployment shape moves a line of source between trees**, so no shape can
+change `K4`'s score, and `K4` alone selects `T2` (§5.10).
+
+What a shape *can* do is erode the medium- and high-weight scores. `K6` is already **level** between `T1`
+and `T2` (§5.6), so it cannot flip anything. `K7` and `K9` favour `T2` and a shape could narrow those
+margins — narrowing a margin is not reversing a selection whose decisive criterion is untouched.
+
+**The one shape outcome that would genuinely reverse the selection, stated so SUB-10 can check it in one
+step:**
+
+> **A deployment shape in which the application is built by a platform that builds directly from a
+> hosted repository and requires that repository to be public.** `T2`'s repository is **private by
+> construction** — that is how it holds input (c). Such a platform would make `T2` impossible rather
+> than merely worse, and the application would have to move to a private repository of its own, which
+> **is `T1`**.
+
+**Why it does not realistically fire, shown rather than asserted.** It requires SUB-10 to abandon the
+current substrate entirely — push-based SSH deployment to a self-managed host that never sees the
+repository (§6.3) — *and* adopt a git-integrated build platform, *and* select a plan or tier of that
+platform carrying a public-repository requirement. The first move alone is a larger change than the
+substrate question SUB-10 was scoped to answer. **This chapter's judgement is that no realistic
+deployment shape reverses the selection**, and the reason is structural rather than probabilistic:
+`K4` is decided at source-resolution time and deployment shape has no purchase there.
+
+A second candidate was considered and does not qualify: **a shape requiring two mutually incompatible
+toolchains in one pipeline** would break `T2`'s single-pipeline advantage at `K9` — but it cannot fire
+without a divergent web-tier runtime, and a divergent runtime is a finding **routed to SUB-15**
+(§3.4), never a shape SUB-10 may choose on its own.
+
+**The check SUB-10 owes, in one line**, recorded as `OI-S9-4`: *does the chosen deployment shape require
+the application to be built from a public repository?* **No** → this chapter's selection stands
+unchanged. **Yes** → the selection reverses to `T1` and `DR-C10-S9-1` must be re-decided, not patched.
+
+### 6.5 `F-S15-2`, received and disposed of
+
+SUB-15 handed this sub-task **`F-S15-2`** for awareness: `SPK-S6-1`'s ≤0.02% latency result is an
+**in-process transport floor with no network hop**, and if local development runs the two tiers as
+separate processes, that floor is not what developers will observe.
+
+**Disposition: no score in this chapter rests on it.** `K8` is scored on **type-resolution behaviour**
+(`SPK-S9-1`), not on latency, and `K6`/`K7` are scored on build provenance and trace correlation, not on
+round-trip cost. **This chapter makes no latency claim of any kind**, so `F-S15-2`'s over-reading risk
+does not arise here. It remains SUB-10's to carry, as `F-S15-2` already routes it.
+
+---
+
+## 7. NEU-850's `OUT-6` and `OUT-7`, consumed — the C003 reconciliation record
+
+Both are **consumed constraints** in the sense of `00_…md` §1.2: decided elsewhere, adopted here without
+re-deciding, cited owner-attached, and amendable only by a recorded amendment routed to their owner with
+contradicting evidence named. **NEU-850 is converged but unimplemented**, so each is a decision to
+honour and never an existing codebase fact.
+
+| Constraint | What it commits | How this chapter consumes it |
+| --- | --- | --- |
+| **NEU-850's `OUT-6`** | Removes `package.json`'s `"private": true` and publishes the core to a public registry. | Criterion input **(b)** (§3.2). The selected topology's migration step **M5** (§8) is what makes it executable, since the core is not consumable as a dependency today (`F-S9-3`). |
+| **NEU-850's `OUT-7`** | A **separate private repository** for the cloud tenant/billing/dashboard layer, with **"zero cloud-business code" in the MIT repo**. | Consumed unchanged. The cloud business layer is **not** an alternative in §4 and is not scored; it sits alongside the selected topology in its own repository. |
+
+### 7.1 The overlap is **partial**, and this is the reason
+
+**NEU-850's `OUT-7` binds the cloud tenant/billing/dashboard business layer. It does not name the DP
+course application.** The two questions overlap in *form* — both are "which repository does this tree
+live in?" — and diverge in *subject*. `OUT-7` fixes the placement of a third tree; **the DP course
+application's placement was left open, and deciding it is this sub-task's job**, discharging this
+package's own `OUT-7`. Charter assumption **24** records the same reading and grants the bounded
+routed-amendment right this section exercises.
+
+Concretely: the selected topology `T2` places the **core** and the **DP course application** in one
+private workspace repository, publishing the core publicly under MIT. The **cloud business layer stays
+in its own separate private repository**, untouched. "Zero cloud-business code in the MIT repo" is
+satisfied — the MIT-distributed artifact under `T2` is the core package, and no cloud-business code
+enters it.
+
+### 7.2 Amendment disposition
+
+> **No amendment routed.** This chapter's evidence does not actively contradict either `OUT-6` or
+> `OUT-7`. `OUT-7` is untouched in subject; `OUT-6` is honoured in substance — the core is published
+> publicly under MIT under the selected topology.
+
+One **mechanical** note is recorded so that `OUT-6` is not later executed against the wrong file, and it
+is explicitly **not** an amendment because it contradicts nothing:
+
+`OUT-6`'s stated mechanism — *remove `"private": true` from `package.json`* — was written when the
+repository had exactly one `package.json` (charter assumption 16, confirmed; verified at `0962279`).
+Under `T2` there are two: a **root workspace manifest that must keep `"private": true`** because it is
+never published, and a **core package manifest that carries the publishable metadata** and is the one
+`OUT-6` means. Removing `"private": true` from the root manifest would satisfy `OUT-6`'s letter while
+inverting its intent. Filed as **`OI-S9-3`**, owner **NEU-850**, so its implementer resolves which
+manifest is meant before executing. `OUT-6`'s *intent* — the core is published publicly under MIT — is
+unchanged and uncontested.
+
+---
+
+## 8. The migration path from today's single-package repository
+
+Every step is stated against a repository fact **measured at `0962279`** in a dedicated worktree, and
+every measured value that differs from charter assumption 16's is filed at `F-S9-2` rather than rounded
+to it.
+
+| Fact | Charter assumption 16 | **Measured at `0962279`** | |
+| --- | --- | --- | --- |
+| `pnpm-workspace.yaml` `packages:` key | absent | **absent** (file carries only `onlyBuiltDependencies: [esbuild]`) | ✔ matches |
+| `apps/`, `packages/`, web directory | none | **none** (root holds `_local/`, `content/`, `docs/`, `drizzle/`, `scripts/`, `src/`, `tests/`) | ✔ matches |
+| TypeScript source files under `src/` | 165 | **169** | **differs** — `F-S9-2` |
+| Source lines under `src/` | ~25,200 | **26,816** | **differs** — `F-S9-2` |
+| Test files under `tests/` | 197 | **202** | **differs** — `F-S9-2` |
+| Drizzle migrations | 25 | **25** | ✔ matches |
+
+**The steps.** Each names *what must become true*; none specifies the configuration that would make it
+true, because build tooling and package-manager configuration **fail the architecture-material rule**
+(§3.6) and are out of this chapter's scope.
+
+**`M1` — the workspace declares member packages.** Today `pnpm-workspace.yaml` declares **no `packages:`
+key** and exists solely to gate pnpm build scripts.
+
+**`M2` — two member trees exist.** Today there is **no `apps/`, `packages/` or web directory** to hold
+them.
+
+**`M3` — the core moves into its member tree.** **169 TypeScript source files, 26,816 lines** from `src/`
+and **202 test files** from `tests/`. This is a relocation, not a rewrite: no module boundary inside the
+core changes, and the ports-and-adapters structure is carried intact.
+
+**`M4` — Drizzle moves intact.** The **25** migration files and `drizzle/meta/_journal.json` move
+**together and unmodified**. Called out explicitly because this project's migration rule requires
+`_journal.json`'s `when` timestamps to remain **monotonically increasing with `idx`** — the migrator
+resolves applied-versus-pending on `when`, so a journal that is *regenerated* rather than *moved* can
+cause migrations to be **silently skipped with no error**. A migration that rebuilds the journal is a
+defect even if every `.sql` file arrives correctly.
+
+**`M5` — `package.json` splits, and the core manifest gains the entry point it does not have.** The root
+becomes a private workspace manifest; the core member gains `name`, `version`, MIT `license` **and an
+entry-point declaration**. At `0962279` the single manifest declares **no `main`, `exports`, `types` or
+`bin`**, and `SPK-S9-1` variant A shows a consumer resolving `second-memory-learning` fails outright with
+`TS2307` (`F-S9-3`). **This is the step that makes NEU-850's `OUT-6` executable rather than nominal**, and
+it is not optional under `T2`, because the core is published even though the repository is private.
+
+**`M6` — the publish allowlist exists before the first publish.** `package.json` declares **no `files`
+field** at `0962279`, so a publish today would ship **everything not gitignored** (`F-S9-4`). Under `T2`
+the visibility line is a **configured** allowlist rather than a structural boundary — that is precisely
+what `K2`'s `−` score is paying for (§5.2) — so `M6` is a **precondition of the first publish**, not a
+later tidy-up. Sequencing `M5` before `M6` without this constraint would open a window in which the core
+is publishable and unfiltered.
+
+**`M7` — the TypeScript project splits over a shared base.** Today one `tsconfig.json` covers
+`["src", "tests", "drizzle.config.ts"]` with **no project references**, `module`/`moduleResolution` set
+to `Node16` and `verbatimModuleSyntax: true`. `SPK-S9-1` variant E was run under exactly that compiler
+configuration and shows that source-resolving entry points preserve live local development with no build
+step — which is the mechanism behind `K8`'s score, and it is available because the web tier shares the
+core's TypeScript/Node runtime (`DR-C10-S15-2`).
+
+**`M8` — CI becomes workspace-aware.** Today there is one `build-test-lint` job on a single-entry Node
+matrix `[20.x]` with one Postgres service. Its steps become workspace-recursive, and the `version-bump`
+job — which writes the **root** `package.json` and is the mechanism behind **250 of the 720** commits
+(`F-S9-1`) — must target the core package instead. **Named, not designed:** whether one maintainer can
+operate this is capped at `CAP-S9-1`, not asserted.
+
+**`M9` — the application tree is created empty here and filled elsewhere.** Creating scaffolds is out of
+this chapter's scope; the implementation charter (NEU-896) fills it.
+
+**`M10` — the cloud business layer does not move.** NEU-850's `OUT-7` keeps it in its own separate
+private repository (§7). Nothing in `M1`–`M9` touches it.
+
+**What the path does not establish.** It is a sequence of states, not a schedule, and no step is claimed
+to have been executed — **this chapter creates no repository, workspace file, directory or scaffold, and
+changes no `package.json`.** `M8`'s operability is the open question, and it is capped rather than
+asserted.
