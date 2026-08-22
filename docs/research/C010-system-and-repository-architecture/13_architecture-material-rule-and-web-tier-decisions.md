@@ -744,12 +744,16 @@ envelope. **The trust property appears in this chapter only as a consumed constr
 premise of the rendering selection.**
 
 **The two remaining citations of `05_…md` §6.2 point 3 are checked explicitly, since `R-5` is about
-*use* rather than about mention.** §5.7 cites it when listing the constraints this chapter consumes,
-and §11.4 cites it as the reason the rendering spike candidate was **withdrawn** — that is, as
-evidence that the question was already answered by reading. Neither citation argues for or against a
-rendering model; the first records an inherited constraint and the second explains a
-non-measurement. **`R-5` is satisfied at both sites**, and they are named here so a reader auditing
-compliance does not have to decide for themselves whether a mention is a use.
+*use* rather than about mention.** §8.6 cites it **inside Decision 3 itself**, to establish that a
+gate-bearing read is a server round trip by construction of the published component model — a fact
+`05_…md` §6.2 is titled *"Why it holds under every rendering model"*, so it holds under all three
+candidates and **cannot discriminate between them**; it is used *downstream* of the selection at
+§8.1, to derive that decision's cost, never as a premise for it. §11.4 cites it as the reason the
+rendering spike candidate was **withdrawn** — that is, as evidence that the question was already
+answered by reading. Neither citation argues for or against a rendering model: the first records a
+consequence, the second explains a non-measurement. **`R-5` is satisfied at both sites**, and the
+§8.6 site is named explicitly because it is the one sitting inside the decision `R-5` constrains, and
+is therefore the one worth stating rather than the one worth omitting.
 
 ### 11.4 The spike candidate withdrawn under the "could this have been read instead?" test
 
