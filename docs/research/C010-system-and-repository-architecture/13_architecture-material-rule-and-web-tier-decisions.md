@@ -745,10 +745,13 @@ premise of the rendering selection.**
 
 **The two remaining citations of `05_…md` §6.2 point 3 are checked explicitly, since `R-5` is about
 *use* rather than about mention.** §8.6 cites it **inside Decision 3 itself**, to establish that a
-gate-bearing read is a server round trip by construction of the published component model — a fact
-`05_…md` §6.2 is titled *"Why it holds under every rendering model"*, so it holds under all three
-candidates and **cannot discriminate between them**; it is used *downstream* of the selection at
-§8.1, to derive that decision's cost, never as a premise for it. §11.4 cites it as the reason the
+gate-bearing read is a server round trip by construction of the published component model. **That
+fact cannot discriminate between rendering models, and `05_…md` §6.2 says so in its own closing
+words** — *"nothing above may be cited as an argument for one. The trust property is satisfied by all
+of them equally — which is precisely why it does not select among them."* It appears in the section
+that **raises** Decision 3's round-trip cost and **declines to settle it** — §8.6 routes the
+magnitude to `SPK-S6-1`'s in-process floor, `CAP-S15-1` and `F-S15-2` — and never as a premise for
+the selection taken five subsections earlier at §8.1. §11.4 cites it as the reason the
 rendering spike candidate was **withdrawn** — that is, as evidence that the question was already
 answered by reading. Neither citation argues for or against a rendering model: the first records a
 consequence, the second explains a non-measurement. **`R-5` is satisfied at both sites**, and the
