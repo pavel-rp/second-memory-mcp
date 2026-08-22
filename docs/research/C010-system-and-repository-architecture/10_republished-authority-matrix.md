@@ -550,3 +550,279 @@ been empty under `M-A`; **`A-28`** at `SC-S3-45`, whose invalidating outcome —
 separate deployment or datastore* — is the one outcome that would relocate this matrix's assignments
 rather than correct them locally; and **`A-29`** (no continuous bidirectional handoff sync) at
 `SC-S3-44`. **`93_…md` is CLOSED and is cited, never appended to.**
+
+### 5.12 `OI-S14-1` — the open item SUB-14 left for this pass, answered
+
+SUB-14 filed one open item and named SUB-16 its owner: *"this chapter validates `08_…md` at its
+`pre-validation` revision. SUB-7, SUB-8 and SUB-10 consume SUB-16's post-absorption revision, not that
+one. Whether absorbing the eleven findings changes any verdict here — and therefore whether this record
+must be re-run against the republished matrix — is **not decidable until SUB-16 publishes**."*
+
+**It is decidable now, and the answer is no: no verdict changes, and `09_…md`'s validation record does
+not need re-running against this revision.**
+
+The reasoning is mechanical, published at **§8.1** so SUB-11 and SUB-12 can check it rather than take
+it: ten of the eleven dispositions change **nothing** on any row; the eleventh revises **`Writes`,
+`Consistency` and `Observability`** on two rows and leaves the authority, the clause, the
+`Learner-scoped` value and the status marking untouched; **no row was split, merged, added or removed**;
+and **the write path a durable append is issued from is an input to none of `I1`–`I5`**. §7 re-proves
+mechanically that the 45-row domain and the exactly-one property survived, which is the structural
+change that *could* have moved a verdict and did not.
+
+**`OI-S14-1` is therefore closed here**, with its answer recorded rather than asserted. Consumers
+**SUB-11 (NEU-983)** and **SUB-12 (NEU-985)** may consume `09_…md` §15 directly against the
+`post-validation` revision. **The dispositions are not thereby validated** — §7's audits prove the
+matrix's two structural properties, not that a disposition was the right call; that judgement is
+SUB-11's, and `OI-S16-1` records the one place this chapter could not close a loop itself.
+
+---
+
+## 7. The two audits, re-run over the republished revision
+
+**Both audits below were re-run mechanically over §8's table** — the table that *is* this revision — by
+parsing its rows and their `**Authority**` and `Clause` cells, and by re-extracting the domain from
+`04_…md`. **Neither result is inherited from `08_…md` §10.** That distinction is the point of the
+exercise: a revision that repaired an invariant failure by **splitting or merging a row** would break
+either property while every individual row still looked correct, and only a re-run catches it. This
+revision split and merged nothing — but that is the audits' **output**, not their premise.
+
+*(§7 precedes §8 so the properties are proved before the table is read; the parse ran over §8's table
+as it stands in this file, and any consumer can reproduce it with the same filter — table rows matching
+`` | `SC-S3-<n>` | `` with exactly nine columns.)*
+
+### 7.1 The exactly-one-authority audit — re-proved
+
+This is `OUT-3`'s first required audit.
+
+| Measure | Count | vs. `08_…md` §10.1 |
+| --- | --- | --- |
+| Category rows in the republished matrix | **45** | same |
+| Rows with **zero** authorities | **0** | same |
+| Rows with **two or more** authorities | **0** | same |
+| Rows with **exactly one** authority | **45** | same |
+| Distinct `SC-S3-*` ids | **45** (duplicates: **0**) | same |
+| Rows whose authority is **not** a `CMP-S4-*` id | **0** | same |
+
+**Verdict: pass, re-proved on this revision.** Every one of the 45 categories names exactly one
+authority, and every authority is a component id from `05_…md` §3 — **no role names, no zone-only
+owners, no shared authorities.** The `W` annotations were excluded by construction, as `08_…md` §9
+requires: on `SC-S3-13` and `SC-S3-44` the `W` cell reads *"enforced at `CMP-S4-4`"* and names a second
+component id, and neither row counts as two-authority, because `W` **is an annotation, never a second
+authority**.
+
+**Scope note, published so the two numbers are not confused.** The audit above runs over **all 45**
+rows. Clause 1 additionally removes its rows from the audit's *write* scope, because a process-local or
+derived-on-read category has no durable write to attribute:
+
+| Measure | Count |
+| --- | --- |
+| Rows recording `— non-durable` as their write path (clause 1) | **13** — `SC-S3-18` … `SC-S3-30` |
+| Rows with a durable write to attribute | **32** |
+
+**45 rows, 45 authorities, 32 durable writes.** Reporting only the second would look like a matrix of 32
+rows; reporting only the first would suggest 13 rows have no authority. Neither is true.
+
+**Two distributions re-derived from the same parse**, because they are the two figures a later reader
+is most likely to re-litigate:
+
+| Clause | Rows | | Authority | Rows |
+| --- | --- | --- | --- | --- |
+| 1 — Non-durable | 13 | | `CMP-S4-9` | 21 |
+| 2 — Gate-bearing | 3 | | `CMP-S4-7` | 9 |
+| **3 — Presentation exception** | **0** | | `CMP-S4-4` | 5 |
+| 4 — Identity mapping | 1 | | `CMP-S4-14` | 4 |
+| 5 — In the invariant's domain | 20 | | `CMP-S4-17` | 2 |
+| 6 — Default | 8 | | `CMP-S4-19` | 2 |
+| **Total** | **45** | | `CMP-S4-8` | 1 |
+| | | | `CMP-S4-10` | 1 |
+| | | | **Total** | **45** |
+
+**Clause 3 → 0 and `CMP-S4-3` → 0 rows are re-proved here**, which is `F-S14-6`'s disposition made
+mechanical rather than merely argued (§5.1).
+
+### 7.2 The state-inventory ↔ matrix audit — re-proved, both directions
+
+This is `OUT-3`'s second required audit — *that every inventory row appears in the matrix and every
+matrix row appears in the inventory.* It is run in **both directions** and both counts are published,
+because a one-directional check would pass on a matrix that silently invented a category.
+
+**This audit is not SUB-7's.** §3.1 names the two apart: this one compares the matrix against
+**`04_…md`'s state-category inventory**; SUB-7's `OUT-5` cross-check compares it against a **web-API
+resource inventory that does not exist yet**. Neither substitutes for the other, and SUB-7's is not run
+or claimed here.
+
+| Direction | Unmatched count | Routing rule if non-zero | Named owner if non-zero |
+| --- | --- | --- | --- |
+| `04_…md` §3 → this matrix (an inventory category with no row) | **0** | Held here — a missing row is this chapter's defect, and the remedy is to **author** it, never to narrow the domain. | **SUB-16 (NEU-979)** |
+| This matrix → `04_…md` §3 (a matrix row with no inventory category) | **0** | Routed as a finding against `04_…md` — a row the matrix believes exists but the inventory does not carry is an inventory-completeness question, and `04_…md` §7.3 already states what would falsify its completeness claim. | **SUB-3 (NEU-973)** |
+
+**Verdict: pass, both directions, zero unmatched — re-proved on this revision.** The domain was
+re-extracted **independently of the matrix**: every `SC-S3-<n>` token in `04_…md`, filtered to the
+strictly numeric form, yields **45 distinct ids, minimum 1, maximum 45, no gaps** — agreeing with
+`04_…md` §8's own counts table (30 `existing` + 11 `required-by-upstream` + 4 `assumed` = 45) and with
+this chapter's own status distribution (§8). **There is no unmatched item in either direction and
+consequently no item to route**; the routing rules and owners above are published so the audit is
+**reproducible rather than merely reported**.
+
+**The mechanical caveat, carried forward for whoever re-runs this:** `04_…md` §2 contains the bare
+template token `SC-S3-<k>`, which a naive `SC-S3-` extraction picks up as a valueless match and which
+corrupts a numeric sort. **It is still present** — this run confirmed it — so filter to the strictly
+numeric form before counting.
+
+### 7.3 What neither audit checks — stated so the pass verdicts are not over-read
+
+Neither audit checks that a recorded authority is the **right** one — only that there is exactly one,
+that it is a real component id, and that the row set matches the inventory. **The question of whether
+the authority is right is what SUB-14 answered** (cause tally: SUB-13's assignment, 0 / 0) and what §5
+dispositions. Neither audit checks a **verdict**, a **walk outcome**, or a **disposition**: §7 proves
+the matrix's two structural properties survived republication, and nothing more.
+
+---
+
+## 8. The republished matrix in one table, with both censuses carried forward
+
+**This table is the republished revision.** It is what §7's two audits run over, and what SUB-7, SUB-8
+and SUB-10 resolve a row against. `W` names the write path where `08_…md` §8 records one; **it is an
+annotation, never a second authority**, and the exactly-one audit does not count it.
+
+**`Rev`** is this chapter's per-row revision state: **`carried`** (unchanged from `08_…md`),
+**`noted`** (unchanged, with a disposition note at §6.4), **`revised`** (attributes re-authored at §6).
+
+**Census A** = target state **(b)** — the category's row plus its named authority, as it stands.
+**Census B** = target state **(c)** — *composed*: Census A **plus** NEU-850's `OUT-2` implemented in
+full (an ownership key on every learner-scoped durable `public`-schema store, threaded through the
+row-owning repository ports) **and nothing else**. **The two are never summed.** Both are carried from
+`09_…md` §15.1 unchanged — see §8.1 for why that carry-forward is sound rather than assumed.
+
+| Id | Category | **Authority** | W | Clause | Status | Rev | Census A (b) | Census B (c) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `SC-S3-1` | Topic record | `CMP-S4-9` | `CMP-S4-13` / `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-2` | Chunk content record | `CMP-S4-9` | `CMP-S4-13` / `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-3` | Per-chunk SM-2 scheduling state | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-4` | Content-audit verdict | `CMP-S4-7` | `CMP-S4-14` → `CMP-S4-9` | 6 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-5` | Learning-session record | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-6` | Session-chunk teaching state | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-7` | Session question | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-8` | Question→chunk assessment mapping | `CMP-S4-7` | `CMP-S4-9` | 6 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-9` | Attempt and grade record | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-10` | Pre-review scheduling snapshot (NEU-844) | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-11` | Grade-revision audit trail | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-12` | Notes | `CMP-S4-9` | `CMP-S4-7` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-13` | Context tokens | `CMP-S4-9` | `CMP-S4-7`; enforced at `CMP-S4-4` | 5 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-14` | Linter validation corpus | `CMP-S4-7` | `CMP-S4-9` | 6 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-15` | Per-rule validation report | `CMP-S4-7` | `CMP-S4-9` | 6 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-16` | MCP request log | `CMP-S4-9` | `CMP-S4-19` | 5 | `existing` | **revised** | not-evaluable | not-evaluable |
+| `SC-S3-17` | Operation event log | `CMP-S4-9` | `CMP-S4-19` | 5 | `existing` | **revised** | not-evaluable | not-evaluable |
+| `SC-S3-18` | MCP transport registry | `CMP-S4-4` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-19` | Subject-binding map | `CMP-S4-4` | — non-durable | 1 | `existing` | carried | fails-transport | fails-transport |
+| `SC-S3-20` | Rate-limit windows | `CMP-S4-4` | — non-durable | 1 | `existing` | carried | fails-transport | fails-transport |
+| `SC-S3-21` | Tier-2 breaker trip set + stats cache | `CMP-S4-14` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-22` | Request context and correlation id | `CMP-S4-4` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-23` | Database client singletons | `CMP-S4-9` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-24` | Event-logger sink toggle | `CMP-S4-19` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-25` | Transport batch buffers + per-sink breakers | `CMP-S4-19` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-26` | JWKS remote key set | `CMP-S4-4` | — non-durable | 1 | `existing` | **noted** | not-applicable | not-applicable |
+| `SC-S3-27` | Classifier per-field model cache | `CMP-S4-14` | — non-durable | 1 | `existing` | carried | not-applicable | not-applicable |
+| `SC-S3-28` | Mastery level | `CMP-S4-7` | — non-durable | 1 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-29` | `LearnerContext` aggregate | `CMP-S4-7` | — non-durable | 1 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-30` | Analytics KPIs and window rollups | `CMP-S4-8` | — non-durable | 1 | `existing` | carried | not-evaluable | fails-confinement |
+| `SC-S3-31` | Assessment-evidence record | `CMP-S4-9` | `CMP-S4-7` | 5 | `required-by-upstream` | **noted** | not-evaluable | not-evaluable |
+| `SC-S3-32` | Problem-citation record | `CMP-S4-7` | `CMP-S4-13` → `CMP-S4-9` | 6 | `required-by-upstream` | carried | not-applicable | not-applicable |
+| `SC-S3-33` | Cached citation-drift verdict | `CMP-S4-17` | held by `CMP-S4-18` | 2 → tb(c) | `required-by-upstream` | **noted** | not-applicable | not-applicable |
+| `SC-S3-34` | Citation-drift verdict store | `CMP-S4-17` | — | 6 → tb(c) | `required-by-upstream` | carried | not-applicable | not-applicable |
+| `SC-S3-35` | Gate-verdict record | `CMP-S4-14` | `CMP-S4-15` | 2 | `required-by-upstream` | **noted** | not-applicable | not-applicable |
+| `SC-S3-36` | Quarantine record | `CMP-S4-14` | — | 2 | `required-by-upstream` | carried | not-applicable | not-applicable |
+| `SC-S3-37` | DP-map node + prerequisite-edge records | `CMP-S4-7` | `CMP-S4-13` (import **and re-import**) | 6 | `required-by-upstream` | carried | not-applicable | not-applicable |
+| `SC-S3-38` | Per-learner per-node progression | `CMP-S4-9` | `CMP-S4-7` | 5 | `required-by-upstream` | carried | not-evaluable | not-evaluable |
+| `SC-S3-39` | Per-learner mastery-gate state | `CMP-S4-9` | `CMP-S4-7` | 5 | `required-by-upstream` | carried | not-evaluable | not-evaluable |
+| `SC-S3-40` | Measurement-contract register | `CMP-S4-7` | no in-system copy held | 6 | `required-by-upstream` | carried | not-applicable | not-applicable |
+| `SC-S3-41` | Operational-log derived extract `PLA-*` | `CMP-S4-9` | `CMP-S4-20` | 5 | `required-by-upstream` | carried | not-evaluable | not-evaluable |
+| `SC-S3-42` | Tutoring / hint interaction state | `CMP-S4-9` | `CMP-S4-7` | 5 | `assumed` — `A-25` | **noted** | not-evaluable | not-evaluable |
+| `SC-S3-43` | Web-session / UI interaction state | `CMP-S4-9` | `CMP-S4-7` | 5 | `assumed` — `A-27` | carried | not-evaluable | not-evaluable |
+| `SC-S3-44` | Handoff authorization envelope | `CMP-S4-9` | `CMP-S4-7`; enforced at `CMP-S4-4` | 5 | `assumed` — `A-29` | carried | not-evaluable | not-evaluable |
+| `SC-S3-45` | Learner-identity → owner mapping | `CMP-S4-10` | projected, never authored, elsewhere | 4 → `F-S13-2` | `assumed` — `A-28` | **noted** | not-evaluable | fails-confinement |
+
+**Status markings are `04_…md`'s, carried through the revision unchanged: 30 `existing`, 11
+`required-by-upstream`, 4 `assumed`** — the three-way `existing` / `required-by-upstream` / `assumed`
+marking SUB-3 established survives republication on every row, and no row's marking was adjusted to
+accommodate a disposition.
+
+### 8.1 Why the censuses carry forward unchanged — checked, not assumed
+
+**A carried-forward verdict is only sound if nothing this chapter did could have moved it.** The check:
+
+| Could this revision have moved a verdict? | Answer |
+| --- | --- |
+| Did any row's **authority** change? | **No.** All 45 authorities are identical to `08_…md` §9. |
+| Did any row's **clause** change? | **No.** The clause distribution is identical (§7.1). |
+| Did any row's **`Learner-scoped`** value change? | **No.** `I1`'s input is `04_…md` §3, which this chapter does not touch. |
+| Did any row's **status marking** change? | **No.** 30 / 11 / 4, unchanged. |
+| Was any row **split, merged, added or removed**? | **No** — 45 in, 45 out. This is the failure mode §7 exists to catch, and it did not occur. |
+| Did the two **revised** rows change an input to `I1`–`I5`? | **No.** §6.1/§6.2 revise `Writes`, `Consistency` and `Observability` — descriptive attributes. `I2` asks whether principal attribution exists (it does not, on either row, before or after); `I3` asks whether an access-path set is enumerated (it is not); `I4` asks about transport. **The write path a durable append is issued from is an input to none of the five checks.** |
+
+**Therefore `09_…md` §15.1's per-row verdicts, §15.2's distributions and its cause tally stand over the
+post-validation revision, and need not be re-run.** That is also the answer to `OI-S14-1` (§5.12).
+
+### 8.2 The verdict distribution, both censuses, un-collapsed
+
+| Verdict | Census A (b) | Census B (c) |
+| --- | --- | --- |
+| `not-applicable` | 19 | 19 |
+| `not-evaluable` | **24** | 9 |
+| `fails-confinement` | 0 | **15** |
+| `fails-transport` | 2 | 2 |
+| `fails-principal` | **0 — UNREACHED, not passed** (`F-S14-2`) | **0 — UNREACHED, not passed** (`F-S14-2`) |
+| `holds` | **0 — forced by `06_…md` §3.4.1, not discovered** | **0 — forced by `06_…md` §3.4.1, not discovered** |
+| **Total** | **45** | **45** |
+
+**There is no third column, and no row of this table may be added to another.** The invariant's verdict
+is a function of the target state it is evaluated against; a merged census would name no target state
+and would therefore be a category error dressed as a number.
+
+**`fails-principal: 0` must be read as "unreached".** `06_…md` §3's adjudication rule is *"the first
+failing check names the verdict, stop there"*, and `I5` is **last**. Every in-domain row fails at `I2`,
+`I3` or `I4` first, so `I5` is never reached and principal integrity is **never tested** by either
+census. The defect `I5` exists to catch is real and merged — `06_…md` §3.6 case 5 records
+`jwt-middleware.ts:127`'s `azp` fallback, which lets a client-credentials token resolve to a principal.
+**A reader who takes `fails-principal: 0` at face value would conclude the opposite of the truth.** That
+is `F-S14-2`, and this annotation is its disposition.
+
+**`holds: 0` is forced.** `06_…md` §3.4.1: *"`I3` may not return `holds` by failing to find a
+counter-example."* `holds` requires an **enumerated access-path set covering reads and writes**; none
+exists for any category; so the count is **zero**, not "unfalsified". **`CAP-S5-1` stands — this package
+does not prove the invariant satisfiable**, and zero `holds` across 90 row-evaluations is consistent
+both with unsatisfiability and with a merely-unimplemented mechanism. The census cannot distinguish
+them, and this chapter does not claim it can.
+
+### 8.3 The cause tally, both censuses, un-collapsed
+
+| Cause | Owner | Census A | Census B |
+| --- | --- | --- | --- |
+| Out of the invariant's domain (`I1`, explicit `no` in `04_…md` §3) | — (correctly out of scope) | 19 | 19 |
+| **Attribution residue** — no principal attribution exists at all (`I2`); `F-S5-4` | NEU-850 `OUT-2`, then NEU-893 | 11 | 0 |
+| **Portless attribution residue** — as above **and** behind no port (`OI-S5-1`) | NEU-850 `OUT-2` / SUB-10 | 2 | 2 |
+| **Category does not exist** — `required-by-upstream` or `assumed` | the owning upstream package | 11 | 7 |
+| **Confinement residue** — no enumerated access-path set exists (§3.4.1) | **SUB-8 (NEU-981)** | 0 | 14 |
+| **Transport residue** — STDIO has no identity gate; `BND-S4-17`, owner `nobody` | **NEU-893** | 2 | 2 |
+| **SUB-13's assignment** | SUB-13 | **0** | **0** |
+| **SUB-6's model** | SUB-6 | 0 | **1** (`SC-S3-45`) |
+
+**`SUB-13's assignment` reads 0 / 0 after republication, as it did before it.** The matrix was not found
+wrong, and this chapter did not make it wrong. What blocks the invariant is the transport, the absent
+attribution mechanism and the absent access-path enumeration.
+
+### 8.4 The three confirmations, re-affirmed over this revision
+
+1. **No revised row describes an ownership column as present.** `04_…md` §6 found **zero** matches for
+   `user_id` / `userId` / `learner_id` / `learnerId` in `schema.ts`. Census A's 24 `not-evaluable` rows
+   are `not-evaluable` **because** none exists; Census B assumes one **only** inside the explicitly
+   enumerated composed target state and is labelled composed at every use. **NEU-850's `OUT-2` is a
+   decision to honour, never an existing schema fact** — before and after this revision.
+2. **Every transport-dependent verdict is transport-qualified, never stated unqualified.** The two
+   `fails-transport` rows (`SC-S3-19`, `SC-S3-20`) fail **because** the verdict differs by transport —
+   that is `I4`'s whole content. **No repaired verdict in this chapter holds only under HTTP**, because
+   **no verdict was repaired**: the two `revised` rows' verdicts are `not-evaluable` under **both**
+   censuses and **both** transports, and neither is `fails-transport`. **No row returns `holds` under
+   either transport.** `F-S5-4` is honoured: the binding constraint is the **transport**, not the
+   schema, and no authority was changed to "repair" a transport-caused verdict.
+3. **No row returns `holds` by failing to find a counter-example.** Structurally obeyed, as §8.2 states.
