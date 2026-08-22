@@ -506,3 +506,68 @@ The reason it does not gate: the only place the DP-map could have bitten this ch
 - **Owner:** **`SUB-10 (NEU-984)`**. Named alone: SUB-9 cannot discharge it — the shape does not exist yet — and no other party chooses it.
 - **Resolving event:** **SUB-10's deployment-shape record answers, explicitly, whether the chosen shape requires the application to be built from a public repository.** **No** → `DR-C10-S9-1`'s selection stands unchanged. **Yes** → the selection reverses to the separate-repository alternative `T1` and `DR-C10-S9-1` is **re-decided, not patched**. Observable as a stated answer in SUB-10's published record. The item does **not** close on SUB-10 merely choosing a shape without addressing the question — the silent choice is the failure mode `F5.8` names.
 - **Why not a stand-in:** `93_…` is **closed**, and `DS-1` is not a stand-in: its first clause is **inherited from a merged decision** (SUB-15 rejected a single-process shape because it collapses `BND-S4-2`), and its second clause is **declared as an assumption at the decision it supports**, per `../00_…md` §2.3, rather than supposed in place of a missing input. **Why not a cap:** the owner exists, is named, holds the authority, and will meet the question in the ordinary course of its own work — nothing is unsettleable. **Why not a finding:** it states no fact about the system that is true today; it records a **pending check** whose answer does not yet exist. Recorded without over-claiming: `14_…md` §6.4 concludes that **no realistic deployment shape reverses the selection**, because the decisive criterion `K4` is a source-resolution property that deployment shape has no purchase on. This entry is therefore expected to resolve **No**. It is filed anyway, because "expected to resolve one way" is not "checked", and `F5.8`'s residual is exactly the gap between those two.
+
+---
+
+### SUB-10
+
+*Appended by `NEU-984` (SUB-10) on 2026-08-22. Verification cutoff `03efe1d`. Nothing above this heading was edited.*
+
+**This sub-task files no new open item.** Every question it would have raised either has a named cap (`CAP-S10-1`…`CAP-S10-4`, `91_…md` § SUB-10) or a routed finding (`F-S10-1`…`F-S10-5`, `02_…md` § SUB-10). What follows are **disposition records** for the items this sub-task was named owner or consumer of. They carry **no new Id** and are not open items.
+
+#### Disposition of `OI-S1-3` (charter assumption 31) — discharged by conversion to a cap
+
+- **Item:** Hosting region, provider, TLS termination, backup and monitoring are not discoverable in the repository. Owner and consumer: `SUB-10 (NEU-984)`.
+- **Disposition:** **Discharged by the item's own alternate route** — "or converted to a `CAP-S10-<k>` entry stating which fact remains unknown and what decision it leaves unsupported." The conversion is **`CAP-S10-1`**, which enumerates each unknown fact and names the decisions it leaves unsupported.
+- **Why the primary route was not taken:** The item's first route is "each fact recorded with the operator's answer cited". This sub-task ran with **no interactive channel**, so no operator answer was obtainable, and inventing one would have been the assertion `OUT-8` forbids. Re-reading was attempted and returned the same result the item already recorded: the production compose stack is off-repo, and `.github/workflows/cd-prod.yml` names its directory without describing its contents.
+- **Residual:** The facts remain unknown. **Discharging the item is not answering its question**, and `CAP-S10-1` is written so a reader cannot mistake one for the other. Three facts of `15_…md` §9's production-compatibility assessment return *cannot be determined* on this cap's account.
+
+#### Disposition of `OI-S2-1` — discharged by cap; the placement is decided, the mechanism is not
+
+- **Item:** The scheduling mechanism driving the out-of-band drift-verdict producer is unselected. Owner and consumer: `SUB-10 (NEU-984)`.
+- **Disposition:** **Discharged by the item's own permitted cap route** — "or filing a `CAP-S10-<k>` stating that it does not select one and what that leaves unsupported… whichever way it goes." The cap is **`CAP-S10-2`**.
+- **What was decided anyway:** `DR-C10-S10-2` consequence 6 places the producer **outside the serve path's process**, on `DR-C10-S2-3`'s "the serve path reads a verdict; it never computes one" plus the egress boundary; and `15_…md` §5.4 places `SC-S3-33` and `SC-S3-34` in the drift component's own store under `CMP-S4-17`. A placement and a store are **not** a scheduler, and neither is offered as one.
+- **Why no mechanism was named:** The item forbids the shortcut explicitly — "**A plausible guess at a mechanism is not a resolution.**" No scheduler, queue or job runner exists anywhere in `src/` to adopt, the four candidates `03_…md` §4.2 lists differ in what the substrate must provide, and those substrate facts are exactly what `CAP-S10-1` records as unknown. Naming one would have been a guess.
+- **Residual:** The producer has a placement and a store but nothing that starts it. `CAP-S10-2` names the four consequences.
+
+#### Disposition of `OI-S6-1` — discharged; the check was run and its result recorded
+
+- **Item:** SUB-10's data-store selection may reverse the ownership model, and only SUB-6 can act on it. Consumer: `SUB-10 (NEU-984)`. Owner: `SUB-6 (NEU-976)`, as owner of any finding the check produces.
+- **Disposition:** **Discharged.** The `07_…md` §5.3 three-clause check was run against the selected topology and its result recorded at `15_…md` §5.3 and in `DR-C10-S10-1`. The item's resolving event is the check "being run and its result recorded — not on the store record merely landing", and this is that record.
+- **Result:** `R1` **not satisfied** (one shared store is selected; the web tier owns no state and holds no credential). `R2` not established and moot once `R1` fails. `R3` **already NOT ESTABLISHED** per `11_…md` §13. The conjunction cannot fire. The selected topology matches §5.2 row 1 — "Shared production Postgres, MCP core the only credential holder" — whose prescribed action is "**None. Record the match.**"
+- **Finding routed to SUB-6:** **None.** Neither of the two topologies §5.2 marks as finding-raising was selected; both are in `DR-C10-S10-1`'s rejected set, rejected on the authority matrix rather than to avoid raising a finding. The `SC-S3-33`/`SC-S3-34` carve-out was tested against all three conditions and matches none — `DR-C10-S10-1` § "Why the carve-out does not reopen the reversal".
+- **Residual:** `M-A` remains selected at its 74-point shared-store margin, and `R3` remains re-openable only if `A-27` is invalidated. `CAP-S6-1` is **separate and not lifted** — see `15_…md` §10.3.
+
+#### Disposition of `OI-S9-4` — discharged; answered explicitly, with a correction routed to SUB-9
+
+- **Item:** Does SUB-10's chosen deployment shape require the application to be built from a public repository? Owner and consumer: `SUB-10 (NEU-984)`.
+- **Disposition:** **Discharged by an explicit answer**, as the item requires — it "does **not** close on SUB-10 merely choosing a shape without addressing the question."
+- **Answer: No.** `DR-C10-S10-2` clause 4 selects a shape in which the maintainer's own CI builds and deployment is a push to a host the maintainer controls. No hosted-repository build platform is involved, and no repository is required to be public. **`DR-C10-S9-1`'s selection stands unchanged**; revision trigger 2 does not fire; accepted warning `F5.8` is answered and `K6`, `K7` and `K9` keep their published scores.
+- **Correction routed:** `14_…md` §6.4's structural premise — "push-based SSH deployment to a self-managed host **that never sees the repository**" — is **contradicted** by `.github/workflows/cd-prod.yml:62`–`:65`, which runs `git fetch origin` and `git reset --hard "$SHA"` in a clone on that host. The conclusion survives on the clone being **private**, which is a weaker and differently-conditioned footing. Filed as **`F-S10-1`**, routed to SUB-9 (merged) under the accepted `F5.7` residual pattern.
+- **Residual:** The answer is now conditioned on charter assumption 32 rather than independent of it, so `DR-C10-S9-1`'s revision triggers 2 and 3 coincide where §6.4 presented them as independent.
+
+#### Disposition of `OI-S13-1` — discharged by reconciliation of all eighteen rows
+
+- **Item:** The migration path for the store-`none` categories is a shape, not a destination, until the store topology lands. Owner: `SUB-10 (NEU-984)`. Consumers: `SUB-10` and `SUB-16`.
+- **Disposition:** **Discharged.** The item's resolving event is **conjunctive** — the store record landing **and** the eighteen being reconciled against it — with the explicit warning that "a store record that names stores without saying which of these categories land in them leaves exactly the gap this item exists to surface." `DR-C10-S10-1` supplies the record; `15_…md` §5.4 supplies the reconciliation, as an eighteen-row table covering `SC-S3-28` through `SC-S3-45`.
+- **Result:** **12** to the shared store, **2** to the drift component's own store (the `SC-S3-33`/`SC-S3-34` carve-out, forced by `SC-S3-34`'s own prohibition), **3** with no destination **by construction** (the derived-never-persisted rows of `08_…md` §8.5), and **1** with no destination **by decision** (`SC-S3-40`, per `05_…md` §8's discharge of `OI-S3-2`: no copy held, read in place). Eighteen accounted for; none left silently unplaced.
+- **The four named cross-category interactions**, dispositioned at `15_…md` §5.5: `SC-S3-20`, `SC-S3-21` and `SC-S3-18` are resolved by **one instance of each process** (`DR-C10-S10-2` clause 2) — a third route `08_…md` §8.4 did not enumerate, which makes divergence unreachable rather than mitigated. `SC-S3-38` against `SC-S3-37` is resolved to **expressible**: both land in one store, so a referential constraint is available; whether one is declared is schema design and out of scope.
+- **Residual, stated rather than glossed:** **(i)** Record *shape* is undecided for all eighteen — `F-S10-4` records why the store does not settle `SC-S3-31`'s. **(ii)** The first three interaction resolutions hold **only while `CAP-S10-3`'s premise holds**. **(iii)** Three rows arrive with unmet preconditions: `SC-S3-37`'s import mechanism (`CAP-S10-4`), `SC-S3-41`'s named deletion owner (adjacent to `CAP-S4-1`, which is **open at its eighth sighting and not closed**), and `SC-S3-45`'s principal, which `F-S5-4` and `CAP-S5-1` show a column cannot supply. **(iv)** `SC-S3-36`'s interaction with `SC-S3-33` is now **cross-store** where the matrix wrote it cross-category; no atomicity requirement is broken, and the change is recorded at `15_…md` §5.4.
+
+#### Disposition of `OI-S8-1` and `OI-S8-2` — both remain open
+
+- **Items:** `context_tokens` carries no principal column; STDIO has no gate to extend and `CC-S8-3` is unowned. Both name `SUB-10 (NEU-984)` as owner or consumer.
+- **Disposition:** **Both remain open.** Their resolving event is code landing on `origin/develop`, which this sub-task does not produce — it writes no file under `src/`, `tests/` or `drizzle/`. Re-verified at `03efe1d`: `src/infrastructure/db/schema.ts:312`–`:321` still declares only `id`, `created_at`, `expires_at`, and `src/config/resolve-auth-config.ts:105` still returns `null` for STDIO.
+- **Why this is recorded rather than left silent:** Two of the four make-or-reuse answers (`15_…md` §8.1 and §8.4) are **reuse-from-core**, and each therefore inherits `CC-S8-3`'s STDIO coverage in full per `13_…md` §6.6 — an obligation whose subject `OI-S8-2` records does not exist. `OI-S8-2` is thereby **sighted twice more**, and the inheritance is stated as the price of the reuse answers rather than discounted. `F-S10-5` records a further precondition on the same surface: `CC-S8-2` designates token-bound identity reusable-core, but it is welded to Express with no port to reuse.
+
+#### Disposition of `OI-S16-1` — consumed; no action owed by this sub-task
+
+- **Item:** Two model questions (`F-S16-2`, `F-S16-3`) are routed to `SUB-6 (NEU-976)`, which is merged and `Done`. Owner: `SUB-12 (NEU-986)`. `SUB-10 (NEU-984)` is named a **consumer**.
+- **Disposition:** **Consumed; no action owed.** The resolving event is exclusively SUB-12's. This sub-task's obligation as a consumer is to resolve its rows against a model carrying two unanswered questions **and to say so**, which `15_…md` §11 does. Nothing here answers, re-routes or re-decides either question.
+- **Noted:** `F-S10-1`, `F-S10-4` and `F-S10-5` are three further instances of the same backwards-routing structure — findings routed correctly to sub-tasks that have already shipped. Each names `NEU-896` as a live co-recipient so that none is routed to a closed owner alone.
+
+#### Disposition of `OI-S3-2` — already discharged by SUB-4; consumed here as an input
+
+- **Item:** Whether `SC-S3-37` and `SC-S3-40` become state in this system. Owner: `SUB-4 (NEU-974)`. Consumers: `SUB-4` and `SUB-10 (NEU-984)`.
+- **Disposition:** **Already discharged by its owner**, at `05_…md` §8, by publication and **not** by cap. Consumed here as a decided input: `SC-S3-37` is held as **one imported copy**, read by `CMP-S4-13` and `CMP-S4-16`; `SC-S3-40` is **not copied** — read in place as the committed versioned artifact, with only the contract version identifier crossing.
+- **Effect on this sub-task:** Both are among `OI-S13-1`'s eighteen, and both are reconciled at `15_…md` §5.4 **on SUB-4's answer rather than on a fresh one**. `SC-S3-40` is the single row whose destination is "none, **by decision**", and recording it as such — rather than as unplaced — is what keeps SUB-4's discharge visible in the reconciliation.
