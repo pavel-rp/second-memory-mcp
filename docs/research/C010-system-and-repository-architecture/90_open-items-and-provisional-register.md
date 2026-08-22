@@ -571,3 +571,46 @@ The reason it does not gate: the only place the DP-map could have bitten this ch
 - **Item:** Whether `SC-S3-37` and `SC-S3-40` become state in this system. Owner: `SUB-4 (NEU-974)`. Consumers: `SUB-4` and `SUB-10 (NEU-984)`.
 - **Disposition:** **Already discharged by its owner**, at `05_…md` §8, by publication and **not** by cap. Consumed here as a decided input: `SC-S3-37` is held as **one imported copy**, read by `CMP-S4-13` and `CMP-S4-16`; `SC-S3-40` is **not copied** — read in place as the committed versioned artifact, with only the contract version identifier crossing.
 - **Effect on this sub-task:** Both are among `OI-S13-1`'s eighteen, and both are reconciled at `15_…md` §5.4 **on SUB-4's answer rather than on a fresh one**. `SC-S3-40` is the single row whose destination is "none, **by decision**", and recording it as such — rather than as unplaced — is what keeps SUB-4's discharge visible in the reconciliation.
+
+### SUB-12
+
+*One new open item, plus the dispositions of the items routed to the package-completeness gate. This sub-task brings the register to its final state for C010: **27 distinct ids, 14 open and 13 closed, every open one naming an owner**. **Zero lines were deleted from this register and no sibling's entry was reflowed, renumbered or amended** — the two entries whose text needed correcting (`OI-S3-1`'s unsatisfiable closure condition, `OI-S16-1`'s three-way disposition) are handled by a restatement in this section and at `17_…md` §4.3 and §7.4, never by an edit to their original.*
+
+#### `OI-S12-1` — No mechanical link check enforces the citation convention this package publishes
+
+- **Id:** `OI-S12-1`
+- **Item:** `DR-C10-S12-2` publishes a standing citation convention for `docs/research/` — a package-root file cites a package-root sibling **bare**, a file in `decision-records/` or `traceability/` cites a package-root sibling with `../` and an upstream package with `../../`, and every upstream reference carries its package directory rather than a bare filename. **Nothing enforces it.** `F-S11-1`'s 161 non-resolving citations exist because the convention was implicit and unchecked, and 159 of them are one mechanical error that a link check would have caught on the first commit that introduced it.
+- **Why it is an open item rather than a cap:** Its resolving event is **observable and reachable** — a check either runs in CI over `docs/research/` and fails on a non-resolving citation, or it does not — and the party that owns it exists and is live. It is not capped, because nothing about it is unsettleable; it is simply not this sub-task's to build, since `OUT-8` excludes tooling selection and this sub-task writes no file under `src/`, `tests/` or `drizzle/`.
+- **Owner:** **`NEU-896`**.
+- **Resolving event:** A link check runs over `docs/research/` on `origin/develop` and **fails** on a citation that does not resolve. Both halves are required: a check that runs and passes over a tree with 161 known-broken citations is a check that is not looking at them. This is success measure `SM-7` at `17_…md` §9, whose value today is **161 failing**.
+
+#### Disposition of `OI-S16-1` — closed by this gate, via route (c), naming which
+
+- **Item:** Two model questions — `F-S16-2` (should a category whose authority is **external** be in the isolation invariant's domain at all?) and `F-S16-3` (is clause 1 preceding clause 4 *intended* for a process-local projection of external state?) — routed correctly to `SUB-6 (NEU-976)`, which is merged and `Done`. Owner: `SUB-12 (NEU-986)`. The item offers exactly three dispositions and requires this sub-task to **name which**.
+- **Disposition:** **Route (c) — both questions are routed to `NEU-896` at convergence.** `OI-S16-1` **closes** on this record.
+- **Why not (a) or (b), stated so the choice is checkable:** Route **(a)**, recording both as accepted residuals of the selected model with their consequences stated, is declined because accepting a residual *of a model* is a statement about that model, and this sub-task holds no authority over the state-ownership model — `DR-C10-S6-1` is `SUB-6`'s. Route **(b)**, re-opening `NEU-976`, is declined because this sub-task does not reach outside its own tracker item. Route (c) is the only disposition available to a party that may neither decide the model nor re-open a closed sibling.
+- **Not lifted:** **`CAP-S16-1`** — `SC-S3-45`'s permanently unimprovable verdict — is the *consequence* of `F-S16-2`, not the question itself, and is a different thing. It remains open and unlifted.
+- **Recorded at:** `17_…md` §7.4.
+
+#### Disposition of `OI-S6-2` — closed by this gate; the back-routed finding is recorded as unactioned
+
+- **Item:** Owner the `NEU-895` umbrella, consumer `SUB-12 (NEU-986)`. One of its two resolving events is *"SUB-12 recording at the gate that the back-routed finding is unactioned."*
+- **Disposition:** **Recorded: it is unactioned. `OI-S6-2` closes on this record.**
+- **The count is larger than the charter's accepted warning `F5.7` anticipated**, and that is the substance of the record rather than a footnote. `F5.7` named four backward routes (SUB-10→SUB-6, SUB-13→SUB-7, SUB-13→SUB-8, SUB-9→SUB-15) with no re-dispatch mechanism. At closure there are at least ten: `F-S10-1`, `F-S10-4`, `F-S10-5` and `F-S10-6` are four more; `F-S16-2` and `F-S16-3` are two more; `F-S11-1`, `-2`, `-4`, `-5`, `-6` and `-7` each carry a residual route to a merged author; and the cold read's seven blocking questions route to five closed owners between them. **No back-routed finding in this package was actioned by its named sub-task owner, because every such owner merged before the finding was filed.**
+- **What this record does and does not do:** It records the fact and routes each instance forward — every backwards route in `17_…md` §7 is **co-named to `NEU-896`**, which is live, so none is left pointing only at a closed owner. It does **not** repair any of them, and it files no new finding against any author: the structure, not the sub-tasks, produced it. Filed as `F-S12-4`.
+- **Recorded at:** `17_…md` §7.4.
+
+#### Disposition of `OI-S3-1` — stays open; its closure condition is restated because it was unsatisfiable as written
+
+- **Item:** Learner-scoping is open for most of the state inventory. `F-S13-3` routes to `SUB-12 (NEU-986)` as *"the only party that can restate a closure condition without violating the append convention"*; `SUB-14 (NEU-978)` independently recorded that the condition could not be satisfied and that the item stays open.
+- **Why it was unsatisfiable:** The condition requires the matrix to carry a **resolved learner-scoping value for every `SC-S3-*` row**. `04_…md` §2 defines that column as recording the scoping **question, never a schema fact**, and §6 establishes by a four-term search that **no ownership column exists on any table today**. A matrix that resolved the column would be asserting a schema fact the package forbids it to assert. No document respecting `04_…md` §6 could close it.
+- **Restated, without editing SUB-3's entry:** `OI-S3-1` closes when **(a)** a per-row learner-scoping judgement is published — **already satisfied**: `09_…md` §5 covers all 45 rows and §4.2 independently re-derives the `I1` census as **19 explicit `no` / 18 `question — open` / 8 explicit `yes` → 26 in domain**, agreeing with `06_…md` §3.3 — **and (b)** the ownership column exists in the tree, at which point the value stops being a question and becomes a readable fact.
+- **Disposition:** **Stays open. Half (b) is not a documentation act at all**, which is why no C010 sub-task could discharge it. **Owner moves to `NEU-896`**, which converges the implementation charters; `NEU-893` supplies the mechanism. SUB-3's original entry is untouched and `F-S13-3` is not re-filed.
+- **Recorded at:** `17_…md` §4.3.
+
+#### Disposition of `OI-S1-2`, `OI-S5-2`, `OI-S7-1`, `OI-S7-2`, `OI-S8-1`, `OI-S8-2`, `OI-S9-1`, `OI-S9-2`, `OI-S15-1`, `OI-S15-2` — all remain open, with owners restated
+
+- **Disposition:** **All ten remain open**, and none is closed by this gate. Their resolving events are code landing, an unbuilt package landing, or a live token being inspected — none of which this sub-task produces. Owners are restated at `17_…md` §4.1 so a reader of the closure chapter alone can route.
+- **The one correction this makes:** five of the ten name an owning sub-task that is now **merged and closed** — `OI-S7-1` and `OI-S7-2` (`SUB-15 (NEU-982)`), `OI-S8-1` and `OI-S8-2` (`SUB-10 (NEU-984)`), `OI-S15-1` (`SUB-13 (NEU-977)`), `OI-S15-2` (`SUB-6 (NEU-976)` and `SUB-13 (NEU-977)`). Each is therefore **co-named to `NEU-896`**, so no open item in this register points only at a party that cannot act. The original owner is not overwritten; the co-naming is additive.
+- **`OI-S1-2` is singled out** because it is the one input the NEU-893 circularity record names as **unverified rather than assumed**: whether a production token yields a human `sub` or an OAuth client. No sub-task inspected a live token, and none could. Owner moves to **`NEU-893`**; it is List B question `H5` at `17_…md` §6.2.
+- **`OI-S5-1` and `OI-S9-3` remain owned by `NEU-850`**, through its own `OUT-1` drift check. This package routes them back rather than answering them, and re-decides neither constraint.
