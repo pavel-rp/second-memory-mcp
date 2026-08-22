@@ -400,3 +400,31 @@ The reason it does not gate: the only place the DP-map could have bitten this ch
 - **Owner:** **`SUB-15 (NEU-982)`**.
 - **Resolving event:** **`NEU-892` lands** — its package published under `docs/research/` — naming whether the authoring surface is the same web surface; or `SUB-15 (NEU-982)` publishes a record that scopes the authoring surface explicitly. The item closes when either is on `origin/develop`.
 - **Why not a cap:** It has an observable resolving event with a named owner inside reach; a cap has neither by definition. **Why not a stand-in:** `93_…` is **closed**; and the underlying assumption about the surface is already `A-27`'s — this item records a **gap in `A-27`'s scope**, not a new assumption, and adding one is not available.
+
+---
+
+### SUB-8
+
+*`NEU-981`, covering `OUT-6`. Two entries, both consequences of `DR-C10-S8-2`'s obligated option rather than uncertainties about it: the decision is taken, and what remains open is that **nothing implements it** and that **one transport has nowhere to put it**.*
+
+#### `OI-S8-1` — `context_tokens` names no principal, so the obligated identity binding has nothing to bind to
+
+- **Id:** `OI-S8-1`
+- **Item:** `DR-C10-S8-2` obligates binding the authenticated principal to the context token **at issue time**. The table it would bind on carries **`id`, `created_at`, `expires_at`** and nothing else. The decision is therefore an **obligation on unwritten code**, not a description of running code, and every claim in `12_…md` §9.3 that rests on it is provisional in exactly that way. This item exists so a downstream reader cannot mistake a chosen option for an implemented one.
+- **Status:** `provisional`
+- **Source:** `src/infrastructure/db/schema.ts:312`–`:321` — three columns plus one index on `expires_at`, no principal, user or subject column. Corroborated by `../04_…md` §3.1 `SC-S3-13` (*"the table carries **no** authenticated subject"*) and `../04_…md` §6 (zero matches for `user_id`/`userId`/`learner_id`/`learnerId` in `schema.ts`). The mint point is `src/server/server-context-tools.ts:11` (`ctx.createContextToken()`).
+- **Consumer:** **`SUB-10 (NEU-984)`**, which carries the implied core changes forward, and **`SUB-12 (NEU-986)`** at the completeness gate.
+- **Owner:** **`SUB-10 (NEU-984)`**. Named rather than `NEU-850` because `NEU-850`'s `OUT-2` commits to `user_id` on core tables — the *row-ownership* half — while the *token-binding* half is this chapter's obligation and has no other home.
+- **Resolving event:** **A migration adding a principal column to `context_tokens` lands on `origin/develop`, together with a mint path that binds it and refuses to mint when no authenticated principal exists** (`DR-C10-S8-2` Decision clauses 1–2, 4). Observable on the branch. The item closes when both halves are present — a column without the refusal is `DR-C10-S8-2`'s rejected alternative 3 arriving under the chosen option's name.
+- **Why not a cap:** An available party settles it and the event is observable; a cap is for a limit **no** party settles. **Why not a stand-in:** `93_…` is **closed at five entries**, and this is not an assumption about an unbuilt upstream package — it is a recorded gap between a taken decision and the tree.
+
+#### `OI-S8-2` — STDIO has no gate to extend, and `CC-S8-3` has no owner
+
+- **Id:** `OI-S8-2`
+- **Item:** `12_…md` names **`CC-S8-3` — a gate on the STDIO transport** — as one of the six core changes this architecture implies, classifies it **reusable core** under `R8-4`, and prices it as **breaking and unavoidably so**: every existing STDIO client calls with no token today and would begin to fail. **No party owns it.** The chosen identity option does not close it either — STDIO produces no authenticated principal, so there is nothing to bind, and `init_agent_context` must refuse rather than mint unbound. Every security claim in `12_…md` is HTTP-qualified as a direct consequence.
+- **Status:** `provisional`
+- **Source:** `src/transport/main.ts` and `src/transport/create-server.ts` contain **zero** references to the context-token middleware or to `context_token`; `main.ts:55`–`:59`. The gate is mounted only at `src/transport/http.ts:186`, and only when `contextTokenRepo` is configured. Consumes `../05_…md` `CMP-S4-5` and **`BND-S4-17`**, whose recorded owner is **nobody**, class *trust — unenforced*; and `F-S5-4`, which establishes that every in-domain category fails at `I4` before confinement is assessed because *"a column cannot supply a principal the transport never produced"*.
+- **Consumer:** **`SUB-10 (NEU-984)`**, and **`NEU-893`**, which owns the split `../06_…md` records.
+- **Owner:** **`SUB-10 (NEU-984)`**, co-named with **`NEU-896`**. Named provisionally and stated as such: `BND-S4-17`'s owner is recorded as **nobody**, and this item does not have the standing to assign one — it records that the gap now blocks a **named, classified, priced core change** rather than only an unenforced boundary, which is what makes the absent owner newly consequential.
+- **Resolving event:** **A party is named for `BND-S4-17`** — by `NEU-893`, `SUB-10 (NEU-984)` or `NEU-896` — **or** a STDIO identity mechanism lands on `origin/develop`. Either is observable. The item closes when one occurs **and names which**.
+- **Why not a cap:** `../91_…md`'s `CAP-S5-1` already caps the *invariant's* unprovability, and this is not that. An owner **can** be named — no party has — so the limit is organisational, not structural, and filing it as a cap would misreport an unassigned decision as an unsettleable one. **Why not a stand-in:** `93_…` is **closed**, and nothing here is assumed: the absence of a STDIO gate is a read of the tree.
