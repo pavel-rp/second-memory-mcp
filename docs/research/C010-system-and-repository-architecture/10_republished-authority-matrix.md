@@ -826,3 +826,124 @@ attribution mechanism and the absent access-path enumeration.
    either transport.** `F-S5-4` is honoured: the binding constraint is the **transport**, not the
    schema, and no authority was changed to "repair" a transport-caused verdict.
 3. **No row returns `holds` by failing to find a counter-example.** Structurally obeyed, as §8.2 states.
+
+---
+
+## 9. The residual statement — every row still carrying an unresolved finding, with its owner
+
+**A row is listed here when a consumer resolving against this revision would be resolving under a
+caveat.** The point is that the caveat is **discoverable at publication rather than in production**: a
+downstream audit that reads a row below knows what is unsettled about it and whose it is, instead of
+finding out later. **Nothing here is published as if settled.**
+
+| Row(s) | What is unresolved | Record | **Owner** |
+| --- | --- | --- | --- |
+| `SC-S3-45` | **Structurally incapable of `holds` under any target state** — its authority is external, so no in-system access-path set can be enumerated for it. Not fixable by any local change; re-routed as a model question, unanswered inside this pass. | `F-S14-3` → `F-S16-2`, capped by **`CAP-S16-1`** | **SUB-6 (NEU-976)** |
+| `SC-S3-45` | Clause 4 names the **zone** `Z-IDP` but the literal id `CMP-S4-2`, which `05_…md` §3.1 places in `Z-EXT`. Resolved to `CMP-S4-10` and routed; still open. | `F-S13-2` (SUB-13's, unclosed) | **SUB-6 (NEU-976)** |
+| `SC-S3-42` | **Divergence outcome UNDEFINED.** Whether hint usage taints a mastery judgement is undecided by every merged input, and the two candidate resolutions give **opposite** mastery verdicts. `A-25`'s tolerance envelope contains no point that resolves it. | `F-S14-4` | **NEU-891** |
+| `SC-S3-31` | **Conflicting-write outcome UNDEFINED.** Aggregate-vs-append is a store-shape decision no merged artifact makes; the two shapes give opposite concurrency obligations. NEU-890's durability property survives either (`09_…md` §13.2), so the indeterminacy does **not** propagate to `SC-S3-38`/`SC-S3-39`. | `F-S14-5` | **SUB-10 (NEU-984)** |
+| `SC-S3-16`, `SC-S3-17` | **No component can be named the deletion owner** — neither table has a principal field, so there is nobody to delete *for*. The obstruction is **structural**. Write authority is assigned (§6); deletion ownership is not, and **is not the same question**. | **`CAP-S4-1` — structural; cited here, and NOT closed** | **SUB-4 (NEU-974)** |
+| `SC-S3-16`, `SC-S3-17` | `05_…md` §5 carries `FL-S4-8`/`FL-S4-9` against `FL-S4-20` about these two categories — a contradiction **internal to a merged document**. Direction named and dispositioned (§6.3); the `05_…md` residue is not repaired. | `F-S14-8` → `F-S16-4` | **SUB-4 (NEU-974)**; consumer **SUB-11 (NEU-983)** |
+| `SC-S3-16`, `SC-S3-17` | Retention: no policy, and the gap has **no owner** — stated as an open gap rather than assigned to a party that has not accepted it. | `F-S3-3` (SUB-3's, unclosed) | **unowned** — routed to **SUB-12 (NEU-986)** at the gate to assign or record |
+| `SC-S3-19`, `SC-S3-20` | **`fails-transport` under both censuses.** STDIO has no identity gate; `BND-S4-17` is a trust boundary whose owner is **`nobody`**. Not repairable by changing an authority — `F-S5-4` is explicit that the binding constraint is the transport. | transport residue; `BND-S4-17` | **NEU-893** |
+| `SC-S3-33` | Assigned on clause 2 via **tie-break (c)** under a disclosed narrow reading of tie-break (b); SUB-13 routed the reading to SUB-6 and it is unanswered. `FL-S4-14` remains the outlier against `FL-S4-13` in `05_…md`. | `F-S13-1` (SUB-13's, unclosed); `F-S14-9` → `F-S16-4` | **SUB-6 (NEU-976)** |
+| `SC-S3-35` | `05_…md` §5 `FL-S4-16` still reads *"Undetermined"* for a question this matrix resolved. Direction **matrix → flow**; `05_…md` not amended. | `F-S14-10` → `F-S16-4` | **SUB-4 (NEU-974)** |
+| **The 14 Census-B `fails-confinement` rows** — Census B's 15 **less** `SC-S3-45` | **Confinement residue**: no enumerated access-path set exists, so `I3` cannot return `holds`. Not a defect in any row's authority. The fifteenth (`SC-S3-45`) is `F-S14-3`'s and belongs to SUB-6, **not** to SUB-8. | `06_…md` §3.4.1; `09_…md` §15.2 | **SUB-8 (NEU-981)** |
+| **The 15 portless rows** — `SC-S3-16`, `SC-S3-17`, and the 13 clause-1 rows `SC-S3-18`…`SC-S3-30` | `I3`'s *"at or below the port boundary"* is **unaskable as written** where no port mediates the category. Read purposively; **the ruling is disclosed, not made silently**, and moves no verdict under either reading. | `F-S14-1`; `OI-S5-1` | **SUB-5 (NEU-975) / NEU-893** |
+| **Both censuses, all rows** | `fails-principal: 0` is **unreached, not passed** — `I5` is last and every in-domain row fails earlier. The `sub`-vs-`azp` defect is real, merged and **unmeasured** by either census. | `F-S14-2` | **SUB-11 (NEU-983)** for the reading; **NEU-893** for the defect |
+| **The whole matrix** | **This package does not prove the isolation invariant satisfiable.** Zero `holds` across 90 row-evaluations is consistent with unsatisfiability *and* with a merely-unimplemented mechanism, and §3.4.1's asymmetry means no census can distinguish them. | **`CAP-S5-1` — cited, not duplicated** | **SUB-5 (NEU-975) / NEU-893** |
+| **The whole matrix** | Two-writer divergence is **unobserved**, not absent. A cap on **evidence strength**, not on the conclusion. | **`CAP-S6-1` — cited, not duplicated** | **SUB-10 (NEU-984 / NEU-896)** |
+| **The package** | **No QA pass exists.** The `qa-execution` engine and host surfaces are unconfigured, so this item's scenarios are authored and marked **`NOT RUN`**. A genuine Core Article 8 no-op — **not a skipped gate, and never reported as a pass.** | **`CAP-S1-3` — cited, not duplicated** | **SUB-1 (NEU-971)** |
+
+**`OI-S3-1` stays open, half-discharged, exactly as SUB-13 left it** — its unsatisfiability is
+`F-S13-3`, owner **SUB-12 (NEU-985)**. **`OI-S13-1` stays open** — whether prior gate verdicts are
+retained is a store-shape question, owner **SUB-10 (NEU-984)**. Nothing in this chapter changes either.
+
+**Rows carrying no unresolved finding: 30 of 45.** Those are the rows a consumer resolves against with
+no caveat at all, and saying so is as much a part of the residual statement as the list above.
+
+---
+
+## 10. What this chapter closes, and what it does not
+
+**Closes.**
+
+- **`OUT-3`'s republication obligation.** The corrected revision exists, carries an identifiable
+  `post-validation` marker, names its consumers, and has both mechanical audits **re-proved on it**
+  rather than inherited.
+- **`OUT-4`.** Every isolation-invariant failure SUB-14 routed carries an explicit disposition with a
+  named owner. **Received 11, dispositioned 11, undispositioned 0.**
+- **`OI-S14-1`** — answered at §5.12 with its reasoning published at §8.1: **no verdict moves**, so
+  `09_…md`'s record stands over this revision and need not be re-run.
+- **`F-S14-6` and `F-S14-11`** — closed by publication (§5.1 and §3.2 respectively); both asked for a
+  reading or a mapping to be stated, and both are now stated. Neither leaves a residue.
+
+**Does not close, and is explicit about it.**
+
+- **`F-S14-1`, `F-S14-2`, `F-S14-3`, `F-S14-4`, `F-S14-5`** — each is **dispositioned** here and
+  **owned elsewhere**. A disposition is not a resolution: §9 names each with its owner precisely so the
+  two are not confused.
+- **`F-S14-7`, `F-S14-8`, `F-S14-9`, `F-S14-10`** — the matrix half of each is settled by re-running the
+  rule; the `05_…md` half of three of them is **re-routed as `F-S16-4`**, unrepaired by design (§6.3).
+- **`CAP-S4-1` stands and MUST NOT be closed — structural.** This is its sixth sighting in the package.
+  Assigning write authority to `SC-S3-16`/`SC-S3-17` (§6) does **not** touch it: deletion ownership is a
+  different question, and it is unassignable until the tables acquire a principal field or `SC-S3-45`
+  acquires a store.
+- **`CAP-S5-1`, `CAP-S6-1`, `CAP-S1-3` stand** — cited at §9, **not duplicated** and **not closed**.
+- **`F-S13-1`, `F-S13-2`, `F-S13-3`, `F-S3-3`, `OI-S3-1`, `OI-S13-1`, `OI-S5-1`** — all pre-existing,
+  all still open, none touched.
+- **The isolation invariant is not proved satisfiable**, and this chapter does not claim it is.
+
+**Raised here.** Four findings (`F-S16-1` … `F-S16-4`), one open item (`OI-S16-1`), one cap
+(`CAP-S16-1`), **zero spikes**. Full records are appended to `02_findings-register.md`,
+`90_open-items-and-provisional-register.md` and `91_caps-and-incomplete-scope.md` under `### SUB-16`.
+**`92_spike-register.md` is unchanged** — no claim in this chapter is uncertain-and-material in a way an
+existing cap does not already cover, and `SPK-S6-1` / `SPK-S2-1` are cited where relevant rather than
+replicated. **`93_stand-in-assumption-register.md` is CLOSED and is cited, never appended to.**
+
+---
+
+## 11. Handoff
+
+| Consumer | What it takes from here | Where |
+| --- | --- | --- |
+| **SUB-7 (NEU-980)** | The `post-validation` revision to resolve resource-level rows against and cite by marker. **Its `OUT-5` resource-inventory ↔ matrix cross-check is a *different* audit over a *different* inventory** than §7.2's, and is not run or claimed here. `F-S14-6`'s disposition also bounds web-tier scoping: **`CMP-S4-3` holds zero of 45 rows, by construction under `M-A`.** | §2, §3.1, §5.1, §7, §8 |
+| **SUB-8 (NEU-981)** | The **14 confinement-residue rows** — Census B's 15 `fails-confinement` **less** `SC-S3-45`, which is `F-S14-3`'s and belongs to SUB-6. Read **Census B's column only**, with its target state named; it is not summable with Census A. | §8, §8.3, §9 |
+| **SUB-10 (NEU-984)** | The revision to resolve store topology against; `F-S14-5` (`SC-S3-31`'s store shape); `OI-S13-1`; `CAP-S6-1`'s lifting condition. **`SC-S3-16`/`SC-S3-17`'s write path is now stated as off the request path** (§6), which bears on where those tables can live. | §6, §8, §9 |
+| **SUB-11 (NEU-983)** | The vocabulary mapping (§3.2) so its mechanical flow-vs-matrix audit does not re-report `F-S14-11`'s five; `F-S14-2`'s reading constraint, which bounds how `fails-principal: 0` may be read; `F-S16-4`, the flow-vs-flow class it can check mechanically; and §7's re-proved audits, reproducible from the same parse. | §3.2, §7, §8.2, §9 |
+| **SUB-12 (NEU-985)** | The gate input: **11 findings received, 11 dispositioned, 0 undispositioned, 11 of 11 owned**; both audits re-proved (45/0/0/45; 0 unmatched both directions); `OI-S14-1` closed; **`F-S16-1`** (the `SUB-16`/`NEU-980` id drift, 16 instances across 5 merged files) and **`OI-S16-1`** (findings routed to a merged sub-task with no pass scheduled to answer them). | §4.1, §5.7, §7, §10 |
+| **SUB-6 (NEU-976)** | **`F-S16-2`** (should a row with an external authority be in the invariant's domain?) and **`F-S16-3`** (is clause 1 preceding clause 4 intended for a process-local projection of external state?). Both are model questions; `CAP-S16-1` carries the first. | §5.2, §5.3 |
+| **SUB-4 (NEU-974)** | **`F-S16-4`** — three annotations in `05_…md` §5 left unreconciled against this revision, each with direction named and **none amended**. | §6.3 |
+| **NEU-893** | The two `fails-transport` rows, `BND-S4-17`'s unenforced boundary, `F-S14-1`'s `I3` phrasing gap, and `F-S14-2`'s unmeasured `sub`/`azp` defect. | §9 |
+| **NEU-891** | **`F-S14-4`** — the hint-usage/mastery inclusion rule, still the only thing standing between `SC-S3-42` and a defined divergence outcome. | §9 |
+
+---
+
+## 12. Verification note
+
+- **Both audits in §7 were produced by a mechanical parse of §8's table in this file**, not asserted
+  from authoring notes: rows matching `` | `SC-S3-<n>` | `` with exactly nine columns, counting
+  `CMP-S4-<n>` tokens in the `**Authority**` cell only. The parse reports **45 rows · 0 zero-authority ·
+  0 two-or-more · 45 exactly-one · 45 distinct ids · 0 duplicates · 0 non-`CMP-S4-*`**, and the
+  independent re-extraction of `04_…md` reports **45 distinct numeric ids, min 1, max 45, no gaps**,
+  with **0 unmatched in both directions**. Every distribution in §7.1 and §8 comes from the same parse.
+- **The count of findings received was taken independently at two locations** — `09_…md` §15.3's table
+  and `02_findings-register.md` `### SUB-14`'s records — and the two agree at **11**. **11 dispositioned.**
+- **No merged sibling artifact was edited.** `05_…md`, `08_…md` and `09_…md` are byte-identical after
+  this pass; so are `04_…md`, `06_…md`, `07_…md` and `93_…md`. **`94_package-completeness-gate.md` was
+  not touched** — it is owned solely by NEU-986. **No `README.md` row was added**; row 7's generic
+  `03_…`–`89_…` range row, owned *"SUB-2 … SUB-16"*, already covers this chapter.
+- **No line was deleted from any append-only register.** The three `### SUB-16` sections are pure
+  appends; `git diff --numstat` reports **0** in the deletions column for `02_…md`, `90_…md` and
+  `91_…md`.
+- **This chapter changed no file under `src/`, `tests/` or `drizzle/`**, and wrote **no spike artifact**
+  anywhere. It is documentation only.
+- **No QA pass is claimed.** `qa-execution:engine` and `qa-execution:host` are unconfigured, so the
+  scenarios authored for this item are marked **`NOT RUN`**. `CAP-S1-3`; a genuine Core Article 8 no-op,
+  reported as such and never as a pass.
+- **Every id in this chapter was checked against the tracker.** SUB-16 is **NEU-979**; NEU-980 is
+  **SUB-7**. The string `NEU-987` (`F-S3-2`'s wrong id) appears **nowhere** in this chapter, and neither
+  does the pairing `SUB-16 (NEU-980)`.
+- **Nothing in this chapter rests on a benchmark journey.** `F-S4-5` records that all three are
+  dogfooded across `BND-S4-17`, whose owner is **`nobody`** — so *"the journey ran fine"* is not
+  evidence about a gated path, and none is offered as such.
