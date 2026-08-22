@@ -73,8 +73,12 @@ surface uses 46 / 43 / 3 / 49.
 > **A choice is architecture-material when changing it, on its own, would move a boundary, reassign
 > an authority, or alter a compatibility contract.**
 >
-> **A choice that can be reversed without any of those three moving is not architecture-material, and
-> this package does not make it.**
+> **A choice reversible without any of those three moving is not architecture-material, and this
+> package does not make it.**
+
+This is the rule's canonical wording. `DR-C10-S15-1`'s Decision states it identically, word for word,
+and any paraphrase elsewhere in this package is a paraphrase — the two authoritative statements are
+this one and the decision record's.
 
 The rule is only applicable if its three terms are bound to things a reader can look up. They are:
 
@@ -159,7 +163,14 @@ session state from the bearer token on every request?**
 **Result: architecture-material — and *not this chapter's*.** The rule returns in-scope for the
 package and the correct action is to **route**: `BND-S4-16` is SUB-6's (NEU-976) by `05_…md` §4.4,
 and a category's authority is SUB-13's (NEU-977) by `12_…md`'s `R8-2`. This chapter therefore makes
-no web-session-storage decision and files the routing as **`OI-S15-1`**.
+no web-session-storage decision and files the routing as **`OI-S15-2`** (`90_…md` § SUB-15).
+
+**`OI-S15-2` is a distinct item from `OI-S15-1`, and the two must not be conflated.** `OI-S15-1` is
+about the read surface's **entry count** and depends on SUB-13's disposition of `F-S7-1`/`F-S7-2`;
+`OI-S15-2` is about **where web-session state lives** and depends on `BND-S4-16`. They share an owner
+in part and nothing else. `OI-S7-1` is the closest prior item — it records that the web tier is
+*assumed* to hold no server-side session binding — and `OI-S15-2` is the demonstration that the
+assumption is **architecture-material** rather than incidental, which is what this section adds.
 
 This is the demonstration the acceptance criterion asks for: a choice the charter never enumerated,
 classified **without further interpretation**, by opening two named tables.
@@ -203,9 +214,9 @@ of scope **because they fail the test**, and the derivation is shown per item ra
 | Pick | B — boundary | A — authority | C — contract | Verdict |
 | --- | --- | --- | --- | --- |
 | **Router** | No. Routing selects *which* projection is requested; it neither adds nor reclasses a `BND-S4-*` row. | No. An entry's authority is fixed by `11_…md` §9, not by what dispatches the request. | No. `11_…md` §12.1 sets **0 endpoint paths**, so there is no wire contract a router could change. | **not material** |
-| **Component kit** | No. Entirely inside `CMP-S4-1`'s render output. | No. Renders no authority. | No. | **not material** |
-| **Styling approach** | No. As above. | No. | No. | **not material** |
-| **Test runner** | No. | No. | No. | **not material** — but see the note below. |
+| **Component kit** | No. A component library lives entirely inside `CMP-S4-1`'s render output. `05_…md` §4.2's rows are pairs between components; a kit adds no component and therefore no pair, and reclasses none — swapping kit A for kit B leaves the same `CMP-S4-*` set with the same edges between them. | No. Authority is held over a **state category**, and `10_…md` §8 assigns all 45 rows to components, none of which is a rendering library. A kit renders values it is handed; it holds none, so no Authority cell has a different occupant under either kit. | No. The compatibility contract is the tool surface (46 / 43 / 3) and the `CC-S8-*` clauses. A component kit is not reachable from either: it appears in no tool name, no input schema and no clause, and `RD-S8-4`'s golden manifest would return an identical snapshot under either kit. | **not material** |
+| **Styling approach** | No, and for a narrower reason than the component kit's. Styling produces presentation output only; it does not even reach the render-output *structure*, let alone a `BND-S4-*` pair. There is no candidate row for it to move — no boundary in `05_…md` §4.2 is a styling edge. | No. Styling holds no state at all, derived or stored, so there is no category over which it could be authoritative. It cannot appear in an Authority cell because it never satisfies the cell's subject condition. | No. Nothing in the tool surface or in `CC-S8-1`…`CC-S8-6` is expressible in styling terms; a stylesheet change is invisible to every one of the five `RD-S8-*` detection methods, including `RD-S8-1`, which is the one specified to catch what a schema diff misses. | **not material** |
+| **Test runner** | No, and note the limb is answered about the *system*, not the repository. A test runner executes outside the running system entirely — it is not a `CMP-S4-*` component, so it terminates no `BND-S4-*` pair and cannot change one's existence or class. | No. It holds no state category at runtime; `10_…md` §8's 45 rows describe the system under test, and none of them is written by the harness that runs the tests. No Authority cell changes occupant under either runner. | No. `12_…md` §8.1's regression boundary `B-1`…`B-7` is the **public tool surface** — names, input schemas, the snake_case convention, the envelope, `content_quality` routing, prompt names, the exempt list. A runner swap changes none of the seven, and produces a byte-identical `RD-S8-4` manifest. | **not material** — but see the note below. |
 | **ORM** | **Depends — and the rule cuts the case in two.** See below. | | | **not material, once separated** |
 
 **The ORM is the case worth working, because it is the one that looks material and is not.**
@@ -384,6 +395,11 @@ reader who reconstructs this decision from intuition will reach for exactly that
 
 > **The web tier is written in TypeScript and runs on Node, sharing the core's runtime and language.**
 
+Recorded as **`DR-C10-S15-2`** (`decision-records/DR-C10-S15-2_web-tier-runtime-and-language.md`),
+which carries the weighted criteria `C1`–`C5` fixed before scoring, the four rejected alternatives,
+and the revision triggers. This section states the decision and its decisive criterion; the record is
+authoritative for the alternatives and the scoring.
+
 ### 6.3 The decisive criterion — mechanical contract-sharing on the 43 gated schemas
 
 Because the web tier is an MCP client (§5.4), the contract between it and the core **is the tool
@@ -473,6 +489,11 @@ charter takes it deliberately or not at all.
 > **A resource-oriented read surface over the eleven read-projections, and named-intent writes over
 > the five write-intents. Writes are never verb-mutations on a read resource.**
 
+Recorded as **`DR-C10-S15-3`** (`decision-records/DR-C10-S15-3_api-protocol-style.md`), which carries
+the weighted criteria `P1`–`P5` fixed before scoring, the five rejected alternatives — including
+GraphQL, rejected on authority visibility rather than on the trust property — and the revision
+triggers.
+
 ### 7.2 Why the inventory's own shape decides it
 
 The evidence base is `11_…md` §9 — cited rather than a hypothetical resource set — and specifically
@@ -536,6 +557,11 @@ resource must resolve to exactly one of the authorities §9 names.**
 > **The learner-facing surface is server-rendered and server-composed on every gate-bearing read.
 > Client-side enhancement is permitted and expected, confined to interaction state that is not
 > gate-bearing.**
+
+Recorded as **`DR-C10-S15-4`** (`decision-records/DR-C10-S15-4_rendering-model.md`), which carries the
+weighted criteria `D1`–`D5` fixed before scoring — `D2` being the `R-5` constraint that forbids
+arguing this decision from the trust property — the five rejected alternatives, and the revision
+triggers.
 
 Which surfaces render where, concretely: every one of the eleven read-projections is composed on the
 server for the render that displays it; the five write-intents are submitted as intents and their
@@ -737,10 +763,10 @@ and that one was run as **`SPK-S15-1`** (§5.3).
 | --- | --- |
 | **SUB-9 (NEU-983)** | §6.5's criterion input: the web tier shares the core's TypeScript/Node runtime, so a pnpm workspace, a shared base `tsconfig`, one test runner and a single CI pipeline are **available, not conditional** — with the per-criterion comparison table and the routing rule that a topology needing a different runtime is a finding routed **here**, never a local re-decision. |
 | **SUB-10 (NEU-984)** | The rule at §4.1–§4.2 **to apply, not to restate**, to its substrate choices; `CAP-S15-1` (the deployment-dependent round-trip residual, owner SUB-10); `F-S15-2` (`SPK-S6-1` is an in-memory floor, not a deployment prediction); §6.6's pricing of the one reuse consequence this chapter declines to take. |
-| **SUB-13 (NEU-977)** | `OI-S15-1` — the read surface's shape depends on how `F-S7-1` / `F-S7-2` are dispositioned; and §4.4's routed web-session-storage question, which touches `SC-S3-43`'s authority. |
-| **SUB-6 (NEU-976)** | §4.4 and §4.7 both route to `BND-S4-16`, which remains **`undecided`** and is not resolved here. |
+| **SUB-13 (NEU-977)** | `OI-S15-1` — the read surface's shape depends on how `F-S7-1` / `F-S7-2` are dispositioned. Also co-named on **`OI-S15-2`** for its authority limb, since `SC-S3-43`'s Authority cell is SUB-13's to move. |
+| **SUB-6 (NEU-976)** | **`OI-S15-2`** — §4.4's routed web-session-storage question, material on `BND-S4-16`'s existence. §4.7's ORM split routes to the same edge. `BND-S4-16` remains **`undecided`** and is not resolved here. |
 | **SUB-11 (NEU-985)** | §10.1's and §10.2's counts as audit rows; §7.2's note that the resource-shaped read surface is what keeps exactly-one-authority reproducible from the surface. |
-| **SUB-12 (NEU-986)** | Four register sections (`F-S15-*`, `OI-S15-1`, `CAP-S15-1`/`-2`, `SPK-S15-1`) at the completeness gate. `94_…md` is untouched. |
+| **SUB-12 (NEU-986)** | Four register sections at the completeness gate — `F-S15-1`/`-2`, `OI-S15-1`/`-2`, `CAP-S15-1`/`-2`, `SPK-S15-1`. `93_…md` (closed) and `94_…md` are untouched. |
 | **NEU-896** | `CAP-S15-2` — all three decisions rest on `A-27`, `[unconfirmed]`, and go stale together if NEU-892 lands outside its envelope. |
 
 ---

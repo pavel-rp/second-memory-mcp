@@ -157,3 +157,12 @@ in the chapter body.
    `../11_…md` §13 records `R3` as **not established**, so this is not currently in prospect.
 4. **A downstream charter reports that the projection/intent split cannot express one of the sixteen
    entries** — routed here as a finding, not resolved locally.
+5. **`A-27` is invalidated by NEU-892 landing outside its envelope.** This record's dependency on
+   `A-27` is **indirect and it is stated here so it is not missed**: the protocol style is argued from
+   the inventory's shape, and `A-27` is what makes the surface a *server-composed* one whose reads are
+   whole projections rather than client-selected fields — the constraint `DR-C10-S15-4` supplies and
+   this record consumes at §"The two dependencies this decision carries". If `A-27` is invalidated,
+   the rendering model re-opens, and the read surface's shape re-opens with it. Recorded as
+   **`CAP-S15-2`**, which notes that this is the one of the three decision records whose `A-27`
+   dependency is inherited rather than direct — and which, before this trigger was added, was the one
+   record an auditor could read without discovering the dependency at all.
