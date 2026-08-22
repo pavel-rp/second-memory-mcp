@@ -128,8 +128,14 @@ ask whether that is `R1` arriving by another door. It is not, on three independe
    `../00_…md`'s constraint routes a conflict of this kind to the matrix's owner rather than to
    local resolution. **If SUB-6 reconciles it the other way** — that is, if the headline governs and
    33/34 are MCP core state after all — **then §5.2 row 4 fires, this ground fails, and the
-   store-reversal check must be re-run for the carve-out.** Grounds 1 and 2 are unaffected either
-   way, so the *reversal* conclusion survives; what would change is the routing obligation. The
+   store-reversal check must be re-run for the carve-out.** The *conclusions* of grounds 1 and 2
+   survive either reading, so the reversal conclusion survives; what would change is the routing
+   obligation. Stated exactly: **ground 2 is wholly reading-independent** — it turns on
+   `CMP-S4-17` holding no credential to the clause-1 store, which clause 5 of *this* record fixes.
+   **Ground 1's conclusion is reading-independent** — `R1`'s subject is a *web* store, and 33/34
+   are not web-tier state under either reading — but its trailing clause "`CMP-S4-17` is [their
+   authority]" is itself the matrix reading, and would not survive the headline reading. That
+   clause is not what carries ground 1; the absence of the web tier is. The
    disagreement is filed as `F-S10-6`, routed to **SUB-6 (NEU-976)**, and is **not** resolved here.
 
 The carve-out is also not this record's invention. `../08_…md` §8.6 already places both rows in the

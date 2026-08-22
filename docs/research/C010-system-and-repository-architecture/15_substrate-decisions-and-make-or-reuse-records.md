@@ -212,8 +212,8 @@ Three notes the table cannot carry:
 - **`SC-S3-41` arrives with an unmet precondition.** Its stated reason for existing includes a
   named deletion owner. `CAP-S4-1` records that no component in the published model can be the
   operational logs' deletion owner, and that cap is **open at its eighth sighting — this one — and
-  is not closed here**. `../91_…md` §`CAP-S4-1` records SUB-9's as the seventh (SUB-3, SUB-4,
-  SUB-6, SUB-13, SUB-14, SUB-16, SUB-9); this pass is the next. Whether `SC-S3-41`'s own owner is assignable when `SC-S3-16`/`SC-S3-17`'s is not
+  is not closed here**. `../91_…md` § SUB-7 records **SUB-7's** as the seventh (SUB-3, SUB-4,
+  SUB-6, SUB-13, SUB-14, SUB-16, SUB-7); this pass is the next. Whether `SC-S3-41`'s own owner is assignable when `SC-S3-16`/`SC-S3-17`'s is not
   is **not settled by a store decision**, and no claim either way is made. The destination is
   supplied; the precondition is not.
 - **`SC-S3-45` is unblocked in one sense and not another.** The store supplies its destination, but

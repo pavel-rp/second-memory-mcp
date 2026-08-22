@@ -564,7 +564,7 @@ The reason it does not gate: the only place the DP-map could have bitten this ch
 
 - **Item:** Two model questions (`F-S16-2`, `F-S16-3`) are routed to `SUB-6 (NEU-976)`, which is merged and `Done`. Owner: `SUB-12 (NEU-986)`. `SUB-10 (NEU-984)` is named a **consumer**.
 - **Disposition:** **Consumed; no action owed.** The resolving event is exclusively SUB-12's. This sub-task's obligation as a consumer is to resolve its rows against a model carrying two unanswered questions **and to say so**, which `15_…md` §11 does. Nothing here answers, re-routes or re-decides either question.
-- **Noted:** `F-S10-1`, `F-S10-4` and `F-S10-5` are three further instances of the same backwards-routing structure — findings routed correctly to sub-tasks that have already shipped. Each names `NEU-896` as a live co-recipient so that none is routed to a closed owner alone.
+- **Noted:** `F-S10-1`, `F-S10-4`, `F-S10-5` and `F-S10-6` are four further instances of the same backwards-routing structure — findings routed correctly to sub-tasks that have already shipped. Each names `NEU-896` as a live co-recipient so that none is routed to a closed owner alone.
 
 #### Disposition of `OI-S3-2` — already discharged by SUB-4; consumed here as an input
 
