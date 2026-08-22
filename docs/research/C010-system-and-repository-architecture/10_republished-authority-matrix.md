@@ -404,3 +404,149 @@ merged files — and it is the second sighting of that class, which is itself wo
 here**: the files are merged and the discipline is append-only, so the finding is the correction. **This
 chapter writes only the correct ids** — SUB-16 is NEU-979, SUB-7 is NEU-980 — and a reader who follows
 `NEU-980` out of `09_…md` §17 or `02_findings-register.md` `### SUB-14` lands on SUB-7, not here.
+
+---
+
+## 6. The row revisions
+
+**Two rows are revised: `SC-S3-16` and `SC-S3-17`.** Both revisions cite **clause 5** of `07_…md` §6.1
+as the basis for the authority, and both re-author **all nine** of `OUT-3`'s attributes. **Neither
+revision changes an authority** — §5.4 claim (i) shows the rule reproduces `CMP-S4-9` on both rows. What
+is revised is the **`Writes` attribute's description of the write path**, plus the two attributes that
+depended on it (`Consistency`, `Observability`).
+
+**Why this is a revision and not a re-decision.** Clause 5's demonstration form in `07_…md` §6.2 reads
+*"`CMP-S4-9`, written through `CMP-S4-7`"*. SUB-13 already deviated from that form on these two rows,
+writing *"written through `CMP-S4-19`"* — correctly, because the sinks do the writing. What SUB-13's
+rows did **not** say is that the write is therefore **off `CMP-S4-7`'s request path entirely**, which is
+what makes `05_…md` §3.2's request-path scoping of `CMP-S4-9` sit awkwardly against them. **`F-S14-8`
+claim (iii) is right about that, and it is a write-path description defect.** The revision states the
+deviation explicitly instead of leaving a reader to reconcile two documents in their head. The
+authority, the clause, the status marking and every input to `I1`–`I5` are untouched.
+
+### 6.1 `SC-S3-16` — MCP request log · **revised**
+
+**Authority: `CMP-S4-9`** (persistence adapters and Postgres) — **unchanged**.
+**Clause 5**, re-derived at §5.4 claim (i): `Learner-scoped: question — open`, which is inside the
+invariant's domain, and clauses 1–4 do not match. `04_…md` records that the table **holds learner
+payload** (`response_body` and `params` carry learner-facing text and learner free-text answers) while
+carrying **no principal field** — which is precisely why the scoping question is open rather than `no`.
+**Status: `existing`** — unchanged, per `04_…md`'s marking.
+**Revision basis: `07_…md` §6.1 clause 5. Revised attributes: Writes, Consistency, Observability.**
+
+| Attribute | Value |
+| --- | --- |
+| Reads | Operators, for incident investigation. No component reads it on the request path. |
+| Writes | **`CMP-S4-9`**, issued through **`CMP-S4-19`** (operational logging sinks) — **from a pino transport worker thread, not on `CMP-S4-7`'s request path.** *(Revised.)* Clause 5's demonstration form in `07_…md` §6.2 writes *"written through `CMP-S4-7`"*; **that form does not describe this row**, and the deviation is recorded rather than assumed. `05_…md` §3.2 scopes `CMP-S4-9` to *"the only writer of the `public` and `infrastructure` database schemas **on the request path**"*, so **this row's write is outside the sentence that scopes its own authority** — the divergence `F-S14-8` claim (iii) identifies. **The deviation is in the write path, never in the authority**: clause 5 names `CMP-S4-9` on the row's own `Learner-scoped` cell, and no clause conditions authority on which thread issues the write. `CMP-S4-19` remains a `W` annotation and **never a second authority**. Appended per request, never mutated. |
+| Consistency | Best-effort by design. `CMP-S4-19` fails open: an unavailable log sink must never fail a learner's request. A missing log line is acceptable; a failed request because of logging is not. **Added at this revision:** because the write is issued off the request path, it is **not** inside the request's unit of work — a committed request and its log line are **not** atomic in either direction, and no consumer may infer one from the other. |
+| Freshness | No bound. Nothing reads it synchronously. |
+| Concurrency | Appends do not conflict. |
+| Conflict handling | None; append-only with no update path. |
+| Recovery | **Lossy.** Entries buffered in `SC-S3-25` and not yet flushed are lost on crash, and are dropped outright while that sink's breaker is open. The log is evidence, not a ledger, and must not be treated as complete. Recovery class **R5** — not recoverable (`09_…md` §11). |
+| Migration path | The category stays where it is. **The gap that needs a path is a principal field**: `05_…md` §9.2 states that adding one (or giving `SC-S3-45` a store) is what turns the deletion owner from *unassignable* into merely *unassigned*, and only then can it be assigned. Until then, `CAP-S4-1` stands — **structural, and not closed here** — and `F-S3-3`'s retention gap has no owner. **A path, never DDL**: this row names what must become true, not the statement that would make it so. |
+| Observability | The table is itself the primary observability substrate. It has **no** observability of its own: there is no counter for entries dropped while the breaker was open, so the lossiness above is invisible in production. **Added at this revision:** the same absence hides the write-path divergence recorded in `Writes` — nothing emits a signal that distinguishes a worker-thread write from a request-path one, so an operator cannot observe which path a given line took. |
+
+**Isolation state, carried from `09_…md` §15.1 and unchanged by this revision:** Census A
+`not-evaluable`, Census B `not-evaluable`. Cause under both: **portless attribution residue** — no
+principal attribution exists **and** the table sits behind no port, so `OUT-2`'s mechanism cannot reach
+it (`OI-S5-1`). **No ownership column is described as present.** **No HTTP-qualified claim is made about
+this row**, because it has no transport-dependent verdict: its Census-A and Census-B verdicts are
+identical and neither is `fails-transport`. Divergence, conflicting-write and interruption outcomes all
+**defined**; recovery class **R5**.
+
+### 6.2 `SC-S3-17` — Operation event log · **revised**
+
+**Authority: `CMP-S4-9`** — **unchanged**.
+**Clause 5**, re-derived at §5.4 claim (i): `Learner-scoped: question — open` (the `data` payload column
+is potentially learner payload). **Clause 2 was re-tested and does not match**: `05_…md` places
+`SC-S3-21`, **not** `SC-S3-17`, in the Tier-2 gate path, and `08_…md` §6's boundary reading —
+*"indirect consumption is not membership"* — is **re-affirmed here, not re-litigated**. Treating it as
+gate-bearing would be a fresh judgement layered on the rule, which this pass may not make.
+**Status: `existing`** — unchanged.
+**Revision basis: `07_…md` §6.1 clause 5. Revised attributes: Writes, Consistency, Observability.**
+
+| Attribute | Value |
+| --- | --- |
+| Reads | `CMP-S4-14`'s Tier-2 blocking-stats query, by raw SQL at `src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`, feeding `SC-S3-21`; operators. |
+| Writes | **`CMP-S4-9`**, issued through **`CMP-S4-19`** (`src/transport/pg-event-transport.ts:109`) — **from a pino transport worker thread, not on `CMP-S4-7`'s request path.** *(Revised, on the same basis as `SC-S3-16`.)* Clause 5's *"written through `CMP-S4-7`"* demonstration form **does not describe this row**. **The deviation is in the write path, never in the authority.** `CMP-S4-19` remains a `W` annotation and **never a second authority**. Appended per event, never mutated. |
+| Consistency | Best-effort, fails open, exactly as `SC-S3-16`. **Added at this revision:** the write is not inside the originating operation's unit of work, so an event's presence is **not** evidence its operation committed, and its absence is **not** evidence the operation did not. This matters more here than at `SC-S3-16` — see Recovery. |
+| Freshness | The Tier-2 breaker's read tolerates **60 seconds** of staleness — that is `SC-S3-21`'s cache window, and it is the only freshness requirement any consumer places on this table. |
+| Concurrency | Appends do not conflict. The breaker's read is a snapshot query and does not coordinate with writers. |
+| Conflict handling | None; append-only. |
+| Recovery | **Lossy**, on the same terms as `SC-S3-16`. **This matters more here**: a gap in the event log biases the Tier-2 blocking statistics computed from it, and the bias is silent. **Sharpened at this revision:** because the write is off the request path and fails open, the bias is not merely possible but **structurally undetectable from inside the request** that produced the missing event. `09_…md` §10 flags the adjacent restart hazard — a restart un-trips the breaker (`SC-S3-21`) — and the two compound. Recovery class **R5**. |
+| Migration path | As `SC-S3-16` — the missing principal field is the blocker, per `05_…md` §9.2 and `CAP-S4-1`. **A path, never DDL.** |
+| Observability | Consumed by `SC-S3-21`, which is the only automated consumer. No signal exists for dropped events, so a breaker-open window looks identical to a quiet period. **Added at this revision:** and because the write path is a worker thread rather than the request path, no request-scoped correlation signal ties a dropped event back to the operation that should have emitted it — so the gap is invisible from both ends. |
+
+**Isolation state, carried from `09_…md` §15.1 and unchanged by this revision:** Census A
+`not-evaluable`, Census B `not-evaluable`, cause **portless attribution residue** under both. **No
+ownership column is described as present.** **No HTTP-qualified claim is made about this row** — its two
+census verdicts are identical and neither is `fails-transport`. All four walk outcomes **defined**;
+recovery class **R5**.
+
+### 6.3 How `F-S14-8`'s intra-`05_…md` contradiction is dispositioned **without editing `05_…md`**
+
+**The contradiction, stated exactly.** Inside `05_…md` §5 — one section of one merged document —
+`FL-S4-8` and `FL-S4-9` name **`CMP-S4-19`** authoritative for what is stored in `SC-S3-16`/`SC-S3-17`,
+while **`FL-S4-20` names `CMP-S4-9` authoritative *"for the source rows"*** — and the source rows **are**
+`SC-S3-16` and `SC-S3-17` (`FL-S4-20`'s own value column reads *"Batch read of `SC-S3-16`/`SC-S3-17`
+under an allowlist"*). This is the package's **first intra-document authority contradiction**, and it
+exists independently of the matrix.
+
+**Why it is not repaired by an edit.**
+
+1. **`05_…md` is merged, and this package's discipline is append-only.** `00_method-and-provenance.md`
+   fixes that discipline for `02_`, `90_`, `91_` and `92_`, and `09_…md` §12 states the reason it
+   extends to the chapters themselves: *"`05_…md` is merged and `08_…md` is merged, and silently
+   reconciling one to the other would **destroy the record of which one was written first and on what
+   evidence**."* An edit would make the package *look* consistent while deleting the evidence that it
+   once was not — which is the opposite of what a research package is for.
+2. **SUB-14 deliberately amended neither artifact**, and neither `05_…md` nor `08_…md` appears in its
+   changed-file set. It routed instead. This chapter keeps that discipline rather than being the first
+   pass to break it.
+3. **SUB-14's phrase *"`05_…md`'s half is SUB-16's to amend"* assigns ownership of the outcome, not a
+   licence to rewrite a sibling's merged chapter.** Read against §12's own prohibition in the same
+   document, the only reading that does not make `09_…md` contradict itself is: SUB-16 owns **closing
+   the question**, and the mechanism available to it is publication, not revision. **The finding and its
+   disposition are the correction.**
+
+**The disposition, therefore.**
+
+| What | Disposition |
+| --- | --- |
+| **The direction** | **Named, not smoothed over.** `FL-S4-8`/`FL-S4-9` name the **writer** (`CMP-S4-19`); `FL-S4-20` and the matrix name the **store** (`CMP-S4-9`). |
+| **Which side the rule supports** | **`FL-S4-20` and the matrix.** Re-running `07_…md` §6.1 clause 5 against each row's own cells reproduces `CMP-S4-9` (§5.4 claim (i)). The rule is the arbiter, not this chapter's preference. |
+| **Which side `05_…md`'s own vocabulary supports** | **Both, on different questions.** Under §3.2's published mapping, `CMP-S4-19` is the row's `W` — the component that writes — so `FL-S4-8`/`FL-S4-9` are a **granularity** statement about the write hop, and `FL-S4-20` is an **authority** statement about the store. Read through the mapping, `05_…md` is **less contradictory than it looks** — but it is not *not* contradictory, because `FL-S4-8`/`FL-S4-9` use the word "authoritative", and that is `05_…md`'s authority vocabulary, not its `W` vocabulary. |
+| **The residue** | **`05_…md` §5 carries two annotations that a reader cannot reconcile from that document alone.** That is real, it is recorded, and it is **not** fixed here. |
+| **Where it goes** | **`F-S16-4`**, owner **SUB-4 (NEU-974)** for the flow half, consumer **SUB-11 (NEU-983)**, whose cross-cutting audit can check flow-vs-flow consistency mechanically. |
+| **What is edited** | **Nothing.** `05_…md` is byte-identical after this pass. So are `08_…md` and `09_…md`. |
+
+**The same treatment is applied to every other flow discrepancy** — `F-S14-6`, `F-S14-7`, `F-S14-9`,
+`F-S14-10`, `F-S14-11`. In each, the direction is named, the disposition is published, and **neither
+side is silently reconciled**. `F-S16-4` carries the three that leave a residue in `05_…md`
+(`FL-S4-8`/`FL-S4-9` vs `FL-S4-20`; `FL-S4-14` vs `FL-S4-13`; `FL-S4-16`'s staleness); `F-S14-6` and
+`F-S14-11` leave none, because §5.1 and §3.2 close them by publication.
+
+### 6.4 Rows carrying a disposition note but **no** revision
+
+Six rows are `noted`: this chapter records a disposition at them, and changes nothing. They are listed
+so a reader is not left wondering whether a finding touched a row silently.
+
+| Row | Note recorded | From |
+| --- | --- | --- |
+| `SC-S3-26` | Clause **1** fires and clause 4 is never reached — the row's authority `CMP-S4-4` is the in-process cache holder, and the *key material*'s external authority is already carried in the row's own Freshness cell. Not in conflict with `SC-S3-45`. | `F-S14-7` / §5.2 |
+| `SC-S3-45` | Clause **4** fires because clause 1 falls through. Authority `CMP-S4-10` confirmed. **Structurally incapable of `holds` under any target state** — `CAP-S16-1`, owner SUB-6 (NEU-976). | `F-S14-7` / §5.2 and `F-S14-3` / §5.3 |
+| `SC-S3-33` | Clause **2 → tie-break (c)** reproduces `CMP-S4-17`. `FL-S4-14` is the outlier against `FL-S4-13` in its own document; direction named, nothing amended. `F-S13-1` (SUB-13's own tie-break disclosure) remains open, owner SUB-6. | `F-S14-9` / §5.5 |
+| `SC-S3-35` | Clause **2** reproduces `CMP-S4-14`, `W = CMP-S4-15`. Direction **matrix → flow**: `FL-S4-16`'s *"Undetermined"* is stale and stays as written. | `F-S14-10` / §5.6 |
+| `SC-S3-42` | Divergence outcome remains **UNDEFINED**; the hint-usage/mastery inclusion rule is NEU-891's. Residual, §9. | `F-S14-4` |
+| `SC-S3-31` | Conflicting-write outcome remains **UNDEFINED**; aggregate-vs-append is SUB-10's store-shape decision. NEU-890's durability property survives **either** resolution (`09_…md` §13.2). Residual, §9. | `F-S14-5` |
+
+**The stand-ins these rows rest on are cited at the row that decided them**, per SUB-1's register —
+**`A-25`** (per-learner, per-node tutoring interaction state with sub-second read latency) at
+`SC-S3-42`, whose tolerance envelope admits *"any number of escalation levels"* so **no point inside the
+envelope resolves `F-S14-4`**, and whose invalidating outcome (synchronous multi-turn AI orchestration
+inside a gate-bearing write path) would make it worse; **`A-27`** (UI interaction state that is not
+gate-bearing) at `SC-S3-43`, which is the row clause 3 would have taken had `07_…md` §6.3's list not
+been empty under `M-A`; **`A-28`** at `SC-S3-45`, whose invalidating outcome — *safe isolation requires a
+separate deployment or datastore* — is the one outcome that would relocate this matrix's assignments
+rather than correct them locally; and **`A-29`** (no continuous bidirectional handoff sync) at
+`SC-S3-44`. **`93_…md` is CLOSED and is cited, never appended to.**
