@@ -176,7 +176,7 @@ that a finding cannot be lost between the summary and the register:
 | **Findings dispositioned in §5** | **11** |
 | **Undispositioned** | **0** |
 | Dispositions carrying a named owner | **11 of 11** |
-| Open items received alongside them | **1** — `OI-S14-1`, dispositioned separately at §5.12 |
+| Open items received alongside them | **1** — `OI-S14-1`, dispositioned separately at §5.8 |
 | Spike records received | **0** — SUB-14 filed none (`SPK-S14-*` is empty) |
 | Cap records received | **0** — SUB-14 filed none (`CAP-S14-*` is empty); it cited three existing caps |
 
@@ -417,6 +417,30 @@ SUB-11 is NEU-985, SUB-12 is NEU-986 — and a reader who follows `NEU-980` out 
 tracker id rather than by sub-task label will mis-deliver three of SUB-14's four handoffs**, which is why
 this is a finding and not a typo.
 
+### 5.8 `OI-S14-1` — the open item SUB-14 left for this pass, answered
+
+SUB-14 filed one open item and named SUB-16 its owner: *"this chapter validates `08_…md` at its
+`pre-validation` revision. SUB-7, SUB-8 and SUB-10 consume SUB-16's post-absorption revision, not that
+one. Whether absorbing the eleven findings changes any verdict here — and therefore whether this record
+must be re-run against the republished matrix — is **not decidable until SUB-16 publishes**."*
+
+**It is decidable now, and the answer is no: no verdict changes, and `09_…md`'s validation record does
+not need re-running against this revision.**
+
+The reasoning is mechanical, published at **§8.1** so SUB-11 and SUB-12 can check it rather than take
+it: ten of the eleven dispositions change **nothing** on any row; the eleventh revises **`Writes`,
+`Consistency` and `Observability`** on two rows and leaves the authority, the clause, the
+`Learner-scoped` value and the status marking untouched; **no row was split, merged, added or removed**;
+and **the write path a durable append is issued from is an input to none of `I1`–`I5`**. §7 re-proves
+mechanically that the 45-row domain and the exactly-one property survived, which is the structural
+change that *could* have moved a verdict and did not.
+
+**`OI-S14-1` is therefore closed here**, with its answer recorded rather than asserted. Consumers
+**SUB-11 (NEU-985)** and **SUB-12 (NEU-986)** may consume `09_…md` §15 directly against the
+`post-validation` revision. **The dispositions are not thereby validated** — §7's audits prove the
+matrix's two structural properties, not that a disposition was the right call; that judgement is
+SUB-11's, and `OI-S16-1` records the one place this chapter could not close a loop itself.
+
 ---
 
 ## 6. The row revisions
@@ -562,32 +586,6 @@ been empty under `M-A`; **`A-28`** at `SC-S3-45`, whose invalidating outcome —
 separate deployment or datastore* — is the one outcome that would relocate this matrix's assignments
 rather than correct them locally; and **`A-29`** (no continuous bidirectional handoff sync) at
 `SC-S3-44`. **`93_…md` is CLOSED and is cited, never appended to.**
-
-### 5.12 `OI-S14-1` — the open item SUB-14 left for this pass, answered
-
-SUB-14 filed one open item and named SUB-16 its owner: *"this chapter validates `08_…md` at its
-`pre-validation` revision. SUB-7, SUB-8 and SUB-10 consume SUB-16's post-absorption revision, not that
-one. Whether absorbing the eleven findings changes any verdict here — and therefore whether this record
-must be re-run against the republished matrix — is **not decidable until SUB-16 publishes**."*
-
-**It is decidable now, and the answer is no: no verdict changes, and `09_…md`'s validation record does
-not need re-running against this revision.**
-
-The reasoning is mechanical, published at **§8.1** so SUB-11 and SUB-12 can check it rather than take
-it: ten of the eleven dispositions change **nothing** on any row; the eleventh revises **`Writes`,
-`Consistency` and `Observability`** on two rows and leaves the authority, the clause, the
-`Learner-scoped` value and the status marking untouched; **no row was split, merged, added or removed**;
-and **the write path a durable append is issued from is an input to none of `I1`–`I5`**. §7 re-proves
-mechanically that the 45-row domain and the exactly-one property survived, which is the structural
-change that *could* have moved a verdict and did not.
-
-**`OI-S14-1` is therefore closed here**, with its answer recorded rather than asserted. Consumers
-**SUB-11 (NEU-985)** and **SUB-12 (NEU-986)** may consume `09_…md` §15 directly against the
-`post-validation` revision. **The dispositions are not thereby validated** — §7's audits prove the
-matrix's two structural properties, not that a disposition was the right call; that judgement is
-SUB-11's, and `OI-S16-1` records the one place this chapter could not close a loop itself.
-
----
 
 ## 7. The two audits, re-run over the republished revision
 
@@ -773,7 +771,7 @@ accommodate a disposition.
 | Did the two **revised** rows change an input to `I1`–`I5`? | **No.** §6.1/§6.2 revise `Writes`, `Consistency` and `Observability` — descriptive attributes. `I2` asks whether principal attribution exists (it does not, on either row, before or after); `I3` asks whether an access-path set is enumerated (it is not); `I4` asks about transport. **The write path a durable append is issued from is an input to none of the five checks.** |
 
 **Therefore `09_…md` §15.1's per-row verdicts, §15.2's distributions and its cause tally stand over the
-post-validation revision, and need not be re-run.** That is also the answer to `OI-S14-1` (§5.12).
+post-validation revision, and need not be re-run.** That is also the answer to `OI-S14-1` (§5.8).
 
 ### 8.2 The verdict distribution, both censuses, un-collapsed
 
@@ -885,7 +883,7 @@ no caveat at all, and saying so is as much a part of the residual statement as t
   rather than inherited.
 - **`OUT-4`.** Every isolation-invariant failure SUB-14 routed carries an explicit disposition with a
   named owner. **Received 11, dispositioned 11, undispositioned 0.**
-- **`OI-S14-1`** — answered at §5.12 with its reasoning published at §8.1: **no verdict moves**, so
+- **`OI-S14-1`** — answered at §5.8 with its reasoning published at §8.1: **no verdict moves**, so
   `09_…md`'s record stands over this revision and need not be re-run.
 - **`F-S14-6` and `F-S14-11`** — closed by publication (§5.1 and §3.2 respectively); both asked for a
   reading or a mapping to be stated, and both are now stated. Neither leaves a residue.
