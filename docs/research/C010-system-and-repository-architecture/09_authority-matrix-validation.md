@@ -441,3 +441,218 @@ SUB-13's assignment is **correct given the rule**: clause 4 says the row is auth
 Filed as **`F-S14-3`**, routed to **SUB-6** (which owns clause 4) and **SUB-16** (which dispositions).
 This is the **only** row in 45 whose failure is not residue, and it is filed as one finding, not
 inflated into several.
+
+---
+
+## 7. The four scenario walks — how they were run
+
+Each walk is run against **the matrix's own attribute cells**, not against a fresh reading of the code:
+that is the point of the exercise. Divergence is decided by **Consistency** and **Freshness**;
+a conflicting concurrent write by **Concurrency** and **Conflict handling**; interruption and recovery
+by **Recovery** (with Consistency naming what a partial state would violate). All 45 rows carry all
+five cells — verified mechanically in §3 — so no walk is short of an input.
+
+**A defined outcome means the matrix determines what happens, including "nothing happens" and "the
+operation is refused".** It does **not** mean the outcome is desirable, and it does not mean the running
+system achieves it: several rows define an outcome as a *requirement* on a category that does not exist
+yet, and those are labelled. **An undefined outcome is a routed finding, not a narration** — there are
+**two** in 180 row-walks, both in §8 and §9, both routed.
+
+**One structural result decides most of the walks and is stated once here rather than 45 times.** Under
+the selected model `M-A` every category has **exactly one** authority (SUB-13's audit: 45/45, zero with
+two). A conflicting write between **two authorities** is therefore **unrepresentable by construction**,
+and every conflict below reduces to two *instances of the same authority* racing — two processes, or two
+in-flight requests inside one. That is precisely the property `07_…md` §7 disqualifies `M-B` for lacking,
+and it is what makes these walks terminate at all: a two-authority row would have a mid-interruption
+state spanning two owners with **no shared transaction** (`src/ports/unit-of-work-port.ts:26`–`:28` — the
+unit of work does not span components).
+
+**Two bounds are honoured throughout and neither is argued past.**
+
+- **`CAP-S6-1`.** Two-writer divergence *"was never observed against a live database"* — five Postgres
+  probes (`127.0.0.1:5432`, `:5433`, `localhost:5432`, `postgres:5432`, `db:5432`) all refused or timed
+  out. The cap is on **evidence strength, not on the conclusion**. §9 below therefore states what the
+  matrix *requires* and what the code *fails to prevent* — and asserts nothing about what was observed.
+- **`SPK-S2-1`.** A 1000 ms same-thread guard armed before a non-terminating unit **never fired**; the
+  process needed an external `SIGKILL` (exit 137). **An authoring-time bound is a liveness boundary, not
+  containment.** §10 turns on this and does not assume past it — see `SPK-S14-1`, which settles the
+  remaining half of the question.
+
+**And one piece of evidence is explicitly not used.** `F-S4-5` records that all three benchmark journeys
+are dogfooded across STDIO, where `BND-S4-17` places a trust boundary **nothing enforces, owner
+`nobody`**. **"The journey ran fine" is not evidence about the gated path**, and no outcome in §10 or §11
+rests on a journey walk.
+
+---
+
+## 8. Walk 1 — divergence
+
+**Scenario.** Two components hold different views of one category. The row's **Consistency** and
+**Freshness** attributes determine the outcome; a row whose attributes cannot determine it is a routed
+finding.
+
+| Id | Defined outcome under divergence |
+| --- | --- |
+| `SC-S3-1` | The stored row wins; `summaryVersion` identifies which summary a reader saw. No cross-run staleness bound applies — a topic summary is authored content, not a scheduling input. |
+| `SC-S3-2` | The current committed version wins. **No read-through cache exists between `CMP-S4-16` and the store**, so a serve-path reader cannot diverge from it by construction; a chunk whose embedding describes a superseded body is a **defect**, not a tolerated divergence. |
+| `SC-S3-3` | **No divergence is tolerated.** "Strictly current at read… no caching layer may be introduced between the store and the scheduler." A diverging view changes what the learner is asked next, so divergence here is a correctness failure, not a staleness window. |
+| `SC-S3-4` | The verdict is valid **only for the `contentVersion` it names**. A content edit invalidates it immediately; a divergent (stale) verdict against an edited chunk is a defect. |
+| `SC-S3-5` | Read-your-writes within the run; nothing outside the run requires sub-second visibility, so cross-run divergence is tolerated and bounded by the run. |
+| `SC-S3-6` | Read-your-writes within the run. Neither the parent run nor the chunk reference may dangle, so a divergent child is a referential defect. |
+| `SC-S3-7` | Strictly current within the run — the status governs whether the question may be answered, so a divergent status is refused by the state machine, not reconciled. |
+| `SC-S3-8` | **Divergence is unrepresentable**: immutable once written, in the same transaction as `SC-S3-7`. |
+| `SC-S3-9` | Strictly current — the grade is the scheduler's input. A divergent read is a scheduling defect. |
+| `SC-S3-10` | Not applicable: *"a historical record of a prediction, correct forever by construction."* Divergence would mean the record changed, which the write-once property forbids. |
+| `SC-S3-11` | Not applicable — append-only history. |
+| `SC-S3-12` | Read-your-writes; no downstream consumer can be misled, so a divergent view is inert. |
+| `SC-S3-13` | Strictly current: *"a token read after its expiry must be rejected even if the sweep has not run."* Expiry is evaluated at read, so a sweeper's divergent view of what still exists changes nothing. |
+| `SC-S3-14` | No bound — a slowly-curated asset, not a runtime input. Divergence is tolerated indefinitely. |
+| `SC-S3-15` | Valid until the rule or the corpus changes; either change invalidates the report. Divergence resolves to "the report names its corpus version or it is not evidence". |
+| `SC-S3-16` | No bound; nothing reads it synchronously. Divergence between what happened and what the log says is **expected**, because the log is lossy by design (§10). |
+| `SC-S3-17` | **60 seconds** — the Tier-2 breaker's tolerance, which is `SC-S3-21`'s cache window and *"the only freshness requirement any consumer places on this table"*. Divergence beyond it changes gate strictness. |
+| `SC-S3-18` | Defined and **deliberate**: *"Across processes it is **not shared**, which is the single-instance constraint stated plainly."* Two processes hold disjoint registries; a client's transport lives in exactly one. |
+| `SC-S3-19` | Always current in-process; the binding must exist before the first non-`initialize` request, so there is **no window in which a session is live and unbound**. Across processes the map is not shared — same single-instance consequence as `SC-S3-18`. |
+| `SC-S3-20` | Current by construction in-process. Across replicas, **`n` processes hold `n` windows**, so the effective limit is `n ×` the configured one — recorded at `OI-S13-1` as a topology question, owner SUB-10. |
+| `SC-S3-21` | The trip set is *"deliberately **not** kept consistent with its source"* — a trip is sticky for the process's life. Across replicas **`n` processes hold `n` opinions** about whether Tier-2 blocking is tripped. Defined, and its **cost** is capped evidence (`CAP-S6-1`), not a measured quantity. |
+| `SC-S3-22` | Divergence unrepresentable — each async context is private. |
+| `SC-S3-23` | Divergence not representable: *"a connection handle, not data."* |
+| `SC-S3-24` | Set once at boot and never changes during the process's life. Two processes may hold different toggles; each fails open to stderr independently. |
+| `SC-S3-25` | Bounded by the flush interval and batch size — the delay between an event happening and its being visible in `SC-S3-16`/`SC-S3-17`. |
+| `SC-S3-26` | The issuer's set wins. *"A stale set rejects valid tokens after a key rotation."* The refresh policy is `Z-IDP`'s, **an inherited dependency, not a local guarantee** — named at the row rather than assumed away. |
+| `SC-S3-27` | Not applicable in-process. Across a deploy, a model or prompt change takes effect only on restart — the intended release mechanism. |
+| `SC-S3-28` | Cannot diverge — recomputed per call from `SC-S3-3`'s current values; a pure function, so consistency is entirely inherited. |
+| `SC-S3-29` | **The one genuine divergence among the derived rows.** Five parallel reads are **not a snapshot**: due counts, overdue topics, streak and leech count can each reflect a different instant. A torn read is a real, low-severity defect — defined as such, not tolerated. |
+| `SC-S3-30` | Inherited from the reads `CMP-S4-7` performs; the same torn-read caveat as `SC-S3-29`. |
+| `SC-S3-31` | Read-your-writes for progression computation. Identity is `node_id` + `skill_type`; **a record whose citation changes is the same record**, so a citation-level divergence is not a record-level divergence. |
+| `SC-S3-32` | Defined by **separation**: the `canonical_url`'s freshness *"is not this record's property — it is `SC-S3-34`'s verdict about it."* That separation is why the two are different categories. |
+| `SC-S3-33` | **The defining row.** Fresh only within `per_citation_staleness_window` — **90 days, declared not measured** (`03_…md` §4.2). Beyond it the entry is **stale**, a recorded state and never a partial verdict, and stale-or-absent **quarantines the unit while the learner's request still completes**. |
+| `SC-S3-34` | Governed by the same 90-day window and by `per_source_revalidation_budget` = **0 for all twelve sources**. At budget 0 **no re-check is admitted**, so in steady state the store does not refresh: divergence from the world is **permanent by specification**, and quarantine-for-stale is the **ordinary** serve path, not an error path. |
+| `SC-S3-35` | Valid only for the content version it names; a content edit invalidates every verdict against the prior version. Divergence resolves to "re-gate or quarantine". |
+| `SC-S3-36` | Read-your-writes on the authoring path. All three slots commit together, so a half-diverged quarantine (a reason without an owner or an exit condition) is **unrepresentable** by the record's shape. |
+| `SC-S3-37` | The in-system copy **may** lag NEU-889's artifact; the upstream artifact wins, and **the copy's version must be identifiable** or nothing downstream can say which graph a progression decision was made against. |
+| `SC-S3-38` | Read-your-writes. *"A progression read that misses the learner's last completed node re-serves work already done"* — a defined, bounded, user-visible consequence. |
+| `SC-S3-39` | Read-your-writes **across learning runs**; a per-run cache would defeat the property being measured. A composite not updated in the same unit of work as the advancing attempt means *"a mastery claim exists that no recorded attempt supports"* — defined as a defect. |
+| `SC-S3-40` | Freshness of the register is **irrelevant**; identifiability of the **version** is everything. Contracts are frozen and superseded, never edited in place, so two readers naming the same version cannot diverge. |
+| `SC-S3-41` | Derived on a schedule; the window it covers **must be stated with the extract**. Nothing reads it synchronously, so divergence is bounded by the stated window. |
+| `SC-S3-42` | **UNDEFINED — routed.** See below. |
+| `SC-S3-43` | Loose, and **inside `A-27`'s envelope**, which *"explicitly tolerates arbitrary client-side caching of read data"*. A stale read here is not a defect. Nothing downstream is invalidated by a stale scroll position. |
+| `SC-S3-44` | Strictly current at check: *"a revoked envelope must be rejected on the next request, not at the next sweep."* Stronger than `SC-S3-13`'s, because revocation is an explicit security action rather than passive expiry. A divergent view that still accepts a revoked envelope is a security failure, not staleness. |
+| `SC-S3-45` | Defined **as a requirement with a named external dependency**: a revoked or re-assigned identity must take effect on the next request, and a principal resolving to two owners or to none *"breaks isolation rather than degrading it."* But the only thing this system caches from `Z-IDP` is `SC-S3-26`, whose refresh policy is the issuer's — so the freshness of identity **facts** is an **inherited dependency, not a local guarantee**. Recorded as a defined outcome with the dependency named at the row, not as an undefined one. |
+
+### 8.1 The one undefined divergence outcome
+
+**`SC-S3-42` — tutoring / hint interaction state.** Its Consistency cell requires the hint state and the
+attempt it relates to (`SC-S3-9`) to be *"attributable to each other, or hint usage cannot be excluded
+from — or included in — a mastery judgement"*, and then says plainly: **"Which of those it is, is
+NEU-891's decision, not this matrix's."** So when the hint state and the mastery judgement diverge about
+whether a hint was used, **the matrix cannot determine the outcome** — the two candidate resolutions
+(exclude the attempt from mastery; include it unchanged) produce opposite mastery verdicts and the rule
+that picks between them does not exist in any merged input.
+
+This is **not** narrated past. Filed as **`F-S14-4`**, routed to **NEU-891** (which owns the hint model
+and is the only party that can state the inclusion rule) and to **SUB-16** (to disposition and to record
+the residual at the row when it republishes). Cited at the verdict: `A-25`'s envelope tolerates *"any
+number of escalation levels"* and any granularity, so **no point inside the envelope resolves this** —
+the envelope is about where the AI call sits, not about whether a hint taints an attempt. `A-25`'s
+invalidating outcome (synchronous multi-turn AI orchestration inside a gate-bearing write path) would
+make it worse, not better, by putting the undetermined interaction inside the mastery transaction.
+
+**Walk 1 result: 44 of 45 rows produce a defined outcome; 1 undefined, routed.**
+
+---
+
+## 9. Walk 2 — conflicting concurrent writes
+
+**Scenario.** Two writes to one category race, or disagree. The row's **Concurrency** and **Conflict
+handling** attributes determine the outcome. Per §7, a two-**authority** conflict is unrepresentable
+under `M-A`; every case below is two instances of the one authority.
+
+| Id | Defined outcome under a conflicting concurrent write |
+| --- | --- |
+| `SC-S3-1` | Last-writer-wins on the row; **no merge**. `summaryVersion` makes the loss **detectable after the fact**, and the remedy is re-running the authoring step — nothing is reconciled field-by-field. |
+| `SC-S3-2` | Last-writer-wins per row. Two editors of one chunk is **not a modelled scenario** at this cutoff — content editing is a single-authoring-pipeline activity. `contentVersion` identifies which body a downstream artifact was computed against. |
+| `SC-S3-3` | **Must serialize.** Concurrent application of two SM-2 updates *"silently loses one interval advance — the loss is invisible afterwards because the state is a running aggregate, not a log."* No merge is meaningful: SM-2 is order-dependent, and **the transaction boundary is the whole answer, not the field.** See §9.1. |
+| `SC-S3-4` | Last-writer-wins; **benign** unless the content changed between the two audits, since both compute against the same content version. The whole jsonb report is replaced. |
+| `SC-S3-5` | One writer per run in practice; two concurrent terminal transitions are last-writer-wins and benign (both write the same terminal status). Status is a small state machine and an illegal transition is **rejected, not reconciled**. **The one-active-learning-run rule is not database-enforced** — `F-S6-3`: the check and the insert run on separate round trips in different transactions with no partial unique index behind them. |
+| `SC-S3-6` | Single-writer per run in practice; concurrent time-spent accumulation from two in-flight tool calls **would lose one increment**. No merge; last write wins. |
+| `SC-S3-7` | One answering path per question; **a double-submit must be idempotent at the status transition, not additive.** The state machine rejects illegal transitions. |
+| `SC-S3-8` | **No race exists** — single write at creation, no second write. |
+| `SC-S3-9` | A revision and a fresh attempt must serialize (the revision reads the row it rewrites). The revision replaces the graded fields wholesale and **preserves the prior values in `SC-S3-11`**. |
+| `SC-S3-10` | **None possible.** Single write; the write-once property is the point — *"a revised snapshot would destroy the evidence that the scheduler's prediction was wrong."* |
+| `SC-S3-11` | **None possible.** Appends do not conflict; there is no update path. |
+| `SC-S3-12` | Creates do not conflict, but **a delete-and-re-add pair from two callers can interleave into a lost note; there is no compare-and-set.** The last add wins and the intermediate content is simply gone. Defined, and lossy. |
+| `SC-S3-13` | Mint and sweep do not conflict — the sweep only removes rows already past `expiresAt`. No update path. |
+| `SC-S3-14` | Maintainer-serial in practice; two re-labellings are last-writer-wins, label replaced. |
+| `SC-S3-15` | One run at a time in practice; concurrent runs are last-writer-wins and the report row is superseded wholesale. |
+| `SC-S3-16` | Appends do not conflict; append-only with no update path. |
+| `SC-S3-17` | Appends do not conflict. **The breaker's read is a snapshot query and does not coordinate with writers** — so the gate reads a consistent instant, not a consistent state. |
+| `SC-S3-18` | **None possible** — Node's single-threaded event loop serializes access; one process, one map. No lock is needed or present. |
+| `SC-S3-19` | **None possible** in-process (event-loop serialized). **A re-bind of a live MCP session is not a modelled operation** — which is the property the binding exists to enforce. |
+| `SC-S3-20` | **None possible** in one process (event-loop serialized). Across processes, see §8's `n`-windows result. |
+| `SC-S3-21` | Two concurrent gate evaluations during a cache miss can both issue the underlying query: **duplicate work, not an incorrect verdict**, since both compute the same trip state from the same query. |
+| `SC-S3-22` | **None possible** — each async context is private; `AsyncLocalStorage` isolates concurrent calls **by construction**, and that is what makes concurrent requests loggable at all. |
+| `SC-S3-23` | None — the pool **is** the concurrency mechanism, not a subject of it. |
+| `SC-S3-24` | None — single write at boot. |
+| `SC-S3-25` | None — per-worker-thread, so no cross-thread contention on one buffer. |
+| `SC-S3-26` | Concurrent first verifications may each trigger a fetch: **duplicate fetches, not an incorrect verification** — all fetches return the same issuer-published set. |
+| `SC-S3-27` | Concurrent first classifications may each seed a runnable: **duplicate initialisation**, nothing more. |
+| `SC-S3-28` | **None possible** — no shared state; each call computes its own. |
+| `SC-S3-29` | **None possible** — no shared state. The hazard here is the torn read of §8, not contention; the two are named separately on purpose. |
+| `SC-S3-30` | **None possible** — pure computation over supplied values. |
+| `SC-S3-31` | **UNDEFINED — routed.** See §9.2. |
+| `SC-S3-32` | Keyed on `stable_id`; a re-admission of the same citation is an **upsert on that key, not a second row**. No merge — the two fields are replaced together. |
+| `SC-S3-33` | **None possible** — single writer by specification (`FL-S4-13`: `CMP-S4-17` is *"the cache's only writer"*), keyed replacement, and reads never block. |
+| `SC-S3-34` | **None possible** — single writer, keyed on `citation_id`. **Exactly one request per citation; a corpus walk is prohibited**, and that prohibition constrains the producer's writes as much as its reads. |
+| `SC-S3-35` | One runner per unit per run. **A unit terminated by the wall-clock bound produces no verdict, not a partial one.** No merge; a re-run supersedes. Whether prior verdicts are retained is a store-shape question — `OI-S13-1`, owner SUB-10 — which is a **residual on retention, not on the conflict outcome**. |
+| `SC-S3-36` | One quarantine per requirement; re-quarantining an open record **updates** it rather than opening a second. **A close and a re-open must serialize, or the exit condition of one is lost.** |
+| `SC-S3-37` | One import at a time. Two concurrent imports of different upstream versions *"would interleave into a graph that never existed upstream"* — the whole-unit commit is what prevents it. A re-import **replaces**; it does not reconcile node-by-node. |
+| `SC-S3-38` | Two concurrent completions against one node **must serialize, or a progression advance is lost** — the same running-aggregate hazard as `SC-S3-3`. No merge; progression is order-dependent. |
+| `SC-S3-39` | Serialized per learner per gate. No merge; order-dependent, like `SC-S3-3` and `SC-S3-38`. |
+| `SC-S3-40` | **None possible** under append-and-supersede — a new version is a new row, never an update. |
+| `SC-S3-41` | Single producer. **Overlapping derivation runs would double-count, so runs must not overlap for a given window.** Each run produces its own extract for its own window. |
+| `SC-S3-42` | Escalations are serial per learner per node by nature; **a race would only duplicate a level.** No merge; last write wins on the level. |
+| `SC-S3-43` | Two browser tabs for one learner is **the ordinary case**; last-writer-wins is acceptable and expected. Inside `A-27`'s envelope. |
+| `SC-S3-44` | Mint and revoke must serialize, and **a revoke that races a refresh must lose the refresh, not the revoke.** **Revocation is terminal and beats every concurrent operation** — the sharpest conflict rule in the inventory, and the correct one for a security primitive. |
+| `SC-S3-45` | **Not this system's concern** — the mapping is authored upstream and *"a projection never merges."* Defined by delegation, and the delegation is named. |
+
+### 9.1 What this walk asserts, and what `CAP-S6-1` stops it asserting
+
+**Asserted, because it is readable.** Nine of the 32 durable-write rows state a **serialization
+requirement** (`SC-S3-3`, `9`, `31`, `36`, `37`, `38`, `39`, `41`, `44`), and nothing in the codebase
+supplies one: no optimistic concurrency control exists anywhere in `src/`, no transaction sets an
+isolation level (`src/infrastructure/db/operations.ts:21`–`:24`), and `F-S6-2` records that
+`reviewPersistence` is **absent from `UnitOfWorkPort`'s `TransactionPorts`**
+(`src/ports/unit-of-work-port.ts:26`–`:28`), so `SC-S3-3`'s read-compute-write has **no transactional
+envelope under any ownership model**. The codebase's own comment states its single-writer premise
+(`src/orchestration/review-workflows.ts:190`–`:191`), and `F-S6-1` records that the premise is already
+false for any horizontally-scaled MCP deployment **before any web tier exists**.
+
+**Not asserted, because `CAP-S6-1` caps it.** That two independent writer processes racing this pattern
+against a live Postgres **do in fact lose an update** was **never observed** — five connection probes all
+refused or timed out at SUB-6's cutoff, and no `DATABASE_URL` is present in this environment either.
+**This chapter does not re-assert it, does not re-run the failed probe, and files no duplicate cap.**
+`CAP-S6-1`'s named owner is **SUB-10 (NEU-984)**, alongside **NEU-896**, and what would lift it is
+unchanged: a two-process harness against a reachable Postgres exercising
+`getChunk → compute → persistReviewUpdate` concurrently. The distinction matters: the matrix's
+conflict-handling rules are **requirements**, they are **defined**, and whether the running system meets
+them is **capped evidence, not a validated fact**.
+
+### 9.2 The one undefined conflicting-write outcome
+
+**`SC-S3-31` — corpus-neutral assessment-evidence record.** Its Concurrency cell reads: *"Two
+assessments of the same `node_id` + `skill_type` must serialize **if the record is an aggregate**;
+append-per-event has **no race**. **Which of the two shapes applies is not determined by any merged
+input** — SUB-10 decides it with the store."*
+
+The two shapes give **opposite** outcomes — a mandatory serialization requirement versus no race at all —
+and the matrix cannot pick between them, because the choice is a store-shape decision no merged artifact
+makes. This is a genuine undefined outcome and it is material: `SC-S3-31` is the load-bearing row of the
+durability property (§13).
+
+Filed as **`F-S14-5`**, routed to **SUB-10 (NEU-984)** — which selects the data-store topology under
+`OUT-8` and is the only party that can settle the shape — and to **SUB-16**, to disposition and to carry
+the residual at the row. It is **not** routed to SUB-13: the matrix records the indeterminacy honestly
+and names the deciding party, which is the correct behaviour for a cell that cannot be answered from
+merged inputs.
+
+**Walk 2 result: 44 of 45 rows produce a defined outcome; 1 undefined, routed.**
