@@ -513,7 +513,7 @@ The reason it does not gate: the only place the DP-map could have bitten this ch
 
 *Appended by `NEU-984` (SUB-10) on 2026-08-22. Verification cutoff `03efe1d`. Nothing above this heading was edited.*
 
-**This sub-task files no new open item.** Every question it would have raised either has a named cap (`CAP-S10-1`…`CAP-S10-4`, `91_…md` § SUB-10) or a routed finding (`F-S10-1`…`F-S10-5`, `02_…md` § SUB-10). What follows are **disposition records** for the items this sub-task was named owner or consumer of. They carry **no new Id** and are not open items.
+**This sub-task files no new open item.** Every question it would have raised either has a named cap (`CAP-S10-1`…`CAP-S10-4`, `91_…md` § SUB-10) or a routed finding (`F-S10-1`…`F-S10-6`, `02_…md` § SUB-10). What follows are **disposition records** for the items this sub-task was named owner or consumer of. They carry **no new Id** and are not open items.
 
 #### Disposition of `OI-S1-3` (charter assumption 31) — discharged by conversion to a cap
 

@@ -101,6 +101,16 @@ instance holds every state category whose authority is the MCP core, across the 
 state only through the gated tool surface; and `SC-S3-33`/`SC-S3-34` are a required carve-out
 sitting in the drift component's own store under `CMP-S4-17`.
 
+**One upstream disagreement surfaced while writing this and is routed rather than resolved.**
+`DR-C10-S6-1`'s headline reads "the MCP core is the exclusive writer of **all 45** categories",
+while the republished matrix assigns `SC-S3-33`/`SC-S3-34` to `CMP-S4-17` (`10_…md:741`–`:742`)
+and calls `CMP-S4-17` that cache's "only writer" (`:227`). This chapter takes the **matrix**
+reading — later, republished, validated — and files the conflict as **`F-S10-6`**, routed to
+**SUB-6 (NEU-976)**. The carve-out itself does not depend on the answer, because `08_…md` §8.6's
+prohibition holds under either reading; what depends on it is one ground of the reversal argument,
+and `DR-C10-S10-1` states that dependency and its contingency in full rather than resting on it
+silently.
+
 ### 5.2 The decisive criterion
 
 Seven rows require an atomic commit spanning **more than one state category** — `SC-S3-3` (with
@@ -201,8 +211,9 @@ Three notes the table cannot carry:
   that is recorded here rather than glossed.
 - **`SC-S3-41` arrives with an unmet precondition.** Its stated reason for existing includes a
   named deletion owner. `CAP-S4-1` records that no component in the published model can be the
-  operational logs' deletion owner, and that cap is **open at its seventh sighting and is not
-  closed here**. Whether `SC-S3-41`'s own owner is assignable when `SC-S3-16`/`SC-S3-17`'s is not
+  operational logs' deletion owner, and that cap is **open at its eighth sighting — this one — and
+  is not closed here**. `../91_…md` §`CAP-S4-1` records SUB-9's as the seventh (SUB-3, SUB-4,
+  SUB-6, SUB-13, SUB-14, SUB-16, SUB-9); this pass is the next. Whether `SC-S3-41`'s own owner is assignable when `SC-S3-16`/`SC-S3-17`'s is not
   is **not settled by a store decision**, and no claim either way is made. The destination is
   supplied; the precondition is not.
 - **`SC-S3-45` is unblocked in one sense and not another.** The store supplies its destination, but
@@ -269,7 +280,9 @@ git clean -fd
 ```
 
 The host holds a clone and fetches into it. The **conclusion** survives — the clone is of a
-*private* repository, so no public-repository requirement arises — but the argument now rests on
+*private* repository **under charter assumption 32, which this sub-task consumes and does not
+verify** (repository visibility is a platform fact, not readable in the repository) — so no
+public-repository requirement arises; but the argument now rests on
 the repository's **visibility** rather than on the host never seeing it, which is a weaker and
 differently-conditioned premise. Filed as **`F-S10-1`** and routed to SUB-9, which is merged; this
 follows the accepted `F5.7` residual pattern. Accepted warning **`F5.8`** is thereby answered:
@@ -430,9 +443,13 @@ dimensions — and carries no course vocabulary. The classifier's verdict fields
 
 **Answer: adopt-external for the runtime substrate; reuse-from-core for logging, audit and events.**
 
-- **Adopt-external, and already true:** a container runtime plus the host's own supervision,
-  driven by `docker compose up -d --build` from an off-repo compose directory. This record confirms
-  the shape rather than selecting a product, and writes no compose file, Dockerfile or IaC.
+- **Adopt-external.** A container runtime driven by `docker compose up -d --build` from an off-repo
+  compose directory — **that half is already true and readable** (`.github/workflows/cd-prod.yml`).
+  The **supervision** half is *not*: which supervisor restarts a died process is an off-repo fact
+  `CAP-S10-3` records as not discoverable, the same cap §9 fact 10 routes the instance count to.
+  It is named here as an adopted component whose identity is unknown, **not** as something
+  confirmed. This record confirms the shape rather than selecting a product, and writes no compose
+  file, Dockerfile or IaC.
 - **Reuse-from-core:** the Pino logger (`src/shared/logger.ts`) with its redaction list and
   `AsyncLocalStorage` correlation-id propagation, and the Postgres audit and event transports.
 - **Inherited obligation.** The audit path carries `F-S8-1`'s **49 audit entries** across the
@@ -505,11 +522,15 @@ rollback path — are facts 10, 8, 1 and 7.
 | 5 | **No IaC** — no terraform, pulumi, ansible, helm or k8s | worktree-wide search, zero results | **Cannot be determined.** The second process's provisioning is unexpressed anywhere in the repository → `CAP-S10-1` |
 | 6 | **No reverse-proxy config** — no nginx, caddy, traefik or haproxy | worktree-wide search, zero results | **Cannot be determined.** A two-process shape needs a front door and the repository does not describe one → `CAP-S10-1` |
 | 7 | **No rollback step** anywhere | `.github/`, `scripts/`, zero matches | **Not operable today.** With fact 1, a bad migration is not revertible by the deploy path: the health poll fails and `exit 1` leaves the failed state in place. Writing one is a CI change, out of scope — so this is left visible, not repaired |
-| 8 | **Process-local in-memory state** — session transports and identity, rate-limit windows, the Tier-2 breaker, audit and event buffers; no Redis or shared store anywhere | `src/transport/http.ts:82`–`:83`; `rate-limit-middleware.ts:58`; `tier2-circuit-breaker.ts:68`–`:76`; `pg-audit-transport.ts:45`, `:48`–`:52`; `pg-event-transport.ts:15`–`:38` | **Operable at one instance per service; not operable under replication.** `F-S10-3` records the failure precisely: an unknown session gets `404`/`-32000` on POST and `400` on GET/DELETE |
+| 8 | **Process-local in-memory state** — session transports and identity, rate-limit windows, the Tier-2 breaker, audit and event buffers; no Redis or shared store anywhere | `src/transport/http.ts:82`–`:83`; `rate-limit-middleware.ts:58`; `tier2-circuit-breaker.ts:68`–`:76`; `pg-audit-transport.ts:45`, `:48`–`:52`; `pg-event-transport.ts:15`–`:38` | **Cannot be determined.** The state is process-local as a matter of repository fact, so the verdict turns entirely on the running instance count — which fact 10 records as not discoverable → `CAP-S10-3`. Conditionally: operable at one instance per service, **not** operable under replication, and `F-S10-3` records that failure precisely — an unknown session gets `404`/`-32000` on POST and `400` on GET/DELETE. The condition is stated rather than resolved because resolving it needs an off-repo fact |
 | 9 | **Non-probing `/health`**; no metrics exporter, no tracing SDK | `src/transport/http.ts:91`; worktree-wide search | **Not operable** as a readiness signal for a two-process shape. The deploy gate polls `docker inspect` for three consecutive healthy results, which reports process liveness, not dependency reachability. No endpoint is written here → `CAP-S10-1` |
 | 10 | **Single-instance VPS**, self-documented: one `secrets.VPS_HOST`, `docker compose ps -q app` expects one container, and `.env.example:79`–`:81` states the assumption in prose | `.github/workflows/cd-prod.yml`; `.env.example:79`–`:81` | **Cannot be determined.** The actual running instance count and the process supervisor are not discoverable from the repository. Every §5.5 resolution and alternative-3 rejection rests on this → `CAP-S10-3` |
 
-**Summary: 3 operable, 2 not operable today, 5 cannot be determined.** The two *not operable*
+**Summary: 3 operable (facts 1, 2, 4), 2 not operable today (facts 7, 9), 5 cannot be determined
+(facts 3, 5, 6, 8, 10).** The buckets are named so the count is checkable against the table rather
+than taken on trust; every verdict cell carries exactly one of the three labels, and fact 8's
+conditional sub-result is stated inside its *cannot be determined* verdict rather than standing as
+a fourth category. The two *not operable*
 verdicts (facts 7 and 9) are real incompatibilities between the selected shape and the repository
 as it stands, and neither is repaired here because repairing either is a CI or source change this
 sub-task places out of scope. They are recorded so an implementation charter meets them as stated

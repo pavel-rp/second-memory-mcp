@@ -19,8 +19,13 @@ Five clauses are part of the decision and not commentary:
    proxy, and not a primary with a read replica handed to a second consumer. A single instance,
    one connection pool (`src/infrastructure/db/client.ts:5`, `max: 4`).
 2. **One credential holder for that store.** The MCP core process. This is the clause `M-A`
-   actually rests on: under `DR-C10-S6-1` every state category's authority is the MCP core, and a
+   actually rests on: under the republished matrix the MCP core is the authority for all 43
+   core-authority categories — every category except `SC-S3-33` and `SC-S3-34` (clause 5) — and a
    second credential holder would be a second writer regardless of what it intended to write.
+   **The "43" is the republished matrix's count, not `DR-C10-S6-1`'s headline**, and the two
+   disagree; `F-S10-6` records the disagreement and routes it to SUB-6 rather than resolving it
+   here. Clause 2 is stated against the matrix because that is the later, validated, republished
+   artifact — see the reading note below.
 3. **Two schemas, not two stores.** `public` and `infrastructure` are namespaces inside the one
    instance. The audit and event transports already resolve `AUDIT_DATABASE_URL ?? DATABASE_URL`
    to the same database through a distinct pool object; that is one store with two pools, and this
@@ -110,8 +115,22 @@ ask whether that is `R1` arriving by another door. It is not, on three independe
    second credential holder on the *shared production Postgres*. `CMP-S4-17` holds a credential to
    its own store and none to the clause-1 store, so the shared store still has exactly one writer.
 3. **It is not "a separate store for MCP core state"** — §5.2's fourth row, the one marked "not
-   evaluated". These two categories are not MCP core state under `DR-C10-S6-1`; they are the only
+   evaluated". Under the **republished authority matrix** (`../10_…md:741`–`:742`) these two
+   categories are not MCP core state: their authority is `CMP-S4-17`, and they are the only
    inventoried rows whose authority sits elsewhere.
+
+   **This ground, and only this one, depends on which upstream reading governs — so the dependency
+   is stated rather than buried.** `DR-C10-S6-1`'s headline reads "the MCP core is the exclusive
+   writer of **all 45** categories"; the republished matrix assigns `SC-S3-33`/`SC-S3-34` to
+   `CMP-S4-17` and `../10_…md:227` calls `CMP-S4-17` that cache's "**only writer**". Both cannot
+   hold. This record takes the matrix, because `../10_…md` is the later artifact, is the
+   *republished* one, and passed SUB-14's validation and SUB-16's disposition — and because
+   `../00_…md`'s constraint routes a conflict of this kind to the matrix's owner rather than to
+   local resolution. **If SUB-6 reconciles it the other way** — that is, if the headline governs and
+   33/34 are MCP core state after all — **then §5.2 row 4 fires, this ground fails, and the
+   store-reversal check must be re-run for the carve-out.** Grounds 1 and 2 are unaffected either
+   way, so the *reversal* conclusion survives; what would change is the routing obligation. The
+   disagreement is filed as `F-S10-6`, routed to **SUB-6 (NEU-976)**, and is **not** resolved here.
 
 The carve-out is also not this record's invention. `../08_…md` §8.6 already places both rows in the
 drift component's own deployment and states the prohibition; clause 5 records that the store
