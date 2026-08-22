@@ -511,7 +511,16 @@ The decision is recorded as **`DR-C10-S9-1`**.
 
 ### 6.1 What the warning is
 
-`03_review-log.md` § Accepted warnings carries **`F5.8`**: this sub-task runs thirteenth and scores
+The charter's review log carries **`F5.8`** as an accepted warning. That log lives at
+`_local/C010__select-the-system-and-repository-architecture/03_review-log.md` § Accepted warnings and is
+**gitignored**, so no reader of this published package can open it — which is why the warning is restated
+here **in full** rather than cited and left behind, exactly as `SPK-S9-1` states its result in full
+because its scratch tree is unopenable. (The bare form `03_review-log.md` would misdirect: the `03_`
+sibling in *this* folder is `03_execution-environment-and-citation-drift-component.md`, a different
+document entirely.) The published, on-branch restatement of the same warning is `OI-S9-4` in
+`90_open-items-and-provisional-register.md`.
+
+**`F5.8`, in full:** this sub-task runs thirteenth and scores
 three of its criteria — **deployment (`K6`), observability (`K7`) and release (`K9`)** — while the
 deployment shape those scores are conditioned on is decided **afterwards**, by SUB-10 (NEU-984,
 fourteenth). Unlike the runtime/topology coupling, **this one cannot be repaired by reordering, because
@@ -664,12 +673,12 @@ to it.
 
 | Fact | Charter assumption 16 | **Measured at `0962279`** | |
 | --- | --- | --- | --- |
-| `pnpm-workspace.yaml` `packages:` key | absent | **absent** (file carries only `onlyBuiltDependencies: [esbuild]`) | ✔ matches |
-| `apps/`, `packages/`, web directory | none | **none** (root holds `_local/`, `content/`, `docs/`, `drizzle/`, `scripts/`, `src/`, `tests/`) | ✔ matches |
+| `pnpm-workspace.yaml` `packages:` key | absent | **absent** (file carries only `onlyBuiltDependencies: [esbuild]`) | matches |
+| `apps/`, `packages/`, web directory | none | **none** (root holds `_local/`, `content/`, `docs/`, `drizzle/`, `scripts/`, `src/`, `tests/`) | matches |
 | TypeScript source files under `src/` | 165 | **169** | **differs** — `F-S9-2` |
 | Source lines under `src/` | ~25,200 | **26,816** | **differs** — `F-S9-2` |
 | Test files under `tests/` | 197 | **202** | **differs** — `F-S9-2` |
-| Drizzle migrations | 25 | **25** | ✔ matches |
+| Drizzle migrations | 25 | **25** | matches |
 
 **The steps.** Each names *what must become true*; none specifies the configuration that would make it
 true, because build tooling and package-manager configuration **fail the architecture-material rule**
@@ -843,6 +852,7 @@ spike.
 | `OI-S9-4` | open item | SUB-10 must check its shape against §6.4's reversal condition. |
 | `CAP-S9-1` | cap | Split-visibility release-pipeline operability by one maintainer is not settled here. |
 | `SPK-S9-1` | spike | Package-consumption and local-development resolution, five variants. |
+| `DS-1` | assumption | The deployment-shape assumption the `K6`, `K7` and `K9` scores rest on (§6.3). Declared here, not registered elsewhere: it is neither a stand-in (`93_…md` is closed) nor an open item in its own right — the **check** it implies is `OI-S9-4`. Listed so `SUB-11`'s mechanical audit finds no id in this chapter's prose that is missing from its ledger. |
 | `DR-C10-S9-1` | decision record | The repository topology decision. |
 
 **No finding is routed to SUB-15** (§3.4). **No amendment is routed to NEU-850** (§7.2). **No entry is
