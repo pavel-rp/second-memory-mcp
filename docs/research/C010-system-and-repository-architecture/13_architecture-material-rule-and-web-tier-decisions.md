@@ -296,7 +296,11 @@ plus six builtins (`node:async_hooks`, `node:crypto`, `node:fs`, `node:module`, 
 **The consequence is the opposite of the intuitive one, and it is why `F-S15-1` exists.** The domain
 layer's portability means *any* modern JavaScript runtime could execute it. **Code reuse therefore
 cannot carry the runtime decision** — it does not select Node. §6 argues the runtime on something
-else. Full record, including the method's disclosed limits: `SPK-S15-1` in `../92_spike-register.md`.
+else. Full record, including the method's disclosed limits: `SPK-S15-1` in `../92_spike-register.md`,
+which carries **expiry 2027-04-30**. Per `00_…md` §2.6 this section inherits that expiry: after that
+date the portability measurement is historical, and `F-S15-1`'s refutation of the reuse argument must
+be re-run or re-labelled. The runtime decision itself does not expire with it — §6 rests on
+contract-sharing reach, not on portability.
 
 ### 5.4 The web tier consumes the core over the tool surface, not as a library
 
@@ -726,7 +730,8 @@ serially and asserting consistency afterwards would have concealed that.
 - **`F-S7-1` / `F-S7-2`** — the two unmatched inventory items remain SUB-13's; **`OI-S15-1`** records
   that the read surface's shape moves if they are dispositioned by adding a category.
 - **Whether the web tier keeps a server-side web-session store** — classified architecture-material
-  at §4.4 and **routed**, not decided.
+  at §4.4 and **routed**, not decided; filed as **`OI-S15-2`**, owner `SUB-6 (NEU-976)` for the
+  `BND-S4-16` limb, co-named `SUB-13 (NEU-977)` for the `SC-S3-43` authority limb.
 - **Library-level reuse of the core** — §6.6 permits the runtime that makes it available and
   explicitly does not authorise it.
 
@@ -737,6 +742,14 @@ model. §8's argument runs on `DR-C10-S4-3`'s stale-or-absent operating mode, on
 as envelope constraints traceable to `A-27`'s invalidating outcome, and on `A-27`'s tolerance
 envelope. **The trust property appears in this chapter only as a consumed constraint and never as a
 premise of the rendering selection.**
+
+**The two remaining citations of `05_…md` §6.2 point 3 are checked explicitly, since `R-5` is about
+*use* rather than about mention.** §5.7 cites it when listing the constraints this chapter consumes,
+and §11.4 cites it as the reason the rendering spike candidate was **withdrawn** — that is, as
+evidence that the question was already answered by reading. Neither citation argues for or against a
+rendering model; the first records an inherited constraint and the second explains a
+non-measurement. **`R-5` is satisfied at both sites**, and they are named here so a reader auditing
+compliance does not have to decide for themselves whether a mention is a use.
 
 ### 11.4 The spike candidate withdrawn under the "could this have been read instead?" test
 
