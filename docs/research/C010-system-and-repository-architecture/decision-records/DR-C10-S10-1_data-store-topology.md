@@ -138,6 +138,15 @@ ask whether that is `R1` arriving by another door. It is not, on three independe
    clause is not what carries ground 1; the absence of the web tier is. The
    disagreement is filed as `F-S10-6`, routed to **SUB-6 (NEU-976)**, and is **not** resolved here.
 
+   **Resolved by `DR-C10-N987-1` (NEU-987) — this record's contingency does not fire.** The two
+   readings were never in conflict of fact: `DR-C10-S6-1`'s headline quantifies over **deployment
+   tiers**, not components, and `CMP-S4-17` is on the operator's server side (`../05_…md` §3.1, zone
+   `Z-CONT`), so the matrix reading and the headline are both true. **The matrix governs, exactly as
+   this record assumed** — `SC-S3-33`/`SC-S3-34` → `CMP-S4-17`. Therefore §5.2 row 4 does **not**
+   fire, ground 3 stands as written, and the store-reversal check does **not** need re-running. The
+   choice this record made under uncertainty was the correct one, and the routing obligation it
+   flagged is discharged. **Nothing in this record is amended beyond this note.**
+
 The carve-out is also not this record's invention. `../08_…md` §8.6 already places both rows in the
 drift component's own deployment and states the prohibition; clause 5 records that the store
 decision **honours** an existing constraint rather than overriding it. Had the decision instead
