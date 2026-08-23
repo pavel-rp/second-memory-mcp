@@ -496,6 +496,10 @@ Status: `existing`.
 **Authority: `CMP-S4-9`**, written through `CMP-S4-19`.
 **Clause 5** — `Learner-scoped: question — open`; the `data` payload column is potentially learner
 payload. Status: `existing`.
+**Ratified by `DR-C10-N987-1`** (NEU-987, resolving `F-S14-8` / `F-S16-4`): `CMP-S4-9` is the single
+writer and `CMP-S4-19` is the issuing write path, never a second authority. The `05_…md` residue that
+named `CMP-S4-19` as the authority has been amended to match this row. **This row is unchanged** —
+see `decision-records/DR-C10-N987-1_state-writer-adjudication.md`.
 
 | Attribute | Value |
 | --- | --- |
@@ -830,6 +834,11 @@ both are deliberate:
 **Authority: `CMP-S4-17`** (citation-drift verdict producer). Held by `CMP-S4-18` (the drift-verdict cache).
 **Clause 2 matched, resolved by tie-break (c)** — see the note below. Status: `required-by-upstream`.
 `Derived: yes`, from `SC-S3-34`. `Learner-scoped: no`. **One of the three rows that close `OI-S2-2`.**
+**Ratified by `DR-C10-N987-1`** (NEU-987, resolving `F-S16-4`'s drift-cache half): `CMP-S4-17` is the
+single writer and `CMP-S4-18` is the holder. `05_…md`'s `FL-S4-14`, which named `CMP-S4-18` for the
+stored verdict, has been amended to match this row. **This row is unchanged**, and `F-S13-1`'s
+tie-break disclosure is **not** closed by that ratification — see
+`decision-records/DR-C10-N987-1_state-writer-adjudication.md`.
 
 **Why this row needed a tie-break.** §6's lookup places `SC-S3-33` in a gate path — `05_…md` §7.3's
 four-row disposition reads the cache on every content serve — so clause 2 matches. But clause 2's named
@@ -865,6 +874,11 @@ having held two.
 
 **Authority: `CMP-S4-17`**. **Clause 6 matched, resolved by tie-break (c)** — see `F-S13-1`.
 Status: `required-by-upstream`. `Learner-scoped: no`. **One of the three rows that close `OI-S2-2`.**
+**Ratified by `DR-C10-N987-1`** (NEU-987, resolving `F-S10-6`): `CMP-S4-17` is the single writer. The
+finding was a quantifier-scope conflict, not a conflict of fact — `DR-C10-S6-1`'s "exclusive writer of
+all 45 categories" ranges over deployment **tiers**, and `CMP-S4-17` is inside the operator's MCP
+core, so this assignment never contradicted it. **This row is unchanged** — see
+`decision-records/DR-C10-N987-1_state-writer-adjudication.md`.
 
 Clause 2 does **not** match: §6's lookup places `SC-S3-33`, not `SC-S3-34`, in a gate path — the serve
 path reads the cache, never the producer's store. Clauses 3, 4 and 5 do not match either, so clause 6's

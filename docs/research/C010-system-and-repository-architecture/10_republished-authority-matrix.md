@@ -374,6 +374,12 @@ unreconciled is concrete and is why it is recorded rather than dropped: a reader
 face value would conclude the cache may be written by whoever holds it — **exactly the property
 `FL-S4-13`'s single-writer rule exists to deny.**
 
+**Closed by `DR-C10-N987-1`** (NEU-987). The direction named here was the right one and is ratified
+unchanged; what this section lacked was the authority to act on it. `FL-S4-14` has now been amended
+to name `CMP-S4-17` for the stored verdict with `CMP-S4-18` as holder, so the reader-facing hazard
+described in the paragraph above no longer exists. **Nothing in this section is retracted** — it is
+preserved as the record of when the outlier was found and on what evidence.
+
 ### 5.6 `F-S14-10` — the gate verdict: the matrix is ahead, and `05_…md` stays as written
 
 `FL-S4-16` records the gate-verdict authority as **"Undetermined"**, citing `OI-S2-2` as open and owned
@@ -500,6 +506,11 @@ is potentially learner payload). **Clause 2 was re-tested and does not match**: 
 gate-bearing would be a fresh judgement layered on the rule, which this pass may not make.
 **Status: `existing`** — unchanged.
 **Revision basis: `07_…md` §6.1 clause 5. Revised attributes: Writes, Consistency, Observability.**
+**Ratified by `DR-C10-N987-1`** (NEU-987): this row's reading — `CMP-S4-9` the authority, `CMP-S4-19`
+a `W` annotation and never a second authority — is the one adopted package-wide. The `05_…md` residue
+§6.3 declined to repair has now been amended to match, under the amend authority §6.3 correctly
+observed no sub-task held. **This row is unchanged** — see
+`decision-records/DR-C10-N987-1_state-writer-adjudication.md`.
 
 | Attribute | Value |
 | --- | --- |
@@ -561,6 +572,19 @@ exists independently of the matrix.
 side is silently reconciled**. `F-S16-4` carries the three that leave a residue in `05_…md`
 (`FL-S4-8`/`FL-S4-9` vs `FL-S4-20`; `FL-S4-14` vs `FL-S4-13`; `FL-S4-16`'s staleness); `F-S14-6` and
 `F-S14-11` leave none, because §5.1 and §3.2 close them by publication.
+
+**Residue closed by `DR-C10-N987-1`** (NEU-987). Point 3 above is the exact hinge: *"assigns ownership
+of the outcome, not a licence."* NEU-987 supplies the licence this pass correctly refused to assume,
+so the `05_…md` residue named in the "What is edited" row has now been repaired — `FL-S4-8`,
+`FL-S4-9`, `FL-S4-14`, the two §7 walkthrough rows, and §3.2's `CMP-S4-9`/`CMP-S4-19` responsibility
+cells. The `05_…md` line of that row therefore no longer holds from that commit forward; **`08_…md`
+and `09_…md` remain byte-identical**, and every value in this chapter is unchanged.
+
+Point 1's objection was **accepted, not overridden**: each amended cell in `05_…md` discloses what it
+previously said and points back to this section, so the record of which artifact was written first
+and on what evidence survives the repair. `FL-S4-16`'s staleness is **not** closed — it turns on the
+still-open `OI-S2-2`, which is an unanswered question rather than a contradiction, and stays with
+`F-S16-4`.
 
 ### 6.4 Rows carrying a disposition note but **no** revision
 
