@@ -374,6 +374,12 @@ unreconciled is concrete and is why it is recorded rather than dropped: a reader
 face value would conclude the cache may be written by whoever holds it — **exactly the property
 `FL-S4-13`'s single-writer rule exists to deny.**
 
+**Closed by `DR-C10-N987-1`** (NEU-987). The direction named here was the right one and is ratified
+unchanged; what this section lacked was the authority to act on it. `FL-S4-14` has now been amended
+to name `CMP-S4-17` for the stored verdict with `CMP-S4-18` as holder, so the reader-facing hazard
+described in the paragraph above no longer exists. **Nothing in this section is retracted** — it is
+preserved as the record of when the outlier was found and on what evidence.
+
 ### 5.6 `F-S14-10` — the gate verdict: the matrix is ahead, and `05_…md` stays as written
 
 `FL-S4-16` records the gate-verdict authority as **"Undetermined"**, citing `OI-S2-2` as open and owned
@@ -500,6 +506,11 @@ is potentially learner payload). **Clause 2 was re-tested and does not match**: 
 gate-bearing would be a fresh judgement layered on the rule, which this pass may not make.
 **Status: `existing`** — unchanged.
 **Revision basis: `07_…md` §6.1 clause 5. Revised attributes: Writes, Consistency, Observability.**
+**Ratified by `DR-C10-N987-1`** (NEU-987): this row's reading — `CMP-S4-9` the authority, `CMP-S4-19`
+a `W` annotation and never a second authority — is the one adopted package-wide. The `05_…md` residue
+§6.3 declined to repair has now been amended to match, under the amend authority §6.3 correctly
+observed no sub-task held. **This row is unchanged** — see
+`decision-records/DR-C10-N987-1_state-writer-adjudication.md`.
 
 | Attribute | Value |
 | --- | --- |
@@ -561,6 +572,19 @@ exists independently of the matrix.
 side is silently reconciled**. `F-S16-4` carries the three that leave a residue in `05_…md`
 (`FL-S4-8`/`FL-S4-9` vs `FL-S4-20`; `FL-S4-14` vs `FL-S4-13`; `FL-S4-16`'s staleness); `F-S14-6` and
 `F-S14-11` leave none, because §5.1 and §3.2 close them by publication.
+
+**Residue closed by `DR-C10-N987-1`** (NEU-987). Point 3 above is the exact hinge: *"assigns ownership
+of the outcome, not a licence."* NEU-987 supplies the licence this pass correctly refused to assume,
+so the `05_…md` residue named in the "What is edited" row has now been repaired — `FL-S4-8`,
+`FL-S4-9`, `FL-S4-14`, the two §7 walkthrough rows, and §3.2's `CMP-S4-9`/`CMP-S4-19` responsibility
+cells. The `05_…md` line of that row therefore no longer holds from that commit forward; **`08_…md`
+and `09_…md` remain byte-identical**, and every value in this chapter is unchanged.
+
+Point 1's objection was **accepted, not overridden**: each amended cell in `05_…md` discloses what it
+previously said and points back to this section, so the record of which artifact was written first
+and on what evidence survives the repair. `FL-S4-16`'s staleness is **not** closed — it turns on the
+still-open `OI-S2-2`, which is an unanswered question rather than a contradiction, and stays with
+`F-S16-4`.
 
 ### 6.4 Rows carrying a disposition note but **no** revision
 
@@ -853,10 +877,10 @@ finding out later. **Nothing here is published as if settled.**
 | `SC-S3-42` | **Divergence outcome UNDEFINED.** Whether hint usage taints a mastery judgement is undecided by every merged input, and the two candidate resolutions give **opposite** mastery verdicts. `A-25`'s tolerance envelope contains no point that resolves it. | `F-S14-4` | **NEU-891** |
 | `SC-S3-31` | **Conflicting-write outcome UNDEFINED.** Aggregate-vs-append is a store-shape decision no merged artifact makes; the two shapes give opposite concurrency obligations. NEU-890's durability property survives either (`09_…md` §13.2), so the indeterminacy does **not** propagate to `SC-S3-38`/`SC-S3-39`. | `F-S14-5` | **SUB-10 (NEU-984)** |
 | `SC-S3-16`, `SC-S3-17` | **No component can be named the deletion owner** — neither table has a principal field, so there is nobody to delete *for*. The obstruction is **structural**. Write authority is assigned (§6); deletion ownership is not, and **is not the same question**. | **`CAP-S4-1` — structural; cited here, and NOT closed** | **SUB-4 (NEU-974)** |
-| `SC-S3-16`, `SC-S3-17` | `05_…md` §5 carries `FL-S4-8`/`FL-S4-9` against `FL-S4-20` about these two categories — a contradiction **internal to a merged document**. Direction named and dispositioned (§6.3); the `05_…md` residue is not repaired. | `F-S14-8` → `F-S16-4` | **SUB-4 (NEU-974)**; consumer **SUB-11 (NEU-985)** |
+| `SC-S3-16`, `SC-S3-17` | ~~`05_…md` §5 carries `FL-S4-8`/`FL-S4-9` against `FL-S4-20` about these two categories — a contradiction **internal to a merged document**. Direction named and dispositioned (§6.3); the `05_…md` residue is not repaired.~~ **Closed by `DR-C10-N987-1` (NEU-987).** The direction named in §6.3 was ratified and the `05_…md` residue repaired under NEU-987's amend authority; `FL-S4-8`/`FL-S4-9` now read `CMP-S4-9`, issued through `CMP-S4-19`. **No authority in this chapter moved.** | `F-S14-8` → `F-S16-4` — **resolved**, see `02_findings-register.md` §NEU-987 | **was SUB-4 (NEU-974)**; discharged by NEU-987 |
 | `SC-S3-16`, `SC-S3-17` | Retention: no policy, and the gap has **no owner** — stated as an open gap rather than assigned to a party that has not accepted it. | `F-S3-3` (SUB-3's, unclosed) | **unowned** — routed to **SUB-12 (NEU-986)** at the gate to assign or record |
 | `SC-S3-19`, `SC-S3-20` | **`fails-transport` under both censuses.** STDIO has no identity gate; `BND-S4-17` is a trust boundary whose owner is **`nobody`**. Not repairable by changing an authority — `F-S5-4` is explicit that the binding constraint is the transport. | transport residue; `BND-S4-17` | **NEU-893** |
-| `SC-S3-33` | Assigned on clause 2 via **tie-break (c)** under a disclosed narrow reading of tie-break (b); SUB-13 routed the reading to SUB-6 and it is unanswered. `FL-S4-14` remains the outlier against `FL-S4-13` in `05_…md`. | `F-S13-1` (SUB-13's, unclosed); `F-S14-9` → `F-S16-4` | **SUB-6 (NEU-976)** |
+| `SC-S3-33` | Assigned on clause 2 via **tie-break (c)** under a disclosed narrow reading of tie-break (b); SUB-13 routed the reading to SUB-6 and it is unanswered — **this half stays open**. ~~`FL-S4-14` remains the outlier against `FL-S4-13` in `05_…md`.~~ **The outlier half is closed by `DR-C10-N987-1` (NEU-987):** `FL-S4-14` now reads `CMP-S4-17` for the stored verdict, agreeing with `FL-S4-13`. The authority was already `CMP-S4-17` on every surface and did not move, so closing the outlier does **not** discharge `F-S13-1`, which is about *how* the clause reached that authority. | `F-S13-1` (SUB-13's, **still unclosed**); `F-S14-9` → `F-S16-4` — **outlier half resolved**, see `02_findings-register.md` §NEU-987 | **SUB-6 (NEU-976)** for `F-S13-1` |
 | `SC-S3-35` | `05_…md` §5 `FL-S4-16` still reads *"Undetermined"* for a question this matrix resolved. Direction **matrix → flow**; `05_…md` not amended. | `F-S14-10` → `F-S16-4` | **SUB-4 (NEU-974)** |
 | **The 14 Census-B `fails-confinement` rows** — Census B's 15 **less** `SC-S3-45` | **Confinement residue**: no enumerated access-path set exists, so `I3` cannot return `holds`. Not a defect in any row's authority. The fifteenth (`SC-S3-45`) is `F-S14-3`'s and belongs to SUB-6, **not** to SUB-8. | `06_…md` §3.4.1; `09_…md` §15.2 | **SUB-8 (NEU-981)** |
 | **The 15 portless rows** — `SC-S3-16`, `SC-S3-17`, and the 13 clause-1 rows `SC-S3-18`…`SC-S3-30` | `I3`'s *"at or below the port boundary"* is **unaskable as written** where no port mediates the category. Read purposively; **the ruling is disclosed, not made silently**, and moves no verdict under either reading. | `F-S14-1`; `OI-S5-1` | **SUB-5 (NEU-975) / NEU-893** |
