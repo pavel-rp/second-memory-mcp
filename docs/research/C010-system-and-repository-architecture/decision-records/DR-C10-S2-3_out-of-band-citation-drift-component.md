@@ -56,9 +56,9 @@ The criteria, weighted **before** the scoring:
 
 ## Evidence
 
-- `../C009-course-content-quality/09_enforceable-quality-system.md:103`, `:461`, `:468`–`:473` (NEU-890, compiled 2026-08-10) — the serve-time gate rule; exactly one serve-time gate; `G-DRIFT`'s cached-asynchronous admission and the quarantine disposition.
-- `../C009-course-content-quality/10_citation-drift-detection-and-revalidation.md` (NEU-890, compiled 2026-08-11) — `:52`–`:62` the five signals; `:68`–`:72` the residual clause and `retracted-input`; `:90`, `:96` the inherited access path; `:103`, `:105` one request, never a corpus walk; `:118` `verdict stale`; `:126` the single retained tuple; `:161` the cached-verdict rule; `:165` the 90-day window, declared not measured; `:180` the zero budget; `:221` stale is not fresh; `:229`–`:234` the detection-to-state table; `:318` `EQ-S10-9`.
-- `../C009-course-content-quality/03_problem-citation-verification-and-access-paths.md:52`, `:183` — the permitted stored field set, *"Never widened locally"*, and `CH-F5-1` unresolved at that cutoff.
+- `../../C009-course-content-quality/09_enforceable-quality-system.md:103`, `:461`, `:468`–`:473` (NEU-890, compiled 2026-08-10) — the serve-time gate rule; exactly one serve-time gate; `G-DRIFT`'s cached-asynchronous admission and the quarantine disposition.
+- `../../C009-course-content-quality/10_citation-drift-detection-and-revalidation.md` (NEU-890, compiled 2026-08-11) — `:52`–`:62` the five signals; `:68`–`:72` the residual clause and `retracted-input`; `:90`, `:96` the inherited access path; `:103`, `:105` one request, never a corpus walk; `:118` `verdict stale`; `:126` the single retained tuple; `:161` the cached-verdict rule; `:165` the 90-day window, declared not measured; `:180` the zero budget; `:221` stale is not fresh; `:229`–`:234` the detection-to-state table; `:318` `EQ-S10-9`.
+- `../../C009-course-content-quality/03_problem-citation-verification-and-access-paths.md:52`, `:183` — the permitted stored field set, *"Never widened locally"*, and `CH-F5-1` unresolved at that cutoff.
 - **Consumed, not derived:** the detection design, the window and the budget are NEU-890's SUB-10 (NEU-966)'s. This record adopts them and re-decides none.
 
 ## Revision trigger

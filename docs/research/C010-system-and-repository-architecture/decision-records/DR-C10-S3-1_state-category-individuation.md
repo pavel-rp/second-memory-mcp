@@ -12,7 +12,7 @@
 authority under `OUT-3`. Store, lifecycle and volatility are the discriminators used to decide that;
 where the test is ambiguous, the pieces are recorded as two categories, not one.**
 
-Concretely, `04_state-category-inventory.md` treats state as one category when **all four** of these
+Concretely, `../04_state-category-inventory.md` treats state as one category when **all four** of these
 agree — the writing component, the lifecycle/retention rule, the volatility class, and the store — and
 as two categories when **any one** of them differs in a way an ownership model could act on.
 

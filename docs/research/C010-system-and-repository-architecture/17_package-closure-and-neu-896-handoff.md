@@ -747,7 +747,7 @@ outcomes with no row anywhere, and they are the two this sub-task covers.
 | `92_spike-register.md` | **None.** | Stated rather than omitted, following SUB-8's and SUB-10's precedent. **No `SPK-S12-*` record is filed, and none should be:** every question this sub-task met was settled by reading a published artifact or is settled by no experiment at all. A spike must first fail the "could this have been read instead?" test (`92_…md` §2), and not one of this sub-task's questions does. The cold read is **not** a spike — it wrote and ran no code, produced no quarantined artifact, and has no expiry; it is a review, recorded at §2. |
 | `93_stand-in-assumption-register.md` | **None, and none is permitted.** | Closed at five entries. A sixth is itself a gate failure. It is read here as the reconciliation surface and is absent from this change entirely. |
 | `decision-records/` | **`DR-C10-S12-1`** (the gate method), **`DR-C10-S12-2`** (erratum versus convention) | Both carry all six required sections including rejected alternatives. |
-| `traceability/` | **`S12_package-closure-coverage.md`** | `OUT-11` and `OUT-12`. |
+| `traceability/` | **`traceability/S12_package-closure-coverage.md`** | `OUT-11` and `OUT-12`. |
 | `docs/GLOSSARY.md` | **4 rows added** | `state category`, `read-projection`, `write-intent`, `split-visibility workspace` — discharging `F-S11-6`. The only file this sub-task touches outside the package, and the only repair this gate performs. |
 
 **Deletions from any shared register: 0. Entries reflowed, renumbered or amended: 0. Merged sibling

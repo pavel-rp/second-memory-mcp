@@ -48,7 +48,7 @@ re-deciding it; it makes no claim about that decision's own support, which lives
 - **It is not the outcome-coverage audit.** `NEU-985 (SUB-11)` owns those rows in its own file; nothing
   here edits a sibling's traceability file, and this file makes no claim about any outcome other than
   `OUT-7` and `OUT-10`'s spike share for this sub-task.
-- **It is not a completeness judgement.** `94_package-completeness-gate.md` is `NEU-986 (SUB-12)`'s
+- **It is not a completeness judgement.** `../94_package-completeness-gate.md` is `NEU-986 (SUB-12)`'s
   alone and is untouched by this sub-task.
 - **No row is evidenced by a build, type-check or lint result.** Per `../00_method-and-provenance.md`
   §5, this is a documentation deliverable and those are no-regression checks, not evidence about

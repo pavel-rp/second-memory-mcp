@@ -2,7 +2,7 @@
 
 **Task:** NEU-982 (SUB-15) · **Charter:** C010 (umbrella NEU-895) · **Decided:** 2026-08-22 · **Verification cutoff:** `229e8f4`, 2026-08-22
 **Model:** claude-opus-5[1m]
-**Discharges:** part of `OUT-8` (`../01_outcome-register.md`) — the API's protocol style, published as `13_architecture-material-rule-and-web-tier-decisions.md` §7.
+**Discharges:** part of `OUT-8` (`../01_outcome-register.md`) — the API's protocol style, published as `../13_architecture-material-rule-and-web-tier-decisions.md` §7.
 
 ---
 

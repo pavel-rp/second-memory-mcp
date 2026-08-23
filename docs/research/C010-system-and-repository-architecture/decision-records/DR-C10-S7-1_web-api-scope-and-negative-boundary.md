@@ -2,7 +2,7 @@
 
 **Task:** NEU-980 (SUB-7) · **Charter:** C010 (umbrella NEU-895) · **Decided:** 2026-08-22 · **Verification cutoff:** 2026-08-22
 **Model:** claude-opus-5[1m]
-**Discharges:** part of `OUT-5` (`../01_outcome-register.md`) — the scope statement and the negative boundary that `11_web-api-scope-and-resource-inventory.md` publishes.
+**Discharges:** part of `OUT-5` (`../01_outcome-register.md`) — the scope statement and the negative boundary that `../11_web-api-scope-and-resource-inventory.md` publishes.
 
 ---
 
@@ -150,7 +150,7 @@ acceptance criterion asks for and why `../11_…md` §10.1 is a table rather tha
 5. **This decision cannot outlive a matrix revision.** Every authority in `../11_…md` is read off the
    `post-validation` revision. A later revision obliges a re-run of the cross-check, not a patch.
 6. **`M-A`'s known weakness is settled rather than deferred, and settled *against* reversal.**
-   `S6_state-ownership-model-selection.md` records that whether `M-A`'s `C7 = 2` — presentation state
+   `../traceability/S6_state-ownership-model-selection.md` records that whether `M-A`'s `C7 = 2` — presentation state
    forced through the MCP tool surface — is *"merely awkward or actually blocking is `SUB-7 (NEU-980)`'s
    to settle"*. `../11_…md` §13 settles it: **awkward, not blocking**, so `R3` is not established. The
    cost of that answer is that it inherits `A-27`'s `[unconfirmed]` status entirely.

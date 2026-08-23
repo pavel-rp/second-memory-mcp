@@ -296,7 +296,7 @@ plus six builtins (`node:async_hooks`, `node:crypto`, `node:fs`, `node:module`, 
 **The consequence is the opposite of the intuitive one, and it is why `F-S15-1` exists.** The domain
 layer's portability means *any* modern JavaScript runtime could execute it. **Code reuse therefore
 cannot carry the runtime decision** — it does not select Node. §6 argues the runtime on something
-else. Full record, including the method's disclosed limits: `SPK-S15-1` in `../92_spike-register.md`,
+else. Full record, including the method's disclosed limits: `SPK-S15-1` in `92_spike-register.md`,
 which carries **expiry 2027-04-30**. Per `00_…md` §2.6 this section inherits that expiry: after that
 date the portability measurement is historical, and `F-S15-1`'s refutation of the reuse argument must
 be re-run or re-labelled. The runtime decision itself does not expire with it — §6 rests on
@@ -768,7 +768,7 @@ that every gate evaluator sits behind `BND-S4-2` and none is *"reachable from th
 request"*, while §6.3 `R-1` forbids browser-side gate evaluation and `R-4` forbids the browser reading
 `CMP-S4-18`. The answer — **no; a gate-bearing read always requires a server round trip** — follows
 from the published component model by construction. A spike would have measured a question the package
-already answers. Disclosed here and in `../92_spike-register.md` rather than filed, following SUB-14's
+already answers. Disclosed here and in `92_spike-register.md` rather than filed, following SUB-14's
 precedent.
 
 **What was genuinely unsettleable by reading was a different question** — whether the domain layer's
