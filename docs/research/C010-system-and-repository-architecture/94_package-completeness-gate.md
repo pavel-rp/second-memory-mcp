@@ -319,3 +319,225 @@ The gate reads, at minimum:
 - **Not** promote its own work to passing. A producing task does not grade its own artifact; the cold-read review `OUT-12` requires is by an independent reader working only from the published package.
 - **Not** answer an item by citing `_local/` or `docs/wf-plans/`. A cold reader cannot open either.
 - **Not** renumber anything while reconciling. Merging duplicates is reconciliation; renumbering breaks every citation written against the namespaced ids.
+
+---
+
+## 7. Independent re-grade of the ten self-graded rows — NEU-990
+
+**Appended by:** NEU-990 · **Appended:** 2026-08-23 · **Model:** claude-opus-5[1m]
+**Cutoff:** `0425633` (`origin/develop`) — **not** SUB-12's `3352c00`. See §7.5.
+**Reasoning:** `decision-records/DR-C10-N990-1_independent-regrade-of-the-self-graded-rows.md`
+**Findings filed:** `F-N990-1` … `F-N990-4` (`02_findings-register.md` § NEU-990)
+
+§1.2 named the ten `†` rows the weakest evidence class in this package and instructed a converging
+reader to check them directly. SUB-12 named that re-grade as an open next action rather than
+performing it — correct handling, and not a substitute for the re-grade. **This section performs it.**
+
+**Nothing above this line is edited.** Every original disposition, every `†` marker and the
+`† count: 10 of 61` line stand exactly as SUB-12 wrote them. The delta between a self-grade and an
+independent grade is the evidence this section exists to produce, and overwriting the self-grade
+would destroy it.
+
+### 7.1 The isolation actually enforced — stated so it can be judged, not so it looks strong
+
+The reader was a **freshly-spawned agent inheriting none of this run's context** — deliberately not a
+context-inheriting fork, which would not be an independent reader at all. It was given the ten items'
+**wording** and §1.1's four-disposition rubric, and told to locate the evidence itself. It was
+**barred** from the repository source tree, `_local/`, `docs/wf-plans/`, `docs/GLOSSARY.md`, every
+`docs/` path outside this package, `git` in any form, the tracker, the web, and from spawning
+subagents of its own.
+
+**Blinding.** Because `94_…md` carries the very grades under review, the reader was barred from it for
+**Stage 1** — the nine rows gradable without it. `G-40` is a claim *about* this file and cannot be
+graded otherwise, so it was graded **last**, in a **Stage 2** with the nine Stage-1 verdicts already
+written and frozen.
+
+**Three leaks, all of them real:**
+
+1. **A staging slip, self-disclosed by the reader unprompted.** While probing `G-61` it ran a
+   corpus-wide case-insensitive grep for `qa` **without excluding `94_…md`**, and two lines of this
+   file came back — including `G-61`'s own row with its original disposition `pass †`. The reader
+   states its `G-61` reasoning was already assembled from some eighteen independent citations before
+   that grep ran, and that its verdict matched what it already held, but that it *cannot prove the
+   verdict was unanchored*. **`G-61` therefore carries a disclosed contamination risk; the other
+   eight Stage-1 rows do not.** It is recorded here rather than quietly re-run, because a re-grade
+   that concealed its own contamination would refute itself.
+2. **A structural leak the task design did not anticipate: this package cannot be used to blind-grade
+   itself.** `traceability/S12_package-closure-coverage.md` is a legitimate corpus file and it
+   republishes this gate's aggregate tally — 61 items, 40 / 15 / 5 / 1, *"Items marked passing
+   without a citation: 0"* — and names `G-3`, `G-41`, `G-52` as failing and four of the ten rows as
+   carrying `†`. Any reader given the published package therefore learns the shape of the answer
+   before grading a single row. Filed as **`F-N990-3`**.
+3. **Harness injection, not chosen and not preventable.** The reader's context received the
+   repository's own instruction files, an environment block naming a *different* working directory
+   with its git status and recent commit subjects, a tool listing of roughly 130 entries, an agent
+   listing and a skill listing. The reader reports that none of it carried C010 package content or
+   any gate disposition. This is the same class of leak SUB-12 disclosed at `17_…md` §2.3.
+
+**Weaker than SUB-12's pattern on one axis, stronger on another — stated rather than glossed.**
+`F-S12-2` records that SUB-12's cold reader was pointed at *"a filesystem copy holding only the 63
+published package files"*. **This reader was pointed at the package in place**, inside a live
+worktree, so the repository tree sat two directory levels away and every bar was **honoured rather
+than enforced**. Against that, this reader was **blinded to the dispositions under review**, which
+SUB-12's design had no need of. Isolation here is **by instruction over an unrestricted tool
+surface**. It is **strong but not hermetic**, exactly as SUB-12 said of its own, and the result is a
+**proxy signal** under `00_…md` §1.1 — not external validation.
+
+### 7.2 The ten rows: self-grade beside independent verdict
+
+| # | Self-grade (SUB-12) | Independent verdict | Delta | Re-disposition |
+| --- | --- | --- | --- | --- |
+| `G-38` `†` | **pass** | **pass-with-qualification** | **differs — harsher** | **Re-dispositioned to `pass-with-qualification`.** See §7.3. |
+| `G-39` `†` | **pass** | **pass** | confirmed | none |
+| `G-40` `†` | **pass** | **pass** | confirmed | none — see §7.4 for a post-hoc weakening |
+| `G-49` `†` | **pass** | **pass** | confirmed | none — but see `F-N990-4` |
+| `G-50` `†` | **pass** | **pass** | confirmed | none |
+| `G-51` `†` | **pass** | **pass** | confirmed | none |
+| `G-53` `†` | **pass-with-qualification** | **pass-with-qualification** | confirmed | none |
+| `G-59` `†` | **pass** | **pass** | confirmed | none |
+| `G-60` `†` | **pass-with-qualification** | **pass** | **differs — more lenient** | **None. The self-grade stands.** See §7.3. |
+| `G-61` `†` | **pass** | **pass** | confirmed (contaminated — §7.1) | none |
+
+**Delta: 2 of 10.** Eight rows confirmed at the self-graded disposition. One row is **downgraded**.
+One row the independent reader graded **more generously than SUB-12 graded itself**, and the
+self-grade is deliberately kept.
+
+**The calibration answer, since that is what this re-grade was commissioned to settle:** on this
+evidence SUB-12 was **not** systematically generous to itself. Eight of ten hold; the single
+divergence in the generous direction is one row, and the only other divergence runs the *other* way —
+SUB-12 graded itself more harshly than an independent reader would. The `†` disclosure was
+proportionate to the risk, and the risk was real but small. Filed as **`F-N990-1`**.
+
+### 7.3 The two divergences, and what was done about each
+
+**`G-38` — downgraded from `pass` to `pass-with-qualification`.** The item asks for *"the NEU-896
+handoff list reviewed for coverage against the assumptions table."* A review exists and is cited
+(`17_…md` §3), so the row is **not** capped — it is answered, and the shortfall is stated:
+
+- **An independently-authored artifact records that the check was never run.**
+  `traceability/S11_outcome-coverage-audit.md:65` states verbatim that this clause's third limb *"is
+  **not** run here; it is a review, not a mechanical check, and **no C010 sub-task performs it.**"*
+  SUB-12 then performed it — as the author of the list under review — and passed it.
+- **The tally it leans on audits the wrong artifact.** `16_…md` §4.1 audited `93_…md`'s **own fields**
+  (5/5 entries, 4 packages, 0 missing fields). That is not a review of the handoff list *against* the
+  register, which is what the item names.
+- **The restatement is lossy, and lossy in the narrowing direction.** Diffing `17_…md` §3 against
+  `93_…md` — the check the item actually asks for — two of five envelopes do not survive.
+  `A-25`'s envelope in `93_…md:66` tolerates the AI call *"**synchronous on a read path**, asynchronous
+  anywhere, or batched ahead of time"*; `17_…md` §3 restates it as *"asynchronously or once per
+  escalation"*, **dropping two of the three tolerated modes**. `A-26`'s envelope and invalidating
+  outcome are restated circularly — *"Any budget the stated envelope contains"* and *"A budget the
+  AI-placement decision's envelope cannot contain"* — where `93_…md:81` and `:83` state three concrete
+  limbs and a concrete invalidating outcome.
+
+**No cap is filed for this**, and the reason is the gate's own rule: the item is answered with a
+citation, so the correct disposition is the qualified pass, not an owned admission. **`93_…md`
+remains the authoritative register and is unharmed** — it is untouched by this task and by SUB-12's.
+What is defective is a *restatement* on the surface NEU-896 reconciles against, and that is a finding,
+not a scope limit. Filed as **`F-N990-2`**, handed to **`NEU-896`**. Repairing `17_…md` §3 in place is
+not open to this task for the reason `F-N987-1` states: routing a cross-chapter defect worked in this
+package and closing one never existed.
+
+**`G-60` — the independent verdict is `pass`; the self-grade `pass-with-qualification` is kept.** The
+reader's point is substantive rather than generous: `G-60`'s item names *"`NEU-985 (SUB-11)`'s
+mechanical audit results, consumed rather than re-run"*, and the qualification SUB-12 attached —
+`CAP-S12-5`, `NEU-983 (SUB-9)`'s unidentified verification `PARTIAL` — attaches to a **verification
+record in a gitignored tree**, which is not one of SUB-11's four mechanical audits. The reader found
+no re-run and no re-derived figure, and named `17_…md` §7.5's refusal to adjudicate `CAP-S4-1`'s
+sighting count as the strongest positive sign of consumption rather than re-measurement.
+
+**The disposition is nonetheless not upgraded.** Upgrading a row because an independent reader was
+*kinder* than its author is the one direction in which this exercise could manufacture an unevidenced
+pass, and `CAP-S12-5` is undisturbed either way — the reader disputes which row the cap attaches to,
+not that it stands. The lower of the two dispositions is kept and the divergence is recorded here.
+
+### 7.4 Where the evidence moved after this gate was written
+
+The re-grade reads the package at `0425633`, after three amendments SUB-12 could not have seen. Two
+bear on a `†` row and are recorded rather than absorbed:
+
+- **`G-40` is weakened after the fact by `F-N988-1`.** This row's passing claim rests in part on every
+  cap carrying *"one named owner"*. `NEU-988` established that `NEU-896` was marked `Done` at
+  `2026-08-22T09:11:58.531Z`, two milliseconds behind a *different* item, by an automated sweep — so
+  at the moment this gate published, **all five `CAP-S12-*` caps named an owner already in a terminal
+  state.** `F-N988-2` adds that only 16 of the register's 28 caps ever named `NEU-896`. The owner was
+  *named*; it was not *live*. Both states were restored by `NEU-988` without editing an owner line.
+  The row's structural property still holds as written, and the independent count confirms it — but a
+  reader converging this gate should read `G-40` together with `F-N988-1`.
+- **`G-53`'s independent confirmation is unaffected by `NEU-987` and `NEU-991`.** Neither the
+  state-writer adjudication nor `18_neu-982-ceremony-reverification.md` touches `01_…md`'s coverage or
+  the traceability set's resolution property.
+
+### 7.5 What the independent count actually reproduced, and what it could not
+
+Reproduced independently, from source rather than from this file's claims: **61 rows, `G-1` … `G-61`,
+no gaps and no duplicates**; Group A re-derived from `01_outcome-register.md`'s twelve "Verified by"
+clauses as **4, 3, 3, 4, 3, 5, 4, 3, 3, 3, 4, 3 = 42**, matching; dispositions counted at **40 / 15 /
+5 / 1 = 61**, matching §5 exactly; **every one of the 61 Evidence cells carries either a citation
+resolving in-package or a `CAP-S12-*` id with one named owner**; **rows marked passing with no
+citation: 0**, matching §5's claim; five caps, one owner each. For `G-53`, the reader independently
+resolved every `_local/` and `docs/wf-plans/` occurrence inside `traceability/` table rows — four of
+them, at `S2`, `S9`, `S10` and `S15` — and confirmed each is an **assertion that the tree is
+unreadable**, never a citation a reader must follow, reconciling with `16_…md` §4.1.
+
+Four things it could **not** determine, stated rather than smoothed over:
+
+1. Whether any `traceability/` row's citation is among `F-S11-1`'s 161 non-resolvers. The audit
+   publishes a per-owner tally only — which the reader summed to exactly 161 — and no per-file one.
+2. Whether §1's *"thirteen elements"* in the Group B derivation is right; the reader counts **twelve**
+   enumerated elements in `OUT-12`'s success measure. **This affects no row** and no count: Group B
+   still delivers ten items after the two documented de-duplications. Recorded as an observation, not
+   filed as a defect.
+3. Whether `16_…md` §4.1's package-wide *"54 lines name a gitignored tree"* is reproducible. A
+   present-day grep returns far more, and SUB-11's match pattern is not published, so the reader
+   verified the **property** rather than the count.
+4. Whether `18_neu-982-ceremony-reverification.md`'s primary source says what that chapter says it
+   says — its evidence root is a file inside a barred, gitignored tree. The chapter restates its
+   content in full and declares the durability rule it is written under, which is the correct
+   mitigation, but the claim is not verifiable from inside the published package.
+
+### 7.6 QA, and what this section did not do
+
+**`qa-execution:engine` and `qa-execution:host` are unconfigured in this repository.** The active
+capability registry was read mechanically during this task and holds exactly **`git`** and
+**`linear`**; neither owns the `qa-execution` surface. Under Core Article 8 that is a **genuine
+no-op**, not a skipped gate. **QA is NOT RUN, no QA report artifact exists, and no QA pass is claimed
+by this section, by this file, or anywhere in this package.** The audit capability is likewise
+unregistered, so the five verify lenses have no dispatch target and correctly did not run. Given that
+this section's entire subject is grading integrity, a fabricated gate result here would refute the
+section that contained it.
+
+Also stated plainly, because a re-grade's boundary is part of its result:
+
+- **It edited no original disposition, no `†` marker, and no merged sibling chapter.** Deletions from
+  this file: **0**.
+- **It re-graded only the ten `†` rows.** The other 51 are untouched and unreviewed by this task.
+- **It filed no cap**, because no divergence required one — the one downgrade is answered with a
+  citation, which is the gate's own evidence-backed form. `91_caps-and-incomplete-scope.md` is
+  therefore **absent from this change set**, stated rather than omitted.
+- **It added no stand-in assumption.** `93_…md` stays closed at five, `A-25` … `A-29`, and is absent
+  from this change set.
+- **It performed no package-wide citation sweep** — that is `NEU-989`'s, and a partial sweep here
+  would collide with it. Every citation *this section* writes resolves from this file's own directory.
+- **It renumbered, reflowed and re-sequenced nothing**, and introduced no global counter. New ids are
+  in the `N990` namespace, following the `N988` / `N987` precedent for a non-sub-task amender.
+
+### 7.7 The tally after the re-grade
+
+The original tally at §5 is **not** rewritten. This is the second tally, and the two are meant to be
+read together.
+
+| Disposition | §5 (SUB-12) | After re-grade | Change |
+| --- | --- | --- | --- |
+| **pass** | 40 | **39** | −1 (`G-38`) |
+| **pass-with-qualification** | 15 | **16** | +1 (`G-38`) |
+| **fail** | 5 | **5** | — |
+| **capped** | 1 | **1** | — |
+| **Total** | 61 | **61** | — |
+
+**Items answered with a citation resolving into `docs/research/`: 55** — unchanged; a downgrade from
+`pass` to `pass-with-qualification` moves a row between two *answered* classes and does not change how
+many items are answered. **Items marked passing without a citation: 0** — re-checked independently and
+confirmed. **Items not passing: 6** — unchanged; §5.1's table and its five caps stand exactly as
+written. **Independently re-graded: 10 of 61. Confirmed 8, downgraded 1, self-grade kept over a more
+lenient independent read 1.**
