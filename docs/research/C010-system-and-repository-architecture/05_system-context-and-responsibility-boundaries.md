@@ -244,7 +244,7 @@ Whether the web tier reaches Postgres directly is the ownership-model selection,
 | `FL-S4-11` | One sanctioned page request per citation | `CMP-S4-17` → `CMP-S4-12` | `BND-S4-3` | **`CMP-S4-17`** owns the request budget: exactly one call per citation, no corpus walk, no problem-statement text in any of the four inherited modes (`03_…` §5). |
 | `FL-S4-12` | Page response | `CMP-S4-12` → `CMP-S4-17` | `BND-S4-3` | **`CMP-S4-17`.** The response is evidence; the site is never authoritative for the verdict, and stored fields stay limited to `stable_id` + `canonical_url` while `CH-F5-1` is open. |
 | `FL-S4-13` | One verdict tuple | `CMP-S4-17` → `CMP-S4-18` | `BND-S4-10` | **`CMP-S4-17`** — the cache's **only** writer. |
-| `FL-S4-14` | Keyed verdict read (present / stale / absent) | `CMP-S4-16` → `CMP-S4-18` | `BND-S4-11` | **`CMP-S4-17`** for the stored verdict and its date — `CMP-S4-18` **holds** it and never writes it; **`CMP-S4-16`** for what to do about it (§7.3). *(Amended by NEU-987; this cell previously named **`CMP-S4-18`** for the stored verdict, which made it the outlier against `FL-S4-13` — "the cache's **only** writer" — in this same section. `10_…md` §5.5 named that direction without amending `05_…md`; the holder-versus-authority distinction it turns on is stated at `10_…md`:1383.)* |
+| `FL-S4-14` | Keyed verdict read (present / stale / absent) | `CMP-S4-16` → `CMP-S4-18` | `BND-S4-11` | **`CMP-S4-17`** for the stored verdict and its date — `CMP-S4-18` **holds** it and never writes it; **`CMP-S4-16`** for what to do about it (§7.3). *(Amended by NEU-987; this cell previously named **`CMP-S4-18`** for the stored verdict, which made it the outlier against `FL-S4-13` — "the cache's **only** writer" — in this same section. `10_…md` §5.5 named that direction without amending `05_…md`; the holder-versus-authority distinction it turns on is stated at `08_…md` §11 — *"`CMP-S4-18` … holds `SC-S3-33` and has authority over nothing"*.)* |
 | `FL-S4-15` | The unit under gate, plus every `test` instance on the same node | `CMP-S4-14` → `CMP-S4-15` | `BND-S4-9` | **`CMP-S4-14`.** It sets the wall-clock bound and decides what a killed isolate means. |
 | `FL-S4-16` | One gate verdict per executed unit (`SC-S3-35`) | `CMP-S4-15` → `CMP-S4-14` → the unit's record | `BND-S4-9`, `BND-S4-15` | **Undetermined.** `OI-S2-2` (the gate-verdict authority requirement) is open and owned by SUB-13 (NEU-977). Recorded as `F-S4-3`, not narrated past. |
 | `FL-S4-17` | Content unit admitted to the store of record | `CMP-S4-13` → `CMP-S4-9` | via `CMP-S4-7`, `BND-S4-12` | **`CMP-S4-13`**, which is the only component that admits new content. |
@@ -257,8 +257,8 @@ Whether the web tier reaches Postgres directly is the ownership-model selection,
 **22 flows, each with a named direction and a named authoritative side, except `FL-S4-16`, which is
 recorded as a finding.**
 
-**Amendment note (NEU-987) — the two state-writer contradictions this section used to carry.** Four
-cells above were amended, and the amendment is disclosed rather than silent because
+**Amendment note (NEU-987) — the two state-writer contradictions this section used to carry.** Eight
+cells in this chapter were amended, and the amendment is disclosed rather than silent because
 `10_…md` §6.3 is right that quietly reconciling one merged artifact to another *"would destroy the
 record of which one was written first and on what evidence."* Each amended cell therefore names what
 it previously said and where the original disposition is preserved. Nothing routed has been deleted.
@@ -266,7 +266,7 @@ it previously said and where the original disposition is preserved. Nothing rout
 | Category | Was | Now — exactly one writer | Amended cells |
 | --- | --- | --- | --- |
 | `SC-S3-16` / `SC-S3-17` | `FL-S4-8`/`FL-S4-9` named `CMP-S4-19`; `FL-S4-20` named `CMP-S4-9` | **`CMP-S4-9`**, issued through `CMP-S4-19` (a `W` annotation, never a second authority) | `FL-S4-8`, `FL-S4-9`, §3.2 `CMP-S4-9`, §3.2 `CMP-S4-19`, §7 `B1-8`, §7 `F3-5` |
-| `SC-S3-33` | `FL-S4-14` named `CMP-S4-18`; `FL-S4-13` named `CMP-S4-17` | **`CMP-S4-17`**; `CMP-S4-18` *holds* the cache and never writes it | `FL-S4-14` |
+| `SC-S3-33` | `FL-S4-14` named `CMP-S4-18`; `FL-S4-13` named `CMP-S4-17` | **`CMP-S4-17`**; `CMP-S4-18` *holds* the cache and never writes it | `FL-S4-14`, §7.3 hop 3 |
 
 `SC-S3-34` was never in dispute here — `CMP-S4-17` writes it on every surface (§3.2, `BND-S4-3`). It
 appears in the adjudication only because `DR-C10-S6-1`'s unqualified "exclusive writer of all 45
@@ -370,7 +370,7 @@ charter that makes a blocking gate depend on a post-commit pass owes an explanat
 | --- | --- | --- |
 | 1 | `CMP-S4-6` receives a serve tool call and delegates. | `CMP-S4-6` |
 | 2 | `CMP-S4-7` reads the unit from `CMP-S4-9`. | `CMP-S4-9` for the content |
-| 3 | `CMP-S4-16` does **one keyed read** of `CMP-S4-18` for the unit's citations. | `CMP-S4-18` for the verdict and its date |
+| 3 | `CMP-S4-16` does **one keyed read** of `CMP-S4-18` for the unit's citations. | **`CMP-S4-17`** for the verdict and its date, **held by `CMP-S4-18`** *(amended by NEU-987 on the same basis as `FL-S4-14`; this cell previously read `CMP-S4-18`, naming the holder in a column that asks for the authority — see `decision-records/DR-C10-N987-1_state-writer-adjudication.md`)* |
 | 4 | `CMP-S4-16` applies the four-row disposition below. | `CMP-S4-16` |
 | 5 | The result returns via `FL-S4-18` → `FL-S4-6`. | `CMP-S4-16` for serve-or-quarantine |
 
