@@ -436,7 +436,7 @@ remains the authoritative register and is unharmed** — it is untouched by this
 What is defective is a *restatement* on the surface NEU-896 reconciles against, and that is a finding,
 not a scope limit. Filed as **`F-N990-2`**, handed to **`NEU-896`**. Repairing `17_…md` §3 in place is
 not open to this task for the reason `F-N987-1` states: routing a cross-chapter defect worked in this
-package and closing one never existed.
+package, and a licence to close one in a merged sibling chapter never existed.
 
 **`G-60` — the independent verdict is `pass`; the self-grade `pass-with-qualification` is kept.** The
 reader's point is substantive rather than generous: `G-60`'s item names *"`NEU-985 (SUB-11)`'s
