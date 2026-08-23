@@ -1,4 +1,4 @@
-# `DR-C10-S6-1` — The MCP core is the exclusive writer of every state category (all-MCP)
+# `DR-C10-S6-1` — The MCP core is the exclusive writing **tier** for every state category (all-MCP)
 
 **Written by:** NEU-976 (SUB-6) · **Charter:** C010 (umbrella NEU-895) · **Covers:** `OUT-3`
 **Written:** 2026-08-21
@@ -9,11 +9,30 @@
 
 ## Decision
 
-**`M-A` — all-MCP — is the state-ownership model.** The MCP core is the **exclusive writer of
-all 45 categories** in `../04_state-category-inventory.md` §3. The web tier (`CMP-S4-3`) holds
+**`M-A` — all-MCP — is the state-ownership model.** The MCP core is the **exclusive writing tier
+for all 45 categories** in `../04_state-category-inventory.md` §3. The web tier (`CMP-S4-3`) holds
 no write authority over any category and no database credential; every web mutation is an MCP
 tool call across `CMP-S4-4`, and every web read is an MCP tool call or a projection the core
 produced.
+
+**Scope of the quantifier — amended by NEU-987 (`F-S10-6`).** This claim ranges over **deployment
+tiers**, not over the components inside the MCP core. It says that no tier outside the core writes
+any of the 45 categories; it does **not** say that one component writes all 45. *Which* component
+inside the core is the single authority for each category is settled by the per-state authority
+matrix — `../08_per-state-authority-matrix.md`, republished at
+`../10_republished-authority-matrix.md` — and this record defers to it wholesale.
+
+So the matrix assigning `SC-S3-33`/`SC-S3-34` to `CMP-S4-17`, and `FL-S4-13` calling `CMP-S4-17` the
+drift cache's *only writer*, are **inside** this decision, not against it. `CMP-S4-17` is on the
+operator's server side of the boundary this decision draws:
+`../05_system-context-and-responsibility-boundaries.md` §3.1 places it in zone **`Z-CONT`**, *"the
+operator's content-orchestration path"* (`CMP-S4-13` … `CMP-S4-19`) — one of the three operator-side
+zones (`Z-CORE`, `Z-CONT`, `Z-MEAS`) that sit behind the MCP tool surface. The tier this decision
+excludes from writing is **`Z-WEB`** (`CMP-S4-3`), and `CMP-S4-17` is not in it. The pre-amendment headline
+read *"the exclusive writer of all 45 categories"* with no stated quantifier, which a reader with
+only this package in hand reasonably took component-wise. Nothing about the selection, its weights,
+its scores, or its margin changes — only the scope of the sentence is made explicit. See
+`DR-C10-N987-1_state-writer-adjudication.md`.
 
 Three things follow, and are part of the decision rather than commentary on it:
 
