@@ -238,13 +238,13 @@ Whether the web tier reaches Postgres directly is the ownership-model selection,
 | `FL-S4-5` | `tools/call` with arguments and a context token | `CMP-S4-3` → `CMP-S4-4` → `CMP-S4-6` | `BND-S4-2`, `BND-S4-7` | **`CMP-S4-4`.** The context-token gate fires on `tools/call` for all but three exempt tools (`src/transport/context-token-middleware.ts:5`–`:9`). |
 | `FL-S4-6` | Tool result | `CMP-S4-6` → `CMP-S4-4` → `CMP-S4-3` → `CMP-S4-1` | `BND-S4-7`, `BND-S4-2`, `BND-S4-1` | **`CMP-S4-6`**, whose value derives from `CMP-S4-8`. |
 | `FL-S4-7` | Domain read/write within one unit of work | `CMP-S4-7` ↔ `CMP-S4-9` | `BND-S4-12` | **`CMP-S4-9`** for the stored value; **`CMP-S4-7`** for whether the unit commits. |
-| `FL-S4-8` | Request line: method, `redactParams(params)`, raw response body, correlation id, MCP session id, duration | `CMP-S4-4` → `CMP-S4-19` | `BND-S4-13` | **`CMP-S4-19`** for what is stored; **nobody** for what is retained or deleted — see §9. One-way; never read back on the request path. |
-| `FL-S4-9` | Operation event with a free-form `data` payload | `CMP-S4-7` → `CMP-S4-19` | `BND-S4-13` | **`CMP-S4-19`.** Read back **only** by the Tier-2 circuit breaker's read-through query (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`). |
+| `FL-S4-8` | Request line: method, `redactParams(params)`, raw response body, correlation id, MCP session id, duration | `CMP-S4-4` → `CMP-S4-19` | `BND-S4-13` | **`CMP-S4-9`** for what is stored, **issued through `CMP-S4-19`**; **nobody** for what is retained or deleted — see §9. One-way; never read back on the request path. *(Amended by NEU-987; this cell previously read **`CMP-S4-19`** for what is stored, which contradicted `FL-S4-20` in this same section and gave `SC-S3-16`/`SC-S3-17` two writers — `F-S14-8` / `F-S16-4`. The disposition that named this direction without repairing it is preserved at `10_…md` §6.3.)* |
+| `FL-S4-9` | Operation event with a free-form `data` payload | `CMP-S4-7` → `CMP-S4-19` | `BND-S4-13` | **`CMP-S4-9`**, **issued through `CMP-S4-19`**. Read back **only** by the Tier-2 circuit breaker's read-through query (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`). *(Amended by NEU-987 on the same basis as `FL-S4-8`; this cell previously read **`CMP-S4-19`**. This is the row the cold reader stopped on — "I cannot implement a Tier-2 gate against a category with two writers." `SC-S3-17` now has exactly one: `CMP-S4-9`.)* |
 | `FL-S4-10` | Embedding / classification request carrying content text | `CMP-S4-7`/`CMP-S4-14` → `CMP-S4-11` | `BND-S4-4` | **The caller.** The provider is authoritative for nothing; a provider failure leaves the blocking set unchanged (`audit-pipeline.ts:165`–`:191`). |
 | `FL-S4-11` | One sanctioned page request per citation | `CMP-S4-17` → `CMP-S4-12` | `BND-S4-3` | **`CMP-S4-17`** owns the request budget: exactly one call per citation, no corpus walk, no problem-statement text in any of the four inherited modes (`03_…` §5). |
 | `FL-S4-12` | Page response | `CMP-S4-12` → `CMP-S4-17` | `BND-S4-3` | **`CMP-S4-17`.** The response is evidence; the site is never authoritative for the verdict, and stored fields stay limited to `stable_id` + `canonical_url` while `CH-F5-1` is open. |
 | `FL-S4-13` | One verdict tuple | `CMP-S4-17` → `CMP-S4-18` | `BND-S4-10` | **`CMP-S4-17`** — the cache's **only** writer. |
-| `FL-S4-14` | Keyed verdict read (present / stale / absent) | `CMP-S4-16` → `CMP-S4-18` | `BND-S4-11` | **`CMP-S4-18`** for the stored verdict and its date; **`CMP-S4-16`** for what to do about it (§7.3). |
+| `FL-S4-14` | Keyed verdict read (present / stale / absent) | `CMP-S4-16` → `CMP-S4-18` | `BND-S4-11` | **`CMP-S4-17`** for the stored verdict and its date — `CMP-S4-18` **holds** it and never writes it; **`CMP-S4-16`** for what to do about it (§7.3). *(Amended by NEU-987; this cell previously named **`CMP-S4-18`** for the stored verdict, which made it the outlier against `FL-S4-13` — "the cache's **only** writer" — in this same section. `10_…md` §5.5 named that direction without amending `05_…md`; the holder-versus-authority distinction it turns on is stated at `10_…md`:1383.)* |
 | `FL-S4-15` | The unit under gate, plus every `test` instance on the same node | `CMP-S4-14` → `CMP-S4-15` | `BND-S4-9` | **`CMP-S4-14`.** It sets the wall-clock bound and decides what a killed isolate means. |
 | `FL-S4-16` | One gate verdict per executed unit (`SC-S3-35`) | `CMP-S4-15` → `CMP-S4-14` → the unit's record | `BND-S4-9`, `BND-S4-15` | **Undetermined.** `OI-S2-2` (the gate-verdict authority requirement) is open and owned by SUB-13 (NEU-977). Recorded as `F-S4-3`, not narrated past. |
 | `FL-S4-17` | Content unit admitted to the store of record | `CMP-S4-13` → `CMP-S4-9` | via `CMP-S4-7`, `BND-S4-12` | **`CMP-S4-13`**, which is the only component that admits new content. |
@@ -256,6 +256,25 @@ Whether the web tier reaches Postgres directly is the ownership-model selection,
 
 **22 flows, each with a named direction and a named authoritative side, except `FL-S4-16`, which is
 recorded as a finding.**
+
+**Amendment note (NEU-987) — the two state-writer contradictions this section used to carry.** Four
+cells above were amended, and the amendment is disclosed rather than silent because
+`10_…md` §6.3 is right that quietly reconciling one merged artifact to another *"would destroy the
+record of which one was written first and on what evidence."* Each amended cell therefore names what
+it previously said and where the original disposition is preserved. Nothing routed has been deleted.
+
+| Category | Was | Now — exactly one writer | Amended cells |
+| --- | --- | --- | --- |
+| `SC-S3-16` / `SC-S3-17` | `FL-S4-8`/`FL-S4-9` named `CMP-S4-19`; `FL-S4-20` named `CMP-S4-9` | **`CMP-S4-9`**, issued through `CMP-S4-19` (a `W` annotation, never a second authority) | `FL-S4-8`, `FL-S4-9`, §3.2 `CMP-S4-9`, §3.2 `CMP-S4-19`, §7 `B1-8`, §7 `F3-5` |
+| `SC-S3-33` | `FL-S4-14` named `CMP-S4-18`; `FL-S4-13` named `CMP-S4-17` | **`CMP-S4-17`**; `CMP-S4-18` *holds* the cache and never writes it | `FL-S4-14` |
+
+`SC-S3-34` was never in dispute here — `CMP-S4-17` writes it on every surface (§3.2, `BND-S4-3`). It
+appears in the adjudication only because `DR-C10-S6-1`'s unqualified "exclusive writer of all 45
+categories" headline read as a component-level claim; that quantifier is now explicitly tier-scoped.
+`FL-S4-16` remains genuinely undetermined and is **not** touched by this amendment: it is `OI-S2-2`'s
+open gate-verdict authority question, a different problem from a category with two writers.
+
+Full reasoning: `decision-records/DR-C10-N987-1_state-writer-adjudication.md`.
 
 ---
 
@@ -492,7 +511,7 @@ the BM-8 half.
 | B1-5 | `submit_answer` — the caller supplies a grading rubric, the server derives a quality | `FL-S4-5`, `FL-S4-7` | `BND-S4-2` / `BND-S4-17` | **`CMP-S4-8`** for the derived quality (`src/domain/algorithms/grade-mapper.ts:71`, called at `src/orchestration/teaching-workflows.ts:1213`). The rubric arrives from the far side of the trust boundary — see §10.3. |
 | B1-6 | The SM-2 scheduling values are written (`ease_factor`, `interval_days`, `next_review_date`) | `FL-S4-7` | `BND-S4-12` (process) | **`CMP-S4-8`** computes, **`CMP-S4-7`** commits, **`CMP-S4-9`** stores. Gate-bearing and entirely server-held — §6.1 exercised on a real hop. |
 | B1-7 | `teach_next` selects the next unit and serves it | `FL-S4-18`, `FL-S4-14` | `BND-S4-8`, `BND-S4-11` (neither) | **`CMP-S4-16`** for serve-or-quarantine. `[unconfirmed]` — the drift-verdict read does not exist on this path today. |
-| B1-8 | The request line lands in the log | `FL-S4-8` | `BND-S4-13` (process) | **`CMP-S4-19`** for what is stored; **nobody** for what is retained or deleted (§9.2). The learner's answer text is stored unredacted. |
+| B1-8 | The request line lands in the log | `FL-S4-8` | `BND-S4-13` (process) | **`CMP-S4-9`** for what is stored, issued through **`CMP-S4-19`**; **nobody** for what is retained or deleted (§9.2). The learner's answer text is stored unredacted. *(Amended by NEU-987, per `FL-S4-8`.)* |
 | B1-9 | The loop repeats after the interval read from `interval_days` | `FL-S4-7` | `BND-S4-12` | **`CMP-S4-9`** |
 | B1-10 | The BM-8 half: read a per-DP-pattern mastery signal | — | — | **Undetermined.** `SC-S3-39` (the durable multi-session mastery composite) has no store, and no component in this inventory holds it. Recorded as `F-S4-6`. |
 
@@ -526,7 +545,7 @@ Vehicle: the real `submit_answer` grading path with adversarial shallow or wrong
 | F3-2 | The quality is derived from the rubric | — | `BND-S4-8` (neither) | **`CMP-S4-8`** — pure, deterministic, no model call |
 | F3-3 | The derived quality drives the scheduling write | `FL-S4-7` | `BND-S4-12` (process) | **`CMP-S4-7`** / **`CMP-S4-9`**. Gate-bearing, server-held. |
 | F3-4 | The response returns; the derived quality and `action` are read from it, never fabricated | `FL-S4-6` | `BND-S4-2`, `BND-S4-1` | **`CMP-S4-6`** |
-| F3-5 | The raw answer and the raw response body land in `infrastructure.mcp_request_log` | `FL-S4-8` | `BND-S4-13` (process) | **`CMP-S4-19`** stores; **nobody** retains or deletes (§9.2) |
+| F3-5 | The raw answer and the raw response body land in `infrastructure.mcp_request_log` | `FL-S4-8` | `BND-S4-13` (process) | **`CMP-S4-9`** stores, issued through **`CMP-S4-19`**; **nobody** retains or deletes (§9.2) *(Amended by NEU-987, per `FL-S4-8`.)* |
 
 **Five hops, all with a named authoritative side.**
 
