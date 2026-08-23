@@ -463,3 +463,50 @@ Three limits that might look like caps and are deliberately **not** filed as suc
 - **What it leaves unsupported:** Named, so the cost is visible and is not larger than it is. **(i) Gate item `G-60` is qualified rather than plainly passing** — SUB-11's four audit verdicts are consumed intact, but one predecessor's own verdict cannot be consumed at all. **(ii) A reader converging this package cannot tell which of `OUT-7`'s or `OUT-8`'s criteria SUB-9 considered only partly met.** What it does **not** leave unsupported, and this is the calibration that keeps the cap honest: **the substantive content of SUB-9's chapter is complete and independently checkable.** `14_…md` §11.1 records what it closes and §11.2 records what it explicitly does not; `DR-C10-S9-1` carries all six required sections including the eliminated fully-public monorepo; `traceability/S9_repository-topology.md` is present and its rows resolve; and `OI-S9-1` through `OI-S9-4` are all filed with owners, with `OI-S9-4` subsequently **discharged** by `SUB-10 (NEU-984)`. The cap is over a missing verification *record*, not over missing work.
 - **Owner:** **`NEU-896`**.
 - **What would lift it:** **The `PARTIAL`'s criterion identified and its residual stated on `origin/develop`** — either by publishing the residual as a finding or open item in the package, or by NEU-983's verification record being re-derived and its partial criterion named. Lifting requires the identification: a statement that a `PARTIAL` exists is what this cap already records.
+
+### NEU-988 — owner amendment (not a sub-task; files no cap)
+
+**Model:** claude-opus-5[1m] · **Appended:** 2026-08-23 · **Task:** NEU-988
+
+*This section **files no `CAP-` id, lifts no cap, and changes no cap's text**. It is an owner amendment and nothing else. It exists because the register's own invariant — "**Every cap carries a named owner**", and "'whoever picks this up' is not an owner" (§What belongs here) — had silently stopped holding: **every one of the 28 caps named an owner that is in a terminal tracker state**, so the register that exists to prevent orphaned gaps was carrying twenty-eight of them. **Zero lines were deleted from this register and no sibling's entry was reflowed, renumbered, re-sequenced or amended.** NEU-988 is not a sub-task, so it allocates no `S<n>` namespace and introduces no global counter; it heads its section by its own tracker id.*
+
+#### What was found
+
+Read from the tracker on **2026-08-23**: all sixteen C010 sub-tasks (`NEU-971` … `NEU-986`) read `Done`, as did `NEU-893` and `NEU-896`. **Sixteen** of the 28 caps name `NEU-896` as an owner; the other **twelve** name only closed C010 sub-tasks, an unnamed party, or `NEU-893`. So no cap in this register had a live owner, in either group.
+
+Two of those terminal states are **collateral auto-closures rather than records of completed work**, and both are established by timestamp:
+
+- **`NEU-896`** — `completedAt` `2026-08-22T09:11:58.531Z`; **`NEU-986` (SUB-12)** — `…58.529Z`. **2 ms apart.** `NEU-896`'s only attachment is NEU-986's PR #762. It held `Backlog` from 2026-07-11 until `09:04:26` that morning and read `Done` 7m32s later. **`NEU-895` — one of its own nine declared dependencies — closed at `09:16:40.532Z`, 4m42s *after* it**, and `NEU-891`, `NEU-892` and `NEU-894` are still `Backlog`. Its nine-package convergence gate was unreachable and provably did not run.
+- **`NEU-893`** — `completedAt` `2026-08-21T21:36:00.717Z`; **`NEU-975` (SUB-5)** — `…00.715Z`. **2 ms apart**, and NEU-975 is the sub-task that *contracts the split with* NEU-893 rather than performing its work. **No NEU-893 package exists under `docs/research/`**, and `93_stand-in-assumption-register.md` independently describes it as **unbuilt** (`A-28`), standing in for it.
+
+#### What was done outside this file
+
+**Both items were restored to `Backlog`** — the state each held before the sweep. That corrects a false record rather than routing around it, and it is the whole of the repair for **sixteen** caps (`CAP-S6-1`, `CAP-S7-1`, `CAP-S7-2`, `CAP-S8-1`, `CAP-S9-1`, `CAP-S10-1` … `CAP-S10-4`, `CAP-S12-1` … `CAP-S12-5`, `CAP-S15-1`, `CAP-S15-2`) and for **`CAP-S5-1`**, whose co-owner `NEU-893` is now live. `90_open-items-and-provisional-register.md` needs **no** amendment at all for the same reason, and `93_…md` stays closed at its five stand-ins. The decision, its two rejected alternatives and its revision trigger are recorded at `decision-records/DR-C10-N988-1_c010-residual-owner-restoration.md`.
+
+#### The amendment: eleven caps are co-named to `NEU-896`, additively
+
+The eleven caps below name **only** parties that are merged and closed, or name no tracker party at all. Each is **co-named to `NEU-896`**, the restored convergence pass, following the precedent this package already set at `90_…md:614` — *"The original owner is not overwritten; the co-naming is additive."*
+
+| Cap | Owner as originally written (**unchanged**) | Co-named owner | Why NEU-896 is the correct live party |
+| --- | --- | --- | --- |
+| `CAP-S1-1` | `NEU-985 (SUB-11)` for the mechanical audit; `NEU-986 (SUB-12)` for the gate's answer | `NEU-896` | Both audits ran and both parties merged; whether the conventions survived is now a convergence-level observation over the finished package. |
+| `CAP-S1-2` | *"the sub-task that depends on the number"* — **no tracker party at all** | `NEU-896` | The rule stands and is correct for a live sub-task; with all sixteen merged there is no such sub-task left, so the obligation falls to the party that consumes the counts next. |
+| `CAP-S1-3` | `NEU-986 (SUB-12)` | `NEU-896` | The QA no-op is recorded at the gate; whether a QA engine is ever configured is an implementation-charter question. |
+| `CAP-S2-1` | `NEU-986 (SUB-12)` | `NEU-896` | The re-run budget is quantifiable only against a running gate battery, which no C010 pass builds. |
+| `CAP-S2-2` | `NEU-986 (SUB-12)` | `NEU-896` | Measuring the failure mode's frequency needs a deployed system. |
+| `CAP-S3-1` | `NEU-986 (SUB-12)` | `NEU-896` | The field set is unresolved **upstream**; convergence is where upstream resolutions land. |
+| `CAP-S3-2` | `NEU-986 (SUB-12)` | `NEU-896` | The recurring obligation attaches to whoever changes the schema, and that is downstream of this charter. |
+| `CAP-S3-3` | `NEU-986 (SUB-12)` | `NEU-896` | The retention window and deletion owner are an unmet upstream requirement; `NEU-893`, also restored, supplies the mechanism. |
+| `CAP-S4-1` | `NEU-986 (SUB-12)` | `NEU-896` | Same gap as `CAP-S3-3`, sighted from component placement. The structural obstruction is unchanged by any C010 pass. |
+| `CAP-S11-1` | `SUB-12 (NEU-986)` | `NEU-896` | The entry already names `NEU-896` as **consumer** — *"the party that would eventually supply the independent reader"*. With SUB-12 merged, the consumer is the only live party; the gate disposition it was named alone for was made and is recorded at `94_…md`. |
+| `CAP-S16-1` | `SUB-6 (NEU-976)` and `SUB-12 (NEU-986)` | `NEU-896` | The entry's own text records that the named owner is closed; `OI-S16-1` was already disposed via route (c) — *"both questions are routed to `NEU-896` at convergence"* (`90_…md:590`) — so the cap now follows its questions. |
+
+**`CAP-S5-1` is deliberately absent from that table.** It names `NEU-986` **alongside `NEU-893`**, and `NEU-893` is restored, so it already has a live owner and needs no co-naming. It is listed here so that a reader checking twelve-versus-eleven can see which one moved and why.
+
+#### What this amendment does not do
+
+- It does **not** overwrite, weaken or reinterpret any original owner. Every `**Owner:**` line in this file is byte-identical to what its sub-task wrote.
+- It does **not** renumber, reflow, restructure or re-sequence any entry, and it adds no `CAP-` id — the register still closes at **28 caps**.
+- It does **not** lift a cap. `CAP-S4-1`, `CAP-S6-1`, `CAP-S15-1` and `CAP-S16-1` remain open and unlifted, exactly as SUB-12 left them, and no sighting is added to the deletion-owner gap.
+- It does **not** adjudicate any disputed count, claim, id or finding, and it repairs no id: the two owner-id slips this task observed (`OI-S2-2` naming "SUB-13 (NEU-987)" where SUB-13 is `NEU-977`; `OI-S14-1` naming "SUB-16 (NEU-980)" where SUB-16 is `NEU-979`) are recorded as findings at `02_findings-register.md` § NEU-988 and left in place.
+- It does **not** claim the residual is now resolved. Every cap here is still capped; what changed is that each one now names a party that can act on it.
