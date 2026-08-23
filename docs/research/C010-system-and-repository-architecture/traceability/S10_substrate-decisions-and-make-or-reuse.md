@@ -56,7 +56,7 @@ an absence of one — the residual column carries what remains unsupported and w
 - **It is not the outcome-coverage audit.** `NEU-985 (SUB-11)` owns those rows in its own file;
   nothing here edits a sibling's traceability file, and this file makes no claim about any outcome
   other than `OUT-8`'s substrate half and `OUT-10`'s spike share for this sub-task.
-- **It is not a completeness judgement.** `94_package-completeness-gate.md` is `NEU-986 (SUB-12)`'s
+- **It is not a completeness judgement.** `../94_package-completeness-gate.md` is `NEU-986 (SUB-12)`'s
   alone and is untouched by this sub-task. The `F5.9` gap declared at `../15_…md` §8.6 is stated
   **for** that gate, not disposed of here.
 - **It does not claim the open items it discharges are now answered.** `OI-S1-3` and `OI-S2-1` are

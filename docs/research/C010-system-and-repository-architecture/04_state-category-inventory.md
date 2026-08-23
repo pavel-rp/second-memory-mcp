@@ -315,7 +315,7 @@ package's own header where one is present.
 | The frozen, versioned measurement-contract register (`MC-<n> v<major>.<minor>`) | `SC-S3-40` | `required-by-upstream` |
 | The `PLA-*` operational-log derived extract, with its allowlist, retention window and named deletion owner | `SC-S3-41` | `required-by-upstream` |
 | The operational logs those extracts are derived from | `SC-S3-16`, `SC-S3-17` | **`existing`** |
-| The seven-class evidence taxonomy (`[literature]`, `[code-evidence]`, `[dogfooding]`, `[ai-critique]`, `[automated-eval]`, `[operational-log]`, `[future-real-user]`) — `01_evidence-taxonomy.md:12`–`:18` | **none — introduces no runtime state** | — |
+| The seven-class evidence taxonomy (`[literature]`, `[code-evidence]`, `[dogfooding]`, `[ai-critique]`, `[automated-eval]`, `[operational-log]`, `[future-real-user]`) — `../C005-product-foundation/01_evidence-taxonomy.md:12`–`:18` | **none — introduces no runtime state** | — |
 
 **The taxonomy is a labelling discipline, not a state category, and saying so is part of the check.** It
 governs how a *claim in a document* is tagged; nothing in the running system stores an evidence class. An
@@ -342,7 +342,7 @@ either today. That gap is `F-S3-3`.
 
 | State it names | Entry | Status |
 | --- | --- | --- |
-| The durable multi-session mastery composite the **durability gate** reads (`mastery-model/00_operational-mastery-model.md:29`–`:36`) | `SC-S3-39` | `required-by-upstream` |
+| The durable multi-session mastery composite the **durability gate** reads (`../C005-instructional-model/mastery-model/00_operational-mastery-model.md:29`–`:36`) | `SC-S3-39` | `required-by-upstream` |
 | A learner's position against the DP graph — the *pedagogical* progression NEU-889 explicitly does not own | `SC-S3-38` | `required-by-upstream` |
 | The read-time mastery signal the current system already computes | `SC-S3-28` | `existing`, derived |
 | Spacing state — the SM-2 interval/ease fields the current scheduler persists | `SC-S3-3` | **`existing`** |
@@ -418,7 +418,7 @@ with a live foreign namespace whose `S3` means a different sub-task. The collisi
 
 **What this inventory carries instead is the state those rows imply**, cross-walked here:
 
-| NEU-890 row (`09_enforceable-quality-system.md`) | What it does | State it implies | Entry |
+| NEU-890 row (`../C009-course-content-quality/09_enforceable-quality-system.md`) | What it does | State it implies | Entry |
 | --- | --- | --- | --- |
 | `EQ-S3-3` (`:190`) — `V2`, one call per path, no crawl, robots and rate limits honoured | egress | the verdict the call produces | `SC-S3-34` |
 | `EQ-S3-4` (`:191`) — `V3`, the stable id resolves live at a stated date | egress | resolution verdict + the id it resolves | `SC-S3-34`, `SC-S3-32` |

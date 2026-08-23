@@ -14,8 +14,8 @@ what. This record decides nothing about any authority.**
 
 1. **The per-row census is published twice, under two explicitly named target states, and every verdict
    is labelled with the one that produced it.**
-   - **Census A** runs against `06_isolation-invariant-and-the-neu-893-split.md` §3.2 form **(b)** — the
-     category's inventory row **plus** the authority `08_per-state-authority-matrix.md` assigns it, as
+   - **Census A** runs against `../06_isolation-invariant-and-the-neu-893-split.md` §3.2 form **(b)** — the
+     category's inventory row **plus** the authority `../08_per-state-authority-matrix.md` assigns it, as
      the system stands at this cutoff.
    - **Census B** runs against form **(c)**, composed, with its assumed set **enumerated in full**:
      *NEU-850's `OUT-2` implemented completely — an ownership key (`user_id NOT NULL`) on every
@@ -38,7 +38,7 @@ what. This record decides nothing about any authority.**
 `OI-S5-3`'s resolving event is exactly that. Form (b) is therefore mandatory: it is the only form that
 exercises the procedure against what was actually assigned. But form (b) **alone** would have been close
 to useless as a validation. Every in-domain row fails at `I2` for the same reason — no principal
-attribution mechanism exists anywhere, per `04_state-category-inventory.md` §6's four-term search
+attribution mechanism exists anywhere, per `../04_state-category-inventory.md` §6's four-term search
 returning zero — so the census would report 24 `not-evaluable` rows and stop, **without ever reaching
 the checks that discriminate between rows**. The frontier would be invisible, and SUB-8's confinement
 workload would be unsized.

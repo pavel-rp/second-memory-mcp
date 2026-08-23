@@ -2,7 +2,7 @@
 
 **Task:** NEU-981 (SUB-8) · **Charter:** C010 (umbrella NEU-895) · **Decided:** 2026-08-22 · **Verification cutoff:** `ad5eebb`, 2026-08-22
 **Model:** claude-opus-5[1m]
-**Discharges:** part of `OUT-6` (`../01_outcome-register.md`) — the classification rule and its demonstration, published as `12_application-versus-core-rule-and-compatibility-contract.md` §5–§6.
+**Discharges:** part of `OUT-6` (`../01_outcome-register.md`) — the classification rule and its demonstration, published as `../12_application-versus-core-rule-and-compatibility-contract.md` §5–§6.
 
 ---
 

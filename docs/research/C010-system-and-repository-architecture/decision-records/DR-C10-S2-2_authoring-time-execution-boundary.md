@@ -63,10 +63,10 @@ The criteria, weighted **before** the evidence was scored:
 
 ## Evidence
 
-- `../C009-course-content-quality/09_enforceable-quality-system.md:70` (NEU-890, compiled 2026-08-10) — the `automated` membership test and its stated cost, *"An execution environment, and a re-run budget."*
-- `../C009-course-content-quality/09_enforceable-quality-system.md:216`, `:315`, `:325` — `EQ-S4-6`, `automated` · `blocks` · authoring-time; and *"§3.3 bars all three from a learner's latency path."*
-- `../C009-course-content-quality/09_enforceable-quality-system.md:302` — the mechanism distribution, `automated` 11 of 89.
-- `../C009-course-content-quality/decision-records/DR-C09-04_authoring-languages.md:92`; `../C009-course-content-quality/06_assessment-evidence-out-of-band.md:409` — what NEU-890 explicitly did **not** select or implement.
+- `../../C009-course-content-quality/09_enforceable-quality-system.md:70` (NEU-890, compiled 2026-08-10) — the `automated` membership test and its stated cost, *"An execution environment, and a re-run budget."*
+- `../../C009-course-content-quality/09_enforceable-quality-system.md:216`, `:315`, `:325` — `EQ-S4-6`, `automated` · `blocks` · authoring-time; and *"§3.3 bars all three from a learner's latency path."*
+- `../../C009-course-content-quality/09_enforceable-quality-system.md:302` — the mechanism distribution, `automated` 11 of 89.
+- `../../C009-course-content-quality/decision-records/DR-C09-04_authoring-languages.md:92`; `../../C009-course-content-quality/06_assessment-evidence-out-of-band.md:409` — what NEU-890 explicitly did **not** select or implement.
 - **`SPK-S2-1`** — the isolation experiment, result stated in full in `../92_spike-register.md`. **This citation inherits that record's expiry**; past it, this decision is stale until the spike is re-run or re-labelled.
 - **`OI-S1-1`** — `[unconfirmed]`, named in the decision sentence above, and closed by this record.
 - Repository scan of `src/` for seven execution primitives — **zero** hits, 2026-08-21, establishing that nothing in the current codebase constrains or contradicts the placement.

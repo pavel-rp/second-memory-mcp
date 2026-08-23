@@ -266,7 +266,7 @@ Nothing about the execution-environment question remains inherited. A later sub-
 | `91_caps-and-incomplete-scope.md` | `CAP-S2-1`, `CAP-S2-2` | The re-run budget cannot be quantified here; the frequency of the failure mode the spike demonstrates is unmeasurable at `n=1` creator and 0 content units. |
 | `92_spike-register.md` | `SPK-S2-1` | The isolation experiment, with its result stated in full. |
 | `decision-records/` | `DR-C10-S2-1`, `DR-C10-S2-2`, `DR-C10-S2-3` | One decision each, with rejected alternatives and observable revision triggers. |
-| `traceability/` | `S2_execution-environment-and-drift-coverage.md` | `OUT-9` and `OUT-10` coverage. |
+| `traceability/` | `traceability/S2_execution-environment-and-drift-coverage.md` | `OUT-9` and `OUT-10` coverage. |
 | `docs/GLOSSARY.md` | three rows | The product-domain component terms this chapter introduces, per `00_method-and-provenance.md` §4.1. |
 
 ---
