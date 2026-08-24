@@ -51,6 +51,9 @@ jobs:
       - name: Lint code
         run: pnpm run lint
 
+      - name: Check research citation paths
+        run: pnpm run lint:citations
+
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/second_memory_test
