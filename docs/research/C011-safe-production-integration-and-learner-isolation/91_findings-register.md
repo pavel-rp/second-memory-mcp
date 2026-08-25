@@ -734,10 +734,10 @@ does not fix the second. Collapsing them would lose exactly the fact SUB-7 needs
   require a credential that does not exist. The package therefore carries a classified artifact that
   has now failed to appear at two consecutive positions, and would carry it silently if this were not
   recorded.
-- **Evidence:** `03_learner-data-inventory-and-classification.md:474`–`:476` (the classification and
+- **Evidence:** `03_learner-data-inventory-and-classification.md:473`–`:476` (the classification and
   the "does not exist at position 3" note);
   `05_the-enforcement-point-that-confines-every-read-and-write.md:613`–`:614` (SUB-5 naming it as
-  SUB-6's); `06_the-disposition-of-every-unowned-row.md` §6.3, where every result cell reads *not
+  SUB-6's); `06_the-disposition-of-every-unowned-row.md` §6.4, where every result cell reads *not
   executed — no credential*.
 - **Consequence:** SUB-3's classification is correct and stays correct — it is a correct
   classification of something that does not exist. But OUT-20's band reconciliation would otherwise
@@ -767,17 +767,45 @@ does not fix the second. Collapsing them would lose exactly the fact SUB-7 needs
   missing or locked table is within that class, but no test exercises this specific case.
 - **Handed to:** **SUB-7 (NEU-1001)** under OUT-3.
 
+#### `F-S6-6` — Seven of the fourteen tables carry no pathology probe, and `operation_event_log` is the one that matters
+
+- **Id:** `F-S6-6`
+- **Finding:** OUT-2 asks for a probe per named pathology **per table**. The published set does not
+  deliver 5 × 14. `06_the-disposition-of-every-unowned-row.md` §6.3 resolves every pathology, for
+  every table, to **probed**, **foreclosed by constraint or type**, or **not probed** — and seven
+  tables fall in the third state: `session_chunks`, `session_question_chunks`,
+  `session_question_attempt_revisions`, `context_tokens`, `linter_validation_corpus`,
+  `linter_rule_validation_report` and `operation_event_log`.
+- **Evidence:** the coverage table at `06_the-disposition-of-every-unowned-row.md` §6.3, derived from
+  the probe set at §6.2 by resolving each of the twelve probes against each of the fourteen tables in
+  §3.
+- **Consequence:** Six of the seven are defensibly low-consequence — five carry only `NOT NULL`
+  scalars behind constraint-backed foreign keys and take `backfill-by-join`, and
+  `linter_rule_validation_report` takes `no-key-owed` and is read by no stage.
+  **`operation_event_log` is not.** It takes `archive`, it holds learner free text, it is the table
+  the one unconfinable aggregate reads (`F-S5-9`), and it is named inside `P-ENC-1`'s column list
+  without a discovery query of its own. A pathology in it would reach the archive unexamined.
+- **What is assumed rather than derived:** That the six low-consequence tables really are low
+  consequence. That rests on their columns being constraint-covered scalars, which is read from the
+  schema, and on their dispositions not reading any un-probed column, which is read from §9.2 — but
+  neither has been exercised against real rows, because no probe has run at all.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19, which inherits the pre-flight probe re-run
+  `R9` requires and is the party that would write the missing `operation_event_log` probe before
+  execution.
+
 ---
 
-**SUB-6 register totals at revision 1:** five findings, `F-S6-1` … `F-S6-5`. **Two are the findings
+**SUB-6 register totals at revision 1:** six findings, `F-S6-1` … `F-S6-6`. **Two are the findings
 OUT-2 names by requirement**: `F-S6-2` is the pathology class for which no probe can be written, and
 the companion requirement — a table for which no disposition can be justified — was checked against
 all fourteen and returned **none**, so it is recorded as *checked and not filed* at
-`06_the-disposition-of-every-unowned-row.md` §3 rather than filed as an empty entry. Of the other
-three, one reconciles two predecessors' opposite conclusions (`F-S6-1`), one is a behavioural
-consequence of this sub-task's own disposition on a live code path (`F-S6-3`), one is a
-package-hygiene defect found in passing (`F-S6-4`), and one is a sequencing input with an explicit
-statement of what it is **not** (`F-S6-5`). Every entry carries an owner.
+`06_the-disposition-of-every-unowned-row.md` §3 rather than filed as an empty entry, and `F-S6-6`
+records the residual on the *other* half of that clause — the literal "per table" reading the probe
+set does not fully satisfy. Of the remaining four, one reconciles two predecessors' opposite
+conclusions (`F-S6-1`), one is a behavioural consequence of this sub-task's own disposition on a live
+code path (`F-S6-3`), one is a package-hygiene defect found in passing (`F-S6-4`), and one is a
+sequencing input with an explicit statement of what it is **not** (`F-S6-5`). Every entry carries an
+owner.
 
 **No contradiction with C010 was found by SUB-6, and no amendment is routed to `NEU-895`.** Seven
 C010 items were checked one by one at `06_the-disposition-of-every-unowned-row.md` §13 and the check

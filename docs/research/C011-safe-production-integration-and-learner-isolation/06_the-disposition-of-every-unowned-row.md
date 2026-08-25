@@ -4,7 +4,7 @@
 **Written:** 2026-08-25 · **Model:** claude-opus-5[1m]
 **Codebase cutoff:** `origin/develop` @ `35f92ba`
 **Depends on:** SUB-2 (NEU-994), published at `02_identity-the-learner-key-and-principal-kind.md`; SUB-3 (NEU-995), published at `03_learner-data-inventory-and-classification.md`; SUB-5 (NEU-997), published at `05_the-enforcement-point-that-confines-every-read-and-write.md`
-**Also consumes:** `08_consent-and-what-a-learner-can-export-and-erase.md` (SUB-8 — the `unreachable` disposition and `F-S8-2`), `16_attribution-and-detection.md` (SUB-16 — the attribution carrier and its non-retroactivity), `15_operational-objectives-for-the-real-platform.md` (SUB-15 — `OBJ-1`, `OBJ-7`, `OBJ-8`, `OBJ-12`), `../C010-system-and-repository-architecture/04_state-category-inventory.md` (the 45 `SC-S3-*` categories), `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md` (`A-28`), `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` (`NEU-850`'s `OUT-2`, reproduced at `:50`–`:53`)
+**Also consumes:** `08_consent-and-what-a-learner-can-export-and-erase.md` (SUB-8 — the `unreachable` disposition and `F-S8-2`), `16_attribution-and-detection.md` (SUB-16 — the attribution carrier and its non-retroactivity), `15_operational-objectives-for-the-real-platform.md` (SUB-15 — `OBJ-1`, `OBJ-7`, `OBJ-8`, `OBJ-10`, `OBJ-12`), `../C010-system-and-repository-architecture/04_state-category-inventory.md` (the 45 `SC-S3-*` categories), `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md` (`A-28`), `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md` (`NEU-850`'s `OUT-2`, reproduced at `:50`–`:53`)
 **Decision records:** `DR-C11-S6-1`, `DR-C11-S6-2`, `DR-C11-S6-3` · **Traceability:** `traceability/S6_the-disposition-of-unowned-rows.md`
 
 ---
@@ -40,11 +40,11 @@ questions are about the same rows and are easy to conflate.
 
 Twelve are declared in `src/infrastructure/db/schema.ts` — ten in the default `public` schema and
 two inside the `pgSchema('infrastructure')` block declared at `src/infrastructure/db/schema.ts:331`.
-Two more exist only as raw SQL and are deliberately not Drizzle-managed, a decision the schema file
-itself documents in the comment block at `src/infrastructure/db/schema.ts:323`–`:330`.
-
-| # | Table | Schema | Declared at |
-| --- | --- | --- | --- |
+Two more exist only as raw SQL. The comment block at `src/infrastructure/db/schema.ts:323`–`:330`
+records the *converse* decision — why the two **linter** tables above it are Drizzle-managed — and
+names the two log tables only as neighbours in the same `infrastructure` schema. **No comment in the
+repository states why the log tables were left out of Drizzle**; that they are is read from their
+absence in `src/infrastructure/db/schema.ts` and their presence in `drizzle/`.
 | 1 | `learning_topics` | `public` | `src/infrastructure/db/schema.ts:21` |
 | 2 | `learning_chunks` | `public` | `src/infrastructure/db/schema.ts:49` |
 | 3 | `learning_sessions` | `public` | `src/infrastructure/db/schema.ts:99` |
@@ -86,13 +86,13 @@ CASCADE` on nine of them, `ON DELETE SET NULL` on one (`learning_sessions.topic_
 referential orphan cannot exist while the constraint is valid.
 
 **There is exactly one exception, and it matters twice over.** `notes.target_id`
-(`src/infrastructure/db/schema.ts:294`) is a polymorphic reference — its target table is selected at
+(`src/infrastructure/db/schema.ts:293`) is a polymorphic reference — its target table is selected at
 runtime by `notes.target_type`, and **no foreign key is declared for it**. It is therefore the one
 place in this schema where a genuine referential orphan is structurally possible, and it is also the
 one table whose rows cannot be attributed by joining to a parent. Both consequences are carried
 forward: to the disposition in §3 row 9, and to the probe set in §6.
 
-### 1.4 What the four predecessors settled
+### 1.4 What the five predecessors settled
 
 - **SUB-2** fixed the persisted learner key as the OIDC `sub` claim verbatim, ruled that `azp` is
   never a learner key, and established `principal_kind = 'client'` with `learner_key = NULL` as a
@@ -103,7 +103,7 @@ forward: to the disposition in §3 row 9, and to the probe set in §6.
   dataset from the sixth copy class on a derivation test
   (`03_learner-data-inventory-and-classification.md:484`–`:501`), and classified the aggregate
   result set `LD-S3-32` as **not personal data**, noting it "does not exist at position 3"
-  (`03_learner-data-inventory-and-classification.md:474`).
+  (`03_learner-data-inventory-and-classification.md:473`), and classified *not personal data* at `:475`.
 - **SUB-5** placed the enforcement point in the Drizzle adapter, bound to an indivisible
   `(principal_id, principal_kind)` pair at construction
   (`05_the-enforcement-point-that-confines-every-read-and-write.md:224`–`:225`), and supplied the
@@ -218,9 +218,9 @@ cross-check is mechanical rather than narrative.
 | 7 | `session_question_attempts` | `SC-S3-9`, `-10` | `backfill-by-join` | `session_question_id` `NOT NULL`, `ON DELETE CASCADE` (`src/infrastructure/db/schema.ts:201`–`:203`). Carries two C010 categories — the attempt and the pre-review scheduling snapshot — in one row. |
 | 8 | `session_question_attempt_revisions` | `SC-S3-11` | `backfill-by-join` | `attempt_id` `NOT NULL`, `ON DELETE CASCADE` (`src/infrastructure/db/schema.ts:254`–`:256`). Two joins from the session, but the chain is total at every link. |
 | 9 | `notes` | `SC-S3-12` | `backfill` | **The one table where no join is available.** `target_id` is polymorphic with no declared FK (§1.3), so there is no constraint-backed parent to derive from, and `author` is a two-value kind enum carrying no identity. A note written by the `'agent'` about the operator's chunk is still the operator's data, so the `author` value does not change the disposition. |
-| 10 | `context_tokens` | `SC-S3-13` | `purge` | Three columns — `id`, `created_at`, `expires_at` (`src/infrastructure/db/schema.ts:312`–`:320`) — and no principal. The population is **provably mixed**: every deploy's smoke job calls `init_agent_context` under a `client_credentials` grant and mints a row (§10), so a uniform backfill would pin non-learner rows to a human, which is exactly the `sub`-versus-`azp` mis-pinning `NEU-850`'s risk register names. And it is moot: `DR-C10-S8-2`, consumed by OUT-13, already rejects rather than grandfathers pre-existing unbound tokens, so every one of these rows is void at cutover regardless. Purging destroys nothing that survives the cutover anyway. |
+| 10 | `context_tokens` | `SC-S3-13` | `purge` | Three columns — `id`, `created_at`, `expires_at` (`src/infrastructure/db/schema.ts:312`–`:320`) — and no principal. The population is **provably mixed**: every deploy's smoke job calls `init_agent_context` under a `client_credentials` grant and mints a row (§10), so a uniform backfill would pin non-learner rows to a human, which is exactly the `sub`-versus-`azp` mis-pinning the identity rule exists to prevent: SUB-2 ruled that `azp` is **never** a learner key, and `F-S2-1` records that production's static `claude-web` client makes every learner's `azp` identical, so a key taken from it collapses every principal onto one value. (The charter attributes the same hazard to `NEU-850`'s own risk register; that register is not in this repository, so the in-corpus evidence is cited rather than an unresolvable reference.) And it is moot: `DR-C10-S8-2`, consumed by OUT-13, already rejects rather than grandfathers pre-existing unbound tokens, so every one of these rows is void at cutover regardless. Purging destroys nothing that survives the cutover anyway. |
 | 11 | `linter_validation_corpus` | `SC-S3-14` | `backfill-by-join` | `chunk_id` `NOT NULL`, `ON DELETE CASCADE` to `learning_chunks` (`src/infrastructure/db/schema.ts:338`–`:340`). Its rows point at learner content and already die with it; deriving the key across the same edge keeps the two consistent. |
-| 12 | `linter_rule_validation_report` | `SC-S3-15` | `no-key-owed` | Keyed by `rule_id` (`src/infrastructure/db/schema.ts:367`), and every other column is a model-evaluation metric — precision, recall, F1, counts, a blocking-eligibility flag. It is a statement about a **rule**, not about a learner. Attaching a learner key would assert an ownership that does not exist. §12 shows this stays inside `A-28`'s envelope under either reading of it. |
+| 12 | `linter_rule_validation_report` | `SC-S3-15` | `no-key-owed` | Keyed by `rule_id` (`src/infrastructure/db/schema.ts:367`). Every other column is either a model-evaluation metric — precision, recall, F1, counts, a blocking-eligibility flag — or bookkeeping about the evaluation itself (`computed_at` at `:368`, `thresholds_version` at `:376`). Not one is learner-derived. It is a statement about a **rule**, not about a learner. Attaching a learner key would assert an ownership that does not exist. §12 shows this stays inside `A-28`'s envelope under either reading of it. |
 | 13 | `mcp_request_log` | `SC-S3-16` | `archive` | Population C. Holds whole unredacted learner free text in `response_body` (`F-S3-1`), has no principal column, and its rows can never be given one (§1.5). §4 is the argument. |
 | 14 | `operation_event_log` | `SC-S3-17` | `archive` | Population C, on the same argument. Additionally it is the table the one unconfinable aggregate reads — `DrizzleTier2BlockingStatsRepository` at `src/adapters/drizzle/tier2-blocking-stats-repository.ts:34`–`:47`, registered by SUB-5 as `F-S5-9` — which §4.4 addresses. |
 
@@ -245,16 +245,38 @@ population has no per-learner structure.
 The failures look opposite because one is a write and the other is a read. They are the same
 absence.
 
+**That reconciliation is this chapter's first finding, `F-S6-1`**, and it is registered rather than
+left as prose: two merged chapters reached opposite conclusions about the same rows, and a reader who
+consumed only one of them would design against half the problem. Registering it gives SUB-7 and SUB-9
+a single id to cite for the joint fact, instead of each re-deriving it from two chapters that do not
+reference one another on this point.
+
 ### 4.2 The decision, and why the alternatives lose
 
 **`DR-C11-S6-2`. The pre-cutover rows of both log tables are `archive`d: moved intact, at the
 cutover instant, into a retained store outside the confined surface. They are not deleted, not
 backfilled, and not de-identified by this migration.**
 
-The move does one thing that nothing else on the table does: **it closes the population.** Before
-the cutover the set of unowned log rows is open and grows with every request. After it, the set is
-finite, has an end timestamp, and is separately addressable as a whole. That is the only property
-any of the three broken things actually needs.
+**Two things happen at the cutover, and this chapter is careful about which one it can claim.**
+
+*Closure* is not the archive's doing. The population stops growing the moment **the attribution
+carrier lands** — from then on every new row carries a key, so the unowned set has an end timestamp
+whether or not anything is moved. `DR-C11-S8-2`'s revision trigger 3 already credits that event, not
+this one: the carrier landing "converts `unreachable` from a standing property into a bounded,
+countable population for the first time"
+(`decision-records/DR-C11-S8-2_export-erasure-and-the-completion-deadline.md:169`–`:170`).
+
+*Relocation* is the archive's own contribution, and it is what nothing else on the table does:
+**it moves the closed population out of the confined surface**, so that the live tables are left
+holding only attributable rows and the unowned set becomes separately addressable as a whole rather
+than interleaved with rows a predicate will match.
+
+**This distinction carries a premise, and the premise is registered rather than assumed.** The
+archive's benefit holds only if S1 executes **at or after** the instant the carrier lands. If S1 ran
+first, the live tables would immediately begin re-accumulating unowned rows, "nothing unowned remains
+in the confined surface" would be false, and `F-S6-3`'s five-week window would have no defined start.
+Sequencing is SUB-7's under OUT-3 and is **not fixed here**, so the ordering requirement is recorded
+as **`A-S6-2`** and handed to SUB-7 as an entry condition — not left implicit in the word "cutover".
 
 - **Against erasure's under-reach.** Archiving does not make the rows per-learner selectable —
   nothing can, and this chapter does not pretend otherwise. What it does is convert the only bound
@@ -262,12 +284,10 @@ any of the three broken things actually needs.
   (`08_consent-and-what-a-learner-can-export-and-erase.md:459`–`:463`) — from a bound over an
   unbounded, still-growing set into a bound over a closed, countable one. `F-S8-2` stays blocking
   and stays SUB-9's; a population-wide bound is still not a learner-scoped bound, and this chapter
-  does not claim to have discharged it. But the thing SUB-9 must dispose of is now finite.
-  `DR-C11-S8-2`'s own revision trigger 3 anticipated exactly this event: the carrier landing
-  "converts `unreachable` from a standing property into a bounded, countable population for the
-  first time" (`decision-records/DR-C11-S8-2_export-erasure-and-the-completion-deadline.md:169`).
+  does not claim to have discharged it. But the thing SUB-9 must dispose of is now finite **and sits
+  in one place**, which is the part relocation adds on top of the closure the carrier already gave.
 - **Against confinement's over-reach.** After the move, the live log tables contain only
-  post-cutover rows, every one of which carries the attribution carrier. Confinement over the live
+  post-cutover rows, every one of which carries the attribution carrier (`A-S6-2`). Confinement over the live
   tables is then complete and correct, and **nothing is hidden by predicate** — because nothing
   unowned remains in the confined surface for a predicate to hide. The archived rows are outside
   that surface by construction, reachable only by the operator. SUB-5's "data loss by predicate"
@@ -303,7 +323,7 @@ axes.
 | **Question** | What does the one-time migration *do to these rows* at cutover? | What does a *data right* do when it reaches them, thereafter? |
 | **Answer** | `archive` — close the population, move it out of the confined surface, delete nothing | Bulk deletion, bulk anonymization, or an accepted and named residual — **open, and not decided here** |
 | **When** | Once, at the cutover instant | Per request, on every erasure or withdrawal after it |
-| **Owns** | `DR-C11-S6-2`, and the reversal position in §9 | `F-S8-2`, `R-S16-1`, and the sixth column of the propagation matrix |
+| **Owns** | `DR-C11-S6-2`, and the reversal position in §9 | `F-S8-2`, `R-S16-1`, and the sixth copy class's row in the propagation matrix |
 
 Stated as two sentences, because the distinction is the point:
 
@@ -353,7 +373,7 @@ SUB-7, which sequences the cutover, and to SUB-13, which writes the migration.
 **Note on scope, because SUB-5 was explicit about it:** this aggregate is *not* an instance of
 `LD-S3-32`. SUB-5 says so directly at
 `05_the-enforcement-point-that-confines-every-read-and-write.md:54`–`:55`. `LD-S3-32` is *this*
-sub-task's aggregate result set, and §6.4 records what became of it.
+sub-task's aggregate result set, and §6.5 records what became of it.
 
 ---
 
@@ -405,7 +425,7 @@ here so a reader can see **what was looked for** as well as what was found.
 
 ### 6.1 The counting queries
 
-One per disposition, over the tables §3 assigns to it. Each returns a single integer.
+One per disposition, over the tables §3 assigns to it. Each returns **counts** — and, for `Q4`, two timestamp extents per table. **No query returns a row**, which is the property §7.2's closure argument depends on; only `Q5` returns a single scalar.
 
 ```sql
 -- Q1  population A, direct backfill
@@ -445,28 +465,54 @@ pathology, and saying so is more useful than running a probe that can only retur
 | Probe | Class | Target | Structurally possible? | Query |
 | --- | --- | --- | --- | --- |
 | `P-ORPHAN-1` | Orphaned FK | `notes.target_id` | **Yes** — no FK declared (§1.3) | `SELECT COUNT(*) FROM public.notes n WHERE (n.target_type='chunk' AND NOT EXISTS (SELECT 1 FROM public.learning_chunks c WHERE c.id=n.target_id)) OR (n.target_type='topic' AND NOT EXISTS (SELECT 1 FROM public.learning_topics t WHERE t.id=n.target_id)) OR (n.target_type='session' AND NOT EXISTS (SELECT 1 FROM public.learning_sessions s WHERE s.id=n.target_id));` |
-| `P-ORPHAN-2` | Orphaned FK | the **10** declared FKs (9 `ON DELETE CASCADE`, 1 `ON DELETE SET NULL`) | **No** — Postgres enforces them | Published as a validity check, not a discovery probe: `SELECT conname, convalidated FROM pg_constraint WHERE contype='f' AND NOT convalidated;` A non-empty result means a constraint was added `NOT VALID`, which is a different fault class from an orphan. |
-| `P-ENC-1` | Encoding anomaly | every `jsonb` column | **Yes** — Postgres rejects invalid UTF-8 on `text` at insert, but `\u0000` inside a JSON string literal is accepted and breaks `jsonb ->> text` conversion | `SELECT COUNT(*) FROM public.learning_chunks WHERE prerequisites_json::text LIKE '%\u0000%' OR tags_json::text LIKE '%\u0000%';` and the same over `learning_sessions.chunk_ids`, `session_question_attempts` has none, `mcp_request_log.params`, `operation_event_log.data`. |
-| `P-ENC-2` | Encoding anomaly | free-text columns | **Partly** — lone surrogates and replacement characters survive insertion | `SELECT COUNT(*) FROM infrastructure.mcp_request_log WHERE response_body LIKE '%' || U&'\FFFD' || '%';` and the same over `notes.content`, `learning_chunks.content`. |
-| `P-NULL-1` | Unexpected null | nullable columns the migration reads | **Yes** | `SELECT COUNT(*) FILTER (WHERE topic_id IS NULL) FROM public.learning_sessions;` — the count that decides whether row 3's direct-backfill justification actually binds. Plus `learning_chunks.content`, `learning_topics.summary`, `mcp_request_log.method`. |
+| `P-ORPHAN-2` | Orphaned FK | the **10** declared FKs (9 `ON DELETE CASCADE`, 1 `ON DELETE SET NULL`) | **No** — Postgres enforces them | Published as a validity check, not a discovery probe: `SELECT conname, convalidated FROM pg_constraint WHERE contype='f' AND NOT convalidated AND connamespace IN ('public'::regnamespace, 'infrastructure'::regnamespace);` A non-empty result means a constraint was added `NOT VALID`, which is a different fault class from an orphan — and it is a **hard entry condition on stage S4**, because a `NOT VALID` FK breaks the totality every `backfill-by-join` row depends on (§9.2). |
+| `P-ENC-1` | Encoding anomaly | the 6 `jsonb` columns | **No — foreclosed by the type.** `jsonb` **rejects** a `\u0000` escape at input (`unsupported Unicode escape sequence`); only the `json` type preserves it and fails later on `->>`. All six target columns are `jsonb`, so the pathology cannot be present | Validity check only. Recorded because the class had to be considered per column, and the foreclosure is a property of the chosen type rather than of the data: `prerequisites_json`, `tags_json`, `validator_report` (`src/infrastructure/db/schema.ts:77`), `learning_sessions.chunk_ids`, `mcp_request_log.params`, `operation_event_log.data`. |
+| `P-ENC-2` | Encoding anomaly | free-text columns | **Partly** — a UTF8 database rejects invalid byte sequences and lone surrogates at insert, so the one reachable residual is the **replacement character** U+FFFD, substituted by an upstream decoder before the value ever reached Postgres | `SELECT COUNT(*) FROM infrastructure.mcp_request_log WHERE response_body LIKE '%' \|\| U&'\FFFD' \|\| '%';` and the same over `notes.content`, `learning_chunks.content`, `learning_topics.summary`, `session_question_attempts.response`. |
+| `P-NULL-1` | Unexpected null | the nullable columns a migration stage actually reads | **Yes** | `SELECT COUNT(*) FILTER (WHERE topic_id IS NULL) FROM public.learning_sessions;` — **the only probe whose result can change a disposition**: it is the count that decides whether row 3's direct-backfill justification actually binds. No other nullable column is read by any stage in §9.2, and the class is scoped to what the migration touches rather than padded with columns it never reads. |
 | `P-NULL-2` | Unexpected null | join keys | **No** — all seven join columns are `NOT NULL` | Published so the reader can see it was considered; a non-zero result is impossible while the constraints hold. |
 | `P-DUP-1` | Duplicate | `notes` | **Yes** — no unique constraint of any kind | `SELECT COUNT(*) FROM (SELECT target_type, target_id, content, created_at FROM public.notes GROUP BY 1,2,3,4 HAVING COUNT(*)>1) d;` |
 | `P-DUP-2` | Duplicate | `learning_topics` | **Yes** — `title`/`subject` carry no unique index | `SELECT COUNT(*) FROM (SELECT title, subject FROM public.learning_topics GROUP BY 1,2 HAVING COUNT(*)>1) d;` |
 | `P-DUP-3` | Duplicate | the 4 tables with unique indexes | **No** — `uq_session_questions_session_index`, `uq_session_question_chunks`, `uq_session_question_attempts_question_number`, `uq_linter_validation_corpus_rule_chunk` | Validity check only, as `P-ORPHAN-2`. |
-| `P-RANGE-1` | Out of range | `learning_chunks` SM-2 columns | **Yes** — `difficulty`, `ease_factor`, `repetitions`, `interval_days` and `consecutive_failures` carry **no** `CHECK` constraint | `SELECT COUNT(*) FROM public.learning_chunks WHERE difficulty NOT BETWEEN 1 AND 5 OR ease_factor < 1.3 OR ease_factor > 3.0 OR repetitions < 0 OR interval_days < 0 OR consecutive_failures < 0;` |
+| `P-RANGE-1` | Out of range | `learning_chunks` SM-2 columns | **Yes** — `difficulty`, `ease_factor`, `repetitions`, `interval_days` and `consecutive_failures` carry **no** `CHECK` constraint | `SELECT COUNT(*) FROM public.learning_chunks WHERE difficulty NOT BETWEEN 1 AND 10 OR ease_factor < 1.3 OR repetitions < 0 OR interval_days < 0 OR consecutive_failures < 0;` **The bounds are read off the codebase, not invented:** difficulty is `1-10` (`src/domain/types/spaced-repetition-tools.ts:102`), and `ease_factor` has a floor of `1.3` and **no ceiling** — `clamp(easeFactor, minimumEaseFactor, Infinity)` at `src/domain/config/algorithm.ts:76`, default at `src/domain/config/algorithm-defaults.ts:7`. A tighter bound here would abort the real migration on healthy rows, which matters because `R9` hands this exact query forward as a pre-flight abort condition. |
 | `P-RANGE-2` | Out of range | timestamp columns | **Yes** — `bigint` epochs with no bound | `SELECT COUNT(*) FROM public.learning_chunks WHERE created_at <= 0 OR updated_at < created_at OR next_review_at <= 0;` and the same shape over the other `bigint` timestamp pairs. |
 | `P-RANGE-3` | Out of range | the CHECK-constrained columns | **No** — the schema's **24** `CHECK` constraints already foreclose out-of-range and out-of-enum values on every column they cover | Validity check only, as `P-ORPHAN-2`. |
 
-### 6.3 Results — not executed
+### 6.3 Coverage, and what "per table" honestly amounts to
+
+OUT-2 asks for a probe for each named pathology **per table**. The set above does not deliver 5 × 14
+probes, and claiming it did would be a false self-certification. What it delivers is a per-class
+analysis in which each pathology is resolved, for every table, to one of three states — and the
+uncovered set is named rather than left to be discovered by counting.
+
+| State | Meaning | Tables |
+| --- | --- | --- |
+| **Probed** | A discovery query exists and would return a real count | `notes`, `learning_topics`, `learning_chunks`, `learning_sessions`, `mcp_request_log`, `session_question_attempts` (via `P-ENC-2`) |
+| **Foreclosed** | A declared constraint or the column type makes the pathology impossible; a query could only ever return zero | every table, for the classes `P-ORPHAN-2`, `P-ENC-1`, `P-NULL-2`, `P-DUP-3` and `P-RANGE-3` cover |
+| **Not probed** | Neither — no discovery query is written and no constraint forecloses it | `session_chunks`, `session_question_chunks`, `session_question_attempt_revisions`, `context_tokens`, `linter_validation_corpus`, `linter_rule_validation_report`, `operation_event_log` |
+
+**Seven tables are in the third state, and that is a real gap rather than a presentational one.** Six
+of the seven are low-consequence for a defensible reason — five carry only `NOT NULL` scalars and
+constraint-backed FKs whose disposition is `backfill-by-join`, and `linter_rule_validation_report`
+takes `no-key-owed` and is read by no stage. **`operation_event_log` is not low-consequence**: it
+takes `archive`, it holds learner free text, and it is named inside `P-ENC-1`'s column list without a
+discovery query of its own. The gap is registered rather than narrated.
+
+### 6.4 Results — not executed
+
+Two distinct states, kept apart because collapsing them is the error this section exists to prevent.
 
 | Query | Result |
 | --- | --- |
 | `Q1` … `Q5` | **not executed — no credential** |
-| `P-ORPHAN-1`, `P-ORPHAN-2`, `P-ENC-1`, `P-ENC-2`, `P-NULL-1`, `P-NULL-2`, `P-DUP-1`, `P-DUP-2`, `P-DUP-3`, `P-RANGE-1`, `P-RANGE-2`, `P-RANGE-3` | **not executed — no credential** |
+| `P-ORPHAN-1`, `P-ENC-2`, `P-NULL-1`, `P-DUP-1`, `P-DUP-2`, `P-RANGE-1`, `P-RANGE-2` — the 7 discovery probes | **not executed — no credential** |
+| `P-ORPHAN-2` — a validity check carrying SQL | **not executed — no credential** |
+| `P-ENC-1`, `P-NULL-2`, `P-DUP-3`, `P-RANGE-3` — 4 structural foreclosures | **nothing to execute.** No query is written, because a constraint or the column type already makes the pathology impossible. This is **not** an unexecuted probe |
 
-**No cell reads `0`, and none may be read as one.** An unexecuted probe and a probe that returned
-zero are different states, and conflating them is precisely how a pathology reaches a real migration
-believed absent. Registered as spike **`SPK-S6-2`**, with the same expiry discipline as `SPK-S6-1`.
+**Eight probes carry executable SQL; four are foreclosures with none.** **No cell reads `0`, and none
+may be read as one.** An unexecuted probe and a probe that returned zero are different states, and
+conflating them is precisely how a pathology reaches a real migration believed absent — as is
+counting a foreclosure as an unexecuted probe, which would inflate the outstanding work by a third.
+Registered as spike **`SPK-S6-2`**, with the same expiry discipline as `SPK-S6-1`.
 
 The residual — that a pathology nobody probed for survives into the real migration — is the
 charter's own OUT-2-owned § Risks row, authored as **`R9`** in `92_risk-register.md`, carrying the
@@ -477,11 +523,11 @@ and it is **`F-S6-2`**: mis-ownership is undetectable by aggregate because no co
 principals (§2.2). It is a class of latent wrongness that the probe set structurally cannot reach,
 and it is reported here rather than left as an unstated limit of the set.
 
-### 6.4 What became of `LD-S3-32`
+### 6.5 What became of `LD-S3-32`
 
 SUB-3 inventoried the aggregate result set as `LD-S3-32`, classified it *not personal data*, and
 recorded that it "does not exist at position 3"
-(`03_learner-data-inventory-and-classification.md:474`). SUB-5 restated the same at
+(`03_learner-data-inventory-and-classification.md:473`), and classified *not personal data* at `:475`. SUB-5 restated the same at
 `05_the-enforcement-point-that-confines-every-read-and-write.md:613`–`:614`, naming it as SUB-6's to
 produce.
 
@@ -518,7 +564,7 @@ Every synthetic distribution ties back to the aggregate it came from: row cardin
 `G-IN-4`; every string, number and JSON body to `G-IN-5`.
 
 **The record's honest state.** `G-IN-1` and `G-IN-5` are available now. `G-IN-2`, `G-IN-3` and
-`G-IN-4` are the unexecuted aggregates of §6.3. **The dataset therefore has not been generated**, the
+`G-IN-4` are the unexecuted aggregates of §6.4. **The dataset therefore has not been generated**, the
 dry-run has not been run, and no unclaimed-row count is reported — because reporting one would mean
 reporting a count over a dataset that does not exist. Registered as **`OI-S6-2`**.
 
@@ -538,9 +584,11 @@ than the empirical form.
 > return type is a scalar, and which therefore cannot carry a row even in principle. `G-IN-5` is
 > synthesized locally. No input has row type. Therefore no output contains a copied row. ∎
 >
-> **Why it is stronger than the empirical audit.** It quantifies over *every* dataset the generator
-> can emit, not over the one instance that happened to be produced. An empirical diff confirms one
-> sample; this confirms the construction.
+> **How it compares to the empirical audit — stronger in scope, weaker in standing.** It quantifies
+> over *every* dataset the generator can emit rather than the one instance a diff would sample, which
+> is strictly more coverage. But an empirical diff is a claim about a **real artifact**, and this is a
+> claim about a **generator that has not been built** — so its soundness rests on a future implementer
+> honouring the five-input enumeration. That premise is registered as `A-S6-3`, not assumed.
 >
 > **Its falsifier, stated so the claim is falsifiable.** The argument fails the moment any generator
 > input is a **row-valued** query rather than a scalar aggregate — a `SELECT *`, a `LIMIT 10`
@@ -630,22 +678,47 @@ rather than re-deriving it, and states the consequence: **staged**, in five stag
 
 | Stage | Action | Reversal | What is lost on reversal | What cannot be recovered at all |
 | --- | --- | --- | --- | --- |
-| **S1** | Archive: move pre-cutover rows of both log tables to the retained store; live tables continue from empty | Move them back | Nothing, provided the archive is retained | **Nothing** — the rows are moved, never deleted. This is the whole reason `archive` beat `delete`. |
+| **S1** | Archive: move pre-cutover rows of both log tables to the retained store; live tables continue from empty. **Entry condition: the attribution carrier has landed (`A-S6-2`).** | Move them back | Nothing of the rows themselves, provided the archive is retained | **Two things, and they are not nothing.** The five-week window in which the Tier-2 aggregate under-reported (`F-S6-3`) is not replayed. And any post-cutover row written while the reversal stood sits alongside pre-cutover rows again, **re-creating the mixed population S1 existed to end** — so a re-run of S1 faces a population that is no longer cleanly separable by timestamp. The *rows* are fully recoverable; the *separation* is not. |
 | **S2** | Purge `context_tokens` | None — the rows are gone | The rows | **The rows.** But every one of them is already void under `DR-C10-S8-2`'s reject-don't-grandfather rule, consumed by OUT-13, so the loss is entailed by a decision already taken rather than caused here. This is the **only irreversible step in the set.** |
 | **S3** | Add the ownership column to the ten population-A tables, **nullable** | Drop the column | Nothing | Nothing |
-| **S4** | Backfill: direct for rows 1, 3, 9; by join for rows 2, 4, 5, 6, 7, 8, 11. **Entry condition: V1–V7 of §5 pass.** | Set the column back to `NULL` | Nothing | **Nothing** — and this is a property of the uniformity, not a lucky accident. A backfill that wrote one value everywhere carries no information that could be lost by unwriting it; the value is re-derivable from the same verification. The premise that makes S4 risky (§2.2) is the same premise that makes it perfectly reversible. |
+| **S4** | Backfill: direct for rows 1, 3, 9; by join for rows 2, 4, 5, 6, 7, 8, 11. **Entry conditions: V1–V7 of §5 pass, `P-ORPHAN-2` returns empty, and parents are keyed before children (§9.3).** | Set the column back to `NULL` | Nothing | **Nothing** — and this is a property of the uniformity, not a lucky accident. A backfill that wrote one value everywhere carries no information that could be lost by unwriting it; the value is re-derivable from the same verification. The premise that makes S4 risky (§2.2) is the same premise that makes it perfectly reversible. |
 | **S5** | Set the column `NOT NULL` | Drop the constraint | Nothing | Nothing |
 
-**Four of five stages are fully reversible with nothing lost.** The fifth destroys only rows that a
-consumed upstream decision has already voided. No stage in this migration destroys learner data, and
-that is a deliberate property of the disposition set rather than an outcome of it: alternative 2 in
-§4.2 was rejected partly on exactly this ground.
+**No stage in this migration destroys learner data.** That is a deliberate property of the
+disposition set rather than an outcome of it — alternative 2 in §4.2 was rejected partly on exactly
+this ground. Stated precisely, and without the rounding an earlier draft of this section made:
 
-**What the reversal does not give back.** Reversing S1 restores the rows to the live tables, but the
-window in which the aggregate of §4.4 under-reported is not replayed, and any post-cutover row
-written during the reversed period sits alongside pre-cutover rows again — re-creating the mixed
-population S1 existed to end. Reversal is therefore a containment step, not a return to the prior
-state, and SUB-7 owns the distinction between containment and full reversal under OUT-4.
+- **Three stages — S3, S4, S5 — are fully reversible with nothing lost at all.** They add a column,
+  write one uniform value into it, and constrain it; each reverses to the exact prior state.
+- **S1 is reversible in its rows but not in its effects.** The rows come back; the under-reported
+  aggregate window and the timestamp-separability of the two populations do not.
+- **S2 is irreversible**, and destroys only `context_tokens` rows that `DR-C10-S8-2`'s
+  reject-don't-grandfather rule has already voided — a loss entailed by a consumed decision rather
+  than caused here.
+
+Reversal is therefore a **containment step, not a return to the prior state**, for every stage except
+S3–S5. SUB-7 owns that distinction under OUT-4, and this section supplies the per-stage content it
+needs rather than a blanket "reversible" it would have to unpick.
+
+### 9.3 The one ordering constraint inside S4
+
+`backfill-by-join` derives a child's key from its parent's, so within S4 the seven join-target tables
+must be keyed **after** the tables they join to. The order is fixed by the FK graph and is stated
+here because S4 is otherwise one undifferentiated stage and the totality claims in §3 rows 4–8 and 11
+silently assume it:
+
+1. `learning_topics`, `learning_sessions`, `notes` — the three direct backfills, which depend on
+   nothing.
+2. `learning_chunks` (joins `learning_topics`), `session_chunks` and `session_questions` (join
+   `learning_sessions`).
+3. `session_question_chunks` and `session_question_attempts` (join `session_questions`),
+   `linter_validation_corpus` (joins `learning_chunks`).
+4. `session_question_attempt_revisions` (joins `session_question_attempts`) — the only two-hop chain.
+
+**Totality also requires the FK constraints to be valid, which is not free.** `P-ORPHAN-2` exists
+precisely because a constraint added `NOT VALID` would let a child row survive with no matching
+parent, breaking the join for that row. Its returning empty is therefore a **hard entry condition on
+S4**, alongside V1–V7.
 
 ---
 
@@ -679,9 +752,9 @@ rather than asserted.**
   those writes can fail. That is a **transient write-unavailability window during the migration**,
   not a standing refusal that persists after it, so it is not a third cause of the break `F-S5-12`
   describes. It is nonetheless a new sequencing input SUB-7 does not otherwise have, and both
-  transports buffer and drop rather than crash (`OBJ-10`), so the failure mode is lost audit
-  entries, not a failed deploy. Recorded as **`F-S6-5`** and handed to SUB-7.
-
+  transports buffer and drop rather than crash, so the failure mode is lost audit entries rather
+  than a failed deploy. **Whether that loss fits inside `OBJ-10`'s ≤ 60 s allowance is not claimed
+  here** — it depends on S1's duration, which is unbounded and is `R-S6-2`'s subject.
 **Conclusion: two causes, unchanged.** One new transient window, named and routed.
 
 ---
@@ -697,7 +770,7 @@ and the check returns one real conflict rather than a clean pass.
 | `OBJ-7` (`:254`) | ≥ 7 unannounced restarts per day, tolerated with no operator action | **Consistent, with a constraint.** At that cadence the sweep will be interrupted. It must be **idempotent and resumable** — every stage in §9.2 re-runnable to the same end state. S3–S5 are naturally idempotent; S1 and S2 must be written to be. |
 | `OBJ-8` (`:255`) | Planned unavailability per restart ≤ 13 s for 99.9%, ≤ 65 s for 99.5%, ≤ 131 s for 99% | **CONFLICT.** Migrations run at boot, unconditionally, with no environment guard (`15_operational-objectives-for-the-real-platform.md:30`, citing `src/transport/main.ts:27` and `src/infrastructure/db/migrate.ts:38`–`:50`). A sweep over the log tables extends boot by its own duration, and there is no deploy-independent way to defer it. Any run exceeding 13 s breaches the 99.9% objective on that boot. **Registered as `R-S6-2`.** |
 | `OBJ-12` (`:259`) | Exactly 1 concurrent boot-time migrator — and SUB-15 records that **the platform cannot currently guarantee this** | **Consistent by inheritance, and the residual is cited, not re-raised.** Two overlapping migrators running S1 or S4 concurrently is a real hazard, but it is SUB-15's `R-S15-3`, already registered with an owner. This chapter adds the requirement that every stage be safe under concurrent execution, and cites rather than duplicates. |
-| `OBJ-10` (`:257`) | ≤ 60 s of audit traffic lost per circuit-open window | **Consistent.** Named above as the reason S1's transient window degrades to lost audit entries rather than a crash. |
+| `OBJ-10` (`:257`) | ≤ 60 s of audit traffic lost per circuit-open window | **Not assessed.** S1's transient window (§10) loses audit entries rather than crashing, but S1's duration is unbounded (`R-S6-2`), so whether the loss fits inside 60 s cannot be stated. Named as an objective this migration touches without discharging. |
 
 `R-S6-2`'s mitigation is bounded honestly: the sweep can be batched so that **each boot** does a
 bounded slice, keeping any single boot inside `OBJ-8` while the whole migration spans several boots.
@@ -750,10 +823,15 @@ contradiction, and **no amendment is routed to `NEU-895`**.
 | `NEU-850`'s `OUT-2` | Consumed as the ownership-key constraint; cited at `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53` | Honoured. The backfill writes the key that decision requires. |
 | `OI-S5-1` (owner `NEU-850`) | Whether "every core table" ranges over the two log tables | **Not resolved here, and deliberately not needed.** The `archive` disposition does not add an ownership column to either log table, so it is correct under *both* readings of `OI-S5-1`. This chapter cites SUB-3's stand-in `A-S3-1` for the reading the package adopted, and takes no reading of its own. |
 | `DR-C10-S8-2` | Consumed for `context_tokens`' purge justification | Consistent; the purge is the rule's consequence. |
-| `F-S5-3` / `F-S8-1` (the 46 / 43 / 3 surface) | Re-counted independently at this cutoff | **Confirmed: 46 registered, 43 gated, 3 exempt.** Counted from the 12 registration calls in `src/server/tools.ts:18`–`:30` and the exempt set at `src/transport/context-token-middleware.ts:5`–`:9`. Consistent with the settled figure. |
+| `F-S5-3` / `F-S8-1` (the 46 / 43 / 3 surface) | Re-counted independently at this cutoff | **Confirmed: 46 registered, 43 gated, 3 exempt.** Counted from the 13 registration calls in `src/server/tools.ts:18`–`:30` and the exempt set at `src/transport/context-token-middleware.ts:5`–`:9`. Consistent with the settled figure. |
 
-**On `42`:** the corrected surface is 46 / 43 / 3 and `42` is not a codebase fact. No line number
-cited in this chapter lands on line 42 of any file.
+**On `42`:** the corrected surface is 46 / 43 / 3, and `42` appears nowhere in this chapter as a
+tool-count claim or any other codebase fact. It **does** appear twice as a line number, and both are
+disclosed here rather than left for a grep to surface: `src/infrastructure/db/client.ts:42` (the
+Postgres pool's `max`, cited in §11's `OBJ-1` check) and
+`src/adapters/drizzle/tier2-blocking-stats-repository.ts:40`–`:42` (the aggregate's `WHERE` clause,
+cited in §4.4). A `file:line` landing on line 42 is benign; asserting that none does would have been
+a false self-certification, which is why the claim is stated this way round.
 
 ---
 
@@ -771,11 +849,11 @@ SUB-14's and is not touched.
 | Register | Ids |
 | --- | --- |
 | Outcome (`90_outcome-register.md`) | `OUT-2` |
-| Findings (`91_findings-register.md`) | `F-S6-1` … `F-S6-5` |
+| Findings (`91_findings-register.md`) | `F-S6-1` … `F-S6-6` |
 | Risk (`92_risk-register.md`) | **`R9`** (charter § Risks row 9), plus `R-S6-1`, `R-S6-2` |
 | Open items (`93_open-items-and-provisional-register.md`) | `OI-S6-1`, `OI-S6-2` |
 | Caps (`94_caps-and-incomplete-scope.md`) | none filed |
-| Stand-ins (`95_stand-in-assumption-register.md`) | `A-S6-1` |
+| Stand-ins (`95_stand-in-assumption-register.md`) | `A-S6-1`, `A-S6-2`, `A-S6-3` |
 | Spikes (`96_spike-register.md`) | `SPK-S6-1`, `SPK-S6-2` |
 | Completeness gate (`97_package-completeness-gate.md`) | `G-S6-1` … `G-S6-12` |
 | Decision records | `DR-C11-S6-1`, `DR-C11-S6-2`, `DR-C11-S6-3` |
@@ -822,5 +900,10 @@ naming OUT-2 as its owning outcome, and `92_risk-register.md:32` pre-allocates i
 | `F-S6-3` | The Tier-2 aggregate under-reports for five weeks after cutover, then becomes fixable | **SUB-7** (sequencing), **SUB-13** (the migration) |
 | `F-S6-4` / `OI-S6-1` | `LD-S3-32` does not exist at position 8 either — a classified artifact that still has not been produced | **SUB-14** (OUT-20's band reconciliation), **SUB-17** |
 | `F-S6-5` | S1's transient write-unavailability window — a new sequencing input, **not** a third cause of the smoke-run break | **SUB-7** (NEU-1001) |
+| `F-S6-6` | Seven of the fourteen tables carry no pathology probe; `operation_event_log` is the consequential one | **SUB-13** (NEU-1006), which writes the missing probe before execution |
+| `F-S6-1` | The two failure directions are one absence — the joint fact neither SUB-8 nor SUB-5 states alone | **SUB-7**, **SUB-9**, as the single id to cite for it |
+| `A-S6-2` | S1 must execute at or after the carrier lands — the archive's benefit depends on it | **SUB-7** (NEU-1001), as an entry condition on the stage it sequences |
+| `A-S6-3` | The generator's five-input enumeration, on which the no-copied-rows closure argument rests | **SUB-13** (NEU-1006) and the implementation charter that builds the generator |
+| §9.3's intra-S4 order | The FK-graph ordering the `backfill-by-join` totality claims depend on, plus `P-ORPHAN-2` as an S4 entry condition | **SUB-13** (NEU-1006) |
 | `R-S6-2` | The `OBJ-8` conflict: a boot-time sweep cannot be deferred and extends boot past the 99.9% budget | **SUB-7**, **SUB-15**'s objectives, `NEU-896` |
 | **Confirmed: two causes** | This chapter's disposition adds **no third standing cause** to `F-S5-12`'s smoke-run break | **SUB-7**, which sequences around both |

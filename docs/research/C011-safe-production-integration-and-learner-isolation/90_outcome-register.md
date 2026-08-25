@@ -779,8 +779,8 @@ evidence can attribute the table's rows*. The pre-cutover log population, which 
 closed at the cutover instant and moved out of the confined surface, deleted by nothing — which
 resolves both failure directions without contradicting SUB-16's finding that attribution can never
 be backfilled onto those rows. The migration is **staged**, forced by `F-S5-10` rather than chosen,
-in five stages of which four are fully reversible and the fifth destroys only rows a consumed C010
-decision has already voided.
+in five stages: three fully reversible, one reversible in its rows but not in its effects, and one
+irreversible that destroys only rows a consumed C010 decision has already voided.
 
 **Success measure.** OUT-2 is done when: (1) zero of the 14 tables are unaddressed and each
 disposition carries a per-table justification, with any unjustifiable table reported as a finding
@@ -819,9 +819,9 @@ all four fail for one reason.**
    `AUTH_*` or `DATABASE_URL` exists in this environment. No target-subject value is proposed
    anywhere, because an inferred target is the failure mode rather than a weaker form of success.
    `SPK-S6-1`.
-4. **MET on publication, NOT MET on execution, and the two are reported separately.** Twelve probes
-   across all five named pathology classes are published with their SQL and with a
-   structural-possibility analysis per table — including the finding that `notes.target_id` is the
+4. **MET on publication, NOT MET on execution, and the two are reported separately.** Twelve probes across all five named pathology classes are published — **8 carrying executable
+   SQL, 4 structural foreclosures with nothing to run** — each with a structural-possibility
+   analysis per table — including the finding that `notes.target_id` is the
    only orphan surface in the schema and that the SM-2 columns carry no `CHECK` at all. **None was
    executed**; every result cell reads *not executed — no credential* and **no cell reads `0`**.
    `SPK-S6-2`. The pathology class with no writable probe is reported as `F-S6-2`.
@@ -835,9 +835,10 @@ all four fail for one reason.**
    aggregates, so **no unclaimed-row count is reported.** `OI-S6-2`. The rule that production counts
    and generated counts are never the same number is stated, and both sets are recorded as empty
    for different reasons.
-7. **MET.** Five stages, each with its reversal position. S1, S3, S4 and S5 are fully reversible with
-   nothing lost; S2 is the only irreversible one and destroys only `context_tokens` rows already
-   void under `DR-C10-S8-2`. S4's reversibility is a consequence of the same uniformity that makes
+7. **MET.** Five stages, each with its reversal position. S3, S4 and S5 are fully reversible with nothing
+   lost; S1 is reversible in its rows but **not** in its effects (the under-reported aggregate
+   window and the timestamp-separability of the two populations do not come back); S2 is the only
+   irreversible one and destroys only `context_tokens` rows already void under `DR-C10-S8-2`. S4's reversibility is a consequence of the same uniformity that makes
    its premise risky.
 8. **MET.** `R9` is authored with its severity, mitigation, named owner, escalation route to
    `NEU-896`, pre-flight probe re-run and abort condition.

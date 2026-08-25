@@ -539,7 +539,8 @@ a hazard SUB-4 already owns.
   rather than back into a package that has already published.
 - **Mitigation:** The probe set is an **obligation of the aggregate step, not a nice-to-have**, and is
   published at `06_the-disposition-of-every-unowned-row.md` §6.2 as twelve named probes covering all
-  five pathology classes, each with its SQL and a **structural-possibility analysis** stating whether
+  five pathology classes — **8 carrying executable SQL and 4 recorded as structural foreclosures with
+  nothing to run** — each with a **structural-possibility analysis** stating whether
   a constraint already forecloses that class for that table — so a reader sees what was looked for,
   what could not occur, and what was found. Two of the probes are strengthened by schema facts the
   analysis surfaced: `notes.target_id` is the only place in the schema where a referential orphan is

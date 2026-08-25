@@ -42,9 +42,9 @@ usually a style constraint; here it is a correctness one. The tables genuinely d
 known about who wrote their rows, and a uniform `backfill` would be *provably wrong* for at least
 two of them — `context_tokens`, whose population is mixed with the deploy pipeline's
 `client_credentials` principal, and the two log tables, which record that same non-learner principal's
-requests. Applying one rule everywhere would commit exactly the `sub`-versus-`azp` mis-pinning that
-`NEU-850`'s own risk register names.
-
+requests. Applying one rule everywhere would commit exactly the `sub`-versus-`azp` mis-pinning the
+identity rule exists to prevent: SUB-2 ruled `azp` is **never** a learner key, and `F-S2-1` records
+that production's static `claude-web` client makes every learner's `azp` identical.
 Partitioning on *evidence* rather than on data class is what makes the split predictive. A data-class
 split would put `notes` and `mcp_request_log` together — both hold learner free text — and then have
 to explain why they take opposite dispositions. The evidence split separates them on the first cut:
@@ -79,9 +79,11 @@ Where no FK is declared at all — `notes.target_id`, polymorphic — the join i
 
 1. **SUB-13 (NEU-1006) receives a table it can write DDL from directly** — 14 rows, each naming an
    action and a justification, with the join edges named per table.
-2. **The backfill is gated, not merely recommended.** `DR-C11-S6-3`'s verification procedure is an
-   entry condition on the backfill stage, so an unverified target subject cannot reach production
-   through this design even if the gate's result is never obtained.
+2. **The backfill is gated, not merely recommended.** The target-subject verification procedure
+   V1–V7, published at `../06_the-disposition-of-every-unowned-row.md` §5 — **not** in any decision
+   record, which is itself worth noting, since it is this chapter's single hardest gate — is a hard
+   entry condition on stage S4, so an unverified target subject cannot reach production through this
+   design even if the gate's result is never obtained.
 3. **`A-S6-1` becomes load-bearing for ten of the fourteen tables**, and its unfalsifiability by
    aggregate is registered as `F-S6-2`. A reader who rejects `A-S6-1` must reject population A's
    disposition with it; the dependency is explicit rather than buried.

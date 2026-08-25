@@ -549,9 +549,9 @@ elsewhere.*
   for want of a production credential. The package therefore carries an inventoried, classified
   category with **no producing artifact**, and the question of when it comes into existence is open.
 - **Status:** **open**
-- **Source:** `03_learner-data-inventory-and-classification.md:474`–`:476`;
+- **Source:** `03_learner-data-inventory-and-classification.md:473`–`:476`;
   `05_the-enforcement-point-that-confines-every-read-and-write.md:613`–`:614`;
-  `06_the-disposition-of-every-unowned-row.md` §6.3 and §6.4.
+  `06_the-disposition-of-every-unowned-row.md` §6.4 and §6.5.
 - **Consumer:** **SUB-14 (NEU-1007)** under OUT-20, whose band reconciliation would otherwise find an
   inventoried category with no artifact and no explanation; **SUB-17 (NEU-1008)** at the completeness
   gate.
@@ -591,8 +591,10 @@ elsewhere.*
 ---
 
 **SUB-6 register totals at revision 1:** two open items, `OI-S6-1` and `OI-S6-2`, both **open**, each
-with a named owner and an observable resolving event, neither blank. **Both correspond to a spike
-entry** — `SPK-S6-2` and `SPK-S6-1` respectively bound the production access each needs — which is the
+with a named owner and an observable resolving event, neither blank. **Both correspond to the same spike
+entry** — `SPK-S6-2`, whose unexecuted aggregates block `OI-S6-1` directly and `OI-S6-2` transitively,
+since the dataset cannot be generated until the counts exist. `SPK-S6-1` (the target-subject
+verification) blocks neither: it gates the backfill stage, not dataset generation. This is the
 inverse of SUB-5's position and correct for the same reason: SUB-5's two items needed a measurement
 already owned and a party to be named, whereas both of these are settled by a bounded, read-only
 experiment against production and by nothing else.

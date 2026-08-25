@@ -62,7 +62,7 @@ that every member is row-free.
 One precision the derivation test demands: the dataset is derived *from aggregates of* learner rows.
 That is not the same as containing data derived from real learner rows in the sense the test means,
 and the distinction holds because SUB-3 classified those aggregates separately, as `LD-S3-32`, *not
-personal data* (`../03_learner-data-inventory-and-classification.md:474`–`:476`). Without that
+personal data* (`../03_learner-data-inventory-and-classification.md:473`–`:476`). Without that
 separate classification the argument would be circular; with it, it is not.
 
 ---
@@ -108,7 +108,7 @@ separate classification the argument would be circular; with it, it is not.
 | SUB-3 recorded the exclusion and named SUB-6 as the evidencing party | `../03_learner-data-inventory-and-classification.md:484`–`:501`, esp. `:500`–`:501` |
 | SUB-3 sets no owner, retention bound or specification for the dataset | `DR-C11-S3-3_package-own-copies-and-the-derivation-test.md:73`–`:74` |
 | The derivation test is "does this artifact contain data derived from real learner rows?" | `../03_learner-data-inventory-and-classification.md:484`–`:501` |
-| `LD-S3-32` is classified *not personal data* and "does not exist at position 3" | `../03_learner-data-inventory-and-classification.md:474`–`:476` |
+| `LD-S3-32` is classified *not personal data* and "does not exist at position 3" | `../03_learner-data-inventory-and-classification.md:473`–`:476` |
 | SUB-5 restates `LD-S3-32` as SUB-6's to produce | `../05_the-enforcement-point-that-confines-every-read-and-write.md:613`–`:614` |
 | An aggregate is confined iff the predicate applies before aggregation | `../05_the-enforcement-point-that-confines-every-read-and-write.md:591`–`:593` |
 | A failed no-copied-rows audit overturns the exclusion | `DR-C11-S3-3_package-own-copies-and-the-derivation-test.md:103`–`:105` |
