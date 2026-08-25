@@ -129,3 +129,26 @@ observable lifting condition. It is a **narrower restatement** of `CAP-S1-1` app
 sub-task's own output, not a second record: `CAP-S1-1` caps the package's evidence base, while this
 entry caps what a threshold in the detection matrix may be read to establish. **No cap is recorded as
 lifted.**
+
+---
+
+### SUB-8
+
+#### `CAP-S8-1` — Every duty in this chapter is specified; not one has ever been exercised, and the export was reviewed on paper
+
+- **Id:** `CAP-S8-1`
+- **Cap:** `08_consent-and-what-a-learner-can-export-and-erase.md` states a consent boundary, an export design, a per-category erasure disposition, a completion deadline and a retention-exception audit. **None of it has ever run.** **Zero** consents have been captured — there is no consent record and no surface to capture one on. **Zero** exports have been produced. **Zero** erasures have been requested or executed. The **table-top export in §7.3 is a paper exercise over the declared schema**: no database was read, no row was counted, no artifact was generated and handed to anyone, and its dispositions are derived from SUB-3's classifications rather than from data. The `deadline_at` value in §9.1 is a **chosen policy number**, not a measurement of anything.
+- **Why it is capped:** No production credential of any kind exists in the authoring environment — `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` were re-probed at cutoff `d2e2b55` and are all unset, independently reproducing SUB-1's `F-S1-2`. There is additionally **nothing to exercise**: the mechanisms these duties would run on do not exist (`F-S8-3`, `R-S8-4`), so even with a credential there is no export path to invoke and no consent record to write. Generating a plausible export artifact and presenting it as produced was not available — it would be an observation this package does not have, and it is the failure mode charter assumption 49 forbids.
+- **What it leaves unsupported:** Any claim of the form *"the product can export a learner's data"*, *"an erasure request completes in 30 days"*, or *"consent has been obtained for X."* In particular a reader must **not** infer: that the 25-section export was ever rendered (it was enumerated, not rendered); that 30 days is achievable, since no propagation has ever been timed and no register item in this package covers propagation duration; that the four passing retention exceptions are enforced — only #3's ≤ 5 s bound is enforced by a constant, and #4's 30-day script has a cron registration present **only as a comment**; or that any category's disposition has been tested against real rows, which is bounded by `OI-S1-5`, `OI-S1-6` and `OI-S1-4`.
+- **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who could supply a credential or authorise the `src/` work that would make any duty here exercisable.
+- **What would lift it:** In two stages, and the first is not an observation. **Stage 1:** an export path and an erasure path are built, and a consent record exists to write — the `src/` and `drizzle/` work `F-S8-3` and `R-S8-4` name, owned outside this package. **Stage 2:** one export is produced against real data and reviewed for readability and completeness, and one erasure is executed and its propagation timed against the 30-day deadline, with both recorded in `96_spike-register.md`. The cap narrows when either duty becomes exercisable and lifts **entirely** only when both have been exercised once.
+- **Why this is not a second record of `CAP-S1-1`:** `CAP-S1-1` caps the **package's evidence base** — what the package as a whole may claim from zero production observations. This entry caps something narrower and specific to this sub-task's own output: **what a duty stated in this chapter may be read to mean about the product's capability.** The two differ in a way that matters here, because `CAP-S8-1`'s stage 1 is *not* an evidence problem at all — it is an absent mechanism, and no amount of production access would lift it. It is the same relationship `CAP-S2-1` and `CAP-S16-1` bear to `CAP-S1-1`, and it is recorded on the same rule. `CAP-S1-1` and `92_risk-register.md` § `R13` are **cited** in the reasoning above rather than restated.
+
+---
+
+**SUB-8 register totals at revision 1:** one cap, `CAP-S8-1`, with a named owner and a two-stage
+observable lifting condition. **No cap is recorded as lifted.** **SUB-8 registers no citation-gate
+cap of its own** — `CAP-S1-2`, that C011 is not yet in `scripts/check-citation-paths.ts`'s gated
+list, already covers this chapter and its owner is SUB-14; raising a second would be a duplicate
+record of one fact. This chapter's citations were nonetheless written to the convention and **checked
+locally against the same checker**, which reports zero non-resolving paths across the corpus.
