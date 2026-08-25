@@ -692,3 +692,84 @@ re-validation trigger fires on this package's publication; the envelope check is
 `05_the-enforcement-point-that-confines-every-read-and-write.md` §10 and the entry is cited from its
 single owning record at `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`,
 never duplicated.
+
+---
+
+### SUB-6
+
+## `A-S6-1` — The pre-cutover learning-domain population has exactly one human principal
+
+**Status:** `[unconfirmed]`
+
+**Stands in for:** A per-row attribution of the ten population-A tables. No such attribution exists
+or can be constructed: zero ownership columns exist anywhere
+(`06_the-disposition-of-every-unowned-row.md` §1.2), and no durable structure ever held a
+session-to-subject binding (`16_attribution-and-detection.md:279`–`:283`).
+
+**Assumption:** *"Every human-authored row in `learning_topics`, `learning_chunks`,
+`learning_sessions`, `session_chunks`, `session_questions`, `session_question_chunks`,
+`session_question_attempts`, `session_question_attempt_revisions`, `notes` and
+`infrastructure.linter_validation_corpus` was written by a single human principal — the creator.
+Unverified: the charter's own standing `n = 1` evidence label (`R13`) says no multi-learner evidence
+exists anywhere upstream, and no query available against this schema can confirm or refute it."*
+
+**Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the
+only party who knows whether any second human ever authenticated against it. This cannot be
+delegated to a later sub-task, because the knowledge is not in the database.
+
+**Tolerance envelope:** The assumption tolerates any number of **non-human** principals having
+written rows in these tables, because `context_tokens` is the only table the
+`client_credentials` smoke principal writes to and it is not in population A. It tolerates the human
+principal having authenticated through more than one client, more than one session or more than one
+device, because the learner key is the OIDC `sub` and `azp` is never a learner key (SUB-2), so
+multiple clients still resolve to one key. It tolerates rows written by the `'agent'` author value
+in `notes`, because a note the agent wrote about the operator's chunk is still the operator's data.
+**It does not tolerate a second human `sub`** having authored any row in any of the ten tables.
+
+**Invalidating outcome:** **Evidence that a second human principal wrote any pre-cutover row in a
+population-A table.** Reaching this outcome does not weaken the disposition — it **inverts** it.
+Backfilling to a single subject would then commingle two people's data under one identity, which is
+worse than the unowned status quo and is the exact opposite of what this package exists to deliver.
+`DR-C11-S6-1` would need re-deriving rather than amending, and the ten tables would fall back to a
+disposition in the shape of population C's, because they would have become non-attributable in the
+same way.
+
+**Re-validation trigger:** Three events, any of which fires it. **The creator states the answer** —
+the direct route, and the only one that closes it affirmatively. **The target-subject verification
+of `SPK-S6-1` runs** and the production IdP returns more than one distinct human `sub`, or an
+audit-log inspection under OUT-18 shows more than one — the observable falsifier. And **immediately
+before the backfill stage executes**, where V7 already requires re-running the verification: this
+assumption is re-checked at the same moment, because a premise that was true when the chapter was
+written and false when the migration runs would fail silently and irreversibly.
+
+---
+
+**SUB-6 register totals at revision 1:** one entry, `A-S6-1`, `[unconfirmed]`, carrying a named
+owner, a tolerance envelope, an invalidating outcome and three observable re-validation triggers,
+with no blank field. **Zero charter-continued `A-<n>` entries**, correctly: this stand-in is not a
+stand-in for one of the charter's numbered assumptions, so it takes the sub-task-scoped form per
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.
+
+**This is the most load-bearing stand-in this package has filed, and it is stated as such.** Ten of
+the fourteen dispositions rest on it. A reader who rejects it must reject population A's disposition
+with it, and the chapter says so at §2.2 rather than leaving the dependency to be inferred. It is
+filed here rather than absorbed into the chapter's prose precisely because a premise this
+consequential going unlisted is the defect class that voids a chapter's central derivation.
+
+**Its unfalsifiability is a separate record, and deliberately so.** That **no aggregate probe can
+settle this assumption** — because no column distinguishes principals — is `F-S6-2`, a finding, not
+part of this entry. The distinction matters: this entry records *what the design assumes*, and the
+finding records *why the probe set structurally cannot reach it*. One id per fact, and these are two
+facts.
+
+**`A-28` is not restated here**, on the same rule SUB-5 applied. C010's stand-in bounds this
+outcome's disposition set; the envelope check is performed at
+`06_the-disposition-of-every-unowned-row.md` §12 and the entry is cited from its single owning
+record at `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`,
+never duplicated. One thing is noted in passing rather than filed: `A-28`'s re-validation trigger is
+this package's publication, so this chapter is part of the event that fires it.
+
+**`A-S3-1` is not restated here either.** SUB-3's stand-in for the reading of `OI-S5-1` — whether
+`NEU-850`'s *"every core table"* covers the two raw-SQL log tables — is cited, not re-raised, and
+this sub-task takes no reading of its own. The `archive` disposition is correct under both readings,
+so nothing here rests on which one holds.

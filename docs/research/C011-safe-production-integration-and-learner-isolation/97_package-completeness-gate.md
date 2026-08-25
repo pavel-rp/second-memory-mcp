@@ -256,3 +256,53 @@ unchanged. Nothing about whether `CAP-S5-1` lifts, which is `OI-S5-2`'s unnamed 
 landing condition on applied work. And nothing about the fourteen other Census-B
 `fails-confinement` categories, each of which needs its own enumerated access-path set before its
 verdict can move.
+
+---
+
+### SUB-6
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S6-1` | Every table in `src/infrastructure/db/schema.ts` and both raw-SQL log tables carries a stated disposition; zero unaddressed | **met** | `06_the-disposition-of-every-unowned-row.md` §3 — 14 rows. Inventory re-counted from the files at §1.1, not inherited |
+| `G-S6-2` | Each disposition carries a per-table justification rather than a uniform rule | **met** | §3's justification column; the evidence-based partition in `decision-records/DR-C11-S6-1_the-migration-disposition-scheme.md`. Three tables take a different disposition from their apparent neighbours for stated structural reasons — rows 3, 9 and 12 |
+| `G-S6-3` | A table for which no disposition can be justified is reported as a finding with a named owner | **met** | Checked against all 14; **none found**; recorded as *checked and not filed* at §3, on SUB-5's precedent rather than filed as an empty entry |
+| `G-S6-4` | Cross-checked against C010's 45-category state inventory, unmatched reported in both directions | **met** | §8 — 0 unmatched both ways, reconciled by 14 + 2 + 1 = 17. Method stated; both zeros inherit C010's own six falsifiers |
+| `G-S6-5` | The backfill target subject is confirmed against a real production token with recorded evidence | **not met** | §5.2. **No credential exists.** Procedure V1–V7 published and made a hard entry condition on the backfill stage; `SPK-S6-1`. No target value is proposed anywhere |
+| `G-S6-6` | Per-disposition row counts are reported as counts taken from production | **not met** | §6.3. `Q1`–`Q5` published, **not executed**; `SPK-S6-2`. **No cell reads `0`** |
+| `G-S6-7` | The query set includes an explicit probe for each named dirty-data pathology, per table | **met** | §6.2 — twelve probes across all five classes, each with SQL and a structural-possibility analysis. Publication is the condition; execution is `G-S6-6` |
+| `G-S6-8` | A pathology class with no writable probe is reported as a finding | **met** | `F-S6-2` — mis-ownership is undetectable by aggregate, because no column distinguishes principals |
+| `G-S6-9` | Each pathology found is reproduced in the synthetic dataset; the dry-run claims every row or surfaces it as a finding | **not met** | §7.1, §7.4. The dataset was not generated — three of its five inputs are the unexecuted aggregates — so no unclaimed-row count exists. `OI-S6-2` |
+| `G-S6-10` | A generation record ties every synthetic distribution to its aggregate; a no-copied-rows audit confirms no row was copied out of production; the dataset is recorded as excluded from the sixth copy class citing SUB-3's derivation test at position 3 | **met** | §7.1 (five inputs enumerated exhaustively) and §7.2 (input-closure argument with its falsifier stated); `decision-records/DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md`. No owner, retention bound or destruction condition is set |
+| `G-S6-11` | Each migration stage states what is lost on reversal and what cannot be recovered at all | **met** | §9.2 — five stages; four fully reversible, S2 the only irreversible one, and its loss entailed by `DR-C10-S8-2` rather than caused here |
+| `G-S6-12` | The unprobed-pathology residual is recorded in the risk register with an owner, a pre-flight probe re-run and an abort condition | **met** | `R9` in `92_risk-register.md`, with severity, mitigation, named owner and escalation to `NEU-896` |
+
+**SUB-6 rows: 12. Met 9; met with cap 0; not met 3; not applicable 0.**
+
+**SUB-6 uses the sub-task-scoped `G-S6-<k>` form**, following SUB-2's `G-S2-*`, SUB-4's `G-S4-*`,
+SUB-5's `G-S5-*` and SUB-8's `G-S8-*` rather than SUB-1's and SUB-3's continuation of the bare global
+`G-<n>` sequence. Two conventions are live in this register and the divergence is stated rather than
+silently chosen, exactly as SUB-4 and SUB-5 each stated their own. The reason is the collision
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` names: `G-<n>` is a bare global
+sequence, and two sub-tasks computing "the next free number" against the same register arrive at the
+same integer. `G-S6-<k>` cannot collide — which matters more than usual here, because a sibling
+sub-task is in flight against this same register concurrently.
+
+**The three `not met` rows are one failure, and it is not deferred or disguised.** `G-S6-5`,
+`G-S6-6` and `G-S6-9` all fail because **no production credential exists in this environment**, and
+they fail in a chain: without a credential the aggregates cannot run, without the aggregates the
+dataset cannot be generated, and without the dataset the dry-run cannot report. Each is recorded as
+its own row rather than folded into one, because they close at different moments — a credential alone
+closes `G-S6-5` and `G-S6-6`, but `G-S6-9` needs the generation and the run as well. Every one names
+its spike or open item and its owner. **None is restated to match what was achievable**, which is the
+failure mode SUB-5 recorded against its own `G-S5-6`.
+
+**What SUB-6 does not assert here.** Nothing about how many unowned rows exist — no count, no
+population size, no probe result, and `observed-in-production` used zero times. Nothing about whether
+the target subject is correct; only that the backfill cannot proceed without confirming it. Nothing
+about what a data right does to the pre-cutover population — that is SUB-9's under `F-S8-2`, which
+remains blocking and whose owner is unchanged. Nothing about whether `A-S6-1`, the single-principal
+premise ten dispositions rest on, is true; `F-S6-2` records that no aggregate can settle it. Nothing
+about applied behaviour: no file under `src/` or `drizzle/` changes, no DDL is authored, no migration
+is executed, and no test is written. And **no QA pass** — the `qa-execution:engine` surface is
+unconfigured, so the automated QA phase is a genuine Core Article 8 no-op, carried at package level
+as `CAP-S1-3`.

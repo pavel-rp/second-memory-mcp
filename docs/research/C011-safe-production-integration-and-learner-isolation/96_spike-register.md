@@ -588,3 +588,110 @@ aggregates the band.
 
 **Zero second records:** `SPK-S1-1` and `OI-S15-3` are cited from their single owning records rather
 than re-designed here.
+
+---
+
+### SUB-6
+
+#### `SPK-S6-1` — Which subject does a real production learner token actually carry, and is it distinct from `azp`?
+
+- **Id:** `SPK-S6-1`
+- **Question:** For a token obtained through the **authorization-code** flow the human learner
+  actually uses, what is the value of `sub`; is it present and non-empty; and is it distinct from
+  `azp`? This is the target subject the backfill of ten tables would write.
+- **Why reading could not settle it:** The middleware resolves a principal as `payload.sub || azp`
+  at `src/transport/jwt-middleware.ts:127`. The code shows both branches exist; it cannot show which
+  one a production token takes. A wrong target silently orphans the operator's own data behind an
+  identity they cannot authenticate as, which is exactly why OUT-2 requires the target be *verified
+  against a real token*, never inferred.
+- **Exit condition:** V1–V7 of `06_the-disposition-of-every-unowned-row.md` §5 all pass, and the
+  `sub` value is recorded redacted with its date and issuer. **If `sub` is absent, the spike exits
+  with that as its result and the backfill does not run** — an absent `sub` is `H5`'s negative
+  answer and invalidates population A's disposition rather than merely delaying it.
+- **Method:** Obtain one token from the production Rauthy IdP through the authorization-code flow.
+  Decode the payload; read `sub` and `azp` independently. Assert presence, non-emptiness,
+  distinctness, and that `azp` is the static client `claude-web` consistent with `F-S2-1`. This is
+  the **one registered state-creating exception** OUT-18 permits — issuing a token necessarily mints
+  one and writes an IdP audit record — and the residue lands outside the systems this package
+  protects. **`init_agent_context` is specifically not covered by that exception** and is not called.
+- **Quarantine path:** `_local/scratch/` — gitignored, outside `src/`, `tests/` and `drizzle/`.
+- **Date:** — (not executed)
+- **Result:** **Not executed.** No `SMOKE_PROD_*`, `AUTH_*` or `VPS_*` credential exists in this
+  environment; `.env.example:13` carries only a `localhost` development placeholder.
+- **Confidence:** n/a — no result.
+- **Expiry:** 90 days from execution.
+- **Expiry rationale:** The subject is an IdP configuration fact, which changes only on a
+  deliberate change to client registration or claim mapping. Ninety days bounds the window in which
+  such a change could go unnoticed; **V7 additionally requires the verification be re-run immediately
+  before the backfill executes**, so the expiry is a backstop rather than the primary control.
+- **Routes to:** **SUB-13 (NEU-1006)** under OUT-19, which carries V1–V7 as the backfill stage's
+  entry condition in its runbook; **SUB-7 (NEU-1001)** under OUT-3, which sequences that stage.
+  Tracked against OUT-2's unmet target-subject criterion.
+
+#### `SPK-S6-2` — What do the per-disposition counts and the twelve pathology probes actually return?
+
+- **Id:** `SPK-S6-2`
+- **Question:** What are the per-disposition row counts of the 14 production tables, and what does
+  each of the twelve published pathology probes return — orphaned foreign keys, encoding anomalies,
+  unexpected nulls, duplicates and out-of-range values, per table?
+- **Why reading could not settle it:** Counts and data pathologies are properties of the **rows**,
+  and no row is readable from this repository. The schema tells you which pathologies are
+  structurally foreclosed by a constraint — that analysis is done and published — but it cannot tell
+  you which of the remaining ones are actually present.
+- **Exit condition:** `Q1`–`Q5` and all twelve `P-*` probes at
+  `06_the-disposition-of-every-unowned-row.md` §6 have run and their results are recorded, replacing
+  every *not executed — no credential* cell.
+- **Method:** Execute the published SQL read-only against production. **Counts and aggregates only,
+  never rows** — every statement returns scalars or grouped counts by construction, which is what
+  keeps this inside OUT-18's read-only inspection authorization and what makes the no-copied-rows
+  closure argument hold. No `SELECT *`, no `LIMIT` sample, no `DISTINCT` over a content column: any
+  of those would make an input row-valued and overturn the dataset's exclusion from the sixth copy
+  class.
+- **Quarantine path:** `_local/scratch/` — gitignored, outside `src/`, `tests/` and `drizzle/`.
+- **Date:** — (not executed)
+- **Result:** **Not executed.** No `DATABASE_URL` and no production credential of any kind exists in
+  this environment.
+- **Confidence:** n/a — no result. **No cell may be read as `0`:** an unexecuted probe and a probe
+  that returned zero are different states, and conflating them is how a pathology reaches a real
+  migration believed absent.
+- **Expiry:** 30 days from execution.
+- **Expiry rationale:** Deliberately shorter than `SPK-S6-1`'s. Counts and pathology incidence are
+  properties of a **live, growing** dataset — the log tables gain rows on every request — so a
+  result ages far faster than an IdP configuration fact. Thirty days is also why `R9` requires the
+  real migration to **re-run the whole probe set pre-flight** rather than cite this one: by execution
+  time the result will almost certainly be stale, and the abort condition keys on the re-run, not on
+  this record.
+- **Routes to:** **SUB-13 (NEU-1006)** under OUT-19, which inherits the pre-flight re-run and the
+  abort condition; **`NEU-896`**, to which `R9` escalates a pathology found at execution time.
+  Closes `OI-S6-1` and unblocks `OI-S6-2`.
+
+---
+
+**SUB-6 register totals at revision 1:** **two spikes designed, zero executed** — `SPK-S6-1` and
+`SPK-S6-2`.
+
+**The cumulative figure at this sub-task's cutoff is twenty-two designed, zero executed.** SUB-5's
+section reconciled the count to **twenty** at cutoff `cc38cc9` by counting entry headings —
+SUB-1 nine, SUB-2 three, SUB-4 two, SUB-15 four, SUB-16 one, SUB-8 one. Adding this section's two
+gives 20 + 2 = **22** at cutoff `35f92ba`. The figure is stated as a count taken at a named cutoff
+rather than as a standing total, for the reason SUB-4 recorded and SUB-5 restated: a cumulative total
+is only correct on the day it is written. No predecessor's text is edited — this register is
+append-only — and the reconciliation is routed to **SUB-14 (NEU-1007)** under OUT-20.
+
+**Zero executed remains the package-wide figure, and it is the single most consequential fact about
+this sub-task's output.** Four of OUT-2's twenty-five traced claims are unmet, and all four are
+unmet for this one reason. `observed-in-production` is used **zero** times in
+`06_the-disposition-of-every-unowned-row.md`, and no production quantity is asserted anywhere in it.
+
+**Zero second records:** `SPK-S1-1` — whether any admitted production token lacks a `sub` — overlaps
+`SPK-S6-1`'s territory and is **cited, not re-designed**. The two are distinct questions and both are
+kept: `SPK-S1-1` asks whether the `sub || azp` merge is reachable *at all* across principal shapes,
+which is a question about the code path; `SPK-S6-1` asks what the human learner's `sub` *is*, which
+is the value a migration writes. A run of either would inform the other, and whoever executes one
+should execute both in the same session.
+
+**One divergence in this register is noted rather than resolved.** The front matter records SUB-1 as
+owning "every entry in this register outright", but SUB-2, SUB-4, SUB-8, SUB-15 and SUB-16 have each
+appended their own entries, and this section follows that established practice. The note is left for
+**SUB-14 (NEU-1007)**, which owns how the register reconciles with the band; no predecessor's text is
+edited here.

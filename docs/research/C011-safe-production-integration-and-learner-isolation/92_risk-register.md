@@ -513,3 +513,135 @@ deploy pipeline's smoke run is refused on every release is **`R-S4-2`** (OUT-13,
 sub-task adds a *second, independent cause* of the same break and records it as the finding
 `F-S5-12` with a sequencing obligation on SUB-7, rather than opening a competing risk entry against
 a hazard SUB-4 already owns.
+
+---
+
+### SUB-6
+
+## `R9` — A dirty-data pathology that no aggregate query probed for survives the synthetic dry-run and surfaces during the real migration
+
+- **Risk:** The accepted residual cost of the aggregate-in-place decision. The dry-run dataset is
+  generated, not copied, so it reproduces **only the pathologies the aggregates were written to look
+  for**. A production orphan, encoding anomaly, unexpected null, duplicate or out-of-range value
+  outside the probe set will pass a green dry-run and then fail on the real rows — or, worse, silently
+  mis-assign ownership. At this revision the exposure is wider than the charter anticipated, because
+  the probe set was published but **never executed**: no probe has returned anything, so the dry-run
+  that would have caught even the probed-for pathologies has not run either.
+- **Severity:** **High**
+- **Owning outcome:** **OUT-2** — the migration of the existing global rows, which owns the aggregate
+  step, its probe set and the dry-run derived from it.
+- **Named owner:** **SUB-6 (NEU-1000)** for authoring the probe set and stating the residual; **the
+  creator, as sole maintainer and sole operator**, for executing the probes against production, which
+  is the only party with the credential.
+- **Escalation route:** **`NEU-896`**, which hands OUT-19's migration plan to the implementation
+  charter that actually executes it. The pre-flight probe re-run and the abort condition are
+  obligations that charter **inherits**, and a pathology found at execution time escalates there
+  rather than back into a package that has already published.
+- **Mitigation:** The probe set is an **obligation of the aggregate step, not a nice-to-have**, and is
+  published at `06_the-disposition-of-every-unowned-row.md` §6.2 as twelve named probes covering all
+  five pathology classes, each with its SQL and a **structural-possibility analysis** stating whether
+  a constraint already forecloses that class for that table — so a reader sees what was looked for,
+  what could not occur, and what was found. Two of the probes are strengthened by schema facts the
+  analysis surfaced: `notes.target_id` is the only place in the schema where a referential orphan is
+  possible, because it is polymorphic with no declared FK
+  (`src/infrastructure/db/schema.ts:294`); and the SM-2 columns `difficulty`, `ease_factor`,
+  `repetitions`, `interval_days` and `consecutive_failures` carry **no `CHECK` constraint at all**,
+  making out-of-range values structurally possible where seventeen other columns are already
+  foreclosed. **The real migration must therefore carry a pre-flight re-run of the same probe set at
+  execution time, and must abort when any probe returns a shape the dry-run never saw** — and, at
+  this revision, "a shape the dry-run never saw" means *any* shape, since the dry-run did not run.
+  The alternative that would have eliminated the residual — extracting real rows to dry-run against —
+  is **not authorized** (intake Q6), so the risk is accepted with its owner rather than mitigated
+  away.
+- **Mitigation status:** **Partially mitigated.** The probe set exists, is published, and is
+  inherited as a pre-flight obligation. The residual is that **it has never been executed**
+  (`SPK-S6-2`), so its coverage is untested and its results are unknown; that residual's owner is the
+  creator, as the only party holding a production credential.
+
+## `R-S6-1` — Archiving the pre-cutover population could be mistaken for discharging the erasure duty over it
+
+- **Risk:** `DR-C11-S6-2` closes the pre-cutover log population and moves it out of the confined
+  surface, which makes it finite, countable and separately addressable. A later reader — or a later
+  sub-task — could take that tidiness for a resolution and treat `F-S8-2` as closed. **It is not.** A
+  population-wide bound over a closed set is still not a **learner-scoped** bound, which is precisely
+  the field `F-S8-2` records as impossible to supply, and archiving supplies no per-learner predicate
+  because none can exist. If SUB-9 concludes "accepted residual", the archive persists with the
+  erasure duty attached and undischarged — the correct outcome, but one that looks like completion.
+- **Severity:** **Medium** — it does not create a new exposure; it creates a way to stop looking at an
+  existing one.
+- **Owning outcome:** **OUT-2**, which authored the archive decision and is therefore where the
+  misreading it enables must be named.
+- **Named owner:** **SUB-9 (NEU-1003)** under OUT-12, which owes the population its propagation action
+  and is the party whose conclusion determines whether the duty is discharged, deferred or accepted.
+- **Escalation route:** **`NEU-896`** at convergence, where a data-lifecycle duty recorded as
+  satisfied by a package that did not satisfy it would surface across packages; the erasure duty
+  itself is a program-level obligation, not this package's alone.
+- **Mitigation:** The non-discharge is stated three times in three places rather than once —
+  `06_the-disposition-of-every-unowned-row.md` §4.3 item 1, `DR-C11-S6-2` decision clause 5 and
+  consequence 2, and `traceability/S6_the-disposition-of-unowned-rows.md`'s "does not establish"
+  list. `F-S8-2`'s severity, owner and routing are left **entirely unchanged** by this sub-task, and
+  the remit table at §4.3 sets the migration disposition and the propagation disposition on separate
+  axes so the two cannot be read as the same answer.
+- **Mitigation status:** **Partially mitigated.** The statements are in place; the residual is that
+  they are statements, and the only thing that actually closes it is SUB-9 publishing its
+  disposition. That residual's owner is SUB-9.
+
+## `R-S6-2` — The migration sweep runs at boot, cannot be deferred, and breaches `OBJ-8`'s availability budget
+
+- **Risk:** Migrations run automatically on boot, unconditionally, with no environment guard and no
+  repository-owned lock. There is therefore **no deploy-independent way to defer the sweep**: a
+  backfill over the population-A tables and a move of the two log tables both extend boot by their own
+  duration, and `OBJ-8` allows **≤ 13 s** of planned unavailability per restart to meet a 99.9%
+  availability target (≤ 65 s for 99.5%, ≤ 131 s for 99%). Any single boot whose sweep exceeds that
+  breaches the objective, at `OBJ-7`'s cadence of **≥ 7 unannounced restarts per day**.
+- **Severity:** **High** — it is a direct, arithmetic conflict between this sub-task's disposition and
+  a published objective, on a deployment where a schema change and its deployment are not separable
+  events.
+- **Owning outcome:** **OUT-2**, whose migration creates the load; the objective it conflicts with is
+  SUB-15's, under OUT-14.
+- **Named owner:** **SUB-7 (NEU-1001)** under OUT-3, which owns the stage sequence and the
+  deploy-independent disable path each stage must carry, and **SUB-13 (NEU-1006)** under OUT-19, which
+  writes the migration and therefore chooses its batching.
+- **Escalation route:** **`NEU-896`** as the convergence gate: a stage that cannot be executed within
+  the platform's own availability objective is an input to the program-level go / conditional-go
+  decision, not a defect this package can close — the compose stack and the VPS are outside this
+  repository entirely.
+- **Mitigation:** The sweep is required to be **batched, idempotent and resumable**, so that each boot
+  performs a bounded slice and the whole migration spans several boots. That keeps any single boot
+  inside `OBJ-8` and is also what `OBJ-7`'s restart cadence demands independently, since the sweep
+  **will** be interrupted. It additionally respects `OBJ-1`: a batched sweep holds one of the pool's
+  four connections briefly rather than one for the whole migration.
+- **Mitigation status:** **Partially mitigated**, and the limit is stated rather than glossed.
+  Batching converts one long breach into several short ones, which is better but is **not** "no
+  breach" — and no design available to this package does better while boot-time migration cannot be
+  deferred. The residual is owned by SUB-7 and escalates to `NEU-896`.
+
+---
+
+**SUB-6 register totals at revision 1:** three entries — **`R9` (High)**, `R-S6-1` (Medium),
+`R-S6-2` (High). **Exactly one charter `R<n>` row**, correctly: charter § Risks row 9 is the only one
+of the fifteen naming OUT-2 as its owning outcome, per charter assumption 48, and `:32` pre-allocates
+it to SUB-6 by name. All three are partially mitigated; every one names its residual and that
+residual's owner, and every entry carries a severity, a mitigation, a named owner and an escalation
+route.
+
+**No amendment is routed to `NEU-895` by SUB-6.** The `A-28` envelope check at
+`06_the-disposition-of-every-unowned-row.md` §12 places every one of the five dispositions inside the
+envelope, and the one value the envelope does not name — `no-key-owed` — is inside under **both**
+readings of the envelope's scope, so the condition that would have routed an amendment did not arise.
+`A-28`'s re-validation trigger is this package's own publication, which this chapter is part of; the
+trigger's owner performs the re-check, not this sub-task.
+
+**Two hazards are deliberately not raised here, because each is already recorded exactly once
+elsewhere and this package carries one id per fact.** That the platform cannot guarantee exactly one
+concurrent boot-time migrator is **`R-S15-3`** (OUT-14, SUB-15) — this sub-task adds the requirement
+that every stage be safe under concurrent execution and cites the entry rather than opening a
+competing one. That the whole design rests on `n = 1` evidence is **`R13`** (OUT-18, SUB-1) — cited as
+the source of `A-S6-1`'s premise rather than restated, even though this sub-task is the one that makes
+that premise load-bearing for ten tables.
+
+**One thing that would look like a risk and is filed as a finding instead.** That the archive changes
+the Tier-2 aggregate's counts for five weeks is `F-S6-3`, not a risk entry: it is a determinate,
+bounded, self-correcting consequence of a decision taken here, with a known end date — a fact about
+what will happen, not an exposure that might. A risk entry would imply an uncertainty the finding does
+not have.

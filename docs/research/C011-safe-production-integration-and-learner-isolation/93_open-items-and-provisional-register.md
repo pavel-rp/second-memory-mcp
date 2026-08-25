@@ -531,3 +531,81 @@ from their single owning records rather than re-raised, on the same rule SUB-16 
 two correspond to a spike entry** — SUB-5 files no spike, because neither question is settled by a
 bounded experiment against production: `OI-S5-1` needs a measurement another item already owns, and
 `OI-S5-2` needs a party to be named.
+
+---
+
+### SUB-6
+
+*Namespace note: `OI-S5-1` in this package is SUB-5's entry. C010 also has an `OI-S5-1`, a different
+item with a different owner (`NEU-850`), and the two are qualified wherever both appear — the
+six-way `S<n>` collision between C010's and C011's same-numbered sub-tasks applies here as
+elsewhere.*
+
+#### `OI-S6-1` — `LD-S3-32`, the aggregate result set, has now failed to appear at two consecutive positions
+
+- **Id:** `OI-S6-1`
+- **Item:** SUB-3 inventoried the aggregate result set as `LD-S3-32` and recorded that it "does not
+  exist at position 3". SUB-5 restated it as SUB-6's to produce. SUB-6 could not produce it either,
+  for want of a production credential. The package therefore carries an inventoried, classified
+  category with **no producing artifact**, and the question of when it comes into existence is open.
+- **Status:** **open**
+- **Source:** `03_learner-data-inventory-and-classification.md:474`–`:476`;
+  `05_the-enforcement-point-that-confines-every-read-and-write.md:613`–`:614`;
+  `06_the-disposition-of-every-unowned-row.md` §6.3 and §6.4.
+- **Consumer:** **SUB-14 (NEU-1007)** under OUT-20, whose band reconciliation would otherwise find an
+  inventoried category with no artifact and no explanation; **SUB-17 (NEU-1008)** at the completeness
+  gate.
+- **Owner:** **The creator, as sole maintainer and sole operator** — the only party with the
+  credential the queries need. The specification is complete and published; only execution is
+  missing.
+- **Resolving event:** The queries `Q1`–`Q5` and the twelve probes at
+  `06_the-disposition-of-every-unowned-row.md` §6 are executed against production and their results
+  recorded. `LD-S3-32` comes into existence at that instant, and `F-S6-4` closes with it.
+- **Why not a stand-in:** Nothing is being assumed in its place. No count, no distribution and no
+  probe result is used anywhere in this package; the artifact is simply absent, and every consumer of
+  it reads *not executed — no credential* rather than a substituted value.
+
+#### `OI-S6-2` — The synthetic dry-run dataset was never generated, so no unclaimed-row count exists
+
+- **Id:** `OI-S6-2`
+- **Item:** The dry-run dataset's generator has five enumerated inputs, three of which are the
+  unexecuted aggregates of `OI-S6-1`. The dataset was therefore not generated, the throwaway
+  verification SQL was not written, the dry-run did not run, and **no unclaimed-row count is
+  reported**. OUT-2's clause that "every row of the dataset is claimed by a disposition or surfaced
+  as a finding" is consequently unevaluated.
+- **Status:** **open**
+- **Source:** `06_the-disposition-of-every-unowned-row.md` §7.1 and §7.3;
+  `decision-records/DR-C11-S6-3_aggregate-then-generate-and-the-exclusion-evidence.md` consequence 4.
+- **Consumer:** **SUB-13 (NEU-1006)** under OUT-19, which would otherwise inherit a set of
+  dispositions that had been exercised against a dataset and instead inherits a set that has not
+  been; **SUB-17 (NEU-1008)**.
+- **Owner:** **The creator, as sole maintainer and sole operator**, for the credential; **SUB-13**
+  for deciding whether the implementation charter re-runs the dry-run before executing.
+- **Resolving event:** `OI-S6-1` resolves, the dataset is generated from the resulting aggregates, and
+  the dry-run reports an unclaimed-row count over it.
+- **Why not a stand-in:** No generated count is assumed, quoted or reasoned from anywhere. This item
+  is distinct from `OI-S6-1` because the two close in sequence rather than together: a credential
+  alone resolves `OI-S6-1`, but the dataset must then be generated and the dry-run run before this
+  one closes.
+
+---
+
+**SUB-6 register totals at revision 1:** two open items, `OI-S6-1` and `OI-S6-2`, both **open**, each
+with a named owner and an observable resolving event, neither blank. **Both correspond to a spike
+entry** — `SPK-S6-2` and `SPK-S6-1` respectively bound the production access each needs — which is the
+inverse of SUB-5's position and correct for the same reason: SUB-5's two items needed a measurement
+already owned and a party to be named, whereas both of these are settled by a bounded, read-only
+experiment against production and by nothing else.
+
+**Zero dispositions of another package's items are recorded here.** C010's `OI-S5-1` — whether
+`NEU-850`'s *"every core table"* ranges over the two raw-SQL log tables — is **consumed by citation**,
+and this sub-task takes no reading of its own, citing SUB-3's stand-in `A-S3-1` for the reading the
+package adopted. It is deliberately not needed: the `archive` disposition adds no ownership column to
+either log table, so it is correct under **both** readings, which is why this sub-task does not wait
+on `NEU-850`.
+
+**Zero second records.** `OI-S15-3` (the `t_db` observation) is cited from its single owning record
+inside the `OBJ-1` check rather than re-raised, and the single-principal question is filed as the
+stand-in `A-S6-1` plus the finding `F-S6-2` rather than additionally as an open item — one id per
+fact, and that fact is already carried twice for two different reasons (what is assumed, and why no
+probe can settle it) rather than three times.
