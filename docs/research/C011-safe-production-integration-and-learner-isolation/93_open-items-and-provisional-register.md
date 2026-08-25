@@ -150,6 +150,26 @@ one-to-one with the nine spike entries in `96_spike-register.md`.
 
 ---
 
+### SUB-3
+
+#### `OI-S3-1` — Controller/processor role, and the lawful basis each processing purpose rests on
+
+- **Id:** `OI-S3-1`
+- **Item:** Two halves of **one** question. Whether the operator of this deployment is a controller, a processor, or a joint controller with respect to learner data; and, following from that, which lawful basis each processing purpose stated in `03_learner-data-inventory-and-classification.md` §4–§8 actually rests on. The inventory states a **position** per category — contract for the learning-service categories, legitimate interests for the operational and quality categories — but a position is an engineering judgement about which basis *would* apply, not a determination that it does. **This package cannot make that determination and does not.**
+- **Status:** `[unconfirmed]`
+- **Source:** `03_learner-data-inventory-and-classification.md` §1 (field 3 of the entry shape, named *"Lawful basis (position)"*), §0 and §15 (the framing constraint, stated and repeated); charter intake Q4's ratified GDPR-shaped baseline, which requires any duty turning on a legal determination to be recorded as a named open item with an owner.
+- **Consumer:** **SUB-8** (NEU-1002), which defines what consent covers and what learners can export and erase, and which **cites this id rather than raising a second record of the same question** — keeping its own distinct cross-border-transfer determination as a separate open item with its own id and owner. **SUB-9** (NEU-1003), whose propagation matrix rests on which duties actually attach. **SUB-12** (NEU-1004) for the threat model's regulatory assumptions.
+- **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can obtain or commission a legal determination about a deployment they alone run, and the only party with standing to state the controller/processor role. This is the owner that `R10`'s escalation route in `92_risk-register.md` points at; that entry could not carry a route at all unless this item named someone, which is why this sub-task is the record-holder.
+- **Resolving event:** The owner states, in a record appended to this register or to `96_spike-register.md`, (a) the controller/processor role for learner data on this deployment, and (b) for each processing purpose the inventory names, the lawful basis relied on — each as a named value or an explicit "not determined". On that event, every entry's field 3 in the inventory is re-read against the determination, and SUB-8's consent and erasure design is checked against it.
+- **Why not a stand-in:** It is an unanswered question with an obtainable answer, and the architecture does not provisionally rest on any particular answer — the inventory is written so that **the classification survives whichever basis is determined**, because a category's data class, personal-data status, purpose, minimization position and derivation do not change with its lawful basis. There is no tolerance envelope to state and no invalidating outcome that would break the inventory, so this is an open item and not a stand-in. What *would* change is what SUB-8 may build on it, which is why SUB-8 is the named consumer.
+
+**One question, one id, one owner.** This sub-task raises **exactly one** open item, and deliberately does **not** raise a second record of anything already owned elsewhere. In particular: whether the two log tables actually hold learner-derived content in production is **`OI-S1-5`** and **`OI-S1-6`**, already owned by SUB-1 — cited in `03_learner-data-inventory-and-classification.md` §0, §5 and §12 rather than re-asked here; whether the live schema matches `drizzle/` is **`OI-S1-4`**; whether `NEU-850`'s *"every core table"* ranges over the two port-less log tables is **`OI-S5-1`**, owned by `NEU-850`, whose adopted reading is carried as the stand-in **`A-S3-1`** rather than as an open item of this package's own; and what the `context_tokens` row must carry beyond its three columns is **`OI-S8-1`**, owned by `NEU-984` (`SUB-10 of C010`). Each is consumed by citation. The same-id-in-two-registers check SUB-14 runs cannot catch two ids for one question, which is why the discipline is stated here explicitly.
+
+---
+
+**SUB-3 register totals at revision 1:** one open item, `OI-S3-1`, carrying a named owner and an
+observable resolving event, and zero blank fields. **Zero second records** of a question already
+owned by another sub-task or another package.
 ### SUB-15
 
 **What is deliberately absent from this section.** SUB-15 raises **no open item about whether

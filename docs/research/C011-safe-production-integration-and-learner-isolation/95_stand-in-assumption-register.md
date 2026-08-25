@@ -119,6 +119,79 @@ rather than a gap.
 
 ---
 
+### SUB-3
+
+## `A-S3-1` — The two raw-SQL log tables are in scope for `NEU-850`'s "every core table"
+
+**Status:** `[unconfirmed]`
+**Stands in for:** **`OI-S5-1`**, owned by **`NEU-850`** and recorded in C010 — the question of
+whether `NEU-850`'s *"every core table"* ranges over the two port-less log tables. C011 raises **no
+open item of its own** for this question: it is another party's record, consumed by citation, and
+this entry is the assumption the design provisionally rests on while it is open.
+
+**Why this entry is `A-S3-1` and not a charter-continued `A-<n>`.** The id is **sub-task-scoped**,
+matching the scheme SUB-15 adopted and recorded in
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`. The charter-continued scheme —
+where `A-<n>` names the charter assumption the stand-in stands in for — **is not safe under
+concurrency**: several sub-tasks run at once, each would compute "the next charter assumption
+number" independently, and because register conflicts resolve by keeping **both** sides, two
+sub-tasks picking the same number would land two rows sharing one id. A sub-task-scoped id cannot
+collide, because `S3` is this sub-task's alone.
+
+**What this entry stands in for is unchanged and is stated rather than encoded in the number:** it is
+the stand-in for **charter assumption 36**, whose subject is `OI-S5-1`'s reading. Recording that in
+prose rather than in the id is the whole point of the change — the number no longer has to carry it.
+
+`A-33` and `A-34` keep the charter-continued form SUB-1 gave them; **reconciling the two schemes is
+SUB-14's** assembly job at position 15, and this sub-task renumbers nothing of anyone else's.
+
+**Assumption:** *"The two raw-SQL log tables are in scope for `NEU-850`'s 'every core table'.
+Unverified: C010 routed exactly this question to `NEU-850` as `OI-S5-1` and it is not this package's
+to decide, but OUT-12's propagation matrix needs the answer. Consumed as a dependency with its owner
+named."* (Charter assumption 36, verbatim. Source: C010 `06_…md` §5.4; `OI-S5-1`.)
+
+**The reading this package adopted, stated plainly:** the two tables **are** in scope — they are
+treated as core tables for the purposes of this inventory, which is why `LD-S3-16` and `LD-S3-17` are
+full first-class entries carrying every classification field rather than being noted as
+out-of-frame. The adopted reading is the **more inclusive** of the two available, chosen deliberately:
+if it is wrong, the cost is two entries in an inventory that did not need them, whereas the opposite
+error omits the two categories holding the most exposed learner free text in the system.
+
+**Owner:** **`NEU-850`** — the party C010 routed the question to, and the only one that can settle
+what its own *"every core table"* ranges over. Not this package, and not SUB-14, which aggregates
+this entry without authoring it.
+
+**Tolerance envelope:** The design tolerates `NEU-850` reading *"every core table"* as including both
+log tables, as including neither, or as including one and not the other. It tolerates the answer
+arriving at any time before the propagation matrix is implemented. It tolerates `NEU-850` declining
+to range over them **explicitly**, provided the exclusion is stated — because a stated exclusion
+still resolves the two entries' conditional classification, just in the other direction. What the
+inventory itself does not change under any of these outcomes is the six classification fields:
+`LD-S3-16` and `LD-S3-17` hold what they hold regardless of which obligation reaches them.
+
+**Invalidating outcome:** A finding that `NEU-850`'s *"every core table"* **excludes** the two log
+tables **and** that no other obligation reaches them — because that leaves the two categories holding
+unredacted learner free text with **no** ownership column obligated from any direction, and
+`LD-S3-16`/`LD-S3-17`'s attributed reading becomes unreachable rather than merely undetermined. SUB-9's
+propagation matrix would then have two cells it cannot resolve to an action with a deadline and an
+owner, which OUT-12 forbids outright, and the *"no unowned copy"* claim would fail against precisely
+the copy `F-S3-1` identifies as the worst-positioned in the inventory.
+
+**Re-validation trigger:** **`OI-S5-1` closes** — `NEU-850` states whether *"every core table"* ranges
+over `infrastructure.mcp_request_log` and `infrastructure.operation_event_log`, as a named inclusion
+or a named exclusion for each. On that event, `LD-S3-16` and `LD-S3-17`'s conditional classification
+in `03_learner-data-inventory-and-classification.md` §5 is re-read, SUB-9's propagation matrix cells
+for both tables are re-checked, and SUB-16's attribution determination is checked against whichever
+reading landed.
+
+---
+
+**SUB-3 register totals at revision 1:** one stand-in entry, `A-S3-1`, carrying a named owner
+(`NEU-850`), a tolerance envelope, an invalidating outcome and an observable re-validation trigger.
+**No field is left blank for SUB-14 to fill.**
+
+SUB-3 authors **only** this one. The residual human-`sub` shape (charter assumption 35) is **SUB-2's**
+entry to author under its own sub-task-scoped id, and its absence here is correct rather than a gap.
 ### SUB-15
 
 **Id shape in this section, and what SUB-15 does not renumber.** The two entries below are stand-ins
