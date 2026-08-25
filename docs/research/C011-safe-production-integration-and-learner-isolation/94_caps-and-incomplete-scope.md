@@ -87,3 +87,23 @@ checker**, which reports zero non-resolving paths across the corpus.
 **SUB-15 register totals at revision 1:** one cap, `CAP-S15-1`, with a named owner and an observable
 lifting condition. It is the objective-specific form of SUB-1's package-wide `CAP-S1-1` and cites it
 rather than restating it.
+
+---
+
+### SUB-2
+
+#### `CAP-S2-1` — The identity rule is settled, but **no principal shape's population is confirmed**
+
+- **Id:** `CAP-S2-1`
+- **Cap:** This package states which claim becomes the learner key, how principal kind is determined, and what happens in every branch — and it confirms, for **zero** of the three principal shapes, which branch that shape actually takes in production. The rule is total; the population of each branch is unobserved.
+- **Why it is capped:** SUB-1 obtained no token for any shape (`96_spike-register.md`, `SPK-S1-1` … `SPK-S1-3`, all `Result: not executed`), and no production credential of any kind exists in the authoring environment (`91_findings-register.md` § `F-S1-2`). SUB-2 has no independent route to one — the constraint forbids obtaining a credential by any route other than OUT-18's registered exception, which requires a credential the authoring party does not hold. **Deriving the rule anyway was the right response, not a workaround:** kind is determined by `sub` presence rather than by audience shape, so the rule is well-defined under every possible answer, and deferring it would have left nine downstream sub-tasks inheriting `payload.sub || azp`.
+- **What it leaves unsupported:** Any claim of the form *"in production, principal shape X resolves to kind Y."* In particular a reader must **not** assume: that the CI smoke principal really carries no `sub` (believed from a code comment, not observed — `OI-S1-1`); that `claude-web` really yields a human `sub` (inferred from the flow's shape, not read from a token — `OI-S2-2`); that a DCR principal carries or lacks one (`OI-S1-3`); that any `dyn$` client exists in production at all (`OI-S2-3`); or that `sub` is stable, unique over time or opaque in format (`OI-S2-1`). **What it does support** is every statement about what the system *does* given a token, which is what OUT-1 and OUT-6 are discharged on.
+- **Owner:** The creator, as sole maintainer and sole operator of the production deployment — the only party who can obtain a token for any shape.
+- **What would lift it:** `OI-S1-1`, `OI-S2-2` and `OI-S1-3` closing — one per shape. The cap narrows with each; it lifts entirely when all three close. `OI-S2-2` lifts the most, because it covers the shape the production learner actually arrives on.
+
+---
+
+**SUB-2 register totals at revision 1:** one cap, `CAP-S2-1`, with a named owner and an observable
+lifting condition. It is a **narrower restatement** of `CAP-S1-1` applied to this sub-task's own
+output, not a second record of the same fact: `CAP-S1-1` caps the package's evidence base, while
+this entry caps what the identity rule specifically may be read to establish.

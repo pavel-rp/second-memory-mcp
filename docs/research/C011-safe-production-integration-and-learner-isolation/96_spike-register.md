@@ -290,3 +290,73 @@ four entries below.
 to owned open items `OI-S15-1` … `OI-S15-4`. Every entry carries a mandatory expiry. **No production
 operation of any kind was performed by SUB-15**, so the zero-mutation constraint is discharged
 vacuously and **no exception — registered or otherwise — was exercised**.
+
+---
+
+### SUB-2
+
+**Content owner:** SUB-2 (NEU-994) owns the three entries below outright. They extend SUB-1's set
+rather than revising it; **no `SPK-S1-*` entry is edited, and none is contradicted.** Like SUB-1's,
+all three were designed and **none executed** — no production credential exists and no operator
+channel was reachable from the authoring environment (`91_findings-register.md` § `F-S1-2`).
+
+**Claims closed by observation: 0. Claims routed as owned open items: 3.**
+
+#### `SPK-S2-1` — Is the Rauthy `sub` claim stable per principal, unique over time, and opaque in format?
+
+- **Id:** `SPK-S2-1`
+- **Sub-task:** SUB-2 (NEU-994)
+- **Question:** For a single principal, is `sub` identical across two separate token issuances? Is a released `sub` ever re-assigned to a different principal? And is its value an opaque identifier (a UUID) or a human-meaningful string such as an email address?
+- **Why reading could not settle it:** The repository is silent on `sub` entirely. `docs/adr/0001-oidc-issuer-and-dedicated-as-audience-binding.md` decides issuer matching and audience binding and does not mention the claim; `src/transport/jwt-middleware.ts` consumes `sub` without asserting anything about its lifetime, uniqueness or shape. These are properties of the IdP's configuration and of its behaviour over time, neither of which is repository content. The identity rule turns on the first two and OUT-9's personal-data classification turns on the third.
+- **Exit condition:** Two decoded claim sets for the same principal, taken at different times, are in hand and their `sub` values compared; and the operator has stated whether Rauthy ever recycles a subject identifier.
+- **Method:** Obtain a token for one principal under the registered IdP-token-issuance exception, decode the **payload segment only** — never the signature — and record `sub` as a redaction marker plus its *shape* (length, character class, whether it parses as a UUID, whether it contains an `@`); never its literal value, since a human-meaningful `sub` would itself be personal data. Repeat after a fresh issuance and compare. Separately, put the recycling question to the operator as a read-only question. No write of any kind; no configuration change.
+- **Quarantine path:** Not applicable — nothing was executed, so no scratch tree exists. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** No production credential is present for any principal shape, and the operator was not reachable from the authoring environment. No claim set was obtained and none is reported.
+- **Confidence:** `none`. Confidence becomes `high` for the stability and format limbs once two issuances are compared, and `high` for the recycling limb only on an operator statement — recycling cannot be established by observing two tokens.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** Same three-month basis as `SPK-S1-1`: the unobtainability is a property of the authoring environment, not of the deployment. This entry additionally expires on **any Rauthy upgrade or IdP configuration change**, either of which can change subject issuance without any repository change.
+- **Routes to:** `OI-S2-1`. The exposure resting on the recycling limb is carried separately as `R-S2-1` in `92_risk-register.md`.
+
+#### `SPK-S2-2` — What claim set does a real token from the named production static client `claude-web` carry, and under which grant?
+
+- **Id:** `SPK-S2-2`
+- **Sub-task:** SUB-2 (NEU-994)
+- **Question:** For the manually provisioned static client `claude-web` — the claude.ai connector's production principal — is `sub` present, does it identify a natural person, what is the literal `aud`, and which grant type issues the token?
+- **Why reading could not settle it:** `docs/adr/0001-oidc-issuer-and-dedicated-as-audience-binding.md:65`, `:67` **names** the client and records that production sets it in `AUTH_ADDITIONAL_AUDIENCES`, and `.env.example:63` corroborates. That fixes the client's *identity* — which is more than `SPK-S1-2` had, and is why this entry exists rather than a restatement of it. It does not fix the *claim set*: what a real `claude-web` token carries is IdP behaviour, not repository content. The inference *"a connector flow has a human at it"* is an inference about the flow's shape, not a reading of a token, and OUT-5 may not rest on it.
+- **Exit condition:** A decoded claim set from a real authenticated `claude-web` connector session is in hand, with `sub` recorded as present-and-human-identifying, present-and-opaque, or absent, and with the grant type stated.
+- **Method:** **Capture the decoded claim set from an existing authenticated claude.ai connector session** — the same acquisition class `SPK-S1-3` uses for the DCR shape, and for the same reason: an authorization-code connector token is not obtainable from the `client_credentials` endpoint. **This is a distinct principal from `SPK-S1-1`'s smoke client and from any `dyn$` client**, and no capture from either is an admissible substitute. Decode the payload segment only; record each claim name with its value or a redaction marker. Provisioning a fresh static client would be an IdP mutation beyond the single registered exception and is **not** admissible.
+- **Quarantine path:** Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** No authenticated claude.ai connector session was available to the authoring environment. **No substitution was made**: the shape was not represented by a `client_credentials` capture, for the reason `91_findings-register.md` § `F-S1-3` records — the shapes differ in exactly the field the identity rule turns on.
+- **Confidence:** `none`. Confidence becomes `high` only from a capture taken from a genuine `claude-web` connector session.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** Same basis as `SPK-S1-2`. This entry additionally expires on any change to the production `AUTH_ADDITIONAL_AUDIENCES` value or to the connector's registration, either of which changes the principal being asked about — and both of which can happen without any repository change.
+- **Routes to:** `OI-S2-2`, and it is **the most direct closer of C010's `OI-S1-2`**, because it covers the shape the production learner actually arrives on. It narrows, and does not supersede, this package's own `OI-S1-2`.
+
+#### `SPK-S2-3` — Does any `dyn$` DCR client exist in production, and has any authenticated?
+
+- **Id:** `SPK-S2-3`
+- **Sub-task:** SUB-2 (NEU-994)
+- **Question:** Is any dynamically registered client registered with the production Rauthy instance, and has any ever presented a token to the deployment?
+- **Why reading could not settle it:** The middleware still admits the `dyn$` path (`src/transport/jwt-middleware.ts:80`, `:83`), so the *capability* is repository-known. Whether the path is *used* is a property of the running IdP's client registry and of production traffic. ADR-0001's NEU-909 amendment puts it in genuine doubt by recording that the production connector authenticates as a static client *"rather than DCR"* — so the DCR path may be an admitted-but-unused surface, which is a different thing from a live learner path.
+- **Exit condition:** The operator states whether any `dyn$`-prefixed client is registered, and whether any has authenticated; or a read-only listing of the IdP's registered clients is recorded, redacted of any secret material.
+- **Method:** A read-only question to the operator, plus read-only inspection of the Rauthy admin surface if one is offered. **No client is registered to find out** — a DCR registration would be an IdP mutation beyond the single registered exception, and it would also destroy the very evidence being sought by creating the first such client.
+- **Quarantine path:** Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** The question requires the operator, who was not reachable from the authoring environment.
+- **Confidence:** `none`.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** Client registration is a live property of the IdP that changes without any repository change — a single connector re-authorization could create the first `dyn$` client. A negative answer therefore has a short useful life, and **a stale negative is the dangerous direction here**: it would license SUB-7 and SUB-11 to write contracts over a path they believe unused.
+- **Routes to:** `OI-S2-3`. **It gates nothing in the identity rule** — `02_identity-the-learner-key-and-principal-kind.md` §3 is total over both paths — and changes only the priority of `OI-S1-3` and the scope of SUB-7's rollout and SUB-11's compatibility contract.
+
+---
+
+**SUB-2 register totals at revision 1:** three spikes designed, **zero executed**, three claims
+routed to owned open items `OI-S2-1` … `OI-S2-3`. Every entry carries a mandatory expiry. The single
+registered exception to the zero-mutation constraint was **not exercised by SUB-2 either**: zero
+tokens minted, zero IdP audit records created, zero production operations of any kind.
+
+**Cumulative across SUB-1 and SUB-2: twelve spikes designed, zero executed.** That the count has
+grown while the executed count has not is itself the fact `R13` names, and it is reported here
+rather than left for a reader to compute.
