@@ -50,6 +50,27 @@ and an observable lifting condition.
 
 ---
 
+### SUB-3
+
+#### `CAP-S3-1` — The inventory classifies the declared schema, not observed production data
+
+- **Id:** `CAP-S3-1`
+- **Cap:** `03_learner-data-inventory-and-classification.md` establishes what the system **is declared to hold** — the tables in `src/infrastructure/db/schema.ts` and `drizzle/`, the process-local structures in `src/`, and the code that writes each — at cutoff `86fb38a`. It establishes **nothing about what production rows actually contain**. No row was counted, no value was sampled, no schema was introspected against the live database.
+- **Why it is capped:** No production credential of any kind is available to the authoring environment; SUB-1 designed nine spikes at position 1 and executed zero for exactly this reason (`F-S1-2`), and `CAP-S1-1` already states the package-wide form of the limit. This cap is the **inventory-specific** consequence: a classification derived from a schema is a classification of a declaration, and the distinction matters most precisely where this inventory's conclusions are strongest.
+- **What it leaves unsupported:** A reader must **not** infer from this chapter that `mcp_request_log.response_body` in fact contains learner free text in production — that it *can* is established from the write path, that it *does* is `OI-S1-5`; nor that `operation_event_log.data` in fact quotes learner content (`OI-S1-6`); nor that the live schema matches `drizzle/` at all (`OI-S1-4`); nor any count of rows in any category. **`F-S3-1` is bounded by this cap and says so in its own text.** Two further limits worth naming: the process-local group (`LD-S3-18` … `LD-S3-27`) rests on a manual read plus C010's independent agreement, because no mechanical enumeration of module-level mutable state exists — stated in §11; and the shape of a stored `validator_report` (`LD-S3-4`) is not establishable from the declared schema, which is why its minimization position is flagged as *worth watching* rather than assessed.
+- **Owner:** The creator, as sole maintainer and sole operator of the production deployment — the only party who can supply a read-only observation.
+- **What would lift it:** `OI-S1-4`, `OI-S1-5` and `OI-S1-6` closing. The cap narrows with each: `OI-S1-4` would confirm the declared surface is the real one, and `OI-S1-5` / `OI-S1-6` would replace the two log tables' *can-hold* classification with a *does-hold* observation. It lifts entirely when all three close.
+
+---
+
+**SUB-3 register totals at revision 1:** one cap, `CAP-S3-1`, with a named owner and an observable
+lifting condition.
+
+**SUB-3 registers no citation-gate cap of its own.** `CAP-S1-2` — that C011 is not yet in
+`scripts/check-citation-paths.ts`'s gated list — already covers this chapter, and its owner is
+SUB-14. Raising a second cap for the same limit would be a duplicate record of one fact. This
+chapter's citations were nonetheless written to the convention and **checked locally against the same
+checker**, which reports zero non-resolving paths across the corpus.
 ### SUB-15
 
 #### `CAP-S15-1` — Every objective in this package is modelled, none is measured

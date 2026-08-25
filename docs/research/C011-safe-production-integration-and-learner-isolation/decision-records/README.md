@@ -53,6 +53,9 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S2-1_the-persisted-learner-key.md` | SUB-2 (NEU-994) | OUT-1 |
 | `DR-C11-S2-2_principal-kind-and-the-service-principal-disposition.md` | SUB-2 (NEU-994) | OUT-6 (and the act that closes `OI-S5-2`) |
 | `DR-C11-S2-3_provenance-persistence-and-parallel-safe-id-families.md` | SUB-2 (NEU-994) | OUT-6 (its second half is house-style, in `DR-C11-S1-3`'s shape) |
+| `DR-C11-S3-1_learner-data-classification-scheme.md` | SUB-3 (NEU-995) | OUT-9 |
+| `DR-C11-S3-2_conditional-log-table-classification.md` | SUB-3 (NEU-995) | OUT-9 |
+| `DR-C11-S3-3_package-own-copies-and-the-derivation-test.md` | SUB-3 (NEU-995) | OUT-9 |
 | `DR-C11-S15-1_objective-basis-and-evidence-labels.md` | SUB-15 (NEU-998) | OUT-14 |
 | `DR-C11-S15-2_first-break-ranking.md` | SUB-15 (NEU-998) | OUT-14 |
 | `DR-C11-S15-3_non-charter-register-id-scheme.md` | SUB-15 (NEU-998) | OUT-14 (structurally; OUT-20 owns assembly) |
