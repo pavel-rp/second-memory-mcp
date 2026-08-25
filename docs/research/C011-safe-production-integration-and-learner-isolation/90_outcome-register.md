@@ -82,3 +82,76 @@ and it produced routing rather than closure. The consequence for the package is 
 in `91_findings-register.md` and as `R13` in `92_risk-register.md`, not smoothed over here.
 
 **Authored by.** SUB-1 (NEU-993).
+
+---
+
+### SUB-15
+
+## OUT-14 — Numeric capacity, availability, latency, failure, backup and recovery objectives for the real deployment
+
+**Outcome.** Capacity, availability, latency, failure, backup and recovery objectives are set
+numerically against the platform the product actually runs on — a single self-hosted VPS with an
+unversioned off-repo compose stack, no Dockerfile, no IaC, auto-deploy from `develop` on green CI,
+auto-migration on boot and process-local in-memory state — rather than against an idealized one.
+Every input to the capacity model carries an explicit evidence label; the first break point of the
+single-instance assumption is named with its threshold; and the RPO/RTO position is either stated
+with its evidence or recorded as a blocking finding rather than given an assumed number.
+
+**Success measure.** OUT-14 is judged done when **all five** of the following hold, each reported as
+a number rather than an assertion:
+
+1. **Total labelling, with the counts reported.** Every capacity-model input carries exactly one of
+   four labels — `observed-in-repository` with a `file:line`, `derived` with its derivation shown,
+   `cited` with an upstream id, or `[unconfirmed]` with a named owner and a routing id — and the
+   per-label counts are reported and **sum to the total**, so no input is silently absent.
+   **Zero inputs are unlabelled**, and the count of inputs labelled *observed in production* is
+   reported explicitly rather than left to be inferred.
+2. **One named structure, one stated threshold.** The first-break analysis names exactly one
+   structure as breaking first and states its threshold. Where the threshold depends on an
+   unobserved term, it is published as a **formula plus a bounded band with the unobserved term
+   named and routed** — and the count of fabricated point values is **zero**.
+3. **Every objective numeric or a recorded finding — never blank.** Each stated objective either
+   carries a number or is recorded as `[unconfirmed]` with an owner or as a blocking finding. The
+   two counts are reported and sum to the total. **Zero objectives are blank, and zero were given an
+   invented number to avoid being blank.**
+4. **Zero objectives assume an absent capability.** Each objective is checked against the four
+   capabilities the platform does not have — an image registry, a replica set, an IaC revert, a
+   managed database — and the count assuming any of them is **zero**.
+5. **Exactly one record for the backups fact, and it is not this sub-task's.** A search of SUB-15's
+   artifacts returns **zero** open items, findings or register entries restating whether backups
+   exist, and **exactly one** blocking finding about the RPO/RTO objective that cannot be set,
+   carrying its own id, a named owner and a citation to `OI-S1-8`.
+
+**Verified by.** `15_operational-objectives-for-the-real-platform.md` §2 (the 27-input labelled
+capacity model and its label vocabulary), §3 (the first-break analysis and ranking), §4 (the
+14-objective set with its platform-reality-check column), §5 (the recovery tabletop, the `OI-S1-8`
+citation and the two conditional positions), §6 (the audit and its counts), §7 (the constraint
+checks) and §8 (what it does not establish);
+`91_findings-register.md` (`F-S15-1` … `F-S15-3`); `92_risk-register.md` (`R-S15-1` … `R-S15-3`);
+`93_open-items-and-provisional-register.md` (`OI-S15-1` … `OI-S15-4`);
+`94_caps-and-incomplete-scope.md` (`CAP-S15-1`);
+`95_stand-in-assumption-register.md` (`A-S15-1`, `A-S15-2`);
+`96_spike-register.md` (`SPK-S15-1` … `SPK-S15-4`);
+`decision-records/DR-C11-S15-1_objective-basis-and-evidence-labels.md`,
+`decision-records/DR-C11-S15-2_first-break-ranking.md`,
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`;
+`traceability/S15_operational-objectives.md`.
+
+**Measured result at revision 1.** (1) Twenty-seven inputs: **16 `observed-in-repository` + 2
+`derived` + 1 `cited` + 8 `[unconfirmed]` = 27**, sum matches; **0 unlabelled**; **0 observed in
+production**. (2) One structure named — the Postgres connection pool at `max: 4` — with threshold
+`N ≥ 2 / t_db` and a published band of **2–200** concurrently active learners; **0 fabricated point
+values**. (3) Fourteen objectives: **9 numeric + 5 recorded (2 `[unconfirmed]` with owners, 1 gap
+with a named absent mechanism, 2 carried by the blocking finding) = 14**; **0 blank**. (4) **0**
+objectives assume an image registry, a replica set, an IaC revert or a managed database. (5) **0**
+restatements of the backups fact; **1** blocking finding about the unsettable objective, `F-S15-1`,
+citing `OI-S1-8`.
+
+**The measure is met, and every number it certifies rests on zero production observations.** Both
+are true, and stating them together is the point: the labelling discipline held completely, and what
+it labelled was a model built from repository constants and this repository's own git history over
+eight owned unknowns. The consequence is carried as `CAP-S15-1` in `94_caps-and-incomplete-scope.md`
+and as `R-S15-1` in `92_risk-register.md`, not smoothed over here. It is the same shape SUB-1
+reported for OUT-18 and it is reported the same way.
+
+**Authored by.** SUB-15 (NEU-998).

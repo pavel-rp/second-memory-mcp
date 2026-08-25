@@ -147,3 +147,66 @@ Neither register carries a second record of the other's content.
 **SUB-1 register totals at revision 1:** nine open items, `OI-S1-1` … `OI-S1-9`, every one carrying a
 named owner and an observable resolving event. Zero carry a blank owner. Nine of nine correspond
 one-to-one with the nine spike entries in `96_spike-register.md`.
+
+---
+
+### SUB-15
+
+**What is deliberately absent from this section.** SUB-15 raises **no open item about whether
+production database backups exist**, and **no open item about hosting, region, TLS termination,
+monitoring or log shipping**. Both are already recorded exactly once, by SUB-1, at `OI-S1-8` and
+`OI-S1-9` above. SUB-15 **cites** those ids — in `15_operational-objectives-for-the-real-platform.md`
+§1, §5 and §6, and in `F-S15-1` — and raises no second record of either fact. The four items below
+are questions SUB-15's own capacity model raised and nobody else has recorded.
+
+#### `OI-S15-1` — The unavailability duration of a single deploy restart is unmeasured
+
+- **Id:** `OI-S15-1`
+- **Item:** How long the service is unavailable across one `docker compose up -d --build` deploy, including image rebuild, container replacement, boot-time migration and the health poll reaching green, has never been measured. The deploy workflow polls for health, so the duration is in principle observable at deploy time, but no measurement is recorded anywhere.
+- **Status:** `[unconfirmed]`
+- **Source:** `96_spike-register.md` § `SPK-S15-1` — designed, not executed; no access to the host or to a deploy run. Deploy shape from charter assumption 21 and `.github/workflows/cd-prod.yml`.
+- **Consumer:** **SUB-15** itself — `OBJ-8` in `15_operational-objectives-for-the-real-platform.md` §4 states what each availability target *would require* of this number and asserts **no availability percentage** without it. **SUB-16** (NEU-999), whose detection design needs to know what a normal restart looks like before it can flag an abnormal one.
+- **Owner:** The creator, as sole maintainer and sole operator of the production deployment.
+- **Resolving event:** One deploy is timed from container stop to health-poll green, and the duration is appended to the spike register.
+- **Why not a stand-in:** It is a duration with an obtainable answer and no tolerance envelope — the design does not rest on the restart being any particular length; it simply cannot state an availability percentage until the number exists.
+
+#### `OI-S15-2` — The concurrently active learner population the objectives are sized for is unstated
+
+- **Id:** `OI-S15-2`
+- **Item:** How many learners the deployment is intended to serve concurrently has never been stated by anyone. All product-foundation evidence is single-tenant (`n = 1`, the creator), and C011's own production-evidence base is `n = 0` (`F-S1-2`). Without a target population, the capacity model can compute where the platform breaks but cannot say whether that is enough.
+- **Status:** `[unconfirmed]`
+- **Source:** `96_spike-register.md` § `SPK-S15-2`. Paired with the stand-in `A-S15-1` in `95_stand-in-assumption-register.md`, which carries what the design provisionally assumes while this is open, with its tolerance envelope and invalidating outcome.
+- **Consumer:** **SUB-15** — every objective in §4 is a *ceiling*, and whether a ceiling is adequate is a question only a target population answers. **SUB-7** (NEU-1001), whose rollout stages are checked against these objectives. **`NEU-896`** at convergence, where the adequacy question actually belongs.
+- **Owner:** The creator, as sole maintainer and sole operator — and, for the adequacy decision rather than the number, `NEU-896` at convergence.
+- **Resolving event:** A target concurrent-learner population is stated for the deployment and appended to the spike register, or `NEU-896` records that no such target is being set.
+- **Why not a stand-in:** The **question** is unanswered and is recorded here; the **assumption the model provisionally rests on** while it stays open is separately carried as `A-S15-1`, which is where the tolerance envelope and invalidating outcome live. The two are the pairing this register's own preamble describes, not one fact recorded twice.
+
+#### `OI-S15-3` — Mean per-call database service time in production is unobserved, and it is the term the whole capacity band turns on
+
+- **Id:** `OI-S15-3`
+- **Item:** The mean time a tool call holds a Postgres connection (`t_db`) is unobserved in production. It is the single unobserved term in the first-break threshold `N ≥ 2 / t_db`, and it is why the capacity band spans **2 to 200** concurrently active learners rather than resolving to a value.
+- **Status:** `[unconfirmed]`
+- **Source:** `96_spike-register.md` § `SPK-S15-3`. The nearest cited bound is non-production: `tests/performance/content-retrieval.test.ts:85,145,230,306`, which are single-request, concurrency-1 regression guards against a real test database, i.e. **upper bounds the code is known to satisfy** rather than measurements of typical service time.
+- **Consumer:** **SUB-15** — `OBJ-3` (the aggregate ceiling that has no value), `OBJ-5` (concurrent latency, unsettable) and the entire §3 band. **SUB-16** (NEU-999), which cannot set a detection threshold on a quantity with a two-order-of-magnitude range.
+- **Owner:** The creator, as sole maintainer and sole operator of the production deployment.
+- **Resolving event:** Per-call database service time is sampled from production over a bounded window and its distribution appended to the spike register.
+- **Why not a stand-in:** It is a measurable quantity with an obtainable answer. The design does not rest on `t_db` having any particular value — it rests on knowing it, and until then publishes a band rather than a number.
+
+#### `OI-S15-4` — The per-entry memory footprint of a live session, and the host RAM it would be measured against, are unknown
+
+- **Id:** `OI-S15-4`
+- **Item:** How much memory one entry in the `transports` / `sessionIdentity` pair holds is unmeasured, so the entry count at which the eviction gap recorded in `F-S15-3` becomes a real memory problem cannot be stated. The host RAM figure it would be compared against is separately unknown and is **cited from `OI-S1-9`**, not re-recorded here.
+- **Status:** `[unconfirmed]`
+- **Source:** `96_spike-register.md` § `SPK-S15-4`; the maps and their single eviction path at `src/transport/http.ts:82-83`, `:212-218`.
+- **Consumer:** **SUB-15** — §3.2 names the break mode and states **no entry count**; `R-S15-2` carries the residual. **SUB-16** (NEU-999), for detection; **SUB-4** (NEU-996), which touches the same session lifecycle.
+- **Owner:** The creator, as sole maintainer and sole operator of the production deployment.
+- **Resolving event:** A heap sample is taken from the running process with a known live-session count, and the per-entry footprint is appended to the spike register.
+- **Why not a stand-in:** A footprint is an observation, not an assumption the architecture rests on. The design tolerates any footprint; it cannot state a threshold without one.
+
+---
+
+**SUB-15 register totals at revision 1:** four open items, `OI-S15-1` … `OI-S15-4`, every one
+carrying a named owner and an observable resolving event. **Zero carry a blank owner.** Four of four
+correspond one-to-one with the four spike entries `SPK-S15-1` … `SPK-S15-4` in
+`96_spike-register.md`. **Zero restate the backups fact or the hosting facts** — those are `OI-S1-8`
+and `OI-S1-9`, cited and not duplicated.

@@ -116,3 +116,110 @@ for SUB-14 to fill.**
 SUB-1 authors **only** these two. The residual human-`sub` shape is **SUB-2's** entry to write, and
 `OI-S5-1`'s reading is **SUB-3's**; neither is SUB-1's to author, and their absence here is correct
 rather than a gap.
+
+---
+
+### SUB-15
+
+**Id shape in this section, and what SUB-15 does not renumber.** The two entries below are stand-ins
+for assumptions that are **not** charter assumptions, so the register's `A-<n>` mapping — *"`A-33` is
+the stand-in for charter assumption 33"* — yields no number for them. They take the sub-task-scoped
+form **`A-S15-<k>`**, matching the convention five of the package's eight registers already use and
+collision-free by construction against the sub-tasks authoring concurrently; the decision, its
+rejected alternatives and **SUB-14 (NEU-1007) as its adjudicator** are recorded in
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`.
+
+SUB-15's platform assumptions that **are** charter assumptions already have entries here and are
+**cited, never restated or renumbered**: charter assumption 33 (backups) is **`A-33`** and charter
+assumption 34 (hosting, TLS, monitoring, log shipping) is **`A-34`**, both SUB-1's. Charter
+assumptions 21 and 22 are recorded `confirmed` in the charter and are consumed by SUB-15 as
+repository-verified facts in `15_operational-objectives-for-the-real-platform.md` §1, not as
+stand-ins — a confirmed assumption does not belong in a register whose every `Status` is
+`[unconfirmed]`.
+
+## `A-S15-1` — The deployment is sized for a learner population small enough that a single instance is the right shape
+
+**Status:** `[unconfirmed]`
+**Stands in for:** `OI-S15-2` in `93_open-items-and-provisional-register.md` — the unstated target
+concurrent-learner population — and `SPK-S15-2` in `96_spike-register.md`, the spike designed to
+close it and not executed.
+
+**Assumption:** That the concurrent-learner population this deployment must serve sits inside the
+capacity the single instance provides, so that the objectives in
+`15_operational-objectives-for-the-real-platform.md` §4 are ceilings the product will not routinely
+press against. Nothing states this. It is the assumption implicit in every decision to set objectives
+against a single VPS rather than to design past it, and it is recorded here rather than left as the
+silent premise of the whole chapter.
+
+**Owner:** The creator, as sole maintainer and sole operator of the production deployment, for the
+population figure; **`NEU-896`** at convergence for the adequacy judgement, which no party inside
+this package can make.
+
+**Tolerance envelope:** The design tolerates any target population **at or below the lower bound of
+the published capacity band — 2 concurrently active learners at the worst-case service time** —
+without any change of shape, since that is the point the model can defend without further evidence.
+It tolerates a target anywhere inside the band (2–200) provided `OI-S15-3` closes first and confirms
+the service time that puts the target below the ceiling. It tolerates the target being **stated as
+`n = 1`**, the position all product-foundation evidence actually supports, in which case every
+objective in §4 has very large headroom and the first-break analysis is precautionary rather than
+operative.
+
+**Invalidating outcome:** A stated target **above the upper bound of the band — more than 200
+concurrently active learners** — or any target that requires more than one instance. Either breaks
+the single-instance premise that charter assumption 22 rests on and that the entire objective set is
+set against: the rate limiter's per-instance state would multiply by the replica count (the effect
+`.env.example:79`–`:81` names explicitly), the transport and subject-binding maps would no longer be
+authoritative for a session, and the objectives in §4 would have to be re-derived against a shape
+this package never analysed. It would also reopen C010's `M-A` all-MCP single-writer premise.
+
+**Re-validation trigger:** **`OI-S15-2` closes** — a target concurrent-learner population is stated
+for the deployment and appended to `96_spike-register.md`, or `NEU-896` records that no target is
+being set. On that event the objective set in §4, the first-break band in §3 and SUB-7's rollout
+staging are each re-checked against the population that was actually stated.
+
+---
+
+## `A-S15-2` — Release cadence continues at or above its measured rate, and keeps containing the session-map leak
+
+**Status:** `[unconfirmed]`
+**Stands in for:** the absent measurement in `OI-S15-4` in
+`93_open-items-and-provisional-register.md` — the per-entry session footprint — and `SPK-S15-4` in
+`96_spike-register.md`, the spike designed to close it and not executed. The exposure it stands over
+is `F-S15-3`; the risk it feeds is `R-S15-2`.
+
+**Assumption:** That deploys continue to fire at or above the measured rate — **≥1.36 per day over
+the last 90 days, ≥3.29 per day over the last 7** — and therefore keep restarting the process often
+enough that the unevicted entries in the `transports` / `sessionIdentity` maps never accumulate to a
+harmful level. This is an assumption the current operational position rests on **by accident rather
+than by design**: nothing guarantees the cadence, and nothing in the code bounds the maps.
+
+**Owner:** The creator, as sole maintainer and sole operator of the production deployment — the only
+party who controls the release cadence and the only one who can observe process memory on the host.
+
+**Tolerance envelope:** The design tolerates any cadence **at or above roughly one restart per day**,
+the 90-day measured floor, since that is the rate under which the maps have demonstrably not caused a
+known incident. It tolerates the cadence varying widely week to week — the 7-day rate is already 2.4×
+the 90-day rate — and it tolerates deliberate quiet periods of a few days. It tolerates the leak
+existing at all, provided that is recorded as a dependency rather than reported as a bound, which is
+what `F-S15-3` and `R-S15-2` do.
+
+**Invalidating outcome:** A **sustained period of more than roughly a week without a deploy** — a
+feature freeze, a stabilisation period, a holiday, or a CI outage that blocks the pipeline — during
+which the containment simply stops and nothing replaces it. Equally invalidating: a **measured
+per-entry footprint large enough that even the current cadence is insufficient**, which `OI-S15-4`
+would reveal. Either outcome converts `R-S15-2` from a named dependency into a live exposure with no
+mitigation, on a platform where no monitoring is established that would show it happening
+(`OBJ-9`, citing `OI-S1-9`).
+
+**Re-validation trigger:** **`OI-S15-4` closes** — a heap sample is taken against a known live-session
+count and the per-entry footprint appended to `96_spike-register.md` — **or** the deploy cadence
+measured over any trailing 30-day window falls below one per day, which is observable from
+`git rev-list --count origin/develop` and needs no production access at all. On either event
+`F-S15-3`, `R-S15-2` and the first-break ranking in §3.2 are re-checked.
+
+---
+
+**SUB-15 register totals at revision 1:** two stand-in entries, `A-S15-1` and `A-S15-2`. Both carry a
+named owner, a tolerance envelope, an invalidating outcome and an observable re-validation trigger.
+**Neither carries a blank owner or a blank trigger for SUB-14 to fill**, and **neither restates
+`A-33` or `A-34`**, which are SUB-1's and are cited where SUB-15 depends on them.
