@@ -114,8 +114,8 @@ separate classification the argument would be circular; with it, it is not.
 | A failed no-copied-rows audit overturns the exclusion | `DR-C11-S3-3_package-own-copies-and-the-derivation-test.md:103`–`:105` |
 | No production credential exists in this environment | `.env.example:13` carries a `localhost` placeholder; no `DATABASE_URL`, `SMOKE_PROD_*` or `AUTH_*` is set at `35f92ba` |
 | The schema the generator reads carries no rows | `src/infrastructure/db/schema.ts`; `drizzle/0010_create_infrastructure_mcp_request_log.sql`; `drizzle/0012_extend_mcp_request_log.sql`; `drizzle/0013_create_operation_event_log.sql` |
-| `notes.target_id` has no declared FK, making it the one probeable orphan surface | `src/infrastructure/db/schema.ts:294` |
-| The SM-2 columns carry no `CHECK`, making out-of-range values structurally possible | `src/infrastructure/db/schema.ts:49`–`:96`, where no `chk_` constraint covers `difficulty`, `ease_factor`, `repetitions`, `interval_days` or `consecutive_failures` |
+| `notes.target_id` has no declared FK, making it the one probeable orphan surface | `src/infrastructure/db/schema.ts:293` |
+| The SM-2 columns carry no `CHECK`, making out-of-range values structurally possible | `src/infrastructure/db/schema.ts:89`–`:95`, the table's complete constraint list, where no `chk_` constraint covers `difficulty`, `ease_factor`, `repetitions`, `interval_days` or `consecutive_failures` |
 
 ---
 

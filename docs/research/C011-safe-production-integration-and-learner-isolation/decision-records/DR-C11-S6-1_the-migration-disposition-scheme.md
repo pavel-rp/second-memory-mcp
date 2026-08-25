@@ -101,7 +101,7 @@ Where no FK is declared at all — `notes.target_id`, polymorphic — the join i
 | Zero ownership columns anywhere | Grep over `src/infrastructure/db/schema.ts` and the three log migrations at `35f92ba`; corroborated at `../../C010-system-and-repository-architecture/04_state-category-inventory.md:442`–`:443` |
 | `learning_chunks.topic_id` is `NOT NULL` `ON DELETE CASCADE` | `src/infrastructure/db/schema.ts:53`–`:55` |
 | `learning_sessions.topic_id` is nullable, `ON DELETE SET NULL` | `src/infrastructure/db/schema.ts:103` |
-| `notes.target_id` is polymorphic with no declared FK | `src/infrastructure/db/schema.ts:294`; target selected by `target_type`, constrained at `:303` |
+| `notes.target_id` is polymorphic with no declared FK | `src/infrastructure/db/schema.ts:293`; target selected by `target_type`, constrained at `:303` |
 | `notes.author` is a two-value kind enum, not an identity | `src/infrastructure/db/schema.ts:296`, constraint at `:308` |
 | The deploy smoke job mints a `context_tokens` row under `client_credentials` | `.github/workflows/cd-prod.yml:156`–`:160`, `:170`–`:174`; `tests/smoke/smoke.test.ts:163`–`:196`; insert at `src/adapters/drizzle/context-token-repository.ts:17` |
 | SUB-8's erasure enum is a different axis | `../08_consent-and-what-a-learner-can-export-and-erase.md:392`–`:398` |

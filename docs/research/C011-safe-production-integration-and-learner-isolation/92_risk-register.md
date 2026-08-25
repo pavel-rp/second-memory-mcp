@@ -544,10 +544,10 @@ a hazard SUB-4 already owns.
   what could not occur, and what was found. Two of the probes are strengthened by schema facts the
   analysis surfaced: `notes.target_id` is the only place in the schema where a referential orphan is
   possible, because it is polymorphic with no declared FK
-  (`src/infrastructure/db/schema.ts:294`); and the SM-2 columns `difficulty`, `ease_factor`,
+  (`src/infrastructure/db/schema.ts:293`); and the SM-2 columns `difficulty`, `ease_factor`,
   `repetitions`, `interval_days` and `consecutive_failures` carry **no `CHECK` constraint at all**,
-  making out-of-range values structurally possible where seventeen other columns are already
-  foreclosed. **The real migration must therefore carry a pre-flight re-run of the same probe set at
+  making out-of-range values structurally possible on those five where the schema's **24** other
+  `CHECK` constraints already foreclose them elsewhere. **The real migration must therefore carry a pre-flight re-run of the same probe set at
   execution time, and must abort when any probe returns a shape the dry-run never saw** — and, at
   this revision, "a shape the dry-run never saw" means *any* shape, since the dry-run did not run.
   The alternative that would have eliminated the residual — extracting real rows to dry-run against —
