@@ -126,7 +126,7 @@ obligation.
 | Bind at mint; no schema change; reject-not-grandfather; the obligation is on unwritten code | `../../C010-system-and-repository-architecture/decision-records/DR-C10-S8-2_token-bound-identity-over-per-call-identity.md` clauses 1–4, 7 |
 | `OI-S8-1` — the row has nothing to bind to — and its resolving event | `../../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:410`–`:419` |
 | `context_tokens` becomes learner-identifying once a principal is bound | `../03_learner-data-inventory-and-classification.md`, entry `LD-S3-13` |
-| The learner key is written to `user_id` unchanged | `../../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:51` |
+| The learner key is written to `user_id` unchanged | `../../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53` |
 
 ---
 

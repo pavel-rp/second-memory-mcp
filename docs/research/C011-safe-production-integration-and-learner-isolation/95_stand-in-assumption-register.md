@@ -453,7 +453,7 @@ the creator directly, because the record C010 opened names that sub-task.
 **Tolerance envelope:** **The decision is unchanged under either answer, and C010 says so in the same
 passage:** *"a transport that produces no principal fails I4 whether or not anyone can currently
 reach it."* What varies is only the **urgency of the staging** that SUB-7 reads off it, and the size
-of the broken compatibility class in `04_…md` §9 row 4 — which is already the largest class under
+of the broken compatibility class in `04_the-stdio-identity-gate-and-the-bound-context-token.md` §9 row 4 — which is already the largest class under
 either answer, because `TRANSPORT` defaults to `stdio`
 (`src/config/resolve-transport-config.ts:35`). The envelope tolerates *reachable*, *unreachable
 today*, and *unreachable and intended to stay so*.
@@ -469,7 +469,7 @@ scheduling choice gets read as a finding.
 **Re-validation trigger:** **The deployment-shape answer lands** — `SUB-10 of C010 (NEU-984)` or the
 operator states whether the production deployment exposes a STDIO edge, or `SPK-S4-1` is executed
 and its result appended to `96_spike-register.md`. On that event, re-check: this entry's status;
-`04_…md` §12; and SUB-7's staging urgency. **Do not re-check the decision itself** — that is the
+`04_the-stdio-identity-gate-and-the-bound-context-token.md` §12; and SUB-7's staging urgency. **Do not re-check the decision itself** — that is the
 point of the envelope.
 
 ---

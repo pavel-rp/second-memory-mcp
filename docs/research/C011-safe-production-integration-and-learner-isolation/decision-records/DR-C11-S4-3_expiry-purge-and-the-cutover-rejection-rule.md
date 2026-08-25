@@ -109,7 +109,7 @@ A grace window is the same softening applied to the token limb.
 | The mint path and its reachable call site | `src/server/server-context-tools.ts:33`; `src/transport/context-token-middleware.ts:5`–`:9` for the exemption that lets it be reached unauthenticated |
 | `expires_at` and its index | `src/infrastructure/db/schema.ts:316`–`:321`; `drizzle/0014_create_context_tokens.sql` |
 | The deploy pipeline mints a `client_credentials` token every deploy and runs the smoke suite with it | `.github/workflows/cd-prod.yml:145`–`:168`, `:170`–`:174` |
-| The smoke suite calls gated learner-state tools with the context token it captured | `tests/smoke/smoke.test.ts:192`, `:207`, `:239` |
+| The smoke suite calls gated learner-state tools with the context token it captured | `tests/smoke/smoke.test.ts:195`, `:206`, `:237` |
 | Reject, do not grandfather | `../../C010-system-and-repository-architecture/decision-records/DR-C10-S8-2_token-bound-identity-over-per-call-identity.md` clause 4 |
 | The warning against a permissive mode | `../../C010-system-and-repository-architecture/12_application-versus-core-rule-and-compatibility-contract.md:552` |
 | `context_tokens` becomes learner-identifying once a principal is bound | `../03_learner-data-inventory-and-classification.md`, entry `LD-S3-13` |

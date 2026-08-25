@@ -398,8 +398,8 @@ items. A third candidate was designed and then **dropped** for failing the
 - **Result:** **Not executed.**
 - **Confidence:** —
 - **Expiry:** **2026-11-25.**
-- **Expiry rationale:** Three months, matching the package's discipline. An operator's intention about a deployment they have not yet configured is exactly the kind of answer that goes stale, and a rollout built on a nine-month-old intention would be building on a preference rather than a commitment.
-- **Routes to:** **`OI-S4-1`**. **It gates nothing in the design** — `04_…md` §3 and §5 are total over both declared kinds, so the mechanism holds whichever answer comes back. It determines what a specific deployment *does*, and it is a prerequisite for OUT-19's runbook naming a concrete value.
+- **Expiry rationale:** Three months, matching the package's discipline. An operator's intention about a deployment they have not yet configured is exactly the kind of answer that goes stale, and a rollout built on an intention already past its expiry would be building on a preference rather than a commitment.
+- **Routes to:** **`OI-S4-1`**. **It gates nothing in the design** — `04_the-stdio-identity-gate-and-the-bound-context-token.md` §3 and §5 are total over both declared kinds, so the mechanism holds whichever answer comes back. It determines what a specific deployment *does*, and it is a prerequisite for OUT-19's runbook naming a concrete value.
 
 ---
 
@@ -407,13 +407,14 @@ items. A third candidate was designed and then **dropped** for failing the
 to owned open items `OI-S4-1` and `SPK-S4-1`'s target `A-S4-2`. Both carry a mandatory expiry. The
 registered exception to the zero-mutation constraint was **not exercised by SUB-4 either**: zero
 tokens minted, zero IdP audit records created, zero production operations of any kind. **This
-sub-task uses the `observed-in-production` label zero times.**
+sub-task applies the `observed-in-production` label to zero claims** — it is named to record its
+emptiness and attached to nothing.
 
 **A third spike was designed and dropped, and the drop is recorded rather than silent.** The
 candidate — *would the existing smoke suite pass against a `client`-kind principal under the
 refusal rule?* — failed the *"could this have been read instead?"* test that `R14` and
-`DR-C11-S1-2` impose. Its factual half **was** settled by reading: `tests/smoke/smoke.test.ts:207`
-and `:239` call gated learner-state tools with the captured context token, and
+`DR-C11-S1-2` impose. Its factual half **was** settled by reading: `tests/smoke/smoke.test.ts:206`
+and `:237` call gated learner-state tools with the captured context token, and
 `.github/workflows/cd-prod.yml:145`–`:174` shows the token is `client_credentials`. Its remaining
 half is a **judgement about regression value**, which no bounded read-only experiment against
 production can produce, and it is filed as `OI-S4-2` instead. Filing it as a spike would have been a

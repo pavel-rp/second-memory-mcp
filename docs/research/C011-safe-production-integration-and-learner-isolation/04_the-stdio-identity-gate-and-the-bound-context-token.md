@@ -68,8 +68,8 @@ STDIO transport (inherently trusted, no auth needed)"*.
 ### 1.2 There is no STDIO transport module to mount anything on
 
 This is a fact the charter's framing does not contain and it changes the price of the change.
-`src/transport/` holds ten files and **none of them is a STDIO module**. The STDIO path is four
-lines inline in the transport switch:
+`src/transport/` holds ten files and **none of them is a STDIO module**. The STDIO path is three
+statements inline in the transport switch:
 
 ```
 src/transport/main.ts:55–59
@@ -157,7 +157,8 @@ answer is therefore rejected twice over, on evidence and on rule, not on taste.
 
 **(3) The audience carries no learner information at all.** Because the production client is
 static, every learner reaching the connector presents `aud = "claude-web"` — one shared bare client
-id (`src/config/resolve-auth-config.ts:110` parses `AUTH_ADDITIONAL_AUDIENCES`;
+id (`src/config/resolve-auth-config.ts:94`–`:99` parses `AUTH_ADDITIONAL_AUDIENCES`, called at
+`:110`;
 `src/transport/jwt-middleware.ts:119` matches it). The audience distinguishes nothing between two
 learners. This is what makes SUB-2's rule — *principal kind is determined by `sub`-presence, never
 inferred from the audience shape* — **load-bearing here rather than merely preferred**: on this
@@ -324,7 +325,10 @@ already states that explicitly. The two transports are equal in that limitation,
 | **Purge** | `deleteExpired()` wired at the mint path (§7) | identical — the sweep is transport-agnostic by construction, which the middleware is not | never runs, because nothing mints |
 | **Cutover** | every pre-existing row is unbound and is rejected on presentation and purged (§8) | identical | identical |
 
-Every cell has a defined behaviour and none of them is "unchanged, and therefore fine".
+Fourteen of the fifteen cells carry a defined behaviour; the fifteenth — expiry on an unconfigured
+STDIO process — is an explicit `n/a`, because a transport that mints nothing has nothing to expire.
+Two cells record an existing behaviour as **unchanged**, which is a defined behaviour: what none of
+them is, is "unchanged, and therefore fine".
 
 ---
 
@@ -349,6 +353,14 @@ its own: a STDIO process that exits when its client disconnects may never fire o
 distinction. Any later reader who sees the delete inside `validateWithStatus` and concludes the
 table is self-cleaning will be wrong in exactly the case that matters — the abandoned row.
 
+**The wired sweep is not the cutover purge, and cannot be.** `deleteExpired`'s predicate is
+`lte(contextTokens.expiresAt, before)` (`src/adapters/drizzle/context-token-repository.ts:62`) — it
+selects on **expiry**, not on the binding. An unbound row that has not yet expired is invisible to
+it. §9.1's stage D therefore names a **second, differently-predicated operation** — a one-shot purge
+of rows whose binding is NULL — which is a migration act rather than the wired sweep running once.
+`DR-C11-S4-3` clause 5 records it as such. Conflating the two would leave stage D unable to set the
+columns `NOT NULL`, because the rows blocking it would still be there.
+
 **Why the answer is "wire it" rather than "state why not".** The charter admits either. Once a
 principal is bound, `context_tokens` stops being the anonymous three-column table SUB-3 classified
 and becomes learner-identifying — SUB-3's inventory says so directly, classifying it as *not*
@@ -368,7 +380,7 @@ principal and must be rejected, not grandfathered."* Four classes, all named.
 | # | Class | Why it is rejected | When |
 | --- | --- | --- | --- |
 | **C1** | **Every `context_tokens` row that exists at cutover.** All of them, without exception — the table declares no column that could carry a binding (`src/infrastructure/db/schema.ts:312`–`:321`), so an already-bound pre-existing row is not a possible state. | Unbound; `principal_id IS NULL` | Once, at cutover |
-| **C2** | **The token the deploy pipeline's `client_credentials` smoke run mints on every deploy.** The CD job fetches an OAuth token by `grant_type=client_credentials` (`.github/workflows/cd-prod.yml:145`–`:168`) and runs `pnpm run test:smoke` with it (`:170`–`:174`). Under `DR-C11-S2-2` a `client_credentials` principal is `client`-kind, and the smoke suite calls **gated learner-state tools** with the token it obtains — `list_learning_items` at `tests/smoke/smoke.test.ts:207` and `session_status` at `:239`, using the context token captured at `:192`. Those calls are refused, not empty-scoped. | Rejected for learner-owned state, permanently, by the service-principal rule — **not** by the unbound rule | **Every deploy**, indefinitely |
+| **C2** | **The token the deploy pipeline's `client_credentials` smoke run mints on every deploy.** The CD job fetches an OAuth token by `grant_type=client_credentials` (`.github/workflows/cd-prod.yml:145`–`:168`) and runs `pnpm run test:smoke` with it (`:170`–`:174`). Under `DR-C11-S2-2` a `client_credentials` principal is `client`-kind, and the smoke suite calls **gated learner-state tools** with the token it obtains — `list_learning_items` at `tests/smoke/smoke.test.ts:206` and `session_status` at `:237`, using the context token captured at `:195`. Those calls are refused, not empty-scoped. | Rejected for learner-owned state, permanently, by the service-principal rule — **not** by the unbound rule | **Every deploy**, indefinitely |
 | **C3** | **Any `claude-web` learner token's context-token row minted before cutover.** Falls under C1; the learner re-mints a bound row on the next `init_agent_context` call and loses nothing but the in-flight call. | Unbound | Once, at cutover |
 | **C4** | **Any context-token row minted over STDIO before cutover**, if the edge is reachable. Falls under C1 at cutover; after cutover an unconfigured STDIO process mints nothing at all, so the class becomes empty by construction rather than by policy. | Unbound, then never created | Once, then n/a |
 
@@ -430,7 +442,7 @@ below is **not** a permissive mode: it changes no refusal behaviour and exists o
 | **A** | Add the three columns **nullable**. HTTP mint binds. The gate still accepts a NULL binding. | No |
 | **B** | The gate and the audit path reach STDIO in **observe-only**: record what *would* be refused; refuse nothing. | No |
 | **C** | Enforce. Both transports refuse an absent or NULL binding identically. | **Yes** — this is `CC-S8-3` |
-| **D** | Purge the NULL rows; set the columns `NOT NULL`. | No, once C has landed |
+| **D** | Purge the NULL rows — a **one-shot, binding-predicated** operation, not the expiry-predicated sweep §7 wires — then set the columns `NOT NULL`. | No, once C has landed |
 
 Two constraints bind any schedule built on this set. **First**, D cannot precede C without
 grandfathering, and cannot precede A at all. **Second**, C010 §4.3 is binding, not advisory:
@@ -467,7 +479,7 @@ the correct outcome rather than a shortfall.
 
 `I4` asks: *"Does I3's enforcement hold identically on **both** transports — does it depend on
 nothing mounted on only one of them?"*
-(`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:172`).
+(`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:173`).
 
 **Verdict: under the proposed gate, `I4` no longer fails.** The principal is produced on both
 transports; the gate refuses on both; the confinement input handed to the enforcement point is one
@@ -506,8 +518,10 @@ shape this limit is a property of. Carried as `R-S4-3`.
 expressed as a value the server holds?"*
 (`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:171`).
 
-**Verdict: satisfied for `context_tokens` itself; consumed, not supplied, for every other
-category.** After §4, each `context_tokens` row resolves to exactly one principal — `principal_id`,
+**Verdict: under the proposed design, satisfied for `context_tokens` itself; consumed, not
+supplied, for every other category.** Like §10.1's, this is a verdict about a design and not about
+running code — nothing here is implemented (`CAP-S4-1`). After §4, each `context_tokens` row
+resolves to exactly one principal — `principal_id`,
 a server-held value written at mint time and never caller-supplied. For the *other* state
 categories, `I2` turns on the ownership column `NEU-850`'s `OUT-2` fixes (`user_id NOT NULL`, keyed
 to the JWT subject), which this package consumes and does not supply. The distinction is stated
@@ -520,7 +534,9 @@ it found it everywhere else.
 *"determined rather than assumed"*
 (`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:174`).
 
-**Verdict: satisfied on both transports.** Server-derived: on HTTP from the signature-verified
+**Verdict: under the proposed design, satisfied on both transports** — again a verdict about a
+design rather than a running system, on the same terms as §10.1 and §10.2 (`CAP-S4-1`).
+Server-derived: on HTTP from the signature-verified
 token, on STDIO from start-up configuration; in neither case from anything the caller sends.
 Determined: `DR-C11-S2-2`'s three-outcome table on HTTP, the operator's declared kind on STDIO —
 never inferred from the audience shape, which §2(3) shows carries no learner information on this
@@ -625,7 +641,7 @@ Run and reported, whether or not they returned anything, so SUB-17's audit can s
 | The same file's §4.3 `I4`→`I5` sequencing consequence (`:487`–`:496`) | Consistent — §9.1's stage set places the transport gate at B/C with only bookkeeping after |
 | The same file's §4.2 unconditional-verdict statement (`:482`–`:485`) | Consistent — §3.1 and §12 both turn on it |
 | `F-S5-4` (`../C010-system-and-repository-architecture/02_findings-register.md:262`–`:268`) | Consistent — *"a column cannot supply a principal the transport never produced"* is the reason §4's columns are not sufficient on their own and §3's gate is not optional |
-| `A-28`'s tolerance envelope (`../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`) | **Not breached.** The envelope covers enforcement at the repository-port layer or in the schema, a staged or single-step migration, and existing global rows backfilled, quarantined or archived. §9.1's stage set is staged and reversible; §8 archives nothing and backfills nothing but **deletes**, which is within *"quarantined, or archived"* read as a disposal class rather than outside it — and the disposal is obligated by `DR-C10-S8-2` clause 4, a decision the envelope does not override. No finding that isolation requires a separate deployment or datastore is reached, so the invalidating outcome does not fire |
+| `A-28`'s tolerance envelope (`../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`) | **Not breached — and one clause is honestly outside the enumeration rather than argued into it.** The envelope tolerates enforcement at the repository-port layer or in the schema, and a staged, reversible or single-step migration; §9.1's stage set is staged and reversible, so that limb is squarely inside. The row-disposition limb is not: the envelope enumerates existing global rows *"backfilled **to a single owner**, quarantined, or archived"* (`:111`), and quarantine and archival both **preserve** the rows, whereas §8 **deletes** them. Deletion is a fourth disposition the envelope does not name, and calling it a reading of the other three would be a reclassification. It is nonetheless not a breach, for two reasons stated instead of blurred: the envelope's own **invalidating outcome** — *"a finding that safe isolation requires a separate deployment or a separate datastore"* (`:113`) — does not fire, and `DR-C10-S8-2` clause 4 is a **later and more specific C010 decision** that forecloses backfill outright, so the two C010 records are not in conflict and this chapter is not choosing between them. Note also that the envelope's rows are the *learner-owned global rows*, not `context_tokens`, which owns no learner state |
 | `F-S5-3` / `F-S8-1`'s settled tool-surface figure | Consistent — re-counted independently at `5111841` in §1.6 and matching at **46 / 43 / 3** |
 | `NEU-850`'s `OUT-2` | Consistent — the learner key is written to `user_id` unchanged; the kind discriminator lives on the token binding, not on the owning row, so the single ownership column is undisturbed |
 
@@ -656,7 +672,7 @@ sequence.
 | --- | --- |
 | `91_findings-register.md` | `F-S4-1` … `F-S4-6` |
 | `92_risk-register.md` | `R-S4-1` … `R-S4-4` — **zero** charter `R<n>` rows, correctly: no row of the charter's §Risks table names OUT-7 or OUT-13 as its owning outcome |
-| `93_open-items-and-provisional-register.md` | `OI-S4-1` … `OI-S4-3`, plus the `BND-S4-17` disposition and the `OI-S8-1` / `OI-S8-2` / `CC-S8-3` routings |
+| `93_open-items-and-provisional-register.md` | `OI-S4-1` … `OI-S4-3`, plus five dispositions: `BND-S4-17`, the `OI-S8-1` / `OI-S8-2` / `CC-S8-3` routings, and C010's STDIO-reachability question recorded as planned-against |
 | `94_caps-and-incomplete-scope.md` | `CAP-S4-1` |
 | `95_stand-in-assumption-register.md` | `A-S4-1`, `A-S4-2` |
 | `96_spike-register.md` | `SPK-S4-1`, `SPK-S4-2` |
@@ -666,8 +682,21 @@ sequence.
 **Two spikes, not three, and the missing one is missing on purpose.** A third candidate — *would the
 existing smoke suite pass under the refusal rule?* — was dropped because it fails the
 *"could this have been read instead?"* test that `R14` and `DR-C11-S1-2` impose: it was settled by
-reading `tests/smoke/smoke.test.ts:207` and `:239` and observing that both are gated learner-state
+reading `tests/smoke/smoke.test.ts:206` and `:237` and observing that both are gated learner-state
 tools. Filing it would have been a spike standing in for a read.
+
+**One finding is a register reconciliation rather than a claim about the system, and is named here
+so it is reachable from the chapter.** `F-S4-6` records that `96_spike-register.md`'s cumulative
+total — *"twelve spikes designed"* — omits SUB-15's four entries, making the correct figure sixteen
+at SUB-2's revision and eighteen at this one. It is routed to SUB-14, which owns register assembly;
+no sub-task edits another's section, so the original line is left as written.
+
+**A namespace note, stated once.** This package's `S4` ids belong to **SUB-4 of C011**. C010 has its
+own `S4` namespace — `BND-S4-17` and `CMP-S4-5` in §11 are C010's, and C010 has a `F-S4-5` of its
+own that is unrelated to this chapter's. The house rule that resolves it is already in
+`README.md` § "Id conventions": a C010 record is always cited qualified, a bare id is always this
+charter's own. Both appear in this chapter, so the rule is exercised here rather than merely
+available.
 
 ---
 

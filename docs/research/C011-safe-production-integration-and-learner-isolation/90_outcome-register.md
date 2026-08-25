@@ -458,7 +458,11 @@ clause-by-clause audit); `decision-records/DR-C11-S4-2_what-the-context-token-ro
 alternatives each); `traceability/S4_stdio-gate-and-bound-context-token.md`.
 
 **Measured result at revision 1.** **(1) Met.** **15 of 15** cells of the five-step × three-column
-lifecycle table carry a defined behaviour; none reads "unchanged". **(2) Met.** `deleteExpired()` is
+lifecycle table carry a stated disposition — **14** a defined behaviour and **one** an explicit
+`n/a` where the step cannot arise, because an unconfigured STDIO process mints nothing and so has
+nothing to expire. Two cells state that an existing behaviour is **unchanged**, which is
+a defined behaviour and not an omission; §6's closing line draws that distinction rather than
+claiming the word never appears. **(2) Met.** `deleteExpired()` is
 wired at `ctx.createContextToken()`, reached from `src/server/server-context-tools.ts:33`, chosen
 for being transport-agnostic; the per-row delete inside `validateWithStatus` is recorded as **not** a
 purge in both §1.5 and `F-S4-1`. **(3) Met.** **4 of 4** classes named — C1 every pre-existing row,
@@ -471,7 +475,7 @@ itself and consumed unchanged elsewhere; `I5` satisfied on both transports.
 **The measure's most consequential finding is a negative one, and it is reported rather than
 absorbed.** The deploy pipeline's smoke run mints a `client_credentials` token on **every** deploy
 (`.github/workflows/cd-prod.yml:145`–`:174`) and calls gated learner-state tools with it
-(`tests/smoke/smoke.test.ts:207`, `:239`). Under the service-principal rule those calls are refused,
+(`tests/smoke/smoke.test.ts:206`, `:237`). Under the service-principal rule those calls are refused,
 and `cd-prod.yml` runs the suite as a deploy step — so **this package's identity rule has the
 production release pipeline as an unadapted consumer**. `F-S4-3`, `R-S4-2`, `OI-S4-2`.
 
