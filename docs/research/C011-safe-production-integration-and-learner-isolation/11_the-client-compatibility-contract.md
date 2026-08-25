@@ -681,6 +681,14 @@ three different bases by three authors. **It is re-derived here by enumeration, 
 claim is `observed-in-repository` at `35f92ba`; every claim about production behaviour is a
 derivation from a repository fact, and is labelled as such where it appears.
 
+**No QA pass is claimed, and the record that was supposed to carry that fact is missing.** The
+capability registry resolves to `git, linear`; no capability owns the `qa-execution` surface, so the
+autonomous QA phase is a genuine **Core Article 8 no-op** rather than a skipped gate. Four places in
+the package decline to file a per-sub-task cap for this on the authority of `CAP-S1-3` — **which is
+not filed in `94_caps-and-incomplete-scope.md`**. The QA fact is unaffected and undisputed; the
+routing is not. Recorded as `F-S11-5` and handed to SUB-14, and this chapter **also** declines to
+file a duplicate rather than resolving an assembly-level gap with a per-sub-task record.
+
 ---
 
 ## 13. Source-change confirmation
@@ -695,14 +703,14 @@ the glossary rows. Verified by `git diff --name-only origin/develop`.
 
 | Register | Ids |
 | --- | --- |
-| Findings | `F-S11-1` … `F-S11-4` |
+| Findings | `F-S11-1` … `F-S11-5` |
 | Risks | **`R11`** (charter row 11), `R-S11-1`, `R-S11-2` |
 | Open items | `OI-S11-1`, `OI-S11-2` |
 | Caps | `CAP-S11-1` |
 | Stand-ins | `A-S11-1` |
 | Spikes | `SPK-S11-1` |
 | Decision records | `DR-C11-S11-1` |
-| Gate rows | `G-S11-1` … `G-S11-18` |
+| Gate rows | `G-S11-1` … `G-S11-21` |
 
 Every id is computed from the charter and this sub-task's own number. **No id is derived from "the
 next number in a shared sequence"**, and no concurrent sibling's output was read to pick one — which
@@ -731,8 +739,9 @@ is the discipline `F-S3-3` exists to enforce.
 
 - **To SUB-14 (`NEU-1007`), OUT-20.** `R11` authored and OUT-16's outcome row with its success
   measure, in the shape SUB-14 aggregates without authoring; this chapter's position on `F-S3-3`
-  (§10) as one fewer unknown; and **`F-S11-1`**, the tracker-id drift across the SUB-11 / SUB-12
-  block, which is a register-assembly correction only SUB-14 may make.
+  (§10) as one fewer unknown; **`F-S11-1`**, the tracker-id drift across the SUB-11 / SUB-12 block;
+  and **`F-S11-5`**, four citations to a `CAP-S1-3` that is not filed. Both are register-assembly
+  corrections only SUB-14 may make, and neither is corrected in place here.
 - **To SUB-12 (`NEU-1005`), OUT-17.** §8's four escapes as a bounded starting set for the path
   matrix; §4.1's four probes as gate candidates; and `F-S11-4` — that a cut extraction leaves STDIO
   refused at the adapter with no gate to explain why, which is a path the threat model should carry.

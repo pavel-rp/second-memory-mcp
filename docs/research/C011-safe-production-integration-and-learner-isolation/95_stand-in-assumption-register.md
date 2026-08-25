@@ -692,3 +692,36 @@ re-validation trigger fires on this package's publication; the envelope check is
 `05_the-enforcement-point-that-confines-every-read-and-write.md` §10 and the entry is cited from its
 single owning record at `../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`,
 never duplicated.
+
+---
+
+### SUB-11
+
+*`NEU-1004`, covering `OUT-16`. One entry, taking the sub-task-scoped `A-S<n>-<k>` form
+`DR-C11-S15-3` fixes. **It is not charter-continued**: it stands in for no numbered charter
+assumption, so the `A-<n>` form would be wrong.*
+
+## `A-S11-1` — That the charter's § Risks table has not been reordered between SUB-3's read and this one
+
+- **Status:** `[unconfirmed]`, and **unconfirmable from inside this package**
+- **Stands in for:** A diff between two readings of the charter's § Risks table — SUB-3's, at cutoff `86fb38a`, and this sub-task's, at `35f92ba`. No such diff can be taken.
+- **Assumption:** The fifteen rows of the charter's § Risks table sit in the same order now as when SUB-3 read them, so a row position computed here is the same row position SUB-3 computed against. **This is what `R11` rests on.** The rule fixed in `README.md` § Id conventions and at `92_risk-register.md:17` is that `R<n>` is the row's position in that table; this sub-task read the table at its own cutoff, found the OUT-16 row at position **11**, and authored `R11` on that basis (`11_the-client-compatibility-contract.md` §10).
+- **Owner:** **SUB-14 (`NEU-1007`)** under OUT-20, which aggregates the risk register, owns the reconciliation `F-S3-3` routes to it, and is the only party that may touch another sub-task's entries. **Not this sub-task**, which states a position and its derivation and resolves nothing.
+- **Tolerance envelope:** The assumption tolerates the table being **edited** — rows reworded, severities adjusted, mitigations extended — without invalidating anything, because the rule keys on position alone. It tolerates rows being **appended** after position 15. What it does **not** tolerate is a **reordering, insertion or deletion at or before position 11**, any of which would move the OUT-16 row and make `R11` name a different risk than the one authored under it.
+- **Invalidating outcome:** SUB-14 establishes that the two readings differ — that is, that `F-S3-3`'s discrepancy is explained by the charter having moved rather than by the forward-allocation table at `92_risk-register.md:33`–`:35` having been written wrong. In that case `R11`'s **id** is wrong while its **content** stays correct, and the remedy is a renumber SUB-14 performs, not a rewrite this sub-task owes.
+- **Re-validation trigger:** **SUB-14's aggregation pass.** It is the first moment at which one party holds every authored `R<n>` entry at once and can check the set against the charter for collisions and holes. The check is cheap and mechanical: fifteen rows, fifteen ids, no duplicates and no gaps.
+- **Why it is a stand-in rather than a finding:** Because nothing has been checked and refuted. `F-S3-3` is the finding — it records that two sources disagree at rows 10–12 as read at their respective cutoffs, and it explicitly declines to assert that SUB-1 erred. This entry records the one thing the design here **rests on** and cannot verify: `_local/` is gitignored and unversioned, so the two readings genuinely cannot be diffed. **Six independent cross-checks were run and all six agree** — `R1`, `R8`, `R10`, `R12`, `R13` and `R14`, each already authored, each matching charter position rather than the allocation table (`11_the-client-compatibility-contract.md` §10) — which is strong corroboration and is **not** the same as confirmation.
+
+---
+
+**SUB-11 register totals at revision 1:** one entry, `A-S11-1`, `[unconfirmed]`, with a named owner,
+a stated tolerance envelope, a named invalidating outcome and a re-validation trigger that is a
+scheduled event rather than a hope.
+
+**Nothing else in this sub-task is registered as a stand-in, deliberately.** The three surface
+figures were **re-derived**, not assumed, so 46 / 43 / 3 is an observation at a stated cutoff and
+carries no entry here. The unobserved client population is a **cap** (`CAP-S11-1`) rather than a
+stand-in, because the chapter does not rest on any assumption about its size — it states in §8 and
+§15 that the size is unknown and makes no claim that needs it. `A-28` is not restated: it is C010's,
+it bounds SUB-5's enforcement point rather than this contract, and it is cited from its single
+owning record where it is relevant.

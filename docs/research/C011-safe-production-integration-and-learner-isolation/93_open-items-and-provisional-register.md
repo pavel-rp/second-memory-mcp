@@ -531,3 +531,43 @@ from their single owning records rather than re-raised, on the same rule SUB-16 
 two correspond to a spike entry** — SUB-5 files no spike, because neither question is settled by a
 bounded experiment against production: `OI-S5-1` needs a measurement another item already owns, and
 `OI-S5-2` needs a party to be named.
+
+---
+
+### SUB-11
+
+#### `OI-S11-1` — Nothing keeps the gate's exclusion set and the empty-schema tool set in agreement, so the exempt figure of 3 is true at a cutoff rather than enforced
+
+- **Id:** `OI-S11-1`
+- **Item:** The exempt set is derivable two independent ways — the three tools declaring `z.object({}).shape` (`src/server/server-info-tools.ts:13`, `server-context-tools.ts:21`, `server-workflow-tools.ts:15`) and the three names hard-coded in `EXCLUDED_TOOLS` (`src/transport/context-token-middleware.ts:5`–`:9`). At cutoff `35f92ba` they name the same three tools, and `11_the-client-compatibility-contract.md` §1.2 reports that agreement as evidence. **What is open is that nothing in the repository enforces it.** A fourth empty-schema tool would not add itself to `EXCLUDED_TOOLS`, and a name removed from `EXCLUDED_TOOLS` would not gain a schema. The two can diverge in either direction, and the directions are not symmetric: a tool in `EXCLUDED_TOOLS` without an empty schema is **ungated but declares an argument nobody checks**, while an empty-schema tool absent from `EXCLUDED_TOOLS` is **gated on a token its schema does not accept** — which is a hard failure for every caller of it. Neither is detectable by a tool-manifest diff.
+- **Status:** open
+- **Source:** `11_the-client-compatibility-contract.md` §1.2 and §4.2; the six repository locations cited above, read at `35f92ba`.
+- **Consumer:** **SUB-13 (`NEU-1006`)** under OUT-19, which authors the DDL and the runbook's verification steps and is the nearest scheduled party positioned to add a set-equality assertion; **SUB-12 (`NEU-1005`)** under OUT-17, for which an exemption that can drift silently is a threat-model input rather than a fixed boundary.
+- **Owner:** **SUB-13 (`NEU-1006`)** for the assertion; **the implementation charter `NEU-896` hands the work to**, for the re-check at the landing cutoff.
+- **Resolving event:** A test or lint rule asserting that the set of registered tools declaring an empty input schema equals `EXCLUDED_TOOLS` lands on `origin/develop`. **This package cannot produce it** — it would be a `tests/` or `src/`-adjacent change, out of scope by constraint — so the item is opened rather than closed, which is the correct outcome and not a shortfall.
+- **Why not a stand-in:** Because nothing is being assumed. The current state is **observed** at a stated cutoff and reported as observed; what is missing is a mechanism, not a fact. A stand-in would imply this chapter had guessed the exempt set, and it did not.
+
+#### `OI-S11-2` — If the gate extraction wraps handlers rather than the server, the compatibility contract acquires a detection obligation it does not otherwise have
+
+- **Id:** `OI-S11-2`
+- **Item:** `11_the-client-compatibility-contract.md` §6.2 establishes that a transport-neutral gate must interpose between *"a `tools/call` arrives"* and *"the registered handler runs"*, and that the MCP SDK offers no documented hook at that layer — `createMcpServer` returns a bare `McpServer` whose tools are attached by 46 individual `registerTool` calls (`src/transport/create-server.ts:17`–`:23`). The extraction can therefore land in one of two places: **option A**, one adapter wrapping the server or the message stream, touching `src/transport/` only; or **option B**, a decorator applied at each registration site, touching all 46 across 16 modules. **What is open is which.** It is not decidable here, because it depends on the SDK's actual interposition surface at the version the implementation charter builds against, and this package designs rather than implements.
+- **Status:** open
+- **Source:** `11_the-client-compatibility-contract.md` §6.2, and `91_findings-register.md` § `F-S4-4` for the underlying fact that no seam exists.
+- **Consumer:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`**, as `CC-S8-3`'s owner — the fork is the thing that sizes the work it owns; **SUB-13 (`NEU-1006`)** under OUT-19, which inherits the verification step if option B is taken; **SUB-7 (`NEU-1001`)** under OUT-3, because a 46-site change and a one-site change stage differently.
+- **Owner:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`**.
+- **Resolving event:** The extraction's design is settled — either an interposition adapter lands in `src/transport/`, or a decorator lands at the registration sites. On option B the item resolves **with a consequent obligation**: an assertion that the wrapped-handler set equals the non-exempt registered set, because a forgotten decorator on one of 46 sites yields a tool that is registered, believed gated, and ungated — a failure §1.3's schema mapping cannot catch, since that mapping checks *declarations*, not *wrapping*.
+- **Why not a stand-in:** Because no branch is assumed. The chapter prices **both** and states the consequence of each; nothing downstream of it depends on which is chosen, so there is no assumption to register a tolerance envelope against.
+
+---
+
+**SUB-11 register totals at revision 1:** two open items, `OI-S11-1` and `OI-S11-2`, both open at
+this revision. Each carries a named owner and an observable resolving event, neither blank. **Zero
+dispositions of another package's items are recorded here.** **Zero second records:** C010's
+`OI-S8-1` — that `context_tokens` names no principal — is cited from its single owning record inside
+`11_the-client-compatibility-contract.md` §2 rather than re-raised, and `OI-S3-1`
+(controller/processor and lawful basis) is cited in §8's escape table on the same rule. **Zero of
+two correspond to a spike entry** — neither is settled by a bounded experiment against production:
+`OI-S11-1` needs a test written and `OI-S11-2` needs a design decision taken, and both are settled
+by work rather than by observation. The one question this sub-task *does* need production to answer
+— whether any existing client exists at all — is registered as **`SPK-S11-1`** with `CAP-S11-1` as
+its standing cap.
