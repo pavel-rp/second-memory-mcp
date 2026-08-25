@@ -49,7 +49,7 @@ identifier.
 **Exactly two components read it, both at the transport edge and both fail-open.** The
 session-binding map in `src/transport/http.ts` compares the current request's subject against the
 stored session owner and 403s on mismatch — but a session with no stored identity *always passes*.
-The rate-limit key in `src/transport/rate-limit-middleware.ts` windows on the subject, and when
+The rate-limit key in `src/transport/rate-limit-middleware.ts` windows on that same resolved value, and when
 there is none it calls `next()` and applies no limit. Nothing in `src/orchestration/`, `src/ports/`,
 `src/adapters/` or `src/domain/` references the value at all (charter assumption 12).
 
@@ -82,9 +82,10 @@ and at `:67`, *"(comma-separated static client ids; prod sets `claude-web`)"*. T
 Two consequences follow, and both are repository-derived rather than observed:
 
 - **The production learner path is shape 2, not shape 3.** SUB-1 called the DCR shape *"the shape
-  OUT-1 and OUT-5 most need"* (`01_production-evidence-and-the-access-audit.md` §2). On ADR-0001's
-  amendment that is no longer where the human arrives; the static client is. The DCR path remains
-  admissible and may carry no production traffic at all.
+  OUT-1 and OUT-5 most need"* (`93_open-items-and-provisional-register.md` § `OI-S1-3`, repeated at
+  `96_spike-register.md` § `SPK-S1-3`). On ADR-0001's amendment that is no longer where the human
+  arrives; the static client is. The DCR path remains admissible and may carry no production traffic
+  at all.
 - **The static client is named in the repository.** C011's `OI-S1-2` records that *"neither which
   client that is nor what its token carries has been observed"*, and `SPK-S1-2` justifies that with
   *"`cd-prod.yml` never names it"* — true of that workflow, but the repository names it elsewhere.

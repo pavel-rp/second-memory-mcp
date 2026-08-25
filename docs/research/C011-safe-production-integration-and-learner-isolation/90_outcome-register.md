@@ -245,6 +245,21 @@ as **`F-S2-3`**, not absorbed here.
 that the charter defined against evidence rather than against design, and reporting it as met would
 require asserting an observation that does not exist.
 
+**Argued deviation — the stand-in's id.** This sub-task's brief named the residual stand-in `A-35`,
+continuing the charter's own assumption numbering. It is filed as **`A-S2-1`** instead. The reason is
+a real collision, not a preference: `A-<n>` is only uniquely computable if no other sub-task is
+standing in for a *different* charter assumption at the same time, two were being authored
+concurrently, and a merge conflict in `95_stand-in-assumption-register.md` resolves by **keeping both
+sides** — so a collision would have landed two rows sharing one id rather than failing loudly.
+**SUB-15 reached the identical conclusion independently** (`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`,
+`A-S15-<k>`). The entry still records which charter assumption it stands in for — 35 — in its
+`Assumption:` field, so the pointer the charter-continued scheme existed to provide is preserved. The
+superseded form is kept as rejected alternative 9 in
+`decision-records/DR-C11-S2-3_provenance-persistence-and-parallel-safe-id-families.md`. Recorded here,
+in the outcome row, because a deviation from a named identifier belongs where the outcome is judged
+and not only inside a decision record. **SUB-14 (NEU-1007) adjudicates** the two coexisting schemes;
+SUB-1's `A-33` / `A-34` are not renumbered by this sub-task.
+
 **Authored by.** SUB-2 (NEU-994).
 
 ---

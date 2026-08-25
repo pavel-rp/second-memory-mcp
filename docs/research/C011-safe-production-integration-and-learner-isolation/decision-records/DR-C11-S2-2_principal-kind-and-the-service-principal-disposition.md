@@ -113,7 +113,7 @@ while `OI-S1-2`, an evidence question, does not.
 2. **`OI-S5-2` closes at position 2, with zero production observations.** Recorded in
    `../93_open-items-and-provisional-register.md`.
 3. **Every consumer of the identity value must now carry the kind with it.** That obligation is
-   `DR-C11-S2-3`'s subject; without it decision 1 is a determination nobody downstream can read.
+   `DR-C11-S2-3`'s concern; without it decision 1 is a determination nobody downstream can read.
 4. **The deploy pipeline keeps working, and its rows become a named class.** The smoke principal
    continues to authenticate and to call `init_agent_context`, but under decision 3 it owns no
    learner rows. The `context_tokens` rows it mints on every deploy are a real cohort with a real

@@ -88,8 +88,8 @@ original token, which exists only at the transport edge and is gone by the time 
 check runs — C010 records that the resolved value reaches exactly two transport-local consumers and
 nothing in `src/orchestration/`, `src/ports/`, `src/adapters/` or `src/domain/` (charter assumption
 12). So re-derivation is not a design choice here; it is unavailable. Parsing a discriminator out of
-a composite key is available and is worse: it makes the key's *format* load-bearing, so any subject
-value containing the delimiter becomes a correctness bug, and it silently breaks
+a composite key is available and is worse: it makes the key's *format* load-bearing, so any `sub`
+claim value containing the delimiter becomes a correctness bug, and it silently breaks
 `DR-C11-S2-1`'s "written verbatim" rule the moment anything writes the composite into `user_id`.
 Carrying a separate field is the only option that leaves the key untouched.
 
@@ -131,7 +131,7 @@ paragraph is a lost finding"* failure the charter names. An id problem is not a 
 | # | Alternative | Why it lost |
 | --- | --- | --- |
 | 1 | **Do not carry provenance; re-derive the kind wherever it is needed.** | Not available. The token exists only at the transport edge and the resolved value reaches nothing below it (charter assumption 12), so there is nothing to re-derive from. It also leaves `I5` unanswerable at every point past the edge, which is the state `OI-S5-2` already records. |
-| 2 | **Encode the kind into the key string — `user:<sub>`, `client:<azp>`.** | Needs no new field and is self-describing, which is the appeal. It makes the key's *format* load-bearing (any subject containing the delimiter is a bug), breaks `DR-C11-S2-1`'s verbatim rule, and forces every reader to parse before comparing. A field that must be parsed to be trusted is not a determination. |
+| 2 | **Encode the kind into the key string — `user:<sub>`, `client:<azp>`.** | Needs no new field and is self-describing, which is the appeal. It makes the key's *format* load-bearing (any `sub` claim value containing the delimiter is a bug), breaks `DR-C11-S2-1`'s verbatim rule, and forces every reader to parse before comparing. A field that must be parsed to be trusted is not a determination. |
 | 3 | **Carry provenance in flight only; persist nothing.** | The cheapest option, and it survives right up until an audit asks what kind of principal wrote a row. `I5` is then evaluable per-request and unanswerable historically, and OUT-15's attribution design would have no stored discriminator to attribute against. |
 | 4 | **Persist the discriminator on every owned row** alongside `user_id`. | Rejected as informationless rather than wrong: under `DR-C11-S2-2` only a `user`-kind principal can own a row, so the column would carry one value on every row forever. It also multiplies `NEU-850`'s single ownership column into two per table, which is a schema change nobody argued for. |
 | 5 | **Expose the kind to callers**, e.g. on a tool response, so clients can adapt. | Directly contradicts `DR-C10-S8-2`'s forgeability position and creates a caller-visible identity surface the compatibility contract (OUT-16) would then have to guarantee. Nothing in scope needs it. |

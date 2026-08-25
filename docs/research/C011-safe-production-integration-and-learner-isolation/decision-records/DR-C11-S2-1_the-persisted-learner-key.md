@@ -14,7 +14,7 @@
    value of `azp` ever becomes the owner of a learner-owned row, under any principal shape.
 
 3. **A token carrying no usable `sub` yields no learner key at all.** It does not fall through to
-   `azp`. What such a principal *may* do is `DR-C11-S2-2`'s subject, not this record's; this record
+   `azp`. What such a principal *may* do is `DR-C11-S2-2`'s concern, not this record's; this record
    fixes only that it owns nothing.
 
 4. **The rule is shape-independent.** It is applied identically to a `client_credentials` grant, a

@@ -247,7 +247,7 @@ The rule adopted here and used below: a cross-package open item is always writte
 - **Consumer:** **SUB-6** (NEU-1000), whose backfill needs a stable target; **SUB-5** (NEU-997), whose confinement predicate is keyed to it; **SUB-3** (NEU-995) and **SUB-8** (NEU-1002), for which the *format* answer decides whether the ownership column is itself personal data; **SUB-13** (NEU-1006), which must choose the column's type and width.
 - **Owner:** The creator, as sole maintainer and sole operator of the production deployment — the only party who can inspect a token or state the IdP's configuration.
 - **Resolving event:** A decoded, redacted claim set is obtained for at least one principal across **two** separate token issuances and appended to the spike register, together with the operator's statement of Rauthy's subject-recycling behaviour.
-- **Why not a stand-in:** Four concrete properties with obtainable answers and no tolerance envelope — a subject is either stable or it is not, and the design does not accommodate a range. The *exposure* resting on the re-use limb is carried separately as `R-S2-1` in `92_risk-register.md`, which is where the severity and mitigation live.
+- **Why not a stand-in:** Four concrete properties with obtainable answers and no tolerance envelope — a `sub` claim value is either stable or it is not, and the design does not accommodate a range. The *exposure* resting on the re-use limb is carried separately as `R-S2-1` in `92_risk-register.md`, which is where the severity and mitigation live.
 
 #### `OI-S2-2` — Whether the named production static client `claude-web` issues tokens carrying a human `sub`, and under which grant
 
