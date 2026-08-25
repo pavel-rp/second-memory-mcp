@@ -84,7 +84,7 @@ implicit.
 2. **Rows already in production have no owner and cannot acquire one from this record.** Choosing a
    target subject for existing rows is SUB-6's (`NEU-1000`), and it now has a rule to target
    *against* — but the rule alone does not tell it which `sub` value the operator authenticates as,
-   because no token was observed. It inherits `A-35` and C011's `OI-S1-1` … `OI-S1-3` with it.
+   because no token was observed. It inherits `A-S2-1` and C011's `OI-S1-1` … `OI-S1-3` with it.
 3. **The key's stability, uniqueness and re-issue behaviour under Rauthy are not established by this
    record and cannot be** — nothing in the repository states them. They are routed as `OI-S2-1` with
    spike `SPK-S2-1`, and the re-use exposure is carried as `R-S2-1`. Choosing `sub` is sound

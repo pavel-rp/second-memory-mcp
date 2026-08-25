@@ -144,7 +144,7 @@ citing `SUB-12 of C010 (NEU-986)`'s gate reassignment at
 `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:615`.
 
 **Verified by.** `02_identity-the-learner-key-and-principal-kind.md` §9 (the `OI-S1-2` disposition),
-§10 (the per-shape answer); `95_stand-in-assumption-register.md` (`A-35`);
+§10 (the per-shape answer); `95_stand-in-assumption-register.md` (`A-S2-1`);
 `91_findings-register.md` (`F-S2-1`, `F-S2-3`); `93_open-items-and-provisional-register.md`
 (`OI-S2-2`, and C011's `OI-S1-1` … `OI-S1-3` inherited from SUB-1).
 
@@ -164,7 +164,7 @@ citing `SUB-12 of C010 (NEU-986)`'s gate reassignment at
 **What was delivered instead, and why it is not a substitute.** The question is answered per shape
 from ADR-0001 and the codebase at cutoff `86fb38a`, with each answer's basis and confidence stated —
 useful, and **not** the observation the measure names. The residual spans **all three** shapes, not
-one, and is carried as `A-35` with a named owner and an observable re-validation trigger. The gap
+one, and is carried as `A-S2-1` with a named owner and an observable re-validation trigger. The gap
 between this outcome's acceptance condition and the evidence base SUB-1 could produce is registered
 as **`F-S2-3`**, not absorbed here.
 

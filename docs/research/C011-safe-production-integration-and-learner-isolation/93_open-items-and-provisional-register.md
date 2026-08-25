@@ -165,7 +165,7 @@ The rule adopted here and used below: a cross-package open item is always writte
 - **Evidence half — not closable.** The item's own resolving event (`:82`) is *"A live production token is inspected and its `sub` claim recorded."* **No token was inspected, for any shape** — `SPK-S1-1` … `SPK-S1-3` all record `Result: not executed` (`96_spike-register.md`), and no production credential exists (`91_findings-register.md` § `F-S1-2`; `94_caps-and-incomplete-scope.md` § `CAP-S1-1`).
 - **Status:** **`[unconfirmed]`, owned here, open.** It is **not** recorded as closed, because there is no observed value to close it with. The gap between the acceptance condition that asked for a closure and the evidence base available at this position is registered as **`F-S2-3`**, not absorbed.
 - **What now closes it:** C011's `OI-S1-1`, `OI-S1-2` or `OI-S2-2` closing with a decoded claim set — `OI-S2-2` most directly, since it covers the shape the production learner actually arrives on.
-- **Stand-in:** `A-35` in `95_stand-in-assumption-register.md` carries the assumption resting on it, with a named owner and a re-validation trigger.
+- **Stand-in:** `A-S2-1` in `95_stand-in-assumption-register.md` carries the assumption resting on it, with a named owner and a re-validation trigger.
 
 #### Disposition of **`OI-S5-2`** — **CLOSED**
 
@@ -195,7 +195,7 @@ The rule adopted here and used below: a cross-package open item is always writte
 - **Consumer:** **SUB-2** itself (this chapter, which labels its shape-2 expectation `[unconfirmed]` against it); **SUB-6** (NEU-1000), which needs the operator's real learner key as its backfill target; and it is the **most direct closer of C010's `OI-S1-2`**, since it covers the shape the human actually arrives on.
 - **Owner:** The creator, as sole maintainer and sole operator of the production deployment — the only party with an authenticated claude.ai connector session.
 - **Resolving event:** A decoded, redacted claim set captured from a real authenticated `claude-web` connector session is appended to the spike register, with `sub` recorded as present-and-human-identifying, present-and-opaque, or absent, and the grant type stated.
-- **Why not a stand-in:** A question with an obtainable answer and no tolerance envelope. The assumption resting on it — that the production learner flow yields a human `sub` — is separately carried as the stand-in `A-35`.
+- **Why not a stand-in:** A question with an obtainable answer and no tolerance envelope. The assumption resting on it — that the production learner flow yields a human `sub` — is separately carried as the stand-in `A-S2-1`.
 
 #### `OI-S2-3` — Whether the DCR (`dyn$`) path carries any production traffic at all
 

@@ -180,7 +180,7 @@ claims OUT-1 needs.
   discriminator exactly as to the identity.
 - **What a consumer may conclude.** Exactly this: **`user` means the token carried a `sub` claim;
   `client` means it did not.** A consumer may **not** conclude that a `user`-kind principal is a
-  natural person. That is `OI-S1-2`, still open, and it is carried as the stand-in `A-35`. The
+  natural person. That is `OI-S1-2`, still open, and it is carried as the stand-in `A-S2-1`. The
   discriminator records the *claim the identity came from* — which is what `I5` asks for — and it
   does not certify humanity.
 
@@ -284,7 +284,7 @@ require.
 | Half | Content | Status |
 |---|---|---|
 | **Design** — *what does the system do when the authenticated subject is an OAuth client rather than a human?* | §3 step 2 and `DR-C11-S2-2`: kind `client`, admitted as a service principal, owns no learner state, refused learner reads and writes. | **Discharged.** No downstream sub-task needs to carry this as an open question. |
-| **Evidence** — *does the production learner flow in fact yield a human `sub`?* | The item's own resolving event requires a live production token to be inspected. **No token was inspected**, for any shape: `SPK-S1-1` … `SPK-S1-3` all record `Result: not executed`, and no production credential exists (`F-S1-2`, `CAP-S1-1`). | **Not closable.** Carried forward as the stand-in `A-35`, with C011's `OI-S1-1`, `OI-S1-2` and `OI-S1-3` as the observations that would close it. |
+| **Evidence** — *does the production learner flow in fact yield a human `sub`?* | The item's own resolving event requires a live production token to be inspected. **No token was inspected**, for any shape: `SPK-S1-1` … `SPK-S1-3` all record `Result: not executed`, and no production credential exists (`F-S1-2`, `CAP-S1-1`). | **Not closable.** Carried forward as the stand-in `A-S2-1`, with C011's `OI-S1-1`, `OI-S1-2` and `OI-S1-3` as the observations that would close it. |
 
 **This chapter does not record `OI-S1-2` as closed, and that is a departure from the letter of its
 acceptance condition.** The charter's OUT-5 verified-by asks for *"an explicit disposition of
@@ -319,7 +319,7 @@ would be the same error `01_production-evidence-and-the-access-audit.md` §5 avo
 audit, so it is reported the same way: **vacuous, not clean.**
 
 The residual is therefore **not** confined to one named shape. It spans **all three**, and the
-stand-in `A-35` in `95_stand-in-assumption-register.md` is written over all three with a named owner
+stand-in `A-S2-1` in `95_stand-in-assumption-register.md` is written over all three with a named owner
 and an observable re-validation trigger. Narrowing it to fewer shapes than the evidence supports
 would be a fabrication in the opposite direction.
 
@@ -377,8 +377,9 @@ rule in §3 is a design position; nothing implements it here.
 - **Open items:** `OI-S2-1` … `OI-S2-3`, plus the recorded dispositions of `OI-S5-2` and C010's
   `OI-S1-2` (`93_open-items-and-provisional-register.md`).
 - **Caps:** `CAP-S2-1` (`94_caps-and-incomplete-scope.md`).
-- **Stand-ins:** `A-35` (`95_stand-in-assumption-register.md`), continuing the charter's assumption
-  numbering.
+- **Stand-ins:** `A-S2-1` (`95_stand-in-assumption-register.md`). **Sub-task-scoped, not
+  charter-continued** — see `DR-C11-S2-3`; SUB-1's `A-33` / `A-34` keep their charter-continued form
+  and are not renumbered here.
 - **Spikes:** `SPK-S2-1` … `SPK-S2-3` (`96_spike-register.md`), one per new open item, all designed
   and **none executed**.
 - **Completeness-gate rows:** `G-S2-1` … `G-S2-15` (`97_package-completeness-gate.md`), this

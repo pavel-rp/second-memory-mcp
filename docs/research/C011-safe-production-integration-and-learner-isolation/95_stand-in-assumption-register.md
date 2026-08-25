@@ -121,7 +121,22 @@ rather than a gap.
 
 ### SUB-2
 
-## `A-35` — The production learner flow yields a human `sub`
+**Id family — sub-task-scoped, diverging from the charter-continued convention above.** The
+convention this register opens with (`A-<n>` continues the charter's assumption numbering, so a
+stand-in for charter assumption 33 is `A-33`) is **not collision-free under parallel authoring**:
+two sub-tasks standing in for two different charter assumptions at the same time cannot both compute
+"the next number" without seeing each other's work, and because a merge conflict in this file
+resolves by **keeping both sides**, a collision would land two rows sharing one id rather than
+failing loudly. SUB-2 therefore files **`A-S2-<k>`**, scoped to the authoring sub-task exactly as
+`F-S<n>-<k>`, `OI-S<n>-<k>`, `CAP-S<n>-<k>` and `SPK-S<n>-<k>` already are. The entry still records
+**which charter assumption it stands in for**, in its `Assumption:` field, so nothing is lost —
+`A-S2-1` stands in for charter assumption 35.
+
+**SUB-1's `A-33` and `A-34` are not renumbered**, and neither is the convention text above:
+reconciling the two schemes across the package is **SUB-14's** (NEU-1007), not SUB-2's. Recorded in
+`decision-records/DR-C11-S2-3_provenance-persistence-and-parallel-safe-id-families.md`.
+
+## `A-S2-1` — The production learner flow yields a human `sub`
 
 **Status:** `[unconfirmed]`
 **Stands in for:** **C010's `OI-S1-2`**
@@ -191,9 +206,8 @@ and §10's per-shape answer; OUT-5's outcome-register row, whose measured result
 
 ---
 
-**SUB-2 register totals at revision 1:** one stand-in entry, `A-35`, continuing the charter's own
-assumption numbering. It carries a named owner and an observable re-validation trigger, and
-**neither is left blank for SUB-14 to fill**.
+**SUB-2 register totals at revision 1:** one stand-in entry, `A-S2-1`. It carries a named owner and
+an observable re-validation trigger, and **neither is left blank for SUB-14 to fill**.
 
 **The residual is not confined to one shape, and is not narrowed to look tidier.** The charter
 anticipated a stand-in *"confined to the shape that could not be obtained"*. **Zero** of the three
