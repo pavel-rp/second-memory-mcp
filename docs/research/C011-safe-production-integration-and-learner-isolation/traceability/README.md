@@ -36,3 +36,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | --- | --- | --- |
 | `S1_production-evidence.md` | SUB-1 (NEU-993) | OUT-18 |
 | `S2_identity-and-the-learner-key.md` | SUB-2 (NEU-994) | OUT-1, OUT-5, OUT-6 |
+| `S15_operational-objectives.md` | SUB-15 (NEU-998) | OUT-14 |

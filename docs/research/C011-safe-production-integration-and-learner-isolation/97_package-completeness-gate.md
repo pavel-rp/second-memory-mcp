@@ -62,6 +62,15 @@ the other per-sub-task id families are. Fixed in
 `decision-records/DR-C11-S2-3_provenance-persistence-and-parallel-safe-id-families.md`; SUB-14
 (NEU-1007) may renumber.
 
+**SUB-15 took the opposite view, and the disagreement is recorded rather than glossed.**
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` consequence 6 declines to write any
+gate row at all, on the grounds that this register names SUB-17 as its owner and that SUB-1's rows
+are a seed-author exception. SUB-2 writes them because this file carries the shared-register append
+convention verbatim — *"Each sub-task appends its own `### SUB-<n>` section"* — and, decisively,
+because SUB-2 has an acceptance condition it **cannot meet** (`G-S2-6`). A register row is the
+difference between a gap that is reported and one a later audit has to rediscover. **SUB-14
+adjudicates**; both sections stand until it does.
+
 | # | Item | Disposition | Evidence / cap |
 | --- | --- | --- | --- |
 | `G-S2-1` | A mapping from token shape to learner key covers all three principal shapes, and every token yields exactly one defined learner key or one defined rejection, with **no case falling through to the raw `sub \|\| azp` expression**. | **met** | `02_identity-the-learner-key-and-principal-kind.md` §3 — three mutually exclusive, jointly exhaustive conditions over the `(sub, azp)` product; **0** fall-throughs. All three shapes placed in the second table with an explicit evidence status. |

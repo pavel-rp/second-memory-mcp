@@ -1,0 +1,60 @@
+# `S15` — Traceability: operational objectives for the real platform
+
+**Task:** NEU-998 (SUB-15) · **Charter:** C011 (umbrella NEU-893) · **Covers:** OUT-14 · **Written:** 2026-08-25 · **Verification cutoff:** `86fb38a`, 2026-08-25
+**Model:** claude-opus-5[1m]
+
+Every row resolves into `docs/research/`, never into `_local/`.
+
+**Evidence classes used below.** `repository-constant` — a value read from shipped code at the
+cutoff, cited `file:line`. `repository-history` — measured from this repository's own git history.
+`upstream-measurement` — an upstream package's own measured spike, cited by id. `derivation` —
+arithmetic over the preceding classes, shown in the chapter. `absence` — a checked and reported
+non-existence. **A green type-check or lint line is not evidence about this package's content**, and
+none is cited as such below.
+
+## OUT-14
+
+| Outcome | Claim | Discharged by | Evidence class | Status | Residual |
+| --- | --- | --- | --- | --- | --- |
+| OUT-14 | The platform these objectives are set against is a single self-hosted VPS with an off-repo compose stack, no Dockerfile, no IaC, auto-deploy on green CI, auto-migrate on boot, and process-local in-memory state. | `../15_operational-objectives-for-the-real-platform.md` §1 | `repository-constant` (`.env.example:76`–`:81`; `src/transport/main.ts:27`; `package.json:65-67`) + charter assumptions 21, 22 | `confirmed` | Hosting provider, region, TLS termination, monitoring and log shipping remain unknown — `OI-S1-9`, stand-in `A-34`. Both SUB-1's; cited, not restated. |
+| OUT-14 | The tool surface is 46 registered / 43 gated / 3 exempt, re-derived at this package's own cutoff rather than inherited. | `../15_operational-objectives-for-the-real-platform.md` §1 | `repository-constant` (46 `server.registerTool` calls reached via `src/server/tools.ts:17-31`; `EXCLUDED_TOOLS` at `src/transport/context-token-middleware.ts:5-9`) | `confirmed` | None. Agrees with C010 `F-S5-3` / `F-S8-1`; **no amendment routed to NEU-895**. |
+| OUT-14 | Every one of the 27 capacity-model inputs carries exactly one evidence label, the per-label counts are reported and sum to 27, and zero inputs are unlabelled. | `../15_operational-objectives-for-the-real-platform.md` §2.2, §6 | `derivation` over the four label classes | `confirmed` | Eight inputs are `[unconfirmed]` — routed to `OI-S15-1` … `OI-S15-4`, and cited to `OI-S1-8` / `OI-S1-9`. |
+| OUT-14 | **Zero** model inputs were observed in production, and that count is stated rather than inferred. | `../15_operational-objectives-for-the-real-platform.md` §2.1, §6 | `absence` — `DATABASE_URL`, `SMOKE_PROD_*`, `AUTH_*`, `VPS_*` re-probed unset at cutoff `86fb38a` | `confirmed` | Capped as `CAP-S15-1`; independently reproduces `F-S1-2`. |
+| OUT-14 | The Postgres connection pool at `max: 4` is the structure that breaks first under multi-learner load. | `../15_operational-objectives-for-the-real-platform.md` §3.1; `../decision-records/DR-C11-S15-2_first-break-ranking.md` | `repository-constant` (`src/infrastructure/db/client.ts:42`) + `derivation` (`N ≥ 2 / t_db`) | `confirmed` (structure) · `[unconfirmed]` (learner threshold) | The learner count is a band of **2–200**, not a value; `t_db` is unobserved — `OI-S15-3`. |
+| OUT-14 | Beyond saturation, a call waiting more than 5 000 ms for a connection fails acquisition rather than merely slowing. | `../15_operational-objectives-for-the-real-platform.md` §3.1 | `repository-constant` (`src/infrastructure/db/client.ts:44`) | `confirmed` | The arrival rate at which mean queue wait crosses 5 000 ms depends on `t_db` — `OI-S15-3`. |
+| OUT-14 | The per-subject rate limiter provides zero aggregate protection, so nothing defends the four-connection pool; at N = 3 subjects the admitted aggregate saturates it at any `t_db ≥ 0.667 s`. | `../15_operational-objectives-for-the-real-platform.md` §3.2; `../91_findings-register.md` § `F-S15-2` | `repository-constant` (`src/transport/rate-limit-middleware.ts:58`; `src/config/resolve-rate-limit-config.ts:24-25`) + `derivation` | `confirmed` | `OBJ-3` has no enforcing mechanism on this platform, and no numeric value until `OI-S15-3` closes. |
+| OUT-14 | The transport and subject-binding maps have no eviction path but a clean `onclose`, are one exposure rather than two, and are contained only by release cadence. | `../15_operational-objectives-for-the-real-platform.md` §3.2; `../91_findings-register.md` § `F-S15-3` | `repository-constant` (`src/transport/http.ts:82-83`, `:212-218`, `:304-311`) + `repository-history` (deploy cadence) | `confirmed` | **No entry-count threshold is stated** — per-entry footprint unmeasured (`OI-S15-4`), host RAM unknown (cited to `OI-S1-9`). Carried as `R-S15-2`, stood over by `A-S15-2`. |
+| OUT-14 | The tier-2 circuit-breaker set does not break under learner load at all; its exposure is a process-lifetime trip cleared only by restart. | `../15_operational-objectives-for-the-real-platform.md` §3.2 | `repository-constant` (`src/orchestration/tier2-circuit-breaker.ts:68`, header `:6-11`, `:43`) | `confirmed` | None for capacity. Detection of a stuck trip is SUB-16's (NEU-999). |
+| OUT-14 | Deploy cadence is at least 1.36/day over 90 days, 2.07/day over 30 and 3.29/day over 7, measured rather than assumed, and stated as a floor with its 2× upper case. | `../15_operational-objectives-for-the-real-platform.md` §2.2 `C-17`, §2.3 | `repository-history` (`git rev-list --count origin/develop --grep="chore: bump version"` at `86fb38a`) | `confirmed` | Whether a version-bump commit fires CD a second time is not established from here; the objective uses the floor and carries the 2× case explicitly. |
+| OUT-14 | Fourteen objectives are stated; nine carry a number and five are recorded as `[unconfirmed]`, as a named gap, or by a blocking finding. **Zero are blank.** | `../15_operational-objectives-for-the-real-platform.md` §4 | `derivation` over the objective set | `confirmed` | Five objectives await `OI-S15-1`, `OI-S15-3`, `OI-S1-8` or `OI-S1-9`. |
+| OUT-14 | **Zero** objectives assume an image registry, a replica set, an IaC revert or a managed database. | `../15_operational-objectives-for-the-real-platform.md` §4, platform-reality-check column; §7 | `derivation` — per-row check against the four absent capabilities named in §1 | `confirmed` | None. |
+| OUT-14 | Audit-log loss is bounded in time at ≤60 s of traffic per circuit-open window; entries buffered at the moment of opening are dropped, not retried. | `../15_operational-objectives-for-the-real-platform.md` §4 `OBJ-10` | `repository-constant` (`src/transport/pg-audit-transport.ts:30-36`, `:83-90`) + `derivation` | `confirmed` (time bound) · `[unconfirmed]` (entry count) | Entry count needs the arrival rate — `OI-S15-3`. Behaviour of entries arriving **during** an open window is a bounded reading gap, recorded at §8.7 rather than spiked, because it is readable from the repository. |
+| OUT-14 | `OBJ-12` requires exactly one concurrent boot migrator, and the platform cannot currently guarantee it. | `../15_operational-objectives-for-the-real-platform.md` §4 `OBJ-12`; `../92_risk-register.md` § `R-S15-3` | `repository-constant` (`src/transport/main.ts:27`; `src/infrastructure/db/migrate.ts:38-50`) + `repository-history` (cadence) | `confirmed` | Whether Drizzle's migrator takes an internal advisory lock was **not verified** at this cutoff and is recorded in either direction as unverified, not assumed. Whether an overlap has ever occurred is unobservable — no monitoring (`OI-S1-9`). |
+| OUT-14 | The recovery tabletop resolves four of six steps to a capability the platform is not established to have. | `../15_operational-objectives-for-the-real-platform.md` §5.1 | `absence` + charter assumption 21 + `repository-constant` (`src/infrastructure/db/migrate.ts:38-50`) | `confirmed` | Detection and restore both blocked on SUB-1's records. |
+| OUT-14 | **No RPO and no RTO position can be set**, and this is recorded as a blocking finding with a named owner and a citation to SUB-1's record for the backups fact — not as a number and not as a blank. | `../91_findings-register.md` § `F-S15-1`; `../15_operational-objectives-for-the-real-platform.md` §5.3 | `absence`, routed | `[unconfirmed]` — **blocking** | Resolving event is `OI-S1-8` closing. Owner: the creator, as sole maintainer and sole operator. |
+| OUT-14 | The backups fact is **cited, never restated** — SUB-15's artifacts contain zero records of it. | `../15_operational-objectives-for-the-real-platform.md` §5.2; `../93_open-items-and-provisional-register.md` § SUB-15 preamble | `derivation` — search over SUB-15's own entries returns zero restatements | `consumed` | The single record is `OI-S1-8`, SUB-1's. Its paired stand-in is `A-33`, also SUB-1's. |
+| OUT-14 | Two conditional RPO/RTO positions are published so that closing `OI-S1-8` yields an objective without redoing the analysis, and neither is asserted. | `../15_operational-objectives-for-the-real-platform.md` §5.4 | `derivation`, conditional | `[unconfirmed]` | Both fall inside the tolerance envelope `A-33` already states. Handed to SUB-7, SUB-9, SUB-12. |
+| OUT-14 | Every unverifiable operational claim is spiked or `[unconfirmed]` with an owner — never assumed — and the counts sum to the input total. | `../15_operational-objectives-for-the-real-platform.md` §6; `../96_spike-register.md` § SUB-15 | `derivation` (16 + 2 + 1 + 8 = 27) | `confirmed` | Four spikes designed, **zero executed**, four claims routed. |
+| OUT-14 | OUT-14's outcome-register row is authored here with its resolving evidence and its five-part success measure. | `../90_outcome-register.md` § SUB-15 | authored content (charter assumptions 46, 47) | `confirmed` | SUB-14 aggregates it and authors none of it. |
+| OUT-14 | Every residual exposure carries a risk entry with severity, mitigation, named owner and escalation route; **no charter § Risks row is claimed**, correctly. | `../92_risk-register.md` § SUB-15 | authored content (charter assumption 48) | `confirmed` | Three entries; one partially mitigated, two open. Id shape justified in `../decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`, with SUB-14 as adjudicator. |
+| OUT-14 | No file under `src/`, `drizzle/` or deployment configuration is modified. | `../15_operational-objectives-for-the-real-platform.md` §7 | `derivation` — `git diff --name-only origin/develop` | `confirmed` | None. |
+
+## What this file does not establish
+
+1. **That any objective in the set is a measured property of the running system.** Every row above is
+   grounded in repository constants, this repository's git history, or an upstream measurement.
+   **None rests on a production observation**, because none exists — `CAP-S15-1`.
+2. **That the objectives are adequate.** The rows establish where the platform breaks, not whether
+   that is enough for the product. Adequacy needs a target learner population nobody has stated
+   (`OI-S15-2`, stood over by `A-S15-1`) and is a program decision for `NEU-896` at convergence.
+3. **That a breach of any objective would be noticed.** Detection is SUB-16's (NEU-999). `OBJ-9`
+   records that today no monitoring is established to exist at all.
+4. **That SUB-7 or SUB-9 in fact cite `F-S15-1`, `OI-S1-8`, or the objective set.** The direction is
+   forward-only: this sub-task publishes the ids; citing them is each consumer's own acceptance at
+   positions 9 and 11.
+5. **Anything about the rollout stages themselves.** SUB-7 (NEU-1001) consumes §5's recovery
+   position; nothing here stages, sequences or gates a deployment.
+6. **That the id shapes `R-S15-<k>` and `A-S15-<k>` are the package's settled convention.** They are
+   SUB-15's collision-free choice with a recorded rationale; **SUB-14 (NEU-1007) adjudicates** and
+   may renumber, in which case every id in this matrix moves with it.
+</content>

@@ -32,9 +32,10 @@ package, and nothing in it reaches production.
 | 1 | `README.md` | This index and the package conventions | SUB-1 (seed) → SUB-14 |
 | 2 | `01_production-evidence-and-the-access-audit.md` | What is actually known about the production deployment, and what is not | SUB-1 |
 | 3 | `02_identity-the-learner-key-and-principal-kind.md` | The settled identity rule: which claim becomes the persisted learner key, how principal kind is determined, and whether provenance is carried | SUB-2 |
-| 4 | `96_spike-register.md` | Every uncertain-and-material production claim, closed or routed | SUB-1, SUB-2 |
-| 5 | `93_open-items-and-provisional-register.md` | The claims that could not be closed, each with a named owner | SUB-1, SUB-2 |
-| 6 | `95_stand-in-assumption-register.md` | The platform assumptions carried forward, with owners and re-validation triggers | SUB-1, SUB-2 |
+| 4 | `15_operational-objectives-for-the-real-platform.md` | The numeric capacity, availability, latency, failure and recovery objectives, set against the platform that exists | SUB-15 |
+| 5 | `96_spike-register.md` | Every uncertain-and-material production claim, closed or routed | SUB-1, SUB-2, SUB-15 |
+| 6 | `93_open-items-and-provisional-register.md` | The claims that could not be closed, each with a named owner | SUB-1, SUB-2, SUB-15 |
+| 7 | `95_stand-in-assumption-register.md` | The platform assumptions carried forward, with owners and re-validation triggers | SUB-1, SUB-2, SUB-15 |
 | — | `90_outcome-register.md` · `91_findings-register.md` · `92_risk-register.md` · `94_caps-and-incomplete-scope.md` · `97_package-completeness-gate.md` | The rest of the reserved band | per-entry authors → SUB-14 |
 | — | `decision-records/` | The decisions, each with rejected alternatives | per-record authors |
 | — | `traceability/` | Outcome-to-evidence matrices | per-sub-task authors |

@@ -203,6 +203,96 @@ exercised**; see `01_production-evidence-and-the-access-audit.md` §3.
 
 ---
 
+### SUB-15
+
+**Reading this section.** SUB-15 designed four spikes and **executed none**, for the same reason
+SUB-1's nine were not executed: no production credential of any kind is present in the authoring
+environment. `DATABASE_URL`, `SMOKE_PROD_CLIENT_ID`, `SMOKE_PROD_CLIENT_SECRET`, `AUTH_*` and
+`VPS_*` were **re-probed independently at cutoff `86fb38a`** and are all unset, reproducing
+`F-S1-2`'s finding rather than citing it blind.
+
+**Every one of the four first fails the *"could this have been read from the repository instead?"*
+test** — which is exactly why the capacity model's many readable constants became
+`observed-in-repository` rows in `15_operational-objectives-for-the-real-platform.md` §2.2 and not
+spikes. **No entry below reports a result that was not observed**, and **no upstream spike's
+conclusion is restated** — `SPK-S1-8` and `SPK-S1-9` are referred to by id only.
+
+**Claims closed by observation: 0. Claims routed as owned open items: 4.** The two counts sum to the
+four entries below.
+
+#### `SPK-S15-1` — How long is the service unavailable across one deploy restart?
+
+- **Id:** `SPK-S15-1`
+- **Sub-task:** SUB-15 (NEU-998)
+- **Question:** From container stop to the health poll returning green, how many seconds is the service unavailable during one `docker compose up -d --build` deploy — including image rebuild, container replacement and the boot-time migration?
+- **Why reading could not settle it:** The repository fixes the deploy *procedure*, not its *duration*. `.github/workflows/cd-prod.yml` shows the SSH deploy and the health poll; `src/transport/main.ts:27` shows the migrator runs first at boot. Neither establishes how long any of it takes on the real host, which depends on host CPU, image-layer cache state and the pending-migration set — none of which is repository content.
+- **Exit condition:** One deploy is timed from container stop to health-poll green, and the duration is recorded.
+- **Method:** Observe one deploy that is happening anyway — read the CD workflow run's own timestamps for the deploy step and the health-poll step, which the pipeline already records. **No deploy is triggered for the purpose**, and nothing is changed on the host; this is a read of an existing run's metadata. Where the workflow's granularity is insufficient, time one deploy from the host with `docker compose ps` polling, read-only.
+- **Quarantine path:** Not applicable — nothing was executed, so no scratch tree exists. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** No access to the production host or to the deployment's workflow-run history was available from the authoring environment; `VPS_HOST` and `VPS_SSH_KEY` are unset. No duration was obtained and none is reported.
+- **Confidence:** `none`. Confidence becomes `high` the moment one real deploy is timed.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** Restart duration is a function of image size, migration set and host capacity, all of which drift with the codebase. A quarter is long enough for the operator to catch one deploy and short enough that a reader does not treat a stale duration as a standing property. Aligned with SUB-1's nine entries so the register expires as one set.
+- **Routes to:** `OI-S15-1`.
+
+#### `SPK-S15-2` — What concurrent-learner population is this deployment meant to serve?
+
+- **Id:** `SPK-S15-2`
+- **Sub-task:** SUB-15 (NEU-998)
+- **Question:** What is the target number of concurrently active learners the deployment must support — and is that target at, below, or above the capacity band the single instance provides?
+- **Why reading could not settle it:** No document in the repository states a target population. C010 does not; this charter does not; the product foundation is single-tenant throughout. A number that has never been written down cannot be read out, and inferring one from the code would be inventing the requirement the code was built to.
+- **Exit condition:** A target concurrent-learner population is stated for the deployment, or it is explicitly recorded that no target is being set.
+- **Method:** A read-only question to the operator, and to `NEU-896` at convergence for the adequacy judgement. No system access of any kind. This is the only one of the four spikes that needs no production credential — it needs a decision that nobody has yet made.
+- **Quarantine path:** Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** The question requires the operator and, for the adequacy limb, `NEU-896` at convergence; neither was reachable from the authoring environment. **No target population is assumed in its absence** — the objectives in `15_operational-objectives-for-the-real-platform.md` §4 are stated as ceilings, and the assumption the model provisionally rests on is carried openly as the stand-in `A-S15-1`.
+- **Confidence:** `none`.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** A target population is a product decision that can change at any time and without any repository change. It additionally expires on any change to the product's tenancy model.
+- **Routes to:** `OI-S15-2`, paired with the stand-in `A-S15-1`.
+
+#### `SPK-S15-3` — What is the mean per-call database service time in production?
+
+- **Id:** `SPK-S15-3`
+- **Sub-task:** SUB-15 (NEU-998)
+- **Question:** How long does a tool call hold a Postgres connection in production, at p50 and p95 — the term `t_db` on which the first-break threshold `N ≥ 2 / t_db` and the entire 2–200 capacity band turn?
+- **Why reading could not settle it:** The repository fixes the pool's *shape* (`src/infrastructure/db/client.ts:40-47`) but not the *service time* of real queries against real data volumes. `tests/performance/content-retrieval.test.ts` is the nearest thing in the tree and is explicitly not an answer: it is single-request, concurrency-1, against a small synthetic test database, and its assertions are upper-bound regression guards rather than measurements of typical service time. Service time under production data volumes and production concurrency is a property of the running system.
+- **Exit condition:** A p50 and p95 per-call connection-hold time are in hand, sampled over a bounded recent window.
+- **Method:** A read-only connection to the production database; query `pg_stat_statements` for `mean_exec_time` and `calls` over the statement set the application issues — no write, no DDL, no `init_agent_context`. Where `pg_stat_statements` is not enabled, sample the two existing log tables instead: `infrastructure.mcp_request_log` already records per-request timing, so a bounded `SELECT` over a recent window yields the distribution with **no new instrumentation and no mutation**.
+- **Quarantine path:** Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** `DATABASE_URL` is unset in the authoring environment and the production value is supplied by an on-host `.env` outside repository visibility. No service time was obtained and **none is reported** — the capacity band in `15_operational-objectives-for-the-real-platform.md` §3.1 is published as a band precisely because this entry is empty.
+- **Confidence:** `none`. Confidence becomes `high` from one bounded sample.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** Service time drifts with data volume, index health and the tool surface, all of which change continuously. This is the shortest-lived of the four answers in practice, and the date is a ceiling rather than a guarantee of freshness.
+- **Routes to:** `OI-S15-3` — the single most load-bearing unknown in this sub-task's model, and the one whose absence widens the capacity band by two orders of magnitude.
+
+#### `SPK-S15-4` — What does one live session entry cost in memory, and against what host RAM?
+
+- **Id:** `SPK-S15-4`
+- **Sub-task:** SUB-15 (NEU-998)
+- **Question:** How many bytes does one entry in the `transports` / `sessionIdentity` pair hold, and how many such entries would the host's memory allow before the absent-eviction gap recorded in `F-S15-3` becomes a real failure?
+- **Why reading could not settle it:** `src/transport/http.ts:82-83` fixes the maps' *types* and `:212-218` fixes their *only* eviction path, both readable. Neither fixes the retained footprint of a live `StreamableHTTPServerTransport`, which depends on the SDK's own buffering and on the runtime's heap layout. The host RAM figure it would be compared against is separately unknown and is **cited from `OI-S1-9`**, not re-asked here.
+- **Exit condition:** A per-entry retained size is in hand alongside a known live-session count, and the host's available memory is known.
+- **Method:** Take a heap snapshot of the running process at a known live-session count and read the retained size of the two maps — read-only, no restart, no configuration change. Pair with the host memory figure once `OI-S1-9` closes. **`init_agent_context` is specifically not called** to create sessions for the purpose: it mints a `context_tokens` row and is a mutation of the production database, outside the single registered exception.
+- **Quarantine path:** Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`.
+- **Date:** 2026-08-25 — the date execution was determined to be impossible.
+- **Result:** **Not executed.** No access to the production host was available; `VPS_HOST` and `VPS_SSH_KEY` are unset. No footprint was obtained and **no entry-count threshold is reported** in `15_operational-objectives-for-the-real-platform.md` §3.2 as a consequence.
+- **Confidence:** `none`.
+- **Expiry:** 2026-11-25.
+- **Expiry rationale:** The footprint changes with any upgrade of `@modelcontextprotocol/sdk` or of the Node runtime, either of which can land without a change to the two lines that declare the maps. The date is a floor; the real trigger is the next SDK or runtime bump.
+- **Routes to:** `OI-S15-4`.
+
+---
+
+**SUB-15 register totals at revision 1:** four spikes designed, **zero executed**, four claims routed
+to owned open items `OI-S15-1` … `OI-S15-4`. Every entry carries a mandatory expiry. **No production
+operation of any kind was performed by SUB-15**, so the zero-mutation constraint is discharged
+vacuously and **no exception — registered or otherwise — was exercised**.
+
+---
+
 ### SUB-2
 
 **Content owner:** SUB-2 (NEU-994) owns the three entries below outright. They extend SUB-1's set

@@ -57,13 +57,28 @@ All three follow the existing `F-S<n>-<k>` / `OI-S<n>-<k>` / `CAP-S<n>-<k>` / `S
 so no new convention is invented — three families that were package-global are brought into line
 with the four that are already sub-task-scoped.
 
-**Why this record changed after it was first written.** Clauses 6 and 7 were authored on the
-reasoning below. Clause 8 was added when a **concurrently shipping sibling sub-task independently
-hit the same hazard on the assumption family** and adopted the same sub-task-scoped shape. That is
-corroboration rather than coincidence: the collision is a property of parallel authoring against
-append-only shared registers whose conflict rule is *keep both sides*, so it reaches **every**
-package-global id family, not the two SUB-2 happened to notice first. Recording the sequence keeps
-the reasoning honest rather than presenting clause 8 as foreseen.
+**Why this record changed after it was first written, and how it converged with a sibling.** Clauses
+6 and 7 were authored on the reasoning below, before any sibling had merged. Clause 8 was added
+afterwards, when **SUB-15 (NEU-998) landed `DR-C11-S15-3_non-charter-register-id-scheme.md` reaching
+the same conclusion independently** — `R-S15-<k>` and `A-S15-<k>`, on the same argument, without
+either sub-task reading the other's output. That is corroboration rather than coincidence: the
+collision is a property of parallel authoring against append-only shared registers whose conflict
+rule is *keep both sides*, so it reaches **every** package-global id family, not the two SUB-2
+happened to notice first. Recording the sequence keeps the reasoning honest rather than presenting
+clause 8 as foreseen.
+
+**One deliberate divergence from `DR-C11-S15-3`, stated so SUB-14 sees a choice and not an
+accident.** SUB-15's consequence 6 declines to write **any** completeness-gate row, reasoning that
+`G-<n>` has the identical overflow problem, that the register names SUB-17 as its owner, and that
+SUB-1's rows are a seed-author exception rather than a precedent. SUB-2 writes `G-S2-<k>` rows
+anyway, for two reasons SUB-15's position does not reach. First, `../97_package-completeness-gate.md`
+carries the shared-register append convention verbatim — *"Each sub-task appends its own `### SUB-<n>`
+section"* — so per-sub-task rows are the register's own stated shape, not an extension of it. Second,
+and decisively, SUB-2 has an acceptance condition it **cannot meet** (`G-S2-6`: `OI-S1-2` closed with
+an observed value). Declining to write gate rows would delete the only structured record that a
+named condition went unmet, leaving SUB-17 to rediscover it. A register row is the difference between
+a reported gap and a hidden one. **Both positions are defensible and SUB-14 adjudicates**; what would
+not be defensible is silence about the disagreement.
 
 ## Rationale
 
