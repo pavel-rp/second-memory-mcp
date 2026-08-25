@@ -151,3 +151,35 @@ observable lifting condition. It is a **narrower restatement** of `CAP-S1-1` app
 sub-task's own output, not a second record: `CAP-S1-1` caps the package's evidence base, while this
 entry caps what a threshold in the detection matrix may be read to establish. **No cap is recorded as
 lifted.**
+
+---
+
+### SUB-5
+
+**No new cap is filed here, and that is a deliberate result rather than an omission.** This sub-task's
+subject matter *is* a cap — C010's `CAP-S5-1`, which this package co-owns and which OUT-8 discharges
+— and the discharge record below is what this section exists for. Two limits that might look like
+caps are named with their real classifications so the reconciliation is not left guessing.
+
+#### `CAP-S5-1` (C010) — the discharge record: a positive instance now exists, and the cap is **not** lifted
+
+- **Id:** `CAP-S5-1` — **C010's**, defined at `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:182`–`:189`. **Recorded here, not re-filed**, because the cap belongs to C010 and this package co-owns rather than owns it. A C011 `CAP-S5-1` does not exist and must not be minted; a bare `CAP-S5-1` anywhere in this package means C010's.
+- **Cap:** *"The isolation invariant is published with **zero** positive instances: shown well-formed, never shown satisfiable."* C010 established the invariant has a named domain, ordered checks and a closed verdict set, but that *"No positive instance exists anywhere in the package, and the demonstrations are all failures or exemptions"* (`:185`). It also recorded the honest converse at `:187`: nothing showed it **un**satisfiable either, and *"satisfiability is untested in both directions."*
+- **Why it is capped:** `:186` names three things that must be *"simultaneously true"* and that no C010 sub-task makes — an ownership key on the store, the reaching query bodies scoped at or below the port boundary, and an identity gate on the STDIO transport. `:188` names **`NEU-986` (`SUB-12 of C010`)** as owner *"alongside **NEU-893**, which is the party positioned to produce the first positive instance and for which this cap is the standing definition of done."* Charter assumption 38 records the co-ownership and assigns the discharge to OUT-8.
+- **What is discharged here, precisely:** **the cap's subject matter, not its condition.** `05_the-enforcement-point-that-confines-every-read-and-write.md` §8 carries `SC-S3-12` (Notes) to verdict **`holds`** — all five checks answered in order, against target state form (c) with four enumerated assumed changes, and with `I3` answered from a published **enumerated access-path set** of four SQL statements closed by the module boundary. That is the invariant's **first published positive instance**, and it establishes satisfiability, which is the one thing the cap said no package had shown. The three preconditions each trace to something already settled when the derivation was written: the ownership key to `NEU-850`'s `OUT-2` as consumed through SUB-2's identity rule; port-boundary scoping to OUT-8, designed here; the STDIO gate to OUT-7 / SUB-4 at position 4. **Zero trace to an artifact that does not yet exist** — in particular, none traces to SUB-13's OUT-19 DDL, which is named only as the later realization that re-verifies this derivation in the other direction.
+- **What it still leaves unsupported:** Everything the cap's `:187` names that turns on **applied** work. Any claim that a category `holds` on the deployment as it stands — under target state (a), `SC-S3-12` is `not-evaluable`, because no ownership column exists. Any reading of the `holds` verdict as a test the system currently passes. Any generalization from one category to the other fourteen Census-B `fails-confinement` rows, each of which needs its own enumerated access-path set. And any claim that the closure argument survives a change to `src/`: it is a statement about the code at cutoff `cc38cc9`, and a single new import of the `notes` table object falsifies it (`R-S5-3`).
+- **Owner:** **Unchanged — `NEU-986` (`SUB-12 of C010`)** at C010's package-completeness gate, co-named **`NEU-893`**. This package supplies the positive instance it was positioned to supply; **it does not take the cap over, does not close it on its owner's behalf, and does not claim it lifted.**
+- **What would lift it:** C010's own text at `:189` is *"**One state category evaluating to `holds`** — which requires all three preconditions above to land together."* **Land** is the operative word, and nothing has landed. Stated as a four-part landing condition on applied work: (1) `NEU-850`'s `OUT-2` ownership key **applied** to the category's table in `drizzle/` — SUB-13 (OUT-19) realizes it, SUB-6 (OUT-2) dispositions the existing unowned rows; (2) the enforcement point **applied** in `src/` for that category's enumerated access-path set; (3) SUB-4's STDIO identity gate **applied** in `src/transport/`; and (4) **the enumerated access-path set re-verified at that cutoff**, because the closure argument is cutoff-bound and clause 4 is not optional. The party that observes all four is not named anywhere and is raised as `OI-S5-2`, owner `NEU-896`.
+
+**Two limits that are deliberately not filed as caps, so the reconciliation is not left guessing.**
+
+- **The RLS second layer's unpriced transaction cost** is an **open item, not a cap** — `OI-S5-1`, owner **SUB-13 (NEU-1006)**. A cap is for a limit no available party settles; this one has both an available party and an observable resolving event, and the design rests on nothing it would settle, because clause 5 is explicitly the second layer.
+- **The `qa-execution:engine` no-op.** The automated QA phase is a genuine Core Article 8 no-op for this sub-task as for every other in the package: the capability registry resolves to `git, linear`, no QA execution provider is registered, **no QA pass exists and none is claimed**. **`CAP-S1-3` already carries this at package level** and a per-sub-task duplicate would make one package-wide condition look like several independent ones — the same disposition SUB-6 of C010 recorded for the identical situation.
+
+---
+
+**SUB-5 register totals at revision 1:** **zero new caps filed.** One inherited cap is **recorded
+with its discharge** — C010's `CAP-S5-1`, co-owned, whose subject matter is discharged by the first
+published positive instance and whose **condition is not met**. Two limits are classified as
+not-caps with their real registers named. **No cap is recorded as lifted**, and `CAP-S5-1`'s owner
+and co-owner are unchanged.

@@ -564,3 +564,78 @@ absorbed into the measure. This is the same disposition SUB-2 took with `F-S2-3`
 half, decline the evidence half, and register the gap visibly.
 
 **Authored by.** SUB-16 (NEU-999).
+
+---
+
+### SUB-5
+
+*`NEU-997`, covering `OUT-8`. One row. The success measure is authored here, not derived at assembly
+(charter assumption 47).*
+
+## OUT-8 — Where the confinement is mechanically implemented, at or below the port boundary
+
+**Outcome.** The enforcement point is named: **the Drizzle adapter**, with the principal bound at
+construction as an indivisible `(principal_id, principal_kind)` pair, adapter instances constructed
+per request, refusal rather than empty-scoping for a non-`user` kind, and the database as an
+independent second layer. It is named **per port** across all 13 ports in `src/ports/`, with two
+exclusions justified and three ports recorded as taking a different mechanism or none. The two
+write-path invariants the charter names are **removed** rather than shadowed, and a third the charter
+does not name is found and removed with them. `SC-S3-12` (Notes) is carried to verdict **`holds`** —
+the isolation invariant's first published positive instance.
+
+**Success measure.** Six limbs, each independently checkable:
+
+1. **13/13 ports addressed** — every port names an enforcement point or carries a written
+   justification for exclusion; zero unaddressed.
+2. **`52 + 4` arithmetic reported over the `AppContext` walk**, with every member accounted for and
+   no non-closure asked a closure question.
+3. **Both named write-path invariants demonstrably removed**, judged by the test *does the global
+   statement still exist anywhere in `src/`* rather than by whether a predicate was added above it.
+4. **One `SC-S3-*` category at verdict `holds`**, all five checks answered in order, against a
+   **stated and enumerated** target state.
+5. **`CAP-S5-1`'s three preconditions each traced to a settled decision or an already-supplied
+   outcome, with zero traced to an artifact that does not yet exist** when the derivation is written.
+6. **The `A-28` envelope check runs and its result is stated** — inside, or a breach reported as a
+   finding with an owner and routed as an amendment to `NEU-895`.
+
+**Measured result at revision 1.** **Five of six limbs MET; limb 2 MET on its intent and NOT MET on
+its literal arithmetic, and the divergence is the finding rather than a rounding.**
+
+1. **MET.** 13 addressed · 11 in the blast radius · 2 excluded with justification · 1 further port
+   named as not confinable and routed · 1 confined by a different mechanism · 1 excluded as not
+   learner-scoped. Zero unaddressed.
+2. **MET on intent, NOT MET on the literal figure.** Every member is accounted for and no
+   non-closure is asked a closure question — the substance of the limb. But the arithmetic reported
+   is **`53 + 4 = 57`**, not `52 + 4 = 56`: re-reading `src/composition-root.ts:518`–`:636` member by
+   member at this cutoff yields 57 members, and the file has not changed since 2026-08-04, before
+   the charter was written. The measure is recorded as written and the true figure is reported
+   against it, because a measure quietly restated to match the result is not a measure.
+   Registered as `F-S5-3`.
+3. **MET.** `getActiveSession()`'s owner predicate is conjoined inside the adapter method, so the
+   unscoped statement ceases to exist; `createSession`'s guard is **deleted** from orchestration and
+   the rule re-expressed as a schema constraint, which also moves it inside `A-28`'s envelope and
+   closes a time-of-check-to-time-of-use race (`F-S5-8`). A third path, `listSessions()`, is found
+   and removed with them (`F-S5-4`).
+4. **MET.** `SC-S3-12` reaches `holds` against target state form (c) with exactly four enumerated
+   assumed changes, answered from a published **enumerated access-path set** of four SQL statements
+   closed by the module boundary — the artifact C010 records that nobody owed.
+5. **MET.** Ownership key → `NEU-850`'s `OUT-2` via SUB-2's identity rule; port-boundary scoping →
+   this outcome; STDIO gate → OUT-7 / SUB-4. **Zero** traced to SUB-13's DDL or any unauthored
+   artifact.
+6. **MET.** Inside the envelope, under two of the three forms it names. The invalidating outcome did
+   not fire; **no amendment is routed to `NEU-895`**. The finding OUT-8 would require on a breach is
+   recorded as *checked and not filed* rather than omitted.
+
+**Verified by.** `05_the-enforcement-point-that-confines-every-read-and-write.md` §§1–16;
+`decision-records/DR-C11-S5-1_the-enforcement-point.md`;
+`decision-records/DR-C11-S5-2_the-first-holds-derivation.md`;
+`traceability/S5_the-enforcement-point.md`.
+
+**Three things this measure does not claim.** It does not claim any category `holds` on the
+deployment as it stands — C010's `F-S5-4` remains true in full and every verdict here is against a
+composed target state. It does not claim `CAP-S5-1` is lifted; the cap is **discharged** and its
+landing condition is stated. It does not claim any implementation, test run or production
+observation: no file under `src/` or `drizzle/` changes, no test file is written, and no quantity in
+the chapter is observed in production.
+
+**Authored by.** SUB-5 (NEU-997).

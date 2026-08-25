@@ -483,3 +483,52 @@ one connection settles both — but the **question** is distinct (is the writer 
 the table hold learner content), the items are distinct (`OI-S16-1` versus `OI-S1-5`), and neither
 spike restates the other's question. The overlap is recorded so that whoever executes either knows
 they can close two items in one read-only query.
+
+---
+
+### SUB-5
+
+**No spike is designed or filed by this sub-task, and the package total is therefore unchanged at
+seventeen designed, zero executed.**
+
+This is a result rather than an omission, and it is recorded so SUB-17's audit can see that the
+question was asked. A spike is for a question that a bounded, read-only experiment against the real
+platform would settle and that no reading can. Every question this sub-task raised fails the first
+half of that test:
+
+- **The port surface, the `AppContext` membership, the access-path set for `public.notes`, the two —
+  in fact three — write-path invariants, the pool configuration and the tool-surface count** were all
+  settled by **reading the repository** at cutoff `cc38cc9`. Each therefore fails the spike
+  register's own admission test: *could this have been read instead?* It could, and it was. Three of
+  those reads refuted a charter figure (`F-S5-1`, `F-S5-3`, `F-S5-4`), which is precisely the value a
+  read delivers and a spike would not.
+- **`OI-S5-1`** — whether the RLS second layer's transaction requirement is acceptable against
+  `OBJ-1` — would be settled by an observed `t_db`. That measurement is **already owned** by
+  `OI-S15-3` and by SUB-15's `SPK-S15-*` entries. Designing an eighteenth spike to measure the same
+  quantity would be a second record of a question another sub-task owns, which this register
+  forbids.
+- **`OI-S5-2`** — who observes `CAP-S5-1`'s landing condition — is settled by a **party being
+  named**, not by an experiment. No production access answers it.
+- **The `holds` derivation itself** is a design derivation over settled decisions. It could not be
+  spiked even in principle: the four changes it composes are unimplemented, so there is nothing
+  deployed to observe, and observing the deployment would return the negative result C010 already
+  published as `F-S5-4`.
+
+**The one thing that would have been worth a spike, and why it is not one.** Whether any admitted
+production token lacks a `sub` — which decides whether `F-S5-5`'s `sub || azp` merge is reachable in
+practice rather than merely present in the code — is a real, bounded, read-only question. It is
+**already designed** as `SPK-S1-1` and owned by SUB-1, and is tracked as `OI-S1-1` / `OI-S2-2`.
+`F-S5-5` cites it rather than re-raising it.
+
+**No production quantity is asserted anywhere in this sub-task's output.** No credential exists in
+this environment, no spike was executed, and every cost statement in
+`05_the-enforcement-point-that-confines-every-read-and-write.md` §12 is a **round-trip count read
+off the code**, never a measurement.
+
+---
+
+**SUB-5 register totals at revision 1:** **zero spikes.** The cumulative package figure is unchanged
+— **seventeen spikes designed across SUB-1, SUB-2, SUB-4, SUB-15 and SUB-16; zero executed.** SUB-5
+adds none, so no reconciliation of the cumulative count is required by this section. **Zero second
+records:** `SPK-S1-1` and `OI-S15-3` are cited from their single owning records rather than
+re-designed here.

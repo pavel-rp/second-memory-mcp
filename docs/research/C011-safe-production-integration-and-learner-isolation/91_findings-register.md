@@ -408,3 +408,152 @@ the `I4`-masks-`I5` position against
 `../C010-system-and-repository-architecture/02_findings-register.md:267`, which
 `16_attribution-and-detection.md` §3.2 reproduces rather than re-derives. **No amendment is routed to `NEU-895` by SUB-16.** The checks are
 recorded so SUB-17's audit can see that they ran and returned empty.
+
+---
+
+### SUB-5
+
+*`NEU-997`, covering `OUT-8`, which charter assumption 49 names in the findings-register enumeration.
+**A namespace warning applies to this whole section:** C010 has its own SUB-5 and allocated
+`F-S5-1` … `F-S5-4`, three of which this package cites heavily. Per `F-S2-2`'s rule, **a bare
+`F-S5-<k>` here is C011's**; C010's is always written with its full package path.*
+
+#### `F-S5-1` — Only 7 of the 13 ports are row-owning, not 9, and one of the two misfits is a second write path into a table it does not own
+
+- **Id:** `F-S5-1`
+- **Finding:** Charter assumption 23 states *"The port surface is 13, of which 9 are row-owning"* and enumerates them. The count of 13 is correct; the composition is not. **`Tier2BlockingStatsRepository` owns no rows at all** — its single method runs a raw aggregate over `infrastructure.operation_event_log` and never touches a table of its own, which its port doc states outright. **`ReviewPersistencePort` owns no table either** — its one write method writes into `learning_chunks`, the table `ChunkRepository` owns, making it **a second write path into a chunk-owned table**. The corrected composition is 7 row-owning · 1 cross-table write-and-read · 1 aggregate read-path · 1 read-path · 1 transactional composer · 2 external-service = 13.
+- **Evidence:** `src/adapters/drizzle/tier2-blocking-stats-repository.ts:32`–`:47` (raw CTE over `infrastructure.operation_event_log`); `src/ports/tier2-blocking-stats-repository.ts:10`–`:11` (*"This port intentionally returns aggregated weekly bins rather than raw events"*); `src/adapters/drizzle/review-persistence-adapter.ts:78`–`:82` (`.update(learningChunks).set(updates).where(eq(learningChunks.id, chunkId))`). Direct listing of all 13 files in `src/ports/` at cutoff `cc38cc9`.
+- **Consequence:** Load-bearing for the enforcement point, in two directions. A per-port table built on the charter's 9 would scope `Tier2BlockingStatsRepository` with a predicate it has nothing to attach to, and — far worse — would treat `ReviewPersistencePort` as self-contained, **leaving `learning_chunks` writable through an unscoped route after `ChunkRepository` was scoped**. `05_the-enforcement-point-that-confines-every-read-and-write.md` §3 rows 8 and 9 handle both explicitly.
+- **What is assumed rather than derived:** Nothing. Both claims are direct reads of the adapter bodies at a stated cutoff.
+- **Handed to:** **SUB-14 (NEU-1007)** under OUT-20, for reconciliation against charter assumption 23; **SUB-13 (NEU-1006)** under OUT-19, whose DDL must give `learning_chunks` a key that both write paths honour; **SUB-12 (NEU-1005)** under OUT-17, whose per-path matrix inherits the second write path as a path.
+
+#### `F-S5-2` — `EmbeddingPort` and `ContentClassifierPort` are excluded correctly and for the wrong stated reason: they are outbound-network adapters, not pure-compute, and therefore a data-egress path
+
+- **Id:** `F-S5-2`
+- **Finding:** Charter assumption 23 describes the two excluded ports as *"2 pure-compute ports … that own no rows and are outside the blast radius"*. The **exclusion is right** — they own no persistent state, so no ownership predicate can attach — but *pure-compute* is not what they are. Both are adapters to **external LLM and embedding providers**, reached over the network, and both are the only optional members of `AppPorts`. The correct justification is *owns no persistent state*, not *performs no I/O*.
+- **Evidence:** `src/composition-root.ts:130`–`:131` (the only two `?`-optional port members); the concrete adapters live under `src/adapters/langchain/` and are injected only when a provider environment variable is configured.
+- **Consequence:** The difference is not pedantic. A pure-compute port has no confinement surface of any kind; an outbound-network port has one the enforcement point does **not** cover — chunk content and classifier prompts **leave the deployment**. That is not a cross-learner exposure and is not represented as one, but it is a data-protection surface, and an exclusion justified as *"pure"* would have closed the question silently. `05_the-enforcement-point-that-confines-every-read-and-write.md` §6.1 states the egress as escaping.
+- **What is assumed rather than derived:** That the providers are third parties rather than self-hosted. The repository configures them by provider environment variable and names no self-hosted deployment; whether a given operator points them at a self-hosted endpoint is a deployment fact this package cannot observe.
+- **Handed to:** **SUB-8 (NEU-1002)** under OUT-11, which defines what learners can export and erase and is where a third-party processor belongs; **the named owner of `OI-S3-1`**, the controller/processor and lawful-basis item, cited and not duplicated; **SUB-14 (NEU-1007)** for the assumption-23 wording.
+
+#### `F-S5-3` — `AppContext` carries 57 members, not 56, and the charter's line range is off by two at both ends — a miscount, not drift
+
+- **Id:** `F-S5-3`
+- **Finding:** Charter assumption 13 states *"All **56** `AppContext` members (`src/composition-root.ts:516`–`:631`) are subject-less — **52 closures**, 2 shorthand references … the `contextTokens` port handle and the `contextTokenTtlMs` scalar (`:601`–`:602`, declared at `:285`–`:286`)"*, and records the split as re-derived member by member at round 6. Re-read at this cutoff, the object literal opens at **`:518`** and closes at **`:636`**, and carries **57** members: **53** closures + 2 shorthand references + 1 port handle + 1 scalar. The two shorthand references are at **`:608`** and **`:627`**, not `:606` and `:622`; the handle and scalar are at **`:603`**–**`:604`**, not `:601`–`:602`. The interface declaration at `:285`–`:286` is correct, and so is every structural claim: all 57 are subject-less and they are not all closures.
+- **Evidence:** `src/composition-root.ts:518`–`:636`, enumerated member by member with each member's line recorded at `05_the-enforcement-point-that-confines-every-read-and-write.md` §5.1. **`git log` establishes this is not drift:** the file was last modified on 2026-08-04 by commit `aa56c05`, three weeks before the charter was written and before any C011 chapter landed. The file the charter counted is byte-for-byte the file counted here.
+- **Consequence:** The `AppContext` walk is an acceptance condition stated as an arithmetic identity — *"`52 + 4 = 56` is reported so the walk is checkably complete"*. The walk reports **`53 + 4 = 57`**. The condition's intent is met exactly (every member accounted for, no non-closure asked a closure question); its literal figure cannot be, because it is wrong about the file. The measure is recorded as written in `90_outcome-register.md` and the true figure reported against it rather than the measure being quietly restated.
+- **What is assumed rather than derived:** Nothing. Both the count and the non-drift are mechanical.
+- **Handed to:** **SUB-14 (NEU-1007)** under OUT-20, which reconciles charter figures at assembly; **SUB-17 (NEU-1008)**, whose completeness audit checks stated counts against their sources.
+
+#### `F-S5-4` — A third unscoped session read path exists that the charter does not name, and it returns every session row in the database
+
+- **Id:** `F-S5-4`
+- **Finding:** The charter names two write-path invariants. A search for every query reaching `public.learning_sessions` without an owner predicate returns a third: **`DrizzleSessionRepository.listSessions()`** applies a status filter only when one is passed and applies no other predicate at any time. Called with `{ status: 'active' }` it is a second unscoped active-session read; **called with no options it returns every session row in the database.**
+- **Evidence:** `src/adapters/drizzle/session-repository.ts:105`–`:118`, with the only predicate applied conditionally at `:111` and ordering at `:113`; reached from `src/orchestration/learner-context-workflows.ts:99`, in the same `Promise.all` fan-out as `getActiveSession`.
+- **Consequence:** A change set implementing exactly the charter's two named removals **ships with this path intact**. Charter § Risks row `R1` is worded as *"an ownership column lands while the unscoped `getActiveSession()` … still permits access"* — this is that risk under a different method name, and it is registered inside `R1` rather than as a separate exposure.
+- **What is assumed rather than derived:** Nothing. The absent predicate is read directly from the method body.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19; **SUB-7 (NEU-1001)** under OUT-3, whose stage must land all three removals together; **SUB-12 (NEU-1005)** under OUT-17.
+
+#### `F-S5-5` — The deployed transport still derives the subject as `sub || azp`, contradicting the settled identity rule the enforcement point consumes
+
+- **Id:** `F-S5-5`
+- **Finding:** `DR-C11-S2-1` fixes the learner key as the OIDC `sub` verbatim and rules that *"`azp` is never a learner key"*. The deployed middleware does the opposite: when `sub` is absent the resolved subject **is** `azp`, and it is then written into a field named `sub`. Every downstream reader consumes the merged value under that name.
+- **Evidence:** `src/transport/jwt-middleware.ts:127` — `const subject = (typeof payload.sub === 'string' && payload.sub) || azp || undefined;` — populated into `res.locals.auth` as `{ sub: subject, … }` at `:133`–`:136`; consumed at `src/transport/rate-limit-middleware.ts:76`–`:79` (per-subject rate-limit key) and `src/transport/http.ts:52`–`:72` (session binding).
+- **Consequence:** This is the merge `R-S4-1` warns will reappear below the transport edge, and it is **already live above it**. An enforcement point that took its principal from `res.locals.auth.sub` as that field stands today would confine a `client`-kind principal as though it were a learner — passing check `I5`'s letter while inverting its purpose. Removal is therefore assumed as **C4** of the composed target state in `05_the-enforcement-point-that-confines-every-read-and-write.md` §8.1, not treated as already done.
+- **What is assumed rather than derived:** Nothing about the code. That the merge is *reachable* in production depends on whether any admitted token lacks a `sub`, which is `OI-S2-2` / `OI-S1-1` and is unobserved — the finding is about the code path's existence, not its frequency.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19, whose cutover work must remove it; **SUB-7 (NEU-1001)** under OUT-3, since removing it is a stage with an ordering constraint; **SUB-2 (NEU-994)** by citation, as the author of the rule it contradicts — **no amendment is routed to SUB-2**, whose decision is correct and simply unimplemented.
+
+#### `F-S5-6` — `principal_kind` has two different domains in this package, both handed to the enforcement point, and nobody reconciles them
+
+- **Id:** `F-S5-6`
+- **Finding:** SUB-4's `context_tokens` column is **two-valued** — `user | client`. SUB-16's log-table column is **three-valued and `NOT NULL`** — `user | client | none`. Both records hand their column to the enforcement point as its input, and neither states a relationship to the other.
+- **Evidence:** `04_the-stdio-identity-gate-and-the-bound-context-token.md:248` (two-valued); `decision-records/DR-C11-S16-1_the-attribution-carrier.md:14` (three-valued, `NOT NULL`, *"exactly one of `user`, `client`, `none`"*).
+- **Consequence:** SUB-13 would otherwise author two `CHECK` constraints that disagree about the domain of a column of the same name, and a consumer reading one and validating against the other would reject valid rows. `05_the-enforcement-point-that-confines-every-read-and-write.md` §2 states the reconciliation: the enforcement point reads the **three-valued** domain, because a two-valued one cannot represent *no principal was determined at all* and would collapse an outage into an authorization boundary; and `none` is **unreachable on the token row by construction**, since a `context_tokens` row exists only because a principal was determined. Neither predecessor is wrong for its own table.
+- **What is assumed rather than derived:** That `none` is genuinely unreachable on `context_tokens` — derived from `DR-C11-S4-1` clause 3, under which an unconfigured transport mints nothing rather than minting an unattributed row. If a future path minted a row without a determined principal, the reconciliation would need restating.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19, which writes both constraints; **SUB-14 (NEU-1007)** under OUT-20, for the cross-register consistency check.
+
+#### `F-S5-7` — The `…md` citation shorthand this package uses is invisible to the citation checker, so a clean run is not evidence about it
+
+- **Id:** `F-S5-7`
+- **Finding:** The citation checker discards **any** candidate token containing `…` or `...` before the token is counted at all. Predecessor chapters cite siblings in the `06_…md` form throughout. Those references are therefore never validated in either direction — they appear in no resolved, non-resolving or exempted bucket — so a `0 non-resolving` result says nothing whatever about them. The same applies to any backticked reference containing a space, which the checker also discards.
+- **Evidence:** `scripts/citation-paths/checker.ts:121` (`if (t.includes('…') || t.includes('...')) return null;`), reached from `normalizeCandidate` before the counter increments; `scripts/citation-paths/checker.ts:123` (whitespace discard). Independently confirmed by grep over the package: the form is in active use across the merged chapters.
+- **Consequence:** Two. First, **this chapter writes every reference as a full filename with its line**, so its own count is meaningful; the ellipsis occurrences that remain in it are prose elisions and SQL elisions, not path citations. Second, and more consequentially for the package: **C011 reports `0 non-resolving` and that figure is true but incomplete**, because it never ranged over the shorthand references at all. A reader treating the zero as a package-wide guarantee would be over-reading it.
+- **What is assumed rather than derived:** Nothing. Both the discard and the ordering relative to the counter are read directly from the checker.
+- **Handed to:** **SUB-14 (NEU-1007)** under OUT-20, which owns `CAP-S1-2` — the cap recording that C011 is not in the checker's gated list — and which will be registering the package. Registering a package whose shorthand references were never checked would make the gate green on first run and silently exempt; **SUB-17 (NEU-1008)** for the citation audit.
+
+#### `F-S5-8` — The single-learner guard is a time-of-check-to-time-of-use race, so it does not enforce the invariant it appears to enforce
+
+- **Id:** `F-S5-8`
+- **Finding:** `createSession` reads for an existing active session and then inserts, with nothing atomic between the two. Two concurrent calls both read `null` and both proceed to insert. The guard therefore prevents two active sessions **only when the calls are serialized**; under concurrency it prevents nothing.
+- **Evidence:** `src/orchestration/session-workflows.ts:39`–`:46` — the read at `:39`, the conditional failure at `:40`–`:46`, and no transaction, lock or unique constraint anywhere between the read and the subsequent insert. `public.learning_sessions` carries no unique constraint on status (`src/infrastructure/db/schema.ts:99`).
+- **Consequence:** It strengthens the case for §4.2's disposition rather than complicating it. The guard is being **deleted** and the rule re-expressed as a partial unique index, and a database constraint closes the race as a side effect of closing the placement problem — so the correct fix for the placement defect C010's `../C010-system-and-repository-architecture/02_findings-register.md:237` records is also the correct fix for this one. Had the design merely scoped the guard's read, the race would have survived scoped.
+- **What is assumed rather than derived:** That concurrent `createSession` calls are reachable. On HTTP they plainly are; the frequency is unobserved and no rate is asserted.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19, which authors the index and inherits the concurrent integration test §7.4 names as required.
+
+#### `F-S5-9` — One aggregate cannot be confined by any port-boundary mechanism, because the table it reads has no ownership key and sits behind no port that `OUT-2` reaches
+
+- **Id:** `F-S5-9`
+- **Finding:** `Tier2BlockingStatsRepository.getWeeklyBlockingCounts()` aggregates `infrastructure.operation_event_log`, a table `NEU-850`'s `OUT-2` does not reach because the key is threaded *through the ports* and this table sits behind none. There is therefore no predicate to push below its aggregation, and its weekly counts span every learner. It returns no rows, which is exactly why the exposure is easy to miss.
+- **Evidence:** `src/adapters/drizzle/tier2-blocking-stats-repository.ts:32`–`:47`; C010's `OI-S5-1` at `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:202`, which records that the two log tables sit behind no port and that the assumed set threads the key through the ports.
+- **Consequence:** It is named as **escaping** the enforcement point rather than covered by it, and it is the concrete instance of the general rule `05_the-enforcement-point-that-confines-every-read-and-write.md` §6.3 states: an aggregate is confined **iff** the predicate applies before aggregation, and *"returns no rows"* is not a confinement argument. Whether the disclosure matters depends on what the counts reveal, which is a retention-and-deletion question over the log tables rather than an isolation one.
+- **What is assumed rather than derived:** The reading of `OI-S5-1`'s scope — whether `OUT-2`'s *"every core table"* ranges over the port-less log tables. This package carries that reading as `A-S3-1` and does not decide it; the finding holds under either reading, because under the wider one the key would still need a port to be threaded through.
+- **Handed to:** **`NEU-986` (`SUB-12 of C010`)**, co-named **`NEU-896`**, as owner of `CAP-S3-3` and `CAP-S4-1`, the retention-and-deletion caps over the two log tables; **SUB-12 (NEU-1005)** under OUT-17, whose matrix must carry the path with an explicit invariant rather than exempting it.
+
+#### `F-S5-10` — `user_id NOT NULL` cannot be added to a populated table in one step, so the ownership key, the backfill and the predicate are three stages and not one
+
+- **Id:** `F-S5-10`
+- **Finding:** `NEU-850`'s `OUT-2` specifies the ownership key as `NOT NULL`. Adding a `NOT NULL` column to a table that already holds rows requires either a backfill or a default, and the existing rows have no owner to backfill *to* until SUB-6 dispositions them. The column, the backfill and the confinement predicate therefore cannot land together, and the ordering between them determines whether the intermediate state is unavailable, unconfined, or wrong.
+- **Evidence:** `NEU-850`'s `OUT-2` as reproduced at `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53` (`user_id` column, `NOT NULL`, on every core table); the tables are populated in production, and zero ownership columns exist today (`05_the-enforcement-point-that-confines-every-read-and-write.md` §1.5).
+- **Consequence:** A rollout constraint, not a design defect, and it is stated here so SUB-7 inherits it rather than deriving it from the DDL. It compounds with `R-S5-1`: during any window in which the predicate is live and the backfill is incomplete, unowned rows are invisible to every principal.
+- **What is assumed rather than derived:** That the target tables are non-empty in production. No row count is asserted and none is observed; the assumption is that a deployment backing a live product holds rows.
+- **Handed to:** **SUB-7 (NEU-1001)** under OUT-3, which owns the stage sequence; **SUB-6 (NEU-1000)** under OUT-2, which owns the disposition the backfill needs; **SUB-13 (NEU-1006)** under OUT-19, which writes the migration.
+
+#### `F-S5-11` — `notes.author` is a role enum, not an identity, and it is the column most likely to be mistaken for attribution
+
+- **Id:** `F-S5-11`
+- **Finding:** `public.notes` already carries a column named `author`, constrained to `IN ('agent', 'user')`. It records **whether a note was written by the agent or by the human**, and its value is identical across every learner in the deployment. It is not an ownership key, cannot become one, and its value `'user'` is unrelated to `principal_kind = 'user'` despite the shared token.
+- **Evidence:** `src/infrastructure/db/schema.ts:296` (the column) and `:308` (the `chk_note_author` check constraint).
+- **Consequence:** `SC-S3-12` is the category this package carries to `holds`, and its `I2` answer turns on the table resolving each row to exactly one principal. A reader — or an implementer — who took `author` for attribution would mark `I2` satisfied on a column that distinguishes nobody, and the resulting `holds` would be worthless. The distinction is stated explicitly inside the `I2` answer at `05_the-enforcement-point-that-confines-every-read-and-write.md` §8.4 rather than left to inference.
+- **What is assumed rather than derived:** Nothing. The constraint is read directly.
+- **Handed to:** **SUB-13 (NEU-1006)** under OUT-19, which must add a distinct ownership column to this table rather than repurposing `author`; **SUB-9 (NEU-1003)** under OUT-12, whose propagation matrix must not treat `author` as a learner predicate.
+
+#### `F-S5-12` — The enforcement point is a second, independent cause of the deploy-pipeline break, so unmounting the transport gate does not unbreak the release
+
+- **Id:** `F-S5-12`
+- **Finding:** `F-S4-3` and `R-S4-2` establish that the CD smoke run mints a `client_credentials` token and calls gated learner-state tools, which the transport gate refuses under `DR-C11-S2-2` — breaking the deploy on every release. The enforcement point refuses **the same principal again, one layer lower**: `DR-C11-S5-1` clause 3 refuses every row-owning operation for a `client`-kind principal, at the adapter, unconditionally on any middleware being mounted. **The two refusals are independent.**
+- **Evidence:** `92_risk-register.md:269`–`:278` (`R-S4-2`) and `91_findings-register.md:260` (`F-S4-3`) for the first cause; `decision-records/DR-C11-S5-1_the-enforcement-point.md` clause 3 and `05_the-enforcement-point-that-confines-every-read-and-write.md` §2 for the second.
+- **Consequence:** It removes a mitigation an unwary rollout would reach for. Shipping the enforcement stage while holding back or unmounting the transport gate — a natural way to de-risk the sequence — **still fails the smoke suite**, and fails it inside the adapter where the failure is harder to attribute to its cause. Any stage that ships clause 3 breaks the deploy gate on its own. Softening the refusal to an empty result is not available: `DR-C11-S2-2` rejects it at the transport and clause 3 rejects it again at the adapter, for the same reason.
+- **What is assumed rather than derived:** Nothing about the pipeline, which is read from SUB-4's evidence. That the smoke suite's gated calls reach row-owning adapters is derived from the tools it calls being learner-state tools.
+- **Handed to:** **SUB-7 (NEU-1001)** under OUT-3 — the sequencing obligation, which now binds the enforcement stage and not only the transport-gate stage; **the creator, as sole maintainer and sole operator**, who owns the fix itself per `R-S4-2` and is the only party who can re-scope the suite or re-provision the principal.
+
+#### `F-S5-13` — Five files in this package end with a stray `</content>` tag
+
+- **Id:** `F-S5-13`
+- **Finding:** Five files authored by SUB-15 carry a stray `</content>` closing tag on their final line — an authoring artifact, not content. No other file in this package, and no file in C010, carries one.
+- **Evidence:** the last line of `15_operational-objectives-for-the-real-platform.md`, `traceability/S15_operational-objectives.md`, `decision-records/DR-C11-S15-1_objective-basis-and-evidence-labels.md`, `decision-records/DR-C11-S15-2_first-break-ranking.md` and `decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`, each read at cutoff `cc38cc9`.
+- **Consequence:** Cosmetic in isolation, and material for a package whose deliverable is a cold-readable document set: OUT-20's cold read is performed by an agent working only from the published package, and a stray markup tag is the kind of artifact that reads as a truncation. **It is not fixed here** — the registers are append-only and a chapter is another sub-task's artifact, so editing five of them for a cosmetic gain would breach the no-rewrite rule this package's every register states.
+- **What is assumed rather than derived:** That it is an authoring artifact rather than intentional content. No plausible reading makes a bare closing tag with no opening tag intentional.
+- **Handed to:** **SUB-14 (NEU-1007)** under OUT-20, which owns house-style assembly and is the party permitted to touch another sub-task's file.
+
+---
+
+**SUB-5 register totals at revision 1:** thirteen findings, `F-S5-1` … `F-S5-13`. Four are
+corrections to figures the charter carries (`F-S5-1`, `F-S5-3`, `F-S5-4`, and `F-S5-6` against two
+predecessors); four are defects in the deployed code found while enumerating access paths (`F-S5-5`,
+`F-S5-8`, `F-S5-9`, `F-S5-11`); three are consequences of this outcome's own design (`F-S5-10`,
+`F-S5-12`, and `F-S5-2`'s egress); two are package-hygiene defects found in passing (`F-S5-7`,
+`F-S5-13`). Every entry carries an owner.
+
+**No contradiction with C010 was found by SUB-5, and no amendment is routed to `NEU-895`.** Twelve
+C010 items were checked one by one at
+`05_the-enforcement-point-that-confines-every-read-and-write.md` §13 and the check returned empty.
+The two candidates that might have routed one did not: the `A-28` envelope check places the design
+**inside** the envelope under two of its three named forms, so the invalidating outcome did not
+fire; and §2 clause 3's refusal of `client`-kind principals at the adapter is an **addition** to a
+C010 pricing rather than a contradiction of one. The checks are recorded so SUB-17's audit can see
+that they ran and returned empty.
+
+**One near-duplicate is deliberately recorded as such.** `F-S5-12` and SUB-4's `F-S4-3` describe the
+same broken release gate. They are not folded together because they are **different causes** — one
+at the transport, one at the adapter — and the whole content of `F-S5-12` is that fixing the first
+does not fix the second. Collapsing them would lose exactly the fact SUB-7 needs.
