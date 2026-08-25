@@ -584,8 +584,19 @@ is supported — the two halves of it simply live in different files. `F-S16-3`'
 qualifications on the word *gated* (HTTP-only mount; fails open on internal error) apply unchanged
 and are **cited, not restated**.
 
-**`42` appears nowhere in this chapter as a codebase fact**, and no citation in it resolves to a
-line 42.
+**`42` appears nowhere in this chapter as a codebase fact.** The superseded tool-surface miscount is
+not repeated here, in any form.
+
+**One citation in this chapter does resolve to a line 42, and it is disclosed rather than denied.**
+§10.3 cites `src/transport/pg-event-transport.ts:42` — the `flushTimer` declaration, one of the two
+log-flush timers. It is a **benign `file:line` coincidence**, not the miscount: the number is a line
+number the file happens to have, and it is not asserted as a count of anything. It is named here so
+SUB-17's audit meets the explanation rather than the anomaly.
+
+**An earlier revision of this section claimed *"no citation in it resolves to a line 42"*, which was
+false** — this sub-task's own adversarial pass caught it against §10.3. The claim is narrowed to the
+one that is actually checkable, and the correction is recorded rather than quietly restated, on the
+same discipline SUB-2 applied to `G-S2-15`.
 
 ---
 
