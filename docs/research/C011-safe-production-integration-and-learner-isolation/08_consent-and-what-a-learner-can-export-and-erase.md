@@ -624,6 +624,14 @@ Run, and recorded so SUB-17's audit can see that it ran rather than infer it fro
 **Zero files changed under `src/`. Zero under `drizzle/`.** This chapter reads both extensively and
 edits neither. The package `README.md` is **not** touched — it is SUB-14's to supersede.
 
+**On the cutoff, after the pre-merge re-sync.** Every codebase fact in this chapter was read at
+`d2e2b55`. `develop` moved to `cc38cc9` while this chapter was being written — SUB-4's chapter `04_`
+(NEU-996) merged, plus a version bump — and this branch was re-synced onto it by **merge**, never a
+rebase. `git diff --name-only d2e2b55 cc38cc9` lists **zero** paths under `src/` and **zero** under
+`drizzle/`, so every citation above still resolves to the same line at the merged head and the
+cutoff is left stated as `d2e2b55` rather than silently advanced to a commit whose code was never
+read.
+
 ---
 
 ## 14. Ids allocated by this sub-task

@@ -237,6 +237,89 @@ audit can see that they ran and returned empty.
 
 ---
 
+### SUB-4
+
+#### `F-S4-1` — The only bulk purge is dead code, and the delete that *does* run looks like a purge and is not
+
+- **Id:** `F-S4-1`
+- **Finding:** `deleteExpired(before)` is declared at `src/ports/context-token-repository.ts:6` and implemented at `src/adapters/drizzle/context-token-repository.ts:61`, and is called from **nowhere** in `src/` — no scheduler, no cleanup job, no call from the composition root; the only callers anywhere are tests. Separately, `validate()` and `validateWithStatus()` (`src/adapters/drizzle/context-token-repository.ts:39`–`:55`) *do* delete a row in production, but only the single row they were asked about. The table therefore appears self-maintaining and is not: a row that is minted and then abandoned — the normal fate of a token whose client crashed, and the guaranteed fate of every token a finished CI run minted — is never presented again and is removed by nothing.
+- **Evidence:** Exhaustive search of `src/` at `origin/develop` @ `5111841` returns zero call sites for `deleteExpired`. `src/ports/context-token-repository.ts:6`; `src/adapters/drizzle/context-token-repository.ts:39`–`:55`, `:61`.
+- **Consequence:** Two. **(1)** `context_tokens` grows without bound in exactly the population the presented-row delete cannot reach, which today is harmless because the table is anonymous and stops being harmless the moment a principal is bound to it — `03_learner-data-inventory-and-classification.md` entry `LD-S3-13` records that transition. **(2)** The second half is the more dangerous one for a reader: anyone who finds the hot-path delete and concludes the purge question is already answered will decline to wire the real one. `DR-C11-S4-3` therefore states the distinction as a clause rather than leaving it to be noticed.
+- **What is assumed rather than derived:** Nothing. Both halves are reads of the tree.
+- **Handed to:** **SUB-6** (NEU-1000) and **OUT-19**, which own the migration artifacts the wiring lands in; and `SUB-10 of C010 (NEU-984)`, co-named `NEU-896`, as `OI-S8-1`'s owner.
+
+#### `F-S4-2` — The ungated transport is the **default**, not an opt-in minority path
+
+- **Id:** `F-S4-2`
+- **Finding:** `src/config/resolve-transport-config.ts:35` resolves the transport as `parseEnum(env.TRANSPORT, ['stdio', 'http'] as const, 'stdio')`. An **unset** `TRANSPORT` selects `stdio` — the transport that mounts no authentication, no origin check, no rate limit, no audit and no context-token gate. The same value gates auth to `null` at `src/config/resolve-auth-config.ts:105` and rate limiting to `null` at `src/config/resolve-rate-limit-config.ts:31`.
+- **Evidence:** `src/config/resolve-transport-config.ts:35`; `src/config/resolve-auth-config.ts:105`; `src/config/resolve-rate-limit-config.ts:31`; `src/transport/main.ts:46`–`:59`. Read at `5111841`.
+- **Consequence:** It resizes the migration. A reader who treats STDIO as a niche local-development path will under-scope the compatibility work: the broken class is not "the few installations that chose STDIO" but "every invocation where nobody chose anything" — `04_the-stdio-identity-gate-and-the-bound-context-token.md` §9 row 4. It also disposes of the reachability argument for leaving STDIO ungated (§3.1): unreachability today is one unset environment variable away from being false tomorrow, in any environment.
+- **What is assumed rather than derived:** Nothing. The default is the third argument of the parse call.
+- **Handed to:** **SUB-7** (NEU-1001), whose rollout has to size the broken class correctly, and **SUB-11** (NEU-1003) for the compatibility contract.
+
+#### `F-S4-3` — The deploy pipeline's own smoke run is an unadapted consumer of this package's identity rule, and the CD gate breaks on it
+
+- **Id:** `F-S4-3`
+- **Finding:** `.github/workflows/cd-prod.yml:145`–`:168` fetches an OAuth token by `grant_type=client_credentials` on **every** production deploy, and `:170`–`:174` runs `pnpm run test:smoke` with it as a deploy step. The smoke suite calls `init_agent_context` (exempt), captures the context token at `tests/smoke/smoke.test.ts:195`, and then calls **gated learner-state tools** with it — `list_learning_items` at `:206` and `session_status` at `:237`. Under `DR-C11-S2-2` a `client_credentials` principal is `client`-kind and those calls are **refused, not empty-scoped**. A refused smoke call fails the suite, and a failed suite fails the deploy.
+- **Evidence:** `.github/workflows/cd-prod.yml:145`–`:174`; `tests/smoke/smoke.test.ts:163`–`:196`, `:206`, `:237`. Read at `5111841`. The rule applied is `decision-records/DR-C11-S2-2_principal-kind-and-the-service-principal-disposition.md`, not a new one.
+- **Consequence:** The identity rule this package is writing has the **production release pipeline** among its consumers, and that consumer has not been adapted. This is not a defect in the rule — refusing a service principal's learner reads is the rule working — and it is not a reason to soften it into an empty scope, which `DR-C11-S2-2` rejects on the ground that a silent empty result is indistinguishable from a learner with no data. It is a sequencing obligation: the smoke suite must be re-scoped, or the smoke principal re-provisioned as a `user`-kind static client, **before** the enforcement stage lands. Reported as a finding rather than absorbed into the rollout prose, because the party that owns `cd-prod.yml` is not the party that owns the rollout.
+- **What is assumed rather than derived:** That the production `client_credentials` token carries no `sub`. That is **`OI-S1-1` / `SPK-S1-1`, still open** — the code comment at `src/transport/jwt-middleware.ts:116` states it, and no token has been observed. Both branches are live, and this finding is the branch where the belief holds. The opposite branch is already registered as `R-S2-2`; the two are complements, not duplicates.
+- **Handed to:** **The creator, as sole operator** and owner of the CD pipeline; **SUB-7** (NEU-1001) for the sequencing obligation; and **`NEU-896`** at convergence, because a release gate is a program-level surface.
+
+#### `F-S4-4` — There is no STDIO transport module, so the gate cannot be *mounted* on STDIO at all, and `CC-S8-3`'s classification does not price that
+
+- **Id:** `F-S4-4`
+- **Finding:** `src/transport/` holds ten files and none is a STDIO module. The STDIO path is five inline lines (three statements) in the transport switch (`src/transport/main.ts:55`–`:59`), connecting `createMcpServer(ctx)` to a bare `StdioServerTransport` with nothing interposed. Both the pieces that would have to reach it are Express-typed: `createAuditMiddleware` returns a `RequestHandler` (`src/transport/audit-middleware.ts:23`) and so does `createContextTokenMiddleware` (`src/transport/context-token-middleware.ts:43`). "Mount the gate on STDIO" is therefore not a mount — it is a rewrite against a transport-neutral seam that does not exist in the tree.
+- **Evidence:** Directory listing of `src/transport/` and `src/transport/main.ts:55`–`:59`, `:46`–`:54`; `src/transport/audit-middleware.ts:23`; `src/transport/context-token-middleware.ts:43`. Read at `5111841`.
+- **Consequence:** C010 classifies `CC-S8-3` — *"a gate on the STDIO transport"* — as **reusable core** under `R8-4` and prices it as *"breaking, and unavoidably so"* (`../C010-system-and-repository-architecture/12_application-versus-core-rule-and-compatibility-contract.md:233`, `:552`). Both of those remain correct. What neither captures is that the work is not *extend the existing gate to a second mount point* but *extract a transport-neutral gate and give STDIO something to mount it on*. This is an **addition to C010's pricing, not a contradiction of it**, so no amendment is routed to `NEU-895`. It also means audit parity across transports (`DR-C11-S4-1` clause 4) is a rewrite rather than a configuration change — carried as `R-S4-4`.
+- **What is assumed rather than derived:** Nothing about the tree. What is *not* established is how large the extraction is; this finding states that it exists, not what it costs.
+- **Handed to:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`**, as `CC-S8-3`'s owner; **SUB-11** (NEU-1003) for the compatibility contract; and **SUB-16** (NEU-999) for the audit-parity limb.
+
+#### `F-S4-5` — The context token *is* a per-call argument, and that is not the per-call identity argument `DR-C10-S8-2` rejects
+
+- **Id:** `F-S4-5`
+- **Finding:** The gate reads the token from `body.params?.arguments?.context_token` (`src/transport/context-token-middleware.ts:62`) — that is, from a per-call tool argument. `DR-C10-S8-2` rejects *per-call identity arguments* as forgeable. A reader comparing the two could reasonably conclude the audit in `04_the-stdio-identity-gate-and-the-bound-context-token.md` §10.4 is contradicted by the code it cites.
+- **Evidence:** `src/transport/context-token-middleware.ts:62`; the rejection's own reasoning in `../C010-system-and-repository-architecture/decision-records/DR-C10-S8-2_token-bound-identity-over-per-call-identity.md` — *"An identity carried in a tool argument is caller-supplied. Nothing in the MCP argument path distinguishes the client's true subject from a subject the client typed."*
+- **Consequence:** The distinction is between **asserting who you are** and **presenting something the server issued**. A context token is server-minted and its binding is server-written, so a caller who types one has typed a value that resolves to no row; an identity string a caller types resolves to whatever they typed. The design stays on the correct side of the line, and the line is recorded here so a later reader does not "fix" a contradiction that is not one. Nothing about the mechanism changes as a result of this finding — it exists purely to prevent a misreading that would.
+- **What is assumed rather than derived:** Nothing.
+- **Handed to:** **SUB-11** (NEU-1003), whose compatibility contract has to describe the argument's changed *meaning* without describing a schema change, and **SUB-17** (NEU-1008)'s consistency audit.
+
+#### `F-S4-6` — The spike register's cumulative total omits SUB-15's four entries, so "twelve designed" understates the package at eighteen
+
+- **Id:** `F-S4-6`
+- **Finding:** `96_spike-register.md`'s SUB-2 closing note reads *"Cumulative across SUB-1 and SUB-2: twelve spikes designed, zero executed."* Twelve is 9 + 3. **SUB-15's four entries — `SPK-S15-1` … `SPK-S15-4` — sit in the same register**, between SUB-1's section and SUB-2's, and are not in the total. The correct cumulative at SUB-2's revision was **sixteen**, and at SUB-4's it is **eighteen**.
+- **Evidence:** `96_spike-register.md` § SUB-1 (`SPK-S1-1` … `SPK-S1-9`, nine), § SUB-15 (`SPK-S15-1` … `SPK-S15-4`, four), § SUB-2 (`SPK-S2-1` … `SPK-S2-3`, three), § SUB-4 (`SPK-S4-1`, `SPK-S4-2`, two) — read at `5111841`. The understating line is SUB-2's own closing note.
+- **Consequence:** Small in isolation and load-bearing in aggregate. `R13` — the `n = 1` evidence risk — is argued partly on the ratio of spikes designed to spikes executed, and `96_spike-register.md`'s header reports the package's evidence posture in exactly these counts. A total that understates the designed side by a quarter — twelve against a correct sixteen at SUB-2's revision — makes the designed-to-executed gap look smaller than it is, which is the direction that flatters the package. SUB-14 aggregates these registers and SUB-17 audits their internal consistency, so a cumulative figure that two sub-tasks compute differently is a reconciliation item rather than a matter of taste.
+- **What is assumed rather than derived:** Nothing. All four sections were counted directly.
+- **Independently corroborated by SUB-16, which was authored in parallel.** `SUB-16` (NEU-999) records the same correction in its own `96_spike-register.md` closing note — *"SUB-15's four are counted here"* — reached from its own position and without sight of this section, since the two sub-tasks ran concurrently and SUB-16 merged first. **Two authors reaching the same arithmetic separately is corroboration, not a duplicated defect**, and it is stated here so SUB-14 sees one fact with two records rather than a contradiction between them. The two totals differ only by SUB-16's own entry: SUB-16 counts seventeen at its position, SUB-4 eighteen at its own, and **nineteen** is the package figure once both have landed.
+- **Handed to:** **SUB-14** (NEU-1007), which owns register assembly and is the party that reconciles a cumulative figure three authors computed on different bases; and **SUB-17** (NEU-1008), whose cross-register consistency audit would otherwise have to adjudicate it. **No finding is routed against SUB-2, SUB-15 or SUB-16** — this is an arithmetic reconciliation, not a defect in any sub-task's own entries, and no sub-task edits another's section (`README.md` § "Shared-register append convention"), so the original line is left exactly as written.
+
+---
+
+**SUB-4 register totals at revision 1:** six findings, `F-S4-1` … `F-S4-6`. **Zero blocking
+findings.** `F-S4-3` is the closest — it names a live break in the production release pipeline — but
+it is a **sequencing obligation with a named owner and an escalation route**, not an unregistered
+mutation and not a defect in the rule, so it does not meet a blocking trigger. `F-S4-4` and `F-S4-5`
+are narrowings of existing C010 records; `F-S4-1` and `F-S4-2` are reads of the tree that no prior
+sub-task had cause to take; `F-S4-6` is an intra-package register reconciliation, routed to the
+sub-task that owns assembly rather than against either author.
+
+**No contradiction with C010 was found by SUB-4.** The design was checked against `DR-C10-S8-2`
+clause by clause (all seven), against `DR-C10-S8-1`'s `R8-4` classification of `CC-S8-3`, against
+the ordered checks `I1`–`I5`
+(`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:166`–`:174`),
+against §4.3's sequencing consequence (`:487`–`:496`), against §4.2's unconditional-verdict
+statement (`:482`–`:485`), against `F-S5-4`
+(`../C010-system-and-repository-architecture/02_findings-register.md:262`–`:268`), against the
+settled tool-surface figure fixed by `F-S5-3` (`:249`–`:254`) and diagnosed by `F-S8-1`
+(`:604`–`:609`), and against `A-28`'s tolerance envelope
+(`../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`, not
+breached). `F-S4-4` is an **addition** to `CC-S8-3`'s pricing rather than a contradiction of it.
+**No amendment is routed to `NEU-895` by SUB-4.** The checks are recorded so SUB-17's audit can see
+that they ran and what they returned.
+
+---
+
 ### SUB-16
 
 #### `F-S16-1` — Both columns that look like attribution carriers are caller-asserted, so attribution cannot be added by reusing one

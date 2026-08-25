@@ -385,6 +385,110 @@ the other reports not met.
 
 ---
 
+### SUB-4
+
+## OUT-7 — An identity gate on the transport that has none, so check `I4` can pass on both
+
+**Outcome.** The STDIO transport is **gated**, on a principal read from server-held deployment
+configuration rather than presented by the caller, with the three exempt tools unchanged and every
+gated tool refused where no principal is configured. *"Leave STDIO ungated"* is argued and rejected
+on the invariant. `BND-S4-17` is dispositioned **resolved here**, naming
+`SUB-10 of C010 (NEU-984)` co-named `NEU-896` as its owner, and `OI-S8-2` / `CC-S8-3` are routed to
+that same owner as **supplied-to**, never claimed.
+
+**Success measure.** Four clauses, each independently checkable against the published chapter.
+**(1)** Check `I4` is applied to *both* transports and resolves to a stated verdict, with every
+residual named and owned. **(2)** *Every* existing STDIO client path is enumerated and classified
+`unaffected` / `degraded` / `broken` — no path left uncounted — with a stated breaking-change
+position and a stage set carrying its ordering constraints. **(3)** `BND-S4-17`'s disposition cites
+`OI-S8-2`'s resolving event at
+`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:429`, names
+which limb of that event fired, and never attributes the citation to `OI-S8-1`. **(4)** The
+ungated-STDIO alternative appears **only** as an argued-and-rejected alternative in a decision
+record, never as the answer.
+
+**Verified by.** `04_the-stdio-identity-gate-and-the-bound-context-token.md` §1 (the starting
+position), §2 (`F-S2-1` applied), §3 and §3.1 (the decision and the rejected default), §9 (the
+seven-path compatibility assessment), §9.1 (the breaking-change position and stage set), §9.2 (the
+routed hand-off), §10.1 (`I4`), §11 (the `BND-S4-17` disposition), §12 (the reachability answer
+planned against); `decision-records/DR-C11-S4-1_the-stdio-identity-gate.md` (six rejected
+alternatives); `traceability/S4_stdio-gate-and-bound-context-token.md`.
+
+**Measured result at revision 1.** **(1) Met.** `I4` is applied to both transports and no longer
+fails under the proposed gate; three non-claims and one residual — the per-process-singleton limit,
+`R-S4-3` — are named, and the residual carries an owner. **(2) Met.** **7 of 7** STDIO client paths
+classified: 3 unaffected, 1 degraded, 2 broken, 1 unaffected-here-and-counted-elsewhere. The
+breaking-change position is *breaking and unavoidably so*, with a four-stage set and two ordering
+constraints. **(3) Met.** The citation resolves to `OI-S8-2`, limb **one** is named as the limb that
+fired, and `OI-S8-1` appears only where it is correctly the different item. **(4) Met.** The
+ungated alternative is rejected alternative 1 of `DR-C11-S4-1` and is argued in §3.1 against the
+invariant's unconditional verdict.
+
+**What this measure does not claim.** That any category reaches `holds` — `I3` is SUB-5's and the
+checks are ordered. That the gate exists — nothing is implemented, `CAP-S4-1`. That `OI-S8-2`
+closes — firing its event is this sub-task's act; recording the closure is
+`SUB-10 of C010 (NEU-984)`'s.
+
+**Authored by.** SUB-4 (NEU-996).
+
+## OUT-13 — Context-token use under C010's token-bound identity decision, including the live tokens already in production
+
+**Outcome.** `context_tokens` carries `principal_id`, `principal_kind` and
+`principal_claim_source`, written at mint time, with the identifier a learner key **if and only if**
+the kind is `user`. `init_agent_context` obtains a principal from the verified token on HTTP and
+from server-held configuration on STDIO, and refuses to mint where there is none. The dead
+`deleteExpired()` is wired at the mint path. Every pre-existing row is rejected and deleted rather
+than grandfathered, and the four classes of token that will be rejected at cutover are named — the
+deploy pipeline's own `client_credentials` smoke principal among them.
+
+**Success measure.** Four clauses. **(1)** A token-lifecycle walk covers **mint, use, expiry, purge
+and cutover** on both transports and in the unconfigured case, with **no cell left undefined**.
+**(2)** The purge question resolves to a **wired path with a named call site**, or to a stated
+reason there is none — and the existing per-row delete is explicitly distinguished from a purge so
+it cannot be mistaken for one. **(3)** *Every* class of live token rejected at cutover is named, the
+smoke principal included, with any unobserved quantity carried as a stand-in or a spike rather than
+estimated. **(4)** An audit against `DR-C10-S8-2` runs **clause by clause**, confirms **zero**
+per-call identity arguments added, and records verdicts for checks `I2` and `I5`.
+
+**Verified by.** `04_the-stdio-identity-gate-and-the-bound-context-token.md` §1.4–§1.5 (the row and
+the dead purge), §4 (what the row carries), §5 (per-transport principal acquisition), §6 (the
+lifecycle walk), §7 (the wired purge), §8 (the cutover classes), §10.2–§10.4 (`I2`, `I5`, and the
+clause-by-clause audit); `decision-records/DR-C11-S4-2_what-the-context-token-row-carries.md` and
+`decision-records/DR-C11-S4-3_expiry-purge-and-the-cutover-rejection-rule.md` (six rejected
+alternatives each); `traceability/S4_stdio-gate-and-bound-context-token.md`.
+
+**Measured result at revision 1.** **(1) Met.** **15 of 15** cells of the five-step × three-column
+lifecycle table carry a stated disposition — **14** a defined behaviour and **one** an explicit
+`n/a` where the step cannot arise, because an unconfigured STDIO process mints nothing and so has
+nothing to expire. Two cells state that an existing behaviour is **unchanged**, which is
+a defined behaviour and not an omission; §6's closing line draws that distinction rather than
+claiming the word never appears. **(2) Met.** `deleteExpired()` is
+wired at `ctx.createContextToken()`, reached from `src/server/server-context-tools.ts:33`, chosen
+for being transport-agnostic; the per-row delete inside `validateWithStatus` is recorded as **not** a
+purge in both §1.5 and `F-S4-1`. **(3) Met.** **4 of 4** classes named — C1 every pre-existing row,
+C2 the recurring deploy-pipeline smoke principal, C3 pre-cutover learner rows, C4 pre-cutover STDIO
+rows. **Zero quantities are stated**: the C1 population is `A-S4-1`, resolving through `OI-S1-7` /
+`SPK-S1-7`. **(4) Met.** **7 of 7** `DR-C10-S8-2` clauses audited; **zero** tool input schemas
+change and **zero** per-call identity arguments are added; `I2` satisfied for `context_tokens`
+itself and consumed unchanged elsewhere; `I5` satisfied on both transports.
+
+**The measure's most consequential finding is a negative one, and it is reported rather than
+absorbed.** The deploy pipeline's smoke run mints a `client_credentials` token on **every** deploy
+(`.github/workflows/cd-prod.yml:145`–`:174`) and calls gated learner-state tools with it
+(`tests/smoke/smoke.test.ts:206`, `:237`). Under the service-principal rule those calls are refused,
+and `cd-prod.yml` runs the suite as a deploy step — so **this package's identity rule has the
+production release pipeline as an unadapted consumer**. `F-S4-3`, `R-S4-2`, `OI-S4-2`.
+
+**What this measure does not claim.** That the binding exists — nothing is implemented and
+`OI-S8-1` stays open, because its resolving event is a migration this package may not write. That
+the C1 population is non-zero, small, or large. That a retention position for `context_tokens` has
+been taken; the purge is wired so the identity decision does not open the question, not so it
+answers it.
+
+**Authored by.** SUB-4 (NEU-996).
+
+---
+
 ### SUB-16
 
 ## OUT-15 — Observability, attribution, alerting and incident evidence sufficient to detect an isolation or privacy failure
