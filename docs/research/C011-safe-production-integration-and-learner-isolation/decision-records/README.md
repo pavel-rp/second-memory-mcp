@@ -59,3 +59,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S15-1_objective-basis-and-evidence-labels.md` | SUB-15 (NEU-998) | OUT-14 |
 | `DR-C11-S15-2_first-break-ranking.md` | SUB-15 (NEU-998) | OUT-14 |
 | `DR-C11-S15-3_non-charter-register-id-scheme.md` | SUB-15 (NEU-998) | OUT-14 (structurally; OUT-20 owns assembly) |
+| `DR-C11-S4-1_the-stdio-identity-gate.md` | SUB-4 (NEU-996) | OUT-7 (and the naming act that fires limb one of C010's `OI-S8-2`) |
+| `DR-C11-S4-2_what-the-context-token-row-carries.md` | SUB-4 (NEU-996) | OUT-13 |
+| `DR-C11-S4-3_expiry-purge-and-the-cutover-rejection-rule.md` | SUB-4 (NEU-996) | OUT-13 |

@@ -394,3 +394,92 @@ anticipated a stand-in *"confined to the shape that could not be obtained"*. **Z
 shapes were obtained, so this entry spans all three. Narrowing it to fewer than the evidence supports
 would be a fabrication in the opposite direction from the one the discipline usually guards against,
 and it is declined for the same reason.
+
+---
+
+### SUB-4
+
+## `A-S4-1` — The live `context_tokens` population at cutover is non-empty and is entirely unbound
+
+**Status:** `[unconfirmed]`
+**Stands in for:** The production population of `context_tokens` at the moment the enforcement stage
+lands — the set that cutover rejection class **C1** ranges over
+(`04_the-stdio-identity-gate-and-the-bound-context-token.md` §8).
+
+**Assumption:** That some rows exist, and that **every one of them is unbound**. The second half is
+close to derivable rather than assumed: the table declares no column that could carry a binding
+(`src/infrastructure/db/schema.ts:312`–`:321`; `drizzle/0014_create_context_tokens.sql`), so an
+already-bound pre-existing row is not a state the declared schema admits. What is genuinely assumed
+is only that the deployed schema **matches** the declared one — which is `OI-S1-4` / `SPK-S1-4`,
+still open — and that the population is not empty.
+
+**Owner:** The creator, as sole maintainer and sole operator of the production deployment — the only
+party who can query the table.
+
+**Tolerance envelope:** **The cutover procedure is correct for any population, including zero.**
+Every row is rejected on presentation and the residue is purged in one shot, and neither step's
+correctness depends on the count. What the count changes is operational visibility — how many
+learners notice a single failed in-flight call — and the cost of the first post-cutover sweep, which
+`DR-C11-S4-3` clause 5 removes from the mint path by putting the one-shot purge in the migration.
+**No claim anywhere in this sub-task's output states, estimates or bounds the number**, and
+`observed-in-production` is used **zero** times.
+
+**Invalidating outcome:** A finding that some pre-existing row **already carries a principal
+binding** — which would mean the deployed schema has drifted from the declared one, and would make
+the reject-everything rule over-broad by rejecting a row that did not need rejecting. Not possible
+on the declared schema; observable only through `OI-S1-4`.
+
+**Re-validation trigger:** **`OI-S1-7` closes** — the production `context_tokens` population and its
+age distribution are recorded in `96_spike-register.md` under `SPK-S1-7`. `OI-S1-4` closing fires a
+partial re-check of the second limb alone. On either event, re-check: this entry's status;
+`04_the-stdio-identity-gate-and-the-bound-context-token.md` §8's class C1; `DR-C11-S4-3` clause 5's
+placement of the one-shot purge; and OUT-13's measured result, whose clause (3) currently reports
+met **with zero quantities stated**.
+
+## `A-S4-2` — The STDIO edge is reachable in the production deployment
+
+**Status:** `[unconfirmed]`
+**Stands in for:** C010's own deployment-shape question, which C010 deliberately declines to answer
+and routes to `SUB-10 of C010 (NEU-984)`
+(`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:482`–`:485`).
+
+**Assumption:** That a STDIO client can reach the production deployment. This is the **conservative**
+answer and it is recorded as the one this sub-task planned against, per the charter's requirement
+that the sub-task state which answer it planned against.
+
+**Owner:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`** — the deployment-shape owner. Not
+the creator directly, because the record C010 opened names that sub-task.
+
+**Tolerance envelope:** **The decision is unchanged under either answer, and C010 says so in the same
+passage:** *"a transport that produces no principal fails I4 whether or not anyone can currently
+reach it."* What varies is only the **urgency of the staging** that SUB-7 reads off it, and the size
+of the broken compatibility class in `04_…md` §9 row 4 — which is already the largest class under
+either answer, because `TRANSPORT` defaults to `stdio`
+(`src/config/resolve-transport-config.ts:35`). The envelope tolerates *reachable*, *unreachable
+today*, and *unreachable and intended to stay so*.
+
+**Invalidating outcome:** There is, strictly, **none available from the reachability answer alone**,
+and saying so is more useful than inventing one. Invalidating this entry would require both that
+STDIO is unreachable **and** that the invariant's verdict is thereby conditional on reachability —
+and C010 contradicts the second conjunct directly. The entry is therefore a **planning** assumption
+whose falsification changes scheduling, not a load-bearing one whose falsification changes the
+decision. It is registered anyway, because a planning assumption left unregistered is how a
+scheduling choice gets read as a finding.
+
+**Re-validation trigger:** **The deployment-shape answer lands** — `SUB-10 of C010 (NEU-984)` or the
+operator states whether the production deployment exposes a STDIO edge, or `SPK-S4-1` is executed
+and its result appended to `96_spike-register.md`. On that event, re-check: this entry's status;
+`04_…md` §12; and SUB-7's staging urgency. **Do not re-check the decision itself** — that is the
+point of the envelope.
+
+---
+
+**SUB-4 register totals at revision 1:** two stand-in entries, `A-S4-1` and `A-S4-2`. Each carries a
+named owner and an observable re-validation trigger, and **neither is left blank for SUB-14 to
+fill**.
+
+**One entry records that it has no available invalidating outcome, rather than manufacturing one.**
+`A-S4-2`'s falsification would change scheduling and not the decision, because C010 has already
+ruled the verdict unconditional on it. Writing a plausible-sounding invalidating outcome there would
+have made the register look uniform and would have misreported a planning assumption as a
+load-bearing one.

@@ -245,3 +245,67 @@ than raising a second entry for the same exposure — the package carries one id
 OUT-6. One open, two partially mitigated; every non-mitigated status names its residual and that
 residual's owner, and every entry carries a severity, a mitigation, a named owner and an escalation
 route.
+
+---
+
+### SUB-4
+
+*`NEU-996`, covering `OUT-7` and `OUT-13`. **Zero charter `R<n>` rows**, correctly: no row of the
+charter's § Risks table names OUT-7 or OUT-13 as its owning outcome (charter assumption 48). The
+Critical cross-learner-exposure row is `R1`, owned by OUT-8 and authored by SUB-5, and this
+sub-task's two-transport `I4` application is named inside that row's mitigation rather than being an
+entry of its own. The four entries below are residual exposures this sub-task raises itself.*
+
+## `R-S4-1` — A consumer reads `principal_id` without `principal_kind` and rebuilds the `sub || azp` collapse one layer below the transport
+
+- **Risk:** `DR-C11-S4-2` makes `principal_id` a learner key **if and only if** `principal_kind = 'user'`. Nothing in the schema enforces that. A repository, a service or an enforcement predicate that selects on `principal_id` alone will treat a service principal's `azp` as an owner key — which is precisely the `payload.sub || azp` merge at `src/transport/jwt-middleware.ts:127` that `DR-C11-S2-1` exists to undo, reappearing below the transport edge where there is no token left to re-derive the kind from. **The failure is silent and returns plausible data:** the query succeeds, rows come back, and they belong to whatever principal happened to share that identifier space.
+- **Severity:** **High**
+- **Owning outcome:** **OUT-13** — the row design, which is where the two-column rule is authored and therefore where its unenforceability originates.
+- **Named owner:** **SUB-5 (NEU-997)**, which authors the enforcement point (`OUT-8`) and is the party positioned to make the rule structural rather than advisory — by taking `(principal_id, principal_kind)` as an indivisible pair at the port boundary rather than a value and a flag.
+- **Escalation route:** **`NEU-895` (C010)**, which owns the isolation invariant and check `I5` — a confinement predicate that cannot distinguish principal kinds is an `I5` failure in the deployed mechanism rather than a defect this package can close by writing more prose, and it routes a recorded amendment there. Co-named **`NEU-896`** as the live recipient of C010's residual.
+- **Mitigation:** **Partial by construction, and stated as partial.** The rule is stated once in `DR-C11-S4-2` clause 4, repeated in `04_the-stdio-identity-gate-and-the-bound-context-token.md` §4 as the section's load-bearing sentence, and carried into `traceability/S4_stdio-gate-and-bound-context-token.md`. Storing the kind on the row rather than recomputing it is itself a mitigation — the information is present at the point of use. What is **not** mitigated is enforcement: no schema constraint can express "this column means something different depending on that column". The structural fix belongs to the enforcement point's shape and is named as SUB-5's.
+- **Mitigation status:** **Partially mitigated.** **Residual, named:** whether the enforcement point takes the identifier and the kind as an indivisible pair, owned by **SUB-5 (NEU-997)** under OUT-8.
+
+## `R-S4-2` — The production deploy pipeline's own smoke run is refused by this package's rule, and the deploy gate fails on every release
+
+- **Risk:** The CD workflow mints a `client_credentials` token on every production deploy and runs the smoke suite with it as a deploy step (`.github/workflows/cd-prod.yml:145`–`:174`). The suite calls gated learner-state tools — `list_learning_items` (`tests/smoke/smoke.test.ts:207`) and `session_status` (`:239`) — with the context token it captured at `:192`. Under `DR-C11-S2-2` that principal is `client`-kind and those calls are **refused**. A refused call fails the suite; a failed suite fails the deploy. **The enforcement stage therefore breaks the pipeline that would ship it**, and it breaks it every time, not once.
+- **Severity:** **High**
+- **Owning outcome:** **OUT-13** — the cutover impact assessment, which is where every class of rejected token is named and therefore where a rejected class with a release-gating consequence becomes visible.
+- **Named owner:** **The creator, as sole maintainer and sole operator**, who owns `.github/workflows/cd-prod.yml`, the `SMOKE_PROD_*` credentials and the smoke suite — the only party who can re-scope the suite or re-provision the principal.
+- **Escalation route:** **`NEU-896`** at convergence. A production release gate is a program-level surface, not this package's: if the smoke suite cannot be re-scoped without losing its regression value, the trade-off is between release confidence and the service-principal rule, and that is a go / conditional-go input rather than a decision C011 can take.
+- **Mitigation:** **Named, not applied — this package may change no file under `.github/`, `src/` or `tests/`.** Three routes exist and the chapter states all three: re-scope the smoke suite to the three exempt tools plus a service-principal-appropriate path that touches no learner-owned row; re-provision the smoke principal as a `user`-kind static client with a real `sub`, on the same manual mechanism that produced `claude-web`; or accept a known-failing smoke step for the duration of the enforcement stage, which is the worst of the three and is named so it is chosen rather than defaulted into. **Softening the rule to an empty scope is not on the list** — `DR-C11-S2-2` rejects it on the ground that a silent empty result is indistinguishable from a learner with no data. Sequencing the fix **before** the enforcement stage is a stated obligation on SUB-7.
+- **Mitigation status:** **Open.** No mitigation is in place. **Residual, named:** `OI-S4-2` — whether the suite can be re-scoped without losing regression value — owned by the creator; and the sequencing obligation, owned by **SUB-7 (NEU-1001)** under OUT-3.
+- **Not a duplicate of `R-S2-2`, and the distinction is recorded:** `R-S2-2` is the branch where the smoke principal *acquires* a `sub` and silently becomes a learner owning production rows. This is the complementary branch, where it does not, is correctly classified `client`, is correctly refused — and the refusal breaks the release. Both are live because `OI-S1-1` / `SPK-S1-1` are open and no token has been observed.
+
+## `R-S4-3` — The configured STDIO principal is a per-process singleton, so a shared STDIO process confines two learners to one identity
+
+- **Risk:** `DR-C11-S4-1` clause 2 reads one principal from deployment configuration per process. If two learners ever share one STDIO process, both are confined to the configured principal — **correctly** by the gate's own rule, and wrongly for at least one of them. The gate does not detect this and cannot: from inside the process there is exactly one principal and it is the one the operator declared.
+- **Severity:** **Medium**
+- **Owning outcome:** **OUT-7** — the gate decision, which is where the singleton is introduced.
+- **Named owner:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`** — the deployment-shape owner, since whether a STDIO process is ever shared is a property of how the deployment is operated rather than of the gate.
+- **Escalation route:** **`NEU-896`** at convergence, as the party that reconciles a deployment shape this package's mechanism does not support against whatever shape the program actually needs.
+- **Mitigation:** **Bounded rather than closed.** The elective bearer-on-STDIO path (`DR-C11-S4-1` clause 5) removes the limit entirely wherever an operator will provision a static client, because the principal then comes from the token per call rather than from the process. Where it is not taken, the limit is a documented property of the configured-principal design and is stated in `04_the-stdio-identity-gate-and-the-bound-context-token.md` §10.1 as a named residual on the `I4` verdict rather than folded into it. It is **not** an `I4` failure — the confinement decision is identical on both transports — and it is not represented as one.
+- **Mitigation status:** **Partially mitigated.** **Residual, named:** whether any multi-learner STDIO deployment is intended at all, owned by **`SUB-10 of C010 (NEU-984)`** co-named `NEU-896`; and `OI-S4-1`, the operator's own answer on the configured principal, owned by the creator.
+
+## `R-S4-4` — Audit parity is descoped as "just a mount", the gate lands, and the two transports stay unequal in what a reader can reconstruct
+
+- **Risk:** `DR-C11-S4-1` clause 4 requires audit logging to reach STDIO on the same terms as the gate. `F-S4-4` establishes that this is a **rewrite, not a mount** — `createAuditMiddleware` returns an Express `RequestHandler` (`src/transport/audit-middleware.ts:23`) and there is no STDIO transport module to attach it to (`src/transport/main.ts:55`–`:59`). Work priced as a mount and discovered to be a rewrite is the work most likely to be cut. If it is cut, the gate still refuses identically on both transports — `I4` still passes — but a refusal on STDIO leaves no record, so the two transports remain unequal in a way no check in the invariant measures.
+- **Severity:** **Medium**
+- **Owning outcome:** **OUT-7** — the gate decision, whose clause 4 is the obligation at risk.
+- **Named owner:** **SUB-16 (NEU-999)**, which owns how requests become attributable and is therefore the party for whom an unattributable transport is a first-order problem rather than a side effect.
+- **Escalation route:** **`NEU-896`** at convergence, where an observability gap that spans the transport boundary and the audit surface is reconciled against whatever the program requires of both.
+- **Mitigation:** **Stated rather than solved.** The cost is named as a finding (`F-S4-4`) instead of being carried inside clause 4's prose, specifically so that a reader planning the work sees a rewrite where the classification implies a mount. The chapter also separates the two effects explicitly (§10.1, non-claim 3): audit parity is **not** required for `I4`, so descoping it must be argued as an observability decision and cannot be justified by pointing at a green `I4`.
+- **Mitigation status:** **Open.** No mitigation is in place; nothing here is implemented. **Residual, named:** `OI-S4-3` — whether audit logging can be made transport-invariant without an Express dependency — owned by **SUB-16 (NEU-999)**.
+
+---
+
+**SUB-4 register totals at revision 1:** four entries — `R-S4-1` (High), `R-S4-2` (High), `R-S4-3`
+(Medium), `R-S4-4` (Medium). **Zero charter `R<n>` rows**, correctly: no § Risks row names OUT-7 or
+OUT-13 as its owning outcome, per charter assumption 48. Two open, two partially mitigated; every
+non-mitigated status names its residual and that residual's owner, and every entry carries a
+severity, a mitigation, a named owner and an escalation route.
+
+**One entry is deliberately recorded as a near-duplicate and marked as such.** `R-S4-2` and
+`R-S2-2` describe the same principal under opposite answers to the same open question
+(`OI-S1-1` / `SPK-S1-1`). Collapsing them would lose one of the two live branches; leaving the
+relationship unstated would read as a register defect. It is therefore stated inside `R-S4-2`.

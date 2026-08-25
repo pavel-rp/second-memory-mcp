@@ -107,3 +107,25 @@ rather than restating it.
 lifting condition. It is a **narrower restatement** of `CAP-S1-1` applied to this sub-task's own
 output, not a second record of the same fact: `CAP-S1-1` caps the package's evidence base, while
 this entry caps what the identity rule specifically may be read to establish.
+
+---
+
+### SUB-4
+
+#### `CAP-S4-1` — The transport gate is designed and **never exercised**; `I4` is answered against a proposal, not against a running system
+
+- **Id:** `CAP-S4-1`
+- **Cap:** `04_the-stdio-identity-gate-and-the-bound-context-token.md` §10.1 states that check `I4` no longer fails **under the proposed gate**. That is a verdict about a design. This sub-task establishes that the gate is **well-formed** — a principal is produced on both transports, the refusal is defined in every branch including the unconfigured one, and the confinement input handed downward is the same shape from the same table on both. It does **not** establish that the gate **works**: nothing is implemented, no request has ever been refused by it, and no test has ever observed a STDIO call resolve to a principal.
+- **Why it is capped:** Exercising it requires code, and this sub-task may write none — `src/` and `drizzle/` are out of scope by constraint, and `04_…md` §14 records zero changes to either. No reading settles it, because the thing to be established is a property of running code rather than of a document. No bounded read-only experiment settles it either, so it is **not a spike**. And no event within this package's reach closes it, so it is **not an open item** — which is exactly the line C010 drew when it filed `CAP-S5-1` separately from `OI-S5-3`.
+- **What it leaves unsupported:** Any claim that the STDIO gate *is* closed, as opposed to *decided*. Any reading of §10.1's `I4` verdict as a measurement rather than a derivation. Any downstream plan that treats the transport precondition of C010's `CAP-S5-1` as **discharged** rather than **designed** — this sub-task supplies one of the three simultaneous preconditions that cap names, in design only, and the other two are `NEU-850`'s `OUT-2` and SUB-5's port-boundary scoping. It also leaves unsupported the converse: nothing here shows the gate is unworkable either, and the honest statement is that it is untested in both directions.
+- **Owner:** **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`**, as the party that owns `CC-S8-3` and would land the mechanism. Named alongside **SUB-5 (NEU-997)**, for which this cap is the standing precondition on its own `I4` limb.
+- **What would lift it:** **One `I4` observation on a running system** — a DB-backed test in which the same gated tool is refused identically on both transports for an absent principal, and admitted identically for a bound one. That requires the mechanism to land on `origin/develop`, which is `OI-S8-1`'s and `OI-S8-2`'s resolving event and not this package's act. Recorded as a precondition, not as a promise.
+
+---
+
+**SUB-4 register totals at revision 1:** one cap, `CAP-S4-1`, with a named owner and an observable
+lifting condition. It is a **narrower restatement of C010's `CAP-S5-1` applied to the transport
+limb only**, not a second record of the same fact: `CAP-S5-1` caps the invariant's satisfiability
+across all five checks, while this entry caps what this sub-task's `I4` answer specifically may be
+read to establish. The distinction matters because `CAP-S5-1` names the STDIO gate as one of three
+preconditions, and a reader could otherwise take this chapter's publication as having discharged it.
