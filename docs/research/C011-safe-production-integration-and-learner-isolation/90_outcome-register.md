@@ -298,7 +298,7 @@ citing `SUB-12 of C010 (NEU-986)`'s gate reassignment at
 - **`OI-S1-2` is therefore not closed.** Its own resolving event requires that *"a live production
   token is inspected and its `sub` claim recorded"*, and none was. The item is recorded as **owned
   here, design half discharged, evidence half not closable at this revision** (§9). The gate
-  reassignment at `90_…md:615` is cited and the `Owner:` line at `90_…md:81` is noted once as a
+  reassignment at `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:615` is cited and the `Owner:` line at `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:81` is noted once as a
   convention artefact, with **no ownership finding routed** — both as required.
 - **The acceptance clause that ranges over shapes SUB-1 obtained is satisfied vacuously**, over an
   empty set, and is reported as vacuous rather than as a clean pass.

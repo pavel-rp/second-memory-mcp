@@ -273,8 +273,8 @@ C010 sub-task reference.
 recorded."*
 
 **Ownership.** The owner is **`NEU-893`** — this package. `SUB-12 of C010 (NEU-986)` moved it at
-C010's completeness gate (`90_…md:615`): *"Owner moves to `NEU-893`; it is List B question `H5`."*
-The original entry's `Owner:` line at `90_…md:81` still reads `SUB-5 (NEU-975)` **only** because no
+C010's completeness gate (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:615`): *"Owner moves to `NEU-893`; it is List B question `H5`."*
+The original entry's `Owner:` line at `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:81` still reads `SUB-5 (NEU-975)` **only** because no
 C010 sub-task edits another's entry under C010's append-only convention. **That is a convention
 artefact, noted here once so a reader of the entry alone is not misled, and no ownership finding is
 routed against it** — as the charter's OUT-5 and this sub-task's own out-of-scope clause both
