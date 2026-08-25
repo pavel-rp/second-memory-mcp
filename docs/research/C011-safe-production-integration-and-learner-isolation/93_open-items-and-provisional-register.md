@@ -421,6 +421,76 @@ named above. **One of one** corresponds to the single spike entry `SPK-S16-1` in
 
 ---
 
+### SUB-8
+
+**What is deliberately absent from this section.** SUB-8 raises **no open item about the
+controller/processor role or the lawful basis each processing purpose rests on.** That is recorded
+exactly once, by SUB-3, at **`OI-S3-1`** above, which names SUB-8 as its consumer by name and states
+that SUB-8 *"cites this id rather than raising a second record of the same question"*. SUB-8 cites it
+— in `08_consent-and-what-a-learner-can-export-and-erase.md` §0, §5 (field 3), §9 (the exception
+table's basis column) and §15, and in `decision-records/DR-C11-S8-1_the-consent-record-and-the-consent-boundary.md`
+and `decision-records/DR-C11-S8-2_export-erasure-and-the-completion-deadline.md` — and raises **no
+second record**.
+
+Likewise, and each consumed by citation from its single owning record: whether either log table holds
+learner-derived content in production is **`OI-S1-5`** / **`OI-S1-6`** (SUB-1); whether the live
+schema matches `drizzle/` — which bounds the export's completeness claim — is **`OI-S1-4`** (SUB-1);
+the `context_tokens` population that `deleteExpired()`'s unwired status lets accumulate is
+**`OI-S1-7`** (SUB-1); whether the audit writer is mounted at all is **`OI-S16-1`** (SUB-16); and
+where production runs, together with whether the 30-day cleanup script is in fact scheduled there, is
+**`OI-S1-9`** (SUB-1). The single item below is a question SUB-8's own consent and export design
+raised and nobody else has recorded.
+
+#### `OI-S8-1` — Whether learner content leaves the deployment to a third-party model provider, and into which jurisdiction
+
+- **Id:** `OI-S8-1` — **this package's own.** See the collision note below.
+- **Item:** Two halves of **one** question, which resolve on the same event. **(a)** Which model provider the production deployment actually uses. Both adapters select one at runtime — `src/config/resolve-embedding-config.ts:25` reads `EMBEDDING_PROVIDER` and `src/config/resolve-classifier-config.ts:80` reads `CLASSIFIER_PROVIDER` — and each has an OpenAI branch that transmits learner content to an external service (`src/adapters/langchain/embedding-adapter.ts:88`–`:91`; `src/adapters/langchain/content-classifier-adapter.ts:191`, `:199`–`:201`) and a non-OpenAI branch that does not. **Which value production sets is not discoverable from the repository.** **(b)** Following from that, whether a cross-border transfer of learner data occurs at all, and into which jurisdiction — which depends on the provider's own processing region as well as on the deployment's.
+- **Status:** `[unconfirmed]`
+- **Source:** `96_spike-register.md` § `SPK-S8-1` — designed, **not executed**; no access to the deployed environment. The two config sites and the two adapter branches above, read at cutoff `d2e2b55`. `08_consent-and-what-a-learner-can-export-and-erase.md` §3 (`CP-S8-3`), where the consent purpose this gates is defined.
+- **Consumer:** **SUB-8** itself — `CP-S8-3`, the third consent purpose, is **severable only if a local provider is available**, so whether consent may be offered for it at all turns on (a). **SUB-9** (NEU-1003), whose propagation matrix must know whether a copy of learner content exists outside the deployment before it can claim to have enumerated the copies. **SUB-12** (NEU-1004), for which an external processor receiving unbounded learner free text is a threat-model input and a gate.
+- **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can read the deployed environment, and the only party with standing to state the transfer position for a deployment they alone run.
+- **Resolving event:** The operator states, for the running production container, the value of `EMBEDDING_PROVIDER` and `CLASSIFIER_PROVIDER` — the **provider name**, never any key material — and, where either is a hosted provider, that provider's stated data-processing region. Recorded in the spike register. On that event, `CP-S8-3`'s severability is settled, and the transfer determination either becomes unnecessary (no hosted provider) or acquires the facts it needs.
+- **Why not a stand-in:** Two concrete facts about a deployed configuration, each with an obtainable answer and **no tolerance envelope** — a provider is one thing or the other, and the design does not accommodate a range. What the design *does* do while it is open is decline to assert either branch: `08_…md` §3 states the rule and does **not** claim which branch the deployment is on.
+- **Why this is not a second record of `OI-S1-9`, `OI-S3-1` or `OI-S16-1`:** three different questions with three different resolving events, and closing any one leaves the others open. **`OI-S1-9`** asks where the *deployment* runs — hosting, region, TLS, monitoring, log shipping; it says nothing about whether data leaves that deployment for a third party, and a fully answered `OI-S1-9` would not tell you which model provider is configured. **`OI-S3-1`** asks the *legal* questions — controller/processor role and lawful-basis selection; this item asks a **factual** one about a configuration value, and its answer is an input to that determination rather than part of it. **`OI-S16-1`** asks whether the audit writer is mounted. The distinction is written out here so SUB-14's cross-register check has something to check rather than a judgement to make.
+
+**The `OI-S8-1` id collides in shape with a C010 record, and the collision is disclosed rather than
+renumbered.** **C010's `OI-S8-1`** is *"`context_tokens` names no principal, so the obligated identity
+binding has nothing to bind to"*
+(`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:410`–`:419`),
+owned by **`SUB-10 of C010` (NEU-984)**. It is a different record on a different subject with a
+different owner. This is the same class of hazard `91_findings-register.md` § `F-S2-2` records for
+`OI-S1-2`, and it is handled by the rule that finding established and this package applies: **a
+cross-package open item is always written qualified — *C010's `OI-S8-1`* — and a bare `OI-S8-1`
+always means this package's own.** Renumbering was declined because the id is computed from the
+charter's own sub-task-scoped scheme, and picking a different number to dodge a cross-package shape
+collision would break the property that makes the scheme collision-safe among concurrently authored
+siblings.
+
+**Three prior bare uses, and one of them is in this very file.** SUB-3 cites a bare `OI-S8-1` twice —
+in `03_learner-data-inventory-and-classification.md` §4, in `LD-S3-13`'s minimization field, and in
+this register's own SUB-3 closing note as *"`OI-S8-1`, owned by `NEU-984` (`SUB-10 of C010`)"*. Both
+predate `F-S2-2`'s rule and both name the owner parenthetically, so both resolve unambiguously to
+C010's item. **Third and most importantly: SUB-4's section above carries a heading
+*"Disposition of `OI-S8-1`"*** — also unqualified, and also correct when written, because a bare id
+means this package's own **only where this package has one**, and until this entry it did not.
+
+**From this entry onward it does, so this file now carries both.** A reader meeting SUB-4's
+disposition and then this entry is meeting **two different items with one id shape**: SUB-4 disposes
+of **C010's** — `context_tokens` having no principal column to bind to, owner `SUB-10 of C010`
+(NEU-984), still open — while the entry above is **C011's**, the third-party-model-provider and
+cross-border question, owner the creator. The two share nothing but four characters.
+
+**No revision of SUB-3 or SUB-4 is produced, requested or owed on this ground, and no finding is
+routed against either.** Both were correct at their own positions and the append-only rule holds;
+the party positioned to normalise the two headings at assembly is **SUB-14** (NEU-1007).
+
+---
+
+**SUB-8 register totals at revision 1:** one open item, `OI-S8-1`, carrying a named owner and an
+observable resolving event, and zero blank fields. **Zero second records** of a question already
+owned by another sub-task or another package — seven inherited items are consumed by citation and named
+above — `OI-S3-1`, `OI-S1-4`, `OI-S1-5`, `OI-S1-6`, `OI-S1-7`, `OI-S1-9` and `OI-S16-1` — `OI-S3-1` most load-bearingly. **One of one** corresponds to the single spike entry `SPK-S8-1`
+in `96_spike-register.md`, on the same rule SUB-1 applied.
 ### SUB-5
 
 *`NEU-997`, covering `OUT-8`. Two items. **A namespace warning:** C010 has `OI-S5-1`, `OI-S5-2` and

@@ -411,6 +411,96 @@ recorded so SUB-17's audit can see that they ran and returned empty.
 
 ---
 
+### SUB-8
+
+#### `F-S8-1` — Operational logging is a purpose that would rest on consent it could never withdraw, and it fails withdrawability in three independent ways
+
+- **Id:** `F-S8-1`
+- **Severity:** High. Not blocking — it is closed by a design choice this chapter makes (operational logging is placed on legitimate interests and stays there), and the residual is an exposure rather than an unmet obligation.
+- **Finding:** This is the finding OUT-10's consent boundary is required to produce. Were consent claimed as the lawful basis for operational logging — the request log `LD-S3-16` and the event log `LD-S3-17` — that consent **could not be withdrawn**, for three reasons each independently sufficient. **(a) No consent check can run before the write.** The audit middleware is mounted at the transport layer and writes its row around the request, before any orchestration workflow — which `DR-C11-S8-1` establishes as the *authority* for consent state — is reached. **(b) No per-learner emission switch exists.** Emission is conditional on one process-wide variable at `src/transport/http.ts:177`–`:182`, which is all-or-nothing for the whole deployment; there is no per-principal predicate anywhere on the write path. **(c) Historical rows cannot be located.** Pre-cutover rows carry no key and can never be given one, so a withdrawal could not identify the processing it was withdrawing.
+- **Evidence:** `src/transport/audit-middleware.ts` (the middleware write path); `src/transport/http.ts:177`–`:182` (the `if (auditDbUrl)` mount guard); `src/transport/main.ts:55`–`:58` (STDIO writes no row at all, so on that transport the question does not even arise); `91_findings-register.md` § `F-S16-5` for limb (c); `decision-records/DR-C11-S8-1_the-consent-record-and-the-consent-boundary.md` for the authority that limb (a) turns on. Read at cutoff `d2e2b55`.
+- **Consequence:** Operational logging is placed on **legitimate interests** in `08_consent-and-what-a-learner-can-export-and-erase.md` §4 and stays there — which is the same position SUB-3 already recorded, now with a stated reason rather than by default. The wider consequence is a constraint on every later design: **a purpose whose processing happens below the layer that owns consent state cannot be consent-governed at all**, which rules out consent as a basis for anything in the transport tier by construction. A later charter that adds a per-learner logging switch would change limb (b) but not limbs (a) or (c).
+- **What is assumed rather than derived:** Nothing about the code — all three limbs are read directly. What is **not** established is whether production rows contain learner-derived content at all (`OI-S1-5`, `OI-S1-6`, both owned by SUB-1 and **cited, not re-raised**); the finding is about the *basis available to the purpose*, which holds either way.
+- **Named owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who could add a per-learner emission control or decide the logging position. **Co-named `NEU-986` (`SUB-12 of C010`)**, which already owns C010's `CAP-S3-3` / `CAP-S4-1` retention-and-deletion caps over these two tables.
+- **Handed to:** **SUB-9** (NEU-1003), whose propagation matrix covers the same two tables and which must not treat a withdrawal as reaching them; **SUB-12** (NEU-1004), for which *"a purpose that cannot be switched off per learner"* is a threat-model input.
+
+#### `F-S8-2` — **BLOCKING.** The pre-cutover log population is a retention exception that cannot be given a justification or a learner-scoped bound
+
+- **Id:** `F-S8-2`
+- **Severity:** **Blocking**, per this sub-task's OUT-11 trigger — *a retention exception that cannot be given all four of a justification, a bound, an owner and a stated basis is recorded as a blocking finding rather than accepted, because an unbounded exception is exactly the silent indefinite retention OUT-11 exists to end.*
+- **Finding:** Under `DR-C11-S16-2` both log tables become `learner-linked` personal data once the attribution carrier lands, and become reachable by `DELETE … WHERE learner_key = $1`. Rows written **before** the carrier lands carry `principal_kind = 'none'` and no key. **They are personal data that no per-learner predicate selects**, so the erasure duty attaches to them and no mechanism discharges it. Audited against the four-field rule they fail **two** fields outright: there is **no justification** — nobody decided to retain them, the retention is a consequence of a boundary — and there is **no learner-scoped time bound**, because a bound that is population-wide does not discharge one learner's request. Owner and basis can be supplied; justification and bound cannot.
+- **Evidence:** `08_consent-and-what-a-learner-can-export-and-erase.md` §9, exception #5, and §8.2. The unattributability itself is `91_findings-register.md` § `F-S16-5` and `92_risk-register.md` § `R-S16-1`, **cited and not re-derived**; the binding structure and its eviction path are `src/transport/http.ts:83` with `F-S15-3`; the restart cadence is `15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`.
+- **Consequence:** **An erasure over either log table reports success and a row count while the entire pre-cutover population survives.** The chapter's response is to scope the *guarantee* rather than the *request*: an erasure is stated complete for the attributable population only, and a completion notice that omits that qualifier is false. It also fixes what a population-wide time bound is **not** — recording one here would convert an inability into a policy, which is why this is a finding rather than exception #6.
+- **What is assumed rather than derived:** **No row count is asserted.** The population's size is unobserved and depends on `OI-S1-5`, `OI-S1-6` and `OI-S16-1`, all owned and unclosed. It is also not asserted that the population is non-empty — if the audit writer has never been mounted (`OI-S16-1`), it may be empty, and the finding would then be blocking over nothing. That possibility is stated rather than used to downgrade the severity, because the design cannot rest on it.
+- **Named owner:** **SUB-9** (NEU-1003) for the population's disposition, under OUT-12; **the creator, as sole maintainer and sole operator**, for the population itself and for the decision to delete or retain it.
+- **Resolving event:** SUB-9 publishes a disposition for the pre-cutover population — bulk deletion, bulk anonymization, or an accepted and named residual. On that event this finding is downgraded from blocking to resolved, and `08_…md` §9's exception #5 takes the corresponding treatment.
+- **Handed to:** **SUB-9** (NEU-1003), which receives it as an exception it must dispose of rather than as a matrix cell it may resolve to *"delete by key"*; **SUB-12** (NEU-1004), whose gate register cannot record an erasure gate as measurable while it stands; **SUB-17** (NEU-1008), whose completeness audit meets a declared blocking finding rather than discovering one.
+
+#### `F-S8-3` — Four deletion methods are defined and unwired, not one, and no user-facing tool deletes a topic, a session or an answer
+
+- **Id:** `F-S8-3`
+- **Severity:** High. Not blocking — it reports the codebase's capability rather than a defect in this package's own output, and the erasure design is explicitly published as a specification in consequence.
+- **Finding:** Two facts from one audit. **(a) Four deletion methods are defined on a port, implemented in the Drizzle adapter, and invoked from nowhere in `src/`** — `ContextTokenRepository.deleteExpired` (`src/ports/context-token-repository.ts:6`, `src/adapters/drizzle/context-token-repository.ts:61`), `SessionRepository.deleteSession` (`src/ports/session-repository.ts:62`, `src/adapters/drizzle/session-repository.ts:100`), `SessionRepository.deleteSessionChunk` (`src/ports/session-repository.ts:76`, `src/adapters/drizzle/session-repository.ts:160`) and `LinterValidationRepository.deleteCorpusEntry` (`src/ports/linter-validation-repository.ts:73`, `src/adapters/drizzle/linter-validation-repository.ts:52`). Charter assumption 16 calls `deleteExpired()` *"the only purge path in the codebase"* — accurate for a **bulk/sweep** purge, and narrower than the deletion surface actually is. **(b) Exactly two delete paths are reachable from a user-facing MCP tool** — `delete_chunk` and `delete_note`. There is **no `delete_topic`, no `delete_session`, and no way to delete an attempt or an answer**; `TopicRepository.delete` exists but is reached only as rollback compensation, never from a tool.
+- **Evidence:** The `file:line` citations above, each read directly at cutoff `d2e2b55`. Call-site counts by grep over `src/` for each method name: `deleteExpired`, `deleteSession`, `deleteSessionChunk` and `deleteCorpusEntry` each return **only** their port declaration and their adapter definition. `08_consent-and-what-a-learner-can-export-and-erase.md` §10.1 carries the full table.
+- **Consequence:** **The erasure design of `08_…md` §8 is a specification, not a description of a capability.** Of the **thirteen** categories it dispositions as `delete` or `cascade` outright — `LD-S3-1` … `LD-S3-10`, `LD-S3-12`, `LD-S3-14`, `LD-S3-31` — a learner can today reach **three**: `LD-S3-2` and `LD-S3-12` directly, and `LD-S3-14` by `ON DELETE CASCADE`. `LD-S3-3` and `LD-S3-4` go only because they are column groups of the same row a chunk deletion removes. Everything else needs code that does not exist. Separately, `deleteExpired()`'s unwired status means expired `context_tokens` rows accumulate without bound, and §10.3 confirms there is no scheduler in `src/` that could ever call it.
+- **What is assumed rather than derived:** Nothing. Every method, every call-site count and the absence of each tool were read directly. The finding ranges over the **repository at this cutoff** and says nothing about whether an operator deletes rows by hand — a use this method cannot see, exactly as `CAP-S3-1` bounds `F-S3-1`.
+- **Named owner:** **The creator, as sole maintainer and sole operator of the production deployment.**
+- **Handed to:** **SUB-9** (NEU-1003), whose propagation matrix must not assume a mechanism exists for a copy class merely because a disposition is stated for it; **SUB-13** (NEU-1006), which authors the DDL and inherits the question of what an erasure path needs; **SUB-12** (NEU-1004), for which *"the erasure duty exceeds the erasure surface"* is a measurable gate with no control behind it.
+
+#### `F-S8-4` — Zero of the inventory's thirty-two categories rests on consent, so the consent boundary is created by this outcome rather than documented
+
+- **Id:** `F-S8-4`
+- **Severity:** Medium. Not blocking — it frames the chapter rather than obstructing it, and it is the reason the severability test is published as a re-applicable test.
+- **Finding:** **Not one of SUB-3's thirty-two inventory entries carries `consent` as its lawful-basis position.** Every entry reads *contract* or *legitimate interests*. The codebase agrees from the other side: `consent`, `gdpr`, `dsar` and `erasure` return **zero** hits across `src/` and `drizzle/`, and every `retention` hit is the SM-2 spaced-repetition *retention rate* domain metric, unrelated to data-retention policy.
+- **Evidence:** `03_learner-data-inventory-and-classification.md` §4–§8, all thirty-two entries read directly. Greps over `src/` and `drizzle/` at cutoff `d2e2b55`. This corroborates charter assumption 37's greenfield claim **from the codebase**, where the charter established it from a sweep of C010's package — two independent routes to the same position.
+- **Consequence:** OUT-10 **creates** a consent boundary; it does not document one. A reader who assumes the chapter describes an existing surface will misread every section of it. It is also why the boundary is drawn by a **published test** — a purpose rests on consent iff the service survives switching it off — rather than by an enumeration a reader must accept: with no upstream position to inherit, a test is falsifiable where a list is not. This is `R12`'s exposure (*the data-lifecycle half written as if it had an upstream*) arriving at the outcome `R12` was registered to protect, and the response is the one `R12`'s mitigation names: state the greenfield status, and carry every position's own evidence.
+- **What is assumed rather than derived:** Nothing. Both readings were taken directly. The finding says nothing about whether consent *should* have been a basis for any existing category — that would be a legal determination, which is `OI-S3-1`.
+- **Named owner:** **SUB-8** (NEU-1002) for the boundary as drawn; **the creator, as sole maintainer and sole operator**, for whether it matches the product's intent.
+- **Handed to:** **SUB-9** (NEU-1003) and **SUB-12** (NEU-1004), each of which would otherwise read the consent boundary as an inherited constraint rather than as this package's own first statement of one; **SUB-14** (NEU-1007), for aggregation.
+
+#### `F-S8-5` — SUB-3's enumeration table cites eight of its twelve tables one line past the `export const` its own header names
+
+- **Id:** `F-S8-5`
+- **Severity:** Low. Not blocking, and materially harmless — every cited line falls **inside the same declaration**, one line into it, so no reader is sent to the wrong table.
+- **Finding:** `03_learner-data-inventory-and-classification.md` §3 heads its table *"The ten `public` tables, in schema-file order, each with the line its `export const` sits on"*. Eight of the twelve table citations in that section point one line **past** that: `learning_chunks` is cited `:50` and its `export const` is at `:49`; likewise `learning_sessions` `:100`/`:99`, `session_chunks` `:127`/`:126`, `session_questions` `:157`/`:156`, `session_question_chunks` `:180`/`:179`, `session_question_attempts` `:198`/`:197`, `session_question_attempt_revisions` `:251`/`:250`, and `notes` `:289`/`:288`. In each case the cited line is the SQL table-name string on the line below. **Four are exact** — `learning_topics` `:21`, `context_tokens` `:312`, `linter_validation_corpus` `:333` and `linter_rule_validation_report` `:364`.
+- **Evidence:** `src/infrastructure/db/schema.ts`, `grep -n "^export const"`, read at cutoff `d2e2b55`. **Checked against SUB-3's own cutoff to rule out a line shift:** `git show 86fb38a:src/infrastructure/db/schema.ts` gives byte-identical `export const` line numbers, so this is not an artefact of the file moving between the two cutoffs. That check is recorded because reporting a citation defect against a merged chapter without it would have been the more likely error.
+- **Consequence:** Minor and worth exactly the care it is given here. A reader following a citation lands one line into the right declaration. Two live effects: this chapter therefore **cites its own re-derived line numbers** for `src/infrastructure/db/schema.ts` rather than re-using SUB-3's, so the two documents will differ by one at eight points and a later reader should not read that as a disagreement about *which table*; and **SUB-17's citation audit** would otherwise meet the anomaly rather than the explanation. The citation-path checker gates paths, not line numbers, so nothing mechanical catches it.
+- **What is assumed rather than derived:** Nothing about SUB-3's intent. This entry takes **no position** on whether the header or the citations were meant to move, and **requests no revision** — `03_learner-data-inventory-and-classification.md` is unmodified by this sub-task and the append-only rule holds. It is **not** a contradiction with C010 and is **not** routed to `NEU-895`.
+- **Named owner:** **SUB-14** (NEU-1007), which aggregates the registers and runs the cross-register consistency check, and is the only party positioned to reconcile a citation convention without authoring content. **Co-named SUB-17** (NEU-1008), whose citation audit is the check that would otherwise surface it.
+- **Handed to:** SUB-14 and SUB-17, each receiving the eight pairs and the same-cutoff verification above.
+
+---
+
+**SUB-8 register totals at revision 1:** five findings, `F-S8-1` … `F-S8-5`, of which **one is
+blocking** (`F-S8-2`). All five carry a named owner. **Both findings the charter's enumeration
+requires of this sub-task are present and are the required kind** — `F-S8-1` is the OUT-10
+consent-boundary finding (a purpose resting on consent that could not be withdrawn, reported with an
+owner), and `F-S8-2` is the OUT-11 blocking finding (a retention exception that cannot be given all
+four fields). **Zero findings absorbed into the chapter's prose.**
+
+**Zero second records.** This sub-task raises no record of a question already owned elsewhere. The
+controller/processor role and the lawful basis each purpose rests on is **`OI-S3-1`** (SUB-3), cited
+in `08_…md` §0 and §15 and in the exception table's basis column; whether either log table holds
+learner-derived content in production is **`OI-S1-5`** / **`OI-S1-6`** (SUB-1); whether the audit
+writer is mounted at all is **`OI-S16-1`** (SUB-16); where a signal can be observed, and whether the
+30-day cleanup script is actually scheduled, is **`OI-S1-9`** (SUB-1); the unread, unredacted
+`response_body` minimization finding is **`F-S3-1`**, routed by SUB-3 to **`NEU-986`** and **not
+re-routed here**; and that attribution is not retroactive is **`F-S16-5`** / **`R-S16-1`** (SUB-16),
+cited rather than restated — `F-S8-2` is the *retention-exception consequence* of that fact, not a
+second record of it. Each is consumed by citation. The one genuinely new question — which model
+provider the deployment uses, and therefore whether learner content leaves it — is `OI-S8-1`.
+
+**No contradiction with C010 was found by SUB-8.** The authority-assignment rule was checked against
+`../C010-system-and-repository-architecture/08_per-state-authority-matrix.md` §5 and applied rather
+than re-invented; the individuation rule against
+`../C010-system-and-repository-architecture/decision-records/DR-C10-S3-1_state-category-individuation.md:11`–`:13`;
+the `post-validation` revision's scope against
+`../C010-system-and-repository-architecture/10_republished-authority-matrix.md:46`, `:62`–`:65` and
+`:94`–`:96`; charter assumption 37's greenfield claim against C010's `CAP-S3-3` / `CAP-S4-1` /
+`F-S3-3` / `CAP-S7-1` chain (**C010's** ids, written qualified); and C010's `CAP-S7-1` against this
+chapter's erasure scope, which is consistent with it and does not discharge it — **discharging
+`CAP-S7-1` is SUB-9's**. Every one is consistent or cited. **No amendment is routed to `NEU-895` by
+SUB-8.** The checks are recorded so SUB-17's audit can see that they ran and returned empty.
 ### SUB-5
 
 *`NEU-997`, covering `OUT-8`, which charter assumption 49 names in the findings-register enumeration.

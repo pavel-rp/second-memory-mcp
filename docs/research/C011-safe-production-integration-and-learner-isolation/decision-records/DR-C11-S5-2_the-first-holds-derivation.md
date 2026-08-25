@@ -14,10 +14,13 @@
    (`../../C010-system-and-repository-architecture/10_republished-authority-matrix.md:744`), so `I1`
    and `I2` are already discharged under the composed state and `I3` is the sole open check.
 
-2. **The target state is form (c), composed, with exactly four enumerated assumed changes** — the
-   ownership key from `NEU-850`'s `OUT-2`, this chapter's enforcement point applied to
-   `NotesRepository`, SUB-4's STDIO identity gate and bound context token, and SUB-2's identity rule
-   including removal of the `sub || azp` merge. **And nothing else.**
+2. **The target state is form (c), composed, with exactly five enumerated assumed changes** — the
+   ownership key from `NEU-850`'s `OUT-2` keyed to the **resolved principal identifier** (the OIDC
+   `sub` on HTTP, the configured identifier on STDIO, since STDIO has no JWT); this chapter's
+   enforcement point applied to `NotesRepository`; SUB-4's STDIO identity gate and bound context
+   token; SUB-2's identity rule including removal of the `sub || azp` merge; and **a reachable
+   transition to the column on a populated table** — either the table is empty at cutover or the
+   column lands nullable and is tightened afterwards. **And nothing else.**
 
 3. **`I3` is answered from a published enumerated access-path set, not from a failed search for a
    counter-example.** The set is four SQL statements, all in
@@ -72,9 +75,13 @@ alternatives each widen the enumeration or weaken the placement:
 **Why the target state must be composed, and enumerated.**
 `../../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:156`–`:158`
 voids an unenumerated composed evaluation outright: *"A composed state must list them; 'assume
-isolation is implemented' is not a target state and an evaluation against it is void."* Four changes
-are listed because four are needed; listing fewer would misrepresent, and listing more would import
-assumptions the derivation does not use.
+isolation is implemented' is not a target state and an evaluation against it is void."* Five changes
+are listed because five are needed; listing fewer would misrepresent, and listing more would import
+assumptions the derivation does not use. **`C5` is in the list for exactly that reason:** `C1`
+specifies a `NOT NULL` column, the chapter's own §6.4 establishes that such a column cannot be added
+to a populated table without a backfill or a default, and SUB-6's disposition is on the *not
+assumed* list — so without `C5` naming a reachable transition, `C1` is unreachable from the stated
+set and the whole evaluation would be void rather than merely optimistic.
 
 **Why the cap is not lifted.** Its own text says the preconditions must *"land together"*. Nothing has
 landed. The distinction between *satisfiable in principle* and *satisfied on the deployment* is the

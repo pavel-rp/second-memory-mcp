@@ -40,8 +40,9 @@ as a finding rather than silently corrected in passing.
 
 ### 1.1 The port surface — 13 ports, but only 7 are row-owning
 
-The count of **13** is confirmed: `src/ports/` holds exactly thirteen files, each declaring one
-interface. The charter's composition is not. It states *"the 9 row-owning repositories (chunk,
+The count of **13** is confirmed: `src/ports/` holds exactly thirteen files, each declaring exactly
+one **port** interface. (Several also export supporting input, filter and row types — those are not
+ports and are not counted.) The charter's composition is not. It states *"the 9 row-owning repositories (chunk,
 topic, session, session-question, notes, context-token, review-persistence, tier2-blocking-stats,
 linter-validation)"*. Two of those nine own no rows:
 
@@ -49,8 +50,9 @@ linter-validation)"*. Two of those nine own no rows:
   `infrastructure.operation_event_log` (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:32`–`:47`)
   and its own port doc says so: *"This port intentionally returns aggregated weekly bins rather than
   raw events"* (`src/ports/tier2-blocking-stats-repository.ts:10`–`:11`). It is an **aggregate
-  read-path**, and it is the one port whose entire contract is an aggregate — which makes it the
-  `LD-S3-32` case in §6.3 rather than a row-owning port.
+  read-path**, and it is the one port whose entire contract is an aggregate — which makes it the case
+  §6.3's aggregate rule rules on, rather than a row-owning port. (It is **not** an instance of
+  `LD-S3-32`, which is SUB-6's not-yet-existing aggregate result set; §6.3 keeps the two apart.)
 - **`ReviewPersistencePort` owns no table either.** Its one write method writes into
   `learning_chunks` — the table `ChunkRepository` owns
   (`src/adapters/drizzle/review-persistence-adapter.ts:78`–`:82`). Its other methods are cross-table
@@ -112,11 +114,20 @@ The charter names two write-path invariants. A grep for every query that reaches
 `public.learning_sessions` without an owner predicate returns a third:
 
 `DrizzleSessionRepository.listSessions()` (`src/adapters/drizzle/session-repository.ts:105`–`:118`)
-applies a status filter only when one is passed (`:111`) and applies no other predicate at all.
-Called with `{ status: 'active' }` it is a second unscoped active-session read; called with no
-options **it returns every session row in the database**. It is reached from
-`src/orchestration/learner-context-workflows.ts:99`, in the same `Promise.all` fan-out as
-`getActiveSession`.
+applies a status filter only when one is passed (`:111`) and applies **no owner predicate under any
+argument**. It has exactly one production call site —
+`src/orchestration/learner-context-workflows.ts:100`, in the same `Promise.all` fan-out as
+`getActiveSession` at `:99` — and that caller passes `{ status: 'completed', limit: 1 }`.
+
+**What that caller actually gets today is another learner's most recent completed session**, folded
+into the learner-context aggregate. That is the live exposure, and it is a read of a *completed*
+session rather than an active one.
+
+Two further shapes the method admits and **no caller reaches today** are stated separately, because
+the difference between a live exposure and an available one matters to whoever fixes it: called with
+`{ status: 'active' }` it would be a second unscoped active-session read, and called with no options
+it would return every session row in the database. Neither invocation exists in `src/` or `tests/`
+at this cutoff.
 
 Removing only the two named invariants would leave this one. Registered as **`F-S5-4`**.
 
@@ -125,18 +136,31 @@ Removing only the two named invariants would leave this one. Registered as **`F-
 > `F-S5-4`** (`../C010-system-and-repository-architecture/02_findings-register.md:226`, `:237`,
 > `:249`, `:262`). This chapter allocates C011 findings in the same shape, because the charter's id
 > scheme fixes findings at `F-S<sub-task>-<k>` and this is SUB-5 of C011. **Three of the four C010 ids
-> are actively cited in this package** — `F-S5-2` (the guard above the port boundary) and `F-S5-4`
-> (zero categories reach `holds`) are cited in §4, §8, §9 and §10 of this very chapter.
+> are actively cited in this package**, and all three are cited in this very chapter:
+> C010's `F-S5-2` (the guard above the port boundary) in §4, §10 and §13; C010's `F-S5-4` (zero
+> categories reach `holds`) in §8, §9 and §13; and C010's `F-S5-3` (the tool-surface correction) in
+> §1.5.
 >
-> **The rule that resolves it is the package's existing one, not a new one.** `F-S2-2`
-> (`91_findings-register.md:200`–`:207`) fixes it: *a cross-package id is always written qualified,
-> and a bare id always means this package's own.* Applied here: **a bare `F-S5-<k>` in this package
-> is C011's**; C010's is **always** written with its full package path and its line, as
-> `../C010-system-and-repository-architecture/02_findings-register.md:237`. SUB-4 met the same clash
-> on C010's `F-S4-5` and resolved it the same way, in the namespace note at
+> **The rule that resolves it is an extension of the package's existing one, and the extension is
+> registered rather than presented as pre-existing.** What already exists covers two narrower cases:
+> `README.md` § "Id conventions" fixes the form for **C010 sub-task references**, and `F-S2-2`
+> (`91_findings-register.md:200`–`:207`) fixes it for **cross-package open items**, ruling that *a
+> cross-package id is always written qualified, and a bare id always means this package's own*.
+> Neither ranges over **findings, caps or decision records** — which is precisely the collision this
+> chapter faces. This chapter therefore **extends** the same rule to those id classes: **a bare
+> `F-S5-<k>` in this package is C011's**; C010's is **always** written with its full package path and
+> its line, as `../C010-system-and-repository-architecture/02_findings-register.md:237`. **One
+> deliberate exception, named here so it is not read as a violation:** `CAP-S5-1` is written bare
+> throughout this chapter and is **always C010's** — C011 mints no cap of that id, as
+> `94_caps-and-incomplete-scope.md` § SUB-5 records, so the bare form is unambiguous for that id
+> alone.
+>
+> SUB-4 met the same clash on C010's `F-S4-5` and resolved it the same way, in the namespace note at
 > `04_the-stdio-identity-gate-and-the-bound-context-token.md:694`. No id is renumbered to dodge the
 > collision, because renumbering would break the scheme for one chapter's convenience and SUB-14
-> would have to undo it.
+> would have to undo it. **The README amendment that would make the extension part of the package's
+> stated conventions is routed to SUB-14 (NEU-1007)** under OUT-20, which owns house-style assembly;
+> it is not made here, because `README.md` is another sub-task's artifact.
 >
 > **A note on the shorthand this package writes elsewhere.** Predecessor chapters often cite a
 > sibling as `` 06_…md ``. That form is **invisible to the citation checker** — `scripts/citation-paths/checker.ts:121`
@@ -176,7 +200,10 @@ would confine `client`-kind principals as though they were learners. Registered 
 - **The tool surface is 46 registered / 43 gated / 3 exempt**, re-derived at this cutoff: 46
   `server.registerTool(` call sites across 16 files in `src/server/`, and exactly three names in
   `EXCLUDED_TOOLS` (`src/transport/context-token-middleware.ts:5`–`:9`). This reproduces the settled
-  figure `F-S5-3` and `F-S8-1` of C010 fixed, with no divergence.
+  figure that C010's `F-S5-3`
+  (`../C010-system-and-repository-architecture/02_findings-register.md:249`) fixed and C010's
+  `F-S8-1` diagnosed, with no divergence. **Both ids are C010's**, not this chapter's `F-S5-3`,
+  which is the `AppContext` miscount at §1.2.
 - **The context-token row carries no principal.** `public.context_tokens` has exactly three columns
   — `id`, `created_at`, `expires_at` (`src/infrastructure/db/schema.ts:312`–`:321`). It is a bare
   bearer nonce with a TTL, which is the gap `DR-C11-S4-2` closes.
@@ -250,7 +277,7 @@ which authors the DDL for both columns and is the party that would otherwise emi
 
 **Clause 4 — the adapter instances are request-scoped.**
 Today `createProductionPorts` runs once (`src/composition-root.ts:317`–`:334`), calling `getSql()`
-once at `:318` and passing the one handle into ten adapters, and `createAppContext` returns
+once at `:318` and passing the one handle into nine of the ten adapters — `DrizzleUnitOfWorkAdapter` (`:328`) takes none, resolving the handle itself, and `createAppContext` returns
 `Object.freeze(ctx)` (`src/composition-root.ts:638`) — **one frozen context, shared by every MCP
 session**. That is exactly C010's finding
 `../C010-system-and-repository-architecture/02_findings-register.md:226`: *"One frozen `AppContext`
@@ -310,7 +337,7 @@ unaddressed.
 | 5 | `NotesRepository` | row-owning (`notes`) | **Port layer + DB** | Predicate on all 4 methods. **This is the category carried to `holds` in §8**, and its access-path set is enumerated there. |
 | 6 | `ContextTokenRepository` | row-owning (`context_tokens`) | **Port layer, no owner predicate** | Deliberately different. The token row is what *carries* the principal (`DR-C11-S4-2`); it cannot be confined by the principal it establishes without a circularity. Confinement here is by **unguessable id plus expiry**, which is the existing mechanism, plus `DR-C11-S4-3`'s cutover rejection of unbound rows. `deleteExpired` is a maintenance sweep and is principal-independent by design. |
 | 7 | `LinterValidationRepository` | row-owning (2 `infrastructure` tables) | **Excluded from owner scoping, justified** | Its two tables hold rule-validation corpus and reports keyed to a **rule id**, not to a learner. It is operator-facing machinery. Stated explicitly rather than omitted, because "no ownership column" and "not learner-scoped" are different claims and only the second justifies exclusion. If a corpus entry is ever found to quote learner content verbatim, this row is wrong and the route is a finding back to this chapter. |
-| 8 | `ReviewPersistencePort` | cross-table write + read | **Port layer, scoped as `learning_chunks`** | **The row `F-S5-1` exists for.** It writes into a table it does not own (`review-persistence-adapter.ts:78`–`:82`), so it must carry `ChunkRepository`'s predicate, not one of its own. Its five read methods are aggregates over attempt tables and take the predicate below the aggregation. Scoping `ChunkRepository` alone leaves this route open. |
+| 8 | `ReviewPersistencePort` | cross-table write + read | **Port layer, scoped as `learning_chunks`** | **The row `F-S5-1` exists for.** It writes into a table it does not own (`review-persistence-adapter.ts:78`–`:82`), so it must carry `ChunkRepository`'s predicate, not one of its own. Its six read methods take the same predicate: one plain row read of `learning_chunks` (`getChunk`), one date-range row read (`getReviewsByDateRange`), and four aggregates over the attempt tables, which take it **below** the aggregation. Scoping `ChunkRepository` alone leaves this route open. |
 | 9 | `Tier2BlockingStatsRepository` | aggregate read-path | **Not confinable here — named as escaping** | Its one method aggregates `infrastructure.operation_event_log`, which has **no ownership key and no port-level learner scoping**, so no predicate can be pushed below its aggregation. It returns weekly counts, never rows. Routed to the log-table caps `CAP-S3-3` / `CAP-S4-1` (owner `NEU-986`, co-named `NEU-896`) rather than resolved here. See §6.3. |
 | 10 | `SearchPort` | read-path | **Port layer + DB** | Both methods (`searchByQuery`, `searchByVector`) read chunk and topic rows and take the same predicate as ports 1 and 2. A vector search is a read like any other; similarity ranking does not exempt it. |
 | 11 | `UnitOfWorkPort` | transactional composer | **Inherits, and must be constructed with the principal** | It composes **only three** tx-scoped instances — `chunks`, `topics`, `sessions` (`src/adapters/drizzle/unit-of-work-adapter.ts:17`–`:21`) — by constructing fresh adapters on the transaction handle. Under clause 2 those constructions must pass the principal through; a tx-scoped adapter built without it is an unscoped adapter with a shorter lifetime. |
@@ -356,11 +383,16 @@ async getActiveSession(): Promise<LearningSession | null> {
 ```
 
 The sole predicate is `status = 'active'`. There is no owner predicate and no `LIMIT`: the statement
-fetches **every** active session row in the database and returns the newest by `created_at`. Seven
-distinct production call sites reach it — `src/orchestration/session-workflows.ts:39` and `:184`,
-`src/orchestration/teaching-workflows.ts:157`, `:860`, `:930`, `:1741`, `:1901`, and
-`src/orchestration/learner-context-workflows.ts:99` — plus the `get_active_session` tool handler at
-`src/server/session-lifecycle-tools.ts:178`.
+fetches **every** active session row in the database and returns the newest by `created_at`.
+
+**Seven call sites invoke the repository method directly** — `src/orchestration/session-workflows.ts:39`
+and `:185`, `src/orchestration/teaching-workflows.ts:157`, `:860`, `:930`, `:1901`, and
+`src/orchestration/learner-context-workflows.ts:99`. Two further sites reach it **indirectly**, and
+are counted separately rather than folded into the seven: `src/orchestration/teaching-workflows.ts:1741`
+calls the orchestration wrapper `getActiveSession(deps)` whose body is the call at `:185`, and the
+`get_active_session` tool handler at `src/server/session-lifecycle-tools.ts:178` reaches it through
+`AppContext`. (`src/orchestration/session-workflows.ts:184` is that wrapper's `export async function`
+line; the call itself is `:185`.)
 
 **Removal.** The `where` clause becomes a conjunction of the status predicate and the owner
 predicate, written **inside this method**, from the constructor-bound principal. The unscoped
@@ -417,16 +449,23 @@ Nothing in §8's derivation depends on that DDL existing.
 ### 4.3 The third invariant, which the charter does not name
 
 `DrizzleSessionRepository.listSessions()` (`src/adapters/drizzle/session-repository.ts:105`–`:118`)
-applies a status filter only when one is supplied (`:111`) and no other predicate at any time. It is
-reached from `src/orchestration/learner-context-workflows.ts:99`. Called with `{ status: 'active' }`
-it is a second unscoped active-session read; called with no options it returns every session row in
-the database.
+applies a status filter only when one is supplied (`:111`) and **no owner predicate under any
+argument**. Its sole production call site is
+`src/orchestration/learner-context-workflows.ts:100`, which passes `{ status: 'completed', limit: 1 }`
+— so what it returns today is **another learner's most recent completed session**, folded into the
+learner-context aggregate.
 
-It takes the same removal as §4.1 — the owner predicate is unconditional, and only the status
+It takes the same removal as §4.1 — the owner predicate becomes unconditional, and only the status
 predicate remains optional. It is called out separately because **a change set that implemented
-exactly the charter's two named removals would ship with this one intact**, and the charter's own
-risk `R1` is worded as *"an ownership column lands while the unscoped `getActiveSession()` … still
-permits access"*. This is that risk with a different method name. Registered as `F-S5-4`.
+exactly the charter's two named removals would ship with this one intact.**
+
+**It is a sibling of charter risk `R1` rather than an instance of it, and the distinction is
+recorded rather than blurred.** `R1` is worded as *"an ownership column lands while the unscoped
+`getActiveSession()` … still permits access"* — an **active**-session read. This path is an unscoped
+**completed**-session read on the only invocation any caller makes. It belongs to the same exposure
+class (an unscoped `learning_sessions` query surviving an ownership column) and is named inside
+`R1`'s entry for that reason, but calling it *"`R1` with a different method name"* would misdescribe
+what it returns. Registered as `F-S5-4`.
 
 ---
 
@@ -469,8 +508,8 @@ The 53, by group and line: chunk orchestration 7 (`:520`, `:521`, `:522`, `:524`
 `:545`, `:546`, `:547`, `:549`, `:551`, `:553`, `:555`, `:556`, `:557`, `:558`) · teaching 5
 (`:562`, `:563`, `:564`, `:565`, `:566`) · notes 3 (`:575`, `:576`, `:577`) · recommendation 1
 (`:580`) · search 1 (`:584`) · query 7 (`:593`, `:595`, `:596`, `:597`, `:598`, `:599`, `:600`) ·
-context-token mint 1 (`:605`) · domain and analytics 10 (`:613`, `:615`, `:616`, `:618`, `:619`,
-`:620`, `:623`, `:625`, `:626`, `:630`) · learner context 1 (`:634`). **7+3+2+12+5+3+1+1+7+1+10+1 = 53.**
+context-token mint 1 (`:605`) · domain and analytics 9 (`:613`, `:615`, `:616`, `:618`, `:619`,
+`:620`, `:623`, `:625`, `:626`) · remediation 1 (`:630`) · learner context 1 (`:634`). **7+3+2+12+5+3+1+1+7+1+10+1 = 53.**
 
 Two of those 53 warrant a word, because inheriting a principal is not the same as needing one:
 
@@ -529,8 +568,8 @@ C011's own captures of real learner-derived production data. **Membership at rev
 (`:446`), because SUB-1 executed zero of nine designed spikes for want of any production credential.
 
 **The enforcement point does not confine this class, and could not.** Its quarantine path is
-`_local/scratch/` (`:451`) — gitignored, outside the database, reached by no port and by no SQL
-statement. There is no row for a predicate to attach to. Its confinement is by the terms SUB-1 set:
+`_local/scratch/` — recorded at `:451` as *"gitignored, outside `src/`, `tests/` and `drizzle/`"*. **That it is also outside the database, reached by no port and by no SQL
+statement, is this chapter's own observation rather than SUB-1's wording.** There is no row for a predicate to attach to. Its confinement is by the terms SUB-1 set:
 a named owner, a retention bound, a destruction condition tied to this package's publication, and a
 redaction discipline.
 
@@ -580,7 +619,7 @@ SUB-6's to produce. The rule above is stated so SUB-6 inherits it rather than de
 written before the carrier lands carry no key and **can never be given one**, because the only
 structure that ever held the binding is the process-local map at `src/transport/http.ts:83`, emptied
 by every restart. `R-S16-1` states the consequence for erasure: a `DELETE` predicated on the learner
-key *"reports success while provably missing every pre-cutover row"*.
+key *"reports success while provably missing every pre-cutover row"* (`92_risk-register.md:326`).
 
 **Confinement over the same mixed population fails in the opposite direction, and this chapter is
 where that has to be said.** A read predicated on the ownership key **excludes** every unowned row
@@ -663,8 +702,8 @@ the existing precedent at `tests/integration/server/persistence-tools.test.ts:12
 `CaptureServer` with tools re-registered inside `beforeEach`). Driving at the tool layer rather than
 calling adapters directly is deliberate: it is the layer an attacker reaches, and it exercises
 `AppContext`, the workflows and the adapters together. The 43 gated tools are the surface; the 3
-exempt tools (`init_agent_context`, `get_server_info`, `get_server_workflow`,
-`src/transport/context-token-middleware.ts:5`–`:9`) touch no learner-owned row and carry a T6-style
+exempt tools — `init_agent_context`, `get_server_info` and `get_server_workflow`, listed at
+`src/transport/context-token-middleware.ts:5`–`:9` — touch no learner-owned row and carry a T6-style
 assertion only.
 
 **Not covered, stated rather than omitted:**
@@ -689,7 +728,7 @@ assertion only.
 ### 7.5 What a green run would and would not prove
 
 A green run over T1–T7 across the row-owning ports would establish confinement **on the HTTP path,
-for the tables covered, at the tool layer, under the four changes §8.1 enumerates**. It would not
+for the tables covered, at the tool layer, under the five changes §8.1 enumerates**. It would not
 establish it on STDIO (path 1), for operator paths (path 2), or under concurrency (path 4), and it
 would not lift `CAP-S5-1`, because a test proves a mechanism behaves as designed and the cap is
 about a mechanism being **applied**. §9 states the distinction.
@@ -705,30 +744,52 @@ C010's censuses returned `holds: 0`
 
 ### 8.1 The target state, stated first because a verdict without one is not a result
 
-`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:160`–`:164`
+`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:156`–`:164`
 is explicit: *"A verdict quoted without its target state is not a result."* Three forms are
 legitimate; this derivation uses form **(c), composed**, which *"must list"* the outstanding changes
 it assumes landed — *"'assume isolation is implemented' is not a target state and an evaluation
 against it is void."*
 
-**The system at `origin/develop` @ `cc38cc9`, plus exactly these four changes assumed landed. Nothing
+**The system at `origin/develop` @ `cc38cc9`, plus exactly these five changes assumed landed. Nothing
 else.**
 
 | # | Assumed landed | Source, and its status |
 | --- | --- | --- |
-| **C1** | `public.notes` carries the ownership key `user_id NOT NULL`, keyed to the JWT subject | `NEU-850`'s `OUT-2`, reproduced at `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53`. **Converged upstream decision**, explicitly *"never an existing schema fact"* (`:65`–`:66`). |
+| **C1** | `public.notes` carries the ownership key `user_id NOT NULL`, keyed to **the resolved principal identifier** — the OIDC `sub` on HTTP, the configured transport-principal identifier on STDIO, per `DR-C11-S4-1` clause 2 | `NEU-850`'s `OUT-2`, reproduced at `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`–`:53`. **Converged upstream decision**, explicitly *"never an existing schema fact"* (`:65`–`:66`). |
 | **C2** | The enforcement point of §2 applied to `NotesRepository` — principal-scoped adapter, constructor-bound indivisible pair, request-scoped construction | **This outcome, OUT-8, designed in this chapter.** |
 | **C3** | SUB-4's STDIO identity gate and bound context token | `DR-C11-S4-1`, `DR-C11-S4-2`, published at position 4 in `04_the-stdio-identity-gate-and-the-bound-context-token.md`. |
 | **C4** | SUB-2's identity rule — learner key is `sub` verbatim, kind determined by `sub`-presence, `azp` never a learner key; the `sub \|\| azp` merge at `src/transport/jwt-middleware.ts:127` removed | `DR-C11-S2-1`, `DR-C11-S2-2`, published at position 2 in `02_identity-the-learner-key-and-principal-kind.md`. |
+| **C5** | **The column is reachable on a populated table**: either `public.notes` is empty at cutover, or the column lands nullable with the predicate live and is tightened to `NOT NULL` only after every row carries an owner | Forced by this chapter's own §6.4 — `NOT NULL` cannot be added to a populated table without a backfill or a default. Enumerated because **C1** is otherwise unreachable under the *not assumed* list. |
 
-**Not assumed:** SUB-13's DDL, SUB-6's migration of existing rows, SUB-7's rollout sequence, the
-partial unique index of §4.2, the RLS layer of clause 5, and any test having been run.
+**Two notes on the enumeration, because both are load-bearing.**
+
+**Why `C1` says *resolved principal identifier* rather than *JWT subject*.** `NEU-850`'s `OUT-2` is
+worded *"keyed to the JWT subject"*. On STDIO there is no JWT and no `sub` — the principal comes from
+server-held configuration (`DR-C11-S4-1` clause 2). Taken literally, the upstream wording would give
+`I4` no column to write into on one of the two transports, and the *"same code, same predicate"*
+argument at §8.4 would fail on exactly the transport `C3` exists to gate. **C1** therefore takes the
+wider reading — the key is whatever the resolved principal identifier is — and records that this is a
+widening of the upstream wording rather than a quotation of it. The narrowing at §8.1's next
+paragraph is about *which stores* `OUT-2` reaches, and is a separate question.
+
+**Why `C5` is enumerated rather than folded into `C1`.** `C1` is a statement about the schema; `C5`
+is a statement about the *transition* to it, and the two have different owners. Without `C5` the
+enumeration is incomplete and C010's rule at
+`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:156`–`:158`
+would **void** the evaluation — *"A composed state must list them"* — since `C1` cannot be reached
+from the *not assumed* list on its own. `C5` does **not** import SUB-6's migration: it assumes only
+that *some* reachable transition exists, and states the two shapes it could take. Which one is
+chosen is SUB-6's (OUT-2) and SUB-7's (OUT-3), and neither is assumed here.
+
+**Not assumed:** SUB-13's DDL, **SUB-6's disposition of the existing unowned rows** (`C5` assumes a
+transition exists, not which one), SUB-7's rollout sequence, the partial unique index of §4.2, the
+RLS layer of clause 5, and any test having been run.
 
 **Which scoping of `OUT-2` **C1** assumes, because the corpus states two.**
 `../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`
 says *"every core table"*; C010's own Census B narrows it to *"every learner-scoped **durable
 `public`-schema** store, threaded through the row-owning repository ports"*
-(`../C010-system-and-repository-architecture/09_authority-matrix-validation.md:127`). Which is
+(`../C010-system-and-repository-architecture/09_authority-matrix-validation.md:127`–`:128`). Which is
 meant for the two port-less log tables is C010's `OI-S5-1`, owner `NEU-850`, and this package
 carries its reading as `A-S3-1` rather than deciding it.
 
@@ -776,8 +837,11 @@ The alternatives, and why each costs more:
 
 `SC-S3-12` is also exactly the shape C010 predicted its first positive instance would take: *"a
 durable learner-scoped category on the HTTP path"*
-(`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:189`). Its lifecycle
-cell reads `durable` (`../C010-system-and-repository-architecture/04_state-category-inventory.md:89`).
+(`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:189`). Its **volatility**
+cell reads `durable`
+(`../C010-system-and-repository-architecture/04_state-category-inventory.md:89`); its *lifecycle*
+cell, a different column of the same row, reads *"created → never updated in place → deleted and
+re-added"* — which is the property that makes the write set two statements rather than three.
 
 ### 8.3 The enumerated access-path set for `public.notes` — and the proof that it is closed
 
@@ -798,18 +862,28 @@ closure argument, because an enumeration nobody can check is not better than non
 1. **The `notes` table object is imported in exactly one file.** A search for an import of `notes`
    from the schema module across all of `src/` returns a single hit:
    `src/adapters/drizzle/notes-repository.ts:4`. No other module can name the table through Drizzle.
-2. **Zero raw SQL anywhere in `src/` names the table.** A case-insensitive search for `from notes`,
+2. **No raw SQL on any production path names the table.** A case-insensitive search for `from notes`,
    `into notes`, `update notes`, `delete from notes` and `public.notes` across `src/` returns
-   nothing. The one raw-SQL escape hatch this codebase uses elsewhere — `this.db.execute(sql\`…\`)`,
-   as at `src/adapters/drizzle/tier2-blocking-stats-repository.ts:34` — is not used for `notes`.
+   nothing. The raw-SQL escape hatch this codebase uses elsewhere is
+   `this.db.execute(sql\`…\`)`, as at
+   `src/adapters/drizzle/tier2-blocking-stats-repository.ts:34`. **There is exactly one such call
+   that names `notes`, and it is the test-only truncate fact 4 covers** — no other, and none on a
+   production path.
 3. **`UnitOfWorkPort` does not compose it.** `src/adapters/drizzle/unit-of-work-adapter.ts:17`–`:21`
    constructs exactly three tx-scoped adapters — `chunks`, `topics`, `sessions`. There is no
    tx-scoped `NotesRepository`, so there is no second, differently-constructed instance of it
    anywhere in the process.
-4. **The only other reference to the table in the whole codebase is a test-only truncate.**
+4. **The only other reference on a data path in `src/` is a test-only truncate.**
    `src/infrastructure/db/client.ts:78` lists `notes` in `clearAllTables`'s single
    `TRUNCATE … CASCADE`, and `src/infrastructure/db/client.ts:16`–`:32` throws unless the database
    name contains `_test`. It is not a production path.
+
+   **Three further references exist and are not access paths**, stated so the closure claim is not
+   read as wider than it is: the table's own definition at `src/infrastructure/db/schema.ts:288`,
+   and its `CREATE TABLE` / `ALTER TABLE` DDL in `drizzle/0006_safe_major_mapleleaf.sql` and
+   `drizzle/0021_add_gap_note_type.sql`. A schema declaration and a migration define the table; they
+   do not read or write a row at request time, so `I3` — which quantifies over *"every read path and
+   every write path that reaches the category"* — does not range over them.
 
 **Therefore the set {W1, R1, R2, W2} is complete**, and the enumeration is *closed by the module
 boundary* rather than by exhaustive search — which is what makes it checkable rather than merely
@@ -853,7 +927,7 @@ category out."*
 expressed as a value the server holds?**
 *Answered from the `Store` column plus the schema it cites.*
 
-Today: **fails.** `public.notes` (`src/infrastructure/db/schema.ts:288`–`:311`) has seven columns —
+Today: **fails.** `public.notes` (`src/infrastructure/db/schema.ts:288`–`:310`) has seven columns —
 `id`, `target_type`, `target_id`, `note_type`, `content`, `author`, `created_at` — and none is an
 owner. This is why C010's Census A returns `not-evaluable` for this row.
 
@@ -983,10 +1057,10 @@ letter while violating its purpose.
 > ## `SC-S3-12` — **`holds`**
 >
 > **Target state:** composed, form (c) — `origin/develop` @ `cc38cc9` plus **C1**, **C2**, **C3**,
-> **C4** as enumerated at §8.1, and nothing else.
-> **`I1`** in domain · **`I2`** attributed · **`I3`** confined on all four enumerated paths, at the
-> adapter · **`I4`** identical on both transports · **`I5`** server-derived, kind determined and
-> used as an indivisible pair. **All five pass.**
+> **C4** and **C5** as enumerated at §8.1, and nothing else.
+> **`I1`** in domain · **`I2`** attributed · **`I3`** confined on all four enumerated access paths, at
+> the adapter · **`I4`** identical on both transports · **`I5`** server-derived, kind determined and
+> used as an indivisible pair. **All five checks pass.**
 
 **This is the isolation invariant's first published positive instance.** It establishes that the
 invariant is **satisfiable** — that some reachable state of this system returns `holds` for some
@@ -1002,7 +1076,7 @@ category — which is the one thing C010 could not establish and explicitly reco
   production in full**, and success for this outcome is measured as movement against that census, not
   as its replacement.
 - **One category is one category.** Fourteen other Census-B `fails-confinement` rows are untouched
-  here, and the thirty in-domain categories are not claimed. Nothing in §8 generalises by itself: each
+  here, and the twenty-six in-domain categories are not claimed. Nothing in §8 generalises by itself: each
   would need its own enumerated access-path set, and `SC-S3-12` was chosen *because* its set closes
   most cleanly (§8.2).
 - **Nothing is applied.** No file under `src/` or `drizzle/` changes (§14). The verdict is against a
@@ -1049,7 +1123,7 @@ package had.
 **The cap is NOT lifted, and this chapter does not claim it is.** The cap's own lifting text at
 `:189` is *"**One state category evaluating to `holds`** — which requires all three preconditions
 above to land together"*. **Land** is the operative word. §8's verdict is against target state (c),
-composed of four changes *assumed* landed; none has landed.
+composed of five changes *assumed* landed; none has landed.
 
 > **Lifting condition, stated as a landing condition on applied work.** `CAP-S5-1` lifts when
 > `SC-S3-12` — or any category — evaluates to `holds` against target state **(a), as it stands**, at
@@ -1065,7 +1139,7 @@ composed of four changes *assumed* landed; none has landed.
 > The party that observes all four is the implementation charter `NEU-896` hands the work to. **It is
 > not this package**, which may change no file under `src/` or `drizzle/`. Recorded as **`OI-S5-2`**
 > — and note that **C010 also has an `OI-S5-2`**, a different item, closed by SUB-2
-> (`02_identity-the-learner-key-and-principal-kind.md:8`); per `F-S2-2`'s rule a bare `OI-S5-2` in
+> (`02_identity-the-learner-key-and-principal-kind.md:355`); per `F-S2-2`'s rule a bare `OI-S5-2` in
 > this package means this package's own.
 
 **Co-ownership is unchanged.** `NEU-986` remains the cap's owner at C010's package-completeness gate.
@@ -1193,7 +1267,7 @@ enforcement point.
 authenticated subject per 60 000 ms) already keys on a per-subject value at
 `src/transport/rate-limit-middleware.ts:76`–`:79`, so a determined principal makes that limiter
 *more* correct, not less — though note it **fails open** when the subject is absent (`:79`), which is
-the same fail-open shape as the session binding at `src/transport/http.ts:58` that `R1` names.
+the same fail-open shape as the session binding at `src/transport/http.ts:57` that `R1` names.
 `OBJ-12` (exactly one concurrent boot-time migrator, *"the platform cannot currently guarantee this"*)
 is untouched by this design, which adds no migration. `F-S15-3`'s unbounded process-local maps are
 untouched: **the enforcement point introduces no new process-local per-principal cache**, deliberately,
@@ -1215,8 +1289,8 @@ and returned empty: no contradiction with C010 was found, and no amendment is ro
 | `DR-C10-S5-1` — the invariant, `I1`–`I5`, the ordering rule | §8 applies all five in order, first-failure-names-the-verdict, and answers each from a cited artifact | **Yes.** Nothing is re-derived; the procedure is applied as published. |
 | §3.4.1 — `I3`'s asymmetry, `holds` requires an enumerated access-path set | §8.3 authors that set for `SC-S3-12` and closes it by module boundary | **Yes**, and this is the clause the chapter exists to satisfy rather than to work around. |
 | §3.2 — a verdict without a target state is not a result | §8.1 states form (c) and enumerates its four assumed changes | **Yes.** |
-| `F-S5-4` — no category reaches `holds` | Consumed as the census this outcome's movement is measured against; §8.5 states it remains true of the deployment | **Yes.** §8's verdict is against a composed state and is not offered as a counter-example to it. |
-| `F-S5-2` — the guard is above the port boundary, outside the envelope | Consumed in §4.2 as the reason the guard must be **deleted** rather than scoped | **Yes**, and §10 records that the design moves it inside the envelope. |
+| C010's `F-S5-4` (`../C010-system-and-repository-architecture/02_findings-register.md:262`) — no category reaches `holds` | Consumed as the census this outcome's movement is measured against; §8.5 states it remains true of the deployment | **Yes.** §8's verdict is against a composed state and is not offered as a counter-example to it. |
+| C010's `F-S5-2` (`../C010-system-and-repository-architecture/02_findings-register.md:237`) — the guard is above the port boundary, outside the envelope | Consumed in §4.2 as the reason the guard must be **deleted** rather than scoped | **Yes**, and §10 records that the design moves it inside the envelope. |
 | `A-28` — the tolerance envelope | §10, checked; inside, under two of three named forms | **Yes.** Invalidating outcome did not fire. |
 | `CAP-S5-1` — zero positive instances | §9, discharged and explicitly **not** lifted | **Yes.** |
 | `DR-C10-S6-1` — `M-A`, the MCP core is the exclusive writing **tier** | The enforcement point sits inside the MCP core and creates no new writing tier; the web tier gains no credential | **Yes.** Note the quantifier ranges over **tiers**, not components, per the `NEU-987` / `F-S10-6` amendment — this chapter's per-adapter placement is a statement about components inside the core and does not touch `M-A`. |
@@ -1280,7 +1354,7 @@ All scoped to `S5`, computed from the charter's id scheme and not continued from
 | Caps (`94_caps-and-incomplete-scope.md`) | none filed; `CAP-S5-1` is **C010's**, discharged here under OUT-8 and recorded, not re-filed |
 | Stand-ins (`95_stand-in-assumption-register.md`) | `A-S5-1` |
 | Spikes (`96_spike-register.md`) | none filed |
-| Completeness gate (`97_package-completeness-gate.md`) | `G-S5-1` … `G-S5-12` |
+| Completeness gate (`97_package-completeness-gate.md`) | `G-S5-1` … `G-S5-21` |
 | Outcome (`90_outcome-register.md`) | `OUT-8`'s row |
 | Decision records | `DR-C11-S5-1`, `DR-C11-S5-2` |
 
@@ -1293,21 +1367,33 @@ this chapter turns on a production quantity: the design's costs are round-trip c
 off the code.
 
 **Namespace note — and it is sharper here than for any other sub-task.** These `S5` ids belong to
-**SUB-5 of C011**. **C010 has its own SUB-5**, and it allocated `F-S5-1` … `F-S5-4`, `OI-S5-1` …
-`OI-S5-3`, `CAP-S5-1` and `DR-C10-S5-1` / `DR-C10-S5-2`. Six of those C010 ids are already cited in
-this package — 82 occurrences across the eight registers and six chapters — and three of them are
-cited in **this chapter**. The house rule in `README.md` § "Id conventions", restated by `F-S2-2`
-(`91_findings-register.md:207`), resolves every case: **a C010 record is always cited with its full
-package path; a bare id always means this charter's own.** No id is renumbered to avoid the clash.
-`G-S5-<k>` follows SUB-2 and SUB-4's sub-task-scoped gate ids rather than SUB-1 and SUB-3's global
-`G-<n>` sequence, for the collision reason `DR-C11-S15-3` gives.
+**SUB-5 of C011**. **C010 has its own SUB-5**, and it allocated nine ids of the same shape:
+`F-S5-1` … `F-S5-4`, `OI-S5-1` … `OI-S5-3`, `CAP-S5-1`, and the two decision records
+`DR-C10-S5-1` / `DR-C10-S5-2` (whose `DR-C10-` prefix makes them unambiguous). Six of the seven
+collision-prone ids were already cited across this package before this chapter, and **three are
+cited in this chapter**: C010's `F-S5-2`, `F-S5-4` and `F-S5-3`.
+
+**No occurrence count is asserted, deliberately.** A grep cannot produce one: since this chapter
+mints C011 ids of the same strings, a search for `F-S5-2` now returns both packages' and no
+mechanical count can separate them. What *is* countable, and is the useful number, is that **275
+fully-qualified `../C010-system-and-repository-architecture/…md` citations** exist across the
+package — the form the rule requires.
+
+The rule that resolves every case is the one §1.3 states and **extends**: `README.md` §
+"Id conventions" covers C010 *sub-task* references and `F-S2-2` (`91_findings-register.md:207`)
+covers cross-package *open items*; this chapter extends the same discipline to findings, caps and
+decision records — **a C010 record is always cited with its full package path and line; a bare id
+always means this charter's own**, with `CAP-S5-1` the one named exception, always C010's because
+C011 mints no cap of that id. The README amendment is routed to **SUB-14 (NEU-1007)**. No id is
+renumbered to avoid the clash. `G-S5-<k>` follows SUB-2 and SUB-4's sub-task-scoped gate ids rather
+than SUB-1 and SUB-3's global `G-<n>` sequence, for the collision reason `DR-C11-S15-3` gives.
 
 ---
 
 ## 16. What this chapter does not establish
 
 - **That any category `holds` on the deployment as it stands.** §8's verdict is against a composed
-  target state with four enumerated assumptions. Under target state (a) `SC-S3-12` is
+  target state with five enumerated assumptions. Under target state (a) `SC-S3-12` is
   `not-evaluable`. C010's `F-S5-4` is unchanged. Owner of the applied result: the implementation
   charter `NEU-896` hands the work to.
 - **That `CAP-S5-1` is lifted.** It is discharged — a positive instance now exists — and its lifting

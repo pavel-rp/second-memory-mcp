@@ -72,7 +72,7 @@ inherit a principal without any signature change — see `../05_the-enforcement-
 above. The cost is allocation, not connections, so it does not move `OBJ-1`.
 
 **Why the database is second and not first.** The envelope admits either or both. The pool is shared
-at `max: 4` (`src/infrastructure/db/client.ts:42`) and connections are reused, so a session-scoped
+at `max: 4` (`src/infrastructure/db/client.ts:42` — a line number, not a tool count) and connections are reused, so a session-scoped
 GUC is a correctness hazard across requests. Making RLS primary would therefore require wrapping every
 row-owning read in a transaction, which increases connection hold time against a pool of four and
 interacts with `OBJ-1` in a way no observation in this environment can settle. Recommending it as a
@@ -83,12 +83,12 @@ second layer keeps the benefit without making the primary mechanism depend on an
 | # | Alternative | Why it lost |
 | --- | --- | --- |
 | 1 | **Enforce in the orchestration layer**, wrapping each workflow with an ownership check | Reproduces exactly `../../C010-system-and-repository-architecture/02_findings-register.md:237` — above the port boundary, outside `A-28`'s envelope, and failing `I3`'s placement conjunct. It also cannot see the three `createNote` write paths uniformly: two of them do not run through `notes-workflows.ts`. |
-| 2 | **Enforce in the tool layer** (`src/server/`), validating ownership before delegating | Higher still, and worse: 46 registered tools would each need the check, and a new tool added without it silently bypasses confinement. Enforcement whose completeness depends on 46 authors remembering is not enforcement. |
-| 3 | **Pass the principal as a method argument on every port method** | Caller-asserted at the point of use, failing `I5`'s first limb. Also a change to every one of ~90 port method signatures and all their call sites, against a change to ten constructors. |
+| 2 | **Enforce in the tool layer** (`src/server/`), validating ownership before delegating | Higher still, and worse: all 43 gated tools would each need the check, and a new tool added without it silently bypasses confinement. Enforcement whose completeness depends on every future tool author remembering is not enforcement. |
+| 3 | **Pass the principal as a method argument on every port method** | Caller-asserted at the point of use, failing `I5`'s first limb. Also a change to all 82 port method signatures and all their call sites, against a change to ten constructors. |
 | 4 | **Make RLS the primary and only enforcement point** | Inside the envelope, and genuinely attractive: it cannot be bypassed by any code path. But on a shared pool with reused connections it requires a transaction-local setting and therefore a transaction around every row-owning read, most of which have none today. That is an unpriced cost against `OBJ-1`'s pool of four, and pricing it needs `t_db`, which is unobserved (`OI-S15-3`). Kept as clause 5's second layer rather than discarded. |
 | 5 | **A process-local per-principal cache of scoped port instances**, to avoid per-request construction | Would inherit exactly the leak shape `F-S15-3` records for the existing process-local maps, which evict only on a clean close and have no TTL and no size bound. The thing being avoided — object allocation — is not a measured cost, so the trade is a real leak against an imagined saving. |
 | 6 | **Take `principal_id` alone and treat the kind as advisory** | The status quo one layer down, and the failure `R-S4-1` exists to name: a predicate selecting on the identifier alone treats a service principal's `azp` as an owner key, silently, returning plausible rows. The whole point of the residual routed to this sub-task was to close this. |
-| 7 | **Read the two-valued `principal_kind` domain** (`user | client`) that `DR-C11-S4-2` fixes for `context_tokens` | Has no representation for *no principal was determined at all*, so an unauthenticated path and an authenticated machine path collapse into one refusal and an operator cannot tell an outage from an authorization boundary. The two-valued column is correct for its own table, where `none` is unreachable by construction. |
+| 7 | **Read the two-valued `principal_kind` domain** (`user \| client`) that `DR-C11-S4-2` fixes for `context_tokens` | Has no representation for *no principal was determined at all*, so an unauthenticated path and an authenticated machine path collapse into one refusal and an operator cannot tell an outage from an authorization boundary. The two-valued column is correct for its own table, where `none` is unreachable by construction. |
 
 ## Consequences
 

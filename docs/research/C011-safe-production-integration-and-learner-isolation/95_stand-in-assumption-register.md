@@ -545,6 +545,75 @@ and is cited, not restated.
 
 ---
 
+### SUB-8
+
+**Why this entry carries an `A-S8-<k>` id and not an `A-<n>` one.** `A-<n>` continues the charter's
+own assumption numbering and is reserved for a stand-in that stands in for a **numbered charter
+assumption** — `A-33` for assumption 33, `A-34` for assumption 34. The entry below stands in for no
+charter assumption. It is a value this sub-task had to choose in order to discharge a term another
+sub-task's contract left open, so it takes the sub-task-scoped form on the rule
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` fixed for exactly this case, and
+already used by SUB-15, SUB-2, SUB-3 and SUB-16.
+
+## `A-S8-1` — Thirty days is the completion deadline a data-subject request is answered within
+
+**Status:** `[unconfirmed]`
+**Stands in for:** No charter assumption. It stands in for the unanswered half of `OI-S3-1` in
+`93_open-items-and-provisional-register.md` — the single register record of the controller/processor
+role and lawful-basis selection, owned by the creator as sole operator and **cited here rather than
+re-raised**. A statutory response period is a consequence of a lawful-basis and role determination,
+and this package makes neither.
+
+**Assumption.** That **30 days from an authenticated, verified request** is the right completion
+deadline for both export and erasure, and that **7 days** is the right bound on purging
+already-collected copies after a withdrawal, with the withdrawal's own processing switch taking
+effect on the next request. The value is **derived from the one-month response norm of the
+GDPR-shaped baseline the charter ratified at intake** — a product-and-engineering position, stated so
+that `SIG-S16-3` has a threshold at all. **It is not observed, not calibrated, and not a legal
+determination.** No request has ever been made on this deployment and no propagation has ever been
+timed, so the number is a policy choice rather than the centre of any distribution
+(`94_caps-and-incomplete-scope.md` § `CAP-S8-1`).
+
+**Owner.** **The creator, as sole maintainer and sole operator of the production deployment** — the
+only party who can commission the determination that would replace the position with a duty, and the
+only party who would have to meet the deadline.
+
+**Tolerance envelope.** The design tolerates **any deadline the propagation can be *proved* complete
+within**. Nothing in the mechanism depends on the number's magnitude: `DR-C11-S16-3`'s contract
+carries `deadline_at` **on the proof**, so a different value changes a field's contents and no
+structure. Concretely the envelope holds for any value from the propagation's true duration — which
+is unmeasured — up to and including 30 days, and it tolerates **different values for export and
+erasure**, and a shorter one for withdrawal, which is why §9.1 already states three. It also
+tolerates the deadline being *shortened by determination*, provided the shortening happens before an
+emission exists to breach it.
+
+**Invalidating outcome.** **A determination that fixes a deadline shorter than the propagation can be
+proved complete within.** That is the specific outcome that breaks the design rather than merely
+adjusting it: `SIG-S16-3` fires when a copy-class proof is missing at `t ≥ deadline_at`, so a
+deadline below the achievable propagation time makes the signal fire on **every** request by
+construction — at which point the signal is switched off in practice and the detection capability
+`16_attribution-and-detection.md` §3 records is lost rather than tightened. A **longer** determined
+deadline does not invalidate anything; it merely makes this position conservative. Secondarily, the
+entry is invalidated if a determination establishes that no fixed deadline applies at all, since the
+threshold would then have no basis to rest on.
+
+**Re-validation trigger.** **`OI-S3-1` closes** — the owner states the controller/processor role and
+the lawful basis each processing purpose rests on. On that event, re-check: this entry's status;
+`08_consent-and-what-a-learner-can-export-and-erase.md` §9.1's four deadline rows; OUT-11's
+outcome-register row, whose fifth measure limb is stated against this value; and
+`92_risk-register.md` § `R-S8-3`, whose severity depends on how far the determined deadline sits from
+the achievable propagation time. **Additionally: SUB-9 (NEU-1003) publishes its completion-proof
+design with a copy-class cardinality**, which is the first point at which the achievable propagation
+time becomes estimable at all and therefore the first point at which the envelope can be checked
+rather than assumed.
+
+---
+
+**SUB-8 register totals at revision 1:** one stand-in, `A-S8-1`, carrying a named owner, a stated
+tolerance envelope, a named invalidating outcome and an observable re-validation trigger — **none
+left blank for SUB-14 to fill**. **Zero charter-continued `A-<n>` ids**, correctly: this sub-task
+stands in for no numbered charter assumption. **Zero second records** — `OI-S3-1` is the single
+register record of the underlying determination and is cited, not restated.
 ### SUB-5
 
 *`NEU-997`, covering `OUT-8`. One entry, taking the sub-task-scoped form `DR-C11-S15-3` fixes: it is

@@ -486,6 +486,51 @@ they can close two items in one read-only query.
 
 ---
 
+### SUB-8
+
+## `SPK-S8-1` — Which model provider does production use, and does learner content therefore leave the deployment?
+
+| Field | Value |
+| --- | --- |
+| **Id** | `SPK-S8-1` |
+| **Sub-task** | SUB-8 (NEU-1002) |
+| **Question** | What are `EMBEDDING_PROVIDER` and `CLASSIFIER_PROVIDER` set to on the running production container, and — where either resolves to a hosted provider — what is that provider's stated data-processing region? It has a wrong answer in both directions. If a hosted provider is configured, learner chunk content is transmitted outside the deployment on every embedding and every classification, which is a copy `03_learner-data-inventory-and-classification.md` inventories only as data *in transit* and which no erasure in this package reaches. If a local provider is configured, the consent purpose `CP-S8-3` is genuinely severable and may be offered; if not, it is **inseparable from the service** and offering consent for it would capture a consent that cannot be withdrawn — the defect `91_findings-register.md` § `F-S8-1` reports for a different purpose. |
+| **Why reading could not settle it** | The **branches** are readable; the **value that selects between them** is not. `src/config/resolve-embedding-config.ts:25` and `src/config/resolve-classifier-config.ts:80` each read a variable from the process environment, and each adapter has a hosted branch (`src/adapters/langchain/embedding-adapter.ts:88`–`:91`; `src/adapters/langchain/content-classifier-adapter.ts:191`, `:199`–`:201`) and a non-hosted one. The container is deployed by SSH plus `docker compose` to a host named by a repository secret; `.env.example` shows the variables' *shape*, never the deployed value, and `.github/workflows/cd-prod.yml` passes secrets it does not print. **No repository artifact records what is set on the running host.** The provider's own processing region is not a repository fact at all. This is the same class of unreadability `OI-S1-9` records for hosting and monitoring, narrowed to two variables — and it is **not** answered by closing `OI-S1-9`, which establishes where the deployment runs and says nothing about where its outbound calls terminate. |
+| **Exit condition** | The operator states, for the running production container, the resolved value of `EMBEDDING_PROVIDER` and of `CLASSIFIER_PROVIDER` — **the provider name only, never any key material, which is a credential** — and, for each that names a hosted provider, that provider's stated data-processing region. The statement is appended here. |
+| **Method** | **One read-only question to the operator**, plus, if offered, read-only inspection of the running container's environment for the *presence and value of those two variable names only*. `OPENAI_API_KEY` and every other secret is **never** read, transcribed, copied or appended. **No mutation of any kind**: no tool call, no `init_agent_context` (which would mint a `context_tokens` row), no token minted, no request issued to any model provider. A second, weaker route exists and is **declined**: inferring the provider from whether `learning_topics.summary_embedding` is populated would establish only that *some* embedder ran, never which one, and would require a production read for an answer it cannot give. |
+| **Quarantine path** | Not applicable — nothing was executed. Nothing landed under `src/`, `tests/` or `drizzle/`, and nothing was merged as product code. This sub-task changed **zero** files under `src/` and **zero** under `drizzle/`, checked mechanically with `git diff --name-only origin/develop` before every commit. No scratch tree was created, because the spike was not executed. |
+| **Date** | 2026-08-25 — the date execution was determined to be **impossible**. No production credential of any kind was present in the authoring environment: `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` are all unset, re-probed at this cutoff, and the operator was not reachable from it. |
+| **Result** | **Not executed.** No observation of any kind was taken. Nothing about the deployed configuration is reported, and **no value is inferred from the presence of either branch in the source** — a branch that exists says nothing about which one runs. `08_consent-and-what-a-learner-can-export-and-erase.md` §3 accordingly states `CP-S8-3`'s severability **as a condition** and does not assert which branch the deployment is on. |
+| **Confidence** | **`none`** — there is no result to hold a confidence in. What would raise it: executing the single question once. Nothing available in the repository can raise it, because the question is definitionally about state outside the repository. |
+| **Expiry** | **2027-02-25** — six months from the design date, or **immediately upon any change to either `resolve-*-config.ts` provider-selection site, to either adapter's provider branching, or to the deploy workflow's environment handling**, whichever is sooner. |
+| **Expiry rationale** | The question is about two deployed environment variables, either of which can change on any deploy — and the deployment auto-deploys from `develop` on green CI at a measured ≥3.29 restarts/day (`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`). Six months is not a claim that the answer is stable for six months; it is the outer bound at which an unexecuted design should be re-read against a codebase that will have moved. **The dangerous stale direction here is a negative:** a recorded *"no hosted provider"* would license SUB-9 to close its copy-class enumeration and SUB-12 to drop an external processor from its threat model, and a single environment-variable change would silently falsify both. The code-change clause is what protects against that, not the date. |
+| **Routes to** | `93_open-items-and-provisional-register.md` § `OI-S8-1`, which carries the unclosed claim with its named owner. It gates the consent purpose `CP-S8-3` in `08_consent-and-what-a-learner-can-export-and-erase.md` §3, and is consumed by **SUB-9** (NEU-1003) for copy enumeration and **SUB-12** (NEU-1004) for the threat model. |
+
+---
+
+**SUB-8 register totals at revision 1:** one spike, `SPK-S8-1`, **designed and not executed**,
+carrying a stated method, a stated exit condition, a mandatory expiry with its rationale, and a route
+to an owned open item. **One of one** corresponds to the single new open item `OI-S8-1` in
+`93_open-items-and-provisional-register.md`, on the same rule SUB-1 applied.
+
+**Cumulative across SUB-1, SUB-2, SUB-15, SUB-16, SUB-4 and SUB-8: twenty spikes designed, zero
+executed** — nine (`SPK-S1-1` … `SPK-S1-9`), four (`SPK-S15-1` … `SPK-S15-4`), three
+(`SPK-S2-1` … `SPK-S2-3`), one (`SPK-S16-1`), **two (`SPK-S4-1`, `SPK-S4-2`)** and one (`SPK-S8-1`).
+**SUB-4's two are counted here.** The preceding SUB-16 note's *"seventeen"* was the package total at
+the moment SUB-16 shipped and is not amended; SUB-4 (NEU-996) landed on `develop` between that note
+and this one, so a reader adding one to seventeen would undercount by two. The
+`observed-in-production`
+evidence label has still been used **zero times** anywhere in this package. This sub-task adds a
+spike and no observation, which is the same arithmetic SUB-2 and SUB-16 each reported, and it is
+stated here rather than left for a reader to compute. `R13` carries the risk; `CAP-S8-1` caps what
+this sub-task's own duties may be read to mean in consequence.
+
+**No second record is raised.** `SPK-S8-1` asks about two environment variables, as `SPK-S16-1` does
+about a third — but the **questions** are distinct (which model provider is selected, versus whether
+the audit writer is mounted), the items are distinct (`OI-S8-1` versus `OI-S16-1`), the resolving
+events are different operator statements, and closing either leaves the other open. The overlap is
+recorded so that whoever reaches the operator knows **three** environment facts can be settled in one
+conversation.
 ### SUB-5
 
 **No spike is designed or filed by this sub-task, and the package total is therefore unchanged at
@@ -527,8 +572,19 @@ off the code**, never a measurement.
 
 ---
 
-**SUB-5 register totals at revision 1:** **zero spikes.** The cumulative package figure is unchanged
-— **seventeen spikes designed across SUB-1, SUB-2, SUB-4, SUB-15 and SUB-16; zero executed.** SUB-5
-adds none, so no reconciliation of the cumulative count is required by this section. **Zero second
-records:** `SPK-S1-1` and `OI-S15-3` are cited from their single owning records rather than
-re-designed here.
+**SUB-5 register totals at revision 1:** **zero spikes.** SUB-5 adds none, so the cumulative package
+figure is unchanged by this section.
+
+**The cumulative figure itself is reconciled here, because two published totals disagree.** Counting
+the entry headings in this register at cutoff `cc38cc9` gives **twenty designed, zero executed**:
+SUB-1 nine (`SPK-S1-1` … `SPK-S1-9`), SUB-2 three, SUB-4 two, SUB-15 four, SUB-16 one, SUB-8 one —
+9 + 3 + 2 + 4 + 1 + 1 = **20**. SUB-16's totals paragraph states *"seventeen"*, which was the total
+with SUB-4's two omitted and before SUB-8 landed; SUB-4's own section already corrected the arithmetic
+of its day to **nineteen** and explained why. **This section restates the count rather than repeating
+either figure**, because a cumulative total that is only correct on the day it was written is the
+defect SUB-4 recorded, not a convention to continue. No predecessor's text is edited — this register
+is append-only — and the reconciliation is routed to **SUB-14 (NEU-1007)** under OUT-20, which
+aggregates the band.
+
+**Zero second records:** `SPK-S1-1` and `OI-S15-3` are cited from their single owning records rather
+than re-designed here.
