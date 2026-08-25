@@ -513,9 +513,13 @@ carrying a stated method, a stated exit condition, a mandatory expiry with its r
 to an owned open item. **One of one** corresponds to the single new open item `OI-S8-1` in
 `93_open-items-and-provisional-register.md`, on the same rule SUB-1 applied.
 
-**Cumulative across SUB-1, SUB-2, SUB-15, SUB-16 and SUB-8: eighteen spikes designed, zero
+**Cumulative across SUB-1, SUB-2, SUB-15, SUB-16, SUB-4 and SUB-8: twenty spikes designed, zero
 executed** — nine (`SPK-S1-1` … `SPK-S1-9`), four (`SPK-S15-1` … `SPK-S15-4`), three
-(`SPK-S2-1` … `SPK-S2-3`), one (`SPK-S16-1`) and one (`SPK-S8-1`). The `observed-in-production`
+(`SPK-S2-1` … `SPK-S2-3`), one (`SPK-S16-1`), **two (`SPK-S4-1`, `SPK-S4-2`)** and one (`SPK-S8-1`).
+**SUB-4's two are counted here.** The preceding SUB-16 note's *"seventeen"* was the package total at
+the moment SUB-16 shipped and is not amended; SUB-4 (NEU-996) landed on `develop` between that note
+and this one, so a reader adding one to seventeen would undercount by two. The
+`observed-in-production`
 evidence label has still been used **zero times** anywhere in this package. This sub-task adds a
 spike and no observation, which is the same arithmetic SUB-2 and SUB-16 each reported, and it is
 stated here rather than left for a reader to compute. `R13` carries the risk; `CAP-S8-1` caps what

@@ -34,7 +34,7 @@ record of it.
 
 **It is not measured.** No production credential exists in the environment this package was written
 in: `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` are all unset, re-probed at this cutoff.
-Across five merged chapters **zero spikes have executed** and the evidence label
+Across six merged chapters **zero spikes have executed** and the evidence label
 `observed-in-production` has been used **zero times**. No consent has ever been captured, no export
 has ever been produced, and no erasure has ever been run. `94_caps-and-incomplete-scope.md` §
 `CAP-S8-1` states that limit; `92_risk-register.md` § `R13` is cited for the evidence position rather
@@ -42,8 +42,10 @@ than restated.
 
 **One qualification the package requires.** Per `91_findings-register.md` § `F-S2-2`, an id can denote
 different facts in C010 and C011. Every cross-package reference in this chapter is written
-**qualified**, and §14 discloses the one id shape this sub-task allocates that collides with a C010
-id.
+**qualified**, and §14.1 discloses **all six** id shapes this sub-task allocates that collide with a
+C010 id. The collision is systematic rather than incidental: C010 also had a sub-task 8, and the
+`S<n>` segment is a **sub-task number rather than a package-unique one** — the same reason SUB-3
+gave for writing C010's `F-S3-3` and `CAP-S3-1` qualified.
 
 ---
 
@@ -75,7 +77,7 @@ answer they gave, by any route the product exposes.
 C010's per-state authority matrix assigns exactly one authority per category by an **ordered rule
 whose first match wins** (`../C010-system-and-repository-architecture/08_per-state-authority-matrix.md:103`).
 The consent record is a category C010 never inventoried, so the rule is applied to it here rather
-than looked up. The reasoning, the component definitions and five rejected alternatives are in
+than looked up. The reasoning, the component definitions and seven rejected alternatives are in
 `decision-records/DR-C11-S8-1_the-consent-record-and-the-consent-boundary.md`; the result:
 
 > **Clause 2 fires. Authority is `CMP-S4-7`, the orchestration workflows. Exactly one authority.**
@@ -104,7 +106,9 @@ it"*
 producers is recorded as **a defect in the inventory** rather than a tie.
 
 **Consistent with the revision this package must cite.** The matrix is cited in the form `10_…md`
-itself fixes — **`08_…md` + `10_…md`, revision `post-validation` (`SUB-16 of C010` / NEU-979)**
+fixes, **qualified per `F-S2-2`** — **`08_…md` + `10_…md`, revision `post-validation`
+(`SUB-16 of C010` / NEU-979)**. `10_…md` writes the sub-task bare, as *"SUB-16"*; this package adds
+*"of C010"* because a bare `SUB-n` means **this** charter's own here, and C011 has its own SUB-16
 (`../C010-system-and-repository-architecture/10_republished-authority-matrix.md:62`–`:65`). That
 revision carries the authority vocabulary forward unchanged and revises only two rows' **write path**,
 never their authority
@@ -155,7 +159,8 @@ is the thing a learner will get wrong.
 | Running a study session, posing questions, recording answers and grades | **No** | Contract | None |
 | Search over the learner's own corpus | **No** | Contract | None |
 | Authorising the learner's calls (context tokens) | **No** | Contract | None |
-| Session-hijack rejection; per-subject rate limiting | **No** | **Legitimate interests**, on a **security** justification | None. A security control a subject can switch off is not a control. |
+| Session-hijack rejection (`LD-S3-19`) | **No** | **Contract** — necessary to serve the authenticated request — **additionally** resting on a **security** justification, exactly as SUB-3 states (`03_learner-data-inventory-and-classification.md` §6) | None. A security control a subject can switch off is not a control. |
+| Per-subject rate limiting (`LD-S3-20`) | **No** | **Legitimate interests**, **additionally** on a **security** justification | None, for the same reason |
 | Grade-revision audit trail | **No** | Legitimate interests — integrity of the grading record | None; retained, as a named exception (§9) |
 | Operational logging — request log and event log | **No** | Legitimate interests — operating and debugging the service | None. **And a purpose here that *did* rest on consent could not be withdrawn — reported as `F-S8-1`.** |
 | Content-quality gating at authoring time | **No** | Legitimate interests — maintaining content quality | None. Only the *retention of the labelled corpus* beyond the gate decision is severable, and that is `CP-S8-1`. |
@@ -204,11 +209,17 @@ chapter's own order — **plus the seventh** that only this category needs.
 - **Field 1 — Data class:** consent state — a learner's recorded decision about a named severable
   purpose, plus the version of the purpose statement it was given against.
 - **Field 2 — Personal-data status:** **`learner-identifying`**, from the first row written. It is
-  the **only** category in the package that is learner-identifying *by construction on the data
-  alone* rather than by a deployment property: `learner_key` carries the OIDC `sub` verbatim
+  the only **persisted** category that is learner-identifying *by construction on the data alone*
+  rather than by a deployment property: `learner_key` carries the OIDC `sub` verbatim
   (`DR-C11-S2-1`), so the row resolves to the authenticated principal without any FK walk and without
-  relying on `n = 1`. This is a **stronger** status than any of SUB-3's thirty-two persisted entries
-  holds today, and it is stated as such rather than levelled down.
+  relying on `n = 1`. **It is not the only learner-identifying category in the package**, and the
+  difference is worth stating rather than glossing: SUB-3 records `LD-S3-19` (the subject-binding
+  map, holding `{ sub, email? }`) and `LD-S3-20` (rate-limit windows, keyed on the JWT `sub`) as
+  learner-identifying on the data alone too (`03_learner-data-inventory-and-classification.md` §6).
+  Both are **process-local and non-persisted**, so what is new here is a learner-identifying category
+  that **survives a restart**. The comparison is therefore made against SUB-3's *persisted* entries
+  specifically — its thirty-two are **not** all persisted, ten being process-local, three
+  derived-never-persisted and two copy classes.
 - **Field 3 — Lawful basis (position):** **demonstrating that consent was given and withdrawn** — a
   legal-obligation-shaped position, **never consent itself**, which would be circular. As with every
   basis in this package this is a position, not a determination; selection is `OI-S3-1`.
@@ -269,7 +280,7 @@ category whose behaviour on withdrawal a reader has to guess.
 | `LD-S3-16` | MCP request log | — | Unchanged (legitimate interests). **See `F-S8-1`** — consent is not available as a basis here. |
 | `LD-S3-17` | Operation event log | — | Unchanged (legitimate interests). As above. |
 | `LD-S3-18` | MCP transport registry | — | Unchanged; process-local, evicted on session close |
-| `LD-S3-19` | Subject-binding map | — | Unchanged (legitimate interests, security). Switchable off by a subject, it would be no control at all. |
+| `LD-S3-19` | Subject-binding map | — | Unchanged (**contract**, additionally security — SUB-3's position at `03_learner-data-inventory-and-classification.md` §6, consumed unmodified). Switchable off by a subject, it would be no control at all. |
 | `LD-S3-20` | Rate-limit windows | — | Unchanged (legitimate interests, security) |
 | `LD-S3-21` | Circuit-breaker set and stats cache | — | Unchanged (not personal data) |
 | `LD-S3-22` | Request context and correlation id | — | Unchanged; request-scoped |
@@ -340,9 +351,11 @@ declared schema** — no database was read, because none is reachable (§0) — 
 
 **What the table-top surfaced.** Two things worth recording rather than smoothing. First, the
 **partial** row is the only one whose incompleteness a learner could not detect from the artifact
-alone, which is why the label is mandatory rather than advisory. Second, three of the five
-`not exported` categories (`LD-S3-19`, `LD-S3-20`, `LD-S3-22`) are the ones that *do* hold an
-identifier for a natural person — so the reason they are excluded is **transience, never
+alone, which is why the label is mandatory rather than advisory. Second, **two** of the five
+`not exported` categories — `LD-S3-19` and `LD-S3-20` — are the ones SUB-3 records as holding an
+identifier for a natural person (`03_learner-data-inventory-and-classification.md` §6: *"two of them
+hold an identifier for a natural person"*); `LD-S3-22` is **pseudonymous**, a correlation id and tool
+name, and is excluded for the same transience reason without being in that pair — so the reason they are excluded is **transience, never
 insignificance**, and the artifact says so.
 
 ### 7.4 `LD-S3-31` and `LD-S3-32` — the two the charter singles out
@@ -466,31 +479,42 @@ work. The duty covers both populations; only the mechanism reaches one.
 ## 9. Retention exceptions — the four-field audit
 
 **Every exception carries a justification, a time bound, an owner and a stated basis, or it is a
-blocking finding.** Five candidates were audited. **Four pass; one fails.** **Zero exceptions of
+blocking finding.** Six candidates were audited. **Five pass; one fails.** **Zero exceptions of
 indefinite duration are accepted.**
 
 | # | Exception | Justification | Time bound | Owner | Stated basis | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | **`LD-S8-1` — the consent record, retained after withdrawal** | Proving that consent was given, that withdrawal was received, and that it was honoured. Deleting it destroys the only evidence of the very act it records. | **24 months after the withdrawal instant**, then `de-identify` — drop `learner_key`, keep the counts and the policy version | **`CMP-S4-7`**'s operator: the creator, as sole maintainer and sole operator | Demonstrating consent — a legal-obligation-shaped position, **never consent itself**; selection is `OI-S3-1` | **Passes.** Audited as one exception among five, **not exempted for being the package's own.** |
 | 2 | **`LD-S3-11` — the grade-revision trail, de-identified rather than deleted** | Integrity of the grading record: that a grade was changed must remain visible even after the content is gone | **Retained indefinitely only in de-identified form**; the learner-linking and free-text fields are dropped **at the erasure deadline**, 30 days | The creator, as sole maintainer and sole operator | Legitimate interests — record integrity | **Passes.** The bound is on the **identifiable** form, which is what the four-field test is about. An indefinite retention of a non-identifying counter is not a retention exception. |
-| 3 | **`LD-S3-25` — the in-memory batch buffers, unreachable by any `DELETE`** | No mechanism can reach them; the exposure is a consequence of batching, not a choice to retain | **≤ 5 s** — `DEFAULT_FLUSH_INTERVAL_MS = 5 000` (`src/transport/pg-audit-transport.ts:31`); entries also die with the process | The creator, as sole maintainer and sole operator | Legitimate interests — operating the service | **Passes**, and it is the strongest bound in the table because a constant enforces it rather than a policy. |
+| 3 | **`LD-S3-25` — the in-memory batch buffers, unreachable by any `DELETE`** | No mechanism can reach them; the exposure is a consequence of batching, not a choice to retain | **≤ 5 s by default**, on **both** transports — `DEFAULT_FLUSH_INTERVAL_MS = 5 000` at `src/transport/pg-audit-transport.ts:31` and `src/transport/pg-event-transport.ts:30`; entries also die with the process | The creator, as sole maintainer and sole operator | Legitimate interests — operating the service | **Passes**, and it is the **tightest** bound in the table. Stated precisely rather than overstated: the interval is a **default for an optional parameter**, not an enforced constant — `flushIntervalMs?: number` (`src/transport/pg-audit-transport.ts:25`) resolved by `opts.flushIntervalMs ?? DEFAULT_FLUSH_INTERVAL_MS` (`:40`, and identically at `src/transport/pg-event-transport.ts:36`). **No caller overrides it at this cutoff**, so 5 s holds in practice; a caller that did would widen the bound without touching this table. |
 | 4 | **`LD-S3-16` — the 30-day request-log window** | Operating and debugging the service | **30 days**, by `scripts/retention-cleanup.sql` | The creator, as sole maintainer and sole operator | Legitimate interests | **Passes with a stated condition.** The script's cron registration exists **only as a comment**, so whether it runs on the deployment is not establishable from the repository and is **not asserted** here. The bound is stated; its enforcement is `OI-S1-9`'s territory and is cited, not re-raised. |
-| 5 | **The pre-cutover population of `LD-S3-16` and `LD-S3-17`** | — | **Cannot be given one that discharges an erasure request** | SUB-9 (NEU-1003) for the disposition; the creator for the population | — | **FAILS. Recorded as the OUT-11 blocking finding `F-S8-2`** rather than accepted. |
+| 5 | **`LD-S3-17` — the `operation_event_log` window this chapter sets** | Operating the service and driving the Tier-2 blocking circuit breaker, which reads this table (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`) | **30 days**, the same window as `LD-S3-16`, **set here as a position** | The creator, as sole maintainer and sole operator | Legitimate interests | **Passes on all four fields, and passes with the weakest enforcement in the table.** The bound is newly set rather than inherited, and **no mechanism implements it** — no cleanup script covers this table. See below. |
+| 6 | **The pre-cutover population of `LD-S3-16` and `LD-S3-17`** | — | **Cannot be given one that discharges an erasure request** | SUB-9 (NEU-1003) for the disposition; the creator for the population | — | **FAILS. Recorded as the OUT-11 blocking finding `F-S8-2`** rather than accepted. |
 
-**Why #5 fails rather than being given a bound.** A population-wide time bound *could* be written
+**On #5 — a bound this chapter creates, and audits like any other.** `operation_event_log` has **no
+retention bound of any kind** today: no cleanup script covers it, and the codebase describes it in
+its own words as *"the indefinitely-retained `infrastructure.operation_event_log`"*
+(`src/orchestration/chunk-workflows.ts:160`–`:161`). `92_risk-register.md` § `R-S16-4` names **SUB-8**
+as the owner of that retention position. **This chapter sets one, as a product-and-engineering
+position and not as a determination:** the same 30-day window as `LD-S3-16`, on the same basis, with
+the same owner. Stating a *position* is not the legal determination `R-S16-4` declined to make — that
+remains `OI-S3-1` — and leaving the field blank would have been exactly the silent indefinite
+retention OUT-11 exists to end.
+
+**It is audited as row #5 rather than announced beside the table**, because §9's rule says *every*
+exception carries all four fields, and an exception this chapter itself creates is the last one that
+should get to sit outside its own audit — the same reasoning that puts the consent record at #1.
+**No mechanism enforces it**, which is `92_risk-register.md` § `R-S8-4`, and the row says so rather
+than letting a stated bound read as an implemented one.
+
+**Why #6 fails rather than being given a bound.** A population-wide time bound *could* be written
 next to it, and it would pass the test on paper and mean nothing: a time bound does not discharge one
 learner's erasure request, and recording it as an exception would convert an **inability** into a
 **policy**. The charter's rule is that an exception which cannot be given all four is recorded as a
 blocking finding, and this one cannot be given a justification or a learner-scoped bound at all.
-
-**`operation_event_log` has no retention bound of any kind** — no cleanup script covers it, and the
-codebase describes it in its own words as *"the indefinitely-retained `infrastructure.operation_event_log`"*
-(`src/orchestration/chunk-workflows.ts:160`–`:161`). `92_risk-register.md` § `R-S16-4` names **SUB-8**
-as the owner of that retention position. **This chapter sets one, as a product-and-engineering
-position and not as a determination:** the table takes **the same 30-day window as `LD-S3-16`**, on
-the same basis, with the same owner. Stating a *position* is not the legal determination `R-S16-4`
-declined to make — that remains `OI-S3-1` — and leaving the field blank would have been the silent
-indefinite retention OUT-11 exists to end. **No mechanism enforces it**, which is `R-S8-4`.
+**Note the contrast with #5**, which is the reason both are in one table: #5 is a bound nobody had
+set and this chapter sets; #6 is a bound that **cannot be set at all** for the population it would
+have to cover. Only the second is a blocking finding.
 
 ### 9.1 The completion deadline, and its provenance
 
@@ -524,13 +548,13 @@ Re-derived at cutoff `d2e2b55` by direct read, not inherited.
 | Mechanism | Port | Adapter | Wired? | What it requires |
 | --- | --- | --- | --- | --- |
 | `ContextTokenRepository.deleteExpired(before)` | `src/ports/context-token-repository.ts:6` | `src/adapters/drizzle/context-token-repository.ts:61` | **No — zero call sites in `src/`** | A caller. There is no scheduler to be that caller (§10.3). |
-| `ContextTokenRepository.delete(token)` | `src/ports/context-token-repository.ts:5` | `src/adapters/drizzle/context-token-repository.ts:58` | Single-token only | A token value |
+| `ContextTokenRepository.delete(token)` | `src/ports/context-token-repository.ts:5` | `src/adapters/drizzle/context-token-repository.ts:57` | Single-token only | A token value |
 | `SessionRepository.deleteSession(id)` | `src/ports/session-repository.ts:62` | `src/adapters/drizzle/session-repository.ts:100` | **No — zero call sites in `src/`** | A caller and an MCP tool |
 | `SessionRepository.deleteSessionChunk(id)` | `src/ports/session-repository.ts:76` | `src/adapters/drizzle/session-repository.ts:160` | **No — zero call sites in `src/`** | A caller and an MCP tool |
 | `LinterValidationRepository.deleteCorpusEntry(ruleId, chunkId)` | `src/ports/linter-validation-repository.ts:73` | `src/adapters/drizzle/linter-validation-repository.ts:52` | **No — zero call sites in `src/`** | A caller |
-| `ChunkRepository.delete` | `src/ports/chunk-repository.ts:83` | `src/adapters/drizzle/chunk-repository.ts:165` | **Yes** — MCP tool `delete_chunk` | — |
-| `NotesRepository.deleteNote` | `src/ports/notes-repository.ts:21` | `src/adapters/drizzle/notes-repository.ts:61` | **Yes** — MCP tool `delete_note` | — |
-| `TopicRepository.delete` | `src/ports/topic-repository.ts:32` | `src/adapters/drizzle/topic-repository.ts:85` | **Rollback only** — no `delete_topic` tool exists | An MCP tool, if a learner is ever to reach it |
+| `ChunkRepository.delete` | `src/ports/chunk-repository.ts:83` | `src/adapters/drizzle/chunk-repository.ts:164` | **Yes** — MCP tool `delete_chunk` | — |
+| `NotesRepository.deleteNote` | `src/ports/notes-repository.ts:21` | `src/adapters/drizzle/notes-repository.ts:60` | **Yes** — MCP tool `delete_note` | — |
+| `TopicRepository.delete` | `src/ports/topic-repository.ts:32` | `src/adapters/drizzle/topic-repository.ts:83` | **Rollback only** — no `delete_topic` tool exists | An MCP tool, if a learner is ever to reach it |
 | `scripts/retention-cleanup.sql` | — | — | **Unknown** — cron registration present only as a comment | A scheduler on the deployment |
 
 ### 10.2 What the audit found
@@ -619,9 +643,29 @@ Run, and recorded so SUB-17's audit can see that it ran rather than infer it fro
   and its own `CAP-S3-1`, which are different records.
 - **C010's `CAP-S7-1`** — *the web API's erasure capability cannot be scoped at all, because no row
   holding learner payload has a deletion owner* — is **consistent with** this chapter rather than
-  contradicted by it. This chapter scopes an erasure **duty** per category; it does not claim a web
-  API capability, and it does not discharge that cap. **Discharging `CAP-S7-1` is SUB-9's**, and this
-  chapter asserts nothing about whether SUB-9 does.
+  contradicted by it, and this chapter's relationship to it is stated precisely rather than waved at.
+  **C010 names this charter as its owner**: `../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:283`
+  gives the owner as *"`NEU-893`"*, and `:284` states what lifts it — **a named deletion owner on
+  `SC-S3-16` and `SC-S3-17`, with a retention window.** Against those two conditions this chapter:
+  **supplies a named owner** for both tables (§8, §9 — the creator as sole operator, with SUB-9 named
+  for the pre-cutover population); **supplies the missing retention window** for `SC-S3-17`, as §9
+  exception #5, `SC-S3-16` already having one; and **does not supply a web-API erasure capability**,
+  which it may not — no `src/` change is permitted and no such surface exists (`R-S8-4`). The cap is
+  therefore **materially narrowed and not discharged here**. Whether it lifts turns on the
+  propagation and completion-proof design, which is **SUB-9's** under OUT-12, and this chapter
+  asserts nothing about whether SUB-9 lifts it.
+- **`CAP-S7-1`'s extra condition on `SC-S3-17`, answered.** The same cap records that `SC-S3-17` is
+  read by the Tier-2 blocking gate (`src/adapters/drizzle/tier2-blocking-stats-repository.ts:39`), so
+  *"a deletion policy over it must also state what happens to a gate input, which no party has yet
+  done"*. This chapter sets such a policy (§9 exception #5), so it owes that statement and makes it:
+  **the gate keeps its input.** The breaker reads a *grouped rejection rate* over a recent window,
+  behind a 60-second stats cache (`src/orchestration/tier2-circuit-breaker.ts`), so a 30-day
+  retention window leaves it two orders of magnitude more history than it consults, and a per-learner
+  erasure removes rows attributable to **one** learner rather than a rate. **The one case that would
+  degrade the gate is not created here:** a bulk deletion of the pre-cutover population could remove
+  a large share of the table at once, and that population's disposition is **SUB-9's** (`F-S8-2`) —
+  which is now also a reason SUB-9's choice has a consequence beyond privacy, and is stated so SUB-9
+  meets it rather than discovers it.
 
 **No contradiction with C010 was found by SUB-8, and no amendment is routed to `NEU-895`.**
 
@@ -672,7 +716,32 @@ read.
 that sub-tasks running concurrently cannot collide with them. **No sibling sub-task's output was read
 to pick a number.**
 
-### 14.1 The `OI-S8-1` collision, disclosed
+### 14.1 The six C010 id-shape collisions, disclosed
+
+**C010 also had a sub-task 8, so every `*-S8-*` id this chapter allocates collides by shape with a
+C010 record.** Six do in fact collide, and none collides in subject. The rule is stated once,
+generically, rather than six times: **a bare `F-S8-<k>`, `CAP-S8-1` or `OI-S8-1` in this package
+always means this package's own; C010's are always written qualified** — the discipline `F-S2-2`
+established for `OI-S1-2` and SUB-3 already applied to C010's `F-S3-3` and `CAP-S3-1`.
+
+| Id | C010's record | C011's (this sub-task's) |
+| --- | --- | --- |
+| `F-S8-1` | *The charter's compatibility-surface figures are a miscount, not staleness* (`../C010-system-and-repository-architecture/02_findings-register.md:604`) | Operational logging cannot rest on consent it could not withdraw |
+| `F-S8-2` | *Two of the thirteen ports are characterised as pure-compute; both wrap external network calls* (`../C010-system-and-repository-architecture/02_findings-register.md:616`) | **Blocking** — the pre-cutover log population cannot be given a learner-scoped bound |
+| `F-S8-3` | *The authority driver changes zero tool contracts, so `AC-5` is discharged vacuously* (`../C010-system-and-repository-architecture/02_findings-register.md:628`) | Four unwired deletion methods; only two user-facing delete tools |
+| `F-S8-4` | *The two `DP` tokens in `src/` are Dynamic Programming, not the Diploma Programme* (`../C010-system-and-repository-architecture/02_findings-register.md:639`) | Zero of the 32 categories rests on consent |
+| `CAP-S8-1` | *The compatibility contract's detection methods are specified, never executed* (`../C010-system-and-repository-architecture/91_caps-and-incomplete-scope.md:315`) | Every duty here is specified and none has ever been exercised |
+| `OI-S8-1` | *`context_tokens` names no principal, so the obligated identity binding has nothing to bind to* (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:410`–`:419`) | The third-party model provider and cross-border question |
+
+**Renumbering was declined**, for all six. The ids are computed from the charter's own sub-task-scoped
+scheme, and picking different numbers to dodge a cross-package shape collision would break the
+property that makes the scheme collision-safe among concurrently authored siblings — which is the
+property SUB-2, SUB-3, SUB-15 and SUB-16 each adopted it for.
+
+**`OI-S8-1` is the one that needs more than a table row**, because it is the only one where both
+records now live in the *same file*.
+
+### 14.2 `OI-S8-1` in particular
 
 **C010 also has an `OI-S8-1`, and it is a different record.** C010's is
 *"`context_tokens` names no principal, so the obligated identity binding has nothing to bind to"*

@@ -21,7 +21,7 @@ authenticated on the **server-derived** `learner_key` only.
 
 **Decision 3 — erasure carries a per-category disposition of `delete`, `de-identify`,
 `cascade`, `not-applicable` or `unreachable`,** each with its reason, in
-`../08_consent-and-what-a-learner-can-export-and-erase.md` §7. **`unreachable` is a real value and is
+`../08_consent-and-what-a-learner-can-export-and-erase.md` §8. **`unreachable` is a real value and is
 used**, because the alternative is a matrix that claims a completeness it does not have.
 
 **Decision 4 — `deadline_at` is 30 days from an authenticated, verified request**, for both export
@@ -80,7 +80,7 @@ an accepted named residual SUB-9 will choose.
 
 **On the four-field test, and the one exception that fails it.** Every retention exception must carry
 a justification, a time bound, an owner and a stated basis. The audit in
-`../08_consent-and-what-a-learner-can-export-and-erase.md` §8 applies it to five candidates; four pass
+`../08_consent-and-what-a-learner-can-export-and-erase.md` §9 applies it to six candidates; five pass
 and **one fails**, and it fails in an instructive way: the pre-cutover log population cannot be given
 a **learner-scoped** bound at all, because no predicate selects it per learner. The only bound
 available to it is time-based and population-wide, which is **a different kind of thing** from a
@@ -152,7 +152,7 @@ records it in today. Supplying a number is the whole content of what SUB-16 rout
 | Attribution is not retroactive; a per-learner delete provably misses the pre-cutover population | `../91_findings-register.md` § `F-S16-5`; `../92_risk-register.md` § `R-S16-1`; `src/transport/http.ts:83` |
 | Both log tables are `learner-linked` under the carrier, conditional on adoption; the key is per row | `../decision-records/DR-C11-S16-2_the-audit-log-privacy-determination.md`; `../16_attribution-and-detection.md` §5 |
 | `deadline_at` exists, is required, is carried on the proof, and its **value** is SUB-8's | `../16_attribution-and-detection.md` §6; `../decision-records/DR-C11-S16-3_the-stalled-propagation-signal-contract.md` |
-| `SIG-S16-3` is fully specified and not yet evaluable pending that value | `../16_attribution-and-detection.md` §3 |
+| `SIG-S16-3` is *"fully specified and not yet evaluable"* pending that value — the quoted wording is §6's; §3's matrix cell reads *"Fully specified; not yet evaluable"* | `../16_attribution-and-detection.md` §6 (quotation), §3 (the matrix cell) |
 | A 65 536-byte `response_body` must be read as possibly truncated | `../16_attribution-and-detection.md` §7; `src/transport/audit-middleware.ts:14`; `src/transport/pg-audit-transport.ts:36` |
 | No completion-proof store exists and no propagation emits anything | `../16_attribution-and-detection.md` §4 (`ME-S16-6`) |
 | `operation_event_log` has no retention bound; the 30-day script covers `mcp_request_log` only | `scripts/retention-cleanup.sql`; `src/orchestration/chunk-workflows.ts:160`–`:161`; `../92_risk-register.md` § `R-S16-4` |

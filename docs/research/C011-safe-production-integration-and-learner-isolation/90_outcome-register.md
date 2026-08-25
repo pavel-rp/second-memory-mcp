@@ -610,7 +610,7 @@ alternatives); `91_findings-register.md` (`F-S8-1`, `F-S8-4`); `92_risk-register
 
 **Measured result at revision 1.** (1) **1 of 1** authority — `CMP-S4-7`, under **clause 2**, with
 clause 5 recorded as rejected alternative 3 and a split authority as rejected alternative 4; **0**
-split. (2) **13 of 13** purposes carry an explicit yes/no; **3** yes, **10** no, each `no` naming
+split. (2) **14 of 14** purposes carry an explicit yes/no; **3** yes, **11** no, each `no` naming
 contract, legitimate interests, or the demonstrating-consent position; **0** unstated. (3) **33 of
 33** rows in the withdrawal walk — SUB-3's 32 plus `LD-S8-1`; **0** omitted; **3** affected.
 (4) **7 of 7** fields present; **0** back-edge edits — `03_learner-data-inventory-and-classification.md`
@@ -667,10 +667,10 @@ alternatives); `91_findings-register.md` (`F-S8-2` — **blocking** — and `F-S
 
 **Measured result at revision 1.** (1) **25 of 25** categories dispositioned — 32 − 8 = 24, plus
 `LD-S8-1`; the eight excluded entries named by id; **0** unaccounted for, and the table-top's own
-sub-counts sum to 25. (2) Six stated readability properties, all satisfied by the specified artifact;
+sub-counts sum to 25. (2) Seven stated properties — five readability, plus completeness and the deadline — all satisfied by the specified artifact;
 **1** category (`LD-S3-16`) requires the possibly-truncated label and carries it. (3) **33 of 33**
 categories carry an erasure disposition with a reason; **3** are `unreachable` and are named as such
-rather than as deleted. (4) **5** exceptions audited; **4 pass**, **1 fails** and is recorded as the
+rather than as deleted. (4) **6** exceptions audited; **5 pass**, **1 fails** and is recorded as the
 blocking finding `F-S8-2`; **0** indefinite exceptions accepted; the consent record's own position is
 **audited as exception #1**, not exempted. (5) Deadline stated — 30 days for export and erasure, next
 request plus 7 days for withdrawal — with its provenance named as **derived from the ratified
@@ -684,8 +684,9 @@ register that recorded OUT-11 as met without it would read as though the product
 things.
 
 **The deadline's second effect, stated because it discharges another sub-task's open term.**
-`DR-C11-S16-3` left `deadline_at`'s value here, and `16_attribution-and-detection.md` §3 records
-`SIG-S16-3` as *"fully specified and not yet evaluable"* in consequence. It is now **evaluable in
+`DR-C11-S16-3` left `deadline_at`'s value here, and `16_attribution-and-detection.md` §6 records
+`SIG-S16-3` as *"fully specified and not yet evaluable"* (§3's matrix cell carries the same fact in
+different words — *"Fully specified; not yet evaluable"*) in consequence. It is now **evaluable in
 principle and still unemitted** — `ME-S16-6`'s gap is untouched by this outcome. `R-S8-3` carries the
 difference; nothing here claims the signal works.
 

@@ -488,6 +488,6 @@ the party positioned to normalise the two headings at assembly is **SUB-14** (NE
 
 **SUB-8 register totals at revision 1:** one open item, `OI-S8-1`, carrying a named owner and an
 observable resolving event, and zero blank fields. **Zero second records** of a question already
-owned by another sub-task or another package — six inherited items are consumed by citation and named
-above, `OI-S3-1` most load-bearingly. **One of one** corresponds to the single spike entry `SPK-S8-1`
+owned by another sub-task or another package — seven inherited items are consumed by citation and named
+above — `OI-S3-1`, `OI-S1-4`, `OI-S1-5`, `OI-S1-6`, `OI-S1-7`, `OI-S1-9` and `OI-S16-1` — `OI-S3-1` most load-bearingly. **One of one** corresponds to the single spike entry `SPK-S8-1`
 in `96_spike-register.md`, on the same rule SUB-1 applied.
