@@ -250,12 +250,35 @@ which authors the DDL for both columns and is the party that would otherwise emi
 
 **Clause 4 — the adapter instances are request-scoped.**
 Today `createProductionPorts` runs once (`src/composition-root.ts:317`–`:334`), calling `getSql()`
-once at `:318` and passing the one handle into ten adapters. Under this decision the same factory
-takes the resolved principal and runs **per request**. The shared `pg.Pool` is untouched and is still
-constructed once (`src/infrastructure/db/client.ts:37`–`:53`); what becomes per-request is the
-adapter objects, which are plain allocations. §12 checks this against `OBJ-1`.
+once at `:318` and passing the one handle into ten adapters, and `createAppContext` returns
+`Object.freeze(ctx)` (`src/composition-root.ts:638`) — **one frozen context, shared by every MCP
+session**. That is exactly C010's finding
+`../C010-system-and-repository-architecture/02_findings-register.md:226`: *"One frozen `AppContext`
+is shared by every MCP session, and it carries no principal field."* **This clause is what resolves
+it.** Under this decision the same factory takes the resolved principal and runs **per request**. The
+shared `pg.Pool` is untouched and is still constructed once
+(`src/infrastructure/db/client.ts:37`–`:53`); what becomes per-request is the adapter objects, which
+are plain allocations. §12 checks this against `OBJ-1`.
 
 This clause is what makes §5's walk answerable: it is the reason 53 closures need no change.
+
+**Why the adapter and not the existing gate, stated because the gate is the obvious place.**
+A reader may reasonably ask why confinement is not simply added to the context-token middleware,
+which already runs on every gated call. Three reasons, each from the deployed code:
+
+1. **The gate is mounted on HTTP only** (`src/transport/http.ts:184`–`:187`); STDIO has no middleware
+   chain (`src/transport/main.ts:55`–`:59`). Enforcement there would fail `I4` by construction.
+2. **The gate fails open on internal error.** `src/transport/context-token-middleware.ts:83`–`:86`
+   catches an exception, logs it, and calls `next()` — admitting the call ungated. SUB-16 records
+   this as one of three fail-open sites (`F-S16-3`, `91_findings-register.md:347`). A confinement
+   whose failure mode is *admit* is not a confinement.
+3. **`I3` requires enforcement at or below the port boundary**, and the middleware is above it. This
+   is the same placement objection C010's
+   `../C010-system-and-repository-architecture/02_findings-register.md:237` raises against the
+   orchestration guard.
+
+The gate remains necessary — it is what establishes the principal — but it is not where confinement
+is decided.
 
 **Clause 5 — the database is a second, independent defence, and it is not the primary one.**
 A row-level-security policy on each owned table, keyed to a per-transaction setting, is
@@ -700,6 +723,20 @@ else.**
 
 **Not assumed:** SUB-13's DDL, SUB-6's migration of existing rows, SUB-7's rollout sequence, the
 partial unique index of §4.2, the RLS layer of clause 5, and any test having been run.
+
+**Which scoping of `OUT-2` **C1** assumes, because the corpus states two.**
+`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:50`
+says *"every core table"*; C010's own Census B narrows it to *"every learner-scoped **durable
+`public`-schema** store, threaded through the row-owning repository ports"*
+(`../C010-system-and-repository-architecture/09_authority-matrix-validation.md:127`). Which is
+meant for the two port-less log tables is C010's `OI-S5-1`, owner `NEU-850`, and this package
+carries its reading as `A-S3-1` rather than deciding it.
+
+**The ambiguity does not reach this derivation.** `public.notes` is a durable `public`-schema store
+sitting behind a row-owning repository port, so it is covered under **both** readings. **C1** takes
+the narrower one — C010's Census B wording — because a derivation that needed the wider reading
+would be resting on an open item owned by another package. Nothing in §8.4 depends on the wider
+reading being correct.
 
 ### 8.2 Why `SC-S3-12` and not another category
 
@@ -1188,6 +1225,19 @@ and returned empty: no contradiction with C010 was found, and no amendment is ro
 | The authority matrix — `../C010-system-and-repository-architecture/08_per-state-authority-matrix.md` as revised by `../C010-system-and-repository-architecture/10_republished-authority-matrix.md`, revision `post-validation` | `SC-S3-12`'s row read from `../C010-system-and-repository-architecture/10_republished-authority-matrix.md:744` | **Yes.** The post-validation revision is the one read, per charter assumption 26. |
 | `../C010-system-and-repository-architecture/09_authority-matrix-validation.md` §4.3 — the purposive reading of `I3`'s placement clause for the 15 port-less categories | **Not relied on.** `SC-S3-12` sits behind a port, so the literal reading of clause (c) is satisfied and the purposive reading is not needed | **Yes** — recorded so that this chapter's `holds` cannot be read as depending on that ruling. |
 
+### 13.1 Two obligations SUB-16 routed here by name, both discharged
+
+`16_attribution-and-detection.md` names SUB-5 under OUT-8 as the owner of two of its seven **missing
+emissions** — data its detection matrix needs that the deployment does not emit:
+
+| Missing emission | What SUB-16 needs | Discharged by |
+| --- | --- | --- |
+| **`ME-S16-3` — no refusal event.** `DR-C11-S2-2` decision 3 requires learner access under a `client` principal to be refused, and *"nothing emits it"* | An observable refusal, so `SIG-S16-1` limb 1b has an input | **§2 clause 3.** The adapter refuses a `client`- or `none`-kind principal explicitly rather than returning an empty set, which is what makes the event observable at all. A refusal that returned no rows would emit nothing to detect. |
+| **`ME-S16-4` — no per-row ownership column** to compare a returned row against | Something to compare, so `SIG-S16-1` limb 1a — the direct cross-learner signal — has an input | **§8.1 `C1` plus §3's per-port table.** The ownership key is named as a precondition and the column is named per port; **SUB-13 realizes it as DDL**. This chapter supplies the requirement and the placement, not the DDL. |
+
+Neither is *implemented* here — nothing is. What is supplied is the design commitment each emission
+depends on, which is what SUB-16 routed rather than an artifact.
+
 **An addition is not a contradiction.** §2 clause 3 refuses `client`-kind principals at the adapter,
 which is a mechanism C010 does not describe. It does not contradict any C010 decision; it extends
 `DR-C11-S2-2`'s transport-level rule downward. Per the charter's rule, an addition to a C010 pricing
@@ -1204,6 +1254,18 @@ lists files only under
 Every code reference in this chapter is a **read** at cutoff `origin/develop` @ `cc38cc9`. The
 integration-test design in §7 is a design: **no file under `tests/` is created or modified either.**
 
+**One package-hygiene defect observed in passing, reported rather than fixed.** Five files in this
+package end with a stray `</content>` tag on their last line — an authoring artifact, not content:
+`15_operational-objectives-for-the-real-platform.md`,
+`traceability/S15_operational-objectives.md`,
+`decision-records/DR-C11-S15-1_objective-basis-and-evidence-labels.md`,
+`decision-records/DR-C11-S15-2_first-break-ranking.md`, and
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`. No other file in this package or
+in C010 carries one. **It is not fixed here**: the registers are append-only and a chapter is another
+sub-task's artifact, so editing them would breach the no-rewrite rule for a cosmetic gain. Registered
+as **`F-S5-13`** and routed to **SUB-14 (NEU-1007)** under OUT-20, which owns house-style assembly
+and is the party permitted to touch another sub-task's file.
+
 ---
 
 ## 15. Ids allocated by this sub-task
@@ -1212,7 +1274,7 @@ All scoped to `S5`, computed from the charter's id scheme and not continued from
 
 | Register | Ids |
 | --- | --- |
-| Findings (`91_findings-register.md`) | `F-S5-1` … `F-S5-12` |
+| Findings (`91_findings-register.md`) | `F-S5-1` … `F-S5-13` |
 | Risk (`92_risk-register.md`) | **`R1`** (charter § Risks row 1), plus `R-S5-1`, `R-S5-2`, `R-S5-3` |
 | Open items (`93_open-items-and-provisional-register.md`) | `OI-S5-1`, `OI-S5-2` |
 | Caps (`94_caps-and-incomplete-scope.md`) | none filed; `CAP-S5-1` is **C010's**, discharged here under OUT-8 and recorded, not re-filed |

@@ -65,3 +65,5 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S16-1_the-attribution-carrier.md` | SUB-16 (NEU-999) | OUT-15 |
 | `DR-C11-S16-2_the-audit-log-privacy-determination.md` | SUB-16 (NEU-999) | OUT-15 (the determination `DR-C11-S3-2` names SUB-16 as resolver of) |
 | `DR-C11-S16-3_the-stalled-propagation-signal-contract.md` | SUB-16 (NEU-999) | OUT-15 |
+| `DR-C11-S5-1_the-enforcement-point.md` | SUB-5 (NEU-997) | OUT-8 |
+| `DR-C11-S5-2_the-first-holds-derivation.md` | SUB-5 (NEU-997) | OUT-8 (and the discharge of C010's `CAP-S5-1`, which this package co-owns) |
