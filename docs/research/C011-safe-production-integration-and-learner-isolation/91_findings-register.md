@@ -234,3 +234,89 @@ undisturbed), and against `A-28`'s tolerance envelope
 (`../C010-system-and-repository-architecture/93_stand-in-assumption-register.md:104`–`:115`, not
 breached). **No amendment is routed to `NEU-895` by SUB-2.** The checks are recorded so SUB-17's
 audit can see that they ran and returned empty.
+
+---
+
+### SUB-16
+
+#### `F-S16-1` — Both columns that look like attribution carriers are caller-asserted, so attribution cannot be added by reusing one
+
+- **Id:** `F-S16-1`
+- **Severity:** High. Not blocking — it narrows the design space rather than invalidating an outcome, and the alternative it forces (a new column pair) is stated and costed in `decision-records/DR-C11-S16-1_the-attribution-carrier.md`.
+- **Finding:** `infrastructure.mcp_request_log` carries two identifier-shaped columns and **neither may carry a principal**, for the same reason. `session_id` is lifted verbatim out of the tool call's own arguments — `src/transport/audit-middleware.ts:94`–`:99` reads `params.arguments.session_id` and `String()`s it — and is cross-checked against nothing: not the verified subject, not the MCP transport session, not `context_tokens`. `correlation_id`, present on **both** log tables, echoes a caller-supplied `X-Correlation-ID` header sanitized to printable ASCII and capped at 128 characters, minting a `randomUUID()` **only when the header is absent** (`src/transport/http.ts:154`–`:157`).
+- **Evidence:** The `file:line` citations above, read at cutoff `5111841`. Persistence sites: `drizzle/0012_extend_mcp_request_log.sql:2`–`:3` (`correlation_id`, `session_id`); `drizzle/0013_create_operation_event_log.sql:4` (`correlation_id`).
+- **Consequence:** Attribution is not addable by reuse; it needs a new server-derived column. **`correlation_id` is the more dangerous of the two precisely because it is *usually* a server-minted UUID** — it is trustworthy on every request where the client declines to set the header, and untrustworthy on exactly the requests where a client chose to set it. A carrier whose soundness is selected by the caller is not a carrier, and it would fail C010's check `I5` (`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:174`) while appearing to pass it in every test.
+- **What is assumed rather than derived:** Nothing. Both extraction sites were read directly.
+- **Named owner:** **The creator, as sole maintainer and sole operator**, for the deployed behaviour; **SUB-13** (NEU-1006) for the column that replaces it.
+- **Handed to:** **SUB-13** (NEU-1006) and **SUB-5** (NEU-997), which would otherwise reuse an existing column; **SUB-9** (NEU-1003), whose completion proof is forbidden from relying on either identifier by `DR-C11-S16-3`'s first negative clause; **SUB-12** (NEU-1004), for which a caller-asserted identifier in an audit record is a threat-model input.
+
+#### `F-S16-2` — `OBJ-10` bounds the circuit-open audit loss only; a second, unbounded loss path runs before the breaker opens
+
+- **Id:** `F-S16-2`
+- **Severity:** Medium. Not blocking — `OBJ-10` is accurate about what it bounds and its citation resolves; this is an extension of the accounting, not a contradiction of it.
+- **Finding:** `OBJ-10` states *"≤ 60 s of audit traffic per 60 000 ms open window; entries buffered at the moment of opening are dropped, not retried"*, citing `src/transport/pg-audit-transport.ts:30`–`:36` and `:83`–`:90`. Both citations are correct. But `:92`–`:93` swaps the buffer out **before** `pool.query` runs, so a batch whose query throws is already out of the buffer and is **never requeued** — and that happens on each of the **five** consecutive failures that must accumulate before the breaker opens at all (`DEFAULT_CIRCUIT_BREAKER_THRESHOLD = 5`, `:32`). Total loss across one outage is therefore *(up to five pre-open batches, each up to `DEFAULT_BATCH_SIZE = 100` entries or `DEFAULT_FLUSH_INTERVAL_MS = 5 000` ms of traffic, `:30`–`:31`)* **plus** *(60 s of traffic per 60 000 ms open window)*. The same pattern holds for the event log: `src/transport/pg-event-transport.ts` implements an identical drop-on-open and lose-on-exception path.
+- **Evidence:** The `file:line` citations above, read at cutoff `5111841`. `15_operational-objectives-for-the-real-platform.md` §4 (`OBJ-10`) and §6 item 7, which records a *"bounded reading gap"* about entries arriving during an already-open window and explicitly leaves it readable from the repository for *"whoever needs the entry-count bound"*.
+- **Consequence:** **A count read from either log table is a lower bound on the true count, never the count.** Every threshold in `16_attribution-and-detection.md` §3 is chosen so this degrades safely — a dropped entry can hide an event but cannot manufacture one, so a zero-tolerance threshold yields false negatives and never false positives. The residual exposure that a cross-learner access is silently dropped rather than counted is carried as `92_risk-register.md` § `R-S16-3`.
+- **What is assumed rather than derived:** The **magnitude** of the pre-open loss depends on the audit-entry arrival rate, which is unobserved in production and is `OI-S15-3`, owned by SUB-15's record. **No entry count is stated**, only the structure of the bound.
+- **Named owner:** **The creator, as sole maintainer and sole operator.**
+- **Handed to:** **SUB-9** (NEU-1003), whose completion proof may not treat absence-of-error as evidence of completion for exactly this reason; **SUB-12** (NEU-1004), whose gates measure counts from these tables. **No revision is routed to SUB-15, and none is owed** — `OBJ-10`'s statement, its provenance and its citations are all accurate for what they bound, and this entry extends the accounting downstream of it rather than amending a shipped record. `15_…md` §6 item 7 anticipated exactly this reader.
+
+#### `F-S16-3` — "43 gated" describes a mount, not an invariant: the gate is HTTP-only and fails open on internal error
+
+- **Id:** `F-S16-3`
+- **Severity:** High. Not blocking — it qualifies a settled figure rather than contradicting it, and both limbs are already implied by C010's `I4` position.
+- **Finding:** The settled tool-surface figure **46 registered / 43 gated / 3 exempt** was re-counted at this cutoff and **holds**: 46 `registerTool` sites across `src/server/*.ts`, and exactly three exempt tools named literally at `src/transport/context-token-middleware.ts:5`–`:9` (`init_agent_context`, `get_server_info`, `get_server_workflow`). Two qualifications attach to the word *gated*. **(a)** The context-token gate is mounted only in HTTP mode and only when the context-token repository is non-null (`src/transport/http.ts:184`–`:187`); it **never runs for STDIO**, where all 46 tools are ungated (`src/transport/main.ts:55`–`:58`). **(b)** The gate **fails open on internal error** — `src/transport/context-token-middleware.ts:82`–`:86` catches an exception, logs it and calls `next()`, admitting the call ungated.
+- **Evidence:** The `file:line` citations above, read at cutoff `5111841`. Consumed figure: C010's `F-S5-3` and `F-S8-1` via OUT-16.
+- **Consequence:** *"43 gated"* is true of a mounted gate on one transport under no internal error. It is the count `SIG-S16-2` measures deviations from, so the qualifications are load-bearing rather than pedantic: limb (b) in particular means a failing gate and a passing gate produce the same observable outcome today. **The figure itself is not disputed and is not re-derived** — this entry adds only what *gated* means.
+- **What is assumed rather than derived:** Nothing. The count and both qualifications were read directly.
+- **Named owner:** **The creator, as sole maintainer and sole operator.**
+- **Handed to:** **SUB-11** (NEU-1005 — OUT-16's compatibility contract), which re-counts the tool surface and should meet this qualification rather than re-discover it; **SUB-7** (NEU-1001), whose transport gate closes limb (a); **SUB-12** (NEU-1004), for which a fail-open gate is a threat-model input; **SUB-17** (NEU-1008), whose citation audit would otherwise meet the anomaly rather than the explanation.
+
+#### `F-S16-4` — Audit emission is conditional on a database URL, so an unaudited deployment is indistinguishable from an idle one
+
+- **Id:** `F-S16-4`
+- **Severity:** Medium.
+- **Finding:** The audit middleware is mounted only `if (auditDbUrl)` — `src/transport/http.ts:177`–`:182`. If neither `AUDIT_DATABASE_URL` nor `DATABASE_URL` is set in the production environment, **no audit row is written at all**, and the resulting empty table is indistinguishable from a table belonging to a deployment that served no traffic.
+- **Evidence:** `src/transport/http.ts:177`–`:182`, read at cutoff `5111841`.
+- **Consequence:** Every signal in `16_attribution-and-detection.md` §3 that counts rows has **no input** in that configuration, and it fails silently rather than reporting that it has no input. Whether the variable is set in production is unobserved and is raised as this sub-task's single new open item, `93_open-items-and-provisional-register.md` § `OI-S16-1`, with `96_spike-register.md` § `SPK-S16-1`.
+- **What is assumed rather than derived:** The production value. It is not discoverable in the repository, and it is **not assumed set** — the detection design states the dependency rather than presuming it satisfied.
+- **Named owner:** **The creator, as sole maintainer and sole operator.**
+- **Handed to:** **SUB-7** (NEU-1001), whose rollout stages depend on a signal having an input; **SUB-12** (NEU-1004), for which "the audit writer is mounted" is a production gate rather than an assumption.
+
+#### `F-S16-5` — Attribution is not retroactive, so every pre-cutover audit row is permanently unattributable and a per-learner erasure over the log tables is provably incomplete
+
+- **Id:** `F-S16-5`
+- **Severity:** High. Not blocking — it is fully mitigable by a disposition decision, and that decision has a named owner at a defined position.
+- **Finding:** Under `DR-C11-S16-2` both log tables become `learner-linked` personal data once the carrier lands. Rows written **before** it lands carry `principal_kind = 'none'` and no key, and **no later process can supply one**: the only structure that has ever held a session-to-subject binding is the process-local map declared at `src/transport/http.ts:83`, whose sole eviction path is a clean session close (`F-S15-3`) and which is emptied by every restart — at a measured **≥3.29 restarts/day over the most recent 7 days** (`15_operational-objectives-for-the-real-platform.md` §3, `C-17`). A `DELETE … WHERE learner_key = $1` therefore **provably misses the entire pre-cutover population**, and reports success while doing so.
+- **Evidence:** `src/transport/http.ts:83`, `:57`–`:58`, `:212`–`:218`; `91_findings-register.md` § `F-S15-3`; `15_operational-objectives-for-the-real-platform.md` §3. Read at cutoff `5111841`.
+- **Consequence:** This is the charter's § Risks row `R2` — *"erasure completes on paper while learner data survives in a copy nobody owns"* — reached not by an overlooked copy but by the very change that creates the duty. **SUB-9 (NEU-1003) must give the pre-cutover population a disposition — bulk deletion, bulk anonymization, or an accepted and named residual — rather than a key.** Carried as `92_risk-register.md` § `R-S16-1`.
+- **What is assumed rather than derived:** The **size** of the pre-cutover population is unobserved, and depends on whether rows exist at all (`OI-S1-5`, `OI-S1-6`) and on whether the writer is mounted (`OI-S16-1`). **No row count is stated.**
+- **Named owner:** **SUB-9** (NEU-1003) for the disposition; **the creator, as sole maintainer and sole operator**, for the population itself.
+- **Handed to:** **SUB-9** (NEU-1003) under OUT-12, as a matrix cell it would otherwise resolve to *"delete by key"* and ship incomplete; **SUB-8** (NEU-1002) under OUT-11, whose export duty has the same boundary; **SUB-7** (NEU-1001), because the cutover instant is a rollout artefact and its timestamp is the only thing that will ever separate the two populations.
+
+---
+
+**SUB-16 register totals at revision 1:** five findings, `F-S16-1` … `F-S16-5`. **Zero blocking
+findings** — none meets a blocking trigger: `F-S16-1`, `F-S16-3` and `F-S16-4` are qualifications or
+narrowings of existing records, `F-S16-2` is an extension of an accounting whose owning record stays
+accurate, and `F-S16-5` is a named consequence with a named owner at a defined position, not an
+unregistered mutation. Every entry carries a named owner.
+
+**Zero second records.** This sub-task raises no record of a question already owned elsewhere. Where
+signals can be observed is **`OI-S1-9`** (SUB-1); whether the two log tables hold learner-derived
+content in production is **`OI-S1-5`** / **`OI-S1-6`** (SUB-1); the audit-entry arrival rate is
+**`OI-S15-3`** (SUB-15); the controller/processor role and lawful basis is **`OI-S3-1`** (SUB-3); the
+unread, unredacted `response_body` minimization finding is **`F-S3-1`**, routed by SUB-3 to
+**`NEU-986`** and **not re-routed here**. Each is consumed by citation. The one genuinely new
+question — whether the audit writer is mounted in production at all — is `OI-S16-1`, and it is
+distinct from `OI-S1-9` because `OI-S1-9` asks where a signal can be *observed* while `OI-S16-1` asks
+whether one is *emitted*.
+
+**No contradiction with C010 was found by SUB-16.** The tool-surface figure was checked against
+`F-S5-3` and `F-S8-1` as consumed through OUT-16 and **holds at 46 / 43 / 3**; the
+server-derived-principal rule against `DR-C10-S8-2`; check `I5` against
+`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:174`; and
+the `I4`-masks-`I5` position against
+`../C010-system-and-repository-architecture/02_findings-register.md:267`, which
+`16_attribution-and-detection.md` §3.2 reproduces rather than re-derives. **No amendment is routed to `NEU-895` by SUB-16.** The checks are
+recorded so SUB-17's audit can see that they ran and returned empty.

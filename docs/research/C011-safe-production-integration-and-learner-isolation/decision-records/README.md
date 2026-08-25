@@ -59,3 +59,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S15-1_objective-basis-and-evidence-labels.md` | SUB-15 (NEU-998) | OUT-14 |
 | `DR-C11-S15-2_first-break-ranking.md` | SUB-15 (NEU-998) | OUT-14 |
 | `DR-C11-S15-3_non-charter-register-id-scheme.md` | SUB-15 (NEU-998) | OUT-14 (structurally; OUT-20 owns assembly) |
+| `DR-C11-S16-1_the-attribution-carrier.md` | SUB-16 (NEU-999) | OUT-15 |
+| `DR-C11-S16-2_the-audit-log-privacy-determination.md` | SUB-16 (NEU-999) | OUT-15 (the determination `DR-C11-S3-2` names SUB-16 as resolver of) |
+| `DR-C11-S16-3_the-stalled-propagation-signal-contract.md` | SUB-16 (NEU-999) | OUT-15 |

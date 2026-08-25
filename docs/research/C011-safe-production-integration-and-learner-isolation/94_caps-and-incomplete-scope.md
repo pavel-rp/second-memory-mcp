@@ -107,3 +107,24 @@ rather than restating it.
 lifting condition. It is a **narrower restatement** of `CAP-S1-1` applied to this sub-task's own
 output, not a second record of the same fact: `CAP-S1-1` caps the package's evidence base, while
 this entry caps what the identity rule specifically may be read to establish.
+
+---
+
+### SUB-16
+
+#### `CAP-S16-1` — The detection matrix is published uncalibrated: every threshold is derived from a repository constant and none has been exercised
+
+- **Id:** `CAP-S16-1`
+- **Cap:** The four signals in `16_attribution-and-detection.md` §3 each carry a threshold, and **none of the four has ever been evaluated against a real population** — not in production, not in a staging environment, not against a synthetic replay. Every threshold is derived: `SIG-S16-1` and `SIG-S16-2` are zero-tolerance because the expected steady-state count is *arithmetically* zero given the three exempt tools (`src/transport/context-token-middleware.ts:5`–`:9`) and the single known `client` principal; `SIG-S16-4`'s comparison window is one deploy interval because the deploy cadence is a counted repository fact (`15_operational-objectives-for-the-real-platform.md` §3, `C-17`); `SIG-S16-3`'s threshold is complete but **not yet evaluable**, because `deadline_at`'s value is SUB-8's under OUT-11. **What this sub-task publishes is therefore a matrix of correctly-shaped signals with uncalibrated thresholds, not a validated detection capability**, and no reader may cite a threshold here as a tuned or observed value.
+- **Why the scope is incomplete:** Calibration requires either production observation or a representative replay. Neither exists: no production credential is present in the environment this package was written in, **twelve spikes across SUB-1 and SUB-2 were designed and zero executed**, and `92_risk-register.md` § `R13` records the package's position as `n = 0` rather than the charter's assumed `n = 1`. Calibrating against an invented population would produce a number that looked measured and was not, which is the failure `R13` and `R-S15-1` are both registered against.
+- **Named owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who could run any signal against real data.
+- **Lifting condition — observable, and in two stages.** **Stage 1:** `OI-S16-1` closes (the audit writer is confirmed mounted) **and** `OI-S1-9` closes (an observation channel is named), at which point a signal can be run at all. **Stage 2:** any one of `SIG-S16-1`, `SIG-S16-2` or `SIG-S16-4` limb (b) is evaluated once against real production data and its result recorded in `96_spike-register.md`. Limb (b) of `SIG-S16-4` is the cheapest first target: it reads `mcp_request_log.response_status` (`drizzle/0010_create_infrastructure_mcp_request_log.sql:10`), which **already exists**, so it needs no schema change and no new emission. The cap lifts for a signal when that signal has been run once; it lifts **entirely** only when all four have.
+- **Why this is not a second record of `CAP-S1-1` or `R13`:** `CAP-S1-1` caps the **package's evidence base** — what the package as a whole may claim from zero observations. `R13` carries the **risk** that a reader treats the design as validated. This entry caps something narrower and specific to this sub-task's own output: **what a threshold in this particular matrix may be read to mean.** It is the same relationship `CAP-S2-1` bears to `CAP-S1-1`, and it is recorded on the same rule. `R13` is **cited** in the mitigation reasoning above rather than restated.
+
+---
+
+**SUB-16 register totals at revision 1:** one cap, `CAP-S16-1`, with a named owner and a two-stage
+observable lifting condition. It is a **narrower restatement** of `CAP-S1-1` applied to this
+sub-task's own output, not a second record: `CAP-S1-1` caps the package's evidence base, while this
+entry caps what a threshold in the detection matrix may be read to establish. **No cap is recorded as
+lifted.**
