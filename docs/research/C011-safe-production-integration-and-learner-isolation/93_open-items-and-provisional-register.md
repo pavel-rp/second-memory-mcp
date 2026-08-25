@@ -301,6 +301,88 @@ evidence half. **Three of three** new items correspond one-to-one with the three
 
 ---
 
+### SUB-4
+
+*`NEU-996`, covering `OUT-7` and `OUT-13`. Three new open items, plus five dispositions of C010
+records this sub-task touches — one **resolved here**, three **supplied-to**.*
+
+#### Disposition of **`BND-S4-17`** — **RESOLVED HERE**
+
+- **Item:** C010's record of the STDIO trust boundary that meets the trust-boundary test and that **nothing enforces** — class *trust — unenforced*, owner recorded as **`nobody`** (`../C010-system-and-repository-architecture/05_system-context-and-responsibility-boundaries.md:197`).
+- **Disposition:** **Resolved here.** `OI-S8-2`'s resolving event, at `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:429`, admits three parties who may name an owner for `BND-S4-17` — `NEU-893`, `SUB-10 (NEU-984)` and `NEU-896`. This chapter is `NEU-893`'s, and the decision at `04_the-stdio-identity-gate-and-the-bound-context-token.md` §3 **is** that naming. The owner named is **`SUB-10 of C010 (NEU-984)`, co-named `NEU-896`** — the party that already owns `OI-S8-2`, `OI-S8-1` and `CC-S8-3`. The boundary now has the owner its own blocking open item has.
+- **The classification is `resolved here`, not `owned and resolved here`.** `BND-S4-17` was never C011's to own; what this sub-task supplies is the naming act. **SUB-17** (NEU-1008) records the classification in the resolved-here class, and `04_the-stdio-identity-gate-and-the-bound-context-token.md` §11 is the source it rests on.
+- **The citation is `OI-S8-2`'s, never `OI-S8-1`'s.** `OI-S8-1`'s resolving event is a different event at `:418` — *a migration adding a principal column landing on `origin/develop`*. Charter rounds 1–5 mis-attributed `:429`; charter assumption 51 records the correction, and this entry applies it.
+- **Which limb fired:** limb **one**, a party is named. Limb two — a STDIO identity mechanism landing on `origin/develop` — has **not** fired and cannot fire from this package, which writes no file under `src/` or `drizzle/`.
+
+#### Disposition of **`OI-S8-2`** and **`CC-S8-3`** — **supplied-to**, open, not claimed
+
+- **Items:** *"STDIO has no gate to extend, and `CC-S8-3` has no owner"* (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:421`–`:430`), and the named, classified and priced core change it records (`../C010-system-and-repository-architecture/12_application-versus-core-rule-and-compatibility-contract.md:233`, `:552`).
+- **Disposition:** **Supplied-to.** `04_the-stdio-identity-gate-and-the-bound-context-token.md` §3 supplies the gate mechanism and §9.1 supplies the breaking-change position with its stage set. Neither is claimed: both stay with **`SUB-10 of C010 (NEU-984)`**, co-named **`NEU-896`** (`:428`, `:614`).
+- **Whether `OI-S8-2` now closes** on limb one of its own resolving event is **that owner's to record**, not this sub-task's. Firing another package's resolving event is an act this sub-task can perform; closing another package's open item on its behalf is not.
+
+#### Disposition of **`OI-S8-1`** — **supplied-to**, and it **remains open**
+
+- **Item:** *"`context_tokens` names no principal, so the obligated identity binding has nothing to bind to"* (`../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:410`–`:419`). Owner **`SUB-10 of C010 (NEU-984)`** (`:417`), co-named `NEU-896` (`:614`).
+- **Disposition:** **Supplied-to, and open.** `04_the-stdio-identity-gate-and-the-bound-context-token.md` §4 and `decision-records/DR-C11-S4-2_what-the-context-token-row-carries.md` supply the mechanism — three columns, the mint-time write, the staged nullability. Its resolving event (`:418`) requires *a migration landing on `origin/develop` together with a mint path that binds and refuses to mint unbound*, and this package writes no file under `src/` or `drizzle/` by constraint. **It therefore remains open, and that is the correct outcome rather than a shortfall.**
+
+#### Disposition of **C010's deployment-shape question on STDIO reachability** — planned against, not answered
+
+- **Item:** Whether the unenforced STDIO edge is reachable in the production deployment. C010 declines to decide it and routes it to `SUB-10 of C010 (NEU-984)` (`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:482`–`:485`).
+- **Disposition:** **Not answered here, and not needed here.** `04_the-stdio-identity-gate-and-the-bound-context-token.md` §12 states which answer the decision planned against — **reachable**, the conservative one — and why the decision stands either way: C010 states the invariant's verdict is unconditional on reachability, and `TRANSPORT` defaults to `stdio` (`src/config/resolve-transport-config.ts:35`) so unreachability is one unset variable from being false. Carried as **`A-S4-2`** and **`SPK-S4-1`**, never as a closed question.
+
+#### `OI-S4-1` — The STDIO principal identifier and its declared kind are unstated, and no operator has been asked
+
+- **Id:** `OI-S4-1`
+- **Item:** `DR-C11-S4-1` clause 2 requires a STDIO process to be launched with a principal identifier and an **explicitly declared** principal kind. Neither value exists anywhere — not in `.env.example`, not in any deployment artifact in this repository, and not in any statement by the operator. What is open is not whether the mechanism works but **whether the party who would operate a STDIO deployment accepts a configured principal at all**, and if so what identifier they would use and which kind they would declare it.
+- **Status:** `provisional`
+- **Source:** The design at `04_the-stdio-identity-gate-and-the-bound-context-token.md` §3, §5. No configuration surface for it exists at `5111841`.
+- **Consumer:** **SUB-7** (NEU-1001), whose rollout has to include the configuration step, and **OUT-19**, whose runbook has to name the value.
+- **Owner:** **The creator, as sole maintainer and sole operator of the production deployment** — the only party who can state it.
+- **Resolving event:** **The operator states the STDIO principal identifier and its declared kind**, or states that no STDIO deployment will be operated. Either is observable and either closes the item; the second closes it by making `A-S4-2`'s tolerance the operative reading rather than by answering the question.
+- **Why not a stand-in:** Nothing rests on a particular answer. The mechanism is total over both — a declared `user` kind yields a learner key, a declared `client` kind yields a service principal refused learner state — so this changes what a deployment *does*, never whether the design holds.
+
+#### `OI-S4-2` — Whether the deploy pipeline's smoke suite can be re-scoped without losing its regression value
+
+- **Id:** `OI-S4-2`
+- **Item:** `F-S4-3` establishes that the CD smoke run calls gated learner-state tools with a `client_credentials` token and will be refused once the service-principal rule is enforced. Three routes out are named in `R-S4-2`. What is open is **which of them is actually available**: whether a suite restricted to the three exempt tools plus a service-principal path still detects the regressions the current suite detects, or whether the smoke principal must instead be re-provisioned as a `user`-kind static client.
+- **Status:** `provisional`
+- **Source:** `.github/workflows/cd-prod.yml:145`–`:174`; `tests/smoke/smoke.test.ts:195`, `:206`, `:237`. Read at `5111841`.
+- **Consumer:** **SUB-7** (NEU-1001), which must sequence the fix before the enforcement stage, and **SUB-11** (NEU-1003), whose compatibility contract covers the tool surface the suite exercises.
+- **Owner:** **The creator, as sole maintainer and sole operator** — owner of the workflow, the `SMOKE_PROD_*` credentials and the suite.
+- **Resolving event:** **A re-scoped smoke suite lands on `origin/develop`** exercising only exempt tools plus a service-principal-appropriate path, **or** the smoke principal is re-provisioned as a `user`-kind static client and its claim set is recorded in `96_spike-register.md`. Either is observable; the item closes when one occurs and names which.
+- **Why not a stand-in:** It is a question of fact about an artifact in this repository with an obtainable answer, and nothing in the identity rule is assumed on it. It gates a **release**, not a decision.
+
+#### `OI-S4-3` — Whether audit logging can be made transport-invariant without an Express dependency
+
+- **Id:** `OI-S4-3`
+- **Item:** `DR-C11-S4-1` clause 4 obligates audit parity across transports. `F-S4-4` establishes that both the audit and gate middlewares are Express `RequestHandler`s and that no STDIO transport module exists to attach either to. What is open is whether a transport-neutral seam is extractable at acceptable cost, or whether audit parity has to be achieved some other way — or descoped with an argument.
+- **Status:** `provisional`
+- **Source:** `src/transport/audit-middleware.ts:23`; `src/transport/context-token-middleware.ts:43`; `src/transport/main.ts:55`–`:59`. Read at `5111841`.
+- **Consumer:** **SUB-16** (NEU-999), which owns request attributability, and **SUB-11** (NEU-1003) for the core-change contract.
+- **Owner:** **SUB-16 (NEU-999)**, co-named **`NEU-896`** at convergence, since an unattributable transport spans this package's boundary.
+- **Resolving event:** **A transport-neutral middleware seam lands on `origin/develop`**, or SUB-16 publishes a stated position that audit parity is achieved by another means or is descoped with its reason and owner. Either is observable.
+- **Why not a cap:** An available party settles it and the event is observable. It is not the invariant's unprovability, which is `CAP-S5-1`'s and, for this sub-task's transport limb, `CAP-S4-1`'s.
+
+---
+
+**SUB-4 register totals at revision 1:** three new open items, `OI-S4-1` … `OI-S4-3`, each with a
+named owner and an observable resolving event; **zero** carry a blank owner. **Five** dispositions
+of C010 records recorded: **`BND-S4-17` resolved here**; **`OI-S8-2`**, **`CC-S8-3`** and
+**`OI-S8-1`** each **supplied-to and open**; and C010's own deployment-shape question on STDIO
+reachability recorded as **planned-against rather than answered** — the fifth, and deliberately in
+none of the four split-fidelity classes, because it is a question C010 declined to answer rather
+than a residual id this package touches.
+
+**The one-to-one open-item-to-spike rule SUB-1 applied is deliberately not met here, and the
+divergence is stated rather than left to look like an omission.** Three new open items correspond to
+**two** spikes. `OI-S4-2` has no spike because it fails the *"could this have been read instead?"*
+test that `R14` and `DR-C11-S1-2` impose: it was settled as a fact by reading
+`tests/smoke/smoke.test.ts:206` and `:237`, and what remains open is a **judgement about regression
+value**, which no bounded read-only experiment against production can produce. Filing a spike for it
+would have been a spike standing in for a decision.
+
+---
+
 ### SUB-16
 
 **What is deliberately absent from this section.** SUB-16 raises **no open item about where a signal

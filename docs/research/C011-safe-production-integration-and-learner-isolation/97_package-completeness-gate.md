@@ -125,3 +125,43 @@ shape published at §1, or whether SUB-9 in fact propagates through `LD-S3-31`: 
 sub-tasks' own acceptance at their own positions, and this chapter asserts only what it publishes.
 `G-15` remains SUB-1's row and SUB-3 does not re-assert it; the citation gate still does not cover
 C011, which is `CAP-S1-2`, owner SUB-14.
+
+---
+
+### SUB-4
+
+| # | Item | Disposition | Evidence / cap |
+| --- | --- | --- | --- |
+| `G-S4-1` | Check `I4` is applied to **both** transports under the proposed gate and resolves to a stated verdict, with every residual named and owned. | **met** | `04_the-stdio-identity-gate-and-the-bound-context-token.md` §10.1. Verdict: `I4` no longer fails under the proposed gate. Three non-claims stated, and the one residual on the verdict — the per-process-singleton limit — is `R-S4-3`, owner `SUB-10 of C010 (NEU-984)` co-named `NEU-896`. |
+| `G-S4-2` | Every existing STDIO client path is classified `unaffected` / `degraded` / `broken`, with a stated breaking-change position and its staging, and "leave STDIO ungated" appears **only** as an argued-and-rejected alternative. | **met** | §9 — **7 of 7** paths: 3 unaffected, 1 degraded, 2 broken, 1 counted elsewhere. §9.1 — breaking and unavoidably so, four-stage set, two ordering constraints, no permissive mode. §3.1 and `decision-records/DR-C11-S4-1_the-stdio-identity-gate.md` rejected alternative 1 — argued against the invariant's unconditional verdict, never offered as the answer. |
+| `G-S4-3` | `BND-S4-17` is recorded **resolved here** with the naming party cited from `OI-S8-2`'s resolving event, not as a consumed constraint and not left with owner `nobody` — and the citation names `OI-S8-2`, never `OI-S8-1`. | **met** | §11 and `93_open-items-and-provisional-register.md` § *Disposition of `BND-S4-17`*. Cites `../C010-system-and-repository-architecture/90_open-items-and-provisional-register.md:429`; names limb **one** as the limb that fired; owner named as `SUB-10 of C010 (NEU-984)` co-named `NEU-896`. `OI-S8-1` appears only where it is correctly the different item — `:417` (its Owner line) and `:418` (its own resolving event) — and never as the source of `:429`. Classified `resolved here`, **not** "owned and resolved here". |
+| `G-S4-4` | A token-lifecycle walk covers mint, use, expiry, purge and cutover on both transports, every step with a defined behaviour, and expired rows have a wired purge path or a stated reason there is none. | **met** | §6 — **15 of 15** cells carry a stated disposition: **14** a defined behaviour and **one** an explicit `n/a` where the step cannot arise (an unconfigured STDIO process mints nothing, so it has nothing to expire). Two cells state that an existing behaviour is **unchanged**, which is a defined behaviour rather than an omission — §6's closing line draws the distinction (*"none of them is 'unchanged, and therefore fine'"*). §7 and `decision-records/DR-C11-S4-3_expiry-purge-and-the-cutover-rejection-rule.md` — `deleteExpired()` wired at the mint path with a named call site, chosen for being transport-agnostic. |
+| `G-S4-5` | Every class of token rejected at cutover is named, the deploy pipeline's `client_credentials` smoke principal included. | **met** | §8 — **4 of 4** classes. C2 is the smoke principal, named with its evidence (`.github/workflows/cd-prod.yml:145`–`:174`; `tests/smoke/smoke.test.ts:195`, `:206`, `:237`) and distinguished from the one-time unbound class as a **recurring** rejection. |
+| `G-S4-6` | The design is audited against `DR-C10-S8-2`, adds no per-call identity argument, and satisfies checks `I2` and `I5`. | **met** | §10.4 — **7 of 7** clauses audited in a table. Zero tool input schemas change; zero per-call identity arguments added, with the apparent counterexample disclosed as `F-S4-5` rather than left for a reader to find. §10.2 — `I2` satisfied for `context_tokens` itself, consumed unchanged elsewhere. §10.3 — `I5` satisfied on both transports. |
+| `G-S4-7` | OUT-7 and OUT-13 each carry an outcome-register row **authored here**, with resolving evidence and a **success measure**. | **met** | `90_outcome-register.md` § SUB-4. Both rows carry Outcome, Success measure (four clauses each), Verified by, Measured result at revision 1, an explicit does-not-claim paragraph, and Authored by. Neither measure is authored at assembly. |
+| `G-S4-8` | Every residual exposure this sub-task states carries a risk-register entry with a severity, a mitigation, a named owner and an escalation route — and **zero** charter `R<n>` rows are authored. | **met** | `92_risk-register.md` § SUB-4 — `R-S4-1` (High), `R-S4-2` (High), `R-S4-3` (Medium), `R-S4-4` (Medium). All four carry every required field plus a mitigation status; two open, two partially mitigated, each naming its residual and that residual's owner. **Zero** charter rows, correctly: no § Risks row names OUT-7 or OUT-13 (charter assumption 48). |
+| `G-S4-9` | No production quantity is recorded as observed; every unobtainable fact resolves to a stand-in with an owner and a re-validation trigger, or to a spike with a method and an expiry. | **met** | **The `observed-in-production` evidence label is applied to zero claims by SUB-4** — the label is named here and in two other places to record its emptiness, and attached to nothing. The cutover population is `A-S4-1`; STDIO reachability is `A-S4-2`; both carry owner, tolerance envelope and re-validation trigger. `SPK-S4-1` and `SPK-S4-2` each carry a read-only method, a quarantine path and a **2026-11-25** expiry, and both report **not executed**. No count, estimate or bound of any production quantity appears anywhere in this sub-task's output. |
+| `G-S4-10` | Every codebase claim resolves to a real path at a stated cutoff, and the settled tool-surface figure is used rather than the corrected miscount. | **met with cap** | §1.6 re-counts independently at `5111841`: `registerTool(` occurs **46** times across `src/server/`, `EXCLUDED_TOOLS` at `src/transport/context-token-middleware.ts:5`–`:9` holds exactly three — **46 / 43 / 3**, matching `F-S5-3` and `F-S8-1`. The corrected miscount is **not repeated as a codebase fact anywhere**. §14 records zero changes to `src/` or `drizzle/`. **Capped by `CAP-S1-2`**: C011 is still not in `scripts/check-citation-paths.ts`'s gated list, so this sub-task's citations were verified by a **local** run only and CI does not yet enforce them. Owner SUB-14. |
+
+**SUB-4 rows: 10. Met 9; met with cap 1; not met 0.** The single capped row names what is
+unenforced, why, and who owns lifting it — and the cap is on the **enforcement** of the citation
+convention, not on this sub-task's conformance to it, which was verified locally at **0
+non-resolving** for the whole C011 package after the final edit.
+
+**SUB-4 writes gate rows rather than deferring them, following SUB-2 and SUB-3 rather than SUB-15.**
+`DR-C11-S15-3` recorded SUB-15's deliberate choice to write none, on the ground that this register
+names SUB-17 as owner; SUB-2 diverged and wrote `G-S2-<k>` rows anyway. SUB-4 takes the same view for
+the same reason: the rows above assert only what **this sub-task** published, which SUB-17 cannot
+reconstruct as cheaply as the author can, and asserting them here costs SUB-17 nothing it would
+otherwise have. The divergence is stated so SUB-14 sees a choice and not an accident.
+
+**What SUB-4 does not assert here.** Nothing about band placement, cross-register consistency across
+all eight registers, the outcome register's final row count, the fifteen-row risk-register count, or
+the findings register's both-directions enumeration — **SUB-14's** at position 15 and **SUB-17's** at
+position 16. Nothing about whether any state category reaches `holds`, which needs `I3` and is
+**SUB-5's** at its own position. Nothing about the rollout order (**SUB-7's**) or the whole-surface
+compatibility contract (**SUB-11's**). Nothing about whether `OI-S8-2` closes — this sub-task fires
+limb one of its resolving event and routes it; recording the closure is
+`SUB-10 of C010 (NEU-984)`'s. And **no QA pass is claimed**: no capability owns the `qa-execution`
+surface, so the autonomous QA phase is a genuine Core Article 8 no-op rather than a skipped gate,
+exactly as `README.md` § "Verification note" records for the package.

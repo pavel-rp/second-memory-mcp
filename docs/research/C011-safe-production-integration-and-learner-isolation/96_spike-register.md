@@ -363,6 +363,85 @@ rather than left for a reader to compute.
 
 ---
 
+### SUB-4
+
+*`NEU-996`, covering `OUT-7` and `OUT-13`. Two spikes, both read-only, both routed to owned open
+items. A third candidate was designed and then **dropped** for failing the
+"could this have been read instead?" test — see the totals note below.*
+
+#### `SPK-S4-1` — Does the production deployment expose a STDIO edge, and if so, to whom?
+
+- **Id:** `SPK-S4-1`
+- **Sub-task:** SUB-4 (NEU-996)
+- **Question:** Is the STDIO transport reachable in the production deployment at all — is any process started with `TRANSPORT` unset or `stdio`, and if so who or what can connect to its standard input?
+- **Why reading could not settle it:** The compose stack and the VPS are outside this repository entirely, and `TRANSPORT` is an environment variable set at deploy time. The tracked tree shows only that `stdio` is the **default** when the variable is unset (`src/config/resolve-transport-config.ts:35`); it cannot show what the deployment actually sets. C010 reached the same conclusion and routed the question rather than answering it (`../C010-system-and-repository-architecture/06_isolation-invariant-and-the-neu-893-split.md:482`–`:485`).
+- **Exit condition:** A statement, recorded here, of whether any production process runs on the STDIO transport, and if so what may connect to it — or an explicit statement that none does and none is intended.
+- **Method:** **Read-only, non-mutating.** A question to the operator, plus a read-only inspection of the compose stack and the deployed process environment **if the operator offers one**. No process is started, no variable is changed, no connection is attempted. This is the same acquisition class as `SPK-S2-3`.
+- **Quarantine path:** Nothing is written to `src/`, `drizzle/` or any deployment configuration; no product code is produced; the result is a statement appended to this register and nothing else.
+- **Date:** —
+- **Result:** **Not executed.**
+- **Confidence:** —
+- **Expiry:** **2026-11-25.**
+- **Expiry rationale:** Three months, matching the package's standing expiry discipline. The deployment shape is the kind of fact that changes when hosting changes, and a stale "no STDIO edge exists" would be worse than no answer, because it would justify relaxing the staging urgency on evidence that had quietly expired.
+- **Routes to:** **`A-S4-2`**, and C010's deployment-shape question owned by `SUB-10 of C010 (NEU-984)` co-named `NEU-896`. **It gates nothing in the gate decision** — `04_the-stdio-identity-gate-and-the-bound-context-token.md` §12 states the decision stands under either answer, and C010 makes the invariant's verdict unconditional on it. It changes only SUB-7's staging urgency.
+
+#### `SPK-S4-2` — What identifier and declared kind would an operator give a configured STDIO principal?
+
+- **Id:** `SPK-S4-2`
+- **Sub-task:** SUB-4 (NEU-996)
+- **Question:** Would the party operating a STDIO deployment accept a server-held configured principal (`DR-C11-S4-1` clause 2), and if so what identifier would they use and which principal kind would they declare it — `user`, yielding a learner key, or `client`, yielding a service principal refused learner state?
+- **Why reading could not settle it:** No configuration surface for it exists at `5111841` — the value is not in `.env.example`, not in any deployment artifact in this repository, and not in any recorded operator statement. It is a decision nobody has yet been asked to take, not a fact hiding in the tree.
+- **Exit condition:** A recorded operator statement giving the identifier's **shape** and the declared kind, or a recorded statement that no STDIO deployment will be operated and the question is moot.
+- **Method:** **Read-only, non-mutating.** A question to the operator. Nothing is provisioned, nothing is configured, no process is started. If the identifier is a value with any sensitivity, its **shape** is recorded and never its literal value, on the same discipline `SPK-S2-1` applies to `sub`.
+- **Quarantine path:** Nothing written to `src/`, `drizzle/` or any deployment configuration; the result is a statement appended to this register.
+- **Date:** —
+- **Result:** **Not executed.**
+- **Confidence:** —
+- **Expiry:** **2026-11-25.**
+- **Expiry rationale:** Three months, matching the package's discipline. An operator's intention about a deployment they have not yet configured is exactly the kind of answer that goes stale, and a rollout built on an intention already past its expiry would be building on a preference rather than a commitment.
+- **Routes to:** **`OI-S4-1`**. **It gates nothing in the design** — `04_the-stdio-identity-gate-and-the-bound-context-token.md` §3 and §5 are total over both declared kinds, so the mechanism holds whichever answer comes back. It determines what a specific deployment *does*, and it is a prerequisite for OUT-19's runbook naming a concrete value.
+
+---
+
+**SUB-4 register totals at revision 1:** two spikes designed, **zero executed**, two claims routed
+to owned open items `OI-S4-1` and `SPK-S4-1`'s target `A-S4-2`. Both carry a mandatory expiry. The
+registered exception to the zero-mutation constraint was **not exercised by SUB-4 either**: zero
+tokens minted, zero IdP audit records created, zero production operations of any kind. **This
+sub-task applies the `observed-in-production` label to zero claims** — it is named to record its
+emptiness and attached to nothing.
+
+**A third spike was designed and dropped, and the drop is recorded rather than silent.** The
+candidate — *would the existing smoke suite pass against a `client`-kind principal under the
+refusal rule?* — failed the *"could this have been read instead?"* test that `R14` and
+`DR-C11-S1-2` impose. Its factual half **was** settled by reading: `tests/smoke/smoke.test.ts:206`
+and `:237` call gated learner-state tools with the captured context token, and
+`.github/workflows/cd-prod.yml:145`–`:174` shows the token is `client_credentials`. Its remaining
+half is a **judgement about regression value**, which no bounded read-only experiment against
+production can produce, and it is filed as `OI-S4-2` instead. Filing it as a spike would have been a
+spike standing in for a read and then for a decision.
+
+**Cumulative across every sub-task that had written to this register when SUB-4 authored — SUB-1
+(9), SUB-15 (4), SUB-2 (3) and SUB-4 (2): eighteen spikes designed, zero executed.** The count has
+grown again while the executed count has not. That is `R13`'s fact and it is reported here rather
+than left for a reader to compute.
+
+**SUB-16's section landed concurrently, so the package total is nineteen, not eighteen.** SUB-4 and
+SUB-16 were authored in parallel and merged in that order; SUB-16 contributes `SPK-S16-1`, which
+this paragraph could not have counted. **9 + 4 + 3 + 2 + 1 = 19 designed, zero executed.** The
+figure is stated here rather than left to a reader who would otherwise find two totals and no rule
+for combining them.
+
+**Neither this total nor SUB-16's matches SUB-2's, and the mismatch is reported rather than
+reconciled in place.** SUB-2's closing note reads *"Cumulative across SUB-1 and SUB-2: twelve spikes
+designed"* — 9 + 3, omitting SUB-15's four, which sit in this register between SUB-1's section and
+SUB-2's. **SUB-16 records the same correction independently**, from its own position and without
+sight of this section; two sub-tasks reaching it separately is corroboration, not a duplicate defect.
+No sub-task edits another's entries (`README.md` § "Shared-register append convention"), so SUB-2's
+line is left exactly as written and the discrepancy is registered as **`F-S4-6`** for SUB-14 to
+reconcile at assembly.
+
+---
+
 ### SUB-16
 
 ## `SPK-S16-1` — Is the audit writer mounted on the production deployment at all?
