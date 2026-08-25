@@ -50,3 +50,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S1-1_principal-shape-acquisition-methods.md` | SUB-1 (NEU-993) | OUT-18 |
 | `DR-C11-S1-2_evidence-routing-and-expiry-discipline.md` | SUB-1 (NEU-993) | OUT-18 |
 | `DR-C11-S1-3_package-house-style.md` | SUB-1 (NEU-993) | OUT-18 (structurally; OUT-20 owns assembly) |
+| `DR-C11-S3-1_learner-data-classification-scheme.md` | SUB-3 (NEU-995) | OUT-9 |
+| `DR-C11-S3-2_conditional-log-table-classification.md` | SUB-3 (NEU-995) | OUT-9 |
+| `DR-C11-S3-3_package-own-copies-and-the-derivation-test.md` | SUB-3 (NEU-995) | OUT-9 |

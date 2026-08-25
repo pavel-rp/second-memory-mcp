@@ -82,3 +82,75 @@ and it produced routing rather than closure. The consequence for the package is 
 in `91_findings-register.md` and as `R13` in `92_risk-register.md`, not smoothed over here.
 
 **Authored by.** SUB-1 (NEU-993).
+
+---
+
+### SUB-3
+
+## OUT-9 — Every category of learner data the system holds, inventoried once and classified
+
+**Outcome.** Every state category carrying learner data appears exactly once in a published
+inventory, each with its data class, personal-data status, lawful basis, purpose, minimization
+position and derivation — cross-checked bidirectionally against C010's 45-category state inventory so
+that nothing is invented and nothing is dropped. The two port-less log tables are classified
+conditionally with the condition stated, the copies this package's own activity creates are
+inventoried on their derivation, and the consent category OUT-10 creates is recorded as a seam rather
+than pre-empted.
+
+**Success measure.** OUT-9 is judged done when **all six** of the following hold, each reported as a
+number or an explicit disposition rather than an assertion:
+
+1. **Enumeration re-derived, not inherited.** The enumeration reports **ten** `public` tables with
+   `context_tokens` as the **tenth**, **two** Drizzle-defined `infrastructure` tables in the same
+   file, **two** raw-SQL log tables, and the process-local in-memory set — with `context_tokens`
+   appearing **exactly once** and never as an eleventh item.
+2. **Exactly once, no duplicates and no omissions.** Every table, column group and in-memory
+   structure appears exactly once, and the completeness method's **stated falsifier** is published
+   and applied rather than the completeness being asserted.
+3. **Both directions reported.** The cross-check against C010's 45 categories reports unmatched
+   counts in **both** directions, with **every** unmatched entry explained rather than dropped, and
+   the two arithmetic identities stated.
+4. **The log tables carry both readings.** Each of the two port-less log tables carries the
+   unattributed *and* the attributed classification, the condition that selects between them, and an
+   explicit pointer to **SUB-16**, and is recorded as **complete** rather than awaiting revision.
+5. **The package's own copies are inventoried on derivation.** The sixth copy class appears once,
+   carrying the owner, retention bound and destruction condition **SUB-1 recorded**, as a class with
+   **zero known members and terms that exist anyway**; the aggregate result set appears once as counts
+   and probe results rather than rows; and the synthetic dry-run dataset appears **only as a recorded
+   exclusion** with its derivation test and reason. No entry sets a term for an artifact that does not
+   exist.
+6. **Findings routed, not absorbed.** Every purpose not traceable to a real use, and every category
+   the independent omission probe surfaces, is reported as a finding **with a named recipient** in
+   `91_findings-register.md` rather than reconciled in the chapter's prose.
+
+**Verified by.** `03_learner-data-inventory-and-classification.md` §3 (the re-derived enumeration),
+§4–§8 (the 32 entries), §5 (the conditional log-table classification), §8 (the copy classes and the
+recorded exclusion), §9 (the consent seam), §10 (the bidirectional cross-check), §11 (the completeness
+method and its falsifier), §12 (the purpose-limitation review);
+`91_findings-register.md` (`F-S3-1` … `F-S3-4`); `92_risk-register.md` (`R10`, `R12`);
+`93_open-items-and-provisional-register.md` (`OI-S3-1`); `94_caps-and-incomplete-scope.md`
+(`CAP-S3-1`); `95_stand-in-assumption-register.md` (`A-36`);
+`decision-records/DR-C11-S3-1_learner-data-classification-scheme.md`,
+`decision-records/DR-C11-S3-2_conditional-log-table-classification.md`,
+`decision-records/DR-C11-S3-3_package-own-copies-and-the-derivation-test.md`;
+`traceability/S3_learner-data-inventory.md`.
+
+**Measured result at revision 1.** (1) **10 + 2 + 2 + 10**, `context_tokens` the tenth `public` table
+at `src/infrastructure/db/schema.ts:312`, appearing exactly once as `LD-S3-13`. (2) **32 entries**,
+each once; falsifier published in §11 and **fired once** — six process-local structures beyond the
+four the scope named were surfaced by the omission probe and **admitted** as `LD-S3-22` … `LD-S3-27`.
+(3) C010 → here: **30 matched + 15 unmatched-and-explained = 45**; here → C010: **30 matched + 2
+unmatched-and-explained = 32**. Both identities hold. (4) Both log tables carry both readings, one
+shared stated condition, and a SUB-16 pointer; both recorded complete, **zero revisions owed**.
+(5) Sixth copy class present with **zero known members** and SUB-1's terms quoted as recorded;
+aggregate result set present as counts and probe results; dry-run dataset present **only as an
+exclusion** with its derivation test. **Zero terms set for a non-existent artifact.** (6) **Four**
+findings routed with named recipients; **zero** absorbed into prose.
+
+**The measure is met, and the surface it classified is one where no ownership column exists on any
+table.** Both are true and OUT-9 requires them reported together: the inventory is complete against
+the declared schema, and what it inventories is a system in which attribution is a property of the
+deployment rather than of the data. The consequence is carried as `F-S3-1` and `R12`, not smoothed
+over here.
+
+**Authored by.** SUB-3 (NEU-995).

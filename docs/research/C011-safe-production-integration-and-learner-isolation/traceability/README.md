@@ -35,3 +35,4 @@ two**. Source and non-research paths (`src/…`, `drizzle/…`) are written **ba
 | File | Author | Outcomes |
 | --- | --- | --- |
 | `S1_production-evidence.md` | SUB-1 (NEU-993) | OUT-18 |
+| `S3_learner-data-inventory.md` | SUB-3 (NEU-995) | OUT-9 |
