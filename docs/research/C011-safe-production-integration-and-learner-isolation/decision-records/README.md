@@ -53,3 +53,6 @@ non-research paths (`src/…`, `drizzle/…`) are written **bare from any depth*
 | `DR-C11-S3-1_learner-data-classification-scheme.md` | SUB-3 (NEU-995) | OUT-9 |
 | `DR-C11-S3-2_conditional-log-table-classification.md` | SUB-3 (NEU-995) | OUT-9 |
 | `DR-C11-S3-3_package-own-copies-and-the-derivation-test.md` | SUB-3 (NEU-995) | OUT-9 |
+| `DR-C11-S15-1_objective-basis-and-evidence-labels.md` | SUB-15 (NEU-998) | OUT-14 |
+| `DR-C11-S15-2_first-break-ranking.md` | SUB-15 (NEU-998) | OUT-14 |
+| `DR-C11-S15-3_non-charter-register-id-scheme.md` | SUB-15 (NEU-998) | OUT-14 (structurally; OUT-20 owns assembly) |
