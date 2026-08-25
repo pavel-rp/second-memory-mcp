@@ -652,7 +652,7 @@ Run item by item; each returns a verdict rather than an assurance.
 | `DR-C10-S8-1` `R8-4` — reusable-core rule | Each of `CH-1` … `CH-7` checked for course-specific vocabulary (§9) | **Consistent for this package's changes.** One pre-existing breach found in the surface (`F-S11-2`) — not a C010 decision, so **no amendment routed** |
 | `CC-S8-3` — *"breaking, and unavoidably so"* | Adopted unchanged for `CH-1` (§4) | **Consistent.** §6 is an **addition** to its pricing, as `F-S4-4` already established — not a contradiction |
 | `DR-C10-S8-2` — token-bound over per-call identity | The gate reads a per-call *argument*, but a server-minted one (`F-S4-5`) | **Consistent** — `F-S4-5` records why this is not the contradiction it resembles, and this chapter cites it rather than re-deriving it |
-| C010 `12_…md` §8 — regression boundary and detection-method tables | Consumed as constraints; §4's obligations are applied to this package's changes, not re-derived | **Consumed, not re-derived** |
+| `../C010-system-and-repository-architecture/12_application-versus-core-rule-and-compatibility-contract.md` §8 — regression boundary and detection-method tables | Consumed as constraints; §4's obligations are applied to this package's changes, not re-derived | **Consumed, not re-derived** |
 
 **No amendment is routed to `NEU-895` by SUB-11.** `R11`'s escalation route is conditional on the
 re-count contradicting 46 / 43 / 3; it agrees, so the condition did not arise. The route is recorded
