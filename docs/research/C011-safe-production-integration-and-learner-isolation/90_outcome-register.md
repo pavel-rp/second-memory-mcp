@@ -382,3 +382,81 @@ observation. That is the exact contrast with OUT-5 above, and it is why one row 
 the other reports not met.
 
 **Authored by.** SUB-2 (NEU-994).
+
+---
+
+### SUB-16
+
+## OUT-15 — Observability, attribution, alerting and incident evidence sufficient to detect an isolation or privacy failure
+
+**Outcome.** The package states what must be observable to detect **cross-learner access**, **a
+failed confinement**, **a stalled data-lifecycle propagation** and **a rollout regression** — each
+with a signal, a threshold, an alert route and an owner. It resolves the attribution gap directly and
+**per transport**: HTTP writes an audit row in which 0 of 11 columns carry a server-derived
+principal, because the two columns that look as though they might — `session_id`
+(`src/transport/audit-middleware.ts:94`–`:99`) and `correlation_id`
+(`src/transport/http.ts:154`–`:157`) — are both **caller-asserted**; STDIO writes no row at all
+(`src/transport/main.ts:55`–`:58`). The resolution is a new **server-derived column pair**,
+`principal_kind` (`NOT NULL`, three-valued) plus `learner_key` (the `sub` verbatim), which makes the
+**service principal a countable state rather than a silence**. Adding attribution is stated together
+with its privacy consequence: **this outcome determines which of OUT-9's two conditional readings
+holds** — the attributed one, for both tables — and publishes it as the settled classification OUT-11
+and OUT-12 design against.
+
+**Success measure.** OUT-15 is judged done when **all five** hold:
+
+1. **Zero failure modes without a signal.** Each of the four named failure modes maps to a signal, a
+   threshold, an alert route and an owner, with no cell blank and no cell filled by an invented value.
+2. **The attributability audit is reported per transport, and the worse transport is not hidden by
+   the better.** HTTP and STDIO are reported as separate rows, before and after, and any transport
+   that remains unattributable after the proposed change is named **with its residual owner** rather
+   than reported as improved.
+3. **Exactly one privacy reading is determined, per table**, its consequence for export, erasure and
+   retention is stated, it is published as SUB-8's and SUB-9's input, and **zero revisions are raised
+   against SUB-3's inventory**.
+4. **The signal contract is conformable without a question.** A reader holding only chapter `16_` can
+   name every required field of a completion proof, where it lives and when it is evaluated.
+5. **Zero signals assume an emission the deployment does not make.** Every such emission is named
+   with an owner.
+
+**Verified by.** `16_attribution-and-detection.md` §1 (the per-transport audit), §2 (the attribution
+model and the third principal state), §3 (the detection matrix), §4 (the missing emissions), §5 (the
+determination), §6 (the signal contract), §7 (the `OBJ-10`/`OBJ-11` check), §8 (the tool-surface
+disclosure); `decision-records/DR-C11-S16-1_the-attribution-carrier.md` (seven rejected
+alternatives); `decision-records/DR-C11-S16-2_the-audit-log-privacy-determination.md` (six rejected
+alternatives); `decision-records/DR-C11-S16-3_the-stalled-propagation-signal-contract.md` (seven
+rejected alternatives); `traceability/S16_attribution-and-detection.md`.
+
+**Measured result at revision 1.** (1) **4 of 4** failure modes carry a signal, a threshold, a route
+and an owner; **0** blank cells. (2) **2 of 2** transports reported separately, before and after;
+**STDIO reports no improvement** and its residual is named with two owners, because the record and
+the principal are two different missing things. (3) **1 of 1** reading determined **per table**, for
+**2 of 2** tables, with export, erasure and retention each addressed; **0** revisions raised against
+`03_learner-data-inventory-and-classification.md`. (4) The contract states **9 required fields, 3
+location properties, 1 fire condition and 6 negative clauses**. **Two of them name a value another
+sub-task supplies, and neither is a deferral of the contract's own shape:** field 4's `copy_class`
+enum ranges over the classes SUB-9's matrix enumerates, and the fire condition compares against the
+propagation's *declared* cardinality — both are inputs the contract requires a conforming party to
+supply, stated as such, in the way a function signature names a parameter without computing it.
+`deadline_at`'s value is likewise SUB-8's (`DR-C11-S16-3` §5). **What is complete without reference
+to any future artifact is the shape**: no field, property or clause says *"as SUB-9 shall
+determine"*. (5) **7 of 7** missing emissions named with an owner; **0** signals assume
+an available emission.
+
+**Three things this measure does not claim, stated because the over-claim is the failure mode.**
+**No signal has ever fired or been run** — every threshold is derived from repository constants at
+`n = 0` observed production events (`94_caps-and-incomplete-scope.md` § `CAP-S16-1`; `R13` cited for
+the evidence position). **No alert route is real** — all four are `[unconfirmed]` against `OI-S1-9`,
+so a signal that fires today reaches nobody (`R-S16-2`). And **the determination is conditional on
+adoption** — it binds every design downstream of it and asserts nothing about the deployment as it
+stands, which is deliberate: asserting it would be the overstatement `R10` is registered against.
+
+**One measure limb is satisfied in design and unsatisfiable in evidence, and it is reported rather
+than reinterpreted.** Limb 1 requires a *threshold* per failure mode, and four are stated — but a
+threshold derived from a constant is not a calibrated threshold, and none of the four has been
+exercised against a real population. The condition as written does not require calibration, so it is
+recorded **met**; the gap it leaves is carried as `CAP-S16-1` with a landing condition rather than
+absorbed into the measure. This is the same disposition SUB-2 took with `F-S2-3`: deliver the design
+half, decline the evidence half, and register the gap visibly.
+
+**Authored by.** SUB-16 (NEU-999).

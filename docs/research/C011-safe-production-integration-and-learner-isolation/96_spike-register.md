@@ -360,3 +360,47 @@ tokens minted, zero IdP audit records created, zero production operations of any
 **Cumulative across SUB-1 and SUB-2: twelve spikes designed, zero executed.** That the count has
 grown while the executed count has not is itself the fact `R13` names, and it is reported here
 rather than left for a reader to compute.
+
+---
+
+### SUB-16
+
+## `SPK-S16-1` — Is the audit writer mounted on the production deployment at all?
+
+| Field | Value |
+| --- | --- |
+| **Id** | `SPK-S16-1` |
+| **Question** | Is an audit database URL set on the running production container — that is, does `src/transport/http.ts:177`–`:182`'s `if (auditDbUrl)` guard evaluate true there, so that `infrastructure.mcp_request_log` receives rows at all? It has a wrong answer: if the guard is false, every count-based signal in `16_attribution-and-detection.md` §3 has no input, and an empty table is indistinguishable from a deployment that served no traffic. |
+| **Why reading could not settle it** | The guard is readable; the **value it reads** is not. `auditDbUrl` resolves from the process environment of a container deployed by SSH plus `docker compose` to a host named by a repository secret. `.env.example` shows the variable's *shape*, never the deployed value, and `.github/workflows/cd-prod.yml` passes secrets it does not print. No repository artifact records what is set on the running host. This is the same class of unreadability `OI-S1-9` records for hosting and monitoring, narrowed to one variable. |
+| **Exit condition** | The operator states, for the running production container, whether an audit database URL is **present or absent** — the presence, never the value, which is a credential — and the statement is appended here. **Alternatively**, a single read-only `SELECT count(*) FROM infrastructure.mcp_request_log` returning any value settles it directly: a non-zero count proves the writer is mounted. |
+| **Method** | Two routes, either sufficient, both read-only. **(a)** On the deployment host, inspect the running container's environment for the *presence* of `AUDIT_DATABASE_URL` or `DATABASE_URL` and report a boolean — the value is never transcribed, copied or appended anywhere. **(b)** Against the production database, run one read-only aggregate: `SELECT count(*) AS n, min(timestamp) AS first_seen, max(timestamp) AS last_seen FROM infrastructure.mcp_request_log;`. Route (b) is preferred because it needs no host access and because it **also** advances `SPK-S1-5` (whether the table holds rows), so the two can be taken in one connection. **No mutation of any kind**, no `init_agent_context` call, no token minted. |
+| **Quarantine path** | Nothing landed under `src/`, `tests/` or `drizzle/`, and nothing was merged as product code. This sub-task changed **zero** files under `src/` and **zero** under `drizzle/`, checked mechanically with `git diff --name-only origin/develop` before every commit. (The task's own spec artifact, which also states the constraint, lives under `_local/` and is gitignored, so it is described rather than cited as a resolvable path.) No scratch tree was created, because the spike was not executed. |
+| **Date** | 2026-08-25 — the date execution was determined to be **impossible**. No production credential of any kind was present in the authoring environment: `SMOKE_PROD_*`, `DATABASE_URL`, `AUTH_*` and `VPS_*` are all unset, so neither route (a) nor route (b) could be attempted. |
+| **Result** | **Not executed.** No observation of any kind was taken. Nothing about the deployed configuration is reported here, and no value is inferred from the guard's presence in the source — a guard that exists says nothing about the variable it reads. |
+| **Confidence** | **`none`** — there is no result to hold a confidence in. What would raise it: executing either route once. Nothing available in the repository can raise it, because the question is definitionally about state outside the repository. |
+| **Expiry** | **2027-02-25** — six months from the design date, or **immediately upon any change to `src/transport/http.ts`'s mount guard or to the deploy workflow's environment handling**, whichever is sooner. |
+| **Expiry rationale** | The question is about a deployed environment variable, which can change on any deploy — and the deployment auto-deploys from `develop` on green CI at a measured ≥3.29 restarts/day (`15_operational-objectives-for-the-real-platform.md` §2.2, `C-17`). Six months is not a claim that the answer is stable for six months; it is the outer bound at which an unexecuted design should be re-read against a codebase that will have moved, and the mount-guard clause is what actually protects a future reader from citing a stale method. |
+| **Routes to** | `93_open-items-and-provisional-register.md` § `OI-S16-1`, which carries the unclosed claim with its named owner. The finding it grounds is `91_findings-register.md` § `F-S16-4`. |
+
+---
+
+**SUB-16 register totals at revision 1:** one spike, `SPK-S16-1`, **designed and not executed**,
+carrying a stated method, a stated exit condition, a mandatory expiry with its rationale, and a route
+to an owned open item. **One of one** corresponds to the single new open item `OI-S16-1` in
+`93_open-items-and-provisional-register.md`, on the same rule SUB-1 applied.
+
+**Cumulative across SUB-1, SUB-2, SUB-15 and SUB-16: seventeen spikes designed, zero executed** —
+nine (`SPK-S1-1` … `SPK-S1-9`), four (`SPK-S15-1` … `SPK-S15-4`), three (`SPK-S2-1` … `SPK-S2-3`) and
+one (`SPK-S16-1`). **SUB-15's four are counted here.** The preceding SUB-2 note's *"twelve across
+SUB-1 and SUB-2"* is accurate for those two sub-tasks and is not amended; this line states the
+package total, which is the figure a reader of the evidence base wants. The
+`observed-in-production` evidence label has still been used **zero times** anywhere in this package.
+This sub-task adds a spike and no observation, which is the same arithmetic SUB-2 reported, and it is
+stated here rather than left for a reader to compute. `R13` carries the risk; `CAP-S16-1` caps what
+this sub-task's own thresholds may be read to mean in consequence.
+
+**No second record is raised.** `SPK-S16-1`'s route (b) overlaps `SPK-S1-5`'s method deliberately —
+one connection settles both — but the **question** is distinct (is the writer mounted, versus does
+the table hold learner content), the items are distinct (`OI-S16-1` versus `OI-S1-5`), and neither
+spike restates the other's question. The overlap is recorded so that whoever executes either knows
+they can close two items in one read-only query.
