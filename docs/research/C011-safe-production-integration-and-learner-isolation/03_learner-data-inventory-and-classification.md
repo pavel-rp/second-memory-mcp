@@ -109,7 +109,7 @@ in `DR-C11-S3-1`.
   cutoff, `learner-linked` once that column lands"* — a transition with a known cause.
 - For the **two port-less log tables**, attribution is **undetermined**: whether `NEU-850`'s *"every
   core table"* even ranges over them is `OI-S5-1`, owned by `NEU-850` (this package's stand-in for it
-  is `A-36`), and whether a request is made attributable at all is SUB-16's determination. Those two
+  is `A-S3-1`), and whether a request is made attributable at all is SUB-16's determination. Those two
   entries are therefore genuinely **conditional** — both readings written out, with the condition
   that selects between them (§5).
 
@@ -316,7 +316,7 @@ owed: the conditional entry **is** the finished form of the entry, not a placeho
 update. The reasoning, and the two rejected alternatives, are in `DR-C11-S3-2`.
 
 Whether `NEU-850`'s *"every core table"* even ranges over these two is `OI-S5-1`, owned by `NEU-850`
-and not this package's to decide; the reading this package adopted is `A-36` in
+and not this package's to decide; the reading this package adopted is `A-S3-1` in
 `95_stand-in-assumption-register.md`.
 
 ### `LD-S3-16` — MCP request log
@@ -688,9 +688,12 @@ edits neither; the charter forbids a source change and this sub-task is research
   OUT-9 as their owning outcome, by their **position in the charter's own table**.
 - **Open items:** `OI-S3-1` (`93_open-items-and-provisional-register.md`) — one item, one question.
 - **Caps:** `CAP-S3-1` (`94_caps-and-incomplete-scope.md`).
-- **Stand-ins:** **`A-36`** (`95_stand-in-assumption-register.md`) — the stand-in for **charter
-  assumption 36**, which is `OI-S5-1`'s reading. The number is 36 because `A-<n>` continues the
-  charter's own assumption numbering, not because it follows `A-34`.
+- **Stand-ins:** **`A-S3-1`** (`95_stand-in-assumption-register.md`) — the stand-in for **charter
+  assumption 36**, which is `OI-S5-1`'s reading. The id is **sub-task-scoped**, following the scheme
+  `decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md` records: a charter-continued
+  `A-<n>` is not collision-safe while sub-tasks run concurrently, because two of them computing "the
+  next charter assumption number" independently would land two rows on one id. What the entry stands
+  in for is stated in its prose rather than encoded in its number.
 - **Outcomes:** OUT-9's row (`90_outcome-register.md`).
 - **Completeness-gate rows:** `G-16` … `G-25` (`97_package-completeness-gate.md`), SUB-3's own only.
 - **Decision records:** `DR-C11-S3-1`, `DR-C11-S3-2`, `DR-C11-S3-3`.
@@ -715,7 +718,7 @@ that sub-tasks running concurrently cannot collide with them.
 - It does not determine whether a logged request is attributable to a learner (SUB-16, OUT-15). It
   supplies both readings and the condition; it selects neither.
 - It does not decide whether `NEU-850`'s *"every core table"* covers the two port-less log tables
-  (`OI-S5-1`, owner `NEU-850`). It states the reading it assumed, as `A-36`.
+  (`OI-S5-1`, owner `NEU-850`). It states the reading it assumed, as `A-S3-1`.
 - It makes **no legal determination**: not controller/processor role, not lawful-basis selection, not
   cross-border transfer. The first two are `OI-S3-1`; the third is SUB-8's own separate open item at
   position 10, and is deliberately not raised here.

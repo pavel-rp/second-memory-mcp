@@ -35,7 +35,7 @@ once that column lands"* as a transition, and the cause is named.
 
 For these two, three separate questions are open at once and none is this package's to answer:
 whether `NEU-850`'s *"every core table"* even ranges over them is `OI-S5-1`, owned by `NEU-850`
-(carried here as the stand-in `A-36`); whether a request is made attributable at all is SUB-16's
+(carried here as the stand-in `A-S3-1`); whether a request is made attributable at all is SUB-16's
 determination under OUT-15; and whether their production rows contain learner content is `OI-S1-5` /
 `OI-S1-6`, owned and unclosed. A single classification would have to pick an answer to the first two.
 
@@ -57,7 +57,7 @@ while learner data survives in a copy nobody owns"*.
 | 1 | **Classify them as `unattributed learner content` only** — the accurate-today reading. | Accurate and silently wrong-shaped. It presents a snapshot as a settled classification, and a reader designing erasure against it would conclude no per-learner duty can attach — which is true today and may be false the moment SUB-16 reports. It quietly assumes the answer to a question SUB-16 owns, and it is the reading that would force a back-edge revision of this chapter later, breaking the rule other outcomes rest on. |
 | 2 | **Classify them as `learner-linked` pre-emptively**, on the grounds that they obviously contain learner content. | Overstates what the schema supports. Neither table has any principal column — `mcp_request_log.session_id` is the MCP *transport* session id, not an identity, and `operation_event_log` has nothing at all. Asserting a link the data cannot make is exactly the overstatement `R10` is registered against, and it would make SUB-16's determination look like a formality confirming a decision already taken. |
 | 3 | **Leave the status blank pending SUB-16** and mark the entries provisional. | An entry with no reading is not an entry. It leaves a blank for SUB-14 to fill — which the register conventions forbid outright — and creates precisely the back-edge dependency the no-revision rule exists to prevent. It would also mean the two most exposed categories in the inventory carry the least information. |
-| 4 | **Raise a C011 open item for the attribution question**, alongside the two readings. | It already has records: `OI-S5-1` (owned by `NEU-850`) for the scope question and OUT-15 (SUB-16) for the determination. A third record would be a second id for a question already owned, which is the failure the one-question-one-id contract is written against and which SUB-14's cross-register check cannot catch. The stand-in `A-36` carries the assumption; nothing more is needed. |
+| 4 | **Raise a C011 open item for the attribution question**, alongside the two readings. | It already has records: `OI-S5-1` (owned by `NEU-850`) for the scope question and OUT-15 (SUB-16) for the determination. A third record would be a second id for a question already owned, which is the failure the one-question-one-id contract is written against and which SUB-14's cross-register check cannot catch. The stand-in `A-S3-1` carries the assumption; nothing more is needed. |
 | 5 | **Split each table into two entries**, one per reading. | Doubles the entry count for two tables and breaks *"every category appears exactly once"* — the criterion this inventory is judged against. The readings are two values of one field, not two categories. |
 
 ## Consequences
@@ -71,7 +71,7 @@ while learner data survives in a copy nobody owns"*.
    mechanical count of *"categories that are personal data"* over this inventory must handle a
    two-valued cell. The chapter states the condition once, in one place, so such a count has exactly
    one thing to resolve.
-5. `A-36`'s **invalidating outcome** is bound to this record: if `NEU-850` excludes both tables and no
+5. `A-S3-1`'s **invalidating outcome** is bound to this record: if `NEU-850` excludes both tables and no
    other obligation reaches them, the attributed reading becomes unreachable rather than undetermined,
    and SUB-9 is left with two matrix cells it cannot resolve to an action — which OUT-12 forbids.
 
@@ -88,14 +88,14 @@ while learner data survives in a copy nobody owns"*.
 | `operation_event_log` is indefinitely retained; `mcp_request_log` has a 30-day delete script | `scripts/retention-cleanup.sql` (covers `mcp_request_log` only); `src/orchestration/topic-workflows.ts:585` and `src/orchestration/chunk-workflows.ts:161` both describe the event log as *"indefinitely-retained"* |
 | Rationales may quote learner content verbatim, capped at 256 chars | `src/orchestration/topic-workflows.ts:585`; `src/orchestration/chunk-workflows.ts:161` |
 | Whether the two tables hold learner content **in production** is unobserved | `../93_open-items-and-provisional-register.md` § `OI-S1-5`, `OI-S1-6`; `../94_caps-and-incomplete-scope.md` § `CAP-S1-1` |
-| Whether *"every core table"* covers them is `NEU-850`'s to decide | Charter assumption 36; `../95_stand-in-assumption-register.md` § `A-36` |
+| Whether *"every core table"* covers them is `NEU-850`'s to decide | Charter assumption 36; `../95_stand-in-assumption-register.md` § `A-S3-1` |
 
 ## Revision trigger
 
 - **SUB-16 (OUT-15) reports its attribution determination** — the condition resolves, one reading is
   selected for each table, and both entries' status collapses to a single value.
 - **`OI-S5-1` closes** — `NEU-850` states whether *"every core table"* ranges over these two, which
-  fires `A-36`'s re-validation trigger and may fire its invalidating outcome.
+  fires `A-S3-1`'s re-validation trigger and may fire its invalidating outcome.
 - **A principal column is added to either table** by any route, scheduled or otherwise, which
   satisfies the stated condition directly.
 - **`OI-S1-5` or `OI-S1-6` closes** with an observation that a table holds **no** learner-derived

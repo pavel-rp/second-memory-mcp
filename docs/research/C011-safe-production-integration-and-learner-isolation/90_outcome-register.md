@@ -129,7 +129,7 @@ recorded exclusion), §9 (the consent seam), §10 (the bidirectional cross-check
 method and its falsifier), §12 (the purpose-limitation review);
 `91_findings-register.md` (`F-S3-1` … `F-S3-4`); `92_risk-register.md` (`R10`, `R12`);
 `93_open-items-and-provisional-register.md` (`OI-S3-1`); `94_caps-and-incomplete-scope.md`
-(`CAP-S3-1`); `95_stand-in-assumption-register.md` (`A-36`);
+(`CAP-S3-1`); `95_stand-in-assumption-register.md` (`A-S3-1`);
 `decision-records/DR-C11-S3-1_learner-data-classification-scheme.md`,
 `decision-records/DR-C11-S3-2_conditional-log-table-classification.md`,
 `decision-records/DR-C11-S3-3_package-own-copies-and-the-derivation-test.md`;

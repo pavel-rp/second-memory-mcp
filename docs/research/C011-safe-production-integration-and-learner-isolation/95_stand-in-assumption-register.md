@@ -121,7 +121,7 @@ rather than a gap.
 
 ### SUB-3
 
-## `A-36` — The two raw-SQL log tables are in scope for `NEU-850`'s "every core table"
+## `A-S3-1` — The two raw-SQL log tables are in scope for `NEU-850`'s "every core table"
 
 **Status:** `[unconfirmed]`
 **Stands in for:** **`OI-S5-1`**, owned by **`NEU-850`** and recorded in C010 — the question of
@@ -129,10 +129,21 @@ whether `NEU-850`'s *"every core table"* ranges over the two port-less log table
 open item of its own** for this question: it is another party's record, consumed by citation, and
 this entry is the assumption the design provisionally rests on while it is open.
 
-**Why this entry is `A-36` and not `A-35`.** `A-<n>` continues **the charter's own assumption
-numbering**, so the number is fixed by which charter assumption the stand-in stands in for — this is
-charter assumption **36**. It is not the next integer after SUB-1's `A-34`. Charter assumption 35 —
-the human-`sub` shape — is **SUB-2's** entry to author, not this sub-task's, and `A-35` is left for it.
+**Why this entry is `A-S3-1` and not a charter-continued `A-<n>`.** The id is **sub-task-scoped**,
+matching the scheme SUB-15 adopted and recorded in
+`decision-records/DR-C11-S15-3_non-charter-register-id-scheme.md`. The charter-continued scheme —
+where `A-<n>` names the charter assumption the stand-in stands in for — **is not safe under
+concurrency**: several sub-tasks run at once, each would compute "the next charter assumption
+number" independently, and because register conflicts resolve by keeping **both** sides, two
+sub-tasks picking the same number would land two rows sharing one id. A sub-task-scoped id cannot
+collide, because `S3` is this sub-task's alone.
+
+**What this entry stands in for is unchanged and is stated rather than encoded in the number:** it is
+the stand-in for **charter assumption 36**, whose subject is `OI-S5-1`'s reading. Recording that in
+prose rather than in the id is the whole point of the change — the number no longer has to carry it.
+
+`A-33` and `A-34` keep the charter-continued form SUB-1 gave them; **reconciling the two schemes is
+SUB-14's** assembly job at position 15, and this sub-task renumbers nothing of anyone else's.
 
 **Assumption:** *"The two raw-SQL log tables are in scope for `NEU-850`'s 'every core table'.
 Unverified: C010 routed exactly this question to `NEU-850` as `OI-S5-1` and it is not this package's
@@ -175,12 +186,12 @@ reading landed.
 
 ---
 
-**SUB-3 register totals at revision 1:** one stand-in entry, `A-36`, carrying a named owner
+**SUB-3 register totals at revision 1:** one stand-in entry, `A-S3-1`, carrying a named owner
 (`NEU-850`), a tolerance envelope, an invalidating outcome and an observable re-validation trigger.
 **No field is left blank for SUB-14 to fill.**
 
-SUB-3 authors **only** this one. `A-35` is **SUB-2's**, and its absence here is correct rather than a
-gap.
+SUB-3 authors **only** this one. The residual human-`sub` shape (charter assumption 35) is **SUB-2's**
+entry to author under its own sub-task-scoped id, and its absence here is correct rather than a gap.
 ### SUB-15
 
 **Id shape in this section, and what SUB-15 does not renumber.** The two entries below are stand-ins
